@@ -1,0 +1,508 @@
+---
+description: Create a step-by-step implementation plan for a user request before starting to code. Use when starting a new complex feature, refactoring, or when the user explicitly asks for a plan.
+argument-hint: [ description of the feature or task to plan ]
+---
+
+# Plan Task
+
+When the user asks you to plan a task, create a step-by-step implementation plan in a file before starting your work.
+
+> **Architecture Contract:** this framework requires the module to follow clean/hexagonal architecture — a
+> dependency-free domain layer; an application layer of usecases implementing inbound ports and depending only on
+> outbound ports; and adapters implementing the outbound ports and driving the inbound ones. The module's
+> conventions file maps these abstract layers onto its concrete packages/folders. If a module does not follow this
+> architecture, the skill's phase structure does not apply.
+
+## 1. Create a Plan File
+
+All plans live in the repository-root `docs/` folder, regardless of whether the task touches one module or several.
+
+Create a Markdown file in the repository-root `docs/` folder named `<plan-number>-plan-<task-name>.md`. For example,
+`1-plan-add-auth.md`.
+
+> **Numbering rule:** `<plan-number>` is one more than the highest number already in use, scanning filenames
+> matching `<number>-plan-*.md` in **both** `docs/` and `docs/implemented/` — archiving a plan does not free its
+> number for reuse. If neither directory has a matching file, start at 1.
+
+> **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move the file from
+> `docs/` into `docs/implemented/`. Active (in-progress) plans live in `docs/`; completed ones live in
+> `docs/implemented/`.
+> Never archive a plan just because one section is complete; archive it only when there are no unchecked `- [ ]` items
+> anywhere in the file.
+
+## 2. Read Module Conventions
+
+After determining the **Affected Modules**, read `<module>/docs/conventions.md` for **every** affected module before
+generating the plan's layer sections. Also read the repo-root `docs/conventions.md` if it exists — it holds
+conventions shared by all modules; a module's own file overrides/extends it.
+
+The conventions file tells the skill the module's tech stack and test tooling, its layer → test-type mapping,
+naming conventions, file locations, and inbound adapter types.
+
+If a module has no conventions file: use generic defaults, and add an entry under **Open Questions / Blockers** in
+the generated plan asking the user to create one from the template at `.claude/templates/conventions-template.md`.
+Never fail and never silently guess module conventions.
+
+## 3. Plan Structure
+
+The plan file MUST contain the following sections:
+
+### Affected Modules
+
+A single line at the very top of the plan (immediately after the title) listing every module/service the task
+touches, e.g.:
+
+```
+**Affected Modules:** `module-a`, `module-b`
+```
+
+List only the top-level modules whose code, config, or migrations change as part of this plan (e.g. a monorepo
+service directory). If the task touches only one module, list that single module — do not omit this property.
+
+### Objective
+
+A short, clear summary of what needs to be achieved in this task.
+
+### Proposed Solution
+
+A high-level description of the architectural or implementation changes.
+If the solution involves a database migration, include the migration content in the module's migration format (see
+conventions file).
+If the solution involves API contract changes, include the endpoint and schema changes.
+
+Make sure to include the actual file names.
+
+#### Diagrams
+
+Optional — include only when the plan introduces new classes/flows worth visualizing; a one-line stub change does
+not need one. Generate both diagrams yourself as part of writing this plan. 
+Diagrams live in the plan file itself as fenced ` ```plantuml ` code blocks; there is no separate artifact.
+
+- **Component diagram (C4 model, Component level)** — the new/changed classes grouped by architectural layer as
+  `Container_Boundary` groups: **domain**, **application**, and adapters split into two separate boundaries —
+  **adapter (inbound)** (driving adapters: REST controllers, messaging handlers, cron triggers) and **adapter
+  (outbound)** (adapters implementing outbound ports: persistence, outbound HTTP clients) — rather than one combined
+  adapter group, since the inbound/outbound direction is exactly what the Architecture Contract distinguishes.
+  Use `Component(...)` entries and `Rel(...)` relationships to show dependencies between them. Include PlantUML's
+  bundled C4-PlantUML standard library with
+  `!include <C4/C4_Component>` (angle brackets, no `.puml` extension — this resolves against PlantUML's own bundled
+  stdlib, so it needs neither a network fetch nor a relative file path). If a renderer's PlantUML version is too old
+  to have the C4 stdlib bundled, fall back to
+  `!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml`. See
+  `.claude/templates/example-plan.md` for the exact working syntax. Doubles as a manual pre-check of the Architecture
+  Contract before the module's real architecture-enforcement test ever runs.
+- **Sequence diagram** — the flow from the inbound adapter through the usecase to the outbound port(s). Use
+  `alt`/`else`/`end` combined fragments to show alternative branches (e.g. a validation failure, a not-found case, an
+  outbound call erroring) alongside the happy path — not just a single straight-line flow.
+
+### Step-by-Step Implementation Map (To-Do List)
+
+A checklist of actionable, sequential steps required to complete the task. Use Markdown checkboxes for this list.
+
+The map is organized into **four major groups**, each a `### <Group>` heading directly under this section, in this
+fixed order — use only the groups the task actually needs:
+
+1. **Stabilization** — every pre-TDD artifact and prep step: contract-defining artifacts (API schema, CLI
+   interface, message schema — whatever the module's conventions file defines), database changes,
+   interface/signature sync, configuration, and shared test infrastructure. Always first; nothing in Red Phase can
+   start before it.
+2. **Red Phase** — RED-phase TDD steps across all three test layers. Tests compile and are expected to fail at
+   runtime; no production implementation happens here.
+3. **Green Phase** — GREEN-phase TDD steps across all three test layers, implemented against Red Phase's tests,
+   unit and integration before system.
+4. **Post-Implementation Steps** — steps that only make sense once the feature is fully implemented and green
+   (e.g. updating manual `.http` request files). Always last.
+
+Within each group, its sections appear as `#### <Section>` headings, in the fixed order listed below for that
+group — use only the sections that apply:
+
+#### Stabilization
+
+- **API Contract** — API schema and path changes, in the module's schema format and location (see conventions
+  file); first within this group when contract changes are involved
+- **Database** — migrations, schema changes, in the module's migration format (see conventions file). Contract
+  artifacts — the API schema and migrations — are created entirely in these two sections: red-phase tests must fail
+  on assertions, never on a missing table or schema constraint, and TDD step agents never create or edit contract
+  artifacts (a gap found later is a blocker back to the plan)
+- **Interface-First / Build Stabilization** — update interfaces/signatures first, add temporary stubs for new
+  methods, add/update configuration, add or extend shared test infrastructure the upcoming Red Phase steps will
+  need, and resolve build errors (compile/type-check per the module's stack) before implementing full logic.
+  Always present and always last within this group. Its own checklist items group under the following labeled
+  sub-groups (bold labels, not headings), in this order — include only the sub-groups the task actually needs, omit
+  one entirely rather than leaving it empty:
+
+  **Interface & Signature Sync**
+
+    - sync all affected API/interface contracts and method signatures,
+    - for **new** methods/fields: generate temporary stub implementations — each stub body MUST contain a short
+      inline comment describing what the method is supposed to do (implementation intent). Use this when a
+      documentation comment alone does not capture the implementation detail (see the worked example in
+      `.claude/templates/example-plan.md`).
+    - for **existing** methods whose signature changes (e.g., return type): keep all existing logic intact, add a
+      `TODO` comment at the insertion point describing what needs to be implemented there, and add the minimal
+      return/change needed to get back to build-green. Do NOT replace or stub out existing functionality.
+    - update immediate call sites and get the project back to build-green state before full logic implementation.
+
+  **Configuration**
+
+    - add or update any configuration this task's design requires — e.g. an outbound HTTP client's base URL, a
+      schedule expression, a connection-pool setting, a new environment variable/property and its default. Config
+      belongs here, not inside a step agent's scope, for the same reason contract artifacts do: a red-phase test
+      should fail on an assertion, never on a missing property a step agent had to invent on the fly.
+
+  **Shared Test Infrastructure**
+
+    - add or extend any test fixture, builder, or base-class capability more than one upcoming Red Phase step will
+      need. Every red-phase step agent is scoped to add "no shared fixtures beyond what this step needs" precisely
+      so shared test infrastructure has exactly one owner and gets written once — list it here instead of leaving
+      two parallel steps to duplicate it or block on each other waiting for it to exist.
+
+  Close with:
+
+    - after stabilization, confirm the module's architecture-enforcement test (per conventions file, if the module
+      has one) still passes.
+
+#### Red Phase
+
+- **TDD Unit Red Phase** — write meaningful unit tests that build for classes the module's conventions file maps to
+  the unit layer; tests are expected to fail at this stage (stubs return null/defaults); no production
+  implementation yet
+- **TDD Integration Red Phase** — write meaningful integration tests that build for adapter classes on **both
+  sides of the hexagon**, per the conventions file's integration layer mapping: outbound adapters against real
+  infrastructure as defined there (e.g. a containerized database, an HTTP stub server), and inbound adapters (e.g.
+  REST controllers) through the framework's slice-test mechanism with their inbound ports mocked; same RED-phase
+  rules apply — no production implementation yet
+- **TDD System Test Red Phase** — write a thin set of end-to-end system tests that build, entering through an
+  inbound port the way production does: via HTTP using the module's API-level test client (per conventions file),
+  or, when there is no HTTP layer, by making the framework fire the entry point itself (e.g. a test-configured
+  schedule for a cron trigger, a message published to the test broker for a listener) — never by calling the
+  inbound-port method directly; scope is what only the fully wired stack can prove — per entry point, one happy path and a
+  representative error path originating below the inbound adapter (validation matrices belong to the inbound
+  adapter's integration step); tests are expected to fail at runtime until the full stack is implemented — no
+  production implementation yet
+
+#### Green Phase
+
+- **TDD Unit Green Phase** — implement the production logic for each class from `TDD Unit Red Phase`, one class per
+  step, until its unit tests pass
+- **TDD Integration Green Phase** — implement the adapter logic for each class from `TDD Integration Red Phase`, one
+  class per step, until its integration tests pass; for an inbound-adapter step this implements only the adapter
+  itself (binding, mapping, validation wiring, error mapping) — the usecase behind it is a unit-phase target
+- **TDD System Test Green Phase** — run each system test class from `TDD System Test Red Phase` and confirm all
+  tests pass; fix implementation bugs in any layer (never the tests) until the full test class is green — inbound
+  adapters covered by an Integration Phase step are already implemented there; an entry point without one (e.g. a
+  framework-fired trigger) is wired here
+
+#### Post-Implementation Steps
+
+- **Manual Request Files** — manual request files (e.g. `.http`), only if the module's conventions file lists this
+  as a convention
+
+### Test Layer Mapping
+
+- **Unit** — classes the module's conventions file maps to the unit layer (e.g. domain entities/value objects and
+  usecase implementations of inbound ports, as mapped in the module's conventions file). Outbound ports are
+  faked/mocked; no real infrastructure, no application-framework context.
+- **Integration** — adapter classes on **both sides of the hexagon**, each tested in isolation:
+    - *Outbound adapters* (persistence, outbound HTTP clients): the test instantiates/wires only the adapter under
+      test and calls **only that adapter's own public methods** directly — never through a usecase, a port
+      default, or the full application context. Use real infrastructure as defined in the module's conventions
+      file (e.g. a containerized database for persistence adapters, an HTTP stub server for outbound HTTP
+      adapters).
+    - *Inbound adapters* (e.g. REST controllers): the test boots only the framework's **slice** for the adapter
+      under test (per the conventions file's slice-test mechanism) and **mocks the inbound port / usecase beans**
+      it delegates to. It enters through the protocol (e.g. HTTP requests via the slice test client), never by
+      calling the adapter's methods directly — validation, request binding, and error mapping live in the
+      framework machinery, not in the method body. No real infrastructure and no real usecases. This is where the
+      endpoint's request-validation matrix, binding/mapping, and status-code contract are tested.
+- **System** — the full wired application (all real adapters, real infrastructure), entered through an **inbound
+  port** the way production enters it: either via HTTP (using the module's API-level test client per conventions
+  file, against the HTTP inbound adapter), or, when there is no HTTP layer, by making the framework fire the entry
+  point itself — e.g. a test-configured schedule for a cron trigger, or a message published to the test broker for
+  a listener — and awaiting the observable outcome. Never by calling the inbound-port method directly: the trigger
+  wiring (the schedule, the queue binding) is production behaviour too, and a direct call would bypass exactly what
+  the system test exists to prove. Both forms exercise the same wiring end-to-end — only the entry point differs. System tests are a **thin slice** keeping what only the fully wired application can prove: per entry
+  point, one end-to-end happy path, a representative error path originating below the inbound adapter, and any
+  cross-cutting wiring concern (bean graph, serialization config, transactions). Field-validation matrices and the
+  inbound adapter's own request/response handling belong to the adapter's integration test, not here.
+
+### TDD Unit Red Phase Step Format
+
+Each item in the `TDD Unit Red Phase` section MUST follow this exact format:
+
+```
+- [ ] `<TargetClass>` · test: `<TestClass>` · covers: `method1()`, `method2()`
+  - `method1()`:
+    - given: [precondition]
+      when: [action]
+      then: [expected outcome]
+    - given: [other precondition]
+      when: [action]
+      then: [other expected outcome]
+  - `method2()`:
+    - given: [precondition]
+      when: [action]
+      then: [expected outcome]
+```
+
+- `<TargetClass>` — a class the module's conventions file maps to the unit layer (e.g. a domain entity, value
+  object, or domain service, or a usecase class implementing an inbound port) (simple class name)
+- `<TestClass>` — the corresponding test class (simple class name)
+- `covers:` — comma-separated list of method signatures to implement and test in this step
+- Sub-bullets — one `given / when / then` scenario per test case; each block describes one test the sub-agent must
+  write;
+  the sub-agent derives the method name from the scenario following project naming conventions
+
+Each step represents the **RED phase** of TDD: write meaningful tests that build for the listed methods.
+The tests are expected to **fail at runtime** (stubs return null/defaults from the stabilization phase) — this is
+intentional.
+**No production implementation is done in this section.** Implementation happens in a separate phase after all tests are
+written.
+Steps are intentionally small and focused — one class, one concern.
+Usecase tests fake/mock the outbound ports they depend on — they never touch real infrastructure; that belongs to the
+Integration phase.
+
+**Coverage balance rule:** Before listing scenarios, review the existing tests in `<TestClass>` to understand what is
+already covered. Only list scenarios that add **new** coverage. Do NOT list scenarios that are already covered by
+existing tests — even if they are related to the changed code. The goal is a well-balanced, non-redundant test suite,
+not a mechanical one-test-per-plan-bullet mapping. If existing tests already cover a scenario adequately, omit it from
+the plan.
+
+**Existing-test updates rule:** The same review cuts the other way: when the change alters behaviour an existing test
+already covers — a new field the test's assertions would now omit, or a grown enum/case set that an exhaustive
+parameterized test iterates — list the required change as an explicit `update:` sub-bullet under the affected method:
+
+```
+- update: `existingTestMethod()` — [what to add or change, e.g. assert the new `status` field]
+```
+
+The step sub-agent implements exactly the scenarios and `update:` bullets listed; it never decides on its own which
+existing tests to touch. An update missing here is a plan defect, caught by the sub-agent's report or the plan review
+— not the sub-agent's call to fix.
+
+**Exclusion — simple delegation**: Do NOT add a class to this section if every method under test is a simple
+delegation (e.g., a one-line usecase method that only calls an outbound port with no logic of its own — no
+conditionals, no transformations, no error handling). Such trivial pass-through changes belong in the
+**Interface-First / Build Stabilization** section instead.
+
+### TDD Integration Red Phase Step Format
+
+Items in this section cover adapters on **both sides of the hexagon** and come in two variants. Each item MUST
+follow its variant's exact format.
+
+**Outbound adapter steps** (persistence, outbound HTTP clients — real infrastructure):
+
+```
+- [ ] `<AdapterImplClass>` · test: `<AdapterTestClass>` · covers: `method1()`, `method2()`
+  - `method1()`:
+    - given: [precondition]
+      when: [action]
+      then: [expected outcome]
+    - given: [other precondition]
+      when: [action]
+      then: [other expected outcome]
+  - `method2()`:
+    - given: [precondition]
+      when: [action]
+      then: [expected outcome]
+```
+
+- `<AdapterImplClass>` — the adapter implementation class per the conventions file's integration layer mapping
+  (e.g., `WidgetRepositoryAdapter`, `ExternalApiAdapter`)
+- `<AdapterTestClass>` — the corresponding integration test class (e.g., `WidgetRepositoryAdapterTest`)
+- `covers:` — comma-separated list of adapter method signatures to test in this step
+- Sub-bullets — one `given / when / then` scenario per test case; each block describes one test the sub-agent must
+  write;
+  the sub-agent derives the method name from the scenario following project naming conventions
+
+Each outbound step is the **RED phase** for integration tests: write tests that build and exercise real
+infrastructure as defined in the module's conventions file (e.g. a containerized database, an HTTP stub server),
+calling **only the adapter under test's own public methods** — never through a usecase, a port default method, or
+the full application context.
+
+Tests are expected to **fail at runtime** because adapter implementations are still stubs — this is intentional.
+**No adapter implementation is done in this section.**
+
+**Inbound adapter steps** (e.g. REST controllers — framework slice, mocked ports):
+
+```
+- [ ] `<InboundAdapterClass>` · test: `<AdapterTestClass>` · covers: `<entry point>` · mocks: `<InboundPort>`
+  - Happy Path:
+    - given: [mocked port behaviour]
+      when: [request with a valid payload]
+      then: [expected call on the mocked port and expected success response]
+  - Error Mapping:
+    - given: [the mocked port throws or returns an error]
+      when: [request]
+      then: [expected error status and response body]
+  - Validation: `<fieldName>` — [list of constraint violations to cover]
+```
+
+- `<InboundAdapterClass>` — the inbound adapter class (e.g., `WidgetController`)
+- `<AdapterTestClass>` — the corresponding slice test class
+- `covers:` — the entry point the adapter exposes (e.g., `POST /widgets`)
+- `mocks:` — the inbound port(s)/usecase(s) the adapter delegates to, mocked in the slice
+- Sub-bullets — one scenario per group (Happy Path, Error Mapping, Validation); how groups are realized in test
+  code and their names follow the module's conventions file
+
+Each inbound step boots only the framework's slice for the adapter under test (per the conventions file's
+slice-test mechanism), mocks the listed inbound ports, and enters through the protocol (e.g. HTTP requests via the
+slice test client) — never by calling the adapter's methods directly, since validation, request binding, and error
+mapping live in the framework machinery, not in the method body. No real infrastructure and no real usecases.
+Validation constraints come from the module's API schema, not from guesses. This step owns the endpoint's
+request-validation matrix and status-code contract; they are not repeated at system level. The same RED-phase rules
+apply.
+
+**Coverage balance rule:** Before listing scenarios, review the existing tests in `<AdapterTestClass>` to understand
+what is already covered. Only list scenarios that add **new** coverage. Do NOT list scenarios already covered by
+existing tests. The goal is a well-balanced, non-redundant test suite, not a mechanical one-test-per-plan-bullet
+mapping. If existing tests already cover a scenario adequately, omit it from the plan.
+
+**Existing-test updates rule:** as in the Unit Red Phase — when the change alters behaviour an existing integration
+test already covers, list the required change as an explicit `update:` sub-bullet under the affected method; the step
+sub-agent implements only what is listed.
+
+### TDD Unit Green Phase Step Format
+
+Each item in the `TDD Unit Green Phase` section MUST correspond 1-to-1 with an item from `TDD Unit Red Phase` and MUST
+follow this exact format:
+
+```
+- [ ] `<TargetClass>` · test: `<TestClass>` · after: `<Class>`, `<Class>`
+```
+
+- `<TargetClass>` — the production class to implement (same class as in the Red Phase step)
+- `<TestClass>` — the test class whose tests must be green after this step
+- `after:` (optional) — other green-phase target classes whose implementation this step's tests exercise as
+  **real, unmocked collaborators** (e.g. a domain entity or value object the usecase's tests use directly while
+  its methods are stubs owned by another unit step). The orchestrator will not start this step before those steps
+  are done. Emit `after:` only for real dependencies — mocked collaborators never create one.
+
+One step = one class. The step is complete when all tests in `<TestClass>` pass.
+
+### TDD Integration Green Phase Step Format
+
+Each item in the `TDD Integration Green Phase` section MUST correspond 1-to-1 with an item from
+`TDD Integration Red Phase` and MUST follow this exact format:
+
+```
+- [ ] `<AdapterImplClass>` · test: `<AdapterTestClass>` · after: `<Class>`, `<Class>`
+```
+
+- `<AdapterImplClass>` — the adapter implementation class to implement (same class as in the Integration Red Phase step)
+- `<AdapterTestClass>` — the integration test class whose tests must be green after this step
+- `after:` (optional) — other green-phase target classes (typically unit-phase ones) on the adapter's real
+  execution path — integration tests mock nothing, so an unmocked mapper or domain object implemented by another
+  green step is a real dependency. Same rule as the unit format: only real, unmocked collaborators, never mocked
+  ones.
+
+One step = one adapter class (either variant — an outbound adapter or an inbound one; for inbound steps the
+`covers:`/`mocks:` parts mirror the Red Phase step). The step is complete when all tests in `<AdapterTestClass>`
+pass. For an inbound-adapter step, implement only the adapter itself — request binding, mapping, validation
+wiring, error mapping — never the usecase behind it; that is a unit-phase target with its own green step.
+
+### TDD System Test Red Phase Step Format
+
+Each item in the `TDD System Test Red Phase` section MUST follow this exact format:
+
+```
+- [ ] `<SystemTestClass>` · covers: `<entry point>`
+  - Happy Path:
+    - given: [preconditions]
+      when: [request or invocation with valid data]
+      then: [expected outcome]
+  - Unhappy Path:
+    - given: [condition]
+      when: [request or invocation]
+      then: [expected error outcome]
+```
+
+- `<SystemTestClass>` — the system test class to create (e.g., `CreateWidgetTest`, `ExportWidgetsTest`)
+- `covers:` — the entry point under test, in one of two forms:
+    - `<HTTP_METHOD> <path>` — for an inbound HTTP adapter (e.g., `POST /expenses`)
+    - `<InboundPort>.<method>()` — for a framework-fired entry point with no HTTP layer (e.g. a cron/scheduled
+      trigger such as `WidgetReportPort.generateReport()`); the notation only names the entry point — the test
+      makes the framework fire it, it never calls the method itself
+- Sub-bullets — one scenario per group (Happy Path, Unhappy Path); how groups are realized in test code
+  (e.g. nested test classes) and their names follow the module's conventions file; each line describes one test the
+  sub-agent must write
+
+Each step is the **RED phase** for system tests: write tests that build and exercise the fully wired application
+stack with real adapters wired — using the module's API-level test client (per conventions file) for the HTTP form,
+or, for the framework-fired form, inducing the framework's own trigger (per the conventions file's trigger
+mechanism) and awaiting the observable outcome. Tests
+are expected to **fail at runtime** when the implementation is not yet complete — this is intentional.
+**No production implementation is done in this section.**
+
+System steps are a **thin slice** (see Test Layer Mapping): per entry point, one end-to-end happy path and a
+representative error path originating below the inbound adapter. Do not list field-validation scenarios or the
+inbound adapter's own request/response handling here — those belong to the adapter's Integration Red Phase step.
+
+**Coverage balance rule:** Only list scenarios that are not yet covered by an existing system test class or already
+owned by a lower layer (the inbound adapter's integration step owns validation and the status-code contract). Do
+not duplicate coverage that already exists.
+
+**Existing-test updates rule:** as in the Unit Red Phase — when the change alters what an existing system test for the
+same entry point asserts (e.g. a new response field), list the required change as an explicit `update:` sub-bullet
+under the affected scenario group; the step sub-agent implements only what is listed.
+
+### TDD System Test Green Phase Step Format
+
+Each item in the `TDD System Test Green Phase` section MUST correspond 1-to-1 with an item from
+`TDD System Test Red Phase` and MUST follow this exact format:
+
+```
+- [ ] `<SystemTestClass>` · covers: `<entry point>`
+```
+
+- `<SystemTestClass>` — the system test class to verify (same class as in the System Test Red Phase step)
+- `covers:` — the entry point under test, in the same form (`<HTTP_METHOD> <path>` or `<InboundPort>.<method>()`) as
+  the System Test Red Phase step
+
+One step = one system test class. The step is complete when all tests in `<SystemTestClass>` pass.
+Fix implementation bugs in any layer — inbound adapter (REST controller, messaging handler, cron trigger, etc.),
+usecase, or outbound adapter — as needed to make the test pass. **Never modify the test class.**
+
+An inbound adapter that has its own Integration Phase step (e.g. a REST controller) is already implemented by that
+step's green phase before this section starts. An entry point without one (e.g. a framework-fired trigger with no
+protocol-level behaviour of its own) is wired as part of making the corresponding system step pass; do not add a
+separate checklist item or section for it.
+
+See `.claude/templates/example-plan.md` for a complete worked example.
+
+### Open Questions / Blockers
+
+List any questions you need the user to clarify before you can proceed with specific steps, or potential blockers you
+foresee.
+Generate placeholders for the user's answers beneath each open question, for example:
+
+- Q: [Your question here]?
+- A:
+
+### Review Findings
+
+Populated by the `review-plan` subagent invoked in the next step — leave this section as a placeholder while writing
+the rest of the plan. Each finding uses this exact format:
+
+```
+- Finding: [what's wrong or missing, with file/class/scenario reference]
+- Action:
+```
+
+If the review has nothing to report, this section still contains a single "No issues found" statement (or
+equivalent) — its presence must be consistent across every plan, clean or not.
+
+## 4. Invoke the Review Subagent
+
+Once every section in **3. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
+plan file. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
+proceed to **5. Review Only — Do NOT Implement** below.
+
+## 5. Review Only — Do NOT Implement
+
+- Present the generated plan file to the user.
+- **Stop here. Do not implement anything.** Do not write code, create files, or run commands.
+- Wait for the user to explicitly ask you to start implementation before doing any work.
+- Tell the user that implementation will not start while any Open Question lacks an `A:` or any Review Finding
+  lacks an `Action:` — the `implement-plan` skill's plan-readiness gate checks exactly this, so resolving them now
+  saves a blocked run later.

@@ -1,0 +1,306 @@
+# Example Plan — Worked Example
+
+This is a complete worked example of a plan file produced by the `plan-task` skill — in a real repo this file would
+live at `docs/1-plan-add-widget.md` and be moved to `docs/implemented/` once every checkbox is ticked. It is
+illustrated with a Java/Spring-Boot-flavored `Widget` feature purely for concreteness — other stacks adapt the same
+structure (plan sections, section order, step formats, RED/GREEN choreography) using their own tech stack, tools,
+and file formats as recorded in the module's `docs/conventions.md`
+(see `.claude/templates/conventions-template.md`).
+
+---
+
+# Plan: Add Widget Creation
+
+**Affected Modules:** `module-a`
+
+## Objective
+
+Allow API clients to create widgets. A widget has a `name` and a `value`; it is validated, persisted, and returned
+with its generated id.
+
+## Proposed Solution
+
+Add a `POST /widgets` endpoint to the module's API contract (`<api-schema-file>`) with a `CreateWidgetRequest`
+request schema and a `Widget` response schema.
+
+Introduce a `CreateWidgetUseCase` inbound port implemented in the application layer: it validates the command,
+assembles the domain `Widget` via `WidgetAssembler`, and persists it through a new `WidgetRepository` outbound
+port. The port is implemented by `WidgetRepositoryAdapter` in the persistence adapter, backed by a new `widget`
+table created in migration `<migration-file>`:
+
+```sql
+CREATE TABLE widget (
+    id    BIGSERIAL PRIMARY KEY,
+    name  VARCHAR(255) NOT NULL,
+    value VARCHAR(255) NOT NULL
+);
+```
+
+`WidgetController` exposes the endpoint and maps between the REST model and the domain model via `WidgetUtils`.
+
+Files touched: `<api-schema-file>`, `<migration-file>`, `CreateWidgetUseCase`, `WidgetAssembler`,
+`WidgetRepository`, `WidgetRepositoryAdapter`, `WidgetController`, `WidgetUtils`.
+
+#### Diagrams
+
+```plantuml
+@startuml
+' Uses PlantUML's bundled C4-PlantUML stdlib (angle-bracket include — no network fetch, no relative file
+' path, resolved the same way regardless of where this diagram is rendered from). If a renderer's PlantUML
+' version doesn't have the C4 stdlib bundled, fall back to:
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include <C4/C4_Component>
+
+Container_Boundary(domain, "domain") {
+  Component(widget, "Widget", "domain entity")
+  Component(widgetAssembler, "WidgetAssembler", "domain service")
+}
+Container_Boundary(application, "application") {
+  Component(createWidgetUseCase, "CreateWidgetUseCase", "inbound port impl")
+  Component(widgetRepository, "WidgetRepository", "outbound port")
+}
+Container_Boundary(inboundAdapter, "adapter (inbound)") {
+  Component(widgetController, "WidgetController", "REST controller")
+  Component(widgetUtils, "WidgetUtils", "REST mapper")
+}
+Container_Boundary(outboundAdapter, "adapter (outbound)") {
+  Component(widgetRepositoryAdapter, "WidgetRepositoryAdapter", "persistence adapter")
+}
+
+Rel(widgetController, createWidgetUseCase, "calls")
+Rel(widgetController, widgetUtils, "maps via")
+Rel(createWidgetUseCase, widgetAssembler, "uses")
+Rel(createWidgetUseCase, widget, "produces")
+Rel(createWidgetUseCase, widgetRepository, "depends on")
+Rel(widgetRepositoryAdapter, widgetRepository, "implements")
+@enduml
+```
+
+```plantuml
+@startuml
+actor Client
+Client -> WidgetController : POST /widgets
+WidgetController -> CreateWidgetUseCase : createWidget(command)
+
+alt invalid request
+    CreateWidgetUseCase -> CreateWidgetUseCase : validateRequest(command)
+    CreateWidgetUseCase --> WidgetController : IllegalArgumentException
+    WidgetController --> Client : 400 Bad Request
+else unknown parent id
+    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
+    CreateWidgetUseCase -> WidgetRepository : save(widget)
+    WidgetRepository --> CreateWidgetUseCase : ResourceNotFoundException
+    CreateWidgetUseCase --> WidgetController : ResourceNotFoundException
+    WidgetController --> Client : 404 Not Found
+else happy path
+    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
+    CreateWidgetUseCase -> WidgetRepository : save(widget)
+    WidgetRepository --> CreateWidgetUseCase : persisted widget
+    CreateWidgetUseCase --> WidgetController : widget
+    WidgetController --> Client : 200 OK
+end
+@enduml
+```
+
+## Step-by-Step Implementation Map (To-Do List)
+
+### Stabilization
+
+#### API Contract
+
+- [ ] Add `POST /widgets` path to the project's API schema file `<api-schema-file>`:
+  ```yaml
+  /widgets:
+    post:
+      operationId: createWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWidgetRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+  ```
+- [ ] Add `CreateWidgetRequest` schema to `<api-schema-file>`: `name` (string, required, max 255), `value` (string,
+  required, max 255)
+- [ ] Add `Widget` response schema to `<api-schema-file>`: `id` (integer), `name` (string), `value` (string)
+
+#### Database
+
+- [ ] Add migration `<migration-file>` (named per the project's migration tool conventions):
+  ```sql
+  CREATE TABLE widget (
+      id    BIGSERIAL PRIMARY KEY,
+      name  VARCHAR(255) NOT NULL,
+      value VARCHAR(255) NOT NULL
+  );
+  ```
+
+#### Interface-First / Build Stabilization
+
+New-method stubs must carry a short inline comment describing the implementation intent, for example:
+
+```java
+public Settings loadSettings(long userId) {
+    // retrieves language settings and the user's word lists for the given user
+    return null;
+}
+```
+
+**Interface & Signature Sync**
+
+- [ ] Add `createWidget(CreateWidgetCommand command): Widget` to the `CreateWidgetUseCase` inbound port
+- [ ] Add `save(Widget widget): Widget` to the `WidgetRepository` outbound port
+- [ ] Stub `CreateWidgetUseCase.createWidget()`:
+  ```java
+  public Widget createWidget(CreateWidgetCommand command) {
+      // validates the command, assembles a Widget via WidgetAssembler, and persists it via WidgetRepository
+      return null;
+  }
+  ```
+- [ ] Stub `WidgetRepositoryAdapter.save()`:
+  ```java
+  public Widget save(Widget widget) {
+      // maps the domain Widget to a WidgetEntity, persists it, and returns the domain Widget with its generated id
+      return null;
+  }
+  ```
+- [ ] Update `WidgetController.createWidget()` to call `createWidgetUseCase.createWidget(...)` and fix any remaining
+  compile errors until the module builds green
+
+**Shared Test Infrastructure**
+
+- [ ] Add a `WidgetTestDataFactory` (`aWidget()`, `aWidget().withName(...)`) to the module's shared test-fixture
+  location — both `WidgetRepositoryAdapterTest` (Integration Red Phase) and `CreateWidgetTest` (System Test Red
+  Phase) need a valid widget precondition, and neither Red Phase step is scoped to create shared fixtures on its
+  own
+
+### Red Phase
+
+#### TDD Unit Red Phase
+
+- [ ] `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest` · covers: `createWidget()`, `validateRequest()`
+    - `createWidget()`:
+        - given: a valid request
+          when: createWidget() is called
+          then: returns the created widget
+        - given: an invalid request
+          when: createWidget() is called
+          then: throws IllegalArgumentException
+    - `validateRequest()`:
+        - given: a valid request
+          when: validateRequest() is called
+          then: no exception is thrown
+        - given: a null request
+          when: validateRequest() is called
+          then: throws NullPointerException
+- [ ] `WidgetAssembler` · test: `WidgetAssemblerTest` · covers: `assemble()`, `normalize()`
+    - `assemble()`:
+        - given: a list of parts
+          when: assemble() is called
+          then: returns the parts combined into a widget
+        - given: an empty part list
+          when: assemble() is called
+          then: returns an empty widget
+    - `normalize()`:
+        - given: mixed-case input
+          when: normalize() is called
+          then: returns lowercase result
+        - given: input with leading and trailing spaces
+          when: normalize() is called
+          then: returns trimmed result
+- [ ] `WidgetUtils` · test: `WidgetUtilsTest` · covers: `toRest()`
+    - `toRest()`:
+        - given: a fully populated domain object
+          when: toRest() is called
+          then: all fields are mapped correctly
+        - given: a domain object with a null optional field
+          when: toRest() is called
+          then: null is preserved in the response
+
+#### TDD Integration Red Phase
+
+- [ ] `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest` · covers: `findById()`,
+  `save()`
+    - `findById()`:
+        - given: an existing widget
+          when: findById() is called
+          then: returns the widget
+        - given: an unknown widget id
+          when: findById() is called
+          then: throws ResourceNotFoundException
+    - `save()`:
+        - given: a valid widget
+          when: save() is called
+          then: the widget is persisted
+        - given: an unknown parent id
+          when: save() is called
+          then: throws ResourceNotFoundException
+- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetUseCase`
+    - Happy Path:
+        - given: the mocked use case returns a created widget
+          when: request is made with a valid payload
+          then: the use case is called with the mapped command and 200 is returned with the widget response
+    - Error Mapping:
+        - given: the mocked use case throws ResourceNotFoundException
+          when: request is made
+          then: return 404
+    - Validation: `name` — blank, null, exceeds max length
+
+#### TDD System Test Red Phase
+
+- [ ] `CreateWidgetTest` · covers: `POST /widgets`
+    - Happy Path:
+        - given: a valid parent resource
+          when: request is made with a valid payload
+          then: return 200 with the created widget
+    - Unhappy Path:
+        - given: an unknown parent id
+          when: create request is made
+          then: return 404
+
+### Green Phase
+
+#### TDD Unit Green Phase
+
+- [ ] `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest`
+- [ ] `WidgetAssembler` · test: `WidgetAssemblerTest`
+- [ ] `WidgetUtils` · test: `WidgetUtilsTest`
+
+#### TDD Integration Green Phase
+
+- [ ] `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest`
+- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetUseCase` ·
+  after: `WidgetUtils`
+
+#### TDD System Test Green Phase
+
+- [ ] `CreateWidgetTest` · covers: `POST /widgets`
+
+### Post-Implementation Steps
+
+#### Manual Request Files
+
+- [ ] Update `.http` files to reflect the new request shape
+
+## Open Questions / Blockers
+
+- Q: Must widget names be unique, and if so, should a duplicate `POST /widgets` return 409?
+- A:
+
+- Q: `module-a` has no conventions file yet (`module-a/docs/conventions.md` is missing) — please create one from
+  `.claude/templates/conventions-template.md`; this plan assumes generic defaults where conventions were needed.
+- A:
+
+## Review Findings
+
+- Finding: `WidgetRepositoryAdapterTest` has no scenario for a duplicate `name` violating a uniqueness constraint,
+  and the `widget` table defined above declares no unique constraint on `name` — this may be intentional pending the
+  open question above about duplicate names, but is flagged here since the schema currently allows duplicates
+  silently.
+- Action:

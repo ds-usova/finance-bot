@@ -1,0 +1,277 @@
+---
+description: Orchestrate the implementation of an entire plan file end to end — stabilization first (compile + architecture guardrail), then parallel RED-phase subagents (test compiles and fails), then GREEN-phase subagents (unit + integration in dependency-aware parallel waves, system tests last), then a single behavior-preserving REFACTOR-phase subagent over the whole diff, finishing only when the whole module builds and every test passes.
+argument-hint: [ plan file path ] [ optional section name ]
+---
+
+# Implement Plan
+
+Use this skill when the user asks to implement a plan that was just discussed or is referenced by path — e.g.
+"implement this plan", "implement docs/1-plan-add-widget.md". The default scope is the **whole plan**, from
+stabilization through the final system-test implementation. If the user names a single section, run only the stage
+that owns that section (using the same rules for it) and stop there.
+
+## Role: Orchestrator Only
+
+This skill coordinates; it does not write production or test code itself. All implementation work is delegated to
+sub-agents via the **`Agent` tool**. The orchestrator's own jobs are:
+
+- resolving the plan file and reading conventions,
+- spawning sub-agents with the right instructions and step context,
+- running the guardrail verifications between stages,
+- ticking checkboxes in the plan file (**only the orchestrator edits the plan file** — never a sub-agent, since
+  several run concurrently),
+- recording blockers and unrelated failures in `### Open Questions / Blockers`.
+
+## Input Resolution
+
+1. Identify the plan file: use the provided path, else the plan referenced/attached in the conversation, else ask.
+2. Read the plan file in full. The `## Step-by-Step Implementation Map` section nests two levels: four
+   `### <Group>` headings — **Stabilization**, **Red Phase**, **Green Phase**, **Post-Implementation Steps**, in
+   that fixed order — each containing its `#### <Section>` blocks. Collect every `#### <Section>` block, grouped by
+   its parent `### <Group>`, and its unchecked `- [ ]` items. The four groups map directly onto this skill's own
+   stages: Stabilization → Stage 1, Red Phase → Stage 2, Green Phase → Stage 3, Post-Implementation Steps → Stage 5.
+3. Read `<module>/docs/conventions.md` for every module listed in **Affected Modules** (and the repo-root
+   `docs/conventions.md` if present). The conventions file is the source of truth for the build command, the test
+   commands per layer, the architecture-enforcement test, and file locations. Pass the relevant conventions along in
+   every sub-agent prompt — sub-agents must not guess build commands.
+
+## Version Control
+
+Whether this run commits its own progress is a **module convention, not a skill default.** Read the module's
+**Version Control** section (if present) once, alongside the other conventions in step 3 above:
+
+- If it says to commit at stage boundaries, commit after each stage guardrail below passes (Stage 0 baseline does
+  not need its own commit — nothing has changed yet), using the granularity, message format, squash, and branch
+  policy it specifies.
+- If it is silent, missing, or says not to commit: **make no commits.** The orchestrator never invents a commit
+  policy — an uninvited commit is exactly the kind of change a user managing their own history does not want.
+
+Where a stage below says "commit per the Version Control policy," this section is what that means; no further
+instruction is repeated at each stage.
+
+## Plan-Readiness Gate (before Stage 0)
+
+A plan is ready for implementation only when the user has actually closed the loops the planning phase opened.
+Before running anything, check the plan file itself:
+
+- **Open Questions / Blockers**: every `- Q:` has a non-empty `- A:`, and every blocker recorded by a previous
+  (partial) run has a resolution noted. An unanswered question means a step agent downstream will hit exactly the
+  ambiguity the planner already flagged.
+- **Review Findings**: every `- Finding:` has a non-empty `- Action:` (a deliberate "won't fix" or "accepted as
+  is" counts — the point is that the user decided, not that every finding produced a change). A plan whose review
+  found nothing has its single "no issues found" line instead; that passes.
+- If an `Action:` or `A:` prescribes a change to the plan's steps or scenarios, confirm the plan text was actually
+  updated to match — a decision written next to a finding but never applied to the affected step is still
+  unresolved.
+
+This is a **hard gate**: if anything above is unresolved, stop — do not run the baseline and do not change any
+file. List the unresolved items and ask the user to resolve them. If the user resolves them in the conversation,
+record their answers in the plan file (the orchestrator owns plan edits), apply any resulting step changes, and
+only then proceed.
+
+**Review freshness.** The plan's review is only valid for the plan it reviewed. A **material edit** — adding,
+removing, or changing steps, scenarios, or any section content — invalidates it; ticking checkboxes, filling in
+`A:`/`Action:` lines, and recording blockers do not. If the plan was materially edited since its last review
+(the user says so, the edit is visible against the last `Re-review (<date>):` marker, or you just applied a
+material change while resolving gate items), spawn `review-plan` again before proceeding, then re-run this gate —
+new findings need their `Action:` lines like any others. Repeat until a review pass reports no new issues and
+every item above is resolved; in practice this converges in one round. The same rule applies **mid-run**: when a
+blocker forces a material plan change partway through a stage, re-run `review-plan` (and this gate) before
+spawning any agent against the changed steps.
+
+## Stage 0 — Baseline (prerequisite, before any change)
+
+Before touching a single file, run the affected module(s)' full build and entire test suite (including the
+architecture-enforcement test), using the commands from the conventions file. This is a **hard gate**:
+
+- **Everything green** (the expected case): proceed — from here on, any failure is attributable to this plan's
+  changes.
+- **Anything already red**: **stop immediately — do not start any stage and do not change any file.** Report the
+  failures to the user (test name, error, suspected cause) and wait for their decision. Do not attempt to fix the
+  failures yourself; they predate the plan and fixing them is not this plan's scope. Resume only when the user
+  explicitly says how to proceed (typically after the baseline has been made green).
+
+Starting on a red baseline would make it impossible for any later stage to tell whether a failure was caused by
+the plan or was broken all along.
+
+## Stage 1 — Stabilization
+
+Covers the plan's **Stabilization** group — its **API Contract**, **Database**, and **Interface-First / Build
+Stabilization** sections, in that order. Delegate them as one sub-agent task (they are small, sequential, and share
+context), passing the plan's checklist items verbatim plus the module conventions.
+
+**Stabilization guardrail** — verify yourself before ticking the sections and moving on:
+
+1. **Compile-green**: the affected module(s) compile, including test sources.
+2. **Architecture test**: run the module's architecture-enforcement test named in its conventions file and confirm
+   it passes — this catches new or moved files that break the layer rules before any test is written against them.
+3. **Existing suite still green**: run the module's pre-existing test suite. Unless the plan explicitly calls for a
+   breaking change, it must still pass.
+4. **Intent comments present and consistent**: the intent comments inside the stubs are load-bearing — red agents
+   derive their assertions from them and green agents implement against them, so a vague or wrong one poisons every
+   downstream step and surfaces late, as confusing blockers or wrong-behavior implementations. For every stub
+   method that a red-phase step covers (unit or integration — match the plan's `covers:` lists against the stubbed
+   classes), open the stub and confirm its intent comment exists and is consistent with that step's
+   given/when/then scenarios: the described behaviour, the error cases the scenarios expect, nothing contradicting
+   the plan. You have both artifacts in hand — the plan and the stubs — so this is a read-through, not a build
+   step. A missing, vague, or contradicting comment is a stabilization defect: fix it (or re-delegate to the
+   stabilization sub-agent) before Stage 2 spawns a single red agent.
+
+If any check fails for a reason caused by this plan's changes, fix (or re-delegate) until green. If it fails for a
+reason **unrelated to the plan**, apply the [Unrelated Failures](#unrelated-failures--report-dont-fail) rule.
+
+Once the guardrail holds, commit per the Version Control policy.
+
+## Stage 2 — RED Phase (parallel)
+
+Covers the plan's **Red Phase** group — its **TDD Unit Red Phase**, **TDD Integration Red Phase**, and **TDD
+System Test Red Phase** sections. Writing tests has no cross-dependencies — the stubs they compile against all
+exist after Stage 1 — so:
+
+- Spawn **one sub-agent per unchecked checklist item**, across all three red sections. Respect the module
+  conventions' **Parallelism** section: if it sets a max parallel RED-phase sub-agents count, spawn no more than
+  that many at once, launching the next queued item as each running one finishes, until the whole batch is done. If
+  the section is missing or silent, spawn everything at once, uncapped — the step count in the plan is the batch
+  size.
+- Build each prompt from the matching step-agent instructions file, appending the parsed step context (target
+  class, test class, covered methods, and the given/when/then scenarios verbatim) and the module conventions:
+    - unit steps → `.claude/commands/tdd-unit-red-phase-step.md`
+    - integration steps → `.claude/commands/tdd-integration-red-phase-step.md`
+    - system steps → `.claude/commands/tdd-system-red-phase-step.md`
+
+**Per-step guardrail** (the sub-agent verifies; the orchestrator trusts the reports — the stage guardrail below is
+the systematic check): the test class it wrote **compiles cleanly and fails at runtime**. A red test that passes against a stub is as much a defect as one
+that doesn't compile — it means the test asserts nothing — with one exception: tests asserting the *absence* of
+behaviour (e.g. "no exception is thrown") may legitimately pass against a no-op stub, and sub-agents list those as
+expected passes in their reports rather than rework them. Production code must not be touched in this stage.
+
+Tick each item as its sub-agent reports success. If one reports a blocker, leave the item unchecked, record the
+blocker, and let the rest of the batch continue — one failed step does not stop the stage, but the stage is only
+complete when every item is ticked or explicitly recorded as blocked.
+
+**Stage guardrail — RED exit check** (run yourself once every item is ticked or recorded as blocked, before
+Stage 3 starts): run the module's **full test suite** once and compare the results against the sub-agents' reports.
+The suite must fail in **exactly the expected places**:
+
+- every **pre-existing** test still passes — a pre-existing test now failing means a red agent's changes (an
+  `update:` edit gone wrong, a broken shared fixture) caused a regression; fix or re-delegate to the owning step
+  before proceeding;
+- the **failing tests are exactly the new ones** the reports claim fail — a reported-red test that actually passes
+  (and is not listed as a negative-assertion or inbound early-pass expected pass) asserts nothing real; re-delegate
+  it to its step's agent as a defect;
+- the reported **expected passes** pass, and nothing else about the new tests deviates from the reports.
+
+Green agents build directly on this stage's output — a false red report caught here costs one re-delegated step; the
+same defect caught during Stage 3 costs a confused green agent and a plan-level untangling. Do not start Stage 3
+until this check holds for every non-blocked item.
+
+Once the check holds, commit per the Version Control policy.
+
+## Stage 3 — GREEN Phase (unit + integration parallel, system last)
+
+Covers the plan's **Green Phase** group — its **TDD Unit Green Phase**, **TDD Integration Green Phase**, and **TDD
+System Test Green Phase** sections.
+
+Ordering constraint: green steps run in parallel **except where the plan declares a dependency**. A green step
+may carry `after:` naming other green target classes its tests exercise as real, unmocked collaborators (e.g. an
+integration adapter whose execution path runs through a mapper implemented at unit level, or a usecase whose unit
+tests use a real domain entity another unit step implements) — such a step cannot go green before those steps are
+done. **System green depends on everything** (a system test drives the full stack — usecase logic *and* adapters
+must exist), so it starts only after every unit and integration green item is ticked. The final production
+implementation lands here.
+
+1. Take the unchecked items of **TDD Unit Green Phase** and **TDD Integration Green Phase** as one batch and
+   schedule it in **dependency waves**: every item whose `after:` dependencies are all ticked (or that has none) is
+   eligible to spawn; each time a step reports success and its item is ticked, re-evaluate what that unblocks.
+   Never spawn a step while an `after:` dependency of it is unticked. If a dependency step reports a blocker, do not
+   spawn its dependents — record them as blocked by that dependency rather than letting them fail for a confusing
+   downstream reason. Respect the module conventions' **Parallelism** section: if it sets a max parallel
+   GREEN-phase sub-agents per wave, never have more than that many running at once — when eligible items exceed
+   the cap, spawn up to the cap and queue the rest, launching a queued one as soon as a running slot frees up. If
+   the section is missing or silent, spawn every eligible item at once, uncapped. Prompts come from
+   `.claude/commands/tdd-unit-green-phase-step.md` and `.claude/commands/tdd-integration-green-phase-step.md`
+   respectively, plus step context and conventions.
+   - **One class = one sub-agent**: the plan structure normally gives each target class exactly one green item, so
+     no two parallel sub-agents ever edit the same production file. If two items do name the same target class,
+     merge them into a single sub-agent task covering both — never hand the same class to multiple parallel agents.
+2. Wait until every item in the unit + integration batch is ticked or recorded as blocked. Tick items as they
+   succeed; run the module's unit and integration suites once the batch is done and confirm both are fully green
+   before proceeding. Once green, commit per the Version Control policy (if its granularity commits per wave —
+   otherwise this checkpoint is a no-op and the commit happens at stage end).
+3. Only then run the **TDD System Test Green Phase** steps — **sequentially, one sub-agent at a time, in plan
+   order**, using `.claude/commands/tdd-system-green-phase-step.md`. These fix remaining production bugs until the
+   system tests pass; they never modify test classes. System green steps are never parallelized: their fixes may
+   land in any production layer, and two entry points routinely share a usecase or an outbound adapter — parallel
+   agents would race on the same production files. The one-class-one-agent rule only protects steps whose write
+   scope is one class; a system step's write scope is the whole stack. Spawn the next step only after the previous
+   one's report is in and its item is ticked (or its blocker recorded), passing along which production classes
+   earlier system steps already modified.
+
+**Per-step guardrail**: every test in the step's test class passes.
+
+Once every green item (unit, integration, and system) is ticked or recorded as blocked, commit per the Version
+Control policy.
+
+## Stage 4 — Refactor (single sub-agent, whole diff)
+
+The green phases produce correct-but-minimal code, one class at a time; this stage completes the
+red–green–**refactor** cycle by reviewing the plan's whole diff at once. Runs only when every unit, integration,
+and system green item is ticked (blocked items excluded — a partially blocked plan still gets its completed part
+refactored) and the module's full suite is green.
+
+Spawn **one** sub-agent for the entire plan — never in parallel with anything — using
+`.claude/commands/tdd-refactor-phase.md`, and pass it:
+
+- the **diff scope**: every production and test file this plan created or modified, compiled from the plan's step
+  targets plus the file lists in the step agents' reports (and a version-control diff against the pre-plan
+  baseline, if one is available);
+- the plan file path (read-only context);
+- the module conventions, including the **Refactoring Conventions** section — a module without that section is
+  fine (the agent falls back to its defaults plus the style sections); pass whatever style sections exist.
+
+**Stage guardrail** — verify yourself after the agent reports: the full suite is green with the **same test count**
+as before the stage (a changed count means a test was lost or duplicated), and the architecture-enforcement test
+passes (extractions may have created or moved files). This stage changes no behavior and ticks no checkboxes — if
+the agent reports blocker-level findings (a suspected bug the tests missed, an over-specified test), record them
+under `### Open Questions / Blockers`.
+
+Once the guardrail holds, commit per the Version Control policy.
+
+## Stage 5 — Wrap-Up and Whole-Plan Guardrail
+
+1. Implement the plan's **Post-Implementation Steps** group, in section order (e.g. **Manual Request Files**) —
+   small enough to do directly or via one sub-agent.
+2. **Whole-plan guardrail** — run yourself, from the conventions' commands: the module(s) fully compile, the
+   architecture-enforcement test passes, and **the entire test suite is green** — not just the classes this plan
+   touched.
+3. Only when the guardrail holds and **no `- [ ]` remains anywhere in the plan file**, move the plan from `docs/`
+   to `docs/implemented/`. If unchecked items or blockers remain, leave the file in place and summarize what is
+   open.
+4. Commit per the Version Control policy — this is where its **squash-before-archiving** setting applies, if the
+   plan was archived in step 3.
+
+## Unrelated Failures — Report, Don't Fail
+
+The Stage 0 gate guarantees the run starts green, so this rule covers failures that surface **mid-run** yet turn
+out to be **unrelated to this plan** (verify: it reproduces on a code path this plan never touched, or is clearly
+environmental/flaky). In that case:
+
+- do **not** treat it as a stage failure and do **not** abandon the run — continue with the plan's own work;
+- do **not** silently fix it either — unrelated fixes don't belong to this plan's diff;
+- record it under `### Open Questions / Blockers` with enough detail to reproduce (test name, error, suspected
+  cause), and call it out in the final summary.
+
+Ideally this never happens — the codebase is expected to be green at all times — but when it does, the plan's scope
+wins and the bug gets reported, not chased.
+
+## Tick Policy
+
+- Completed and verified in this run → `- [x]`; not done or blocked → keep `- [ ]`.
+- A checkbox with multiple sub-tasks is ticked only when all of them are done.
+- Never tick on a sub-agent's claim alone if the stage guardrail later contradicts it — the guardrail wins.
+
+## Response Style
+
+- Brief, stage-by-stage progress updates: what was spawned, what came back, guardrail results.
+- Final summary: sections completed, test-suite status, blockers and unrelated failures (if any), and whether the
+  plan was archived.
