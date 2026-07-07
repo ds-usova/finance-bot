@@ -1,0 +1,35 @@
+.github/hooks/logs/
+
+# Compiled class file
+HELP.md
+.gradle
+build/
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+# Ignore .env
+/architecture/infrastructure/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+stanza_resources/
