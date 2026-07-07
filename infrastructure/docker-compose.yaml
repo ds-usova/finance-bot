@@ -1,0 +1,36 @@
+name: finance-bot-infrastructure
+
+services:
+  finance-postgres:
+    image: postgres:17.5
+    container_name: finance-bot-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${FINANCE_BOT_DB}
+      POSTGRES_USER: ${FINANCE_BOT_DB_USER}
+      POSTGRES_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - finance-bot-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${FINANCE_BOT_DB_USER} -d ${FINANCE_BOT_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - backend
+
+volumes:
+  finance-bot-postgres:
+    name: finance-bot-postgres
+
+networks:
+  backend:
+    name: finance-bot-backend
+    driver: bridge
