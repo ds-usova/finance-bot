@@ -59,8 +59,13 @@ dependencies {
 
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
     testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
 
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jacoco {
