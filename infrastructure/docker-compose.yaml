@@ -26,6 +26,23 @@ services:
     networks:
       - backend
 
+  ledger-service:
+    build:
+      context: ../ledger-service
+      dockerfile: Dockerfile
+    container_name: finance-bot-ledger-service
+    ports:
+      - "1000:1000"
+    environment:
+      DB_JDBC_URL: jdbc:postgresql://finance-postgres:5432/${FINANCE_BOT_DB}
+      DB_USER: ${FINANCE_BOT_DB_USER}
+      DB_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
+    depends_on:
+      finance-postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
 volumes:
   finance-bot-postgres:
     name: finance-bot-postgres
