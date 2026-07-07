@@ -11,6 +11,25 @@ For C1 (System Context) and C2 (Container),
 see the [root README](../README.md#architecture). C3 below zooms into this
 service specifically.
 
+## Package Structure
+
+Code is organized by Clean Architecture layer, under `bot.finance`:
+
+```
+bot.finance
+├── domain          # enterprise business rules
+│   ├── model       # entities with identity, e.g. Expense, User
+│   ├── value       # value objects
+│   └── exception
+├── application     # application business rules
+│   ├── usecase
+│   ├── port        # inbound/outbound port interfaces
+│   └── dto
+└── adapter         # interface adapters
+    ├── web
+    └── persistence
+```
+
 ### C3 — Component
 
 Every interaction the Ledger Service has with something outside its own boundary
