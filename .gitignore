@@ -25,7 +25,7 @@ build/
 *.ipr
 
 # Ignore .env
-/architecture/infrastructure/.env
+/infrastructure/.env
 
 # Python
 __pycache__/
