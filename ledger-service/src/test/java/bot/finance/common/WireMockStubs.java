@@ -6,7 +6,7 @@ import bot.finance.common.containers.WireMockSupport;
  * Static helpers for registering WireMock stubs against external partner services.
  *
  * <p>The underlying {@link WireMockSupport#SERVER} is started once for the JVM and its stubs are
- * reset after every test via {@link AbstractIntegrationTest}'s {@code @AfterEach} hook.
+ * reset after every test via {@link AbstractSystemTest}'s {@code @AfterEach} hook.
  * Tests call one of these methods in their precondition setup; no lifecycle management is needed
  * inside the test class itself.
  *

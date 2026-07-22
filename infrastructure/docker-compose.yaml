@@ -2,7 +2,7 @@ name: finance-bot-infrastructure
 
 services:
   finance-postgres:
-    image: postgres:17.5
+    image: postgres:18
     container_name: finance-bot-postgres
     ports:
       - "5432:5432"
@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - finance-bot-postgres:/var/lib/postgresql/data
+      - finance-bot-postgres:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${FINANCE_BOT_DB_USER} -d ${FINANCE_BOT_DB}" ]
       interval: 10s

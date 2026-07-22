@@ -11,24 +11,8 @@ For C1 (System Context) and C2 (Container),
 see the [root README](../README.md#architecture). C3 below zooms into this
 service specifically.
 
-## Package Structure
-
-Code is organized by Clean Architecture layer, under `bot.finance`:
-
-```
-bot.finance
-├── domain          # enterprise business rules
-│   ├── model       # entities with identity, e.g. Expense, User
-│   ├── value       # value objects
-│   └── exception
-├── application     # application business rules
-│   ├── usecase
-│   ├── port        # inbound/outbound port interfaces
-│   └── dto
-└── adapter         # interface adapters
-    ├── web
-    └── persistence
-```
+Code is organized by Clean Architecture layer, under `bot.finance` — see the
+[Architecture & Layering conventions](docs/conventions/architecture.md#package-structure) for the package tree.
 
 ### C3 — Component
 
@@ -62,7 +46,7 @@ ContainerDb(db, "Database", "PostgreSQL", "Stores users and expenses", $tags="db
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(telegramListener, "Telegram Update Listener", "Spring Component", "Primary adapter: receives incoming Telegram updates", $tags="telegramExternal")
   Component(recordExpensePort, "Record Expense Port", "Interface", "Inbound port: use-case boundary for recording an expense from a voice message", $tags="portIn")
-  Component(expenseService, "Expense Recording Service", "Spring Service", "Application core: orchestrates the pipeline and applies business logic", $tags="core")
+  Component(expenseService, "Expense Recording Use Case", "Plain Java", "Application core: orchestrates the pipeline and applies business logic; wired as a bean from adapter-layer configuration", $tags="core")
 
   Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port: retrieves voice message audio", $tags="portOut")
   Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port: converts audio into text", $tags="portOut")

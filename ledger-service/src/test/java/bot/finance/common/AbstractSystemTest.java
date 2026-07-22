@@ -26,9 +26,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-public abstract class AbstractIntegrationTest {
+public abstract class AbstractSystemTest {
 
-    protected static final Logger log = LoggerFactory.getLogger(AbstractIntegrationTest.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractSystemTest.class);
 
     @LocalServerPort
     protected int port;

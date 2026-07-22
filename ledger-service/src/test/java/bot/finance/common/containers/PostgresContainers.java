@@ -5,7 +5,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 public class PostgresContainers {
 
-    private static final String POSTGRES_IMAGE = "postgres:17.5";
+    private static final String POSTGRES_IMAGE = "postgres:18";
 
     public static final PostgreSQLContainer<?> POSTGRES_CONTAINER;
 
