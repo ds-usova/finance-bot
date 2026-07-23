@@ -23,10 +23,10 @@ with its generated id.
 Add a `POST /widgets` endpoint to the module's API contract (`<api-schema-file>`) with a `CreateWidgetRequest`
 request schema and a `Widget` response schema.
 
-Introduce a `CreateWidgetUseCase` inbound port implemented in the application layer: it validates the command,
-assembles the domain `Widget` via `WidgetAssembler`, and persists it through a new `WidgetRepository` outbound
-port. The port is implemented by `WidgetRepositoryAdapter` in the persistence adapter, backed by a new `widget`
-table created in migration `<migration-file>`:
+Introduce a `CreateWidgetPort` inbound port in the application layer, implemented by a `CreateWidgetUseCase`
+use case: it validates the command, assembles the domain `Widget` via `WidgetAssembler`, and persists it through
+a new `WidgetRepository` outbound port. That outbound port is implemented by `WidgetRepositoryAdapter` in the
+persistence adapter, backed by a new `widget` table created in migration `<migration-file>`:
 
 ```sql
 CREATE TABLE widget (
@@ -38,8 +38,8 @@ CREATE TABLE widget (
 
 `WidgetController` exposes the endpoint and maps between the REST model and the domain model via `WidgetUtils`.
 
-Files touched: `<api-schema-file>`, `<migration-file>`, `CreateWidgetUseCase`, `WidgetAssembler`,
-`WidgetRepository`, `WidgetRepositoryAdapter`, `WidgetController`, `WidgetUtils`.
+Files touched: `<api-schema-file>`, `<migration-file>`, `CreateWidgetPort`, `CreateWidgetUseCase`,
+`WidgetAssembler`, `WidgetRepository`, `WidgetRepositoryAdapter`, `WidgetController`, `WidgetUtils`.
 
 #### Diagrams
 
@@ -56,7 +56,8 @@ Container_Boundary(domain, "domain") {
   Component(widgetAssembler, "WidgetAssembler", "domain service")
 }
 Container_Boundary(application, "application") {
-  Component(createWidgetUseCase, "CreateWidgetUseCase", "inbound port impl")
+  Component(createWidgetPort, "CreateWidgetPort", "inbound port")
+  Component(createWidgetUseCase, "CreateWidgetUseCase", "use case")
   Component(widgetRepository, "WidgetRepository", "outbound port")
 }
 Container_Boundary(inboundAdapter, "adapter (inbound)") {
@@ -67,7 +68,8 @@ Container_Boundary(outboundAdapter, "adapter (outbound)") {
   Component(widgetRepositoryAdapter, "WidgetRepositoryAdapter", "persistence adapter")
 }
 
-Rel(widgetController, createWidgetUseCase, "calls")
+Rel(widgetController, createWidgetPort, "calls")
+Rel(createWidgetUseCase, createWidgetPort, "implements")
 Rel(widgetController, widgetUtils, "maps via")
 Rel(createWidgetUseCase, widgetAssembler, "uses")
 Rel(createWidgetUseCase, widget, "produces")
@@ -154,7 +156,8 @@ public Settings loadSettings(long userId) {
 
 **Interface & Signature Sync**
 
-- [ ] Add `createWidget(CreateWidgetCommand command): Widget` to the `CreateWidgetUseCase` inbound port
+- [ ] Add `createWidget(CreateWidgetCommand command): Widget` to the `CreateWidgetPort` inbound port
+  (interface only — the implementation stub goes on `CreateWidgetUseCase` below)
 - [ ] Add `save(Widget widget): Widget` to the `WidgetRepository` outbound port
 - [ ] Stub `CreateWidgetUseCase.createWidget()`:
   ```java
@@ -170,7 +173,7 @@ public Settings loadSettings(long userId) {
       return null;
   }
   ```
-- [ ] Update `WidgetController.createWidget()` to call `createWidgetUseCase.createWidget(...)` and fix any remaining
+- [ ] Update `WidgetController.createWidget()` to call `createWidgetPort.createWidget(...)` and fix any remaining
   compile errors until the module builds green
 
 **Shared Test Infrastructure**
@@ -241,13 +244,13 @@ public Settings loadSettings(long userId) {
         - given: an unknown parent id
           when: save() is called
           then: throws ResourceNotFoundException
-- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetUseCase`
+- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort`
     - Happy Path:
-        - given: the mocked use case returns a created widget
+        - given: the mocked port returns a created widget
           when: request is made with a valid payload
-          then: the use case is called with the mapped command and 200 is returned with the widget response
+          then: the port is called with the mapped command and 200 is returned with the widget response
     - Error Mapping:
-        - given: the mocked use case throws ResourceNotFoundException
+        - given: the mocked port throws ResourceNotFoundException
           when: request is made
           then: return 404
     - Validation: `name` — blank, null, exceeds max length
@@ -275,7 +278,7 @@ public Settings loadSettings(long userId) {
 #### TDD Integration Green Phase
 
 - [ ] `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest`
-- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetUseCase` ·
+- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort` ·
   after: `WidgetUtils`
 
 #### TDD System Test Green Phase
