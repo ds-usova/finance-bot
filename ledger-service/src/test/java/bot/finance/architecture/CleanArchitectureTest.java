@@ -24,7 +24,7 @@ class CleanArchitectureTest {
     @ArchTest
     static final ArchRule domainAndApplicationStayFrameworkAgnostic = noClasses()
             .that().resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
-            .should().dependOnClassesThat().resideInAnyPackage("org.springframework..")
+            .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "jakarta..", "org.slf4j..")
             .allowEmptyShould(true);
 
 }

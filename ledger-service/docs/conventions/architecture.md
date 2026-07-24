@@ -19,6 +19,7 @@ src/main
 │   │   └── dto
 │   └── adapter         # interface adapters
 │       ├── config      # use-case bean wiring (@Configuration classes only — no adapter-specific config)
+│       ├── logging     # SLF4J-backed implementation of the core's Logger/LoggerFactory abstraction
 │       ├── web
 │       └── persistence
 └── resources
@@ -35,13 +36,17 @@ src/main
   instances are equal if all their attributes match.
 
 Dependencies point inward: `adapter` depends on `application`, which depends on `domain` — never the reverse.
-`domain` and `application` stay framework-agnostic: no Spring annotations (`@Service`, `@Component`,
-`@Transactional`, …) anywhere in either package. Consequences of that rule:
+`domain` and `application` stay framework-agnostic: no Spring, no `jakarta.*`, no Lombok, and no external
+logging API anywhere in either package — the core depends on nothing outside the JDK. Consequences of that rule:
 
 - Use cases are plain classes, wired as beans from configuration classes in the adapter layer, not annotated
   themselves.
 - Transaction boundaries live in adapters (see
   [Production-Code Style](code-style.md#production-code-style)), never in `domain`/`application`.
+- Logging goes through the application's own `Logger`/`LoggerFactory` interfaces in `application/port` — the
+  core is forced to by this rule, and the other layers follow the same pattern by convention (see
+  [Production-Code Style](code-style.md#production-code-style)); the SLF4J-backed implementation lives in
+  `adapter/logging`.
 
 Configuration placement:
 
@@ -69,3 +74,6 @@ client) get **one adapter subpackage per external system** when they land, e.g. 
 - Tool: ArchUnit (JUnit 5 integration).
 - Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
   [Build & Test Commands](build.md#build--test-commands)).
+- Scope: the layer-dependency rules and the framework-agnostic core (`org.springframework..`, `jakarta..`, and
+  `org.slf4j..` banned from `domain`/`application`). Lombok annotations are source-retention and leave no trace
+  in bytecode, so the no-Lombok-in-core rule cannot be machine-checked — it is upheld in code review.

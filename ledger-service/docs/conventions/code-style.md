@@ -8,14 +8,20 @@ Idioms for production code and guidance for refactoring.
 
 Applies across all layers.
 
-- Dependency-injection style: constructor injection only — never field injection. Lombok
-  `@RequiredArgsConstructor` with `final` fields is the idiom in the adapter layer; `domain`/`application` use
-  plain hand-written constructors instead, since those layers stay annotation-light and Spring-free (see
+- Dependency-injection style: constructor injection only — never field injection. Constructors are plain and
+  hand-written in every layer, assigning `final` fields — no Lombok `@RequiredArgsConstructor`. A class that
+  logs derives its `log` field from the injected `LoggerFactory` inside the constructor (see Logging below).
+  In `domain`/`application` this is also mandated by the no-Lombok rule (see
   [Package Structure](architecture.md#package-structure)).
 - Null-handling policy: never return `null` — return `Optional<T>` for possibly-absent values or throw a domain
   exception.
-- Logging: SLF4J via Lombok `@Slf4j` (Logback config in `src/main/resources/logback.xml`); `debug` level for
-  infrastructure operations, `info` for business events. Never `System.out`.
+- Logging: SLF4J over Logback under the hood (config in `src/main/resources/logback.xml`); `debug` level for
+  infrastructure operations, `info` for business events. Never `System.out`, never Lombok `@Slf4j`. Every class
+  that logs — in any layer — takes the `LoggerFactory` port (`application/port`) as a constructor parameter and
+  derives its `Logger` from it: `log = loggerFactory.getLogger(TransferMoneyUseCase.class)`. Messages use `{}`
+  placeholders (`log.info("expense {} recorded", id)`) — never string concatenation. `Slf4jLoggerFactory` in
+  `adapter/logging` is the production implementation; unit tests pass a mock or no-op factory. Domain objects
+  normally do not log at all.
 - Imports / qualified names: import types directly; never fully qualified class names inside code bodies unless
   there are no other options (e.g. classes with the same name in different packages).
 - Long string literals (SQL, JSON, multi-line text): Java text blocks (`"""…"""`) — never concatenation or one
