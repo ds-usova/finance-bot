@@ -6,6 +6,8 @@ How the coding agent commits, parallelizes work, and where its planning artifact
 
 - Commit incrementally: yes — the agent commits intermediate changes as it goes, on whichever branch is
   currently checked out.
+- Granularity: one commit per passed stage guardrail (stabilization, red, green, refactor, wrap-up) — not per
+  step or per wave.
 - Branch policy: the developer creates and checks out the branch manually before work starts; the agent never
   creates, switches, or deletes branches — it commits to the current branch only.
 - Message format: `<Prefix>: <description>` — prefix is one of `Bug`, `Feature`, `Configuration` (add new
