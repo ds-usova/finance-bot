@@ -10,8 +10,10 @@ How the coding agent commits, parallelizes work, and where its planning artifact
   step or per wave.
 - Branch policy: the developer creates and checks out the branch manually before work starts; the agent never
   creates, switches, or deletes branches — it commits to the current branch only.
-- Message format: `<Prefix>: <description>` — prefix is one of `Bug`, `Feature`, `Configuration` (add new
-  prefixes as new kinds of change show up); the description states exactly what was done.
+- Message format: `<Prefix>: <description>` — prefix is one of `Bug`, `Feature`, `Configuration`, `Test`,
+  `Refactor` (add new prefixes as new kinds of change show up); the description states exactly what was done.
+  Stage commits map naturally: red phase → `Test`, refactor stage → `Refactor`, the other stages → whichever
+  prefix fits the change. The format applies from here on; history predating it does not follow it.
 - Squash before merging: do not squash, do not merge the changes into the main branch.
 
 ## Parallelism
