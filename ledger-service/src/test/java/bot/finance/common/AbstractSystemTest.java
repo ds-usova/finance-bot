@@ -13,14 +13,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
+@ImportTestcontainers(PostgresContainers.class)
 @SpringBootTest(
         classes = LedgerServiceApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
@@ -39,12 +40,6 @@ public abstract class AbstractSystemTest {
     static {
         log.info("Postgres is running: {}", PostgresContainers.POSTGRES_CONTAINER.isRunning());
         log.info("WireMock is running on port: {}", WireMockSupport.SERVER.port());
-    }
-
-    protected static void setProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", PostgresContainers.POSTGRES_CONTAINER::getJdbcUrl);
-        registry.add("spring.datasource.username", PostgresContainers.POSTGRES_CONTAINER::getUsername);
-        registry.add("spring.datasource.password", PostgresContainers.POSTGRES_CONTAINER::getPassword);
     }
 
     @PostConstruct

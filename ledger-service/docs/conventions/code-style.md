@@ -63,7 +63,7 @@ scaffolding, needless complexity, import hygiene) applies; the points below prio
   JSON handling into `JsonUtils`, builders/factories as new classes there, which then get listed in
   [Naming Conventions](testing.md#naming-conventions)); shared production mapping stays on the entity classes.
 - Shared helpers that may be extended additively: `WireMockStubs`, `JsonUtils`, `AbstractSystemTest`
-  (hook methods are explicitly reserved for later needs).
+  (hook methods are explicitly reserved for later needs), `PersistenceAdapterTest`.
 - Leave-alone list: **applied Flyway migrations are immutable** — never edit an existing migration file, always
   add a new one; `package-info.java` files; anything generated (none yet).
 - Thresholds: extract only when logic repeats in 2+ classes; keep methods under one screen; otherwise use your

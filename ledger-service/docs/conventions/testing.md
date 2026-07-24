@@ -13,6 +13,7 @@ bot.finance
 └── common          # shared test infrastructure — see Test Tooling below
     ├── containers  # Testcontainers / WireMock singleton lifecycle
     ├── AbstractSystemTest
+    ├── PersistenceAdapterTest  # composed annotation for persistence-adapter tests
     ├── WireMockStubs
     └── JsonUtils
 ```
@@ -28,8 +29,15 @@ bot.finance
     `@Testcontainers(disabledWithoutDocker = true)` — directly, or inherited from `AbstractSystemTest` — so the
     suite skips (never errors) when Docker is unavailable.
   - `AbstractSystemTest` — the full-application base class. **System tests extend it; outbound-adapter and
-    slice tests do not.** Subclasses wire the containerized database by declaring a `@DynamicPropertySource`
-    method that delegates to the inherited `setProperties(registry)`.
+    slice tests do not.** The containerized database is wired automatically via
+    `@ImportTestcontainers(PostgresContainers.class)` together with `@ServiceConnection` on the containerized
+    Postgres singleton; subclasses declare nothing.
+  - `PersistenceAdapterTest` — the composed annotation for outbound persistence-adapter tests: it boots the
+    `@DataJdbcTest` slice (Spring Data JDBC repositories, `JdbcTemplate`, transaction manager, Flyway migrations)
+    against the containerized Postgres, never the full application context. The test class adds
+    `@Import(<AdapterUnderTest>.class)` and calls the adapter's public methods directly. Each test runs in a
+    rolled-back transaction (slice default) — use `@Commit` plus explicit cleanup only when committed state must
+    be verified.
   - `WireMockStubs` — the single home for stub registration: one static helper method per external endpoint.
     Raw stubbing inlined in test classes is against convention.
   - `JsonUtils` — loads JSON payload fixtures from `src/test/resources`.
@@ -51,7 +59,8 @@ Which packages map to which test layer.
 - **Integration tests (outbound adapters):** `adapter/persistence/` and future outbound HTTP adapters (one
   subpackage per external system — see [Architecture & Layering](architecture.md#package-structure)). Wire only
   the adapter under test and call its public methods directly against real test infrastructure (see Test Tooling
-  below); nothing is mocked.
+  below); nothing is mocked. The wiring mechanism for persistence adapters is `@PersistenceAdapterTest` (see Test
+  Tooling).
 - **Integration tests (inbound adapters):** `adapter/web/` (REST controllers). Driven through the web-slice
   mechanism (see Test Tooling below) with the inbound-port/use-case beans mocked. Covers validation, binding,
   delegation, and error-to-response mapping; never business logic or real infrastructure.
