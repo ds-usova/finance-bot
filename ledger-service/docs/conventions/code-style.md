@@ -33,8 +33,8 @@ Applies across all layers.
 
 ### Application
 
-- Use cases are plain classes with no Spring annotations, wired as beans from `@Configuration` classes in the
-  adapter layer (see [Package Structure](architecture.md#package-structure)).
+- Use cases are plain classes with no Spring annotations, wired as beans from `@Configuration` classes in
+  `adapter/config` (see [Package Structure](architecture.md#package-structure)).
 
 ### Adapter — Web
 

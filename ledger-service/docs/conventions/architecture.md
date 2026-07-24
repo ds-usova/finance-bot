@@ -18,6 +18,7 @@ src/main
 │   │   ├── port        # inbound/outbound port interfaces
 │   │   └── dto
 │   └── adapter         # interface adapters
+│       ├── config      # use-case bean wiring (@Configuration classes only — no adapter-specific config)
 │       ├── web
 │       └── persistence
 └── resources
@@ -41,6 +42,14 @@ Dependencies point inward: `adapter` depends on `application`, which depends on 
   themselves.
 - Transaction boundaries live in adapters (see
   [Production-Code Style](code-style.md#production-code-style)), never in `domain`/`application`.
+
+Configuration placement:
+
+- adapter-specific framework config lives in the adapter subpackage it configures — persistence config
+  (e.g. custom Spring Data JDBC converters) in `adapter/persistence`, web config (e.g. the global exception
+  handler, MVC settings) in `adapter/web`, and so on for future adapter subpackages;
+- use-case bean wiring is the one exception: use cases belong to no single adapter, so their `@Configuration`
+  classes live in `adapter/config` — which holds use-case wiring only, never adapter-specific config.
 
 Outbound adapters for external services (Telegram file fetch / notification, Transcription client, AI Connector
 client) get **one adapter subpackage per external system** when they land, e.g. `adapter/telegram`,
