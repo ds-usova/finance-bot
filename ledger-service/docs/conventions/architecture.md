@@ -23,7 +23,7 @@ src/main
 │       └── persistence
 └── resources
     └── db
-        └── migration   # Flyway migrations, V<NNN>__<snake_case_description>.sql
+        └── migration   # Flyway migrations
 ```
 
 `model` vs `value` — both live under `domain` but hold different kinds of object:
@@ -57,6 +57,8 @@ client) get **one adapter subpackage per external system** when they land, e.g. 
 
 ## File Locations
 
+- Migration folder + naming scheme: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`
+  (e.g. `V001__create_expense_table.sql`).
 - API schema file: none yet — intended location `src/main/resources/schemas/api.yaml`, to be confirmed when the
   first contract is authored.
 - Manual/`.http` request files: none yet — intended location `ledger-service/docs/requests/`, to be confirmed
