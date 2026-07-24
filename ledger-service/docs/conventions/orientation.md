@@ -8,7 +8,12 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 `src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
 
 **Language / framework**: Java 25, Spring Boot;
-**Database**: PostgreSQL 18, Flyway, Spring Data JDBC.
+**Database**: PostgreSQL 18, Flyway, Spring Data JDBC;
+**Messaging / event broker**: none;
+**Caching**: none;
+**External services consumed**: Telegram Bot API, Transcription Service, AI Connector Service — all over
+HTTP/REST; see the C4 diagrams referenced under [Documentation References](#documentation-references);
+**Contract-first codegen**: none yet — to be decided together with the first API schema.
 
 ## Documentation References
 

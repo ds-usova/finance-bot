@@ -12,6 +12,7 @@ All commands run from the **module root** (`ledger-service/`). On Windows use `g
 - Run the module's full test suite: `./gradlew test`
 - Run the architecture-enforcement test: `./gradlew test --tests "bot.finance.architecture.*"`
 - Coverage report (JaCoCo): `./gradlew test jacocoTestReport`
+- Run contract codegen: n/a — no codegen is wired
 
 Docker must be running for container-based tests. Every test class that uses the containerized infrastructure
 carries `@Testcontainers(disabledWithoutDocker = true)` (directly or via `AbstractSystemTest`), so without Docker
