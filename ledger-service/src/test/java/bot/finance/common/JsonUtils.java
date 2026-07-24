@@ -2,10 +2,10 @@ package bot.finance.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
 public class JsonUtils {
@@ -16,7 +16,6 @@ public class JsonUtils {
         // private constructor to prevent instantiation
     }
 
-    @SneakyThrows
     public static String readJsonResourceAsString(String fileName) {
         try (InputStream is = JsonUtils.class.getClassLoader().getResourceAsStream(fileName)) {
             if (is == null) {
@@ -24,13 +23,18 @@ public class JsonUtils {
             }
             byte[] bytes = is.readAllBytes();
             return new String(bytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read JSON resource: " + fileName, e);
         }
     }
 
-    @SneakyThrows
     public static JsonNode readJsonResourceAsNode(String fileName) {
         String json = readJsonResourceAsString(fileName);
-        return MAPPER.readTree(json);
+        try {
+            return MAPPER.readTree(json);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to parse JSON resource: " + fileName, e);
+        }
     }
 
 }

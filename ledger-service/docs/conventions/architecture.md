@@ -36,8 +36,8 @@ src/main
   instances are equal if all their attributes match.
 
 Dependencies point inward: `adapter` depends on `application`, which depends on `domain` — never the reverse.
-`domain` and `application` stay framework-agnostic: no Spring, no `jakarta.*`, no Lombok, and no external
-logging API anywhere in either package — the core depends on nothing outside the JDK. Consequences of that rule:
+`domain` and `application` stay framework-agnostic: no Spring, no `jakarta.*`, and no external logging API
+anywhere in either package — the core depends on nothing outside the JDK. Consequences of that rule:
 
 - Use cases are plain classes, wired as beans from configuration classes in the adapter layer, not annotated
   themselves.
@@ -75,5 +75,4 @@ client) get **one adapter subpackage per external system** when they land, e.g. 
 - Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
   [Build & Test Commands](build.md#build--test-commands)).
 - Scope: the layer-dependency rules and the framework-agnostic core (`org.springframework..`, `jakarta..`, and
-  `org.slf4j..` banned from `domain`/`application`). Lombok annotations are source-retention and leave no trace
-  in bytecode, so the no-Lombok-in-core rule cannot be machine-checked — it is upheld in code review.
+  `org.slf4j..` banned from `domain`/`application`).
