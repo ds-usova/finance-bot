@@ -17,6 +17,7 @@ How the coding agent commits, parallelizes work, and where its planning artifact
   - `Configuration` — build, infrastructure, or application configuration;
   - `Test` — changes to test code only, such as tests written ahead of their implementation;
   - `Refactor` — behavior-preserving cleanup and restructuring.
+  - `Documentation` — updates to documentation.
 
   Add new prefixes as new kinds of change show up. The format applies from this point in the history onward;
   earlier commits predate it.
