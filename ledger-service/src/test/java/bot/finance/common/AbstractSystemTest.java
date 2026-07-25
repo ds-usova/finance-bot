@@ -17,6 +17,8 @@ import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ActiveProfiles("test")
@@ -40,6 +42,19 @@ public abstract class AbstractSystemTest {
     static {
         log.info("Postgres is running: {}", PostgresContainers.POSTGRES_CONTAINER.isRunning());
         log.info("WireMock is running on port: {}", WireMockSupport.SERVER.port());
+    }
+
+    /**
+     * Points the application's Telegram client at the WireMock singleton. It cannot live in
+     * {@code application-test.yaml} because the stub server binds a port that is only known at runtime.
+     *
+     * <p>No Telegram stub is registered here: every system test inherits this class, and {@link #tearDown()}'s
+     * {@code resetAll()} would drop the stubs anyway — each Telegram test registers its own in its own
+     * {@code @BeforeEach}.
+     */
+    @DynamicPropertySource
+    static void telegramProperties(DynamicPropertyRegistry registry) {
+        registry.add("telegram.bot.api-url", () -> WireMockSupport.baseUrl() + "/bot");
     }
 
     @PostConstruct

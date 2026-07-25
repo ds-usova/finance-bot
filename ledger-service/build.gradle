@@ -37,6 +37,9 @@ dependencies {
     implementation "org.flywaydb:flyway-database-postgresql"
     implementation "org.postgresql:postgresql"
 
+    // Telegram Bot API
+    implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
+
     testImplementation "org.springframework.boot:spring-boot-starter-actuator-test"
     testImplementation "org.springframework.boot:spring-boot-starter-data-jdbc-test"
     testImplementation "org.springframework.boot:spring-boot-starter-flyway-test"

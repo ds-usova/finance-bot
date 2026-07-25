@@ -70,16 +70,19 @@ expense, user, or money concept in a debug print.
 **Domain layer**
 
 - `domain/exception/InvalidIncomingMessageException.java` — unchecked domain exception thrown when an incoming
-  message is unusable (absent, or carrying no text). Per the conventions, the core throws a domain exception
-  rather than letting a raw `NullPointerException` escape.
+  message is absent, or carries no conversation id or no text. Per the conventions, the core throws a domain
+  exception rather than letting a raw `NullPointerException` escape.
 
 **Application layer**
 
 - `application/dto/IncomingMessage.java` — `record IncomingMessage(String conversationId, String text)`, the
-  inbound-port command. Plain JDK types, no transport vocabulary.
+  inbound-port command. Plain JDK types, no transport vocabulary. **This is the single place field-level validation
+  happens**: its compact constructor rejects a null-or-blank `conversationId` or `text`, so an invalid command
+  cannot be constructed anywhere in the system and no caller re-checks it.
 - `application/port/HandleIncomingMessagePort.java` — inbound port: `void handle(IncomingMessage message)`.
 - `application/usecase/HandleIncomingMessageUseCase.java` — implements the port; takes `LoggerFactory` in its
-  constructor and derives `log`; validates the command and logs the text at `info`.
+  constructor and derives `log`; rejects an absent command and logs the text at `info`. It does not validate the
+  command's fields — the record already guarantees them.
 
 **Adapter layer — `adapter/telegram` (new subpackage, one per external system per the conventions)**
 
@@ -186,8 +189,8 @@ sharing a class would fight over it, and the loser would time out. So:
   is closed when the class finishes rather than polling on in the background.
 
 Within a class, ordering is handled by matching on the request itself: the update-bearing stub matches requests
-**without** an `offset` form param (`withoutFormParam("offset")`), which pengrad sends only until a batch is
-confirmed. The one exception is the recovery scenario, which genuinely needs two different responses to the same
+carrying no `offset` form param (`withFormParam("offset", absent())` — the stubbing side has no
+`withoutFormParam`), which pengrad sends only until a batch is confirmed. The one exception is the recovery scenario, which genuinely needs two different responses to the same
 offset-less request; that class uses a WireMock **Scenario** (`inScenario(...).whenScenarioStateIs(...)`), which
 is safe precisely because it is the only scenario in its own context on its own token.
 
@@ -207,7 +210,7 @@ Container_Boundary(domain, "domain") {
   Component(invalidMessageException, "InvalidIncomingMessageException", "domain exception")
 }
 Container_Boundary(application, "application") {
-  Component(incomingMessage, "IncomingMessage", "inbound command DTO (transport-agnostic)")
+  Component(incomingMessage, "IncomingMessage", "inbound command DTO (transport-agnostic, self-validating)")
   Component(handlePort, "HandleIncomingMessagePort", "inbound port")
   Component(handleUseCase, "HandleIncomingMessageUseCase", "use case")
   Component(loggerPort, "Logger / LoggerFactory", "outbound port (existing)")
@@ -229,7 +232,8 @@ Rel(listener, updateUtils, "maps via")
 Rel(updateUtils, incomingMessage, "produces")
 Rel(listener, handlePort, "calls")
 Rel(handleUseCase, handlePort, "implements")
-Rel(handleUseCase, invalidMessageException, "throws")
+Rel(incomingMessage, invalidMessageException, "throws on invalid fields")
+Rel(handleUseCase, invalidMessageException, "throws on an absent command")
 Rel(useCaseConfig, handleUseCase, "wires as a bean")
 Rel(botConfig, botProperties, "reads")
 Rel(handleUseCase, loggerPort, "uses")
@@ -275,10 +279,20 @@ else batch contains a non-text update
     LIS -> LOG : debug("skipping non-text telegram update {}")
     LIS --> BOT : CONFIRMED_UPDATES_ALL
     BOT -> TG : POST getUpdates (offset=43)
-else the use case rejects the command
+else handling an update throws
+    note over UTL
+      The mapper checks every precondition before constructing
+      IncomingMessage, so a skippable update returns empty above
+      rather than throwing. IncomingMessage's own constructor is
+      the only field-validation point, and it rejects inside the
+      mapper - never as far as the use case.
+      This branch is what protects the loop from an unexpected
+      failure below the listener; TelegramUpdateListenerTest
+      induces it with a mocked port.
+    end note
     BOT -> LIS : process([update 42])
     LIS -> UC : handle(command)
-    UC --> LIS : InvalidIncomingMessageException
+    UC --> LIS : RuntimeException
     LIS -> LOG : error("failed to handle telegram update {}", e)
     LIS --> BOT : CONFIRMED_UPDATES_ALL
     BOT -> TG : POST getUpdates (offset=43)
@@ -296,15 +310,23 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 **Interface & Signature Sync**
 
-- [ ] Add `domain/exception/InvalidIncomingMessageException` — a `RuntimeException` subclass with a
-  message-taking constructor, javadoc'd as "the incoming message is absent or carries no usable text". Complete
-  as written, no stub needed
-- [ ] Add `application/dto/IncomingMessage` — no stub needed, it is complete as written:
+- [x] Add `domain/exception/InvalidIncomingMessageException` — a `RuntimeException` subclass with a
+  message-taking constructor, javadoc'd as "an incoming message is absent, or carries no conversation id or no
+  text". Complete as written, no stub needed
+- [x] Stub `application/dto/IncomingMessage` — the record **validates itself** in a compact constructor, so an
+  invalid command cannot be constructed anywhere in the system; leave the validation unimplemented so the red
+  tests fail:
   ```java
   public record IncomingMessage(String conversationId, String text) {
+
+      public IncomingMessage {
+          // rejects a null-or-blank conversationId or text with InvalidIncomingMessageException,
+          // so no caller can build a command the use case would have to re-check
+      }
+
   }
   ```
-- [ ] Add `application/port/HandleIncomingMessagePort` (interface only):
+- [x] Add `application/port/HandleIncomingMessagePort` (interface only):
   ```java
   public interface HandleIncomingMessagePort {
 
@@ -312,17 +334,18 @@ New-method stubs carry a short inline comment describing the implementation inte
 
   }
   ```
-- [ ] Add `application/usecase/HandleIncomingMessageUseCase` implementing the port, with a `LoggerFactory`
-  constructor parameter per the logging convention, and stub the method:
+- [x] Add `application/usecase/HandleIncomingMessageUseCase` implementing the port, with a `LoggerFactory`
+  constructor parameter per the logging convention, and stub the method. Field-level validation lives in
+  `IncomingMessage`, so the only case left here is an absent command:
   ```java
   public void handle(IncomingMessage message) {
-      // rejects an absent command or one with blank text with InvalidIncomingMessageException,
+      // rejects an absent command with InvalidIncomingMessageException,
       // then prints the conversation id and message text at info level through the Logger port
   }
   ```
-- [ ] Add `adapter/telegram/package-info.java` describing the subpackage as the Telegram Bot API adapter
+- [x] Add `adapter/telegram/package-info.java` describing the subpackage as the Telegram Bot API adapter
   (inbound long-polling listener today; the file-fetch and notification outbound adapters land here later)
-- [ ] Add `adapter/telegram/TelegramBotProperties`:
+- [x] Add `adapter/telegram/TelegramBotProperties`:
   ```java
   @ConfigurationProperties("telegram.bot")
   public record TelegramBotProperties(String token, String apiUrl, Polling polling) {
@@ -332,16 +355,19 @@ New-method stubs carry a short inline comment describing the implementation inte
 
   }
   ```
-- [ ] Stub `adapter/telegram/TelegramUpdateUtils` (static `*Utils` class with a private constructor):
+- [x] Stub `adapter/telegram/TelegramUpdateUtils` (static `*Utils` class with a private constructor):
   ```java
   public static Optional<IncomingMessage> toIncomingMessage(Update update) {
       // maps a pengrad Update to the transport-agnostic command when it carries a non-blank text message
       // in a chat, rendering the numeric Telegram chat id as the conversation id;
-      // returns empty for every other kind of update so the listener can skip it
+      // returns empty for every other kind of update so the listener can skip it.
+      // Checks every precondition BEFORE constructing IncomingMessage - the record throws
+      // InvalidIncomingMessageException on invalid input, and a skippable update must return empty,
+      // never surface as an exception
       return Optional.empty();
   }
   ```
-- [ ] Stub `adapter/telegram/TelegramUpdateListener implements UpdatesListener`, constructor
+- [x] Stub `adapter/telegram/TelegramUpdateListener implements UpdatesListener`, constructor
   `(HandleIncomingMessagePort port, LoggerFactory loggerFactory)`:
   ```java
   public int process(List<Update> updates) {
@@ -350,7 +376,7 @@ New-method stubs carry a short inline comment describing the implementation inte
       return UpdatesListener.CONFIRMED_UPDATES_NONE;
   }
   ```
-- [ ] Stub `adapter/telegram/TelegramLongPollingSubscriber implements SmartLifecycle`, constructor
+- [x] Stub `adapter/telegram/TelegramLongPollingSubscriber implements SmartLifecycle`, constructor
   `(TelegramBot bot, UpdatesListener listener, TelegramBotProperties properties, LoggerFactory loggerFactory)`
   — note the listener is typed as the **interface** so tests can substitute a recording fake:
   ```java
@@ -369,14 +395,24 @@ New-method stubs carry a short inline comment describing the implementation inte
       return false;
   }
   ```
-- [ ] Add `adapter/telegram/TelegramBotConfiguration` — `@Configuration`, `@EnableConfigurationProperties(
+- [x] Add `adapter/telegram/TelegramBotConfiguration` — `@Configuration`, `@EnableConfigurationProperties(
   TelegramBotProperties.class)`, with a `TelegramBot` bean
   (`new TelegramBot.Builder(token).apiUrl(apiUrl).updateListenerSleep(sleepMillis).build()`), a
   `TelegramUpdateListener` bean, and a `TelegramLongPollingSubscriber` bean guarded by
   `@ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)`.
   The `TelegramBot` bean method fails fast — throw `IllegalStateException` naming `TELEGRAM_BOT_TOKEN` — when
   polling is enabled and the token is blank
-- [ ] Extend `bot.finance.architecture.CleanArchitectureTest` with two rules:
+- [x] Add `adapter/config/UseCaseConfiguration` — the `@Configuration` class that wires use-case beans, per the
+  conventions' rule that use cases are plain classes wired from `adapter/config`. `adapter/config` currently holds
+  only `package-info.java`, and without this bean the `TelegramUpdateListener` bean cannot be constructed and every
+  full-context test fails at startup:
+  ```java
+  @Bean
+  HandleIncomingMessagePort handleIncomingMessagePort(LoggerFactory loggerFactory) {
+      return new HandleIncomingMessageUseCase(loggerFactory);
+  }
+  ```
+- [x] Extend `bot.finance.architecture.CleanArchitectureTest` with two rules:
     - add `com.pengrad..` to the banned packages in `domainAndApplicationStayFrameworkAgnostic`
     - add a new `coreTypesCarryNoExternalSystemName` rule: no class in `bot.finance.domain..` or
       `bot.finance.application..` may have a simple name containing an external-system name. Seed the list from
@@ -385,33 +421,45 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 **Configuration**
 
-- [ ] Add `pengradTelegramBotApiVersion=10.1.0` to `gradle.properties` and
+- [x] Add `pengradTelegramBotApiVersion=10.1.0` to `gradle.properties` and
   `implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"` to `build.gradle`
-- [ ] Run `./gradlew dependencies --configuration runtimeClasspath` and confirm the resolved graph: `okhttp`
+- [x] Run `./gradlew dependencies --configuration runtimeClasspath` and confirm the resolved graph: `okhttp`
   stays at 5.3.2 (Boot 4.1.0's BOM does not manage it), `kotlin-stdlib-jdk8` resolves to 2.3.21 (Boot manages
   exactly that), and `gson` resolves to Boot's 2.13.2 rather than pengrad's requested 2.14.0. Only if the gson
   downgrade breaks `BotUtils.parseUpdate` at runtime, pin `gson` to 2.14.0 in `build.gradle` — do not pin
   pre-emptively
-- [ ] Add the `telegram.bot` block to `src/main/resources/application.yaml` (see **Configuration shape** above)
-- [ ] Create `src/test/resources/application-test.yaml` with the `default-test-token` and fast polling settings
+- [x] Add the `telegram.bot` block to `src/main/resources/application.yaml` (see **Configuration shape** above)
+- [x] Create `src/test/resources/application-test.yaml` with the `default-test-token` and fast polling settings
   (see **Configuration shape** above). This file does not exist yet — `@ActiveProfiles("test")` on
   `AbstractSystemTest` currently resolves to no property source at all
 
 **Shared Test Infrastructure**
 
-- [ ] Add `bot.finance.common.LogCapture` — attaches a Logback `ListAppender<ILoggingEvent>` to a logger
+- [x] Add `bot.finance.common.LogCapture` — attaches a Logback `ListAppender<ILoggingEvent>` to a logger
   (by `Class<?>`), exposes `List<String> messages()` returning formatted messages, and detaches/stops on
-  `close()`. Needed by both system test classes; keep it generic, not Telegram-specific
-- [ ] Add `bot.finance.common.TelegramFixtures` — static builders for `getUpdates` response bodies, using text
-  blocks per the long-string convention. At minimum:
-  `textMessageUpdate(int updateId, long chatId, String text)`, `voiceMessageUpdate(int updateId, long chatId)`,
-  `noUpdates()`, and `error(int errorCode, String description)`. Every Red Phase step below needs these; no step
-  agent is scoped to create shared fixtures.
+  `close()`. Needed by both system test classes and by `TelegramLongPollingSubscriberTest`; keep it generic, not
+  Telegram-specific
+- [x] Add `bot.finance.common.TelegramFixtures` — static builders for Telegram JSON, using text blocks per the
+  long-string convention. **Two distinct shapes are required and must not be conflated**: `BotUtils.parseUpdate`
+  deserializes a single *bare* `Update` object, while WireMock serves a `getUpdates` *envelope*
+  (`{"ok":…,"result":[…]}`). Feeding an envelope to `parseUpdate` yields an `Update` with every field null.
+  Exactly these builders, which together cover every Red Phase scenario listed below:
+    - bare `Update` bodies, for `BotUtils.parseUpdate` in `TelegramUpdateUtilsTest`:
+      `textMessageUpdate(int updateId, long chatId, String text)`,
+      `voiceMessageUpdate(int updateId, long chatId)`,
+      `textMessageUpdateWithoutChat(int updateId, String text)`,
+      `callbackQueryUpdate(int updateId)` (an update carrying no `message` at all)
+    - envelope bodies, for the `WireMockStubs` helpers:
+      `updatesResponse(String... bareUpdateJson)` — wraps any number of the above into
+      `{"ok":true,"result":[…]}`, which is what makes the multi-update batch scenario expressible —
+      `noUpdates()` (an empty `result`), and `error(int errorCode, String description)` (an `ok:false` body)
+
+  No Red Phase step is scoped to create shared fixtures, so this list is the scope, not a minimum.
   These stay Java text blocks rather than `src/test/resources` files + `JsonUtils` — a deliberate, documented
   deviation from the "prefer a resource file once shared" convention, because every body is parameterized
   (`updateId`, `chatId`, `text`) and `JsonUtils.readJsonResourceAsString` performs no substitution. Revisit if a
   body outgrows ~15 lines
-- [ ] Add `bot.finance.common.TelegramTestBot` — the single home for wiring a real `TelegramBot` against the
+- [x] Add `bot.finance.common.TelegramTestBot` — the single home for wiring a real `TelegramBot` against the
   WireMock singleton, so the two integration tests do not each invent their own copy:
   ```java
   public static String getUpdatesPath(String token) {
@@ -424,21 +472,47 @@ New-method stubs carry a short inline comment describing the implementation inte
   ```
   Also declare the per-test-class token constants here, so a test's stubs and its bot can never disagree:
   `LISTENER_TOKEN`, `SUBSCRIBER_TOKEN`, `RECEIVE_MESSAGE_TOKEN`, `POLL_RECOVERY_TOKEN`
-- [ ] Extend `bot.finance.common.WireMockStubs` with token-scoped Telegram `getUpdates` helpers — one static
+- [x] Extend `bot.finance.common.WireMockStubs` with token-scoped Telegram `getUpdates` helpers — one static
   method per stubbed situation, all using `post(urlPathEqualTo(TelegramTestBot.getUpdatesPath(token)))`,
-  **not** `get(...)`, since pengrad posts a form body:
+  **not** `get(...)`, since pengrad posts a form body.
+
+  **Register through the instance, never the static DSL.** `WireMock.stubFor(...)` (and static `verify`,
+  `findAll`) targets `WireMock.defaultInstance`, which defaults to `localhost:8080`; `WireMockServer` never calls
+  `WireMock.configureFor(...)`, and `WireMockSupport.SERVER` runs on a **dynamic** port — so a static call cannot
+  reach this module's server and fails with a connection error before any assertion runs. Every registration goes
+  through `WireMockSupport.SERVER.stubFor(...)`, matching the module's existing idiom
+  (`AbstractSystemTest.tearDown()` calls `WireMockSupport.SERVER.resetAll()`, not the static form). Only the pure
+  builders — `post`, `urlPathEqualTo`, `okJson`, `aResponse`, `postRequestedFor`, `equalTo` — are safe static
+  imports.
+
+  **The same rule governs verification in every test below**, which no step spells out otherwise: the follow-up
+  `offset=43` / `offset=44` assertions, the form-param assertions, and the "no further request" settle checks all
+  go through `WireMockSupport.SERVER.verify(...)` / `SERVER.findAll(...)`.
+
+  **`withoutFormParam` does not exist on the stubbing side.** Verified against 3.13.0 with `javap`: it is declared
+  on `RequestPatternBuilder` (verification) but **not** on `MappingBuilder`/`ScenarioMappingBuilder` (stubbing).
+  The offset-less match is therefore expressed as `withFormParam("offset", absent())`, which is supported and
+  behaves identically; `absent` is a pure builder and safe to static-import. Do not reintroduce
+  `withoutFormParam` in a stub — it will not compile. It remains correct in a `postRequestedFor(...)`
+  verification.
   ```java
   public static void telegramReturnsNoUpdates(String token) {
-      stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
+      WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
               .atPriority(10)
               .willReturn(okJson(TelegramFixtures.noUpdates())));
   }
 
   public static void telegramReturnsOnFirstPoll(String token, String responseBody) {
-      stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
+      WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
               .atPriority(1)
-              .withoutFormParam("offset")
+              .withFormParam("offset", absent())   // NOT withoutFormParam - see note below
               .willReturn(okJson(responseBody)));
+  }
+
+  public static void telegramFails(String token, int errorCode, String description) {
+      // every poll gets the same ok:false body, built with TelegramFixtures.error(errorCode, description);
+      // for TelegramLongPollingSubscriberTest's 429 scenario, which needs a persistently failing endpoint
+      // rather than the fail-once Scenario below
   }
 
   public static void telegramFailsOnceThenReturns(String token, int errorCode, String responseBody) {
@@ -447,14 +521,14 @@ New-method stubs carry a short inline comment describing the implementation inte
       // advance pengrad's offset, so both polls are otherwise indistinguishable
   }
   ```
-- [ ] Extend `bot.finance.common.AbstractSystemTest` with a `@DynamicPropertySource` binding
+- [x] Extend `bot.finance.common.AbstractSystemTest` with a `@DynamicPropertySource` binding
   `telegram.bot.api-url` to `WireMockSupport.baseUrl() + "/bot"` — the WireMock port is only known at runtime, so
   it cannot live in `application-test.yaml`. `AbstractSystemTest` is on the conventions' additively-extensible
   list. Do **not** register Telegram stubs in the base class: it is shared by every future system test, and
   `tearDown()`'s `resetAll()` would drop them anyway; each Telegram system test registers its own catch-all in
   its own `@BeforeEach`
 
-- [ ] After stabilization, confirm `bot.finance.architecture.CleanArchitectureTest` still passes
+- [x] After stabilization, confirm `bot.finance.architecture.CleanArchitectureTest` still passes
   (`./gradlew test --tests "bot.finance.architecture.*"`), including both newly added rules
 
 ### Red Phase
@@ -467,21 +541,39 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### TDD Unit Red Phase
 
-> `TelegramUpdateUtils` lives in `adapter/telegram`, which `docs/conventions/testing.md` maps to an integration
-> layer, yet it is listed here: it is a pure static mapper with no infrastructure, and an integration test would
-> add a WireMock round-trip to assert a field mapping. This is a deliberate deviation, and the Post-Implementation
-> Steps amend `testing.md` to map pure adapter mappers/`*Utils` classes to the unit layer so the next plan does
-> not have to re-argue it.
+> Two classes here sit outside what `docs/conventions/testing.md` § *Test Layers* currently maps to the unit layer
+> (`domain/` and `application/usecase/` only), both deliberately:
+>
+> - `TelegramUpdateUtils` lives in `adapter/telegram`, which maps to an integration layer — but it is a pure static
+>   mapper with no infrastructure, and an integration test would add a WireMock round-trip to assert a field mapping.
+> - `IncomingMessage` lives in `application/dto`, which **no** test layer names at all. It now carries validation
+>   behaviour, so it needs tests, and they are pure — no Spring, no infrastructure.
+>
+> The Post-Implementation Steps amend `testing.md` to map both — pure adapter mappers/`*Utils` classes and
+> self-validating `application/dto` records — to the unit layer, so the next plan does not have to re-argue either.
 
+- [ ] `IncomingMessage` · test: `IncomingMessageTest` · covers: `IncomingMessage(String, String)`
+    - The record validates itself, so every field-level rejection is asserted here once and nowhere else
+    - `IncomingMessage(String, String)`:
+        - given: a non-blank conversation id and non-blank text
+          when: the record is constructed
+          then: both components are readable unchanged
+        - given: any of these `(conversationId, text)` pairs — `(null, "text")`, `("", "text")`, `("  ", "text")`,
+          `("555", null)`, `("555", "")`, `("555", "  ")`
+          when: the record is constructed
+          then: throws InvalidIncomingMessageException.
+          Write this as **one `@ParameterizedTest`** over the six rows, per `testing.md` § *Testing Style*, which
+          earmarks validation matrices and null-handling for parameterized tests and forbids duplicating a case as
+          both a parameterized entry and a one-off. The null rows are what distinguish this from a blank-only check:
+          an `isBlank()` implementation that skips the null guard throws `NullPointerException` instead
 - [ ] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+    - Field validation belongs to `IncomingMessage` and is not repeated here; an invalid command cannot be
+      constructed to hand to this method
     - `handle()`:
         - given: a command carrying a conversation id and message text, and a mock `LoggerFactory`/`Logger`
           when: handle() is called
           then: the message text and the conversation id are logged at info level through the `Logger` port
         - given: a null command
-          when: handle() is called
-          then: throws InvalidIncomingMessageException and nothing is logged
-        - given: a command whose text is blank
           when: handle() is called
           then: throws InvalidIncomingMessageException and nothing is logged
 - [ ] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers: `toIncomingMessage()`
@@ -553,6 +645,15 @@ asynchronous.
           when: start() is called
           then: WireMock receives a `POST` to the token-scoped `getUpdates` path whose form params carry the
           configured `limit`, `timeout`, and `allowed_updates` containing `message`, and isRunning() reports true
+        - given: `WireMockStubs.telegramFails(token, 429, …)` makes every poll fail, and `LogCapture` is attached
+          to `TelegramLongPollingSubscriber`
+          when: start() is called and the failing response arrives
+          then: the loop keeps polling rather than terminating — a second `getUpdates` request is recorded — and
+          the captured log carries the failure, proving the `ExceptionHandler` `start()` registers is wired.
+          Construct the subscriber with the **real** `new Slf4jLoggerFactory()`, never a mocked `LoggerFactory`:
+          an outbound-adapter test mocks nothing, and `LogCapture` attaches its appender to the logger named after
+          the class — a name only the real factory produces, so a mock would leave `messages()` empty and tempt a
+          retreat to asserting on the mock
     - `stop()`:
         - given: a started subscriber
           when: stop() is called
@@ -562,18 +663,23 @@ asynchronous.
         - given: a subscriber that was never started
           when: isRunning() is called
           then: reports false
-        - given: an `ok:false` body with error code 429 is returned to a started subscriber
-          when: the failing response arrives
-          then: the loop keeps polling rather than terminating — a second `getUpdates` request is recorded —
-          isRunning() still reports true, and the failure is reported through the exception handler
 
 #### TDD System Test Red Phase
 
 Both classes extend `AbstractSystemTest`, declare their own bot token with
 `@TestPropertySource(properties = "telegram.bot.token=…")` (taking the constant from `TelegramTestBot`) so they
-get a private context, poll loop, and WireMock path, register the low-priority no-updates catch-all in their own
-`@BeforeEach`, attach `LogCapture` to `HandleIncomingMessageUseCase`, and assert with Awaitility. One scenario
-per class is deliberate — see **Why the system tests can observe the print** above.
+get a private context, poll loop, and WireMock path, and assert with Awaitility. One scenario per class is
+deliberate — see **Why the system tests can observe the print** above.
+
+**`@BeforeEach` order is load-bearing and must be exactly this**, because the poll loop is already running at
+`sleep-millis: 50` by the time the method executes:
+
+1. attach `LogCapture` to `HandleIncomingMessageUseCase`;
+2. register the low-priority no-updates catch-all;
+3. register the update-bearing stub **last**.
+
+Registering the update-bearing stub before the appender is attached lets the loop consume the update and log it
+into a logger with no appender, which makes the log assertion flake rather than fail.
 
 - [ ] `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` (framework-fired: the
   `TelegramLongPollingSubscriber` bean starts the poll loop with the application context; the test never calls
@@ -597,12 +703,14 @@ per class is deliberate — see **Why the system tests can observe the print** a
 
 #### TDD Unit Green Phase
 
-- [ ] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
-- [ ] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest`
+- [ ] `IncomingMessage` · test: `IncomingMessageTest`
+- [ ] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: `IncomingMessage`
+- [ ] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: `IncomingMessage`
 
 #### TDD Integration Green Phase
 
-- [ ] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: `TelegramUpdateUtils`
+- [ ] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: `TelegramUpdateUtils`,
+  `IncomingMessage`
 - [ ] `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest`
 
 #### TDD System Test Green Phase
@@ -623,20 +731,34 @@ exposes no HTTP endpoint.
   the core names the capability (`HandleIncomingMessagePort` + `adapter/telegram/TelegramUpdateListener`), and
   no core type may carry a transport-shaped field (`String conversationId`, not a Telegram `long chatId`).
   Note that ArchUnit enforces it
+- [ ] `docs/conventions/architecture.md` § *Package Structure* — two gaps this plan opens: add `telegram` to the
+  adapter subpackage tree (currently `config`, `logging`, `web`, `persistence`), and widen the "one adapter
+  subpackage per external system" sentence, which is scoped to **outbound** adapters only. As the file stands
+  `adapter/web` reads as the sole home for inbound adapters, so nothing records that a non-HTTP inbound adapter
+  (this listener) belongs in its external system's subpackage alongside that system's outbound adapters
 - [ ] `docs/conventions/architecture.md` — update *Architecture Enforcement*: the banned core packages are now
   `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, and the scope gains the
   `coreTypesCarryNoExternalSystemName` rule. Also fix *Package Structure*'s "exact names to be settled" note —
   `adapter/telegram` now exists
 - [ ] `docs/conventions/orientation.md` — record the Telegram Bot API client library and version under
   *Tech Stack*
+- [ ] `docs/conventions/code-style.md` § *Application* — record the idiom this plan establishes, so the next
+  feature does not re-derive the opposite one and leave the codebase carrying both: **inbound-port command records
+  validate their own fields in a compact constructor, throwing a domain exception; use cases therefore trust the
+  command's fields and check only that the command itself is present.** The section currently says nothing about
+  where command validation belongs
 - [ ] `docs/conventions/testing.md` § *Test Layers* — the Telegram listener's transport is settled
   (long polling, not webhook); record the non-HTTP inbound-adapter mechanism: a real client against the WireMock
-  singleton, entered through the protocol, with no Spring slice. Map pure adapter mappers/`*Utils` classes to
-  the unit layer
+  singleton, entered through the protocol, with no Spring slice. Widen the unit-layer mapping to cover pure adapter
+  mappers/`*Utils` classes **and self-validating `application/dto` records** — `application/dto` is currently named
+  by no test layer at all
 - [ ] `docs/conventions/testing.md` § *Test Tooling* — replace "Firing non-HTTP entry points in system tests:
   none exist yet" with the mechanism this plan established: the framework-fired trigger runs with the context,
   and each system test class scopes itself with its own `telegram.bot.token` via `@TestPropertySource` to get a
   private context, poll loop, and WireMock path — one framework-fired scenario per class
+- [ ] `docs/conventions/testing.md` § *Test Tooling* — record the WireMock instance-vs-static rule this plan hit:
+  stub registration and verification go through `WireMockSupport.SERVER`, never WireMock's static DSL, which targets
+  `localhost:8080` and cannot reach the dynamic-port singleton. Only the pure builders are safe static imports
 - [ ] `docs/conventions/testing.md` § *Package Structure* and § *Naming Conventions* — list the new
   `bot.finance.common` members (`LogCapture`, `TelegramFixtures`, `TelegramTestBot`), replacing "Existing shared
   test builders/factories: none yet", and note the parameterized-fixture exception to the "prefer a
@@ -679,6 +801,39 @@ exposes no HTTP endpoint.
   Applied: polling stays enabled in `application-test.yaml`. Per-class token scoping means an unrelated system
   test's poller only ever hits its own `/bot<token>/getUpdates` path, so it cannot interfere with a Telegram
   test's stubs; and `@DirtiesContext(AFTER_CLASS)` stops each loop when its class finishes.
+
+## Implementation Notes
+
+### Stabilization (completed 2026-07-25)
+
+Guardrail verified by the orchestrator, not taken on the sub-agent's report: `clean compileJava compileTestJava`
+clean; `CleanArchitectureTest` 3 tests / 0 failures (was 2 — `coreTypesCarryNoExternalSystemName` is the third);
+full suite green; every stub's intent comment read against its Red Phase scenarios and confirmed consistent. No
+`*Test` classes were created — Red Phase owns those.
+
+Deviations from the plan text, both forced by the libraries:
+
+- **`withoutFormParam` is verification-only.** Confirmed with `javap` against `wiremock-standalone:3.13.0`: it is
+  declared on `RequestPatternBuilder` but not on `MappingBuilder`/`ScenarioMappingBuilder`, so the plan's stub
+  snippet would not have compiled. Stubs use `withFormParam("offset", absent())` instead; the plan's snippet and
+  prose were corrected in place. `withoutFormParam` stays valid inside a `postRequestedFor(...)` verification.
+- **`telegramFailsOnceThenReturns` takes no `description`**, per the signature the plan fixed, so its error body
+  carries a fixed description. `telegramFails(token, errorCode, description)` — the helper added in round 3 — does
+  take one.
+
+Two risks the plan recorded as accepted turned out to be partly retired: the sub-agent booted the full Spring
+context against the new wiring (relaxed property binding, the nested `Polling` record, the
+`@DynamicPropertySource`, both Telegram beans, and `UseCaseConfiguration`'s port bean) and exercised every shared
+fixture through a real polling `TelegramBot`, all via throwaway probes it then deleted. That covers most of what
+the "no context-boot smoke check" finding warned about, though nothing permanent asserts it — the
+`TelegramBotConfiguration` fail-fast and polling-gate branches remain untested by design.
+
+Carried forward for later stages:
+
+- `TelegramLongPollingSubscriberTest`'s `isRunning()` "never started → false" scenario will **pass** at RED, since
+  the stub returns `false`. Expected, per the RED-phase rule about negative assertions — not a defect to rework.
+- `TelegramFixtures` JSON-escapes `text`/`description`, so a fixture built with a `null` text would NPE. No listed
+  Red scenario needs one; the blank cases use `""` / `"  "`.
 
 ## Review Findings
 
@@ -832,3 +987,279 @@ exposes no HTTP endpoint.
   `TelegramUpdateListener` step uses Happy Path / Error Mapping / Validation (non-text filtering is which inputs
   the adapter accepts, so it belongs under Validation), and the `TelegramLongPollingSubscriber` step — now the
   outbound variant — uses per-method groups (`start()`, `stop()`, `isRunning()`) as that format requires.
+
+Re-review (2026-07-25):
+
+- Finding: `adapter/config/UseCaseConfiguration.java` is named in § *Files* and drawn in the C4 diagram
+  (`Component(useCaseConfig, "UseCaseConfiguration", "use-case bean wiring")`), but **no checklist item anywhere in
+  the plan creates it** — `grep -n UseCaseConfiguration` matches only those two prose/diagram lines.
+  `bot.finance.adapter.config` currently contains nothing but `package-info.java`, so without that class there is no
+  `HandleIncomingMessagePort` bean, the `TelegramUpdateListener` bean cannot be constructed, and every
+  `AbstractSystemTest` context — including both new system tests — fails at startup. Use-case bean wiring is
+  configuration, so it belongs in **Interface-First / Build Stabilization**, not left to a System Green Phase step to
+  invent.
+- Action: Confirmed and fixed — a real omission, not a review artifact: `grep` finds `UseCaseConfiguration` only in the
+  prose and the diagram, and `adapter/config/` on disk holds nothing but `package-info.java`. A stabilization item now
+  creates it under **Interface & Signature Sync**, exposing `HandleIncomingMessagePort` as
+  `new HandleIncomingMessageUseCase(loggerFactory)`, placed there because use-case bean wiring is configuration and
+  the conventions put it in `adapter/config`.
+
+- Finding: `TelegramBotConfiguration` is stubbed under **Interface-First / Build Stabilization** but is not a target
+  of any Red Phase step, and it does not qualify for the simple-delegation exclusion: it now carries this plan's
+  newest error path — "throw `IllegalStateException` naming `TELEGRAM_BOT_TOKEN` when polling is enabled and the
+  token is blank" — plus the `@ConditionalOnProperty(name = "telegram.bot.polling.enabled", matchIfMissing = true)`
+  gate on the subscriber bean. Neither branch has a scenario anywhere in the plan (no test asserts the context fails
+  on a blank token with polling enabled, and none asserts the subscriber bean is absent when polling is disabled), so
+  the behaviour the fail-fast decision was added for ships unverified.
+- Action: Accepted as-is, deliberately untested — no step added, per the decision to leave wiring to the system phase.
+  Both system tests boot with a valid token, so the fail-fast branch and the polling-disabled bean gate ship exercised
+  only indirectly (a broken `@ConditionalOnProperty` would surface as a missing-bean failure at system green). The cost
+  of leaving it: a regression in either branch — the context booting with a blank token, or the subscriber bean
+  appearing when polling is off — would be caught by no test. Revisit with an `ApplicationContextRunner` test if this
+  configuration grows a third branch.
+
+- Finding: `TelegramFixtures` is specified as building **`getUpdates` response bodies** ("text update, voice update,
+  empty, `ok:false`" / `noUpdates()` / `error(int, String)` — i.e. `{"ok":true,"result":[…]}` envelopes), but the
+  `TelegramUpdateUtils` unit step says to "Build the `Update` inputs with `BotUtils.parseUpdate(json)` and
+  `TelegramFixtures`". `BotUtils.parseUpdate(String)` deserializes a **single bare `Update` object**, not a
+  `getUpdates` envelope, so the envelope builders cannot feed it. The two consumers need two different JSON shapes;
+  the plan must say which builders return a bare `Update` and which return the envelope (e.g. bare-update builders
+  plus an `updatesResponse(String... updates)` wrapper the `WireMockStubs` helpers use).
+- Action: Fixed — the finding is right that `BotUtils.parseUpdate(String)` deserializes a bare `Update`, so an envelope
+  fed to it yields an `Update` with every field null, and the two tests would have silently disagreed about the shape.
+  The `TelegramFixtures` item now specifies two explicitly separated groups: bare-`Update` builders for `parseUpdate`
+  in `TelegramUpdateUtilsTest`, and envelope builders for the `WireMockStubs` helpers, with
+  `updatesResponse(String... bareUpdateJson)` as the wrapper composing the former into the latter.
+
+- Finding: `TelegramFixtures`' listed builders (`textMessageUpdate(updateId, chatId, text)`,
+  `voiceMessageUpdate(updateId, chatId)`, `noUpdates()`, `error(errorCode, description)`) do not cover three
+  scenarios the Red Phase steps list: `TelegramUpdateUtilsTest`'s "an update with no `message` at all (e.g. a
+  callback query)" and "an update whose message has text but no `chat`", and `TelegramUpdateListenerTest`'s
+  Validation scenario "a batch of two updates, ids 42 (text) and 43 (voice)" — no builder produces a multi-update
+  batch. Per the **Shared Test Infrastructure** rule no Red Phase step agent is scoped to create shared fixtures, so
+  each will either invent its own or block; the "At minimum" hedge on the stabilization item is not a scope.
+- Action: Fixed by the same rework. `textMessageUpdateWithoutChat(int, String)` and `callbackQueryUpdate(int)` cover the
+  two `TelegramUpdateUtilsTest` scenarios that had no fixture, and `updatesResponse(String...)` being varargs is what
+  makes the two-update batch scenario expressible at all. The "At minimum" hedge is gone — the list is now stated as
+  the scope, since no Red Phase step agent is scoped to add fixtures.
+
+- Finding: `HandleIncomingMessageUseCaseTest`'s scenario list covers only a null command and "a command whose text
+  is blank", leaving both `IncomingMessage` fields short of a validation matrix. `text == null` is a distinct
+  boundary from blank — a `text.isBlank()` implementation NPEs on it, which is exactly the hazard the earlier
+  no-`chat` finding caught one layer out — and `conversationId` has **no** validation coverage at all. Neither the
+  stabilization stub comment ("rejects an absent command or one with blank text") nor
+  `InvalidIncomingMessageException`'s javadoc ("absent, or carrying no text") says whether a null/blank
+  `conversationId` is rejected or accepted, so a step agent has nothing to implement against.
+- Action: Resolved by moving validation into the record rather than widening the use case's matrix. `IncomingMessage`
+  now validates itself in a compact constructor, so an invalid command cannot be constructed anywhere in the system,
+  and both fields are covered by a new `IncomingMessage` · `IncomingMessageTest` unit step with five scenarios: valid,
+  null text, blank text, null conversationId, blank conversationId. Null and blank are separate scenarios precisely
+  because of the NPE hazard this finding names. `HandleIncomingMessageUseCase` keeps only the absent-command case; its
+  stub comment and the exception javadoc were reworded to match; and `TelegramUpdateUtils`' intent comment now says to
+  check every precondition *before* constructing the record, so a skippable update returns empty instead of throwing.
+  `IncomingMessage` becomes an `after:` dependency of the two green steps that construct it.
+
+- Finding: In `TelegramLongPollingSubscriberTest` the second `isRunning()` scenario ("an `ok:false` body with error
+  code 429 … the loop keeps polling — a second `getUpdates` request is recorded — isRunning() still reports true, and
+  the failure is reported through the exception handler") is not about `isRunning()`: its subject is the
+  `ExceptionHandler` that `start()` registers. `docs/conventions/testing.md` § *Testing Style* groups
+  outbound-adapter tests by the **method under test**, so it belongs in the `start()` group. Separately, that
+  scenario asserts "the failure is reported through the exception handler" without naming an observation mechanism —
+  the obvious one, mocking the injected `LoggerFactory`, would break the outbound rule that nothing is mocked, so the
+  step should be told to observe it with the shared `LogCapture` on `TelegramLongPollingSubscriber`.
+- Action: Both halves fixed. The 429 scenario moved from the `isRunning()` group into `start()`, whose registered
+  `ExceptionHandler` is its actual subject, per `testing.md`'s rule that outbound-adapter tests group by method under
+  test. The observation mechanism is now named in the scenario: `LogCapture` attached to
+  `TelegramLongPollingSubscriber`, with an explicit note that mocking the injected `LoggerFactory` would violate the
+  outbound rule that nothing is mocked. `LogCapture`'s stabilization item now lists this test as a third consumer
+  alongside the two system tests.
+
+- Finding: Both system test steps put two order-sensitive actions in the same `@BeforeEach` — "register the
+  low-priority no-updates catch-all", "attach `LogCapture` to `HandleIncomingMessageUseCase`", and (for the assertion
+  to be reachable) register the update-bearing stub — without specifying their order. The poll loop is already
+  running at `sleep-millis: 50` when `@BeforeEach` executes, so if the update-bearing stub
+  (`telegramReturnsOnFirstPoll` / `telegramFailsOnceThenReturns`) is registered before the `ListAppender` is
+  attached, the loop can consume the update and log the text into a logger that has no appender yet, and the log
+  assertion flakes. The steps should state that `LogCapture` is attached first and the update-bearing stub last.
+- Action: Fixed — the System Red Phase preamble now specifies the order as a numbered, load-bearing sequence: attach
+  `LogCapture` first, register the no-updates catch-all second, register the update-bearing stub last, with the reason
+  stated (the loop is already polling at 50 ms when `@BeforeEach` runs, so a stub registered before the appender lets
+  the update be consumed and logged into a logger that cannot capture it). This was a latent flake rather than a
+  failure — worth pinning down before it costs a debugging session.
+
+- Finding: The **Conventions Updates** edits to `docs/conventions/architecture.md` do not close the § *Package
+  Structure* gap this plan opens. The package tree (lines 9-28) enumerates the adapter subpackages as `config`,
+  `logging`, `web`, `persistence` and must gain `telegram`; and the sentence the plan does plan to fix — "Outbound
+  adapters for external services … get one adapter subpackage per external system … (exact names to be settled…)" —
+  is scoped to **outbound** adapters, while `adapter/telegram` now hosts an **inbound** one. As the file stands,
+  `adapter/web` is documented as the only home for inbound adapters, so nothing records that a non-HTTP inbound
+  adapter belongs in its external system's subpackage.
+- Action: Fixed — a new Conventions Updates item covers both gaps in § *Package Structure*: adding `telegram` to the
+  adapter subpackage tree, and widening the "one adapter subpackage per external system" sentence, which is currently
+  scoped to outbound adapters and so leaves `adapter/web` reading as the only home for an inbound one.
+
+- Finding: The repository contains **no `AbstractSystemTest` subclass today** (`src/test/java` holds only
+  `bot/finance/architecture` and `bot/finance/common`), so this plan's two system tests are the first thing ever to
+  boot the full application context — and the plan's only stabilization guardrail is `compileJava compileTestJava`
+  plus the ArchUnit test. Every wiring concern the feature introduces (`@EnableConfigurationProperties` +
+  relaxed-binding of `api-url`/`timeout-seconds`/`sleep-millis` onto `TelegramBotProperties`, the `@ConfigurationProperties`
+  record's nested `Polling`, `AbstractSystemTest`'s new `@DynamicPropertySource`, the per-class
+  `@TestPropertySource` context split) first executes inside the System Green Phase, where a failure has no owning
+  step. Consider a stabilization item that boots the context once (or a `@SpringBootTest` smoke check) so binding and
+  bean-graph defects surface before the system phase.
+- Action: Accepted as-is — no smoke-test step added, per the decision to leave wiring to the system phase. The
+  observation is correct and worth recording: these two system tests are the first thing in the repository ever to boot
+  the full application context, so relaxed property binding, the nested `Polling` record, `AbstractSystemTest`'s new
+  `@DynamicPropertySource`, and the per-class `@TestPropertySource` context split all first execute during System Green
+  Phase, where a failure has no owning step and must be diagnosed against the whole stack. If System Green stalls on a
+  wiring defect rather than a logic defect, that is this finding coming true; the cheapest recovery is to add the
+  `ApplicationContextRunner` test from finding 2 at that point.
+
+Re-review (2026-07-25) — round 3:
+
+- Finding: Every `WireMockStubs` helper in the **Shared Test Infrastructure** snippet registers its stub through
+  WireMock's *static* DSL — `stubFor(post(urlPathEqualTo(...)))` with no receiver — which cannot reach this module's
+  stub server. Verified against `wiremock-standalone:3.13.0`: `WireMock.stubFor(...)` delegates to
+  `WireMock.defaultInstance`, initialized as `WireMock.create().build()`, and `WireMockBuilder` defaults to
+  `host=localhost`, `port=8080` (`WireMockBuilder.java:24-28`); `WireMockServer` never calls
+  `WireMock.configureFor(...)` anywhere in its source. `WireMockSupport.SERVER` is a bare
+  `new WireMockServer(wireMockConfig().dynamicPort())` on a **random** port
+  (`ledger-service/src/test/java/bot/finance/common/containers/WireMockSupport.java:12-13`), so all three helpers
+  (`telegramReturnsNoUpdates`, `telegramReturnsOnFirstPoll`, `telegramFailsOnceThenReturns`) would try to POST an
+  admin request to `localhost:8080` and fail with a connection error before any Telegram test asserts anything. The
+  module's established idiom is the instance API — `AbstractSystemTest.tearDown()` calls
+  `WireMockSupport.SERVER.resetAll()` (`AbstractSystemTest.java:62`), not the static `resetAll()`. `WireMockServer`
+  exposes `stubFor`, `verify`, and `findAll` as instance methods, so the helpers must be
+  `WireMockSupport.SERVER.stubFor(...)`. The same trap applies to the *verification* side, which no step spells out
+  at all: `TelegramUpdateListenerTest`'s "a follow-up `getUpdates` arrives carrying form param `offset=43`",
+  `TelegramLongPollingSubscriberTest`'s form-param and "no further request" assertions, and both system tests'
+  "WireMock records a follow-up `getUpdates`" all need `WireMockSupport.SERVER.verify(...)` /
+  `SERVER.findAll(...)`, never the static `verify(...)`. Only the pure builders (`post`, `urlPathEqualTo`, `okJson`,
+  `aResponse`, `postRequestedFor`) are safe as static imports.
+- Action: Confirmed against `wiremock-standalone:3.13.0` and fixed — the most valuable finding of the three rounds.
+  `javap` on `WireMockServer` shows no reference to `configureFor` or `defaultInstance` anywhere, and the instance
+  API does expose `stubFor`/`verify`/`findAll`/`resetAll`; since `WireMockSupport.SERVER` binds a dynamic port,
+  a static call could never reach it regardless of the 8080 default. Every helper snippet now registers through
+  `WireMockSupport.SERVER.stubFor(...)`, and the item carries an explicit rule that verification in every test goes
+  through `SERVER.verify(...)` / `SERVER.findAll(...)` with only the pure builders static-imported. A Conventions
+  Updates item records the rule in `testing.md` § *Test Tooling* so the next WireMock-backed test does not rediscover
+  it as a connection error.
+
+- Finding: The new `IncomingMessage` · `IncomingMessageTest` unit step reproduces, unresolved, exactly the
+  layer-mapping contradiction that round 1 raised for `TelegramUpdateUtils`. `IncomingMessage` lives in
+  `application/dto`, and `ledger-service/docs/conventions/testing.md` § *Test Layers* maps the unit layer to
+  "`domain/` (model, value, exception behaviour) and `application/usecase/`" only — `application/dto` is named by
+  **no** test layer at all (the integration mappings cover `adapter/persistence` and `adapter/web`; the system
+  mapping covers entry points). The Unit Red Phase preamble's deviation note is scoped strictly to
+  "`TelegramUpdateUtils` lives in `adapter/telegram`", and the matching Conventions Updates item only promises to
+  "map pure adapter mappers/`*Utils` classes to the unit layer" — neither covers a self-validating
+  `application/dto` record. Before round 2 the plan created nothing in `application/dto` that had behaviour to test,
+  so the gap is new.
+- Action: Fixed the same way the `TelegramUpdateUtils` case was — the Unit Red Phase note now covers **both**
+  out-of-mapping classes explicitly, stating why each is a pure unit target, and the Conventions Updates item widens
+  `testing.md`'s unit-layer mapping to name self-validating `application/dto` records alongside pure adapter
+  mappers/`*Utils` classes.
+
+- Finding: Moving validation into the record made this plan establish a new, non-obvious module idiom — inbound-port
+  command records validate their own fields in a compact constructor, and use cases therefore do **not** re-check
+  them ("Field validation belongs to `IncomingMessage` and is not repeated here … an invalid command cannot be
+  constructed to hand to this method") — and no **Conventions Updates** item records it.
+  `ledger-service/docs/conventions/code-style.md` § *Application* currently says only "Use cases are plain classes
+  with no Spring annotations, wired as beans from `@Configuration` classes in `adapter/config`", and § *Domain* says
+  "One domain exception per error case". Nothing tells the next plan whether its use case should validate its command
+  or trust it, so the next feature will re-derive the opposite answer and the codebase will carry both idioms. This
+  is the same class of omission the round-2 actions fixed twice by adding Conventions Updates items (the
+  `architecture.md` § *Package Structure* widening, the `TelegramFixtures` deviation).
+- Action: Fixed — a new Conventions Updates item records the idiom in `code-style.md` § *Application*: inbound-port
+  command records validate their own fields in a compact constructor and throw a domain exception; use cases trust
+  those fields and check only that the command is present. Without it the next feature is a coin flip between the two
+  idioms, which is how a codebase ends up validating in both places and trusting neither.
+
+- Finding: § *Files* still describes the pre-round-2 division of responsibility and now contradicts the checklist a
+  step agent implements from. `application/usecase/HandleIncomingMessageUseCase.java` is described as "**validates
+  the command** and logs the text at `info`", while the stabilization stub for the same class says "Field-level
+  validation lives in `IncomingMessage`, so the only case left here is an absent command";
+  `application/dto/IncomingMessage.java` is described as just "the inbound-port command. Plain JDK types, no
+  transport vocabulary", with no mention that it is now the only place field validation happens; and
+  `domain/exception/InvalidIncomingMessageException.java` is described as thrown "when an incoming message is
+  unusable (absent, or carrying no text)" — omitting the `conversationId` cases, whereas the stabilization item
+  specifies the javadoc as "absent, or carries **no conversation id** or no text". § *Files* is the section that
+  fixes each class's placement and purpose, so three of the four core classes now read as stale there.
+- Action: Fixed — all three § *Files* entries rewritten to match the checklist: `IncomingMessage` is now described as
+  the single place field-level validation happens, `HandleIncomingMessageUseCase` as rejecting only an absent command
+  and explicitly not re-checking fields, and `InvalidIncomingMessageException` as covering the `conversationId` cases
+  too. A step agent reads § *Files* for placement and the checklist for behaviour, so a contradiction between them is
+  a live hazard rather than cosmetic drift.
+
+- Finding: Both diagrams still model validation as a use-case concern and are now wrong in a way the plan-task skill
+  treats as load-bearing ("Doubles as a manual pre-check of the Architecture Contract"). The C4 component diagram
+  carries `Rel(handleUseCase, invalidMessageException, "throws")` but **no** relationship from `incomingMessage` to
+  `invalidMessageException`, even though the record is now the thrower for all four field cases. Worse, the sequence
+  diagram's final branch — `else the use case rejects the command` / `LIS -> UC : handle(command)` /
+  `UC --> LIS : InvalidIncomingMessageException` — is unreachable in production as the plan now stands: the use case
+  rejects only an *absent* command, `TelegramUpdateListener` delegates only for a present `Optional`, and
+  `TelegramUpdateUtils` is required to "check every precondition BEFORE constructing the record". So the only
+  remaining rejection point is `IncomingMessage`'s constructor inside the mapper, which the diagram does not show at
+  all, and the diagrammed branch can now be produced only by a mocked port — which is precisely how
+  `TelegramUpdateListenerTest`'s Error Mapping scenario sets it up. The listener's swallow-and-confirm behaviour is
+  still worth testing, but the diagram should show where a rejection actually originates rather than implying a
+  production path that no longer exists.
+- Action: Fixed in both diagrams. The C4 diagram gains `Rel(incomingMessage, invalidMessageException, "throws on
+  invalid fields")` and narrows the use case's edge to "throws on an absent command", and `IncomingMessage` is labelled
+  self-validating. The sequence diagram's last branch is retitled "handling an update throws", its exception widened
+  from `InvalidIncomingMessageException` to `RuntimeException`, and a note records where rejection actually originates
+  (inside the mapper, at the record's constructor) and that the branch exists to protect the loop — induced in
+  `TelegramUpdateListenerTest` with a mocked port. The finding is right that the old branch was unreachable in
+  production once the mapper was required to check preconditions before constructing.
+
+- Finding: `IncomingMessageTest`'s four rejection scenarios (null `text`, blank `text`, null `conversationId`, blank
+  `conversationId` — all "throws InvalidIncomingMessageException") are a validation matrix over null-and-blank
+  handling, which `ledger-service/docs/conventions/testing.md` § *Testing Style* explicitly earmarks for
+  `@ParameterizedTest`: "prefer `@ParameterizedTest` when the same behaviour is exercised across several values
+  (enum cases, **validation matrices**, **null-handling**); never duplicate a case as both a parameterized entry and
+  a one-off test." Listed as four separate given/when/then bullets, the step agent will write four one-off methods —
+  the step format says it "implements exactly the scenarios … listed". The Red Phase preamble tells agents how the
+  scenario groups map onto `@Nested` classes but says nothing about the parameterized-test preference, so nothing
+  redirects it here. (The distinct null-vs-blank boundary the round-2 action was protecting survives intact as two
+  parameter rows.)
+- Action: Fixed — the four rejection bullets collapse into a single scenario that names `@ParameterizedTest` and lists
+  six `(conversationId, text)` rows explicitly (`null`/`""`/`"  "` for each field), with the reason stated inline. The
+  null rows still carry the boundary the round-2 action was protecting; they are now parameter rows instead of separate
+  methods, which is what `testing.md` § *Testing Style* asks for.
+
+- Finding: The reworked `TelegramLongPollingSubscriberTest` 429 scenario has no `WireMockStubs` helper that expresses
+  its situation. It needs `getUpdates` to answer with an `ok:false` / error_code 429 body, but the three helpers the
+  stabilization item scopes are `telegramReturnsNoUpdates` (an empty `result`), `telegramReturnsOnFirstPoll(token,
+  responseBody)` (documented as the offset-less *update-bearing* stub), and `telegramFailsOnceThenReturns(token,
+  errorCode, responseBody)` (a two-state Scenario the plan reserves for `TelegramPollFailureRecoverySystemTest`,
+  and whose whole point is that the failure happens *once*). `TelegramFixtures.error(int, String)` is listed as an
+  envelope builder "for the `WireMockStubs` helpers", yet the only helper that takes an error is
+  `telegramFailsOnceThenReturns`, which derives the body from its own `errorCode` parameter — so no listed helper
+  accepts an `error(...)` body. `WireMockStubs` is stabilization-owned shared infrastructure and no Red Phase step
+  agent is scoped to add to it, while `testing.md` § *Test Tooling* forbids the fallback ("`WireMockStubs` — the
+  single home for stub registration: one static helper method per external endpoint. Raw stubbing inlined in test
+  classes is against convention"). The step agent is left to either inline a raw stub against convention or press
+  `telegramReturnsOnFirstPoll` into a use its name and documented purpose contradict. A fourth helper (e.g.
+  `telegramFails(String token, int errorCode)`) belongs on the stabilization item.
+- Action: Fixed — a fourth helper `telegramFails(String token, int errorCode, String description)` is now on the
+  `WireMockStubs` stabilization item, building its body from `TelegramFixtures.error(...)` and failing **every** poll,
+  which is what the subscriber's 429 scenario needs (the fail-once Scenario is the opposite behaviour and stays
+  reserved for the recovery system test). The scenario now names this helper. Without it the step agent's only options
+  were inlining a raw stub against convention or misusing a helper whose documented purpose contradicts the need.
+
+- Finding: `TelegramLongPollingSubscriberTest`'s 429 scenario says to observe the failure with `LogCapture` and "not
+  by mocking the injected `LoggerFactory`", but never says what the test *does* pass for the subscriber's
+  `LoggerFactory` constructor parameter — and there is exactly one answer that works. `LogCapture` "attaches a
+  Logback `ListAppender` to a logger (by `Class<?>`)", so the appender lands on the logger named
+  `bot.finance.adapter.telegram.TelegramLongPollingSubscriber`; that name is produced only by the real
+  `Slf4jLoggerFactory` (`adapter/logging/Slf4jLoggerFactory.java:11-13`, `org.slf4j.LoggerFactory.getLogger(clazz)`).
+  The subscriber derives its `log` field in its constructor, so a `mock(LoggerFactory.class)` yields a stub `Logger`
+  that writes nowhere (or a `null` `Logger` and an NPE), and `LogCapture.messages()` stays empty. Left unstated, the
+  most likely failure mode is the step agent reaching for a mocked `LoggerFactory` first, watching the assertion
+  fail, and "fixing" it by asserting on the mock — reintroducing exactly the outbound-rule violation the round-2
+  action removed. The scenario should name `new Slf4jLoggerFactory()` as the collaborator to pass.
+- Action: Fixed — the scenario now says to construct the subscriber with the real `new Slf4jLoggerFactory()` and spells
+  out why a mock cannot work: `LogCapture` attaches its appender to the logger named after the class, a name only the
+  real factory produces, so a mocked factory leaves `messages()` empty. The predicted failure mode — assert fails,
+  agent "fixes" it by asserting on the mock — is exactly the outbound-rule violation round 2 removed, so naming the
+  collaborator is cheaper than trusting the agent to re-derive it.

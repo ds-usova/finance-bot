@@ -24,7 +24,21 @@ class CleanArchitectureTest {
     @ArchTest
     static final ArchRule domainAndApplicationStayFrameworkAgnostic = noClasses()
             .that().resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
-            .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "jakarta..", "org.slf4j..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "org.springframework..", "jakarta..", "org.slf4j..", "com.pengrad..")
+            .allowEmptyShould(true);
+
+    /**
+     * The core names the capability, the adapter names its external system: {@code HandleIncomingMessagePort}
+     * lives in {@code application/port} while {@code TelegramUpdateListener} lives in {@code adapter/telegram}.
+     * The list is seeded from the external systems in the C3 diagram and grows as each new adapter lands.
+     */
+    @ArchTest
+    static final ArchRule coreTypesCarryNoExternalSystemName = noClasses()
+            .that().resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
+            .should().haveSimpleNameContaining("Telegram")
+            .orShould().haveSimpleNameContaining("Whisper")
+            .orShould().haveSimpleNameContaining("Postgres")
             .allowEmptyShould(true);
 
 }

@@ -26,6 +26,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:}
+    api-url: ${TELEGRAM_API_URL:https://api.telegram.org/bot}
+    polling:
+      enabled: ${TELEGRAM_POLLING_ENABLED:true}
+      limit: 100
+      timeout-seconds: 30
+      sleep-millis: 100
+
 management:
   endpoints:
     web:

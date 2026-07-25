@@ -1,0 +1,8 @@
+telegram:
+  bot:
+    token: default-test-token
+    polling:
+      enabled: true
+      limit: 100
+      timeout-seconds: 1
+      sleep-millis: 50
