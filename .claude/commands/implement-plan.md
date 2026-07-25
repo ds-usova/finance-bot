@@ -22,6 +22,11 @@ sub-agents via the **`Agent` tool**. The orchestrator's own jobs are:
   several run concurrently),
 - recording blockers and unrelated failures in `### Open Questions / Blockers`.
 
+**Model per sub-agent.** Every spawn passes the `model` parameter, taken from the module conventions'
+**Sub-Agent Models** section: the step agents (stabilization, red, green) run on the model it names for execution
+work, and the refactor agent on the one it names for deciding work. Only if the module has no such section does a
+spawn fall back to the default model.
+
 ## Input Resolution
 
 1. Identify the plan file: use the provided path, else the plan referenced/attached in the conversation, else ask.

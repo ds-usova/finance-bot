@@ -26,6 +26,16 @@ Applies across all layers.
   cramped line.
 - Method decomposition: extract private helpers when a method exceeds roughly one screen; one public method per
   port operation on use cases and adapters.
+- Member order within a class: fields, then constructors, then methods ordered by visibility — `public` first,
+  then package-private, then `protected`, then `private`. A reader meets the type's API before its internals.
+- Comments and javadoc: the fewer the better. Developers read code; a comment that restates a name, a signature,
+  or an annotation adds nothing and goes stale on the next edit. Write one only for what the code cannot show:
+  third-party behaviour a reader would otherwise have to go and look up, an ordering that is load-bearing, or a
+  workaround together with the constraint forcing it. In particular, **do not justify decisions in a class** —
+  why validation lives in one place, why a port is named for a capability rather than a transport, why an
+  adapter maps between types. Those are conventions, and this directory is where they belong; repeated in a
+  javadoc they are one more copy to keep in sync. The same goes for `@param`/`@return` tags that only spell the
+  parameter name out again.
 
 ### Domain
 

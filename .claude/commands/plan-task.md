@@ -495,7 +495,8 @@ equivalent) — its presence must be consistent across every plan, clean or not.
 ## 4. Invoke the Review Subagent
 
 Once every section in **3. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
-plan file. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
+plan file, on the model the module conventions' **Sub-Agent Models** section names for deciding work (reviewing a
+plan is exactly that); without such a section, the default model. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
 proceed to **5. Review Only — Do NOT Implement** below.
 
 ## 5. Review Only — Do NOT Implement

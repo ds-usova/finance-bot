@@ -4,12 +4,18 @@ How tests are built, named, and styled.
 
 ## Package Structure
 
-Test classes mirror the production package of the class under test (e.g. a test for `bot.finance.adapter.web.X`
-lives in `bot.finance.adapter.web`). Two test-only packages exist alongside the mirrored ones:
+Unit and integration test classes mirror the production package of the class under test (e.g. a test for
+`bot.finance.adapter.web.X` lives in `bot.finance.adapter.web`).
+
+**System tests do not**, because they are a different kind of thing: a system test covers a flow through the whole
+wired stack, not a class, so there is no production package for it to mirror and no single class it belongs to.
+They all live together in `bot.finance.system`, one class per flow. Three test-only packages exist alongside the
+mirrored ones:
 
 ```
 bot.finance
 ├── architecture    # ArchUnit dependency-rule tests — see Architecture & Layering
+├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure — see Test Tooling below
     ├── containers  # Testcontainers / WireMock singleton lifecycle
     ├── AbstractSystemTest
@@ -100,9 +106,10 @@ Which packages map to which test layer.
   worked example — a real Telegram client polling WireMock, with the inbound port mocked. Same principle as the
   web slice, different transport.
 - **System tests:** the same entry points as the inbound adapters above, entered end-to-end against the fully
-  wired application — one happy path plus a representative error path per entry point. For an entry point the
-  framework fires rather than a caller (the Telegram long-polling listener), see the isolation rules under
-  Test Tooling: one scenario per class, each class scoped by its own bot token.
+  wired application — one happy path plus a representative error path per entry point. They live in
+  `bot.finance.system`, not beside the adapter they enter through (see [Package Structure](#package-structure)).
+  For an entry point the framework fires rather than a caller (the Telegram long-polling listener), see the
+  isolation rules under Test Tooling: one scenario per class, each class scoped by its own bot token.
 
 ## Naming Conventions
 
