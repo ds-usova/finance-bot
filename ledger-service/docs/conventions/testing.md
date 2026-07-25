@@ -82,9 +82,19 @@ Which packages map to which test layer.
 
 ## Testing Style
 
+- Test class structure: group the tests inside a class into `@Nested` inner classes — one per group, never a flat
+  list of test methods. What a group *is* depends on the test:
+  - unit tests and outbound-adapter tests group by the **method under test**, one nested class per method, named
+    after it in PascalCase (`toIncomingMessage()` → `@Nested class ToIncomingMessage`);
+  - inbound-adapter and system tests group by the **kind of scenario** — `HappyPath`, `UnhappyPath`,
+    `ErrorMapping`, `Validation` — since a single entry point is exercised throughout.
+
+  Each nested class carries a `@DisplayName` naming its group in prose (`@DisplayName("happy path")`). Nested
+  classes are not suffixed `Test`; only the outer class is. A class whose tests genuinely form one group still
+  uses a single nested class, so the structure reads the same everywhere.
 - Parameterized/table-driven tests: prefer `@ParameterizedTest` when the same behaviour is exercised across
   several values (enum cases, validation matrices, null-handling); never duplicate a case as both a parameterized
-  entry and a one-off test.
+  entry and a one-off test. A parameterized test lives in the nested class of the group it belongs to.
 - Assertion library / style: AssertJ `assertThat(...)` only — never JUnit `assertEquals`/`assertTrue`. RestAssured
   response specs (`then().statusCode(...)`) are fine for HTTP-level assertions.
 - Test description annotations: every test method carries `@DisplayName` in the format

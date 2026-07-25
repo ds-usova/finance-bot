@@ -459,6 +459,12 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 ### Red Phase
 
+> Every scenario group listed below is realized in test code as a `@Nested` inner class carrying a prose
+> `@DisplayName`, per `docs/conventions/testing.md` § *Testing Style* — no test class is a flat list of methods.
+> The groups in this plan already map one-to-one onto that structure: unit and outbound-adapter steps group by the
+> method under test (`toIncomingMessage()` → `@Nested class ToIncomingMessage`), while inbound-adapter and system
+> steps group by scenario kind (`@Nested class HappyPath`, `Validation`, `ErrorMapping`, `UnhappyPath`).
+
 #### TDD Unit Red Phase
 
 > `TelegramUpdateUtils` lives in `adapter/telegram`, which `docs/conventions/testing.md` maps to an integration
