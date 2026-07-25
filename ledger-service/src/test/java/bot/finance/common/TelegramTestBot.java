@@ -45,7 +45,6 @@ public final class TelegramTestBot {
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private TelegramTestBot() {
-        // private constructor to prevent instantiation
     }
 
     /**
@@ -68,8 +67,7 @@ public final class TelegramTestBot {
     }
 
     /**
-     * Every {@code getUpdates} poll the stub server recorded for this token. Looked up through
-     * {@link WireMockSupport#SERVER}, never WireMock's static DSL, which points at a different server.
+     * Every {@code getUpdates} poll the stub server recorded for this token.
      */
     public static List<LoggedRequest> recordedPolls(String token) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(token))));

@@ -11,10 +11,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Inbound Telegram adapter: receives each batch pengrad's poll loop fetches, maps it, and drives the
- * application's inbound message port.
- */
 @Component
 public class TelegramUpdateListener implements UpdatesListener {
 
@@ -35,10 +31,8 @@ public class TelegramUpdateListener implements UpdatesListener {
     }
 
     /**
-     * Delegates one update to the inbound port, skipping anything that carries no text message and swallowing a
-     * failure so a single bad update cannot stall the poll loop — the batch is confirmed either way.
-     *
-     * @param update the update to handle
+     * A failure is swallowed because {@link #process} confirms the batch either way: rethrowing would stall the
+     * poll loop on one bad update.
      */
     private void handle(Update update) {
         Optional<IncomingMessage> message = TelegramUpdateUtils.toIncomingMessage(update);

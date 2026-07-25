@@ -28,7 +28,6 @@ public final class TelegramFixtures {
     private static final int MESSAGE_DATE = 1700000000;
 
     private TelegramFixtures() {
-        // private constructor to prevent instantiation
     }
 
     /**

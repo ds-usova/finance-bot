@@ -1,4 +1,4 @@
-package bot.finance.adapter.telegram;
+package bot.finance.system;
 
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.AbstractSystemTest;
@@ -21,12 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * The poll loop is framework-fired: {@code TelegramLongPollingSubscriber} starts it with the application context,
- * so this test only stubs the Bot API and waits — it never calls {@code HandleIncomingMessagePort.handle(...)}
- * itself.
- *
- * <p>Declaring its own bot token gives this class a Spring context, and therefore a poll loop starting at offset
- * 0, of its own — plus a WireMock path no other class's poller can reach.
+ * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
+ * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
+ * other class's poller reaches.
  */
 @TestPropertySource(properties = "telegram.bot.token=" + POLL_RECOVERY_TOKEN)
 class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
@@ -42,9 +39,8 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
     private LogCapture logCapture;
 
     /**
-     * The order here is load-bearing: the poll loop is already running by the time this executes, so the appender
-     * must be attached before any stub can serve the update — otherwise the loop consumes it and logs it into a
-     * logger with no appender, and the assertion flakes instead of failing.
+     * The order here is load-bearing: the poll loop is already running, so the appender must be attached before
+     * any stub can serve the update, or the loop consumes it and logs it into a logger with no appender.
      */
     @BeforeEach
     void attachLogCaptureAndStubTelegram() {

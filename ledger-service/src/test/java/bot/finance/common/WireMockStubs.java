@@ -44,7 +44,6 @@ public final class WireMockStubs {
     private static final int CATCH_ALL_PRIORITY = 10;
 
     private WireMockStubs() {
-        // private constructor to prevent instantiation
     }
 
     /**

@@ -11,13 +11,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
-/**
- * Binds the Telegram long-polling loop to the application lifecycle: the loop starts with the context and stops
- * with it. Absent from the context entirely when {@code telegram.bot.polling.enabled} is false.
- *
- * <p>The listener is taken as the {@link UpdatesListener} interface rather than the concrete adapter, so a test
- * can substitute a recording fake.
- */
 @Component
 @ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)
 public class TelegramLongPollingSubscriber implements SmartLifecycle {
@@ -68,8 +61,7 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
     }
 
     /**
-     * Keeps the poll loop alive across a failed {@code getUpdates}: pengrad polls again after the handler
-     * returns, so the failure is only reported, never rethrown.
+     * Pengrad polls again once this returns, so a failure must not be rethrown — that would end the loop.
      */
     private void logPollFailure(TelegramException exception) {
         log.error("telegram getUpdates polling failed: {}", exception.getMessage());

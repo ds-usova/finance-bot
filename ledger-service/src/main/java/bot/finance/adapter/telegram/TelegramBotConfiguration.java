@@ -5,11 +5,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Framework configuration for the Telegram adapter, limited to what cannot be annotated: the Bot API client is
- * a third-party class, so it needs a {@code @Bean} method. The adapter's own classes — the inbound listener and
- * the long-polling subscriber — are {@code @Component}s discovered by component scanning.
- */
 @Configuration
 @EnableConfigurationProperties(TelegramBotProperties.class)
 public class TelegramBotConfiguration {

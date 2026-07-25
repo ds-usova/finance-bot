@@ -1,4 +1,4 @@
-package bot.finance.adapter.telegram;
+package bot.finance.system;
 
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.AbstractSystemTest;
@@ -23,16 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * End-to-end: the long-polling loop the application itself starts picks a Telegram text message up and drives it
- * all the way to the inbound message port.
- *
- * <p>Nothing here calls {@code HandleIncomingMessagePort.handle(...)}: the {@code TelegramLongPollingSubscriber}
- * bean starts the loop with the Spring context, and that wiring is precisely what this test exists to prove. The
- * test only stubs the Bot API and waits for the running application to act.
- *
- * <p>The class declares its own bot token, which buys it three things at once: a Spring context of its own (a
- * differing property defeats the context cache), therefore a fresh poll loop starting at offset 0, and a WireMock
- * path — {@code /bot<token>/getUpdates} — no other test class's poller can reach.
+ * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
+ * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
+ * other class's poller reaches.
  */
 @TestPropertySource(properties = "telegram.bot.token=" + TelegramTestBot.RECEIVE_MESSAGE_TOKEN)
 class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
@@ -51,10 +44,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private LogCapture logCapture;
 
     /**
-     * The order below is load-bearing. The poll loop is already running by the time this method executes, so the
-     * appender has to be attached before the update-bearing stub exists — otherwise the loop can consume the
-     * update and log it into a logger with no appender, turning a real failure into a flake. The catch-all is
-     * registered second so the loop never sees a bare 404 while this test runs.
+     * The order below is load-bearing: the poll loop is already running, so the appender must be attached before
+     * the update-bearing stub exists, or the loop consumes the update and logs it into a logger with no appender.
+     * The catch-all comes before it so the loop never sees a bare 404.
      */
     @BeforeEach
     void stubTelegram() {

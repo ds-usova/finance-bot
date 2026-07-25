@@ -13,7 +13,6 @@ public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonUtils() {
-        // private constructor to prevent instantiation
     }
 
     public static String readJsonResourceAsString(String fileName) {

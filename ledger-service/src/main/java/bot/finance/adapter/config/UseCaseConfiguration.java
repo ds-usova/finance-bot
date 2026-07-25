@@ -6,10 +6,6 @@ import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Wires the plain use-case classes as beans. Use cases belong to no single adapter, so their configuration
- * lives here rather than in an adapter subpackage.
- */
 @Configuration
 public class UseCaseConfiguration {
 

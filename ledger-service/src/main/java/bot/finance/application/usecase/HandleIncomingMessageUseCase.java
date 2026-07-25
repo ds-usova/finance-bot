@@ -6,11 +6,6 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 
-/**
- * Prints an incoming message through the {@link Logger} port. Field-level validation belongs to
- * {@link IncomingMessage}'s constructor, so this use case trusts the command's fields and checks only that the
- * command itself is present.
- */
 public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     private final Logger log;
