@@ -4,15 +4,19 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.stereotype.Component;
 
 /**
  * Binds the Telegram long-polling loop to the application lifecycle: the loop starts with the context and stops
- * with it.
+ * with it. Absent from the context entirely when {@code telegram.bot.polling.enabled} is false.
  *
  * <p>The listener is taken as the {@link UpdatesListener} interface rather than the concrete adapter, so a test
  * can substitute a recording fake.
  */
+@Component
+@ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)
 public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
     private final TelegramBot bot;

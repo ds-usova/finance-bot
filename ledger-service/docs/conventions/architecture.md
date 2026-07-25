@@ -48,6 +48,18 @@ anywhere in either package — the core depends on nothing outside the JDK. Cons
   [Production-Code Style](code-style.md#production-code-style)); the SLF4J-backed implementation lives in
   `adapter/logging`.
 
+Bean declaration style — **Java configuration is for classes that cannot be annotated; everything else is
+annotated**:
+
+- **core classes** (use cases and anything else in `domain`/`application`) are declared with `@Bean` methods in
+  `@Configuration` classes, because the rule above forbids them from carrying Spring annotations themselves;
+- **third-party classes** (a client object from a library, e.g. the Telegram Bot API client) likewise need a
+  `@Bean` method — there is nowhere to put an annotation;
+- **the module's own adapter classes are `@Component`s**, found by component scanning, never listed as `@Bean`
+  methods. An adapter lives in the framework's world already, so a configuration class that does nothing but
+  call its constructor is indirection with no benefit. Conditional registration goes on the class as
+  `@ConditionalOnProperty`, not on a factory method.
+
 Configuration placement:
 
 - adapter-specific framework config lives in the adapter subpackage it configures — persistence config

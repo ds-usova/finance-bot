@@ -69,15 +69,18 @@ file. List the unresolved items and ask the user to resolve them. If the user re
 record their answers in the plan file (the orchestrator owns plan edits), apply any resulting step changes, and
 only then proceed.
 
-**Review freshness.** The plan's review is only valid for the plan it reviewed. A **material edit** — adding,
-removing, or changing steps, scenarios, or any section content — invalidates it; ticking checkboxes, filling in
-`A:`/`Action:` lines, and recording blockers do not. If the plan was materially edited since its last review
-(the user says so, the edit is visible against the last `Re-review (<date>):` marker, or you just applied a
-material change while resolving gate items), spawn `review-plan` again before proceeding, then re-run this gate —
-new findings need their `Action:` lines like any others. Repeat until a review pass reports no new issues and
-every item above is resolved; in practice this converges in one round. The same rule applies **mid-run**: when a
-blocker forces a material plan change partway through a stage, re-run `review-plan` (and this gate) before
-spawning any agent against the changed steps.
+**Review freshness — no automatic re-review.** A plan is reviewed once, by `plan-task`. Editing it afterwards
+does **not** trigger another review pass: not when the user changes a step, not when an `Action:` is applied, not
+when a mid-run blocker forces a change. Re-review rounds cost more time than they return once the first pass has
+been actioned, so run one only when the user explicitly asks for it.
+
+The gate above still applies in full to whatever findings exist — every `- Q:` needs an `- A:` and every
+`- Finding:` needs an `- Action:` — and a plan edit that resolves a gate item must still be reflected in the
+affected step's text. What is gone is the "spawn `review-plan` again and repeat until clean" loop.
+
+Defects the missing review would have caught surface instead at the stage guardrails, where they are cheaper to
+diagnose against real compiler and test output. When a stage agent reports a plan defect, record it under
+`### Open Questions / Blockers` and fix the plan text in place — do not spawn a review to confirm it.
 
 ## Stage 0 — Baseline (prerequisite, before any change)
 

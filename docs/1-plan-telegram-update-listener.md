@@ -99,9 +99,12 @@ expense, user, or money concept in a debug print.
   `bot.setUpdatesListener(listener, exceptionHandler, new GetUpdates()...)`, `stop()` calls
   `bot.removeGetUpdatesListener()`. Its constructor takes the listener typed as the `UpdatesListener` interface,
   so tests can pass a recording fake.
-- `adapter/telegram/TelegramBotConfiguration.java` — `@Configuration` building the `TelegramBot` bean from the
-  properties, plus the listener and the subscriber (the latter gated on `telegram.bot.polling.enabled`), and
-  failing fast when polling is enabled with a blank token.
+- `adapter/telegram/TelegramBotConfiguration.java` — `@Configuration` holding only what cannot be annotated: the
+  `TelegramBot` bean built from the properties (a third-party class), which also fails fast when polling is
+  enabled with a blank token, plus `@EnableConfigurationProperties`. Per the conventions' bean-declaration rule,
+  the adapter's own classes are **not** declared here: `TelegramUpdateListener` and
+  `TelegramLongPollingSubscriber` are `@Component`s found by component scanning, the latter carrying
+  `@ConditionalOnProperty("telegram.bot.polling.enabled")` on the class.
 
 **Adapter layer — `adapter/config`**
 
@@ -396,12 +399,14 @@ New-method stubs carry a short inline comment describing the implementation inte
   }
   ```
 - [x] Add `adapter/telegram/TelegramBotConfiguration` — `@Configuration`, `@EnableConfigurationProperties(
-  TelegramBotProperties.class)`, with a `TelegramBot` bean
-  (`new TelegramBot.Builder(token).apiUrl(apiUrl).updateListenerSleep(sleepMillis).build()`), a
-  `TelegramUpdateListener` bean, and a `TelegramLongPollingSubscriber` bean guarded by
-  `@ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)`.
-  The `TelegramBot` bean method fails fast — throw `IllegalStateException` naming `TELEGRAM_BOT_TOKEN` — when
-  polling is enabled and the token is blank
+  TelegramBotProperties.class)`, with a single `TelegramBot` bean
+  (`new TelegramBot.Builder(token).apiUrl(apiUrl).updateListenerSleep(sleepMillis).build()`) that fails fast —
+  throw `IllegalStateException` naming `TELEGRAM_BOT_TOKEN` — when polling is enabled and the token is blank.
+  Per the conventions' bean-declaration rule, Java configuration covers only classes that cannot be annotated
+  (the core, and third-party types like `TelegramBot`); annotate `TelegramUpdateListener` with `@Component` and
+  `TelegramLongPollingSubscriber` with `@Component` +
+  `@ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)`
+  on the class, rather than declaring either as a `@Bean`
 - [x] Add `adapter/config/UseCaseConfiguration` — the `@Configuration` class that wires use-case beans, per the
   conventions' rule that use cases are plain classes wired from `adapter/config`. `adapter/config` currently holds
   only `package-info.java`, and without this bean the `TelegramUpdateListener` bean cannot be constructed and every
@@ -827,6 +832,17 @@ context against the new wiring (relaxed property binding, the nested `Polling` r
 fixture through a real polling `TelegramBot`, all via throwaway probes it then deleted. That covers most of what
 the "no context-boot smoke check" finding warned about, though nothing permanent asserts it — the
 `TelegramBotConfiguration` fail-fast and polling-gate branches remain untested by design.
+
+**Bean-declaration style corrected after the stage (2026-07-25).** Java configuration is now reserved for classes
+that cannot be annotated — core classes (forbidden from carrying Spring annotations) and third-party types like
+`TelegramBot`. The module's own adapter classes are `@Component`s: `TelegramUpdateListener` and
+`TelegramLongPollingSubscriber` moved out of `TelegramBotConfiguration`'s `@Bean` methods, with the polling gate
+moving to `@ConditionalOnProperty` on the subscriber class. `UseCaseConfiguration` is unchanged — a use case has
+nowhere to put an annotation. The rule is now recorded in `docs/conventions/architecture.md`.
+
+Since no permanent test boots the context, the rewiring was verified with a throwaway `@SpringBootTest` probe
+(deleted after running) asserting all four beans resolve under component scanning and `isRunning()` is still the
+stub's `false`. A compile check alone would not have caught a broken bean graph.
 
 Carried forward for later stages:
 

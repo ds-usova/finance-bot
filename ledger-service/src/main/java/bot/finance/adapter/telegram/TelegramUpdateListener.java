@@ -5,6 +5,7 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -12,6 +13,7 @@ import java.util.List;
  * Inbound Telegram adapter: receives each batch pengrad's poll loop fetches, maps it, and drives the
  * application's inbound message port.
  */
+@Component
 public class TelegramUpdateListener implements UpdatesListener {
 
     private final HandleIncomingMessagePort handleIncomingMessagePort;
