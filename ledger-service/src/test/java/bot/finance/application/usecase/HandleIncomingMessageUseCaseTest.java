@@ -43,9 +43,9 @@ class HandleIncomingMessageUseCaseTest {
         void whenCommandCarriesConversationIdAndText_thenLogsBothAtInfoLevel() {
             useCase.handle(new IncomingMessage(CONVERSATION_ID, TEXT));
 
-            ArgumentCaptor<Object> loggedArguments = ArgumentCaptor.forClass(Object.class);
+            ArgumentCaptor<Object[]> loggedArguments = ArgumentCaptor.forClass(Object[].class);
             verify(log).info(anyString(), loggedArguments.capture());
-            assertThat(loggedArguments.getAllValues()).contains(CONVERSATION_ID, TEXT);
+            assertThat(loggedArguments.getValue()).contains(CONVERSATION_ID, TEXT);
         }
 
         @Test

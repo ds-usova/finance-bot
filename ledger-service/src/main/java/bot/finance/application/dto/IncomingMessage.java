@@ -1,5 +1,7 @@
 package bot.finance.application.dto;
 
+import bot.finance.domain.exception.InvalidIncomingMessageException;
+
 /**
  * The inbound-port command for a message that arrived from a conversation, in transport-agnostic terms: the
  * core never learns which messenger delivered it, so {@code conversationId} is a plain string an adapter
@@ -14,8 +16,12 @@ package bot.finance.application.dto;
 public record IncomingMessage(String conversationId, String text) {
 
     public IncomingMessage {
-        // rejects a null-or-blank conversationId or text with InvalidIncomingMessageException,
-        // so no caller can build a command the use case would have to re-check
+        if (conversationId == null || conversationId.isBlank()) {
+            throw new InvalidIncomingMessageException("incoming message has no conversation id");
+        }
+        if (text == null || text.isBlank()) {
+            throw new InvalidIncomingMessageException("incoming message has no text");
+        }
     }
 
 }

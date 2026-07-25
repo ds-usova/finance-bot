@@ -708,20 +708,20 @@ into a logger with no appender, which makes the log assertion flake rather than 
 
 #### TDD Unit Green Phase
 
-- [ ] `IncomingMessage` · test: `IncomingMessageTest`
-- [ ] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: `IncomingMessage`
-- [ ] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: `IncomingMessage`
+- [x] `IncomingMessage` · test: `IncomingMessageTest`
+- [x] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: `IncomingMessage`
+- [x] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: `IncomingMessage`
 
 #### TDD Integration Green Phase
 
-- [ ] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: `TelegramUpdateUtils`,
+- [x] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: `TelegramUpdateUtils`,
   `IncomingMessage`
-- [ ] `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest`
+- [x] `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest`
 
 #### TDD System Test Green Phase
 
-- [ ] `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()`
 
 ### Post-Implementation Steps
 
@@ -883,6 +883,40 @@ Carried forward for later stages:
   the stub returns `false`. Expected, per the RED-phase rule about negative assertions — not a defect to rework.
 - `TelegramFixtures` JSON-escapes `text`/`description`, so a fixture built with a `null` text would NPE. No listed
   Red scenario needs one; the blank cases use `""` / `"  "`.
+
+### Green Phase (completed 2026-07-25)
+
+Five unit/integration steps in three dependency waves (`IncomingMessage` + `TelegramLongPollingSubscriber` →
+`HandleIncomingMessageUseCase` + `TelegramUpdateUtils` → `TelegramUpdateListener`), then the system steps.
+Guardrail run serially by the orchestrator: **28 tests, 0 failures** — the whole suite green, same test count as
+the red phase, so nothing was lost or duplicated.
+
+**Both System Green steps needed no work.** The plan expected `TelegramLongPollingSubscriber.start()` to be wired
+during System Green, since the subscriber was thought to have no green step of its own — but it does have an
+*integration* green step, and wiring `start()` there completed the stack. Both system tests went green as a
+consequence, verified by the orchestrator's own full-suite run rather than by spawning agents to confirm passing
+tests.
+
+**One RED-phase test was unsatisfiable and had to be repaired.** `HandleIncomingMessageUseCaseTest`'s happy path
+captured `{}`-placeholder arguments with `ArgumentCaptor.forClass(Object.class)` against
+`void info(String, Object...)`. Mockito 5's `CapturingMatcher` does not implement `VarargMatcher` (confirmed with
+`javap`: it implements only `ArgumentMatcher`, `CapturesArguments`, `Serializable`), so matching requires exactly
+one vararg while the assertion required two captured values — **no implementation could satisfy both**. The green
+agent correctly refused to bend the production code and reported a blocker instead. Repaired test-only, two lines,
+by capturing `Object[]` (the raw-array path applies, since `Object[].class.isAssignableFrom(Object[].class)`), and
+re-verified that the assertion still fails against a concatenated log message. Production left byte-identical.
+
+This is the defect class the RED exit check structurally cannot catch: a test that fails against the stub *and*
+against correct code. Worth remembering — capturing multiple varargs off the `Logger` port needs
+`ArgumentCaptor<Object[]>`, not `ArgumentCaptor<Object>`.
+
+Minimal-green boundaries the agents flagged rather than silently hardening, for the refactor phase to weigh:
+
+- `TelegramUpdateUtils` renders `"null"` as the conversation id if a message has a `chat` whose `id()` is null.
+  Uncovered by tests; the Bot API always populates `Chat.id`.
+- `TelegramUpdateListener` dereferences `update.updateId()` on the skip path, so a `null` element inside a batch
+  would NPE. pengrad never produces one.
+- `TelegramUpdateListener` catches only `RuntimeException` per update; an `Error` propagates into pengrad's loop.
 
 ## Open Questions / Blockers — raised during implementation
 

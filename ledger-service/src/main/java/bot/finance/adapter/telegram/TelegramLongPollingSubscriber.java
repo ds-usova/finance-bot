@@ -1,9 +1,12 @@
 package bot.finance.adapter.telegram;
 
+import bot.finance.adapter.telegram.TelegramBotProperties.Polling;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.TelegramException;
 import com.pengrad.telegrambot.UpdatesListener;
+import com.pengrad.telegrambot.request.GetUpdates;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
@@ -19,10 +22,14 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "telegram.bot.polling.enabled", havingValue = "true", matchIfMissing = true)
 public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
+    private static final String MESSAGE_UPDATES = "message";
+
     private final TelegramBot bot;
     private final UpdatesListener listener;
     private final TelegramBotProperties properties;
     private final Logger log;
+
+    private volatile boolean running;
 
     public TelegramLongPollingSubscriber(TelegramBot bot,
                                         UpdatesListener listener,
@@ -36,20 +43,36 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
     @Override
     public void start() {
-        // registers the listener on the TelegramBot with a GetUpdates request built from the polling properties
-        // (limit, timeout, allowed_updates=message), and an ExceptionHandler that logs getUpdates failures
-        // without killing the loop
+        Polling polling = properties.polling();
+        GetUpdates request = new GetUpdates()
+                .limit(polling.limit())
+                .timeout(polling.timeoutSeconds())
+                .allowedUpdates(MESSAGE_UPDATES);
+
+        bot.setUpdatesListener(listener, this::logPollFailure, request);
+        running = true;
+        log.debug("telegram long polling started with limit {} and timeout {}s",
+                polling.limit(), polling.timeoutSeconds());
     }
 
     @Override
     public void stop() {
-        // removes the getUpdates listener so the poll loop stops
+        bot.removeGetUpdatesListener();
+        running = false;
+        log.debug("telegram long polling stopped");
     }
 
     @Override
     public boolean isRunning() {
-        // reports whether the poll loop is currently registered
-        return false;
+        return running;
+    }
+
+    /**
+     * Keeps the poll loop alive across a failed {@code getUpdates}: pengrad polls again after the handler
+     * returns, so the failure is only reported, never rethrown.
+     */
+    private void logPollFailure(TelegramException exception) {
+        log.error("telegram getUpdates polling failed: {}", exception.getMessage());
     }
 
 }

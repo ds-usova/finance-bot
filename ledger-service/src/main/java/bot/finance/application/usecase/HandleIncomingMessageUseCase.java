@@ -4,6 +4,7 @@ import bot.finance.application.dto.IncomingMessage;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.domain.exception.InvalidIncomingMessageException;
 
 /**
  * Prints an incoming message through the {@link Logger} port. Field-level validation belongs to
@@ -20,8 +21,10 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     @Override
     public void handle(IncomingMessage message) {
-        // rejects an absent command with InvalidIncomingMessageException,
-        // then prints the conversation id and message text at info level through the Logger port
+        if (message == null) {
+            throw new InvalidIncomingMessageException("incoming message is absent");
+        }
+        log.info("incoming message from conversation {}: {}", message.conversationId(), message.text());
     }
 
 }
