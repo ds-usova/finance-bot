@@ -92,6 +92,11 @@ Which packages map to which test layer.
   Each nested class carries a `@DisplayName` naming its group in prose (`@DisplayName("happy path")`). Nested
   classes are not suffixed `Test`; only the outer class is. A class whose tests genuinely form one group still
   uses a single nested class, so the structure reads the same everywhere.
+
+  When the method under test is a **constructor**, the nested class cannot simply take the type's name — a member
+  type shadows a single-type import of the same name throughout the enclosing class, so `@Nested class Widget`
+  inside `WidgetTest` would make `new Widget(...)` resolve to the test class. Name it after what it constructs
+  plus the role: `@Nested class WidgetConstructor` with `@DisplayName("constructing a widget")`.
 - Parameterized/table-driven tests: prefer `@ParameterizedTest` when the same behaviour is exercised across
   several values (enum cases, validation matrices, null-handling); never duplicate a case as both a parameterized
   entry and a one-off test. A parameterized test lives in the nested class of the group it belongs to.

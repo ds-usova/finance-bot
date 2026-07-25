@@ -557,7 +557,7 @@ New-method stubs carry a short inline comment describing the implementation inte
 > The Post-Implementation Steps amend `testing.md` to map both — pure adapter mappers/`*Utils` classes and
 > self-validating `application/dto` records — to the unit layer, so the next plan does not have to re-argue either.
 
-- [ ] `IncomingMessage` · test: `IncomingMessageTest` · covers: `IncomingMessage(String, String)`
+- [x] `IncomingMessage` · test: `IncomingMessageTest` · covers: `IncomingMessage(String, String)`
     - The record validates itself, so every field-level rejection is asserted here once and nowhere else
     - `IncomingMessage(String, String)`:
         - given: a non-blank conversation id and non-blank text
@@ -571,7 +571,7 @@ New-method stubs carry a short inline comment describing the implementation inte
           earmarks validation matrices and null-handling for parameterized tests and forbids duplicating a case as
           both a parameterized entry and a one-off. The null rows are what distinguish this from a blank-only check:
           an `isBlank()` implementation that skips the null guard throws `NullPointerException` instead
-- [ ] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
     - Field validation belongs to `IncomingMessage` and is not repeated here; an invalid command cannot be
       constructed to hand to this method
     - `handle()`:
@@ -581,7 +581,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: a null command
           when: handle() is called
           then: throws InvalidIncomingMessageException and nothing is logged
-- [ ] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers: `toIncomingMessage()`
+- [x] `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers: `toIncomingMessage()`
     - Build the `Update` inputs with `BotUtils.parseUpdate(json)` and `TelegramFixtures` — pengrad's model
       classes are Gson-populated and expose no setters or populating constructors
     - `toIncomingMessage()`:
@@ -614,7 +614,7 @@ via `TelegramTestBot.forToken(...)` with its own token constant, and in its own 
 does that automatically, and these classes do not extend it. Assertions use Awaitility, since pengrad's loop is
 asynchronous.
 
-- [ ] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: pengrad `getUpdates` long-poll loop
+- [x] `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: pengrad `getUpdates` long-poll loop
   · mocks: `HandleIncomingMessagePort`
     - The protocol for this inbound adapter is the pengrad poll loop over HTTP, not an HTTP endpoint, so there
       is no `@WebMvcTest` slice to boot; the test enters through a real `TelegramBot` against WireMock and never
@@ -638,7 +638,7 @@ asynchronous.
           when: the loop is started and the batch arrives
           then: the port is called once, for the text update only, and a follow-up `getUpdates` carries
           `offset=44`
-- [ ] `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest` · covers: `start()`, `stop()`,
+- [x] `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest` · covers: `start()`, `stop()`,
   `isRunning()`
     - Outbound-adapter variant: the subscriber is what drives pengrad's outbound `getUpdates` HTTP call, so the
       test wires only the subscriber against real test infrastructure (the WireMock singleton) and calls its own
@@ -686,7 +686,7 @@ deliberate — see **Why the system tests can observe the print** above.
 Registering the update-bearing stub before the appender is attached lets the loop consume the update and log it
 into a logger with no appender, which makes the log assertion flake rather than fail.
 
-- [ ] `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` (framework-fired: the
+- [x] `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` (framework-fired: the
   `TelegramLongPollingSubscriber` bean starts the poll loop with the application context; the test never calls
   the port itself)
     - Happy Path:
@@ -695,7 +695,7 @@ into a logger with no appender, which makes the log assertion flake rather than 
           when: the running application's poll loop picks the update up
           then: WireMock records a follow-up `getUpdates` with form param `offset=43`, and the captured log
           contains the message text and the conversation id `555`
-- [ ] `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()` (framework-fired,
+- [x] `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()` (framework-fired,
   as above)
     - Unhappy Path:
         - given: WireMock is stubbed via `telegramFailsOnceThenReturns` — an `ok:false` / error_code 429 body on
@@ -809,6 +809,39 @@ exposes no HTTP endpoint.
 
 ## Implementation Notes
 
+### Red Phase (completed 2026-07-25)
+
+Seven step agents, run four at a time per the parallelism convention. RED exit check run serially by the
+orchestrator: **28 tests, 18 failing**, matching every agent report exactly — `CleanArchitectureTest` still 3/3
+green (no pre-existing regression), the 18 failures are precisely the new tests reported as failing, and the 10
+passes are precisely the reported expected passes.
+
+Expected passes, all asserting an *absence* of behaviour against a stub and deliberately left as written rather
+than distorted into false reds:
+
+- `IncomingMessageTest` — the valid-input row (a record's accessors already work; the empty compact constructor
+  does not affect them);
+- `TelegramUpdateUtilsTest` — the five skip scenarios (the stub returns `Optional.empty()` unconditionally, so
+  they pass for the wrong reason today; each would genuinely fail if the mapper wrongly returned a value);
+- `TelegramLongPollingSubscriberTest` — `isRunning()` "never started → false", as the plan predicted.
+
+**The system tests' RED reason is deeper than the plan stated.** The plan named `process()` and `handle()` as the
+gaps, but `TelegramLongPollingSubscriber.start()` is also an empty stub, so the listener is never registered and
+**zero requests reach WireMock at all**. Both system tests therefore currently fail on their first assertion with
+an empty result, never reaching the second. The green phase must wire `start()` before either system test can
+evaluate what it was written to check — and the subscriber has no green step of its own, so that wiring belongs
+to System Green.
+
+Two conventions gaps the agents exposed, both fixed in the conventions rather than worked around:
+
+- `@Nested` groups named after a **constructor** cannot take the type's bare name — a member type shadows the
+  same-named import, so `@Nested class IncomingMessage` makes `new IncomingMessage(...)` resolve to the test
+  class. `testing.md` now prescribes `<Type>Constructor`.
+- Concurrent `gradlew test` runs share one `build/` directory and clobber each other's `test-results`, surfacing
+  as `NoSuchFileException` on `in-progress-results-*.bin` or another agent's XML in place of yours. Three agents
+  hit it independently. `agent.md` § *Parallelism* now names the symptom and says to trust console output over
+  the reports during a parallel wave.
+
 ### Stabilization (completed 2026-07-25)
 
 Guardrail verified by the orchestrator, not taken on the sub-agent's report: `clean compileJava compileTestJava`
@@ -850,6 +883,14 @@ Carried forward for later stages:
   the stub returns `false`. Expected, per the RED-phase rule about negative assertions — not a defect to rework.
 - `TelegramFixtures` JSON-escapes `text`/`description`, so a fixture built with a `null` text would NPE. No listed
   Red scenario needs one; the blank cases use `""` / `"  "`.
+
+## Open Questions / Blockers — raised during implementation
+
+- Blocker: none. No Red Phase step was blocked; all seven completed.
+- Note (future build concern, not this plan's scope): Mockito emits a self-attaching-agent warning on JDK 25.
+  Harmless today, but the JDK is removing dynamic self-attachment, so the module will eventually need Mockito
+  wired as an explicit `-javaagent` on the Gradle `test` task. Raised by the `HandleIncomingMessageUseCaseTest`
+  step agent; deliberately not fixed here, since it is unrelated to this plan's diff.
 
 ## Review Findings
 

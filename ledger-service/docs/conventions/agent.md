@@ -33,6 +33,11 @@ machine singletons).
 - Max concurrent build/implementation tasks: **4**.
 - Notes: treat unexplained container-startup or port-binding failures during parallel runs as contention — rerun
   serially before debugging them as real failures.
+- Concurrent `gradlew test` invocations also share one `ledger-service/build/` directory, so they clobber each
+  other's results in `build/test-results/test/`. The symptom is a Gradle-level
+  `NoSuchFileException: …/binary/in-progress-results-*.bin`, or another run's XML appearing where yours should be,
+  often *after* the tests themselves have reported. Console pass/fail stays trustworthy; the XML and HTML reports
+  do not. Judge a parallel run by its console output, and rerun serially whenever the reports matter.
 
 ## Plan Files
 
