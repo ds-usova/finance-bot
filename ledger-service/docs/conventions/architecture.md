@@ -20,6 +20,7 @@ src/main
 │   └── adapter         # interface adapters
 │       ├── config      # use-case bean wiring (@Configuration classes only — no adapter-specific config)
 │       ├── logging     # SLF4J-backed implementation of the core's Logger/LoggerFactory abstraction
+│       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
 │       ├── web
 │       └── persistence
 └── resources
@@ -68,9 +69,26 @@ Configuration placement:
 - use-case bean wiring is the one exception: use cases belong to no single adapter, so their `@Configuration`
   classes live in `adapter/config` — which holds use-case wiring only, never adapter-specific config.
 
-Outbound adapters for external services (Telegram file fetch / notification, Transcription client, AI Connector
-client) get **one adapter subpackage per external system** when they land, e.g. `adapter/telegram`,
-`adapter/transcription`, `adapter/aiconnector` (exact names to be settled when the first one is implemented).
+Adapters for external services get **one adapter subpackage per external system**, holding everything that fronts
+that system — outbound clients *and* any inbound adapter it drives. `adapter/telegram` exists and contains both
+the long-polling update listener (inbound) and, in time, the file fetch and notification clients (outbound);
+`adapter/transcription` and `adapter/aiconnector` follow when they land. `adapter/web` is the home for HTTP
+endpoints this service exposes, not for every inbound adapter — a non-HTTP inbound adapter belongs to its
+external system's subpackage.
+
+## Naming Across the Layer Boundary
+
+The core must not know **which** external system it is talking to, so that a second messenger, transcriber, or
+data store can be added without touching it. Two rules follow:
+
+- **No type in `domain`/`application` carries an external-system or transport name.** The adapter names its
+  external system; the core names the capability. So `HandleIncomingMessagePort` in `application/port`, driven by
+  `TelegramUpdateListener` in `adapter/telegram` — never `HandleTelegramMessagePort`.
+- **No type in `domain`/`application` carries a transport-shaped field.** `IncomingMessage` identifies a
+  conversation with a `String conversationId`, and the Telegram adapter renders the numeric chat id into it. A
+  `long chatId` in the core would be a Telegram fact leaking inward.
+
+Both are enforced (see [Architecture Enforcement](#architecture-enforcement)); the second only by review.
 
 ## File Locations
 
@@ -86,5 +104,10 @@ client) get **one adapter subpackage per external system** when they land, e.g. 
 - Tool: ArchUnit (JUnit 5 integration).
 - Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
   [Build & Test Commands](build.md#build--test-commands)).
-- Scope: the layer-dependency rules and the framework-agnostic core (`org.springframework..`, `jakarta..`, and
-  `org.slf4j..` banned from `domain`/`application`).
+- Scope:
+  - the layer-dependency rules;
+  - the framework-agnostic core — `org.springframework..`, `jakarta..`, `org.slf4j..` and `com.pengrad..` are
+    banned from `domain`/`application`. Each new external-service library joins this list as its adapter lands;
+  - `coreTypesCarryNoExternalSystemName` — no type in `domain`/`application` may have a simple name containing an
+    external-system name (`Telegram`, `Whisper`, `Postgres`), per
+    [Naming Across the Layer Boundary](#naming-across-the-layer-boundary). This list grows the same way.

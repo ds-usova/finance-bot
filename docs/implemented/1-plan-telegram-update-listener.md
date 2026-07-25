@@ -731,44 +731,44 @@ Not one of the skill's named Post-Implementation sections, but the group's rule 
 the implementation settled and only make sense once it is green. No manual `.http` files apply — this feature
 exposes no HTTP endpoint.
 
-- [ ] `docs/conventions/architecture.md` — add the **core naming rule** to *Package Structure*: no type in
+- [x] `docs/conventions/architecture.md` — add the **core naming rule** to *Package Structure*: no type in
   `domain`/`application` may carry an external-system or transport name; the adapter names its external system,
   the core names the capability (`HandleIncomingMessagePort` + `adapter/telegram/TelegramUpdateListener`), and
   no core type may carry a transport-shaped field (`String conversationId`, not a Telegram `long chatId`).
   Note that ArchUnit enforces it
-- [ ] `docs/conventions/architecture.md` § *Package Structure* — two gaps this plan opens: add `telegram` to the
+- [x] `docs/conventions/architecture.md` § *Package Structure* — two gaps this plan opens: add `telegram` to the
   adapter subpackage tree (currently `config`, `logging`, `web`, `persistence`), and widen the "one adapter
   subpackage per external system" sentence, which is scoped to **outbound** adapters only. As the file stands
   `adapter/web` reads as the sole home for inbound adapters, so nothing records that a non-HTTP inbound adapter
   (this listener) belongs in its external system's subpackage alongside that system's outbound adapters
-- [ ] `docs/conventions/architecture.md` — update *Architecture Enforcement*: the banned core packages are now
+- [x] `docs/conventions/architecture.md` — update *Architecture Enforcement*: the banned core packages are now
   `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, and the scope gains the
   `coreTypesCarryNoExternalSystemName` rule. Also fix *Package Structure*'s "exact names to be settled" note —
   `adapter/telegram` now exists
-- [ ] `docs/conventions/orientation.md` — record the Telegram Bot API client library and version under
+- [x] `docs/conventions/orientation.md` — record the Telegram Bot API client library and version under
   *Tech Stack*
-- [ ] `docs/conventions/code-style.md` § *Application* — record the idiom this plan establishes, so the next
+- [x] `docs/conventions/code-style.md` § *Application* — record the idiom this plan establishes, so the next
   feature does not re-derive the opposite one and leave the codebase carrying both: **inbound-port command records
   validate their own fields in a compact constructor, throwing a domain exception; use cases therefore trust the
   command's fields and check only that the command itself is present.** The section currently says nothing about
   where command validation belongs
-- [ ] `docs/conventions/testing.md` § *Test Layers* — the Telegram listener's transport is settled
+- [x] `docs/conventions/testing.md` § *Test Layers* — the Telegram listener's transport is settled
   (long polling, not webhook); record the non-HTTP inbound-adapter mechanism: a real client against the WireMock
   singleton, entered through the protocol, with no Spring slice. Widen the unit-layer mapping to cover pure adapter
   mappers/`*Utils` classes **and self-validating `application/dto` records** — `application/dto` is currently named
   by no test layer at all
-- [ ] `docs/conventions/testing.md` § *Test Tooling* — replace "Firing non-HTTP entry points in system tests:
+- [x] `docs/conventions/testing.md` § *Test Tooling* — replace "Firing non-HTTP entry points in system tests:
   none exist yet" with the mechanism this plan established: the framework-fired trigger runs with the context,
   and each system test class scopes itself with its own `telegram.bot.token` via `@TestPropertySource` to get a
   private context, poll loop, and WireMock path — one framework-fired scenario per class
-- [ ] `docs/conventions/testing.md` § *Test Tooling* — record the WireMock instance-vs-static rule this plan hit:
+- [x] `docs/conventions/testing.md` § *Test Tooling* — record the WireMock instance-vs-static rule this plan hit:
   stub registration and verification go through `WireMockSupport.SERVER`, never WireMock's static DSL, which targets
   `localhost:8080` and cannot reach the dynamic-port singleton. Only the pure builders are safe static imports
-- [ ] `docs/conventions/testing.md` § *Package Structure* and § *Naming Conventions* — list the new
+- [x] `docs/conventions/testing.md` § *Package Structure* and § *Naming Conventions* — list the new
   `bot.finance.common` members (`LogCapture`, `TelegramFixtures`, `TelegramTestBot`), replacing "Existing shared
   test builders/factories: none yet", and note the parameterized-fixture exception to the "prefer a
   `src/test/resources` file + `JsonUtils`" rule
-- [ ] `ledger-service/README.md` — the C3 diagram's `Telegram Update Listener` component and its
+- [x] `ledger-service/README.md` — the C3 diagram's `Telegram Update Listener` component and its
   `Record Expense Port` relationship no longer match the code: the listener now drives
   `HandleIncomingMessagePort`. Update the component and relationship names
 

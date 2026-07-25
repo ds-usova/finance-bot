@@ -12,7 +12,11 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 **Messaging / event broker**: none;
 **Caching**: none;
 **External services consumed**: Telegram Bot API, Transcription Service, AI Connector Service — all over
-HTTP/REST; see the C4 diagrams referenced under [Documentation References](#documentation-references);
+HTTP/REST; see the C4 diagrams referenced under [Documentation References](#documentation-references). The
+Telegram Bot API is reached through the `com.github.pengrad:java-telegram-bot-api` client (version pinned in
+`gradle.properties`), which the service drives in **long-polling** mode — it calls `getUpdates` outbound rather
+than exposing a webhook, so every Telegram interaction is an outbound HTTP call and can be pointed at a stub
+server in tests;
 **Contract-first codegen**: none yet — to be decided together with the first API schema.
 
 ## Documentation References

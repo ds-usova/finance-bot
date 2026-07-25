@@ -44,8 +44,8 @@ Container(aiConnector, "AI Connector Service", "REST API", "Extracts structured 
 ContainerDb(db, "Database", "PostgreSQL", "Stores users and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
-  Component(telegramListener, "Telegram Update Listener", "Spring Component", "Primary adapter: receives incoming Telegram updates", $tags="telegramExternal")
-  Component(recordExpensePort, "Record Expense Port", "Interface", "Inbound port: use-case boundary for recording an expense from a voice message", $tags="portIn")
+  Component(telegramListener, "Telegram Update Listener", "Spring Component", "Primary adapter: long-polls the Bot API and maps each update onto the transport-agnostic inbound command", $tags="telegramExternal")
+  Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port: use-case boundary for a message arriving from any messenger — the core never learns which one", $tags="portIn")
   Component(expenseService, "Expense Recording Use Case", "Plain Java", "Application core: orchestrates the pipeline and applies business logic; wired as a bean from adapter-layer configuration", $tags="core")
 
   Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port: retrieves voice message audio", $tags="portOut")
@@ -61,9 +61,9 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Implements the Notification Port via the Telegram Bot API", $tags="telegramExternal")
 }
 
-Rel(telegram, telegramListener, "Update (voice message)", "Telegram Bot API")
-Rel_R(telegramListener, recordExpensePort, "Invokes")
-Rel_L(expenseService, recordExpensePort, "Implements", $tags="implements")
+Rel(telegram, telegramListener, "Update (message)", "Telegram Bot API, long polling")
+Rel_R(telegramListener, handleMessagePort, "Invokes")
+Rel_L(expenseService, handleMessagePort, "Implements", $tags="implements")
 
 Rel_U(expenseService, audioFetchPort, "Uses")
 Rel_R(telegramFileAdapter, audioFetchPort, "Implements", $tags="implements")

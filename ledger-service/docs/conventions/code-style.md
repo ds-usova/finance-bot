@@ -39,6 +39,26 @@ Applies across all layers.
 
 - Use cases are plain classes with no Spring annotations, wired as beans from `@Configuration` classes in
   `adapter/config` (see [Package Structure](architecture.md#package-structure)).
+- **Inbound-port command objects validate themselves.** A command record in `application/dto` rejects invalid
+  field values in its compact constructor, throwing a domain exception — so an invalid command cannot be
+  constructed anywhere in the system. A use case therefore **trusts** its command's fields and checks only that
+  the command itself is present:
+
+  ```java
+  public record IncomingMessage(String conversationId, String text) {
+      public IncomingMessage {
+          if (conversationId == null || conversationId.isBlank()) {
+              throw new InvalidIncomingMessageException("incoming message has no conversation id");
+          }
+          // ... same for text
+      }
+  }
+  ```
+
+  Validating in both places is the failure mode this rule exists to prevent: two checks drift apart, and neither
+  reader can tell which one is authoritative. A caller that maps external input into a command (an adapter, say)
+  must check its own preconditions **before** constructing it, so that unusable input takes that caller's normal
+  skip path instead of surfacing as an exception from the record.
 
 ### Adapter — Web
 
