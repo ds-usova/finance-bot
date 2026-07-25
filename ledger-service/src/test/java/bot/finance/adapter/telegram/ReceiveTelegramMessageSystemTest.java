@@ -78,6 +78,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 .stream()
                 .map(LoggedRequest::getBodyAsString)
                 .toList();
+
         log.debug("getUpdates requests recorded for token {}: {}", TOKEN, polls);
         log.debug("messages captured from {}: {}", HandleIncomingMessageUseCase.class.getName(), logCapture.messages());
     }

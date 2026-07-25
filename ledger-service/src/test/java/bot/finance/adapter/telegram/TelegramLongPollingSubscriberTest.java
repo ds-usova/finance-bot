@@ -58,6 +58,7 @@ class TelegramLongPollingSubscriberTest {
                 SUBSCRIBER_TOKEN,
                 WireMockSupport.baseUrl() + "/bot",
                 new Polling(true, POLL_LIMIT, POLL_TIMEOUT_SECONDS, POLL_SLEEP_MILLIS));
+
         subscriber = new TelegramLongPollingSubscriber(
                 bot, new RecordingUpdatesListener(), properties, new Slf4jLoggerFactory());
     }

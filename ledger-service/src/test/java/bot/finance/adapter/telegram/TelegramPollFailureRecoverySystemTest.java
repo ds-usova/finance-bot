@@ -75,6 +75,7 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
                         log.debug("Captured log messages: {}", logCapture.messages());
+
                         assertThat(logCapture.messages())
                                 .as("messages logged by the use case once the good response arrived")
                                 .anyMatch(message -> message.contains(MESSAGE_TEXT));
@@ -85,6 +86,7 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
                     .untilAsserted(() -> {
                         log.debug("Recorded getUpdates requests: {}", WireMockSupport.SERVER
                                 .findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(POLL_RECOVERY_TOKEN)))));
+
                         assertThat(WireMockSupport.SERVER.findAll(
                                 postRequestedFor(urlPathEqualTo(getUpdatesPath(POLL_RECOVERY_TOKEN)))
                                         .withFormParam("offset", equalTo(CONFIRMED_OFFSET))))
