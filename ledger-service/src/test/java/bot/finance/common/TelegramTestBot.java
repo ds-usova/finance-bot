@@ -1,11 +1,18 @@
 package bot.finance.common;
 
 import bot.finance.common.containers.WireMockSupport;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.pengrad.telegrambot.TelegramBot;
 
+import java.util.List;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
 /**
- * The single home for pointing a real pengrad {@link TelegramBot} at the WireMock singleton, and for the bot
- * tokens the tests use.
+ * The single home for pointing a real pengrad {@link TelegramBot} at the WireMock singleton, for the bot tokens
+ * the tests use, and for reading back the {@code getUpdates} polls the stub server recorded.
  *
  * <p>The token is part of every Bot API URL ({@code <apiUrl><token>/<method>}), which makes it the partitioning
  * key for the whole suite: a test that owns a token owns a WireMock path no other test's poll loop can reach,
@@ -58,6 +65,24 @@ public final class TelegramTestBot {
                 .apiUrl(WireMockSupport.baseUrl() + "/bot")
                 .updateListenerSleep(UPDATE_LISTENER_SLEEP_MILLIS)
                 .build();
+    }
+
+    /**
+     * Every {@code getUpdates} poll the stub server recorded for this token. Looked up through
+     * {@link WireMockSupport#SERVER}, never WireMock's static DSL, which points at a different server.
+     */
+    public static List<LoggedRequest> recordedPolls(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(token))));
+    }
+
+    /**
+     * The recorded {@code getUpdates} polls carrying the given {@code offset} form param. Only pengrad's own loop
+     * sets that param, and only after the listener confirmed a batch, so a non-empty result is proof the batch
+     * was consumed.
+     */
+    public static List<LoggedRequest> recordedPollsWithOffset(String token, String offset) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(token)))
+                .withFormParam("offset", equalTo(offset)));
     }
 
 }

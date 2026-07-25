@@ -20,6 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static bot.finance.common.TelegramTestBot.SUBSCRIBER_TOKEN;
 import static bot.finance.common.TelegramTestBot.forToken;
 import static bot.finance.common.TelegramTestBot.getUpdatesPath;
+import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.WireMockStubs.telegramFails;
 import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
@@ -71,9 +72,7 @@ class TelegramLongPollingSubscriberTest {
     }
 
     private static int getUpdatesRequestCount() {
-        return WireMockSupport.SERVER
-                .findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(SUBSCRIBER_TOKEN))))
-                .size();
+        return recordedPolls(SUBSCRIBER_TOKEN).size();
     }
 
     private static void settle() throws InterruptedException {

@@ -46,6 +46,7 @@ public class TelegramUpdateListener implements UpdatesListener {
             log.debug("skipping non-text telegram update {}", update.updateId());
             return;
         }
+
         try {
             handleIncomingMessagePort.handle(message.get());
         } catch (RuntimeException e) {

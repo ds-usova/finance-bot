@@ -6,7 +6,6 @@ import bot.finance.common.LogCapture;
 import bot.finance.common.TelegramFixtures;
 import bot.finance.common.TelegramTestBot;
 import bot.finance.common.WireMockStubs;
-import bot.finance.common.containers.WireMockSupport;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +17,8 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.Duration;
 import java.util.List;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static bot.finance.common.TelegramTestBot.recordedPolls;
+import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -73,9 +71,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     }
 
     private void logPollLoopState() {
-        List<String> polls = WireMockSupport.SERVER
-                .findAll(postRequestedFor(urlPathEqualTo(TelegramTestBot.getUpdatesPath(TOKEN))))
-                .stream()
+        List<String> polls = recordedPolls(TOKEN).stream()
                 .map(LoggedRequest::getBodyAsString)
                 .toList();
 
@@ -93,9 +89,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(WireMockSupport.SERVER.findAll(
-                            postRequestedFor(urlPathEqualTo(TelegramTestBot.getUpdatesPath(TOKEN)))
-                                    .withFormParam("offset", equalTo(NEXT_OFFSET))))
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
                             .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                             .isNotEmpty());
 

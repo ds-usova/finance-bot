@@ -5,7 +5,6 @@ import bot.finance.common.AbstractSystemTest;
 import bot.finance.common.LogCapture;
 import bot.finance.common.TelegramFixtures;
 import bot.finance.common.WireMockStubs;
-import bot.finance.common.containers.WireMockSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,10 +15,8 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.Duration;
 
 import static bot.finance.common.TelegramTestBot.POLL_RECOVERY_TOKEN;
-import static bot.finance.common.TelegramTestBot.getUpdatesPath;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static bot.finance.common.TelegramTestBot.recordedPolls;
+import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -84,12 +81,9 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
             await("a follow-up getUpdates confirms the batch")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
-                        log.debug("Recorded getUpdates requests: {}", WireMockSupport.SERVER
-                                .findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(POLL_RECOVERY_TOKEN)))));
+                        log.debug("Recorded getUpdates requests: {}", recordedPolls(POLL_RECOVERY_TOKEN));
 
-                        assertThat(WireMockSupport.SERVER.findAll(
-                                postRequestedFor(urlPathEqualTo(getUpdatesPath(POLL_RECOVERY_TOKEN)))
-                                        .withFormParam("offset", equalTo(CONFIRMED_OFFSET))))
+                        assertThat(recordedPollsWithOffset(POLL_RECOVERY_TOKEN, CONFIRMED_OFFSET))
                                 .as("follow-up getUpdates polls carrying offset=%s", CONFIRMED_OFFSET)
                                 .isNotEmpty();
                     });

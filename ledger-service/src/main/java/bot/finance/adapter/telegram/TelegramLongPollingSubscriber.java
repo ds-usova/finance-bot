@@ -32,9 +32,9 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
     private volatile boolean running;
 
     public TelegramLongPollingSubscriber(TelegramBot bot,
-                                        UpdatesListener listener,
-                                        TelegramBotProperties properties,
-                                        LoggerFactory loggerFactory) {
+                                         UpdatesListener listener,
+                                         TelegramBotProperties properties,
+                                         LoggerFactory loggerFactory) {
         this.bot = bot;
         this.listener = listener;
         this.properties = properties;

@@ -3,7 +3,6 @@ package bot.finance.adapter.telegram;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.IncomingMessage;
 import bot.finance.application.port.HandleIncomingMessagePort;
-import bot.finance.common.TelegramTestBot;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import com.pengrad.telegrambot.TelegramBot;
@@ -21,12 +20,10 @@ import static bot.finance.common.TelegramFixtures.textMessageUpdate;
 import static bot.finance.common.TelegramFixtures.updatesResponse;
 import static bot.finance.common.TelegramFixtures.voiceMessageUpdate;
 import static bot.finance.common.TelegramTestBot.LISTENER_TOKEN;
-import static bot.finance.common.TelegramTestBot.getUpdatesPath;
+import static bot.finance.common.TelegramTestBot.forToken;
+import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
 import static bot.finance.common.WireMockStubs.telegramReturnsOnFirstPoll;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,7 +57,7 @@ class TelegramUpdateListenerTest {
     void setUp() {
         handleIncomingMessagePort = mock(HandleIncomingMessagePort.class);
         listener = new TelegramUpdateListener(handleIncomingMessagePort, new Slf4jLoggerFactory());
-        bot = TelegramTestBot.forToken(LISTENER_TOKEN);
+        bot = forToken(LISTENER_TOKEN);
         telegramReturnsNoUpdates(LISTENER_TOKEN);
     }
 
@@ -79,8 +76,9 @@ class TelegramUpdateListenerTest {
 
     private void awaitFollowUpPollWithOffset(String offset) {
         await().atMost(AWAIT_TIMEOUT).untilAsserted(() ->
-                WireMockSupport.SERVER.verify(postRequestedFor(urlPathEqualTo(getUpdatesPath(LISTENER_TOKEN)))
-                        .withFormParam("offset", equalTo(offset))));
+                assertThat(recordedPollsWithOffset(LISTENER_TOKEN, offset))
+                        .as("follow-up getUpdates polls carrying offset=%s", offset)
+                        .isNotEmpty());
     }
 
     private IncomingMessage awaitSingleHandledCommand() {

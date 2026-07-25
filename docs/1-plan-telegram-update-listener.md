@@ -918,9 +918,52 @@ Minimal-green boundaries the agents flagged rather than silently hardening, for 
   would NPE. pengrad never produces one.
 - `TelegramUpdateListener` catches only `RuntimeException` per update; an `Error` propagates into pengrad's loop.
 
+### Refactor Phase (completed 2026-07-25)
+
+One agent over the whole diff. Guardrail verified by the orchestrator: **28 tests, 0 failures — count unchanged**,
+architecture test 3/3.
+
+The find was cross-class test duplication, as expected from five test classes written by agents that could not see
+each other's work: `postRequestedFor(urlPathEqualTo(getUpdatesPath(TOKEN)))` appeared **7 times across 4 classes**
+and now appears twice, both inside `TelegramTestBot`, which gained `recordedPolls(token)` and
+`recordedPollsWithOffset(token, offset)`. Nine static imports and two type imports went with it. `TelegramTestBot`
+was extended rather than a new helper created, because a new shared builder would have to be listed in
+`testing.md` § *Naming Conventions* — which the refactor agent is not permitted to edit — and `TelegramTestBot`
+already documented itself as the home for stub registration and request verification.
+
+Production needed almost nothing: one constructor-parameter alignment in `TelegramLongPollingSubscriber`. Injection
+style, `Logger`-port logging, text blocks, method decomposition and import hygiene were already uniform across all
+five independently-written classes.
+
+One idiom alignment: `TelegramUpdateListenerTest` was alone in asserting through `SERVER.verify(pattern)` while its
+three siblings used `assertThat(findAll(pattern)).isNotEmpty()`. WireMock's countless `verify` means "at least
+once", which is what `isNotEmpty()` proves, so the semantics are identical and `testing.md` mandates AssertJ.
+
+Deliberately **not** extracted, and the reasoning is worth keeping: shared test-data constants (hoisting literal
+test data makes each test unreadable alone), the three-line `@AfterEach` teardown shared by two adapter tests
+(a base class costs more clarity than it saves), `LogCapture` attach/close in the two system tests (its only
+sensible home is `AbstractSystemTest`, which every future system test inherits and must not acquire a
+Telegram-specific hook), and the differing Awaitility timeouts (genuinely different values, not duplication).
+
 ## Open Questions / Blockers — raised during implementation
 
 - Blocker: none. No Red Phase step was blocked; all seven completed.
+- Finding (refactor phase, not acted on): of the three minimal-green boundaries, the refactor agent would close
+  **only** the second — `TelegramUpdateListener` dereferences `update.updateId()` on the skip path *after*
+  `TelegramUpdateUtils` has already null-guarded the update, so one class in the package is defensive about a null
+  update and its immediate neighbour is not. That inconsistency invites a later reader to "fix" it in the wrong
+  direction. The other two (`"null"` conversation id, `Error` escaping the per-update catch) are genuinely
+  unreachable through pengrad and were judged better left alone. All three remain open — closing any is a
+  behaviour change and belongs in a follow-up plan, not the refactor stage.
+- Finding (refactor phase): **no test covers `TelegramBotConfiguration` at all** — neither the fail-fast
+  blank-token branch nor the polling gate. This was accepted by decision during planning, but it is worth
+  restating that the one piece of production code preventing a misconfigured deploy from long-polling
+  `api.telegram.org` with an empty token was verified only by a throwaway probe that has since been deleted.
+  Candidate for a follow-up plan.
+- Note (flake risk): `TelegramLongPollingSubscriberTest.Stop` proves "no further request" with two real
+  `Thread.sleep(500)` settle windows, costing about a wall-clock second and inherently timing-dependent. There is
+  no non-sleeping way to assert an absence, so it is defensible — but it is the most likely flake in the suite on
+  a loaded CI machine.
 - Note (future build concern, not this plan's scope): Mockito emits a self-attaching-agent warning on JDK 25.
   Harmless today, but the JDK is removing dynamic self-attachment, so the module will eventually need Mockito
   wired as an explicit `-javaagent` on the Gradle `test` task. Raised by the `HandleIncomingMessageUseCaseTest`
