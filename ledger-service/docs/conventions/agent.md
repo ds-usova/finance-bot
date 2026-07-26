@@ -43,19 +43,24 @@ The model name is the `model` parameter of the agent-spawning tool.
 
 ## Parallelism
 
-Concurrent test runs share one Gradle daemon, one Docker daemon, and this machine's RAM; each concurrent
-`gradlew test` invocation starts its **own** Postgres container and WireMock server (they are JVM singletons, not
-machine singletons).
+Concurrent runs share the Gradle caches, the `ledger-service/build/classes` they compile into, one Docker daemon,
+and this machine's memory; each concurrent test run starts its **own** Postgres container and WireMock server (they
+are JVM singletons, not machine singletons). Host ports are not the scarce resource — Postgres comes up on a random
+port through Testcontainers, WireMock uses a dynamic one, and the application binds `@LocalServerPort` — memory is.
+Results cannot collide, since the runner in [Build](build.md) gives every run a directory of its own; what the
+runner's queue protects is everything else on that list, so one run proceeds and the rest wait. Compiling waits in
+the same queue, because it writes to the same `build/classes`.
 
-- Max concurrent test runs: **4** — container-starting suites (system and outbound-adapter) included.
-- Max concurrent build/implementation tasks: **4**.
-- Notes: treat unexplained container-startup or port-binding failures during parallel runs as contention — rerun
-  serially before debugging them as real failures.
-- Concurrent `gradlew test` invocations also share one `ledger-service/build/` directory, so they clobber each
-  other's results in `build/test-results/test/`. The symptom is a Gradle-level
-  `NoSuchFileException: …/binary/in-progress-results-*.bin`, or another run's XML appearing where yours should be,
-  often *after* the tests themselves have reported. Console pass/fail stays trustworthy; the XML and HTML reports
-  do not. Judge a parallel run by its console output, and rerun serially whenever the reports matter.
+- Max concurrent implementation agents: **4**.
+- Concurrent test runs: effectively **1** — the queue is the wrapper's, not something an agent arranges. Four
+  agents may each ask for a run at the same time; they simply finish one after another.
+- Notes: treat an unexplained container-startup failure as memory pressure and rerun before debugging it as a real
+  failure. Never work around a wait by bypassing the queue.
+
+Parallel agents also share the working tree. An agent stays inside the files its step owns: it never edits, and
+never draws conclusions from, a file another agent is currently writing — a file that does not compile or a test
+that fails inside someone else's target is their work in progress, not a finding. Reconciling across steps is the
+orchestrator's job, after the wave.
 
 ## Plan Files
 

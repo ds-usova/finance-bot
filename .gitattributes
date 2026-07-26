@@ -1,0 +1,8 @@
+# Windows checkouts run these through bash, which fails on the first line if git has rewritten the
+# endings to CRLF. Pinning them to LF keeps a fresh clone runnable regardless of core.autocrlf.
+*.sh    text eol=lf
+*.awk   text eol=lf
+gradlew text eol=lf
+
+# cmd.exe needs the opposite.
+*.bat   text eol=crlf

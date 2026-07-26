@@ -1,0 +1,26 @@
+// Redirects every Test task's reports into a per-run directory chosen by the caller, so that two
+// concurrent runs cannot overwrite each other's results in the shared build/test-results/test.
+//
+// Applied by tools/agent-test.sh via -I; without the agentRunDir system property it does nothing.
+
+def agentRunDir = System.getProperty("agentRunDir")
+def excludeArchUnit = System.getProperty("agentExcludeArchUnit") == "true"
+
+if (agentRunDir) {
+    gradle.allprojects { project ->
+        project.tasks.withType(Test).configureEach { testTask ->
+            testTask.reports.junitXml.outputLocation = new File(agentRunDir, "test-results")
+            testTask.reports.html.outputLocation = new File(agentRunDir, "test-report")
+            testTask.binaryResultsDirectory = new File(agentRunDir, "binary")
+
+            // The ArchUnit engine does not apply JUnit's post-discovery filters, so its rules run in
+            // full even when --tests names a single class somewhere else entirely. Dropping the
+            // engine is the only way to hold a filtered run to what the caller asked for.
+            if (excludeArchUnit) {
+                testTask.useJUnitPlatform { platform ->
+                    platform.excludeEngines "archunit"
+                }
+            }
+        }
+    }
+}
