@@ -1,29 +1,18 @@
 # Ledger Service
 
-The Ledger Service is the orchestration core of the [Finance Bot](../README.md)
-system. It receives Telegram updates, coordinates transcription and AI-driven
-expense extraction, persists the result, and confirms it back to the user.
+The orchestration core of the [Finance Bot](../README.md) system. It receives
+Telegram updates, coordinates transcription and AI-driven expense extraction,
+persists the result, and confirms it back to the user.
 
-Diagrams follow the [C4 model](https://c4model.com) and are written in
-[PlantUML](https://plantuml.com/). 
-
-For C1 (System Context) and C2 (Container),
-see the [root README](../README.md#architecture). C3 below zooms into this
-service specifically.
-
-Code is organized by Clean Architecture layer, under `bot.finance` — see the
-[Architecture & Layering conventions](docs/conventions/architecture.md#package-structure) for the package tree.
+For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture);
+C3 is below. Package structure is in the
+[Architecture & Layering conventions](docs/conventions/architecture.md#package-structure).
 
 ### C3 — Component
 
-Every interaction the Ledger Service has with something outside its own boundary
-(Telegram, the Transcription Service, the AI Connector Service, the database) is
-mediated by an **abstract port (interface)** — never a direct call from the
-application core. 
-
-Inbound ports are driven by the outside world; outbound ports are
-driven by the core and implemented by adapters. Adapters are color-coded by the
-external dependency they front, so it's clear at a glance which piece talks to what.
+Every interaction with something outside the service boundary goes through a port,
+never a direct call from the core. Adapters are colour-coded by the external
+dependency they front.
 
 ```plantuml
 @startuml C3-Component-LedgerService
@@ -44,21 +33,21 @@ Container(aiConnector, "AI Connector Service", "REST API", "Extracts structured 
 ContainerDb(db, "Database", "PostgreSQL", "Stores users and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
-  Component(telegramListener, "Telegram Update Listener", "Spring Component", "Primary adapter: long-polls the Bot API and maps each update onto the transport-agnostic inbound command", $tags="telegramExternal")
-  Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port: use-case boundary for a message arriving from any messenger — the core never learns which one", $tags="portIn")
-  Component(expenseService, "Expense Recording Use Case", "Plain Java", "Application core: orchestrates the pipeline and applies business logic; wired as a bean from adapter-layer configuration", $tags="core")
+  Component(telegramListener, "Telegram Update Listener", "Spring Component", "Long-polls the Bot API", $tags="telegramExternal")
+  Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port", $tags="portIn")
+  Component(expenseService, "Expense Recording Use Case", "Plain Java", "Orchestrates the pipeline", $tags="core")
 
-  Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port: retrieves voice message audio", $tags="portOut")
-  Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port: converts audio into text", $tags="portOut")
-  Component(extractionPort, "Expense Extraction Port", "Interface", "Outbound port: extracts structured expense data from text", $tags="portOut")
-  Component(repositoryPort, "Expense Repository Port", "Interface", "Outbound port: persists users and expenses", $tags="portOut")
-  Component(notificationPort, "Notification Port", "Interface", "Outbound port: notifies the user of the recorded expense", $tags="portOut")
+  Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port", $tags="portOut")
+  Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port", $tags="portOut")
+  Component(extractionPort, "Expense Extraction Port", "Interface", "Outbound port", $tags="portOut")
+  Component(repositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(notificationPort, "Notification Port", "Interface", "Outbound port", $tags="portOut")
 
-  Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Implements the Audio Fetch Port via the Telegram Bot API", $tags="telegramExternal")
-  Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Implements the Transcription Port via REST", $tags="transcriberExternal")
-  Component(aiConnectorAdapter, "AI Connector Adapter", "Spring REST Client", "Implements the Expense Extraction Port via REST", $tags="aiConnectorExternal")
-  Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Implements the Expense Repository Port", $tags="dbExternal")
-  Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Implements the Notification Port via the Telegram Bot API", $tags="telegramExternal")
+  Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Downloads audio", $tags="telegramExternal")
+  Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Calls the transcriber", $tags="transcriberExternal")
+  Component(aiConnectorAdapter, "AI Connector Adapter", "Spring REST Client", "Calls the AI connector", $tags="aiConnectorExternal")
+  Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists users and expenses", $tags="dbExternal")
+  Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Sends the confirmation", $tags="telegramExternal")
 }
 
 Rel(telegram, telegramListener, "Update (message)", "Telegram Bot API, long polling")

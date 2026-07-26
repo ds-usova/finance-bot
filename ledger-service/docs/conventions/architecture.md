@@ -18,8 +18,8 @@ src/main
 │   │   ├── port        # inbound/outbound port interfaces
 │   │   └── dto
 │   └── adapter         # interface adapters
-│       ├── config      # use-case bean wiring (@Configuration classes only — no adapter-specific config)
-│       ├── logging     # SLF4J-backed implementation of the core's Logger/LoggerFactory abstraction
+│       ├── config      # use-case bean wiring only
+│       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
 │       ├── web
 │       └── persistence
@@ -28,86 +28,57 @@ src/main
         └── migration   # Flyway migrations
 ```
 
-`model` vs `value` — both live under `domain` but hold different kinds of object:
+`model` holds entities, equal by identity. `value` holds value objects, equal by attributes.
 
-- **`model`** — entities with an identity that persists across changes (e.g. `Expense`, `User`). Two instances
-  are equal if their identity (e.g. an ID) matches, even if every other field differs; the same entity can
-  change state over its lifetime and still be "the same" `Expense`.
-- **`value`** — value objects with no identity of their own (e.g. an amount, a currency, a time period). Two
-  instances are equal if all their attributes match.
+Dependencies point inward: `adapter` → `application` → `domain`, never the reverse. `domain` and `application`
+depend on nothing outside the JDK — no Spring, no `jakarta.*`, no external logging API. Hence:
 
-Dependencies point inward: `adapter` depends on `application`, which depends on `domain` — never the reverse.
-`domain` and `application` stay framework-agnostic: no Spring, no `jakarta.*`, and no external logging API
-anywhere in either package — the core depends on nothing outside the JDK. Consequences of that rule:
+- use cases are plain classes, declared as beans from the adapter layer;
+- transaction boundaries live in adapters, never in `domain`/`application`;
+- logging goes through `Logger`/`LoggerFactory` in `application/port`, implemented in `adapter/logging`.
 
-- Use cases are plain classes, wired as beans from configuration classes in the adapter layer, not annotated
-  themselves.
-- Transaction boundaries live in adapters (see
-  [Production-Code Style](code-style.md#production-code-style)), never in `domain`/`application`.
-- Logging goes through the application's own `Logger`/`LoggerFactory` interfaces in `application/port` — the
-  core is forced to by this rule, and the other layers follow the same pattern by convention (see
-  [Production-Code Style](code-style.md#production-code-style)); the SLF4J-backed implementation lives in
-  `adapter/logging`.
+Bean declaration — Java configuration is for classes that cannot be annotated, everything else is annotated:
 
-Bean declaration style — **Java configuration is for classes that cannot be annotated; everything else is
-annotated**:
+- core classes and third-party classes (a library client, e.g. the Telegram Bot API client) get `@Bean` methods;
+- the module's own adapters are `@Component`s, component-scanned, never listed as `@Bean` methods. Conditional
+  registration goes on the class as `@ConditionalOnProperty`.
 
-- **core classes** (use cases and anything else in `domain`/`application`) are declared with `@Bean` methods in
-  `@Configuration` classes, because the rule above forbids them from carrying Spring annotations themselves;
-- **third-party classes** (a client object from a library, e.g. the Telegram Bot API client) likewise need a
-  `@Bean` method — there is nowhere to put an annotation;
-- **the module's own adapter classes are `@Component`s**, found by component scanning, never listed as `@Bean`
-  methods. An adapter lives in the framework's world already, so a configuration class that does nothing but
-  call its constructor is indirection with no benefit. Conditional registration goes on the class as
-  `@ConditionalOnProperty`, not on a factory method.
+Configuration placement: adapter-specific config lives in the adapter subpackage it configures — persistence
+config in `adapter/persistence`, web config in `adapter/web`. Use-case wiring is the exception, living in
+`adapter/config`, which holds nothing else.
 
-Configuration placement:
-
-- adapter-specific framework config lives in the adapter subpackage it configures — persistence config
-  (e.g. custom Spring Data JDBC converters) in `adapter/persistence`, web config (e.g. the global exception
-  handler, MVC settings) in `adapter/web`, and so on for future adapter subpackages;
-- use-case bean wiring is the one exception: use cases belong to no single adapter, so their `@Configuration`
-  classes live in `adapter/config` — which holds use-case wiring only, never adapter-specific config.
-
-Adapters for external services get **one adapter subpackage per external system**, holding everything that fronts
-that system — outbound clients *and* any inbound adapter it drives. `adapter/telegram` exists and contains both
-the long-polling update listener (inbound) and, in time, the file fetch and notification clients (outbound);
-`adapter/transcription` and `adapter/aiconnector` follow when they land. `adapter/web` is the home for HTTP
-endpoints this service exposes, not for every inbound adapter — a non-HTTP inbound adapter belongs to its
-external system's subpackage.
+External services get one adapter subpackage each, holding everything that fronts that system — outbound
+clients *and* any inbound adapter it drives. `adapter/telegram` holds the long-polling listener and, in time,
+the file fetch and notification clients; `adapter/transcription` and `adapter/aiconnector` follow. `adapter/web`
+is for HTTP endpoints this service exposes, not for every inbound adapter.
 
 ## Naming Across the Layer Boundary
 
-The core must not know **which** external system it is talking to, so that a second messenger, transcriber, or
-data store can be added without touching it. Two rules follow:
+So a second messenger, transcriber or data store can be added without touching the core:
 
 - **No type in `domain`/`application` carries an external-system or transport name.** The adapter names its
-  external system; the core names the capability. So `HandleIncomingMessagePort` in `application/port`, driven by
-  `TelegramUpdateListener` in `adapter/telegram` — never `HandleTelegramMessagePort`.
+  system, the core names the capability: `HandleIncomingMessagePort` driven by `TelegramUpdateListener`, never
+  `HandleTelegramMessagePort`.
 - **No type in `domain`/`application` carries a transport-shaped field.** `IncomingMessage` identifies a
-  conversation with a `String conversationId`, and the Telegram adapter renders the numeric chat id into it. A
-  `long chatId` in the core would be a Telegram fact leaking inward.
+  conversation with a `String conversationId`; a `long chatId` would be a Telegram fact leaking inward.
 
-Both are enforced (see [Architecture Enforcement](#architecture-enforcement)); the second only by review.
+The first is enforced below; the second by review.
 
 ## File Locations
 
-- Migration folder + naming scheme: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`
-  (e.g. `V001__create_expense_table.sql`).
-- API schema file: none yet — intended location `src/main/resources/schemas/api.yaml`, to be confirmed when the
-  first contract is authored.
-- Manual/`.http` request files: none yet — intended location `ledger-service/docs/requests/`, to be confirmed
-  when the first one is written.
+- Migrations: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`.
+- API schema file: none yet — intended `src/main/resources/schemas/api.yaml`, to be confirmed with the first
+  contract.
+- Manual `.http` request files: none yet — intended `ledger-service/docs/requests/`.
 
 ## Architecture Enforcement
 
 - Tool: ArchUnit (JUnit 5 integration).
 - Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
   [Build & Test Commands](build.md#build--test-commands)).
-- Scope:
+- Rules:
   - the layer-dependency rules;
-  - the framework-agnostic core — `org.springframework..`, `jakarta..`, `org.slf4j..` and `com.pengrad..` are
-    banned from `domain`/`application`. Each new external-service library joins this list as its adapter lands;
-  - `coreTypesCarryNoExternalSystemName` — no type in `domain`/`application` may have a simple name containing an
-    external-system name (`Telegram`, `Whisper`, `Postgres`), per
-    [Naming Across the Layer Boundary](#naming-across-the-layer-boundary). This list grows the same way.
+  - `org.springframework..`, `jakarta..`, `org.slf4j..` and `com.pengrad..` banned from `domain`/`application`;
+    each new external-service library joins the list as its adapter lands;
+  - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
+    `Whisper` or `Postgres`; the list grows the same way.

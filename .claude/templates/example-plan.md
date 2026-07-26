@@ -293,16 +293,16 @@ public Settings loadSettings(long userId) {
 
 ## Open Questions / Blockers
 
-- Q: Must widget names be unique, and if so, should a duplicate `POST /widgets` return 409?
+- **Q1:** Must widget names be unique, and if so, should a duplicate `POST /widgets` return 409?
 - A:
 
-- Q: `module-a` has no conventions file yet (`module-a/docs/conventions.md` is missing) — please create one from
+- **Q2:** `module-a` has no conventions file yet (`module-a/docs/conventions.md` is missing) — please create one from
   `.claude/templates/conventions-template.md`; this plan assumes generic defaults where conventions were needed.
 - A:
 
 ## Review Findings
 
-- Finding: `WidgetRepositoryAdapterTest` has no scenario for a duplicate `name` violating a uniqueness constraint,
+- **F1:** `WidgetRepositoryAdapterTest` has no scenario for a duplicate `name` violating a uniqueness constraint,
   and the `widget` table defined above declares no unique constraint on `name` — this may be intentional pending the
   open question above about duplicate names, but is flagged here since the schema currently allows duplicates
   silently.

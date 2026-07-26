@@ -10,8 +10,8 @@ How the coding agent commits, parallelizes work, and where its planning artifact
   step or per wave.
 - Branch policy: the developer creates and checks out the branch manually before work starts; the agent never
   creates, switches, or deletes branches — it commits to the current branch only.
-- Message format: `<Prefix>: <description>` — one subject line stating what the change does, and a prefix naming
-  the kind of change:
+- Message format: `<Prefix>: <description>` — one subject line stating what the change does, and a prefix
+  naming the kind of change:
   - `Feature` — new or extended functionality;
   - `Bug` — a fix for incorrect behavior;
   - `Configuration` — build, infrastructure, or application configuration;
@@ -19,8 +19,7 @@ How the coding agent commits, parallelizes work, and where its planning artifact
   - `Refactor` — behavior-preserving cleanup and restructuring.
   - `Documentation` — updates to documentation.
 
-  Add new prefixes as new kinds of change show up. The format applies from this point in the history onward;
-  earlier commits predate it.
+  Add new prefixes as new kinds of change show up.
 - Message body: usually none — the subject carries the change and the diff carries the detail. Add a few lines
   only for what the diff cannot show: a constraint that forced the approach, or a consequence a later reader
   would otherwise miss. Never a list of touched files or a per-file summary (that is `git show --stat`), never
@@ -31,9 +30,9 @@ How the coding agent commits, parallelizes work, and where its planning artifact
 
 Delegated work splits by how much judgment it needs, and each kind runs on the model that matches:
 
-- **Deciding work — the strongest model** (`opus`): planning a task, reviewing a plan, and the refactor pass over
-  a finished diff. These choose what gets built and judge finished work against the conventions, so a weak call
-  here is inherited by every step downstream and costs far more than the model does.
+- **Deciding work — the strongest model** (`opus`): planning a task, reviewing a plan, and the refactor pass
+  over a finished diff. These choose what gets built and judge finished work against the conventions, so a weak
+  call here is inherited by every step downstream and costs far more than the model does.
 - **Executing work — a cheaper model** (`sonnet`): the stabilization agent and every red- and green-phase step
   agent. Such an agent is handed one target class, its scenarios, and the conventions, and writes code against
   them — the decisions were made in the plan, and the stage guardrails catch what it gets wrong.
@@ -43,21 +42,22 @@ The model name is the `model` parameter of the agent-spawning tool.
 
 ## Parallelism
 
-Concurrent runs share the Gradle caches, `build/classes`, one Docker daemon and this machine's memory — memory
-being the scarce one. Each concurrent test run starts its **own** Postgres container and WireMock server (JVM
-singletons, not machine singletons), both on random ports, so ports are not contended. Results cannot collide:
-the runner in [Build](build.md) gives every run its own directory, and its queue protects everything else on
-that list.
+Concurrent runs share the Gradle caches, `build/classes`, and this machine's memory — memory being the scarce
+one. Nothing competes for a fixed port. Results cannot collide: the runner in [Build](build.md) gives every run
+its own directory, and its queue protects the shared build directory.
 
 - Max concurrent implementation agents: **4**.
-- Concurrent test runs: effectively **1**. Agents may all ask at once; the queue serializes them. Compiling
-  queues too, writing to the same `build/classes`.
-- Treat an unexplained container-startup failure as memory pressure and rerun before debugging it as real.
-  Never bypass the queue.
+- Concurrent test runs: effectively **1 per module**. Agents may all ask at once; the queue serializes them.
+  It does not span modules, so a run here can overlap one in a sibling service.
+- The suite runs in-process, so an unexplained failure is a real failure — rerunning is not a diagnosis. The
+  first build after a clean checkout downloads the `protoc` toolchain and needs network access.
 
 Parallel agents share the working tree. An agent stays inside the files its step owns, and never draws
 conclusions from a file another agent is writing: a broken compile or failing test in someone else's target is
 their work in progress, not a finding. Reconciling across steps is the orchestrator's job.
+
+An agent never edits `build/generated/`. A missing generated type means the `.proto` has not been written —
+a stabilization gap to report, not something to hand-write around.
 
 ## Plan Files
 

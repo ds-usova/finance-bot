@@ -45,7 +45,8 @@ Never fail and never silently guess module conventions.
 
 ## 3. Plan Structure
 
-The plan file MUST contain the following sections:
+The plan file MUST contain the following sections. Headings below that say "reference" or "Step Format" are
+instructions for writing those sections, not sections to reproduce in the plan.
 
 ### Affected Modules
 
@@ -198,7 +199,11 @@ group — use only the sections that apply:
 - **Manual Request Files** — manual request files (e.g. `.http`), only if the module's conventions file lists this
   as a convention
 
-### Test Layer Mapping
+### Test Layer Mapping — reference, **not** a section of the plan
+
+This is guidance for deciding which phase a step belongs to. Do **not** write it into the plan file: it restates
+what the module's own conventions file already defines, and a copy in every plan is one more place for the two to
+drift apart. The plan references the conventions; only the conventions describe the module's layers.
 
 - **Unit** — classes the module's conventions file maps to the unit layer (e.g. domain entities/value objects and
   usecase implementations of inbound ports, as mapped in the module's conventions file). Outbound ports are
@@ -476,8 +481,15 @@ List any questions you need the user to clarify before you can proceed with spec
 foresee.
 Generate placeholders for the user's answers beneath each open question, for example:
 
-- Q: [Your question here]?
+- **Q1:** [Your question here]?
 - A:
+
+- **Q2:** [Next question]?
+- A:
+
+**Number every question** (`Q1`, `Q2`, …) so it can be referenced in conversation, in a commit, or from another
+document. Numbers are assigned once and never renumbered: a question that is answered or withdrawn keeps its
+number, and a new one takes the next unused value, so a reference stays valid for the life of the plan.
 
 ### Review Findings
 
@@ -485,9 +497,12 @@ Populated by the `review-plan` subagent invoked in the next step — leave this 
 the rest of the plan. Each finding uses this exact format:
 
 ```
-- Finding: [what's wrong or missing, with file/class/scenario reference]
+- **F1:** [what's wrong or missing, with file/class/scenario reference]
 - Action:
 ```
+
+Findings are numbered on the same terms as the questions above — `F1`, `F2`, … assigned once, never renumbered,
+and continuing past the highest existing number on a re-review.
 
 If the review has nothing to report, this section still contains a single "No issues found" statement (or
 equivalent) — its presence must be consistent across every plan, clean or not.
