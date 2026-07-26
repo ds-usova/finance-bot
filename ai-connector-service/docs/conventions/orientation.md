@@ -15,9 +15,9 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 
 **Caching**: none;
 
-**Exposed interface**: **gRPC only**. The service contract is the Protocol Buffers schema in
-`src/main/proto/` (see [File Locations](architecture.md#file-locations)); the gRPC server comes from Spring
-Boot's own `spring-boot-starter-grpc-server`, which wraps Spring gRPC on a Netty transport. 
+**Exposed interface**: **gRPC only**. The service contract is the Protocol Buffers schema (see
+[File Locations](architecture.md#file-locations)); the gRPC server comes from Spring Boot's own
+`spring-boot-starter-grpc-server`, which wraps Spring gRPC on a Netty transport. 
 
 **External services consumed**: an OpenAI-compatible chat-completions API, reached through **Spring AI**'s
 `ChatClient`. Spring AI owns the transport, the request/response shape, and the JSON-schema-based structured
@@ -25,7 +25,7 @@ output; the service supplies the model name, the prompt, and the target record. 
 through `spring.ai.openai.base-url`, which is what lets tests point the whole client at a stub server;
 
 **Contract-first codegen**: **yes** — the `.proto` schema is the contract, and the `com.google.protobuf` Gradle
-plugin generates the message classes and the service base class into `build/generated/source/proto/`. Generated
+plugin generates the message classes and the service base class into `build/generated/sources/proto/`. Generated
 sources are never edited or committed; changing the contract means changing the `.proto`.
 
 ## Documentation References

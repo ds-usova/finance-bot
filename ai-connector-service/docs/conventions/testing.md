@@ -20,7 +20,8 @@ bot.finance.ai
     ├── JsonUtils              # loads JSON fixtures from src/test/resources
     ├── LogCapture             # Logback appender, for asserting on log output
     ├── ChatCompletionFixtures # provider response bodies
-    └── IntentFixtures         # domain Intent / Money builders
+    ├── IntentFixtures         # domain Intent / Money builders
+    └── RequestFixtures        # valid ExtractIntentsRequest builders
 ```
 
 ## Test Layers

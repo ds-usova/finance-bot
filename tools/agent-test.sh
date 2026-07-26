@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The single entry point for compiling and testing ledger-service.
+# The single entry point for compiling and testing a module, selected with --module.
 #
 # It exists so that a run is reported as a ready-made summary instead of console output that each
 # caller has to parse for itself, and so that concurrent runs cannot overwrite each other's results.
@@ -11,9 +11,8 @@ set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(dirname "$script_dir")"
-module_dir="$repo_root/ledger-service"
-runs_root="$module_dir/build/agent-runs"
 
+module=""
 patterns=()
 label=""
 mode="test"
@@ -24,12 +23,13 @@ keep_runs=20
 usage() {
     cat <<'EOF'
 Usage:
-  tools/agent-test.sh --compile
-  tools/agent-test.sh --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
-  tools/agent-test.sh --tests "bot.finance.architecture.CleanArchitectureTest"
-  tools/agent-test.sh --all
+  tools/agent-test.sh --module <name> --compile
+  tools/agent-test.sh --module <name> --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
+  tools/agent-test.sh --module <name> --tests "bot.finance.architecture.CleanArchitectureTest"
+  tools/agent-test.sh --module <name> --all
 
 Options:
+  --module <name>     Required. Module directory at the repository root to compile and test.
   --tests <pattern>   JUnit pattern to run; may be repeated. Omit (or --all) to run the whole suite.
                       Prefer a fully qualified class name: a pattern containing ** also drags in the
                       architecture tests, which ignore Gradle's filter.
@@ -51,6 +51,7 @@ EOF
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        --module)   module="${2:-}"; shift 2 ;;
         --tests)    patterns+=("${2:-}"); shift 2 ;;
         --label)    label="${2:-}"; shift 2 ;;
         --wait)     lock_wait="${2:-}"; shift 2 ;;
@@ -62,6 +63,15 @@ while [ $# -gt 0 ]; do
         *)          echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
 done
+
+if [ -z "$module" ]; then
+    echo "--module <name> is required." >&2
+    usage >&2
+    exit 2
+fi
+
+module_dir="$repo_root/$module"
+runs_root="$module_dir/build/agent-runs"
 
 if [ ! -d "$module_dir" ]; then
     echo "Module directory not found: $module_dir" >&2

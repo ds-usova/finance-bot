@@ -1,0 +1,76 @@
+plugins {
+    id "java"
+    id "jacoco"
+    id "org.springframework.boot" version "$springBootVersion"
+    id "io.spring.dependency-management" version "$springDependencyManagementVersion"
+    id "com.google.protobuf" version "$protobufGradlePluginVersion"
+}
+
+group = "bot.finance"
+version = "${appVersion}"
+description = "ai-connector-service"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir("$rootDir/../proto")
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().configureEach {
+            plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
+
+    implementation "org.springframework.boot:spring-boot-starter-grpc-server"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-webmvc"
+    implementation "org.springframework.ai:spring-ai-starter-model-openai"
+
+    testImplementation "org.springframework.boot:spring-boot-starter-grpc-server-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
+
+    testImplementation "io.rest-assured:rest-assured:${restAssuredVersion}"
+    testImplementation "io.rest-assured:json-path:${restAssuredVersion}"
+
+    testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+    testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jacoco {
+    toolVersion = "${jacocoVersion}"
+}

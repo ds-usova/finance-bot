@@ -1,0 +1,46 @@
+server:
+  port: 1002
+
+spring:
+  application:
+    name: ai-connector-service
+  threads:
+    virtual:
+      enabled: true
+  grpc:
+    server:
+      port: 1001
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        model: ${OPENAI_MODEL:gpt-4o-mini}
+        temperature: 0
+
+ai:
+  intent:
+    system-prompt: classpath:prompts/extract-intents.st
+    user-message-template: classpath:prompts/user-message.st
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        liveness:
+          include: livenessState, ping
+        readiness:
+          include: readinessState

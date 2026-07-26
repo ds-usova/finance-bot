@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package bot.finance.ai.v1;
+
+option java_multiple_files = true;
+option java_package = "bot.finance.ai.adapter.grpc.v1";
+option java_outer_classname = "IntentExtractionProto";
+
+service IntentExtractionService {
+  rpc ExtractIntents(ExtractIntentsRequest) returns (ExtractIntentsResponse);
+}
+
+message ExtractIntentsRequest {
+  string text = 1;
+  // The closed set an expense may be filed under; must be non-empty. The caller
+  // includes a catch-all (e.g. "Other"), so a fitting entry always exists.
+  repeated string known_categories = 2;
+  // ISO 4217 code applied when the user states an amount but no currency. Absent means
+  // an amount without a currency cannot be resolved and yields OPERATION_UNKNOWN.
+  optional string default_currency = 3;
+}
+
+message ExtractIntentsResponse {
+  // Ordered as the user expressed them; never empty.
+  repeated Intent intents = 1;
+}
+
+message Intent {
+  Operation operation = 1;
+  oneof payload {
+    CategoryIntent category = 2;
+    ExpenseIntent  expense  = 3;
+  }
+  // Set only when operation is OPERATION_UNKNOWN.
+  string reason = 4;
+}
+
+enum Operation {
+  OPERATION_UNSPECIFIED = 0;
+  OPERATION_UNKNOWN     = 1;
+  OPERATION_CREATE      = 2;
+  OPERATION_READ        = 3;
+  OPERATION_UPDATE      = 4;
+  OPERATION_DELETE      = 5;
+}
+
+message CategoryIntent {
+  string name = 1;
+  optional string new_name = 2;
+}
+
+message ExpenseIntent {
+  // Always set for OPERATION_CREATE; may be absent for READ and DELETE.
+  optional string category_name = 1;
+  optional Money  amount        = 2;
+  optional string description   = 3;
+}
+
+message Money {
+  int64  minor_units = 1;
+  string currency    = 2;
+}

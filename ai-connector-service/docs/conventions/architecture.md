@@ -70,7 +70,7 @@ The first is enforced below; the second by review.
 
 - Protocol Buffers schema: repo-root `proto/<snake_case_name>.proto`, shared by every module that speaks the
   contract and added to this build as an extra proto source directory. Generated Java lands in
-  `build/generated/source/proto/main/`, never edited or committed.
+  `build/generated/sources/proto/main/`, never edited or committed.
 - Prompt templates: `src/main/resources/prompts/<kebab-case-name>.st`.
 - Manual requests: `grpcurl` against the server reflection service, enabled by default.
 

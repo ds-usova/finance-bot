@@ -13,10 +13,10 @@ category creation followed by an expense. The response is therefore an ordered l
 **the order is the order the user expressed them** — the caller executes them in sequence, and in that example
 the category must exist before the expense referencing it can be recorded.
 
-The request also carries **the categories the user already has**, so the model can file an expense under a
-fitting one when the user names none: *"spent 15 euros on lunch"* becomes an expense in `Food` if `Food` is one
-of theirs. When nothing fits, the model does not invent a category silently — it emits a category creation
-followed by the expense, which the ordered multi-intent response already expresses.
+The request carries **the categories the user already has**, and an expense may only be filed under one of
+them: *"spent 15 euros on lunch"* becomes an expense in `Food` if `Food` is one of theirs. The caller always
+includes a catch-all (`Other`), so there is always a fit. **The service never proposes a new category** — a
+category is created only when the user asks for one outright.
 
 Two intent families are in scope, each with the full CRUD operation set:
 
@@ -32,28 +32,29 @@ The module also gets its own conventions set and README, matching the ones `ledg
 
 ### Contract
 
-A new Protocol Buffers schema, `ai-connector-service/src/main/proto/intent_extraction.proto`, defines one
+A new Protocol Buffers schema at the repo-root **`proto/intent_extraction.proto`** defines one
 service with one unary RPC returning a **repeated** `Intent`. Each entry carries an `Operation` plus a `oneof`
 of exactly one typed payload, so a `DELETE` on a category cannot syntactically carry an amount.
 
-**The list is ordered and never empty.** Order is the user's own order, because intents can depend on each
-other — a category creation must reach the ledger before the expense that names it. Never empty because
-"nothing was found" is reported as a single entry with `OPERATION_UNKNOWN` and a `reason`, not as an absence:
-one code path for "here is what I understood", not two.
+The list is **ordered** (the user's order — a category creation must reach the ledger before the expense
+naming it) and **never empty** ("nothing found" is one entry with `OPERATION_UNKNOWN` and a `reason`).
 
-`UNKNOWN` is **per entry**, which is what makes a partly-understood message useful. If the user asks for three
-things and the second names a currency that does not exist, the caller still gets the first and third as
-actionable intents and the second as an `UNKNOWN` carrying why — instead of losing all three, or silently
-receiving two and never learning something was dropped.
+`UNKNOWN` is **per entry**, so one unusable answer among three leaves the other two actionable.
 
-`known_categories` is context, not a constraint. The service does not check the returned category against it —
-the caller sent the list and can compare far more cheaply than a second validation pass here could, and a
-returned name that is *not* in the list is a legitimate answer, since the model is expected to propose a new
-category (as its own `CREATE` intent) when none of the existing ones fit. An empty list is normal: a new user
-has no categories, and the model proposes them all.
+`known_categories` is a **closed set** and must be non-empty — an empty list is `INVALID_ARGUMENT`, since a
+caller that omits it would otherwise get every categorized expense back as `UNKNOWN`. An `ExpenseIntent` whose
+category is not in the set becomes `UNKNOWN`. Matching is case-insensitive and the caller's spelling is
+returned. The constraint applies to the category an expense is *filed under*, not to `CategoryIntent.name` — a
+user asking to create `Travel` names something deliberately absent from the set.
 
-Text the model cannot classify is **not** a transport error. Only a genuine failure to reach or parse the
-provider becomes a non-`OK` status.
+A `CREATE` expense always carries a category: the catch-all guarantees a fit, so an omission is model
+non-compliance and becomes `UNKNOWN`. `READ` and `DELETE` may omit it — *"delete my last expense"* names no
+category, and filing it under the catch-all would invent a fact.
+
+`default_currency` is applied **in the use case**, not by the model — an amount with no currency takes the
+request's default and becomes `UNKNOWN` only when none was sent.
+
+Only a failure to reach or parse the provider becomes a non-`OK` status.
 
 Money crosses the wire as `int64 minor_units` plus an ISO 4217 code. `OPERATION_UNSPECIFIED = 0` is the
 proto3-mandated zero value and means "never set" (a bug); `OPERATION_UNKNOWN` is a deliberate classification
@@ -74,9 +75,12 @@ service IntentExtractionService {
 
 message ExtractIntentsRequest {
   string text = 1;
-  // The categories this user already has. May be empty. Lets the model file an expense
-  // under a fitting existing category when the user did not name one.
+  // The closed set an expense may be filed under; must be non-empty. The caller
+  // includes a catch-all (e.g. "Other"), so a fitting entry always exists.
   repeated string known_categories = 2;
+  // ISO 4217 code applied when the user states an amount but no currency. Absent means
+  // an amount without a currency cannot be resolved and yields OPERATION_UNKNOWN.
+  optional string default_currency = 3;
 }
 
 message ExtractIntentsResponse {
@@ -109,6 +113,7 @@ message CategoryIntent {
 }
 
 message ExpenseIntent {
+  // Always set for OPERATION_CREATE; may be absent for READ and DELETE.
   optional string category_name = 1;
   optional Money  amount        = 2;
   optional string description   = 3;
@@ -136,29 +141,22 @@ it: it calls the `IntentInferencePort` outbound port with both, gets back a `Lis
 record of **nullable `String` fields** carrying one unvalidated answer — and assembles a validated domain
 `Intent` from each, **independently**.
 
-Independence is the whole design. The use case maps over the list and assembles each entry inside its own
-`try`, so a bad amount in the second answer produces an `UnknownIntent` in the second position and leaves the
-first and third untouched. A single try around the whole loop would discard a message's usable intents because
-of one unusable one. Order is preserved throughout: `List`, never `Set`, and no sorting anywhere.
+Each entry is assembled inside its own `try`, so one bad answer yields an `UnknownIntent` in its position and
+leaves its neighbours intact; a single try around the loop would discard a message's usable intents. Order is
+preserved throughout — `List`, never `Set`, no sorting.
 
-That split is also what keeps float out of the system. The adapter never builds domain objects and never parses
-an amount; it hands over the model's amount as the decimal string the model produced, and
-`Money.of(String, String)` parses it with `new BigDecimal(String)`. Nothing in the chain has a `double` to
-round.
+The adapter never builds domain objects or parses amounts: it passes the model's decimal string through, and
+`Money.of(String, String)` parses it with `new BigDecimal(String)`.
 
-`AiIntentInferenceAdapter` implements the outbound port using Spring AI's `ChatClient` with structured output
-against `ExtractedIntents` — a wrapper record holding `List<ExtractedIntent>`, so the JSON schema has a named
-root object rather than a bare array. Every field of `ExtractedIntent` is a `String`, `amount` included, so the
-schema never invites the provider to return a number. A provider or parse failure becomes an
-`IntentInferenceException`, which a single `GrpcExceptionHandler` bean maps onto a gRPC status. An empty or
-absent list from the model is not a failure — the use case turns it into the single `UnknownIntent` the
-contract promises.
+`AiIntentInferenceAdapter` implements the outbound port with Spring AI's `ChatClient`, structured output
+targeting `ExtractedIntents` — a wrapper record holding `List<ExtractedIntent>`, giving the JSON schema a named
+root. Every `ExtractedIntent` field is a `String`, `amount` included, so the schema never invites a number. A
+provider or parse failure becomes `IntentInferenceException`; an empty list does not — the use case turns that
+into the single `UnknownIntent`.
 
-**The known categories vary per call, so they cannot live in the `ChatClient` bean's default system prompt** —
-that is built once at startup, and baking a list into it would serve every user the first user's categories.
-The static extraction instructions stay on the bean; the adapter renders the category list into the **user
-message** of each call. This is the one place where the "built once, never rebuilt per call" rule needs stating
-precisely: the *client* is built once, the *message* is not.
+Known categories vary per call, so they go in the **user message**, not the `ChatClient` bean's default system
+prompt: that bean is built once at startup, and a list baked into it would serve every user the first user's
+categories.
 
 `Intent` is a sealed interface over `CategoryIntent`, `ExpenseIntent` and `UnknownIntent`, so
 `IntentProtoUtils` maps each entry with an exhaustive switch and a fourth intent kind cannot be added without
@@ -181,9 +179,10 @@ Verified dependency facts (all checked against Maven Central and the current ref
   the starters moved into Boot 4.
 - Spring AI **2.0.0** (GA, June 2026) requires Spring Boot 4.0/4.1 — BOM `org.springframework.ai:spring-ai-bom:2.0.0`,
   starter `org.springframework.ai:spring-ai-starter-model-openai`. Note the artifact id is
-  `spring-ai-starter-model-openai`, **not** `spring-ai-starter-openai` (which does not exist). It resolves
-  through `RestClient`, which is what makes `spring.ai.openai.base-url` sufficient to redirect the whole client
-  at WireMock in tests.
+  `spring-ai-starter-model-openai`, **not** `spring-ai-starter-openai` (which does not exist). It reaches the
+  provider through the official `com.openai:openai-java-core` SDK over OkHttp, not `RestClient` — but
+  `spring.ai.openai.base-url` still redirects it, and the wire format is the standard chat-completions schema,
+  so pointing the whole client at WireMock in tests works regardless.
 - Boot 4.1.0 manages `grpc-java` 1.80.0 and `protobuf-java` 4.34.2; the `com.google.protobuf` Gradle plugin
   (0.10.0) is pinned to those same versions so codegen and runtime cannot drift.
 - gRPC has **no test slice** — `spring-boot-grpc-test` provides only `@AutoConfigureTestGrpcTransport` (in-process
@@ -197,18 +196,15 @@ Verified dependency facts (all checked against Maven Central and the current ref
 and its argument parser rejects anything it does not recognize — verified: `--module ai-connector-service`
 exits 2 with "Unknown option". It gains a **required** `--module <name>` option.
 
-Mandatory rather than defaulted, deliberately. A default would make an omitted flag compile and test
-`ledger-service` while the caller believed it was testing this module, and report a green summary for it — a
-silent wrong answer, which is worse than an error. Requiring the flag makes that mistake impossible.
+Mandatory rather than defaulted: a default would let an omitted flag test `ledger-service` and report green
+for it — a silent wrong answer.
 
-The cost is that it is a **breaking change for every existing caller**, so the same change updates them:
-`ledger-service/docs/conventions/build.md` (four flagless commands) and `tools/README.md`. The permission
-entries in `.claude/settings.local.json` use `:*` suffixes and are unaffected — checked.
+It breaks every existing caller, so the same change updates `ledger-service/docs/conventions/build.md` (four
+flagless commands) and `tools/README.md`. The `.claude/settings.local.json` permission entries use `:*` and are
+unaffected — checked.
 
-Everything else in the script derives from `module_dir`, so the change is contained: `runs_root` (line 15), the
-existence check (66), `run_dir` (106), `lock_dir` (113), and the `cd` before invoking the wrapper (214). The
-lock moving under the selected module makes the queue per-module, which is what allows a run here to overlap a
-run in a sibling service.
+Everything else derives from `module_dir`: `runs_root` (15), the existence check (66), `run_dir` (106),
+`lock_dir` (113), the `cd` (214). The lock moving under the module makes the queue per-module.
 
 Two neighbouring files need **no** change, though both look like they would: `tools/agent-reports.gradle` is
 already module-agnostic (`gradle.allprojects`, system properties only), and `tools/junit-summary.awk` filters
@@ -216,13 +212,13 @@ stack frames on `/bot\.finance/` (line 99), which `bot.finance.ai` matches — a
 `bot.finance` would have silently emptied every failure summary.
 
 Files created: the conventions set (`ai-connector-service/docs/conventions.md` + `conventions/*.md`),
-`ai-connector-service/README.md`, the Gradle build files, `intent_extraction.proto`,
+`ai-connector-service/README.md`, the Gradle build files, the repo-root `proto/intent_extraction.proto`,
 `AiConnectorServiceApplication`, `CurrencyCode`, `Money`, `Operation`, `IntentTarget`, `Intent`,
 `CategoryIntent`, `ExpenseIntent`, `UnknownIntent`, the domain exceptions, `IntentExtractionCommand`,
 `RawIntent`, `ExtractIntentsPort`, `IntentInferencePort`, `Logger`, `LoggerFactory`, `ExtractIntentsUseCase`,
 `IntentExtractionGrpcService`, `IntentProtoUtils`, `GrpcStatusConfiguration`, `AiIntentInferenceAdapter`,
 `ExtractedIntent`, `ExtractedIntents`, `ChatClientConfiguration`, `IntentExtractionProperties`,
-`UseCaseConfiguration`, `Slf4jLogger`, `Slf4jLoggerFactory`, `CleanArchitectureTest`.
+`UseCaseConfiguration`, `Slf4jLogger`, `Slf4jLoggerFactory`, `CleanArchitectureTest`, `ActuatorHealthSystemTest`.
 Files modified: `tools/agent-test.sh`, `tools/README.md`, `ledger-service/docs/conventions/build.md`,
 `infrastructure/docker-compose.yaml`, repo-root `README.md`.
 
@@ -358,180 +354,202 @@ end
 
 #### API Contract
 
-- [ ] Create `ai-connector-service/src/main/proto/intent_extraction.proto` with the schema given in
+- [x] Create the repo-root **`proto/intent_extraction.proto`** with the schema given in
   [Proposed Solution](#contract) above — verbatim, including `java_package = "bot.finance.ai.adapter.grpc.v1"`
-  and both `OPERATION_UNSPECIFIED` and `OPERATION_UNKNOWN`.
-- [ ] Confirm codegen produces `IntentExtractionServiceGrpc.IntentExtractionServiceImplBase` and the message
-  classes under `build/generated/source/proto/main/` — every later step compiles against these, so a codegen
-  failure here is a blocker, not something a step agent works around.
+  and both `OPERATION_UNSPECIFIED` and `OPERATION_UNKNOWN`. It lives outside the module so `ledger-service` can
+  generate its client stubs from the same file rather than a copy that drifts.
+- [x] Point this module's build at it: `sourceSets.main.proto.srcDir("$rootDir/../proto")` (the module is its
+  own Gradle build, so `rootDir` is the module directory). Keep `src/main/proto` out of the tree entirely —
+  two proto source roots is how a stray second copy gets introduced.
+- [x] Confirm codegen produces `IntentExtractionServiceGrpc.IntentExtractionServiceImplBase` and the message
+  classes under `build/generated/sources/proto/main/` (`java/` and `grpc/` subdirectories) — every later step
+  compiles against these, so a codegen failure here is a blocker, not something a step agent works around.
 
 #### Interface-First / Build Stabilization
 
 New-method stubs must carry a short inline comment describing the implementation intent, for example:
 
 ```java
-public Intent extractIntent(IntentExtractionCommand command) {
-    // infers a raw answer through IntentInferencePort and assembles a validated Intent from it,
-    // falling back to UnknownIntent when the answer cannot be mapped
+public List<Intent> extractIntents(IntentExtractionCommand command) {
+    // infers the raw answers through IntentInferencePort and assembles each into a validated Intent,
+    // falling back to UnknownIntent per entry when an answer cannot be mapped
     return null;
 }
 ```
 
 **Interface & Signature Sync**
 
-- [ ] Create the Gradle build for `ai-connector-service/`: `settings.gradle`
+- [x] Create the Gradle build for `ai-connector-service/`: `settings.gradle`
   (`rootProject.name = 'ai-connector-service'`), `gradle.properties`, `build.gradle`, and the Gradle wrapper
   copied from `ledger-service/` (9.3.0). Pin in `gradle.properties`: `springBootVersion=4.1.0`,
   `springDependencyManagementVersion=1.1.7`, `springAiVersion=2.0.0`, `protobufGradlePluginVersion=0.10.0`,
   `protobufVersion=4.34.2`, `grpcVersion=1.80.0`, `awaitilityVersion=4.2.2`, `wiremockVersion=3.13.0`,
   `archunitVersion=1.4.2`, `jacocoVersion=0.8.13`, `appVersion=1.0.0`. Java toolchain 25.
-- [ ] Add to `build.gradle`: the `com.google.protobuf` plugin and its `protobuf { }` block wiring
+- [x] Add to `build.gradle`: the `com.google.protobuf` plugin and its `protobuf { }` block wiring
   `com.google.protobuf:protoc:${protobufVersion}` and `io.grpc:protoc-gen-grpc-java:${grpcVersion}`;
   `implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")`;
   `spring-boot-starter-grpc-server`, `spring-boot-starter-actuator`, `spring-boot-starter-webmvc` (Actuator
-  only), `spring-boot-starter-validation`, `org.springframework.ai:spring-ai-starter-model-openai`;
+  only), `org.springframework.ai:spring-ai-starter-model-openai`;
   and test dependencies `spring-boot-starter-grpc-server-test`, `spring-boot-starter-webmvc-test`,
-  `org.wiremock:wiremock-standalone`, `org.awaitility:awaitility`,
-  `com.tngtech.archunit:archunit-junit5`, `junit-platform-launcher`. **No Testcontainers, no database
-  dependency, no Flyway.**
-- [ ] Create `AiConnectorServiceApplication` and a `package-info.java` for every package in the tree from
+  `io.rest-assured:rest-assured` and `io.rest-assured:json-path` (pin `restAssuredVersion=6.0.0` to match
+  `ledger-service`), `org.wiremock:wiremock-standalone`, `org.awaitility:awaitility`,
+  `com.tngtech.archunit:archunit-junit5`, `junit-platform-launcher`. `spring-boot-starter-webmvc-test` and
+  RestAssured are both earned by `ActuatorHealthSystemTest` below. **No Testcontainers, no database dependency,
+  no Flyway.**
+- [x] Create `AiConnectorServiceApplication` and a `package-info.java` for every package in the tree from
   [Architecture & Layering](../ai-connector-service/docs/conventions/architecture.md#package-structure),
   including the empty `domain/model`.
-- [ ] Add `Logger` and `LoggerFactory` to `application/port`, and `Slf4jLogger` / `Slf4jLoggerFactory` to
+- [x] Add `Logger` and `LoggerFactory` to `application/port`, and `Slf4jLogger` / `Slf4jLoggerFactory` to
   `adapter/logging` — ported unchanged from `ledger-service` so the two modules log identically.
-- [ ] Add the two domain exceptions in `domain/exception`: `InvalidValueException` (every self-validation
-  failure — command, value object, parse) and `IntentInferenceException` (the provider gave no usable answer).
-  Per [Domain](../ai-connector-service/docs/conventions/code-style.md#domain) these are the only two: the gRPC
-  status mapping is the sole caller that branches on the type, and it needs no finer distinction. Detail goes in
-  the message, not in a new class.
-- [ ] Add the domain value types with stubbed bodies: `CurrencyCode`, `Money` (`of(String, String)`,
+- [x] Add the two domain exceptions in `domain/exception`, per
+  [Domain](../ai-connector-service/docs/conventions/code-style.md#domain): `InvalidValueException` for every
+  self-validation failure, `IntentInferenceException` for the provider giving no usable answer.
+- [x] Add the domain value types with stubbed bodies: `CurrencyCode`, `Money` (`of(String, String)`,
   `amount()`), `Operation` (`fromLabel(String)`), `IntentTarget` (`fromLabel(String)`), the sealed `Intent`
   interface, and `CategoryIntent` / `ExpenseIntent` / `UnknownIntent`.
-- [ ] Add `IntentExtractionCommand(String text, List<String> knownCategories)` and `RawIntent(String target,
-  String operation, String categoryName, String newCategoryName, String amount, String currency,
-  String description)` to `application/dto`. The command validates itself: non-blank `text`, and a
-  `knownCategories` that is non-null with no null or blank element — **empty is valid**, since a new user has
-  none. It defensively copies the list into an unmodifiable one, so a caller cannot mutate a constructed
-  command. `RawIntent` takes no validation — see
-  [Application](../ai-connector-service/docs/conventions/code-style.md#application).
-- [ ] Add `extractIntents(IntentExtractionCommand): List<Intent>` to the `ExtractIntentsPort` inbound port and
+- [x] Add `IntentExtractionCommand(String text, List<String> knownCategories,
+  Optional<CurrencyCode> defaultCurrency)` and `RawIntent(String target, String operation, String categoryName,
+  String newCategoryName, String amount, String currency, String description)` to `application/dto`. The
+  command validates itself: non-blank `text`; a `knownCategories` that is non-null, **non-empty**, and free of
+  null or blank elements; a non-null `defaultCurrency` Optional. Holding a
+  `CurrencyCode` rather than a raw string means an unusable default is rejected at the boundary instead of
+  surfacing mid-assembly. It defensively copies the list into an unmodifiable one. `RawIntent` takes no
+  validation — see [Application](../ai-connector-service/docs/conventions/code-style.md#application).
+- [x] Add `extractIntents(IntentExtractionCommand): List<Intent>` to the `ExtractIntentsPort` inbound port and
   `infer(String text, List<String> knownCategories): List<RawIntent>` to the `IntentInferencePort` outbound
   port (interfaces only — the implementation stubs follow). The outbound port takes the two values, not the
   inbound command: a command is the inbound side's shape, and handing it to an outbound port would tie the two
   boundaries together for no gain. Both return `List`, never `Set` or any unordered type: the caller executes
   the intents in sequence and a reordering would break a message whose second intent depends on its first.
-- [ ] Stub `ExtractIntentsUseCase.extractIntents()` and its private `assemble(RawIntent)` helper — the helper
-  handles **one** raw answer, so the loop in `extractIntents()` can catch per entry.
-- [ ] Stub `AiIntentInferenceAdapter.infer()`, and add `ExtractedIntent` (the per-intent structured-output
+- [x] Stub `ExtractIntentsUseCase.extractIntents()` and its private `assemble(RawIntent, IntentExtractionCommand)`
+  helper — the helper handles **one** raw answer, so the loop in `extractIntents()` can catch per entry, and it
+  needs the command to reach the default currency.
+- [x] Stub `AiIntentInferenceAdapter.infer()`, and add `ExtractedIntent` (the per-intent structured-output
   record, every field a `String`, `amount` included) plus `ExtractedIntents` — the wrapper record holding
   `List<ExtractedIntent>` that Spring AI targets, so the derived schema has a named root object.
-- [ ] Stub `IntentProtoUtils.toResponse(List<Intent>): ExtractIntentsResponse` and
+- [x] Stub `IntentProtoUtils.toResponse(List<Intent>): ExtractIntentsResponse` and
   `IntentExtractionGrpcService.extractIntents(ExtractIntentsRequest, StreamObserver<ExtractIntentsResponse>)`,
   extending the generated `IntentExtractionServiceImplBase`. The mapper takes the whole list, not one intent,
   so building the repeated field stays in one place.
-- [ ] Add `UseCaseConfiguration` in `adapter/config` wiring `ExtractIntentsPort` to `ExtractIntentsUseCase`, and
+- [x] Add `UseCaseConfiguration` in `adapter/config` wiring `ExtractIntentsPort` to `ExtractIntentsUseCase`, and
   `ChatClientConfiguration` in `adapter/ai` declaring the `ChatClient` bean from the injected
   `ChatClient.Builder`.
-- [ ] Add `GrpcStatusConfiguration` in `adapter/grpc` declaring a
+- [x] Give `IntentExtractionGrpcService` a private precondition check that runs **before** it constructs the
+  command, per [Application](../ai-connector-service/docs/conventions/code-style.md#application): non-blank
+  `text`, a non-empty `known_categories` with no blank entry, and a `default_currency` that is either absent or
+  a code `java.util.Currency` knows. A failure takes the adapter's own rejection path —
+  `onError(Status.INVALID_ARGUMENT.withDescription(...).asRuntimeException())` — and the port is never called.
+- [x] Add `GrpcStatusConfiguration` in `adapter/grpc` declaring a
   `org.springframework.grpc.server.exception.GrpcExceptionHandler` bean (`StatusException handleException(Throwable)`,
-  returning `null` for throwables it does not recognize): `InvalidValueException` → `INVALID_ARGUMENT`,
-  `IntentInferenceException` → `UNAVAILABLE`. Nothing else is mapped, so an unrecognized throwable falls through
-  to gRPC's own `UNKNOWN` without leaking its message. An `InvalidValueException` can only reach the handler
-  from command construction — the use case catches the ones raised while assembling an intent and returns
-  `UnknownIntent` instead — so the single `INVALID_ARGUMENT` mapping is unambiguous.
-- [ ] Add `bot.finance.ai.architecture.CleanArchitectureTest` with five rules: the layer-dependency rule; the
+  returning `null` for throwables it does not recognize): `IntentInferenceException` → `UNAVAILABLE`, and
+  nothing else. `InvalidValueException` is deliberately **not** mapped: the adapter rejects unusable input
+  before a command is built, so one escaping to the handler means a precondition check is missing — a bug, for
+  which gRPC's own `UNKNOWN` is the honest status rather than a client-error code that would hide it.
+- [x] Add `bot.finance.ai.architecture.CleanArchitectureTest` with four rules: the layer-dependency rule; the
   framework-agnostic core (`org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..`,
   `com.google.protobuf..` banned from `domain`/`application`); `coreTypesCarryNoExternalSystemName`
-  (`OpenAi`, `Grpc`, `Proto`); `coreUsesNoBinaryFloatingPoint` (no `double`/`float`/`Double`/`Float` field
-  in `domain`/`application`); and `adaptersReachUseCasesThroughPorts` — no class in `adapter..`, **except**
+  (`OpenAi`, `Grpc`, `Proto`); and `adaptersReachUseCasesThroughPorts` — no class in `adapter..`, **except**
   `adapter/config..`, may depend on `application.usecase..`.
 
-  The last rule closes a hole the layer rule leaves open: `adapter` → `application` is a legal layer
-  dependency, so nothing otherwise stops an inbound adapter from injecting `ExtractIntentsUseCase` directly
-  instead of `ExtractIntentsPort`. It compiles, it runs, and it quietly removes the seam the inbound port
-  exists to provide. `adapter/config` is exempt because wiring the use case as a bean is precisely its job (see
-  [Package Structure](../ai-connector-service/docs/conventions/architecture.md#package-structure)) — it is the
-  one place a use-case class may be named.
-- [ ] Get the module to build green before any test is written.
+  No `double`/`float` rule: keeping money off binary floating point is a design instruction for `Money` in
+  this plan, not a module convention.
+- [x] Get the module to build green before any test is written.
 
 **Configuration**
 
-- [ ] Add `src/main/resources/application.yaml`: `spring.application.name: ai-connector-service`,
+- [x] Add `src/main/resources/application.yaml`: `spring.application.name: ai-connector-service`,
   `spring.threads.virtual.enabled: true`, `spring.grpc.server.port: 1001`, `server.port: 1002` (Actuator only),
   `spring.ai.openai.api-key: ${OPENAI_API_KEY:}`, `spring.ai.openai.base-url: ${OPENAI_BASE_URL:https://api.openai.com}`,
   `spring.ai.openai.chat.model: ${OPENAI_MODEL:gpt-4o-mini}`, `spring.ai.openai.chat.temperature: 0`, and the
   same `management.*` block `ledger-service` uses.
-- [ ] Add `src/main/resources/logback.xml`, ported from `ledger-service`.
-- [ ] Add the static extraction instructions at `src/main/resources/prompts/extract-intents.st`, applied as the
+- [x] Add `src/main/resources/logback.xml`, ported from `ledger-service`.
+- [x] Add the static extraction instructions at `src/main/resources/prompts/extract-intents.st`, applied as the
   `ChatClient` bean's default system prompt. They must instruct the model to return **one entry per distinct
   action** the message asks for, **in the order the user expressed them**; to return the amount as a **decimal
   string** and the currency as an ISO 4217 alphabetic code; to use the target labels `category` / `expense` and
   the operation labels `create` / `read` / `update` / `delete`; and to leave every field it is unsure of absent
   rather than guessing. It must also say that a single action stays a one-entry list, so the model does not
   pad, and that a message asking for nothing yields an empty list rather than an invented intent.
-- [ ] Add the per-call user-message template at `src/main/resources/prompts/user-message.st`, carrying the
-  user's text **and** the known-category list. It must tell the model to prefer an existing category when one
-  reasonably fits an expense the user did not categorize; to emit a `create` category entry **before** the
-  expense that uses it when none fits, rather than filing the expense under an unknown name; and to treat an
-  empty list as a new user with no categories yet. Keep it a distinct file from the system instructions — this
-  one is rendered per call, and merging them would invite baking a user's categories into the shared bean.
-- [ ] Add `IntentExtractionProperties` (`@ConfigurationProperties("ai.intent")`) in `adapter/ai` holding both
+- [x] Add the per-call user-message template at `src/main/resources/prompts/user-message.st`, carrying the
+  user's text and the known-category list. It must tell the model to file every expense under **exactly one of
+  the listed categories** — always, falling back to the catch-all when none fits — and never to invent a
+  category name for an expense. Keep it a separate file from the system instructions.
+- [x] Add `IntentExtractionProperties` (`@ConfigurationProperties("ai.intent")`) in `adapter/ai` holding both
   prompt resource locations — the system instructions and the per-call user-message template — and wire it into
   `ChatClientConfiguration` and `AiIntentInferenceAdapter` so neither hard-codes a classpath path.
-- [ ] Add `src/test/resources/application-test.yaml` with a dummy `spring.ai.openai.api-key` so no test depends
+- [x] Add `src/test/resources/application-test.yaml` with a dummy `spring.ai.openai.api-key` so no test depends
   on a real key being present in the environment.
-- [ ] Add `ai-connector-service/Dockerfile`, ported from `ledger-service` with `EXPOSE 1001 1002`.
-- [ ] Add an `ai-connector-service` entry to `infrastructure/docker-compose.yaml`: build context
-  `../ai-connector-service`, ports `1001:1001` and `1002:1002`, environment `OPENAI_API_KEY`, on the `backend`
-  network, with no `depends_on` (it has no database).
-- [ ] Add a **required** `--module <name>` option to `tools/agent-test.sh`: derive `module_dir` from it (and
+- [x] Add `ai-connector-service/Dockerfile`, ported from `ledger-service` with `EXPOSE 1001 1002`. **Its build
+  context must be the repository root, not the module directory**, because the build now needs `proto/` as well
+  as `ai-connector-service/` — so the `COPY` lines are repo-root-relative. Ledger's Dockerfile copies from a
+  module-rooted context and is not a straight template here.
+- [x] Add an `ai-connector-service` entry to `infrastructure/docker-compose.yaml`: build context `..` (the
+  repository root) with `dockerfile: ai-connector-service/Dockerfile`, ports `1001:1001` and `1002:1002`,
+  environment `OPENAI_API_KEY`, on the `backend` network, with no `depends_on` (it has no database).
+- [x] Add a **required** `--module <name>` option to `tools/agent-test.sh`: derive `module_dir` from it (and
   with it `runs_root`, the run directory and the lock), exit 2 with the usage text when the flag is absent, and
   exit 2 when the name is not a directory at the repo root. No default — see
   [Supporting changes](#supporting-changes-outside-the-module) for why a default would let a run silently
   target the wrong module. Update the script's header comment (line 3) and its usage text.
-- [ ] Update the four flagless invocations in `ledger-service/docs/conventions/build.md` to carry
+- [x] Update the four flagless invocations in `ledger-service/docs/conventions/build.md` to carry
   `--module ledger-service`. They document the only existing caller and become wrong the moment the option is
   required.
-- [ ] Rewrite `tools/README.md` for two modules. It names `ledger-service` in at least five places — the
+- [x] Rewrite `tools/README.md` for two modules. It names `ledger-service` in at least five places — the
   opening sentence, the run-directory example (line 61), the "directories live under `ledger-service/build/`"
   note (line 79), a module-specific timing figure (line 138), and the raw-Gradle note (line 146) — and its
   three example commands are all flagless.
-- [ ] Verify the change against the existing module before relying on it here: run
+- [x] Verify the change against the existing module before relying on it here: run
   `tools/agent-test.sh --module ledger-service --all` and confirm the suite still reports as it did, and that
   an invocation with no `--module` now fails rather than defaulting.
-- [ ] Update the repo-root `README.md` services table: give the AI Connector Service its README link, port
+- [x] Update the repo-root `README.md` services table: give the AI Connector Service its README link, port
   `1001`, and a stack of "Java, Spring Boot, Spring AI" — and note in the C2 diagram that the Ledger Service
   reaches it over gRPC, not REST.
 
 **Shared Test Infrastructure**
 
-- [ ] Add `bot.finance.ai.common.WireMockSupport` — the JVM-wide singleton stub server on a dynamic port, with
+- [x] Add `bot.finance.ai.common.WireMockSupport` — the JVM-wide singleton stub server on a dynamic port, with
   `baseUrl()`. Ported from `ledger-service`'s `common/containers/WireMockSupport`, but placed directly in
   `common`: there is no container here for a `containers` package to hold.
-- [ ] Add `bot.finance.ai.common.JsonUtils` and `bot.finance.ai.common.LogCapture`, ported unchanged.
-- [ ] Add `bot.finance.ai.common.ChatCompletionFixtures` — text-block builders for OpenAI chat-completions
+- [x] Add `bot.finance.ai.common.JsonUtils` and `bot.finance.ai.common.LogCapture`, ported unchanged.
+- [x] Add `bot.finance.ai.common.ChatCompletionFixtures` — text-block builders for OpenAI chat-completions
   responses. The extracted JSON must be embedded **as a string inside `choices[0].message.content`**, since
   that is what Spring AI parses; a fixture that returns the payload directly produces a failure that looks like
   a mapping bug. The embedded payload is the `{"intents":[…]}` wrapper, and the builders must take a **varargs
   or list of entries** so a test can stub zero, one, or several intents in one response — every multi-intent
   scenario below depends on it. Needed by both the AI adapter test and the system test.
-- [ ] Add `bot.finance.ai.common.WireMockStubs` with `stubChatCompletion(String extractedJson)`,
+- [x] Add `bot.finance.ai.common.WireMockStubs` with `stubChatCompletion(String extractedJson)`,
   `stubChatCompletionServerError()` and `stubMalformedChatCompletion()`, all against
   `POST /v1/chat/completions` and all reached through `WireMockSupport.SERVER`, never the static DSL.
-- [ ] Add `bot.finance.ai.common.IntentFixtures` — builders for a valid `Money`, `CategoryIntent`,
-  `ExpenseIntent` and `RawIntent`, each parameterizable by `Operation` so a per-operation case can be built
-  without hand-assembly. Needed by `IntentProtoUtilsTest`, `IntentExtractionGrpcServiceTest` and
-  `ExtractIntentsUseCaseTest`.
-- [ ] Add `bot.finance.ai.common.AiAdapterTest` — the composed annotation booting only
+- [x] Add `bot.finance.ai.common.IntentFixtures` with, among the plain builders, two **operation-aware**
+  factories — `categoryIntent(Operation)` and `expenseIntent(Operation)` — each returning an intent that is
+  *valid for that operation*: a new name when the operation is `UPDATE`, and **both an amount and a category**
+  when it is `CREATE`, so a `@ParameterizedTest` over `Operation.values()` asks for a valid instance instead of
+  re-encoding the rules. Add `money()` and `rawIntent(...)` builders alongside. Needed by
+  `IntentProtoUtilsTest`, `IntentExtractionGrpcServiceTest` and `ExtractIntentsUseCaseTest`.
+- [x] Add `bot.finance.ai.common.RequestFixtures` — builders for a valid `ExtractIntentsRequest`, carrying a
+  non-empty known-category list (`Food`, `Travel`, `Other`) by default, with overloads for the text, the
+  categories and the default currency. Every gRPC test that is not specifically about request validation builds
+  its request here: an empty `known_categories` is `INVALID_ARGUMENT`, so a hand-written request that omits it
+  fails before reaching the behaviour under test.
+- [x] Add `bot.finance.ai.common.AiAdapterTest` — the composed annotation booting only
   `AiIntentInferenceAdapter`, `ChatClientConfiguration` and Spring AI's OpenAI autoconfiguration, with
   `spring.ai.openai.base-url` pointed at `WireMockSupport.baseUrl()` via `@DynamicPropertySource`. It must not
   start the gRPC server.
-- [ ] Add `bot.finance.ai.common.GrpcAdapterTest` — the composed annotation combining `@SpringBootTest`,
-  `@AutoConfigureTestGrpcTransport` and the `test` profile, for the inbound-adapter test.
-- [ ] Add `bot.finance.ai.common.AbstractSystemTest` — boots the full application with
-  `@AutoConfigureTestGrpcTransport`, points `spring.ai.openai.base-url` at the WireMock singleton, exposes the
-  generated blocking stub to subclasses, and resets stubs in `@AfterEach`.
-- [ ] Confirm `bot.finance.ai.architecture.CleanArchitectureTest` passes against the stabilized module.
+- [x] Add `bot.finance.ai.common.GrpcAdapterTest` — the composed annotation combining `@SpringBootTest`,
+  `@AutoConfigureTestGrpcTransport` and the `test` profile, for the inbound-adapter test. It also **owns how
+  the blocking stub is obtained** — `@ImportGrpcClients(types = IntentExtractionServiceBlockingStub.class)` on
+  the annotation, so every inbound test autowires the stub rather than inventing a channel.
+- [x] Add `bot.finance.ai.common.AbstractSystemTest` — boots the full application over the **real Netty
+  transport** on a random port (`@SpringBootTest(webEnvironment = RANDOM_PORT, properties =
+  "spring.grpc.server.port=0")`), takes the bound port with `@LocalGrpcServerPort`, and builds one plaintext
+  `ManagedChannel` — exposed to subclasses, so a test needing a second stub (`HealthGrpc`, say) can build one
+  on it — plus the `IntentExtractionService` blocking stub, shutting the channel down after the class. It also
+  exposes the Actuator port via `@LocalServerPort` for RestAssured, points `spring.ai.openai.base-url` at the
+  WireMock singleton, and resets stubs in `@AfterEach`. **Not** `@AutoConfigureTestGrpcTransport`: that
+  replaces the server factory, and binding the port is part of what a system test exists to prove.
+
+  These two are the only places a stub is constructed.
+- [x] Confirm `bot.finance.ai.architecture.CleanArchitectureTest` passes against the stabilized module.
 
 ### Red Phase
 
@@ -623,9 +641,10 @@ public Intent extractIntent(IntentExtractionCommand command) {
         - given: an operation and all optional fields present
           when: the record is constructed
           then: the intent is created
-        - given: an operation and every optional field empty
+        - given: operation READ or DELETE and every optional field empty
           when: the record is constructed
-          then: the intent is created — an expense the model could not fully describe is still an expense intent
+          then: the intent is created — for these operations the fields really are optional, including the
+          category: *"delete my last expense"* names none, and the catch-all would invent one
         - given: a null operation
           when: the record is constructed
           then: throws InvalidValueException
@@ -634,7 +653,13 @@ public Intent extractIntent(IntentExtractionCommand command) {
           then: throws InvalidValueException
         - given: operation CREATE with no amount
           when: the record is constructed
-          then: throws InvalidValueException — creating an expense without an amount is not actionable
+          then: throws InvalidValueException — the field is optional on the record but **mandatory for CREATE**,
+          so the invariant is per-operation, not per-field; the message names the operation and the field, since
+          the use case surfaces it verbatim as an UnknownIntent reason
+        - given: operation CREATE with no category
+          when: the record is constructed
+          then: throws InvalidValueException — the catch-all guarantees a fit, so an omission is model
+          non-compliance
 - [ ] `UnknownIntent` · test: `UnknownIntentTest` · covers: `UnknownIntent()`
     - `UnknownIntent()`:
         - given: a non-blank reason
@@ -654,7 +679,7 @@ public Intent extractIntent(IntentExtractionCommand command) {
           then: throws InvalidValueException
         - given: non-blank text and an empty category list
           when: the record is constructed
-          then: the command is created — a new user has no categories, and that is not an error
+          then: throws InvalidValueException — the caller always sends at least the catch-all
         - given: a null category list
           when: the record is constructed
           then: throws InvalidValueException — absence is the empty list, never null
@@ -664,6 +689,12 @@ public Intent extractIntent(IntentExtractionCommand command) {
         - given: a mutable category list used to construct the command
           when: that list is modified afterwards
           then: the command's list is unchanged, and attempting to modify the command's own list throws
+        - given: a present default currency
+          when: the record is constructed
+          then: the command exposes it as a CurrencyCode
+        - given: a null defaultCurrency Optional
+          when: the record is constructed
+          then: throws InvalidValueException — absence is Optional.empty(), never null
 - [ ] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
     - `extractIntents()`:
         - given: the mocked port returns one raw expense answer with target "expense", operation "create",
@@ -671,14 +702,18 @@ public Intent extractIntent(IntentExtractionCommand command) {
           when: extractIntents() is called
           then: returns a single ExpenseIntent with operation CREATE and money of 1500 minor units, and the
           port was called with **both** the command's text and its known categories
-        - given: a command carrying an empty known-category list
-          when: extractIntents() is called
-          then: the port is called with an empty list — not null, and the call is not skipped
         - given: the mocked port returns an expense answer naming a category that was **not** in the command's
           known categories
           when: extractIntents() is called
-          then: the ExpenseIntent carries that name unchanged — the use case does not check the answer against
-          the list, because proposing a new category is a legitimate outcome
+          then: that position holds an UnknownIntent whose reason names the rejected category — the service
+          never proposes a new one
+        - given: an expense answer naming a known category in different case ("food" against "Food")
+          when: extractIntents() is called
+          then: the ExpenseIntent carries "Food" — matching is case-insensitive, the caller's spelling wins
+        - given: a category-creation answer naming something absent from the known categories
+          when: extractIntents() is called
+          then: a CategoryIntent is returned — the closed set constrains what an expense is filed under, not
+          what the user may ask to create
         - given: the mocked port returns one raw category answer with target "category" and operation "delete"
           when: extractIntents() is called
           then: returns a single CategoryIntent with operation DELETE and the given name
@@ -701,11 +736,22 @@ public Intent extractIntent(IntentExtractionCommand command) {
           then: that position holds an UnknownIntent whose reason names the unrecognized operation
         - given: the mocked port returns an expense answer whose amount is not a decimal number
           when: extractIntents() is called
-          then: that position holds an UnknownIntent rather than propagating InvalidValueException — a bad
-          answer is a classification outcome, not a fault
-        - given: the mocked port returns an expense answer with an amount but no currency
+          then: that position holds an UnknownIntent whose reason **is the rejected value's exception message**,
+          rather than propagating InvalidValueException — a bad answer is a classification outcome, not a fault
+        - given: the mocked port returns an expense answer with operation "create" and no amount
           when: extractIntents() is called
-          then: that position holds an UnknownIntent — a bare number is not money
+          then: that position holds an UnknownIntent whose reason names the missing amount — the record's
+          per-operation rejection reaches the caller as a readable reason
+        - given: a command carrying default currency EUR, and an expense answer with amount "15" and no
+          currency
+          when: extractIntents() is called
+          then: the ExpenseIntent carries money of 1500 minor units in EUR — the request's default fills the gap
+        - given: a command with **no** default currency, and an expense answer with an amount but no currency
+          when: extractIntents() is called
+          then: that position holds an UnknownIntent — a bare number with nothing to denominate it is not money
+        - given: a command carrying default currency EUR, and an expense answer that names USD explicitly
+          when: extractIntents() is called
+          then: the ExpenseIntent carries USD — a stated currency always beats the default
         - given: the mocked port returns an empty list
           when: extractIntents() is called
           then: returns exactly one UnknownIntent with a non-blank reason — the contract's never-empty
@@ -728,7 +774,7 @@ public Intent extractIntent(IntentExtractionCommand command) {
           when: toResponse() is called
           then: the response holds one intent carrying OPERATION_CREATE, the expense payload, `minor_units`
           1500 and currency "EUR"
-        - given: an ExpenseIntent whose optional fields are all empty
+        - given: a READ ExpenseIntent whose optional fields are all empty
           when: toResponse() is called
           then: the expense payload is selected and no optional field reports presence
         - given: a single CategoryIntent with operation UPDATE and a new name
@@ -776,10 +822,6 @@ public Intent extractIntent(IntentExtractionCommand command) {
           when: both requests are inspected
           then: the second request carries "Travel" and not "Food" — proving the per-call list is not baked
           into the shared `ChatClient` bean
-        - given: an empty known-category list
-          when: infer() is called
-          then: a well-formed request is still sent and the response parses — an empty list is rendered, not
-          omitted in a way that breaks the template
         - given: the provider responds 500
           when: infer() is called
           then: throws IntentInferenceException, not a Spring AI or HTTP client exception
@@ -788,6 +830,8 @@ public Intent extractIntent(IntentExtractionCommand command) {
           then: throws IntentInferenceException
 - [ ] `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` ·
   covers: `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort`
+    - _Every request comes from `RequestFixtures` unless the scenario names its own fields; the fixture carries
+      a non-empty `known_categories`, without which the adapter rejects the call before the port is reached._
     - Happy Path:
         - given: the mocked port returns a single ExpenseIntent with operation CREATE and money of 1500 minor
           units in EUR
@@ -797,10 +841,14 @@ public Intent extractIntent(IntentExtractionCommand command) {
           the response holds one intent with OPERATION_CREATE, `minor_units` 1500 and currency "EUR"
         - given: a request with no `known_categories` — the proto3 default, an empty repeated field
           when: ExtractIntents is called
-          then: the port is called with a command holding an empty list, never null, and the RPC succeeds
+          then: fails with INVALID_ARGUMENT and the port is never called
         - given: the mocked port returns a CategoryIntent followed by an ExpenseIntent
           when: ExtractIntents is called
           then: the response holds two intents in that order, each with its own payload set in the oneof
+        - given: a request carrying `default_currency` "EUR"
+          when: ExtractIntents is called
+          then: the command the port receives holds it as a present `CurrencyCode` of EUR — the field's
+          request-to-command mapping is the adapter's, and nothing else covers it
         - given: the mocked port returns a single UnknownIntent
           when: ExtractIntents is called
           then: the RPC completes with status OK carrying one intent with OPERATION_UNKNOWN and the reason —
@@ -813,13 +861,17 @@ public Intent extractIntent(IntentExtractionCommand command) {
           when: ExtractIntents is called
           then: fails with status UNKNOWN, and the exception's message does not appear in the status
           description — the handler returns null for it rather than mapping it
-    - Validation: `text` — absent (the proto3 default empty string) and whitespace-only both fail with
-      INVALID_ARGUMENT, and the port is never called; `known_categories` — an entry that is blank fails with
-      INVALID_ARGUMENT, while an empty list is accepted
+    - Validation: the adapter rejects these itself, before building a command, and the port is never called for
+      any of them — `text` absent (the proto3 default empty string) or whitespace-only; `known_categories`
+      empty or containing a blank entry; a `default_currency` present but not a known ISO 4217 code. Each fails
+      with INVALID_ARGUMENT. Accepted: an absent `default_currency`
 
 #### TDD System Test Red Phase
 
 - [ ] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+    - _Entered over a real Netty channel on the bound port, per `AbstractSystemTest` — so a happy path here
+      also proves the server binds and serves, which the in-process transport would have hidden. Requests come
+      from `RequestFixtures`, so every one carries a non-empty `known_categories`._
     - Happy Path:
         - given: the provider is stubbed to extract an expense of 15.00 EUR in a "lunch" category
           when: ExtractIntents is called with "spent 15 euros on lunch"
@@ -830,11 +882,11 @@ public Intent extractIntent(IntentExtractionCommand command) {
           when: ExtractIntents is called with "create a Travel category and put 50 euros of taxi in it"
           then: returns OK with two intents — the category creation first, the expense second — proving the
           whole stack carries a multi-intent answer through in the user's order
-        - given: known categories "Food" and "Travel", and the provider stubbed to file the expense under
-          "Food"
+        - given: known categories "Food", "Travel" and "Other", and the provider stubbed to file the expense
+          under "Food"
           when: ExtractIntents is called with "spent 15 euros on lunch", naming no category
           then: returns OK with an expense whose category is "Food", and the request the provider received
-          carried both category names — proving the list reaches the model end to end
+          carried all three names — proving the closed set reaches the model end to end
         - given: the provider is stubbed to return an empty `intents` array
           when: ExtractIntents is called with "what is the weather"
           then: returns OK with exactly one intent carrying OPERATION_UNKNOWN and a non-empty reason
@@ -842,6 +894,16 @@ public Intent extractIntent(IntentExtractionCommand command) {
         - given: the provider is stubbed to respond 500
           when: ExtractIntents is called with a valid text
           then: fails with status UNAVAILABLE
+- [ ] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
+    - Happy Path:
+        - given: the fully wired application
+          when: GET /actuator/health is called with RestAssured on the Actuator port
+          then: returns 200 with status "UP" — the second server is really running, and the readiness and
+          liveness groups the `management.*` block declares are present
+        - given: the fully wired application
+          when: the gRPC health service `grpc.health.v1.Health/Check` is called on the gRPC port
+          then: reports SERVING — Spring Boot backs it with the same Actuator health contributors, so the two
+          surfaces cannot disagree
 
 ### Green Phase
 
@@ -851,12 +913,12 @@ public Intent extractIntent(IntentExtractionCommand command) {
 - [ ] `Money` · test: `MoneyTest` · after: `CurrencyCode`
 - [ ] `Operation` · test: `OperationTest`
 - [ ] `IntentTarget` · test: `IntentTargetTest`
-- [ ] `CategoryIntent` · test: `CategoryIntentTest` · after: `Operation`
-- [ ] `ExpenseIntent` · test: `ExpenseIntentTest` · after: `Operation`, `Money`
+- [ ] `CategoryIntent` · test: `CategoryIntentTest`
+- [ ] `ExpenseIntent` · test: `ExpenseIntentTest` · after: `Money`
 - [ ] `UnknownIntent` · test: `UnknownIntentTest`
-- [ ] `IntentExtractionCommand` · test: `IntentExtractionCommandTest`
-- [ ] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: `Money`, `Operation`, `IntentTarget`,
-  `CategoryIntent`, `ExpenseIntent`, `UnknownIntent`, `IntentExtractionCommand`
+- [ ] `IntentExtractionCommand` · test: `IntentExtractionCommandTest` · after: `CurrencyCode`
+- [ ] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: `CurrencyCode`, `Money`, `Operation`,
+  `IntentTarget`, `CategoryIntent`, `ExpenseIntent`, `UnknownIntent`, `IntentExtractionCommand`
 - [ ] `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: `Money`, `CategoryIntent`, `ExpenseIntent`,
   `UnknownIntent`
 
@@ -870,70 +932,108 @@ public Intent extractIntent(IntentExtractionCommand command) {
 #### TDD System Test Green Phase
 
 - [ ] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [ ] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
 
 ## Open Questions / Blockers
 
-- Q: The `.proto` currently lives only in `ai-connector-service/src/main/proto/`. When `ledger-service` starts
+- **Q1:** The `.proto` currently lives only in `ai-connector-service/src/main/proto/`. When `ledger-service` starts
   calling this service it will need the same schema to generate its client stubs — should the schema move to a
   shared location (a repo-root `proto/` directory both builds read), or should `ledger-service` keep its own
   copy? This plan assumes it stays put and the question is settled when the caller lands.
 - A: yes, a shared location is preferred.
 
-- Q: Actuator is included, which adds a second server — a servlet container on port 1002 — purely for
+- **Q2:** Actuator is included, which adds a second server — a servlet container on port 1002 — purely for
   health/readiness/metrics over REST. Spring gRPC also exposes a gRPC health service
   (`spring.grpc.server.health.enabled`, on by default). Keep Actuator's REST surface for metrics parity with
   `ledger-service`, or drop `spring-boot-starter-webmvc` and run a single-server process with gRPC health
   checks only? This plan assumes Actuator stays.
 - A: what is the industry standard for spring boot grpc health checks?
 
-- Q: `ExpenseIntent` is planned to reject a CREATE with no amount, and `CategoryIntent` to reject an UPDATE with
+- **Q3:** `ExpenseIntent` is planned to reject a CREATE with no amount, and `CategoryIntent` to reject an UPDATE with
   no new name — turning an under-specified answer into an `UnknownIntent` the caller must handle. The
   alternative is to accept partial intents and let `ledger-service` decide whether to ask the user for the
   missing piece. Which behaviour do you want?
 - A: I would reject them and map the error message. 
 
-- Q: What should happen when the user's text names an amount with no currency at all ("spent 15 on lunch")?
+- **Q4:** What should happen when the user's text names an amount with no currency at all ("spent 15 on lunch")?
   This plan returns `UnknownIntent`. The alternatives are a configured default currency in this service, or
   returning the expense with the amount absent and letting the caller apply the user's default.
 - A: yes, we can have a default currency as a parameter (grpc interface).
 
-- Q: `gpt-4o-mini` is set as the default model via `OPENAI_MODEL`. Confirm that is the model you want, and
+- **Q5:** `gpt-4o-mini` is set as the default model via `OPENAI_MODEL`. Confirm that is the model you want, and
   whether `temperature: 0` is right for extraction (it makes the same text extract the same way, at the cost of
   never varying phrasing — which for structured extraction is what you want).
 - A: yes.
 
-- Q: Should the number of intents returned from one message be capped? Nothing currently bounds it: a long or
+- **Q6:** Should the number of intents returned from one message be capped? Nothing currently bounds it: a long or
   adversarial message could make the model emit dozens of entries, and every one of them becomes work the
   ledger service executes. A configured maximum (say 10) could either truncate the list or replace the whole
   answer with a single `UNKNOWN`. This plan applies no cap.
 - A: no cap, I think we can limit the telegram message size.
 
-- Q: Should `known_categories` be capped, and what happens past the cap? Every name goes into the prompt, so a
+- **Q7:** Should `known_categories` be capped, and what happens past the cap? Every name goes into the prompt, so a
   user with hundreds of categories inflates cost and latency on each call and eventually hits the context
   window. Options: reject past a limit with `INVALID_ARGUMENT`, truncate silently, or let the caller decide
   what to send. This plan applies no limit.
 - A: no limit, but it will be applied in the ledger's service. 
 
-- Q: `known_categories` is a bare `repeated string`. If the ledger service ever needs the model's choice
+- **Q8:** `known_categories` is a bare `repeated string`. If the ledger service ever needs the model's choice
   resolved back to a category **id** rather than matched by name, the field has to become a message. Names now
   is the smaller contract and matching by name is the caller's job — confirm that is right, or say so now while
   the schema has no released consumers.
 - A: I think we can keep it as a string.
 
-- Q: When two intents in one message conflict or duplicate — "delete the Travel category" twice, or a category
+- **Q9:** Must an `ExpenseIntent` always carry a category now that a catch-all is guaranteed? The proto keeps
+  `category_name` optional, so the model may still omit it. Making it mandatory for expenses would turn an
+  omission into `UNKNOWN` rather than letting the ledger apply its own fallback.
+- A: yes, we can always fill it with 'other' in case nothing else fits. 
+
+- **Q10:** The service does not require `known_categories` to be non-empty, so an empty list makes every categorized
+  expense `UNKNOWN`. That is self-consistent, but a caller that forgets the field gets a silent wall of
+  `UNKNOWN` instead of an error. Reject an empty list with `INVALID_ARGUMENT` instead?
+- A:  yes, reject an empty list. 
+
+- **Q11:** When two intents in one message conflict or duplicate — "delete the Travel category" twice, or a category
   deletion followed by an expense filed under that same category — does this service detect it, or is
   consistency the caller's problem? This plan does neither: intents are assembled independently and no entry is
   compared against another, so the ledger service sees the contradiction first.
 - A: it's ledger's job.
 
+Blockers recorded during implementation:
+
+- **B1** (stabilization, resolved): the generated-source path was wrong in three documents — protobuf Gradle
+  plugin 0.10.0 emits `build/generated/sources/proto/main/` (plural, split into `java/` and `grpc/`), not
+  `build/generated/source/proto/main/`. Corrected in this plan, `conventions/architecture.md` and
+  `conventions/orientation.md`. Not a blocker to the build; codegen and compilation both succeeded.
+- **B2** (stabilization, resolved): the plan created `IntentExtractionProperties` without fixing the property
+  keys it binds, so the agent writing `application.yaml` and the agent writing the record could disagree. Keys
+  settled as `ai.intent.system-prompt` and `ai.intent.user-message-template`, both `classpath:` resources.
+- **B4** (stabilization, resolved): three of the plan's API assumptions were wrong, all corrected in place.
+  `@ImportGrpcClients` is `org.springframework.grpc.client.ImportGrpcClients`, not a
+  `boot.grpc.test.autoconfigure` type. `@DynamicPropertySource` requires a static method in a class body, so
+  the two composed annotations register their properties with a `DynamicPropertyRegistrar` bean instead;
+  `AbstractSystemTest`, being an abstract class, uses `@DynamicPropertySource` as planned. `@AiAdapterTest` must
+  also list `Slf4jLoggerFactory` among its context classes — `AiIntentInferenceAdapter` needs a `LoggerFactory`
+  bean that no component scan supplies in so narrow a slice.
+
+  Spring AI 2.0.0's OpenAI model reaches the provider through the official `openai-java` SDK over OkHttp, not
+  `RestClient` as the plan claimed. `spring.ai.openai.base-url` still redirects it and the wire format is
+  unchanged, so the WireMock strategy holds — but it is now proven only at the first outbound-adapter test,
+  not by the plan's reasoning.
+- **B3** (stabilization, resolved): a `void` RPC stub with an empty body terminates no `StreamObserver`, so
+  every red-phase gRPC test would block to its deadline instead of failing. Overriding the generated method had
+  removed the base class's own `UNIMPLEMENTED` response. `IntentExtractionGrpcService.extractIntents` now ends
+  in `super.extractIntents(request, responseObserver)`, so the stub fails fast until the green phase replaces
+  it. A stub for a method returning a value does not have this problem — hence nothing else needed it.
+
 ## Review Findings
 
-- Finding: The plan omits the `## Test Layer Mapping` section that `plan-task.md`'s **3. Plan Structure** lists
+- **F1:** The plan omits the `## Test Layer Mapping` section that `plan-task.md`'s **3. Plan Structure** lists
   as required. (The bundled `.claude/templates/example-plan.md` also omits it, so this may be a template
   inconsistency rather than a plan defect — but the two disagree and one of them should be corrected.)
 - Action: test layer mapping is not the part of the plan, it's part of the skill. Maybe it's missplaced in the skill. Let's consider adjusting it. 
 
-- Finding: Conventions conflict over who rejects blank request text.
+- **F2:** Conventions conflict over who rejects blank request text.
   `ai-connector-service/docs/conventions/code-style.md` (Application) states that a caller mapping external
   input into a command "must check its own preconditions **before** constructing it, so that unusable input
   takes that caller's normal rejection path instead of surfacing as an exception from the record". The plan does
@@ -945,27 +1045,27 @@ public Intent extractIntent(IntentExtractionCommand command) {
   touch this will each pick a different answer.
 - Action: let's with the convention. 
 
-- Finding: Two `ExpenseIntent` scenarios contradict each other (`TDD Unit Red Phase` → `ExpenseIntent()`).
+- **F3:** Two `ExpenseIntent` scenarios contradict each other (`TDD Unit Red Phase` → `ExpenseIntent()`).
   "given: an operation and every optional field empty / then: the intent is created" cannot hold at the same
   time as "given: operation CREATE with no amount / then: throws InvalidIntentException" unless the first
   scenario explicitly names a non-CREATE operation. As written, a step agent can satisfy one only by breaking
   the other.
 - Action: but the second test means it is a mandatory field, not optional, isn't? 
 
-- Finding: The `IntentProtoUtilsTest` parameterized scenario "given: each Operation enum constant in turn" is
+- **F4:** The `IntentProtoUtilsTest` parameterized scenario "given: each Operation enum constant in turn" is
   not satisfiable with a single fixture. `CategoryIntent` rejects `UPDATE` without a new name and
   `ExpenseIntent` rejects `CREATE` without an amount (both per this plan's own unit scenarios), so the
   parameterized case needs a per-operation fixture. The scenario does not say that, and `IntentFixtures` as
   specified provides one valid instance of each intent, not one per operation.
 - Action: what do you suggest? 
 
-- Finding: `after: Operation` on the `CategoryIntent` and `ExpenseIntent` green-phase steps is a false
+- **F5:** `after: Operation` on the `CategoryIntent` and `ExpenseIntent` green-phase steps is a false
   dependency. `Operation`'s only green-phase behaviour is `fromLabel()`; the enum constants those two tests
   construct with exist as soon as the type does. The marker serializes three steps that could run in parallel.
   `after: Money` on `ExpenseIntent` and `after: CurrencyCode` on `Money` are real and should stay.
 - Action: agree.
 
-- Finding: No step creates the gRPC client stub every inbound test enters through. `IntentExtractionGrpcServiceTest`
+- **F6:** No step creates the gRPC client stub every inbound test enters through. `IntentExtractionGrpcServiceTest`
   and `ExtractIntentSystemTest` both call `ExtractIntent` over the transport, but neither the **Shared Test
   Infrastructure** bullets nor the step bodies name the mechanism — `@ImportGrpcClients(types = …BlockingStub.class)`
   plus autowiring, versus building a stub from an injected `GrpcChannelFactory`. Per `plan-task.md`'s
@@ -973,7 +1073,7 @@ public Intent extractIntent(IntentExtractionCommand command) {
   steps will invent it twice, differently.
 - Action: yes, it should belong to the stabilization step. 
 
-- Finding: The system tests enter over the in-process transport, which replaces the very wiring they exist to
+- **F7:** The system tests enter over the in-process transport, which replaces the very wiring they exist to
   prove. `@AutoConfigureTestGrpcTransport` swaps out the Netty server factory, so nothing in the suite
   demonstrates that the service binds port 1001 or serves a real channel — and `spring.grpc.server.port` is
   therefore never exercised. `spring-boot-grpc-test` ships `@LocalGrpcServerPort` for a real-transport run;
@@ -982,7 +1082,7 @@ public Intent extractIntent(IntentExtractionCommand command) {
   for both.
 - Action: Good idea, you will need to adjust hte plan. 
 
-- Finding: The `coreUsesNoBinaryFloatingPoint` architecture rule enforces less than
+- **F8:** The `coreUsesNoBinaryFloatingPoint` architecture rule enforces less than
   `architecture.md`'s Money section claims. ArchUnit's `fields()` syntax catches declared fields (record
   components included) but not a `double` parameter, local variable, or method return type in
   `domain`/`application` — yet the conventions say money is never held in `double` "not as a field, not as a
@@ -991,12 +1091,12 @@ public Intent extractIntent(IntentExtractionCommand command) {
   unenforced guarantee.
 - Action: I didn't want it to become a convention in the first place. It was an instruciton on how to creation the money class for the plan not the convention. 
 
-- Finding: `spring-boot-starter-webmvc-test` is listed in the build's test dependencies but nothing in the plan
+- **F9:** `spring-boot-starter-webmvc-test` is listed in the build's test dependencies but nothing in the plan
   uses it — there is no web layer, no controller, and no Actuator assertion anywhere in the three test phases.
   Drop it, or add the health-endpoint coverage that would justify keeping it.
 - Action: let's test the health endpoint. 
 
-- Finding: The `tools/README.md` update is scoped as a single sub-clause but that file is coupled to
+- **F10:** The `tools/README.md` update is scoped as a single sub-clause but that file is coupled to
   `ledger-service` in at least five places: its opening sentence ("the single entry point for compiling and
   testing `ledger-service`"), the run-directory example at line 61, the "directories live under
   `ledger-service/build/`" note at line 79, a module-specific timing figure at line 138 ("the whole suite takes
@@ -1004,16 +1104,69 @@ public Intent extractIntent(IntentExtractionCommand command) {
   edit will leave the document wrong for both modules.
 - Action: don't understand your point.
 
-- Finding: `IntentExtractionProperties` is created under **Configuration** but no step consumes it — the
+- **F11:** `IntentExtractionProperties` is created under **Configuration** but no step consumes it — the
   `ChatClientConfiguration` bullet describes loading the prompt without referencing the properties record, and
   no test asserts the prompt resource is resolved from configuration. Either wire it explicitly in the
   `ChatClientConfiguration` bullet or drop it and load the prompt with `@Value("classpath:prompts/extract-intent.st")`.
 - Action: I would rather have a property than a value annotation. 
 
-- Finding: Coverage-balance and existing-test-update rules were checked and are **not applicable** — verified
+- **F12:** Coverage-balance and existing-test-update rules were checked and are **not applicable** — verified
   that `ai-connector-service/src/` does not exist, so no listed scenario can duplicate an existing test and no
   existing assertion can be left incomplete by this change. Recorded so the check is known to have run rather
   than been skipped. Placement note: the repo-root `README.md` update currently sits in Stabilization →
   Configuration though it is post-implementation documentation; harmless, but it is the one item in that
   sub-group that no red-phase test depends on.
 - Action: okay, good boy. 
+
+Re-review (2026-07-27):
+
+- **F13:** The worked stub example under **Interface-First / Build Stabilization** is stale — it still shows
+  `public Intent extractIntent(IntentExtractionCommand command)` returning a single `Intent`, with a comment
+  about assembling "a validated Intent". The port is now `extractIntents(...): List<Intent>`. This is the one
+  snippet a step agent copies verbatim when writing stubs.
+- **Action:** must be fixed
+
+- **F14:** `IntentFixtures.expenseIntent(Operation)` is specified as supplying "an amount when it is `CREATE`",
+  but Q9 added a second `CREATE` invariant: a category is now mandatory too. The factory as described builds an
+  `ExpenseIntent` that its own compact constructor rejects, so every parameterized test using it fails at
+  `CREATE`.
+- **Action:** fix
+
+- **F15:** `IntentProtoUtilsTest` still lists "given: an ExpenseIntent whose optional fields are all empty"
+  without naming an operation. After Q9 that object is constructible only for `READ`/`DELETE` — the same defect
+  F3 flagged for `ExpenseIntentTest`, reintroduced in a second test class.
+- **Action:** Fixed — the scenario names a `READ` intent.
+
+- **F16:** Q10 makes an empty `known_categories` an `INVALID_ARGUMENT`, but most test scenarios still call the
+  RPC without mentioning categories: 5 invocations in `ExtractIntentsSystemTest`, only 1 of which specifies
+  them (verified by count), plus the `CategoryIntent`-then-`ExpenseIntent` and single-`UnknownIntent` scenarios
+  in `IntentExtractionGrpcServiceTest`. As written each fails with `INVALID_ARGUMENT` before reaching the
+  behaviour under test. Either every scenario states a non-empty list, or `AbstractSystemTest` and
+  `@GrpcAdapterTest` supply a default one and the scenarios say so.
+- **Action:** Fixed — added `RequestFixtures` to Shared Test Infrastructure, carrying a non-empty `known_categories` by default, and both gRPC-facing steps now state that requests come from it unless a scenario names its own fields. The validation scenarios that supply an empty list deliberately stay as they are.
+
+- **F17:** No happy-path scenario asserts `default_currency` reaching the command. `IntentExtractionGrpcServiceTest`
+  covers only its rejection (`Validation:` line) — nothing checks that a valid code is mapped into
+  `IntentExtractionCommand.defaultCurrency` as a `CurrencyCode`. The use-case tests exercise the field, but by
+  constructing the command directly, so the adapter's mapping of request field → command is untested.
+- **Action:** Fixed — added a happy-path scenario asserting `default_currency` reaches the command as a `CurrencyCode`.
+
+- **F18:** `IntentExtractionCommand`'s green step carries no `after:`, but its test now constructs
+  `Optional<CurrencyCode>` values, so `CurrencyCode.of()` must already be implemented — a real unmocked
+  collaborator. `after: CurrencyCode` is missing there, and on `ExtractIntentsUseCase`, whose tests build
+  commands carrying a default currency.
+- **Action:** Fixed — `after: CurrencyCode` added to `IntentExtractionCommand` and `ExtractIntentsUseCase`.
+
+- **F19:** `ActuatorHealthSystemTest`'s second scenario calls `grpc.health.v1.Health/Check`, which needs a
+  `HealthGrpc` stub on the system test's channel. `AbstractSystemTest` is specified as building only the
+  `IntentExtractionServiceBlockingStub` and does not expose the `ManagedChannel`, so the test has no supported
+  way to obtain one — the same shared-fixture gap as F6. (`grpc-services` is on the classpath via
+  `spring-boot-starter-grpc-server`, so the stub class itself exists.)
+- **Action:** Fixed — `AbstractSystemTest` now exposes the `ManagedChannel`, so a test can build a second stub on it.
+
+- **F20:** `spring-boot-starter-validation` is listed in the build but nothing uses it. Bean validation cannot
+  reach the core (`jakarta..` is banned by the architecture test) and the adapter validates by hand, per the
+  convention resolved in F2. Same class of finding as the `spring-boot-starter-webmvc-test` one, which was
+  resolved by earning the dependency; this one has nothing to earn it.
+- **Action:** Fixed — `spring-boot-starter-validation` dropped from the build.
+

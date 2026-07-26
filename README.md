@@ -54,7 +54,7 @@ System_Ext(aiProvider, "AI Provider", "LLM used for expense extraction")
 System_Boundary(financeBot, "Finance Bot") {
   Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates expense capture: coordinates transcription and AI extraction, then persists and confirms the result")
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts voice message audio into a text transcript")
-  Container(aiConnector, "AI Connector Service", "REST API", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
+  Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
   ContainerDb(db, "Database", "PostgreSQL", "Stores users and their recorded expenses")
 }
 
@@ -66,8 +66,8 @@ Rel_R(ledger, telegram, "Sends confirmation reply", "Telegram Bot API")
 
 Rel_D(ledger, transcriber, "Sends audio", "REST/HTTPS")
 Rel_L(transcriber, ledger, "Returns transcript", "REST/HTTPS")
-Rel_R(ledger, aiConnector, "Sends transcript", "REST/HTTPS")
-Rel_L(aiConnector, ledger, "Returns structured expense data", "REST/HTTPS")
+Rel_R(ledger, aiConnector, "Sends transcript", "gRPC")
+Rel_L(aiConnector, ledger, "Returns structured expense data", "gRPC")
 Rel_R(aiConnector, aiProvider, "Requests structured extraction", "HTTPS")
 Rel_D(ledger, db, "Reads/writes users and expenses", "JDBC")
 
@@ -77,12 +77,12 @@ SHOW_LEGEND()
 
 ## Services
 
-| Container             | Stack                 | Responsibility                                   | Docs                               | Ports |
-|-----------------------|-----------------------|--------------------------------------------------|------------------------------------|-------|
-| Ledger Service        | Java, Spring Boot     | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md) | 1000  |
-| Transcription Service | Python, FasterWhisper | Speech-to-text                                   | -                                  | -     |
-| AI Connector Service  | Java, Spring AI       | Structured expense extraction from text          | -                                  | -     |
-| Database              | PostgreSQL            | Stores users and expenses                        | -                                  | 5432  |
+| Container             | Stack                        | Responsibility                                   | Docs                                      | Ports |
+|-----------------------|-------------------------------|--------------------------------------------------|-------------------------------------------|-------|
+| Ledger Service        | Java, Spring Boot             | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)         | 1000  |
+| Transcription Service | Python, FasterWhisper         | Speech-to-text                                   | -                                          | -     |
+| AI Connector Service  | Java, Spring Boot, Spring AI  | Structured expense extraction from text          | [README](ai-connector-service/README.md)   | 1001  |
+| Database              | PostgreSQL                    | Stores users and expenses                        | -                                          | 5432  |
 
 Container definitions and port mappings live in
 [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml).

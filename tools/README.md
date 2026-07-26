@@ -1,8 +1,8 @@
 # The Test Runner
 
-`tools/agent-test.sh` is the single entry point for compiling and testing `ledger-service`. It wraps the Gradle
-wrapper and turns a build into a ready-made summary, so that reading the result of a run is not an ad-hoc parsing
-problem for whoever ran it.
+`tools/agent-test.sh` is the single entry point for compiling and testing a module — `ledger-service` or
+`ai-connector-service`, selected with `--module`. It wraps the Gradle wrapper and turns a build into a
+ready-made summary, so that reading the result of a run is not an ad-hoc parsing problem for whoever ran it.
 
 ## Why it exists
 
@@ -23,13 +23,14 @@ The runner addresses both: it reports rather than logs, and it keeps concurrent 
 Run it with bash, from the **repository root** (on Windows that means Git Bash — see below):
 
 ```
-tools/agent-test.sh --compile
-tools/agent-test.sh --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
-tools/agent-test.sh --all
+tools/agent-test.sh --module ledger-service --compile
+tools/agent-test.sh --module ledger-service --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
+tools/agent-test.sh --module ai-connector-service --all
 ```
 
 | Option              | Meaning                                                                     |
 |---------------------|-----------------------------------------------------------------------------|
+| `--module <name>`   | Required. The module directory at the repository root to build and test.   |
 | `--tests <pattern>` | JUnit pattern to run; repeatable. Omit (or `--all`) to run the whole suite. |
 | `--compile`         | Compile main and test sources only; run no tests.                           |
 | `--all`             | Run the whole suite. The default when no `--tests` is given.                |
@@ -46,7 +47,7 @@ option, or the queue timed out).
 Run it from a **Git Bash** prompt, at the repository root:
 
 ```
-./tools/agent-test.sh --all
+./tools/agent-test.sh --module ledger-service --all
 ```
 
 The runner relies on the GNU utilities that come with Git Bash — `stat -c`, `kill -0`, `date +%s` — and on its
@@ -58,7 +59,7 @@ translation of `/c/…` paths into Windows paths when they reach the JVM as `-Da
 The summary goes to stdout and to `summary.txt` inside a run directory of its own:
 
 ```
-ledger-service/build/agent-runs/<label>-<timestamp>-<pid>/
+<module>/build/agent-runs/<label>-<timestamp>-<pid>/
     summary.txt      the verdict, the counts, and every failure
     console.log      the untouched Gradle output
     test-results/    the JUnit XML
@@ -76,7 +77,7 @@ other's results.
 Nothing cleans these up on a schedule. Each run, as it starts and before it creates its own directory, deletes
 every run directory beyond the `--keep` most recently modified — 20 by default, so roughly the last twenty runs
 survive and the current one is never at risk. Pruning happens before the queue is joined, so a run that ends up
-waiting has already done it. Beyond that, the directories live under `ledger-service/build/`, which means
+waiting has already done it. Beyond that, the directories live under the module's own `build/`, which means
 `./gradlew clean` removes them all, as does deleting `build/` by hand; git ignores the whole tree.
 
 When a build fails before any test runs, there is no JUnit XML to summarize. The runner then lifts the
@@ -84,8 +85,9 @@ compilation errors and Gradle's own failure block out of the console log, since 
 
 ## Concurrency
 
-Runs queue on a directory lock at `build/agent-runs/.lock`. A second run waits and says so; waiting is normal.
-Give the command a generous timeout rather than interrupting it.
+Runs queue on a directory lock at `<module>/build/agent-runs/.lock`. The lock is per module, so a
+`ledger-service` run and an `ai-connector-service` run never wait on each other. A second run of the same
+module waits and says so; waiting is normal. Give the command a generous timeout rather than interrupting it.
 
 The lock covers `--compile` as well as tests, because compilation writes to the shared `build/classes` — a
 compile landing in the middle of another run's test JVM is exactly the kind of interference the lock exists to
@@ -135,14 +137,15 @@ compete for is memory — each one is a Gradle daemon, a test JVM, and a Postgre
 
 ## Scale
 
-For the module as it stands, the whole suite takes about 28 seconds and a single test class about 6. At that
-size, queueing costs almost nothing, and per-run isolation matters far more than throughput: a wrong answer is
-expensive, half a minute of waiting is not.
+For `ledger-service` as it stands, the whole suite takes about 28 seconds and a single test class about 6. At
+that size, queueing costs almost nothing, and per-run isolation matters far more than throughput: a wrong
+answer is expensive, half a minute of waiting is not.
 
-That trade-off is worth revisiting when the suite passes roughly three minutes — the growth will come from the
-container-based system tests, which already dominate the wall time. At that point a worktree per writer starts
-paying for its cold build cache, and it removes the shared-source-tree problem the lock cannot reach.
+That trade-off is worth revisiting, per module, when its suite passes roughly three minutes — the growth will
+come from the container-based system tests, which already dominate the wall time. At that point a worktree per
+writer starts paying for its cold build cache, and it removes the shared-source-tree problem the lock cannot
+reach.
 
-Raw `./gradlew …` from `ledger-service/` still works and remains the way to run a task the runner does not wrap,
-such as `jacocoTestReport`. Two raw invocations at once will clobber each other's results in
+Raw `./gradlew …` from a module's own directory still works and remains the way to run a task the runner does
+not wrap, such as `jacocoTestReport`. Two raw invocations at once will clobber each other's results in
 `build/test-results/test/`, which is what the runner exists to prevent.

@@ -43,6 +43,19 @@ services:
     networks:
       - backend
 
+  ai-connector-service:
+    build:
+      context: ..
+      dockerfile: ai-connector-service/Dockerfile
+    container_name: finance-bot-ai-connector-service
+    ports:
+      - "1001:1001"
+      - "1002:1002"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    networks:
+      - backend
+
 volumes:
   finance-bot-postgres:
     name: finance-bot-postgres
