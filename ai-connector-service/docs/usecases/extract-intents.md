@@ -6,6 +6,19 @@
 
 *Implemented by `ExtractIntentsUseCase`.*
 
+## What is extracted
+
+Every entry names one thing acted on and one action on it.
+
+| Acted on | Actions                      | Carries                                |
+|----------|------------------------------|----------------------------------------|
+| Category | create, read, update, delete | its name · a new name, when renaming   |
+| Expense  | create, read, update, delete | a category · an amount · a description |
+
+A third kind stands for what could not be read: **unknown**, carrying the reason that entry was rejected.
+
+Nothing else is extracted. A message about anything but a category or an expense produces unknown.
+
 ## Collaborators
 
 | Direction | Collaborator                                           | Through                                                   | For                                                    |

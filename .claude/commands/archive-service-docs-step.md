@@ -84,6 +84,10 @@ One line each.>
 ```
 ````
 
+Where the output has distinct kinds, the page enumerates them — every kind, what each carries, and what the
+service does not produce. A table between the header and **Collaborators** is the place. The reader will never
+open the schema, so "returns the actions the message asks for" is not an answer to *which actions*.
+
 **Every cell in the first two columns is a link to a page**, never a bare name and never a class: the
 collaborator links to the page documenting it — the use-case page of the use case on the other side when the
 collaborator is a service of ours, otherwise its contract page — and **Through** links the contract they meet
