@@ -5,12 +5,12 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.application.dto.IntentExtractionCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.springframework.grpc.server.service.GrpcService;
 
-import java.util.Currency;
 import java.util.Optional;
 
 @GrpcService
@@ -30,9 +30,17 @@ public class IntentExtractionGrpcService
             return;
         }
 
-        Optional<CurrencyCode> defaultCurrency = request.hasDefaultCurrency()
-                ? Optional.of(CurrencyCode.of(request.getDefaultCurrency()))
-                : Optional.empty();
+        Optional<CurrencyCode> defaultCurrency;
+        try {
+            defaultCurrency = request.hasDefaultCurrency()
+                    ? Optional.of(CurrencyCode.of(request.getDefaultCurrency()))
+                    : Optional.empty();
+        } catch (InvalidValueException e) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Unrecognized ISO 4217 currency code: " + request.getDefaultCurrency())
+                    .asRuntimeException());
+            return;
+        }
 
         IntentExtractionCommand command = new IntentExtractionCommand(
                 request.getText(), request.getKnownCategoriesList(), defaultCurrency);
@@ -64,23 +72,7 @@ public class IntentExtractionGrpcService
             return true;
         }
 
-        if (request.hasDefaultCurrency() && !isKnownCurrency(request.getDefaultCurrency())) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Unrecognized ISO 4217 currency code: " + request.getDefaultCurrency())
-                    .asRuntimeException());
-            return true;
-        }
-
         return false;
-    }
-
-    private boolean isKnownCurrency(String currencyCode) {
-        try {
-            Currency.getInstance(currencyCode);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
     }
 
 }

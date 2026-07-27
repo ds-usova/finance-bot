@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -89,13 +90,15 @@ class IntentExtractionGrpcServiceTest {
             assertThat(second.getPayloadCase()).isEqualTo(bot.finance.ai.adapter.grpc.v1.Intent.PayloadCase.EXPENSE);
         }
 
-        @Test
-        @DisplayName("when the request carries a default currency - then the command holds it as a present currency code")
-        void whenRequestCarriesDefaultCurrency_thenCommandHoldsItAsPresentCurrencyCode() {
+        @ParameterizedTest
+        @ValueSource(strings = {"EUR", "eur"})
+        @DisplayName("when the request carries a default currency in any casing - then the command holds it as a present, upper-cased currency code")
+        void whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode(
+                String defaultCurrency) {
             when(extractIntentsPort.extractIntents(any())).thenReturn(List.of(IntentFixtures.unknownIntent()));
 
             intentExtractionStub.extractIntents(
-                    RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, "EUR"));
+                    RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, defaultCurrency));
 
             ArgumentCaptor<IntentExtractionCommand> commandCaptor =
                     ArgumentCaptor.forClass(IntentExtractionCommand.class);

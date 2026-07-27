@@ -455,7 +455,8 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
 - [x] Give `IntentExtractionGrpcService` a private precondition check that runs **before** it constructs the
   command, per [Application](../ai-connector-service/docs/conventions/code-style.md#application): non-blank
   `text`, a non-empty `known_categories` with no blank entry, and a `default_currency` that is either absent or
-  a code `java.util.Currency` knows. A failure takes the adapter's own rejection path —
+  a code `CurrencyCode` accepts — which normalizes case, so the check goes through `CurrencyCode` rather than
+  calling `java.util.Currency` itself and disagreeing with the domain about the same question. A failure takes the adapter's own rejection path —
   `onError(Status.INVALID_ARGUMENT.withDescription(...).asRuntimeException())` — and the port is never called.
 - [x] Add `GrpcStatusConfiguration` in `adapter/grpc` declaring a
   `org.springframework.grpc.server.exception.GrpcExceptionHandler` bean (`StatusException handleException(Throwable)`,
@@ -884,10 +885,12 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: the mocked port returns a CategoryIntent followed by an ExpenseIntent
           when: ExtractIntents is called
           then: the response holds two intents in that order, each with its own payload set in the oneof
-        - given: a request carrying `default_currency` "EUR"
+        - given: a request carrying `default_currency` as "EUR" and, in turn, as "eur"
           when: ExtractIntents is called
-          then: the command the port receives holds it as a present `CurrencyCode` of EUR — the field's
-          request-to-command mapping is the adapter's, and nothing else covers it
+          then: in both cases the command the port receives holds a present `CurrencyCode` of EUR — the field's
+          request-to-command mapping is the adapter's, and nothing else covers it. **The code is matched
+          case-insensitively**: `CurrencyCode` normalizes, and rejecting only this one field for its casing
+          would be the odd case out in a contract whose category matching is case-insensitive throughout
         - given: the mocked port returns a single UnknownIntent
           when: ExtractIntents is called
           then: the RPC completes with status OK carrying one intent with OPERATION_UNKNOWN and the reason —
@@ -904,8 +907,9 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
           form of not leaking. The assertion must therefore tolerate null rather than require a description
     - Validation: the adapter rejects these itself, before building a command, and the port is never called for
       any of them — `text` absent (the proto3 default empty string) or whitespace-only; `known_categories`
-      empty or containing a blank entry; a `default_currency` present but not a known ISO 4217 code. Each fails
-      with INVALID_ARGUMENT. Accepted: an absent `default_currency`
+      empty or containing a blank entry; a `default_currency` present but not a known ISO 4217 code **in any
+      casing**. Each fails with INVALID_ARGUMENT. Accepted: an absent `default_currency`, and a known code in
+      any casing
 
 #### TDD System Test Red Phase
 
@@ -1079,7 +1083,7 @@ Blockers recorded during implementation:
   Consequence for the caller: the response preserves the user's order and the service never reorders, so a
   ledger executing the list in sequence may meet an expense naming a category created later in the same list —
   or one whose category the same list deletes. Reconciling that is the caller's job, consistent with **Q11**.
-- **B7** (refactor phase, **open — needs a decision**): a lowercase `default_currency` is rejected at the gRPC
+- **B7** (refactor phase, **resolved**): a lowercase `default_currency` was rejected at the gRPC
   boundary but accepted by the domain. `IntentExtractionGrpcService`'s precondition check calls
   `java.util.Currency.getInstance(code)` directly, so `"eur"` fails with `INVALID_ARGUMENT`; `CurrencyCode`'s
   compact constructor upper-cases before validating, so `CurrencyCode.of("eur")` succeeds — and
@@ -1087,12 +1091,16 @@ Blockers recorded during implementation:
   matches this plan as written (stabilization specified "a code `java.util.Currency` knows"), and the validation
   matrix only exercises `"EUR"` and `"ZZZ"`, so nothing pins the intended behaviour for a lowercase code.
 
-  Left unchanged by the refactor phase — routing the adapter through `CurrencyCode` is the natural
-  deduplication ("onto the value object that owns the data"), but it would silently start accepting lowercase
-  codes, which is an observable behaviour change and so out of bounds for a behaviour-preserving pass.
-  Recommendation: accept lowercase — the domain already normalizes and category matching is case-insensitive
-  elsewhere in the contract, so rejecting only this one field is the odd case out. That needs a scenario in
-  `IntentExtractionGrpcServiceTest`'s validation matrix and a red/green round.
+  Left unchanged by the refactor phase — routing the adapter through `CurrencyCode` was the natural
+  deduplication ("onto the value object that owns the data"), but it would have silently started accepting
+  lowercase codes, an observable behaviour change and so out of bounds for a behaviour-preserving pass.
+
+  Resolved by decision: **the RPC accepts a known code in any casing.** The domain already normalizes and
+  category matching is case-insensitive throughout the contract, so rejecting only this field for its casing
+  was the odd case out. The adapter's precondition check now goes through `CurrencyCode` in a single
+  conversion — no second parse, and the rule lives in one place — rejecting an unusable code on the adapter's
+  own `INVALID_ARGUMENT` path before the port is reached. `IntentExtractionGrpcServiceTest`'s happy-path
+  scenario became a `@ParameterizedTest` over `"EUR"` and `"eur"`; `"ZZZ"` is still rejected.
 - **B6** (green phase, resolved): the OpenAI base URL was missing its `/v1` segment everywhere. The
   `com.openai:openai-java-core` SDK builds its request as `baseUrl + ["chat", "completions"]` and never prepends
   a version, so `/v1` must be part of the base URL itself. `WireMockSupport.baseUrl()` returned
