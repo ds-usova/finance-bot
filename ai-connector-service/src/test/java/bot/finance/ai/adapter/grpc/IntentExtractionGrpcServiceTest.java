@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -146,7 +147,7 @@ class IntentExtractionGrpcServiceTest {
                     .satisfies(ex -> {
                         Status status = ((StatusRuntimeException) ex).getStatus();
                         assertThat(status.getCode()).isEqualTo(Status.Code.UNKNOWN);
-                        assertThat(status.getDescription()).doesNotContain(secretMessage);
+                        assertThat(Optional.ofNullable(status.getDescription()).orElse("")).doesNotContain(secretMessage);
                     });
         }
 

@@ -899,7 +899,9 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: the mocked port throws a RuntimeException the handler does not recognize
           when: ExtractIntents is called
           then: fails with status UNKNOWN, and the exception's message does not appear in the status
-          description — the handler returns null for it rather than mapping it
+          description — the handler returns null for it rather than mapping it. An **absent** description
+          satisfies this: the framework's fallback yields `Status.UNKNOWN` with none, which is the strongest
+          form of not leaking. The assertion must therefore tolerate null rather than require a description
     - Validation: the adapter rejects these itself, before building a command, and the port is never called for
       any of them — `text` absent (the proto3 default empty string) or whitespace-only; `known_categories`
       empty or containing a blank entry; a `default_currency` present but not a known ISO 4217 code. Each fails
@@ -949,30 +951,33 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
 
 #### TDD Unit Green Phase
 
-- [ ] `CurrencyCode` · test: `CurrencyCodeTest`
-- [ ] `Money` · test: `MoneyTest` · after: `CurrencyCode`
-- [ ] `Operation` · test: `OperationTest`
-- [ ] `IntentTarget` · test: `IntentTargetTest`
-- [ ] `CategoryIntent` · test: `CategoryIntentTest`
-- [ ] `ExpenseIntent` · test: `ExpenseIntentTest` · after: `Money`
-- [ ] `UnknownIntent` · test: `UnknownIntentTest`
-- [ ] `IntentExtractionCommand` · test: `IntentExtractionCommandTest` · after: `CurrencyCode`
-- [ ] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: `CurrencyCode`, `Money`, `Operation`,
+- [x] `CurrencyCode` · test: `CurrencyCodeTest`
+- [x] `Money` · test: `MoneyTest` · after: `CurrencyCode`
+- [x] `Operation` · test: `OperationTest`
+- [x] `IntentTarget` · test: `IntentTargetTest`
+- [x] `CategoryIntent` · test: `CategoryIntentTest`
+- [x] `ExpenseIntent` · test: `ExpenseIntentTest` · after: `Money`
+- [x] `UnknownIntent` · test: `UnknownIntentTest`
+- [x] `IntentExtractionCommand` · test: `IntentExtractionCommandTest` · after: `CurrencyCode`
+- [x] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: `CurrencyCode`, `Money`, `Operation`,
   `IntentTarget`, `CategoryIntent`, `ExpenseIntent`, `UnknownIntent`, `IntentExtractionCommand`
-- [ ] `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: `Money`, `CategoryIntent`, `ExpenseIntent`,
+- [x] `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: `Money`, `CategoryIntent`, `ExpenseIntent`,
   `UnknownIntent`
 
 #### TDD Integration Green Phase
 
-- [ ] `AiIntentInferenceAdapter` · test: `AiIntentInferenceAdapterTest`
-- [ ] `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` ·
+- [x] `AiIntentInferenceAdapter` · test: `AiIntentInferenceAdapterTest`
+- [x] `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` ·
   covers: `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort` ·
   after: `IntentProtoUtils`, `IntentExtractionCommand`
 
 #### TDD System Test Green Phase
 
-- [ ] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
-- [ ] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
+- [x] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
+
+  Both went green with no production change of their own: the unit and integration green steps completed the
+  whole stack, leaving these steps nothing to fix. Verified by a full-suite run, not assumed.
 
 ## Open Questions / Blockers
 
@@ -1074,6 +1079,17 @@ Blockers recorded during implementation:
   Consequence for the caller: the response preserves the user's order and the service never reorders, so a
   ledger executing the list in sequence may meet an expense naming a category created later in the same list —
   or one whose category the same list deletes. Reconciling that is the caller's job, consistent with **Q11**.
+- **B6** (green phase, resolved): the OpenAI base URL was missing its `/v1` segment everywhere. The
+  `com.openai:openai-java-core` SDK builds its request as `baseUrl + ["chat", "completions"]` and never prepends
+  a version, so `/v1` must be part of the base URL itself. `WireMockSupport.baseUrl()` returned
+  `http://localhost:<port>` while the stubs were registered at `/v1/chat/completions`, and every call 404'd —
+  which `AiIntentInferenceAdapterTest`'s two error-path tests *absorbed*, since an unmatched-stub 404 also
+  produces `IntentInferenceException`. Resolved with `WireMockSupport.openAiBaseUrl()`, used by both
+  `@AiAdapterTest` and `AbstractSystemTest`.
+
+  The same defect was in production: `application.yaml`'s `spring.ai.openai.base-url` defaulted to
+  `https://api.openai.com` and would have 404'd against the real provider. No test could have caught it — the
+  dynamic property overrides it in every test. Corrected to `https://api.openai.com/v1`.
 - **B3** (stabilization, resolved): a `void` RPC stub with an empty body terminates no `StreamObserver`, so
   every red-phase gRPC test would block to its deadline instead of failing. Overriding the generated method had
   removed the base class's own `UNIMPLEMENTED` response. `IntentExtractionGrpcService.extractIntents` now ends

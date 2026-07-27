@@ -49,7 +49,7 @@ public abstract class AbstractSystemTest {
      */
     @DynamicPropertySource
     static void openAiProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.ai.openai.base-url", WireMockSupport::baseUrl);
+        registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
     }
 
     @BeforeAll

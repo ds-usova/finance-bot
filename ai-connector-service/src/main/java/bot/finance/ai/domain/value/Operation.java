@@ -1,5 +1,6 @@
 package bot.finance.ai.domain.value;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 public enum Operation {
@@ -10,9 +11,13 @@ public enum Operation {
     DELETE;
 
     public static Optional<Operation> fromLabel(String label) {
-        // matches label, trimmed and case-insensitively, against each constant's name, returning
-        // Optional.empty() for null, blank, or unrecognized input rather than throwing
-        return null;
+        if (label == null || label.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = label.trim();
+        return Arrays.stream(values())
+                .filter(operation -> operation.name().equalsIgnoreCase(normalized))
+                .findFirst();
     }
 
 }

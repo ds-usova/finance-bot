@@ -1,5 +1,6 @@
 package bot.finance.ai.domain.value;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 public enum IntentTarget {
@@ -8,9 +9,14 @@ public enum IntentTarget {
     EXPENSE;
 
     public static Optional<IntentTarget> fromLabel(String label) {
-        // matches label, trimmed and case-insensitively, against CATEGORY/EXPENSE, returning
-        // Optional.empty() for null, blank, or unrecognized input rather than throwing
-        return null;
+        if (label == null || label.isBlank()) {
+            return Optional.empty();
+        }
+
+        String normalized = label.trim();
+        return Arrays.stream(values())
+                .filter(target -> target.name().equalsIgnoreCase(normalized))
+                .findFirst();
     }
 
 }

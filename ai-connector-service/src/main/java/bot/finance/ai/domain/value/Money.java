@@ -1,24 +1,51 @@
 package bot.finance.ai.domain.value;
 
+import bot.finance.ai.domain.exception.InvalidValueException;
+
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.regex.Pattern;
 
 public record Money(long minorUnits, CurrencyCode currencyCode) {
 
+    // new BigDecimal(String) also accepts scientific notation (e.g. "1e3"), which this type rejects.
+    private static final Pattern PLAIN_DECIMAL = Pattern.compile("-?\\d+(\\.\\d+)?");
+
     public Money {
-        // rejects a null currencyCode and a negative minorUnits with InvalidValueException
+        if (currencyCode == null) {
+            throw new InvalidValueException("Currency code must not be null");
+        }
+        if (minorUnits < 0) {
+            throw new InvalidValueException("Minor units must not be negative");
+        }
     }
 
     public static Money of(String amount, String currencyCode) {
-        // parses amount with new BigDecimal(String) — rejecting a null or non-decimal value, a negative
-        // value, and a value with more fractional digits than the currency's scale
-        // (java.util.Currency#getDefaultFractionDigits, via CurrencyCode.of(currencyCode)) — all as
-        // InvalidValueException, then scales the parsed amount into minor units
-        return null;
+        if (amount == null) {
+            throw new InvalidValueException("Amount must not be null");
+        }
+
+        CurrencyCode code = CurrencyCode.of(currencyCode);
+        if (!PLAIN_DECIMAL.matcher(amount).matches()) {
+            throw new InvalidValueException("Amount is not a valid decimal number: " + amount);
+        }
+
+        BigDecimal parsed = new BigDecimal(amount);
+        if (parsed.signum() < 0) {
+            throw new InvalidValueException("Amount must not be negative: " + amount);
+        }
+
+        int fractionDigits = Currency.getInstance(code.code()).getDefaultFractionDigits();
+        if (parsed.scale() > fractionDigits) {
+            throw new InvalidValueException("Amount has more fractional digits than " + code.code() + " allows: "
+                    + amount);
+        }
+        return new Money(parsed.setScale(fractionDigits).unscaledValue().longValueExact(), code);
     }
 
     public BigDecimal amount() {
-        // converts minorUnits back to a BigDecimal scaled by currencyCode's fraction digits
-        return null;
+        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
+        return BigDecimal.valueOf(minorUnits, fractionDigits);
     }
 
 }

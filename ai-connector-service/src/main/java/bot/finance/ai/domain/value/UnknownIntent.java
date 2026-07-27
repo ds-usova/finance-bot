@@ -1,10 +1,13 @@
 package bot.finance.ai.domain.value;
 
+import bot.finance.ai.domain.exception.InvalidValueException;
+
 public record UnknownIntent(String reason) implements Intent {
 
     public UnknownIntent {
-        // rejects a null or blank reason with InvalidValueException — an unknown result that does not
-        // say why is not useful to the caller
+        if (reason == null || reason.isBlank()) {
+            throw new InvalidValueException("Reason must not be null or blank");
+        }
     }
 
 }

@@ -44,7 +44,7 @@ public @interface AiAdapterTest {
 
         @Bean
         DynamicPropertyRegistrar wireMockBaseUrl() {
-            return registry -> registry.add("spring.ai.openai.base-url", WireMockSupport::baseUrl);
+            return registry -> registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
         }
 
     }
