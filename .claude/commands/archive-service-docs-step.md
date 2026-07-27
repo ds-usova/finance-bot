@@ -148,6 +148,35 @@ Every table the service touches, with column types, `*` for `NOT NULL`, and keys
 constraints as stereotypes. Indexes that are not implied by a constraint go in a short list beneath the
 diagram. Read it out of the migrations, never out of the entity classes.
 
+## Configuration Document
+
+One per service, at `<service>/docs/configuration.md`: every knob an operator sets from outside the build, and
+what happens when they get it wrong. The reader is deploying the service, not reading it.
+
+Read the values out of the runtime configuration the service ships with — every externally supplied placeholder
+in it is a row — and cross-check the container and orchestration files for values supplied there. A setting with
+no external override is not a row.
+
+```
+# Configuration
+
+<One line: what supplies these values where the service runs.>
+
+| Variable | Sets | Default | Required |
+
+## Notes
+
+<Only what the table cannot carry: a value that is only honoured when another is set, one whose absence stops
+startup, a pair that must agree, a default that is safe locally and wrong in production. One line each.>
+```
+
+**Required** answers whether a deploy has to supply it, not whether the setting has a default: a variable with
+a default that is unusable outside a developer's machine is required. A secret's default is never printed, and
+no real credential appears anywhere on the page.
+
+Updating: the whole page is re-read against the code every run — a stale variable is worse than a missing one,
+because it is trusted.
+
 ## Scope
 
 Your service's `docs/` folder, plus those README link edits. Never another service, the root README,
@@ -155,5 +184,6 @@ Your service's `docs/` folder, plus those README link edits. Never another servi
 
 ## Report
 
-Files written, created or updated · use cases, one line each · contracts with counterpart and direction · facts
-moved out of the README · discrepancies between plan and code · anything unwritten, and why.
+Files written, created or updated · use cases, one line each · contracts with counterpart and direction ·
+configuration variables added, removed, or changed · facts moved out of the README · discrepancies between plan
+and code · anything unwritten, and why.

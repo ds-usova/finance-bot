@@ -31,6 +31,8 @@ conventions, the conventions win.
   with, in the product's words.
 - Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
   `in/` for what it receives, `out/` for what it calls.
+- Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
+  supplies, and what breaks without them.
 - ADRs / design decisions: repo-root [`docs/adr/`](../../../docs/adr/) — decisions the code cannot explain by
   itself; repo-root `docs/implemented` — implemented plans.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.

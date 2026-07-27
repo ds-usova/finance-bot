@@ -16,6 +16,10 @@ C3 is below. Package structure is in the
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
 
+### Running It
+
+- [Configuration](docs/configuration.md) — the environment variables a deployment supplies.
+
 ### C3 — Component
 
 Every interaction with something outside the service boundary goes through a port,

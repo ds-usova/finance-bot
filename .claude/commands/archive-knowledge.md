@@ -18,6 +18,7 @@ report.
 | Use-case docs | `<service>/docs/usecases/<use-case>.md`                | service sub-agent |
 | Contracts in  | `<service>/docs/contracts/in/<interface>.md`           | service sub-agent |
 | Contracts out | `<service>/docs/contracts/out/<counterpart>.md`        | service sub-agent |
+| Configuration | `<service>/docs/configuration.md`                      | service sub-agent |
 | ADRs          | `docs/adr/<nnnn>-<slug>.md`                            | orchestrator      |
 | Link updates  | root and service READMEs, `conventions/orientation.md` | orchestrator      |
 
@@ -52,6 +53,11 @@ is the only code name any of it carries.
 **Contract** — one per edge to a system outside the service, another service in this repository included.
 Direction is from that service's side: **in** is what it serves or receives, **out** what it calls or consumes.
 Every edge is written from both sides in the same run.
+
+**Configuration** — one document per service, always updated when the plan added, removed, or changed a knob an
+operator sets from outside the build. One document per service and never more: a plan that changed nothing
+leaves it alone, and a plan that changed one variable still has the whole file re-read against the code, since
+it is the only page anyone consults before a deploy.
 
 **ADR** — a decision that constrains future change and whose *why* cannot be reconstructed from the code, the
 schema, and the tests: a rejected alternative, an external constraint, a rule that looks arbitrary until you
@@ -109,7 +115,8 @@ edits it. An ADR links to the contract and use-case docs instead of restating th
 - Root README: C1/C2 only when a container, an external system, or an edge between them appeared or went.
 - Service README: C3 when components changed; link the new docs; boundary prose moves into the contract file
   and leaves a link.
-- `conventions/orientation.md` — **Documentation References** points at `docs/adr/` and the new folders.
+- `conventions/orientation.md` — **Documentation References** points at `docs/adr/`, the configuration page,
+  and the new folders.
 - Links resolve, including the relative paths out of `docs/adr/`.
 
 ## Stage 5 — Commit
@@ -118,7 +125,7 @@ Per the module's **Version Control** policy, documentation prefix. Policy silent
 
 ## Report
 
-Files created and updated, by service · ADRs with their one-line decisions · discrepancies between plan and
-code · anything left unwritten, and why.
+Files created and updated, by service · ADRs with their one-line decisions · configuration that changed ·
+discrepancies between plan and code · anything left unwritten, and why.
 
 No production code, no tests, no edit to the plan. A discrepancy is recorded, never fixed.
