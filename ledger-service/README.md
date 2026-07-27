@@ -8,6 +8,14 @@ For C1 (System Context) and C2 (Container) see the [root README](../README.md#ar
 C3 is below. Package structure is in the
 [Architecture & Layering conventions](docs/conventions/architecture.md#package-structure).
 
+### Use Cases
+
+- [Receive a user's message](docs/usecases/handle-incoming-message.md)
+
+### Contracts
+
+- [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
+
 ### C3 — Component
 
 Every interaction with something outside the service boundary goes through a port,

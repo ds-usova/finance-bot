@@ -27,5 +27,10 @@ conventions, the conventions win.
 - Architecture / diagrams: [`ledger-service/README.md`](../../README.md) — a C4 **C3 Component** diagram
   (PlantUML) of every port and adapter and the external system each fronts. The repo-root `README.md` holds C1
   (System Context) and C2 (Container).
-- ADRs / design decisions: repo-root `docs/implemented` — implemented plans.
+- Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
+  with, in the product's words.
+- Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
+  `in/` for what it receives, `out/` for what it calls.
+- ADRs / design decisions: repo-root [`docs/adr/`](../../../docs/adr/) — decisions the code cannot explain by
+  itself; repo-root `docs/implemented` — implemented plans.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.
