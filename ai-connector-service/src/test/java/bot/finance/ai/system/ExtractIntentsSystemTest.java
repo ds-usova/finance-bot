@@ -157,7 +157,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             ExtractIntentsRequest request = RequestFixtures.request();
 
             StatusRuntimeException exception = catchThrowableOfType(
-                    () -> intentExtractionStub.extractIntents(request), StatusRuntimeException.class);
+                    StatusRuntimeException.class, () -> intentExtractionStub.extractIntents(request));
 
             log.info("status: {}", exception.getStatus());
             assertThat(exception.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
