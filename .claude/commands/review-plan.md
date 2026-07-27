@@ -24,6 +24,12 @@ holding.
 
 ### 2.1 Mechanical Lint
 
+Run `plan.sh validate` (at `scripts/plan/plan.sh` under the plugin root — `${CLAUDE_PLUGIN_ROOT}` installed,
+`.claude/` in a plain checkout) before working through this list, and treat what it prints as already known.
+Duplicate IDs, items with no ID, `after:` naming an ID nothing defines, dependency cycles, placeholder
+given/when/then values, and `update:` bullets naming a test method that exists nowhere in the repository are its
+job — do not re-derive them by hand and do not report them again as findings.
+
 - Confirm every section required by `plan-task.md`'s **3. Plan Structure** is present, and in the fixed order.
 - Confirm the **Step-by-Step Implementation Map** nests correctly: the four `### <Group>` headings — Stabilization,
   Red Phase, Green Phase, Post-Implementation Steps — appear in that fixed order, and every `#### <Section>`
@@ -97,9 +103,40 @@ skill makes to the plan file is writing its **Review Findings** section.
 Append one entry per finding, in this exact format:
 
 ```
-- Finding: [what's wrong or missing, with file/class/scenario reference]
+- **F1:** [what's wrong or missing, with file/class/scenario reference]
+- Resolution: mechanical | decision
 - Action:
 ```
+
+Findings are numbered `F1`, `F2`, … continuing past the highest number already in the section; a number is
+assigned once and never renumbered. Leave `Action:` empty — it records how the finding was resolved, and is
+written by whoever resolves it, never by this skill.
+
+### Classifying a finding
+
+`Resolution:` decides **who** resolves the finding: the orchestrator applies the settled ones and puts only the
+open ones in front of the user. Eleven findings in one review is an unreadable inbox when nine of them have one
+possible answer. Classify by a single test:
+
+- **`mechanical`** — the fix is fully determined by something already written down: a rule in `plan-task.md`, a
+  module's conventions file, or the code as it exists. One correct outcome, no taste involved.
+- **`decision`** — resolving it means choosing between outcomes that are each defensible. What the system should
+  do, what a value object should permit, which of two acceptable designs to take: a decision, however obvious the
+  answer looks from here.
+
+Classify by the **fix**, not by severity. A blocker whose fix a written rule dictates is `mechanical`; a small
+matter of taste is a `decision`.
+
+**Escalate to `decision` regardless of that test** when the fix would:
+
+- add or remove a checklist item, or change a step's target class or test class;
+- change a contract artifact — an API schema, a proto file, a migration;
+- contradict an answer already recorded under **Open Questions / Blockers**.
+
+Those reshape the plan rather than correct it, and reshaping is the user's call.
+
+State the correct fix in the finding text either way. A `mechanical` finding whose text does not say what to
+change cannot be applied without guessing, which lands it back in front of the user for the wrong reason.
 
 If nothing is wrong, still write the **Review Findings** section (or replace its placeholder, if invoked via the
 `plan-task` hook) with a single line stating no issues were found — its presence must be consistent across every
@@ -111,10 +148,13 @@ A plan is re-reviewed whenever it is materially edited after its first review (t
 plan-readiness gate triggers this). On a re-review — recognizable because **Review Findings** already contains
 entries:
 
-- **Never modify or delete existing findings or their `Action:` lines** — they record the user's decisions and are
-  part of the plan's history, even when the finding is now resolved or obsolete.
+- **Never modify or delete existing findings, their `Resolution:` lines, or their `Action:` lines** — they record
+  what was decided and what was already applied, and stay part of the plan's history even when the finding is now
+  resolved or obsolete.
 - Append a marker line `Re-review (<date>):` after the existing entries, then the new findings beneath it in the
-  same exact format. Judge the plan **as it now stands** — a previously reported finding that still applies and was
-  answered with a decision stands as decided; do not re-report it.
+  same exact format, each carrying its own `Resolution:`. Judge the plan **as it now stands** — a previously
+  reported finding that still applies and was answered with a decision stands as decided; do not re-report it. A
+  `mechanical` finding whose `Action:` says it was applied is likewise settled: report only what the applied fix
+  got wrong, not the original finding again.
 - If the re-review finds nothing new, append `Re-review (<date>): no new issues.` instead — a re-review that
   leaves no trace is indistinguishable from one that never ran.

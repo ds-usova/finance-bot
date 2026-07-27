@@ -42,7 +42,7 @@ Run it with bash, from anywhere inside the project:
 | `show <ID>`         | One item: its header and everything indented under it.                                                    |
 | `tick <ID>`         | Mark the item done. Saying so twice is not an error.                                                      |
 | `block <ID> <note>` | Leave the item open; record the note under Open Questions / Blockers.                                     |
-| `validate`          | Duplicate IDs, items with no ID, `after:` naming an ID nothing defines, and cycles.                       |
+| `validate`          | See [What `validate` checks](#what-validate-checks).                                                      |
 
 Exit codes: **0** done, **1** no such item, or `validate` found problems, **2** bad usage.
 
@@ -53,6 +53,27 @@ Exit codes: **0** done, **1** no such item, or `validate` found problems, **2** 
 
 An item is `- [ ] <ID> · <text>`, the ID being a letter prefix and a number — `ST01`, `RU07`, `GI02`. The prefixes
 and the numbering rule belong to the plan format, defined by the `plan-task` skill this ships with.
+
+### What `validate` checks
+
+| Check                                                                        | Catches                                                      |
+|------------------------------------------------------------------------------|--------------------------------------------------------------|
+| Duplicate IDs, items with no ID                                              | an item nothing can address                                  |
+| `after:` naming an ID nothing defines, dependency cycles                     | a schedule that never becomes eligible                       |
+| A `given:` / `when:` / `then:` whose value is empty, `—`, `TBD` or `N/A`     | a scenario a step agent cannot implement                     |
+| An `update:` bullet naming a method found nowhere in the tree                | a plan written against remembered code                       |
+| A finding with no `Resolution:`, or an unrecognized one                      | a review that skipped the mechanical/decision classification |
+| A `mechanical` finding whose `Action:` is empty and that is not `Escalated:` | a fix the orchestrator was meant to apply and did not        |
+
+The `update:` check greps the tree once per method named, excluding `build/`, `.git/`, `.gradle/`,
+`node_modules/`, `target/`, `out/` — and **every `*-plan-*.md`**, this plan above all: the plan names the method
+itself, so a search including it would confirm each name against the text under test. A method a plan creates and
+then updates in the same run is the one false positive; say `update:` only of a test that exists, which is what
+the format means by it.
+
+What it cannot check: whether a **class** a step names exists, since a plan names the classes it is about to
+create; and whether a step's claim about a file is *true*, only that its scenarios are filled in. Those stay the
+`review-plan` pass's job.
 
 ### What `next` schedules
 
@@ -99,7 +120,9 @@ for a checkout — since permissions are the consumer's, not the plugin's.
 ## Where it stops
 
 It parses the plan's **shape**, not its meaning: an item is a checkbox with an ID, a dependency is an ID after
-`after:`. It cannot tell whether an edge is *right* — only whether the ID it names exists.
+`after:`. It cannot tell whether an edge is *right* — only whether the ID it names exists. The same holds for the
+checks added to `validate`: a filled-in `then:` may still be wrong, and a method that exists may still be the
+wrong one to update.
 
 Bullets inside fenced code blocks are skipped, so a plan quoting its own step format does not acquire phantom
 items from the example.

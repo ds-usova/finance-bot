@@ -39,7 +39,9 @@ Commands:
   show      One item: its header and everything indented under it.
   tick      Mark the item done.
   block     Leave the item open and record the reason under Open Questions / Blockers.
-  validate  Duplicate IDs, items with no ID, dependencies on IDs nothing defines, and cycles.
+  validate  Duplicate IDs, items with no ID, dependencies on IDs nothing defines, cycles, placeholder
+            given/when/then values, update: bullets naming a test method that is nowhere in the tree,
+            and findings missing a Resolution: or an unapplied mechanical Action:.
 
 --file defaults to the single docs/<n>-plan-<name>.md, the location and naming the conventions give
 plans in flight. Archived plans under docs/implemented/ are addressed by passing --file explicitly.
@@ -126,7 +128,33 @@ case "$command" in
 
     validate)
         resolve_plan
-        awk -f "$parser" -v mode=validate "$plan_file"
+        problems=0
+
+        # The parser's own checks first: everything answerable from the plan's text alone.
+        if ! awk -f "$parser" -v mode=validate -v summary=0 "$plan_file"; then
+            problems=1
+        fi
+
+        # An "update:" bullet names a test that already exists - that is what distinguishes it from a
+        # new scenario. One naming nothing in the tree is a plan written against remembered code.
+        #
+        # Plan files are excluded from the search, this one above all: it names the method itself, so
+        # searching a tree that contains it would confirm every name against the very text under test.
+        while IFS="$(printf '\t')" read -r id method; do
+            [ -n "${method:-}" ] || continue
+            if ! grep -rqI --exclude='*-plan-*.md' \
+                    --exclude-dir=build --exclude-dir=.git --exclude-dir=.gradle \
+                    --exclude-dir=node_modules --exclude-dir=target --exclude-dir=out \
+                    -F -e "$method(" "$repo_root" 2>/dev/null; then
+                echo "$id names '$method()' in an update: bullet, which exists nowhere in the repository"
+                problems=1
+            fi
+        done < <(awk -f "$parser" -v mode=updates "$plan_file")
+
+        if [ "$problems" -eq 0 ]; then
+            echo "$(awk -f "$parser" -v mode=count "$plan_file") items, no problems"
+        fi
+        exit "$problems"
         ;;
 
     show)

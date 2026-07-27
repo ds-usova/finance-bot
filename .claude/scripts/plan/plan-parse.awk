@@ -28,6 +28,43 @@ function ids_in(text,   out, rest, tok) {
     return out
 }
 
+# The text after the first colon, trimmed. Used for "given:"/"Resolution:"-style labelled lines.
+function value_after_colon(line,   pos, val) {
+    pos = index(line, ":")
+    if (pos == 0) {
+        return ""
+    }
+    val = substr(line, pos + 1)
+    sub(/^[ \t]+/, "", val)
+    sub(/[ \t]+$/, "", val)
+    return val
+}
+
+# A scenario the planner left unfilled. A step agent writes exactly what is listed, so a dash where the
+# expected outcome belongs is not a shorter instruction - it is no instruction.
+function is_placeholder(v) {
+    return v == "" || v == "-" || v == "--" || v == "—" || v == "–" || v == "..." || v == "…" \
+        || v == "TBD" || v == "tbd" || v == "TODO" || v == "todo" || v == "N/A" || v == "n/a"
+}
+
+# Every `someMethod(` named in a line, recorded against the item it sits under. Only called for
+# "update:" bullets, which by definition name a test that already exists.
+function scan_methods(line,   rest, tok, key) {
+    rest = line
+    while (match(rest, /`[A-Za-z_][A-Za-z0-9_]*\(/)) {
+        tok = substr(rest, RSTART + 1, RLENGTH - 2)
+        rest = substr(rest, RSTART + RLENGTH)
+        key = cur "\t" tok
+        if (key in upd_seen) {
+            continue
+        }
+        upd_seen[key] = 1
+        n_upd++
+        upd_id[n_upd] = cur
+        upd_m[n_upd] = tok
+    }
+}
+
 # The dependency list of a header: everything from "after:" up to the next " · " field, or the end.
 function deps_of(text,   tail, cut) {
     if (!match(text, /after:/)) {
@@ -58,6 +95,9 @@ in_fence { next }
 
 /^#+ / {
     close_item()
+    in_update = 0
+    cur_f = ""
+    in_findings = ($0 ~ /^## Review Findings/)
     if ($0 ~ /^### /) {
         group = substr($0, 5)
         section = ""
@@ -67,8 +107,34 @@ in_fence { next }
     next
 }
 
+# A review finding: "- **F1:** …", followed by its Resolution and Action lines.
+in_findings && /^- \*\*F[0-9]+:\*\*/ {
+    match($0, /F[0-9]+/)
+    cur_f = substr($0, RSTART, RLENGTH)
+    n_f++
+    f_order[n_f] = cur_f
+    f_line[cur_f] = NR
+    next
+}
+
+in_findings && cur_f != "" && /^[ \t]*- Resolution:/ {
+    f_res[cur_f] = value_after_colon($0)
+    next
+}
+
+in_findings && cur_f != "" && /^[ \t]*- Action:/ {
+    f_act[cur_f] = value_after_colon($0)
+    next
+}
+
+in_findings && cur_f != "" && /^[ \t]*- Escalated:/ {
+    f_esc[cur_f] = value_after_colon($0)
+    next
+}
+
 /^- \[[ xX]\] / {
     close_item()
+    in_update = 0
     rest = substr($0, 7)
     if (!match(rest, /^[A-Za-z]+[0-9]+/)) {
         n_unidentified++
@@ -103,7 +169,35 @@ in_header && /^[ \t]+[^ \t-]/ {
     next
 }
 
+# A scenario line inside an item, as a bullet ("- given: …") or a continuation ("  when: …").
+cur != "" && /^[ \t]*-?[ \t]*(given|when|then):/ {
+    in_header = 0
+    in_update = 0
+    scenario_line = $0
+    sub(/^[ \t]*-?[ \t]*/, "", scenario_line)
+    scenario_label = substr(scenario_line, 1, index(scenario_line, ":") - 1)
+    if (is_placeholder(value_after_colon(scenario_line))) {
+        n_placeholder++
+        placeholder[n_placeholder] = cur " leaves \"" scenario_label ":\" empty at line " NR
+    }
+    next
+}
+
+# An "update:" bullet names tests that already exist; it may wrap over several lines.
+cur != "" && /^[ \t]*-[ \t]*update:/ {
+    in_header = 0
+    in_update = 1
+    scan_methods($0)
+    next
+}
+
+in_update && /^[ \t]+[^ \t-]/ {
+    scan_methods($0)
+    next
+}
+
 {
+    in_update = 0
     if (in_header) {
         in_header = 0
     }
@@ -129,6 +223,10 @@ END {
         emit_next()
     } else if (mode == "validate") {
         emit_validate()
+    } else if (mode == "updates") {
+        emit_updates()
+    } else if (mode == "count") {
+        print n
     } else {
         print "unknown mode: " mode > "/dev/stderr"
         exit 2
@@ -366,6 +464,12 @@ function visit(id,   i, c, nd, d, j) {
     depth_i--
 }
 
+function emit_updates(   i) {
+    for (i = 1; i <= n_upd; i++) {
+        print upd_id[i] "\t" upd_m[i]
+    }
+}
+
 function emit_validate(   i, id, j, d, nd, problems) {
     problems = 0
     for (i = 1; i <= n_dup; i++) {
@@ -375,6 +479,23 @@ function emit_validate(   i, id, j, d, nd, problems) {
     for (i = 1; i <= n_unidentified; i++) {
         print "checklist item without an ID at line " unidentified[i]
         problems++
+    }
+    for (i = 1; i <= n_placeholder; i++) {
+        print placeholder[i]
+        problems++
+    }
+    for (i = 1; i <= n_f; i++) {
+        id = f_order[i]
+        if (f_res[id] == "") {
+            print id " (line " f_line[id] ") has no 'Resolution:' line - mechanical or decision"
+            problems++
+        } else if (f_res[id] != "mechanical" && f_res[id] != "decision") {
+            print id " has Resolution: '" f_res[id] "' - must be mechanical or decision"
+            problems++
+        } else if (f_res[id] == "mechanical" && f_act[id] == "" && f_esc[id] == "") {
+            print id " is mechanical but its 'Action:' is empty - apply it and record what changed"
+            problems++
+        }
     }
     for (i = 1; i <= n; i++) {
         id = order[i]
@@ -396,7 +517,10 @@ function emit_validate(   i, id, j, d, nd, problems) {
         problems++
     }
     if (problems == 0) {
-        print n " items, no problems"
+        # plan.sh has its own checks to add and owns the verdict when it passes summary=0.
+        if (summary != "0") {
+            print n " items, no problems"
+        }
     } else {
         exit 1
     }

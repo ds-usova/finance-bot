@@ -131,10 +131,12 @@ prompts, and step reports — so an item stays addressable when its wording chan
 Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
 renumbered once the plan is written — a dropped step leaves a gap.
 
-`plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines, and
-dependency cycles. Run it before handing the plan over. The script ships with these instructions at
-`scripts/plan/plan.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a plain
-checkout.
+`plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines,
+dependency cycles, a `given:`/`when:`/`then:` left as a placeholder, an `update:` bullet naming a test method that
+exists nowhere in the repository, and — once the review has run — a finding missing its `Resolution:`, or a
+`mechanical` one whose `Action:` was never written. Run it before handing the plan over, and again after applying
+findings. The script ships with these instructions at `scripts/plan/plan.sh` — under `${CLAUDE_PLUGIN_ROOT}` when
+installed as a plugin, under `.claude/` in a plain checkout.
 
 #### Stabilization
 
@@ -517,11 +519,17 @@ the rest of the plan. Each finding uses this exact format:
 
 ```
 - **F1:** [what's wrong or missing, with file/class/scenario reference]
+- Resolution: mechanical | decision
 - Action:
 ```
 
 Findings are numbered on the same terms as the questions above — `F1`, `F2`, … assigned once, never renumbered,
 and continuing past the highest existing number on a re-review.
+
+`Resolution:` is the reviewer's classification of **who** resolves the finding — `mechanical` when a written rule
+or the code already determines the fix, `decision` when it is a genuine choice. The reviewer assigns it; the
+orchestrator acts on it in step 4. It is deliberately not the planner's call: a planner grading the review of its
+own plan is how a real objection gets reclassified into something that can be quietly applied.
 
 If the review has nothing to report, this section still contains a single "No issues found" statement (or
 equivalent) — its presence must be consistent across every plan, clean or not.
@@ -531,11 +539,41 @@ equivalent) — its presence must be consistent across every plan, clean or not.
 Once every section in **3. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
 plan file, on the model the module conventions' **Sub-Agent Models** section names for deciding work (reviewing a
 plan is exactly that); without such a section, the default model. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
-proceed to **5. Review Only — Do NOT Implement** below.
+proceed to **5. Resolve the Mechanical Findings** below.
 
-## 5. Review Only — Do NOT Implement
+## 5. Resolve the Mechanical Findings
+
+Apply every finding the reviewer marked `Resolution: mechanical` to the plan, then write under it what changed:
+
+```
+- Action: applied — [what changed in the plan, in a clause]
+```
+
+A finding marked `Resolution: decision` is never applied here. Leave its `Action:` empty for the user, no matter
+how obvious the answer looks — the reviewer already judged that it is a choice, and this step does not overrule
+that classification in either direction.
+
+How to apply them:
+
+- **Batch by affected step, not by finding.** Two findings often rewrite the same checklist item; applied one at a
+  time they produce an incoherent step. Group the findings by the item each one touches and rewrite that item once,
+  satisfying all of them together.
+- **Stay inside the finding.** Apply what the finding says to change and nothing adjacent that looks improvable —
+  an unreviewed edit riding along with a reviewed one is the thing this step must not smuggle in.
+- **Escalate rather than guess.** If a `mechanical` finding does not say clearly enough what to change, or applying
+  it would cross one of the boundaries `review-plan` lists (adding or removing a checklist item, changing a step's
+  target class, touching a contract artifact, contradicting an answered Open Question), do not apply it: leave
+  `Action:` empty, add a line `- Escalated: [why]` beneath it, and let the user decide.
+- **Re-run `plan.sh validate`** afterwards. Rewriting steps in bulk is exactly when an ID or an `after:` reference
+  breaks.
+
+## 6. Review Only — Do NOT Implement
 
 - Present the generated plan file to the user.
+- **Report what step 5 applied** — the findings' IDs and a clause each, in one short list. An automatic edit the
+  user cannot see is an automatic edit the user cannot catch.
+- Put the findings still needing them — the `decision` ones and anything escalated — in front of the user
+  explicitly, alongside the unanswered Open Questions.
 - **Stop here. Do not implement anything.** Do not write code, create files, or run commands.
 - Wait for the user to explicitly ask you to start implementation before doing any work.
 - Tell the user that implementation will not start while any Open Question lacks an `A:` or any Review Finding

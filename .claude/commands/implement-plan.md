@@ -89,8 +89,10 @@ Before running anything, check the plan file itself:
 - **Open Questions / Blockers**: every `- Q:` has a non-empty `- A:`, and every blocker recorded by a previous
   (partial) run has a resolution noted. An unanswered question means a step agent downstream will hit exactly the
   ambiguity the planner already flagged.
-- **Review Findings**: every `- Finding:` has a non-empty `- Action:` (a deliberate "won't fix" or "accepted as
-  is" counts — the point is that the user decided, not that every finding produced a change). A plan whose review
+- **Review Findings**: every `- **F<n>:**` has a non-empty `- Action:` (a deliberate "won't fix" or "accepted as
+  is" counts — the point is that it was decided, not that every finding produced a change). A `mechanical` finding
+  carries `Action: applied — …`, written by `plan-task` when it applied the fix; that satisfies the gate on its
+  own. A `decision` finding, and anything marked `- Escalated:`, needs the user's answer. A plan whose review
   found nothing has its single "no issues found" line instead; that passes.
 - If an `Action:` or `A:` prescribes a change to the plan's steps or scenarios, confirm the plan text was actually
   updated to match — a decision written next to a finding but never applied to the affected step is still
@@ -107,7 +109,7 @@ when a mid-run blocker forces a change. Re-review rounds cost more time than the
 been actioned, so run one only when the user explicitly asks for it.
 
 The gate above still applies in full to whatever findings exist — every `- Q:` needs an `- A:` and every
-`- Finding:` needs an `- Action:` — and a plan edit that resolves a gate item must still be reflected in the
+`- **F<n>:**` needs an `- Action:` — and a plan edit that resolves a gate item must still be reflected in the
 affected step's text. What is gone is the "spawn `review-plan` again and repeat until clean" loop.
 
 Defects the missing review would have caught surface instead at the stage guardrails, where they are cheaper to
