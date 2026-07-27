@@ -41,7 +41,7 @@ AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot and audio files", $tags="telegramExternal")
 Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts audio into a text transcript", $tags="transcriberExternal")
-Container(aiConnector, "AI Connector Service", "REST API", "Extracts structured expense data from a transcript", $tags="aiConnectorExternal")
+Container(aiConnector, "AI Connector Service", "gRPC API", "Extracts structured expense data from a transcript", $tags="aiConnectorExternal")
 ContainerDb(db, "Database", "PostgreSQL", "Stores users and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
@@ -57,7 +57,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
 
   Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Downloads audio", $tags="telegramExternal")
   Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Calls the transcriber", $tags="transcriberExternal")
-  Component(aiConnectorAdapter, "AI Connector Adapter", "Spring REST Client", "Calls the AI connector", $tags="aiConnectorExternal")
+  Component(aiConnectorAdapter, "AI Connector Adapter", "gRPC Client", "Calls the AI connector", $tags="aiConnectorExternal")
   Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists users and expenses", $tags="dbExternal")
   Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Sends the confirmation", $tags="telegramExternal")
 }
@@ -77,7 +77,7 @@ Rel_R(transcriptionAdapter, transcriber, "Audio bytes", "REST/HTTPS")
 Lay_D(transcriptionPort, extractionPort)
 Rel_R(expenseService, extractionPort, "Uses")
 Rel_L(aiConnectorAdapter, extractionPort, "Implements", $tags="implements")
-Rel_R(aiConnectorAdapter, aiConnector, "Transcript text", "REST/HTTPS")
+Rel_R(aiConnectorAdapter, aiConnector, "Transcript text", "gRPC")
 
 Lay_D(repositoryPort, transcriptionPort)
 Rel_R(expenseService, repositoryPort, "Uses")

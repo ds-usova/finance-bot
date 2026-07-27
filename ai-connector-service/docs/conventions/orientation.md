@@ -36,7 +36,14 @@ conventions, the conventions win.
 - Architecture / diagrams: [`ai-connector-service/README.md`](../../README.md) — a C4 **C3 Component** diagram
   (PlantUML) of every port and adapter and the external system each fronts. The repo-root `README.md` holds C1
   (System Context) and C2 (Container).
-- ADRs / design decisions: repo-root `docs/implemented` — implemented plans.
+- Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
+  with, in the product's words.
+- Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
+  `in/` for what it receives, `out/` for what it calls.
+- Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
+  supplies, and what breaks without them.
+- ADRs / design decisions: repo-root [`docs/adr/`](../../../docs/adr/) — decisions the code cannot explain by
+  itself; repo-root `docs/implemented` — implemented plans.
 - API reference: the Protocol Buffers schema itself (see
   [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.

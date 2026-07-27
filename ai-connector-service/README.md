@@ -10,35 +10,18 @@ For C1 (System Context) and C2 (Container) see the [root README](../README.md#ar
 Package structure is in the
 [Architecture & Layering conventions](docs/conventions/architecture.md#package-structure).
 
-## Interface
+### Use Cases
 
-The contract is the Protocol Buffers schema in the repo-root `proto/` directory. One RPC,
-`IntentExtractionService.ExtractIntents`, takes a `text`, the caller's `known_categories` and an optional
-`default_currency`, and returns an ordered list of intents. Each carries an operation (`CREATE`, `READ`,
-`UPDATE`, `DELETE`) and one typed payload — `CategoryIntent` or `ExpenseIntent`.
+- [Extract the intents in a user's message](docs/usecases/extract-intents.md)
 
-Four properties the schema alone does not convey:
+### Contracts
 
-- **Ordered.** Intents come back in the order the user said them, and the caller executes them in sequence:
-  *"create a Travel category and put 50 euros of taxi in it"* needs the category before the expense.
-- **Never empty.** A message asking for nothing yields one `UNKNOWN` entry, so the caller has a single code
-  path.
-- **`UNKNOWN` is per entry.** One unusable part of a message leaves the rest actionable, with the bad entry in
-  place saying why.
-- **`known_categories` is a closed set**, and must be non-empty. An expense is filed under one of the listed
-  categories and the service never proposes a new one; the caller includes a catch-all (`Other`), so there is
-  always a fit. A `CREATE` expense always carries a category — `READ` and `DELETE` need not. A category is
-  created only when the user asks for one outright. `default_currency` covers an amount stated without one, and
-  is applied here rather than by the model.
+- [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
+- [AI provider — intent inference](docs/contracts/out/ai-provider.md) (outbound)
 
-### Money
+### Running It
 
-Amounts cross the wire as `int64` minor units plus an ISO 4217 code — `1250` and `"EUR"` for €12.50. The
-exponent comes from the currency, so JPY scales by 0 and EUR by 2.
-
-No layer represents an amount as `double` or `float`, the structured-output record included: binary floating
-point cannot hold most decimal amounts exactly, and one `double` in the chain discards precision no later
-`BigDecimal` recovers.
+- [Configuration](docs/configuration.md) — the environment variables a deployment supplies.
 
 ### C3 — Component
 
@@ -82,16 +65,6 @@ SHOW_LEGEND()
 ```
 
 ## Running Locally
-
-The service needs an API key for the provider and nothing else — no database, no
-broker:
-
-```
-OPENAI_API_KEY=sk-...
-```
-
-Container definition and port mappings live in
-[`infrastructure/docker-compose.yaml`](../infrastructure/docker-compose.yaml).
 
 Because gRPC server reflection is enabled, the running service can be explored
 without a copy of the schema:
