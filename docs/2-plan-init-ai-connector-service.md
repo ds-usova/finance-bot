@@ -19,11 +19,11 @@ them: *"spent 15 euros on lunch"* becomes an expense in `Food` if `Food` is one 
 includes a catch-all (`Other`), so there is always a fit. **The service never proposes a new category** — a
 category is created only when the user asks for one outright.
 
-A category the user asks to create **anywhere in the same message** joins that set, for every entry whatever
-its position: *"create a Travel category and put 50 euros of taxi in it"* and *"I ordered a coffee for 5 euros
+A category the user names **anywhere in the same message** joins that set, for every entry whatever its
+position: *"create a Travel category and put 50 euros of taxi in it"* and *"I ordered a coffee for 5 euros
 while traveling, so create a Travel category too"* both file the expense under `Travel`, though the caller had
-never heard of it. A message is one unit of intent — a user who mentions the expense first has still asked for
-the category.
+never heard of it. A message is one unit of intent — a user who mentions the expense first has still named the
+category.
 
 Two intent families are in scope, each with the full CRUD operation set:
 
@@ -54,10 +54,11 @@ category is not in the set becomes `UNKNOWN`. Matching is case-insensitive and t
 returned. The constraint applies to the category an expense is *filed under*, not to `CategoryIntent.name` — a
 user asking to create `Travel` names something deliberately absent from the set.
 
-The set is closed per request but **includes what the message creates**: every answer that is a category
-`CREATE` with a usable name contributes it, wherever it sits. Only a creation contributes — a read, update or
-delete does not — and only one that can actually be assembled, since a creation with a blank name never
-happens.
+The set is closed per request but **includes what the message itself names**: every category answer with a
+usable name contributes it, wherever it sits and **whatever its operation**. This service parses intents — it
+does not judge whether a set of them can be carried out together. Whether deleting a category and filing an
+expense under it in one message makes sense is the caller's problem, not a parsing question. A category answer
+with a blank name contributes nothing: there is no name to contribute.
 
 A `CREATE` expense always carries a category: the catch-all guarantees a fit, so an omission is model
 non-compliance and becomes `UNKNOWN`. `READ` and `DELETE` may omit it — *"delete my last expense"* names no
@@ -158,9 +159,9 @@ leaves its neighbours intact; a single try around the loop would discard a messa
 preserved throughout — `List`, never `Set`, no sorting.
 
 Assembly is therefore **two passes**: the first collects the name of every raw answer that is a usable category
-creation, the second assembles each entry against the command's categories plus those. `assemble` takes that
+intent, the second assembles each entry against the command's categories plus those. `assemble` takes that
 combined set rather than reading the command's list directly, so an expense does not depend on where in the
-message its category was created.
+message its category was named.
 
 The adapter never builds domain objects or parses amounts: it passes the model's decimal string through, and
 `Money.of(String, String)` parses it with `new BigDecimal(String)`.
@@ -748,7 +749,8 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: a category answer whose operation is **delete** naming "Travel", followed by an expense filed
           under "Travel", with "Travel" absent from the known categories
           when: extractIntents() is called
-          then: the expense position holds an UnknownIntent — only a creation adds to the set
+          then: both resolve — a CategoryIntent and an ExpenseIntent carrying "Travel". Any operation
+          contributes the name; whether the pair is *executable* is the caller's problem, not this service's
         - given: a category-creation answer that fails to assemble (a blank name), followed by an expense filed
           under that same name
           when: extractIntents() is called
@@ -757,9 +759,6 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: the mocked port returns one raw category answer with target "category" and operation "delete"
           when: extractIntents() is called
           then: returns a single CategoryIntent with operation DELETE and the given name
-        - given: the mocked port returns a raw category creation followed by a raw expense creation
-          when: extractIntents() is called
-          then: returns both, as a CategoryIntent then an ExpenseIntent — **in that order**
         - given: the mocked port returns three raw answers whose targets are expense, category, expense
           when: extractIntents() is called
           then: the returned list has the same size and the same order as the port's list, position by position
@@ -1064,16 +1063,17 @@ Blockers recorded during implementation:
 - **B5** (red phase, **resolved**): a category created in one message could not be named by an expense in that
   same message unless it already appeared in `known_categories`, so *"create a Travel category and put 50 euros
   of taxi in it"* yielded `CategoryIntent(Travel)` followed by `UnknownIntent`. Resolved by letting a
-  category `CREATE` anywhere in the message extend the available set for **every** entry, whatever its position
-  — see [Contract](#contract) and the flow description. Position deliberately does not matter: *"I ordered a
-  coffee for 5 euros while traveling, so create a Travel category too"* names the expense first and must still
-  resolve. Five scenarios were added to `ExtractIntentsUseCaseTest` and the system test's multi-intent scenario
-  now withholds `Travel` from `known_categories`, so it proves the rule rather than passing by fixture
-  coincidence.
+  category answer anywhere in the message extend the available set for **every** entry, whatever its position
+  and whatever its operation — see [Contract](#contract) and the flow description. Neither position nor
+  operation matters, because neither is a parsing question: *"I ordered a coffee for 5 euros while traveling,
+  so create a Travel category too"* names the expense first and must still resolve, and a delete paired with an
+  expense in that category is a *feasibility* judgement this service does not make. Scenarios were added to
+  `ExtractIntentsUseCaseTest` and the system test's multi-intent scenario now withholds `Travel` from
+  `known_categories`, so it proves the rule rather than passing by fixture coincidence.
 
   Consequence for the caller: the response preserves the user's order and the service never reorders, so a
-  ledger executing the list in sequence may meet an expense naming a category created later in the same list.
-  Reconciling that is the caller's job, consistent with **Q11**.
+  ledger executing the list in sequence may meet an expense naming a category created later in the same list —
+  or one whose category the same list deletes. Reconciling that is the caller's job, consistent with **Q11**.
 - **B3** (stabilization, resolved): a `void` RPC stub with an empty body terminates no `StreamObserver`, so
   every red-phase gRPC test would block to its deadline instead of failing. Overriding the generated method had
   removed the base class's own `UNIMPLEMENTED` response. `IntentExtractionGrpcService.extractIntents` now ends

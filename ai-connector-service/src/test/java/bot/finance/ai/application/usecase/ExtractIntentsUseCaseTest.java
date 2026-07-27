@@ -145,23 +145,6 @@ class ExtractIntentsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the port returns a raw category creation followed by a raw expense creation - then "
-                + "returns both, a CategoryIntent then an ExpenseIntent, in that order")
-        void whenPortReturnsCategoryCreationFollowedByExpenseCreation_thenReturnsCategoryIntentThenExpenseIntent() {
-            RawIntent categoryRaw = rawIntent("category", "create", "Travel", null, null, null, null);
-            RawIntent expenseRaw = rawIntent("expense", "create", "Food", null, "50", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
-            when(intentInferencePort.infer(command.text(), command.knownCategories()))
-                    .thenReturn(List.of(categoryRaw, expenseRaw));
-
-            List<Intent> result = useCase.extractIntents(command);
-
-            assertThat(result).hasSize(2);
-            assertThat(result.get(0)).isInstanceOf(CategoryIntent.class);
-            assertThat(result.get(1)).isInstanceOf(ExpenseIntent.class);
-        }
-
-        @Test
         @DisplayName("when the port returns three raw answers targeting expense, category, expense - then the "
                 + "returned list has the same size and order, position by position")
         void whenPortReturnsThreeRawAnswersExpenseCategoryExpense_thenResultMatchesSizeAndOrder() {
@@ -435,9 +418,9 @@ class ExtractIntentsUseCaseTest {
 
         @Test
         @DisplayName("when a category-deletion answer names Travel, followed by an expense answer filed under "
-                + "Travel, with Travel absent from the known categories - then the expense position holds an "
-                + "UnknownIntent")
-        void whenCategoryDeletionOfTravelPrecedesExpenseFiledUnderTravel_thenExpensePositionHoldsUnknownIntent() {
+                + "Travel, with Travel absent from the known categories - then returns a CategoryIntent then an "
+                + "ExpenseIntent carrying Travel")
+        void whenCategoryDeletionOfTravelPrecedesExpenseFiledUnderTravel_thenReturnsCategoryIntentThenExpenseIntentCarryingTravel() {
             RawIntent categoryRaw = rawIntent("category", "delete", "Travel", null, null, null, null);
             RawIntent expenseRaw = rawIntent("expense", "create", "Travel", null, "15.00", "EUR", null);
             IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
@@ -447,7 +430,10 @@ class ExtractIntentsUseCaseTest {
             List<Intent> result = useCase.extractIntents(command);
 
             assertThat(result).hasSize(2);
-            assertThat(result.get(1)).isInstanceOf(UnknownIntent.class);
+            assertThat(result.get(0)).isInstanceOfSatisfying(CategoryIntent.class,
+                    category -> assertThat(category.operation()).isEqualTo(Operation.DELETE));
+            assertThat(result.get(1)).isInstanceOfSatisfying(ExpenseIntent.class,
+                    expense -> assertThat(expense.categoryName()).contains("Travel"));
         }
 
         @Test

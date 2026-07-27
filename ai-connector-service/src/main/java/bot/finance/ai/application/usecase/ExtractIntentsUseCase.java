@@ -25,9 +25,10 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         // throughout, and returns a single UnknownIntent when the port returns null or an empty list —
         // the contract's response is never empty.
         // Assembles in two passes: the first collects the name of every raw answer that is a usable
-        // category creation, the second assembles each entry against the command's categories plus those,
-        // so a category the message creates is filable by every entry regardless of position — the user
-        // may name the expense before the category it belongs to
+        // category intent, whatever its operation, the second assembles each entry against the command's
+        // categories plus those — so a category the message names is filable by every entry regardless of
+        // position. Whether the resulting set of intents can be carried out together is the caller's
+        // judgement, not this service's
         return null;
     }
 
