@@ -15,10 +15,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 
 import java.util.List;
 
@@ -30,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @AiAdapterTest
 class AiIntentInferenceAdapterTest {
 
-    private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
     private static final String SYSTEM_PROMPT_RESOURCE = "prompts/extract-intents.st";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -47,7 +44,8 @@ class AiIntentInferenceAdapterTest {
     }
 
     private static List<LoggedRequest> capturedRequests() {
-        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH)));
+        return WireMockSupport.SERVER.findAll(
+                postRequestedFor(urlPathEqualTo(WireMockStubs.CHAT_COMPLETIONS_PATH)));
     }
 
     private static JsonNode requestBody(LoggedRequest request) throws JsonProcessingException {

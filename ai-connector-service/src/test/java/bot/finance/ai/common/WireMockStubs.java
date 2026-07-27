@@ -15,7 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
  */
 public final class WireMockStubs {
 
-    private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
+    public static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
 
     private WireMockStubs() {
     }

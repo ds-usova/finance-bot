@@ -24,7 +24,8 @@ public class IntentExtractionGrpcService
     }
 
     @Override
-    public void extractIntents(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
+    public void extractIntents(
+            ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         if (rejectIfInvalid(request, responseObserver)) {
             return;
         }
@@ -34,16 +35,15 @@ public class IntentExtractionGrpcService
                 : Optional.empty();
 
         IntentExtractionCommand command = new IntentExtractionCommand(
-                request.getText(), request.getKnownCategoriesList(), defaultCurrency
-
-        );
+                request.getText(), request.getKnownCategoriesList(), defaultCurrency);
         ExtractIntentsResponse response = IntentProtoUtils.toResponse(extractIntentsPort.extractIntents(command));
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
-    private boolean rejectIfInvalid(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
+    private boolean rejectIfInvalid(
+            ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         if (request.getText().isBlank()) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT.withDescription("Text must not be blank").asRuntimeException());
@@ -51,8 +51,9 @@ public class IntentExtractionGrpcService
         }
 
         if (request.getKnownCategoriesList().isEmpty()) {
-            responseObserver.onError(
-                    Status.INVALID_ARGUMENT.withDescription("Known categories must not be empty").asRuntimeException());
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Known categories must not be empty")
+                    .asRuntimeException());
             return true;
         }
 
@@ -69,7 +70,7 @@ public class IntentExtractionGrpcService
                     .asRuntimeException());
             return true;
         }
-        
+
         return false;
     }
 

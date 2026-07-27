@@ -16,8 +16,16 @@ public record ExpenseIntent(
             throw new InvalidValueException("Operation must not be null");
         }
 
-        if (categoryName == null || amount == null || description == null) {
-            throw new InvalidValueException("Optional fields must not be null");
+        if (categoryName == null) {
+            throw new InvalidValueException("Category name must not be null; use Optional.empty() when absent");
+        }
+
+        if (amount == null) {
+            throw new InvalidValueException("Amount must not be null; use Optional.empty() when absent");
+        }
+
+        if (description == null) {
+            throw new InvalidValueException("Description must not be null; use Optional.empty() when absent");
         }
 
         if (operation == Operation.CREATE) {

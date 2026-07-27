@@ -29,8 +29,6 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
  */
 class ExtractIntentsSystemTest extends AbstractSystemTest {
 
-    private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
-
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -121,8 +119,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(intent.hasExpense()).isTrue();
             assertThat(intent.getExpense().getCategoryName()).isEqualTo("Food");
 
-            List<LoggedRequest> requests =
-                    WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH)));
+            List<LoggedRequest> requests = WireMockSupport.SERVER.findAll(
+                    postRequestedFor(urlPathEqualTo(WireMockStubs.CHAT_COMPLETIONS_PATH)));
             assertThat(requests).hasSize(1);
             String requestBody = requests.getFirst().getBodyAsString();
             log.info("request body received by the provider: {}", requestBody);
@@ -158,7 +156,6 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             ExtractIntentsRequest request = RequestFixtures.request();
 
-            // be aware: catchThrowableOfType is deprecated
             StatusRuntimeException exception = catchThrowableOfType(
                     () -> intentExtractionStub.extractIntents(request), StatusRuntimeException.class);
 

@@ -1079,6 +1079,20 @@ Blockers recorded during implementation:
   Consequence for the caller: the response preserves the user's order and the service never reorders, so a
   ledger executing the list in sequence may meet an expense naming a category created later in the same list —
   or one whose category the same list deletes. Reconciling that is the caller's job, consistent with **Q11**.
+- **B7** (refactor phase, **open — needs a decision**): a lowercase `default_currency` is rejected at the gRPC
+  boundary but accepted by the domain. `IntentExtractionGrpcService`'s precondition check calls
+  `java.util.Currency.getInstance(code)` directly, so `"eur"` fails with `INVALID_ARGUMENT`; `CurrencyCode`'s
+  compact constructor upper-cases before validating, so `CurrencyCode.of("eur")` succeeds — and
+  `CurrencyCodeTest` asserts exactly that normalization. The two disagree on the same question. The adapter
+  matches this plan as written (stabilization specified "a code `java.util.Currency` knows"), and the validation
+  matrix only exercises `"EUR"` and `"ZZZ"`, so nothing pins the intended behaviour for a lowercase code.
+
+  Left unchanged by the refactor phase — routing the adapter through `CurrencyCode` is the natural
+  deduplication ("onto the value object that owns the data"), but it would silently start accepting lowercase
+  codes, which is an observable behaviour change and so out of bounds for a behaviour-preserving pass.
+  Recommendation: accept lowercase — the domain already normalizes and category matching is case-insensitive
+  elsewhere in the contract, so rejecting only this one field is the odd case out. That needs a scenario in
+  `IntentExtractionGrpcServiceTest`'s validation matrix and a red/green round.
 - **B6** (green phase, resolved): the OpenAI base URL was missing its `/v1` segment everywhere. The
   `com.openai:openai-java-core` SDK builds its request as `baseUrl + ["chat", "completions"]` and never prepends
   a version, so `/v1` must be part of the base URL itself. `WireMockSupport.baseUrl()` returned
