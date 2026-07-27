@@ -555,7 +555,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
 
 #### TDD Unit Red Phase
 
-- [ ] `CurrencyCode` · test: `CurrencyCodeTest` · covers: `of()`
+- [x] `CurrencyCode` · test: `CurrencyCodeTest` · covers: `of()`
     - `of()`:
         - given: a valid ISO 4217 alphabetic code
           when: of() is called
@@ -569,7 +569,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: null or a blank string
           when: of() is called
           then: throws InvalidValueException
-- [ ] `Money` · test: `MoneyTest` · covers: `of()`, `amount()`
+- [x] `Money` · test: `MoneyTest` · covers: `of()`, `amount()`
     - `of()`:
         - given: "12.50" and "EUR"
           when: of() is called
@@ -600,7 +600,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: money of 1500 minor units in JPY
           when: amount() is called
           then: returns a BigDecimal comparing equal to 1500 with scale 0
-- [ ] `Operation` · test: `OperationTest` · covers: `fromLabel()`
+- [x] `Operation` · test: `OperationTest` · covers: `fromLabel()`
     - `fromLabel()`:
         - given: each of the labels "create", "read", "update", "delete"
           when: fromLabel() is called
@@ -611,7 +611,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: an unrecognized label, a blank string, or null
           when: fromLabel() is called
           then: returns an empty Optional rather than throwing
-- [ ] `IntentTarget` · test: `IntentTargetTest` · covers: `fromLabel()`
+- [x] `IntentTarget` · test: `IntentTargetTest` · covers: `fromLabel()`
     - `fromLabel()`:
         - given: the labels "category" and "expense"
           when: fromLabel() is called
@@ -619,7 +619,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: an unrecognized label, a blank string, or null
           when: fromLabel() is called
           then: returns an empty Optional
-- [ ] `CategoryIntent` · test: `CategoryIntentTest` · covers: `CategoryIntent()`
+- [x] `CategoryIntent` · test: `CategoryIntentTest` · covers: `CategoryIntent()`
     - `CategoryIntent()`:
         - given: an operation and a non-blank name
           when: the record is constructed
@@ -636,7 +636,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: operation UPDATE with no new name
           when: the record is constructed
           then: throws InvalidValueException
-- [ ] `ExpenseIntent` · test: `ExpenseIntentTest` · covers: `ExpenseIntent()`
+- [x] `ExpenseIntent` · test: `ExpenseIntentTest` · covers: `ExpenseIntent()`
     - `ExpenseIntent()`:
         - given: an operation and all optional fields present
           when: the record is constructed
@@ -660,7 +660,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
           when: the record is constructed
           then: throws InvalidValueException — the catch-all guarantees a fit, so an omission is model
           non-compliance
-- [ ] `UnknownIntent` · test: `UnknownIntentTest` · covers: `UnknownIntent()`
+- [x] `UnknownIntent` · test: `UnknownIntentTest` · covers: `UnknownIntent()`
     - `UnknownIntent()`:
         - given: a non-blank reason
           when: the record is constructed
@@ -669,7 +669,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
           when: the record is constructed
           then: throws InvalidValueException — an unknown result that does not say why is not useful to the
           caller
-- [ ] `IntentExtractionCommand` · test: `IntentExtractionCommandTest` · covers: `IntentExtractionCommand()`
+- [x] `IntentExtractionCommand` · test: `IntentExtractionCommandTest` · covers: `IntentExtractionCommand()`
     - `IntentExtractionCommand()`:
         - given: non-blank text and a list of category names
           when: the record is constructed
@@ -695,7 +695,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: a null defaultCurrency Optional
           when: the record is constructed
           then: throws InvalidValueException — absence is Optional.empty(), never null
-- [ ] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
+- [x] `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
     - `extractIntents()`:
         - given: the mocked port returns one raw expense answer with target "expense", operation "create",
           amount "15.00" and currency "EUR"
@@ -768,7 +768,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: a null command
           when: extractIntents() is called
           then: throws InvalidValueException and the port is never called
-- [ ] `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers: `toResponse()`
+- [x] `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers: `toResponse()`
     - `toResponse()`:
         - given: a single ExpenseIntent with operation CREATE and money of 1500 minor units in EUR
           when: toResponse() is called
@@ -794,7 +794,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
 
 #### TDD Integration Red Phase
 
-- [ ] `AiIntentInferenceAdapter` · test: `AiIntentInferenceAdapterTest` · covers: `infer()`
+- [x] `AiIntentInferenceAdapter` · test: `AiIntentInferenceAdapterTest` · covers: `infer()`
     - `infer()`:
         - given: the provider is stubbed to return one extracted expense entry
           when: infer() is called
@@ -828,7 +828,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: the provider responds 200 with a body Spring AI cannot parse into the structured record
           when: infer() is called
           then: throws IntentInferenceException
-- [ ] `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` ·
+- [x] `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` ·
   covers: `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort`
     - _Every request comes from `RequestFixtures` unless the scenario names its own fields; the fixture carries
       a non-empty `known_categories`, without which the adapter rejects the call before the port is reached._
@@ -868,7 +868,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
 
 #### TDD System Test Red Phase
 
-- [ ] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
     - _Entered over a real Netty channel on the bound port, per `AbstractSystemTest` — so a happy path here
       also proves the server binds and serves, which the in-process transport would have hidden. Requests come
       from `RequestFixtures`, so every one carries a non-empty `known_categories`._
@@ -894,7 +894,7 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
         - given: the provider is stubbed to respond 500
           when: ExtractIntents is called with a valid text
           then: fails with status UNAVAILABLE
-- [ ] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
+- [x] `ActuatorHealthSystemTest` · covers: `GET /actuator/health`
     - Happy Path:
         - given: the fully wired application
           when: GET /actuator/health is called with RestAssured on the Actuator port
@@ -1020,6 +1020,15 @@ Blockers recorded during implementation:
   `RestClient` as the plan claimed. `spring.ai.openai.base-url` still redirects it and the wire format is
   unchanged, so the WireMock strategy holds — but it is now proven only at the first outbound-adapter test,
   not by the plan's reasoning.
+- **B5** (red phase, open — design question, not a blocker to implementation): a category created in one message
+  cannot be named by an expense in that same message unless it *already* appears in `known_categories`. The
+  closed-set rule is evaluated against the request's list, and the use case assembles each entry independently,
+  so *"create a Travel category and put 50 euros of taxi in it"* yields `CategoryIntent(Travel)` followed by
+  `UnknownIntent` whenever `Travel` is absent from the caller's list. The plan's own system-test scenario passes
+  only because `RequestFixtures` happens to carry `Travel` by default. Either the use case must treat a
+  preceding `CREATE` category as extending the closed set for later entries, or the caller must accept that a
+  same-message create-then-use pair does not resolve. `ExtractIntentsUseCaseTest` was written to the plan as
+  specified — its multi-intent scenarios file the expense under a pre-existing category.
 - **B3** (stabilization, resolved): a `void` RPC stub with an empty body terminates no `StreamObserver`, so
   every red-phase gRPC test would block to its deadline instead of failing. Overriding the generated method had
   removed the base class's own `UNIMPLEMENTED` response. `IntentExtractionGrpcService.extractIntents` now ends
