@@ -4,16 +4,16 @@ How to compile, test, and check the module.
 
 ## Build & Test Commands
 
-Compiling and testing go through `tools/agent-test.sh`, a wrapper around the Gradle wrapper. It is run with
+Compiling and testing go through `tools/agent-test/agent-test.sh`, a wrapper around the Gradle wrapper. It is run with
 bash, from the **repository root**, and takes the same JUnit patterns Gradle does. This repository holds more
 than one Gradle build, so every invocation names the module it targets with `--module`:
 
-- Compile / type-check: `tools/agent-test.sh --module ai-connector-service --compile`
+- Compile / type-check: `tools/agent-test/agent-test.sh --module ai-connector-service --compile`
 - Run a single test class:
-  `tools/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.<package>.<TestClassName>"`
-- Run the module's full test suite: `tools/agent-test.sh --module ai-connector-service --all`
+  `tools/agent-test/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.<package>.<TestClassName>"`
+- Run the module's full test suite: `tools/agent-test/agent-test.sh --module ai-connector-service --all`
 - Run the architecture-enforcement test:
-  `tools/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.architecture.CleanArchitectureTest"`
+  `tools/agent-test/agent-test.sh --module ai-connector-service --tests "bot.finance.ai.architecture.CleanArchitectureTest"`
 
 Name the class in full. The architecture tests ignore Gradle's filter, so a wildcard pattern would pull them
 into a run that was meant for one class elsewhere; the wrapper leaves them out of any filtered run that does
@@ -48,4 +48,4 @@ the script does not cover. Two of its invocations at once will clobber each othe
 `build/test-results/test/`, which is exactly what the script exists to prevent.
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are written up in
-[`tools/README.md`](../../../tools/README.md).
+[`tools/agent-test/README.md`](../../../tools/agent-test/README.md).

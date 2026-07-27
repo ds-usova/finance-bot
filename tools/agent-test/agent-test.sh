@@ -5,12 +5,12 @@
 # It exists so that a run is reported as a ready-made summary instead of console output that each
 # caller has to parse for itself, and so that concurrent runs cannot overwrite each other's results.
 #
-# See tools/README.md for what the runner guarantees and where those guarantees stop.
+# See tools/agent-test/README.md for what the runner guarantees and where those guarantees stop.
 
 set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(dirname "$script_dir")"
+repo_root="$(cd "$script_dir/../.." && pwd)"
 
 module=""
 patterns=()
@@ -23,10 +23,10 @@ keep_runs=20
 usage() {
     cat <<'EOF'
 Usage:
-  tools/agent-test.sh --module <name> --compile
-  tools/agent-test.sh --module <name> --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
-  tools/agent-test.sh --module <name> --tests "bot.finance.architecture.CleanArchitectureTest"
-  tools/agent-test.sh --module <name> --all
+  tools/agent-test/agent-test.sh --module <name> --compile
+  tools/agent-test/agent-test.sh --module <name> --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
+  tools/agent-test/agent-test.sh --module <name> --tests "bot.finance.architecture.CleanArchitectureTest"
+  tools/agent-test/agent-test.sh --module <name> --all
 
 Options:
   --module <name>     Required. Module directory at the repository root to compile and test.

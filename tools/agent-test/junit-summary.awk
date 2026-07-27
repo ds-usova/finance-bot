@@ -1,6 +1,6 @@
 # Turns Gradle's JUnit XML result files into a plain-text summary.
 #
-# Invoked by tools/agent-test.sh over every TEST-*.xml of a single run; the caller passes
+# Invoked by tools/agent-test/agent-test.sh over every TEST-*.xml of a single run; the caller passes
 # label, command, and exitCode as -v variables and captures stdout as the run's summary.
 
 function unescape(s) {

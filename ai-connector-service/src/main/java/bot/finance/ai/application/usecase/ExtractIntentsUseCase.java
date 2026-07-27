@@ -31,15 +31,18 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         if (command == null) {
             throw new InvalidValueException("Command must not be null");
         }
+
         List<RawIntent> rawIntents = intentInferencePort.infer(command.text(), command.knownCategories());
         if (rawIntents == null || rawIntents.isEmpty()) {
             return List.of(new UnknownIntent("The provider returned no intents"));
         }
+
         List<String> availableCategories = availableCategories(rawIntents, command.knownCategories());
         List<Intent> intents = new ArrayList<>(rawIntents.size());
         for (RawIntent raw : rawIntents) {
             intents.add(assemble(raw, command, availableCategories));
         }
+
         return intents;
     }
 
@@ -55,12 +58,15 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         if (raw == null || raw.categoryName() == null || raw.categoryName().isBlank()) {
             return Optional.empty();
         }
+
         boolean isCategoryTarget = IntentTarget.fromLabel(raw.target())
                 .filter(target -> target == IntentTarget.CATEGORY)
                 .isPresent();
+
         if (!isCategoryTarget || Operation.fromLabel(raw.operation()).isEmpty()) {
             return Optional.empty();
         }
+
         return Optional.of(raw.categoryName());
     }
 
@@ -69,13 +75,14 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             if (raw == null) {
                 throw new InvalidValueException("Raw intent must not be null");
             }
+
             IntentTarget target = IntentTarget.fromLabel(raw.target())
                     .orElseThrow(() -> new InvalidValueException("Unrecognized target: " + raw.target()));
             Operation operation = Operation.fromLabel(raw.operation())
                     .orElseThrow(() -> new InvalidValueException("Unrecognized operation: " + raw.operation()));
+
             return switch (target) {
-                case CATEGORY -> new CategoryIntent(
-                        operation, raw.categoryName(), Optional.ofNullable(raw.newCategoryName()));
+                case CATEGORY -> new CategoryIntent(operation, raw.categoryName(), Optional.ofNullable(raw.newCategoryName()));
                 case EXPENSE -> buildExpenseIntent(raw, operation, command, availableCategories);
             };
         } catch (InvalidValueException e) {

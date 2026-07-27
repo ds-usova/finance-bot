@@ -4,13 +4,13 @@ How to compile, test, and check the module.
 
 ## Build & Test Commands
 
-Compiling and testing go through `tools/agent-test.sh`, a wrapper around the Gradle wrapper. It is run with bash,
+Compiling and testing go through `tools/agent-test/agent-test.sh`, a wrapper around the Gradle wrapper. It is run with bash,
 from the **repository root**, and takes the same JUnit patterns Gradle does:
 
-- Compile / type-check: `tools/agent-test.sh --module ledger-service --compile`
-- Run a single test class: `tools/agent-test.sh --module ledger-service --tests "bot.finance.<package>.<TestClassName>"`
-- Run the module's full test suite: `tools/agent-test.sh --module ledger-service --all`
-- Run the architecture-enforcement test: `tools/agent-test.sh --module ledger-service --tests "bot.finance.architecture.CleanArchitectureTest"`
+- Compile / type-check: `tools/agent-test/agent-test.sh --module ledger-service --compile`
+- Run a single test class: `tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.<package>.<TestClassName>"`
+- Run the module's full test suite: `tools/agent-test/agent-test.sh --module ledger-service --all`
+- Run the architecture-enforcement test: `tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.architecture.CleanArchitectureTest"`
 
 Name the class in full. The architecture tests ignore Gradle's filter, so a wildcard pattern would pull them into
 a run that was meant for one class elsewhere; the wrapper leaves them out of any filtered run that does not ask
@@ -38,4 +38,4 @@ script does not cover. Two of its invocations at once will clobber each other's 
 `build/test-results/test/`, which is exactly what the script exists to prevent.
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are written up in
-[`tools/README.md`](../../../tools/README.md).
+[`tools/agent-test/README.md`](../../../tools/agent-test/README.md).

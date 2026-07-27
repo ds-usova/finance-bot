@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tools/agent-test/agent-test.sh:*)",
+      "Bash(./tools/agent-test/agent-test.sh:*)",
+      "Bash(bash tools/agent-test/agent-test.sh:*)",
+      "Bash(tools/inspect-jar/inspect-jar.sh:*)",
+      "Bash(./tools/inspect-jar/inspect-jar.sh:*)",
+      "Bash(bash tools/inspect-jar/inspect-jar.sh:*)",
+      "Bash(./gradlew:*)",
+      "Bash(git add:*)",
+      "Bash(git diff:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(jar tf:*)",
+      "Bash(javap:*)",
+      "Bash(unzip -l:*)",
+      "Bash(unzip -p:*)",
+      "Edit(docs/**)",
+      "Read(//c/Users/rieic/.gradle/**)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git rebase:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "Bash(git clean:*)"
+    ]
+  }
+}
