@@ -62,11 +62,6 @@ One per usecase class — the application-layer class implementing an inbound po
 | in        | <who asks for this> | <contract page> | <what they want> |
 | out       | <what this depends on — a database, an AI provider, another service> | <contract page> | <what it needs from it> |
 
-## Flow
-
-<Numbered steps in the domain's words: what is decided, what is looked up, what is asked of another system.
-One line each.>
-
 ## Rules
 
 <What always holds — the constraints a caller has to know to use it correctly. One rule per bullet.>
@@ -75,7 +70,7 @@ One line each.>
 
 | Outcome | When | Result |
 
-## Sequence
+## Flow
 
 ```plantuml
 @startuml <UseCase>-Sequence
@@ -83,6 +78,10 @@ One line each.>
 @enduml
 ```
 ````
+
+**The diagram is the flow.** It is not accompanied by a numbered restatement of itself: a step list beside a
+sequence diagram is the same walk written twice, and the diagram is the readable one. A step the diagram cannot
+carry is either a rule, an outcome, or a fact another page owns — put it there.
 
 Where the output has distinct kinds, the page enumerates them — every kind, what each carries, and what the
 service does not produce. A table between the header and **Collaborators** is the place. The reader will never

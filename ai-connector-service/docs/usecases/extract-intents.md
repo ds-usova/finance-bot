@@ -15,9 +15,9 @@ Every entry names one thing acted on and one action on it.
 | Category | create, read, update, delete | its name · a new name, when renaming   |
 | Expense  | create, read, update, delete | a category · an amount · a description |
 
-A third kind stands for what could not be read: **unknown**, carrying the reason that entry was rejected.
+**Unknown** is the third kind: an entry that could not be read, carrying why.
 
-Nothing else is extracted. A message about anything but a category or an expense produces unknown.
+Nothing else. A message about anything but a category or an expense comes back unknown.
 
 ## Collaborators
 
@@ -25,16 +25,6 @@ Nothing else is extracted. A message about anything but a category or an expense
 |-----------|--------------------------------------------------------|-----------------------------------------------------------|--------------------------------------------------------|
 | in        | [Ledger Service](../contracts/in/intent-extraction.md) | [Intent extraction](../contracts/in/intent-extraction.md) | turning what a user typed into actions on their ledger |
 | out       | [AI provider](../contracts/out/ai-provider.md)         | [Intent inference](../contracts/out/ai-provider.md)       | reading the actions out of the text                    |
-
-## Flow
-
-1. The text and the categories go to the AI provider.
-2. The provider answers with one raw answer per action it found.
-3. Every category the message itself names joins the categories available to it.
-4. Each answer becomes one intent, assembled on its own.
-5. An expense's category is matched against that combined set, ignoring case.
-6. An amount stated without a currency takes the assumed currency.
-7. An answer that cannot be used becomes an unknown entry in its own position.
 
 ## Rules
 
@@ -48,7 +38,7 @@ Nothing else is extracted. A message about anything but a category or an expense
 - An amount with no currency and no assumed currency is unknown.
 - An amount with more decimal places than its currency is unknown. Never rounded.
 - Entries are never compared with one another.
-- Ordering, a never-empty answer and per-entry unknown are in
+- Ordering, a never-empty answer, per-entry unknown, category matching and the assumed currency are in
   [Intent extraction](../contracts/in/intent-extraction.md#semantics).
 
 ## Outcomes
@@ -60,7 +50,7 @@ Nothing else is extracted. A message about anything but a category or an expense
 | Nothing found        | the provider finds no action               | a single unknown entry with a reason            |
 | Extraction failed    | the provider is unreachable or unreadable  | no intents — extraction is unavailable          |
 
-## Sequence
+## Flow
 
 ```plantuml
 @startuml ExtractIntents-Sequence
