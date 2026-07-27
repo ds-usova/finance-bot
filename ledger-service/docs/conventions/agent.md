@@ -63,3 +63,12 @@ their work in progress, not a finding. Reconciling across steps is the orchestra
 
 - Location: repo-root `docs/`; completed plans are archived to `docs/implemented/` (see
   [Documentation References](orientation.md#documentation-references)).
+
+## Post-Implementation Actions
+
+What runs once a plan is finished — every item ticked, the guardrail green, the plan file moved to
+`docs/implemented/`. A run that ends with anything open runs none of them.
+
+1. `archive-knowledge`, given the archived plan: a document per usecase class with its collaborators on both
+   sides, the contracts with the systems around the service, and an ADR for each decision the code cannot
+   explain by itself. Commits its own output.

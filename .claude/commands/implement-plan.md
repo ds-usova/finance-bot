@@ -304,6 +304,10 @@ Once the guardrail holds, commit per the Version Control policy.
    open.
 4. Commit per the Version Control policy — this is where its **squash-before-archiving** setting applies, if the
    plan was archived in step 3.
+5. **Post-implementation actions.** Run what the module conventions' **Post-Implementation Actions** section
+   lists, in its order, passing each the archived plan file — **only if step 3 archived it**; anything still
+   open skips them all, and the summary says so. An action listed by several affected modules runs once. Each
+   states its own commit behaviour.
 
 ## Unrelated Failures — Report, Don't Fail
 

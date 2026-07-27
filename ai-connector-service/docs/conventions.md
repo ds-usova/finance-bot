@@ -12,4 +12,4 @@ and testing at once.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
 - [Build](conventions/build.md) — build & test commands.
 - [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism, plan-file
-  locations.
+  locations, post-implementation actions.
