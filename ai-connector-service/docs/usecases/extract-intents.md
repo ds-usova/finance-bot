@@ -38,7 +38,8 @@ can carry them out.
 - Recording an expense needs both an amount and a category; reading or deleting one needs neither. Renaming a
   category needs the new name. An answer missing what its action requires is unknown, and says which piece was
   missing.
-- An amount with no currency and no assumed currency is not money, and its entry is unknown.
+- An amount with no currency and no assumed currency is not money, and its entry is unknown. So is one carrying
+  more decimal places than its currency has: the amount is never rounded to fit.
 - Entries are never compared with one another. A message that deletes a category and files an expense under it
   is returned as it was said; whether the pair can be carried out is the caller's judgement.
 - The promises made to the caller — ordering, a never-empty answer, unknown per entry, how money is carried —
