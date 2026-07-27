@@ -30,6 +30,17 @@ The repository's writing rules apply. Load-bearing here:
 - **No justification** — the rule, not the argument for it.
 - Diagram labels are a few words.
 
+**Scannable over readable.** A reader looks things up here; nobody reads the page front to back.
+
+- **One line, one fact.** A bullet, a step, or a table cell is a single line. Needing a second sentence means
+  it is two bullets — or the second sentence is justification, and goes nowhere.
+- **Prefer a labelled list to a sentence**: `**In:** the user's text · their categories · a currency
+  (optional)` beats a paragraph saying the same.
+- **No clause chains.** One idea per line, no em-dash asides, no *so that*, *rather than*, *which is why*.
+- **Fragments are fine**: "Amount and category required" over "Recording an expense needs both an amount and
+  a category."
+- **No worked examples** in Rules or Semantics. The rule stands alone or it is not stated clearly enough.
+
 ## Use-Case Documents
 
 One per usecase class — the application-layer class implementing an inbound port — at
@@ -38,7 +49,9 @@ One per usecase class — the application-layer class implementing an inbound po
 ````
 # <What the use case does, in the words the product uses>
 
-<One or two lines: what it takes in, what it produces, and why anyone wants it.>
+- **In:** <what it takes, as a list — mark the optional ones>
+- **Out:** <what it produces>
+- **Why:** <one line — what the product can do because this exists>
 
 *Implemented by `<UseCaseClass>`.*
 
@@ -51,11 +64,12 @@ One per usecase class — the application-layer class implementing an inbound po
 
 ## Flow
 
-<Numbered steps in the domain's words: what is decided, what is looked up, what is asked of another system.>
+<Numbered steps in the domain's words: what is decided, what is looked up, what is asked of another system.
+One line each.>
 
 ## Rules
 
-<What always holds — the constraints a caller has to know to use it correctly.>
+<What always holds — the constraints a caller has to know to use it correctly. One rule per bullet.>
 
 ## Outcomes
 
