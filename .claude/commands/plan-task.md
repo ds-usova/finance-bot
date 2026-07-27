@@ -117,6 +117,25 @@ fixed order — use only the groups the task actually needs:
 Within each group, its sections appear as `#### <Section>` headings, in the fixed order listed below for that
 group — use only the sections that apply:
 
+**Every checklist item carries an ID**, written immediately after the checkbox and separated from the rest by
+` · `. The ID names the item everywhere else it comes up — `after:` dependencies, blocker records, sub-agent
+prompts, and step reports — so an item stays addressable when its wording changes:
+
+| Prefix | Items                                | Prefix | Items                                 |
+|--------|--------------------------------------|--------|---------------------------------------|
+| `ST`   | Stabilization                        | `GU`   | TDD Unit Green Phase                  |
+| `RU`   | TDD Unit Red Phase                   | `GI`   | TDD Integration Green Phase           |
+| `RI`   | TDD Integration Red Phase            | `GS`   | TDD System Test Green Phase           |
+| `RS`   | TDD System Test Red Phase            | `P`    | Post-Implementation Steps             |
+
+Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
+renumbered once the plan is written — a dropped step leaves a gap.
+
+`plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines, and
+dependency cycles. Run it before handing the plan over. The script ships with these instructions at
+`scripts/plan/plan.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a plain
+checkout.
+
 #### Stabilization
 
 - **API Contract** — API schema and path changes, in the module's schema format and location (see conventions
@@ -236,7 +255,7 @@ drift apart. The plan references the conventions; only the conventions describe 
 Each item in the `TDD Unit Red Phase` section MUST follow this exact format:
 
 ```
-- [ ] `<TargetClass>` · test: `<TestClass>` · covers: `method1()`, `method2()`
+- [ ] RU<nn> · `<TargetClass>` · test: `<TestClass>` · covers: `method1()`, `method2()`
   - `method1()`:
     - given: [precondition]
       when: [action]
@@ -298,7 +317,7 @@ follow its variant's exact format.
 **Outbound adapter steps** (persistence, outbound HTTP clients — real infrastructure):
 
 ```
-- [ ] `<AdapterImplClass>` · test: `<AdapterTestClass>` · covers: `method1()`, `method2()`
+- [ ] RI<nn> · `<AdapterImplClass>` · test: `<AdapterTestClass>` · covers: `method1()`, `method2()`
   - `method1()`:
     - given: [precondition]
       when: [action]
@@ -331,7 +350,7 @@ Tests are expected to **fail at runtime** because adapter implementations are st
 **Inbound adapter steps** (e.g. REST controllers — framework slice, mocked ports):
 
 ```
-- [ ] `<InboundAdapterClass>` · test: `<AdapterTestClass>` · covers: `<entry point>` · mocks: `<InboundPort>`
+- [ ] RI<nn> · `<InboundAdapterClass>` · test: `<AdapterTestClass>` · covers: `<entry point>` · mocks: `<InboundPort>`
   - Happy Path:
     - given: [mocked port behaviour]
       when: [request with a valid payload]
@@ -373,12 +392,12 @@ Each item in the `TDD Unit Green Phase` section MUST correspond 1-to-1 with an i
 follow this exact format:
 
 ```
-- [ ] `<TargetClass>` · test: `<TestClass>` · after: `<Class>`, `<Class>`
+- [ ] GU<nn> · `<TargetClass>` · test: `<TestClass>` · after: GU<nn>, GU<nn>
 ```
 
 - `<TargetClass>` — the production class to implement (same class as in the Red Phase step)
 - `<TestClass>` — the test class whose tests must be green after this step
-- `after:` (optional) — other green-phase target classes whose implementation this step's tests exercise as
+- `after:` (optional) — the IDs of other green-phase steps whose target classes this step's tests exercise as
   **real, unmocked collaborators** (e.g. a domain entity or value object the usecase's tests use directly while
   its methods are stubs owned by another unit step). The orchestrator will not start this step before those steps
   are done. Emit `after:` only for real dependencies — mocked collaborators never create one.
@@ -391,12 +410,12 @@ Each item in the `TDD Integration Green Phase` section MUST correspond 1-to-1 wi
 `TDD Integration Red Phase` and MUST follow this exact format:
 
 ```
-- [ ] `<AdapterImplClass>` · test: `<AdapterTestClass>` · after: `<Class>`, `<Class>`
+- [ ] GI<nn> · `<AdapterImplClass>` · test: `<AdapterTestClass>` · after: GU<nn>, GU<nn>
 ```
 
 - `<AdapterImplClass>` — the adapter implementation class to implement (same class as in the Integration Red Phase step)
 - `<AdapterTestClass>` — the integration test class whose tests must be green after this step
-- `after:` (optional) — other green-phase target classes (typically unit-phase ones) on the adapter's real
+- `after:` (optional) — the IDs of other green-phase steps (typically unit-phase ones) on the adapter's real
   execution path — integration tests mock nothing, so an unmocked mapper or domain object implemented by another
   green step is a real dependency. Same rule as the unit format: only real, unmocked collaborators, never mocked
   ones.
@@ -411,7 +430,7 @@ wiring, error mapping — never the usecase behind it; that is a unit-phase targ
 Each item in the `TDD System Test Red Phase` section MUST follow this exact format:
 
 ```
-- [ ] `<SystemTestClass>` · covers: `<entry point>`
+- [ ] RS<nn> · `<SystemTestClass>` · covers: `<entry point>`
   - Happy Path:
     - given: [preconditions]
       when: [request or invocation with valid data]
@@ -457,7 +476,7 @@ Each item in the `TDD System Test Green Phase` section MUST correspond 1-to-1 wi
 `TDD System Test Red Phase` and MUST follow this exact format:
 
 ```
-- [ ] `<SystemTestClass>` · covers: `<entry point>`
+- [ ] GS<nn> · `<SystemTestClass>` · covers: `<entry point>`
 ```
 
 - `<SystemTestClass>` — the system test class to verify (same class as in the System Test Red Phase step)

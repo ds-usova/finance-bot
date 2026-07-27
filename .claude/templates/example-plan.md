@@ -110,7 +110,7 @@ end
 
 #### API Contract
 
-- [ ] Add `POST /widgets` path to the project's API schema file `<api-schema-file>`:
+- [ ] ST01 · Add `POST /widgets` path to the project's API schema file `<api-schema-file>`:
   ```yaml
   /widgets:
     post:
@@ -128,13 +128,13 @@ end
               schema:
                 $ref: '#/components/schemas/Widget'
   ```
-- [ ] Add `CreateWidgetRequest` schema to `<api-schema-file>`: `name` (string, required, max 255), `value` (string,
+- [ ] ST02 · Add `CreateWidgetRequest` schema to `<api-schema-file>`: `name` (string, required, max 255), `value` (string,
   required, max 255)
-- [ ] Add `Widget` response schema to `<api-schema-file>`: `id` (integer), `name` (string), `value` (string)
+- [ ] ST03 · Add `Widget` response schema to `<api-schema-file>`: `id` (integer), `name` (string), `value` (string)
 
 #### Database
 
-- [ ] Add migration `<migration-file>` (named per the project's migration tool conventions):
+- [ ] ST04 · Add migration `<migration-file>` (named per the project's migration tool conventions):
   ```sql
   CREATE TABLE widget (
       id    BIGSERIAL PRIMARY KEY,
@@ -156,29 +156,29 @@ public Settings loadSettings(long userId) {
 
 **Interface & Signature Sync**
 
-- [ ] Add `createWidget(CreateWidgetCommand command): Widget` to the `CreateWidgetPort` inbound port
+- [ ] ST05 · Add `createWidget(CreateWidgetCommand command): Widget` to the `CreateWidgetPort` inbound port
   (interface only — the implementation stub goes on `CreateWidgetUseCase` below)
-- [ ] Add `save(Widget widget): Widget` to the `WidgetRepository` outbound port
-- [ ] Stub `CreateWidgetUseCase.createWidget()`:
+- [ ] ST06 · Add `save(Widget widget): Widget` to the `WidgetRepository` outbound port
+- [ ] ST07 · Stub `CreateWidgetUseCase.createWidget()`:
   ```java
   public Widget createWidget(CreateWidgetCommand command) {
       // validates the command, assembles a Widget via WidgetAssembler, and persists it via WidgetRepository
       return null;
   }
   ```
-- [ ] Stub `WidgetRepositoryAdapter.save()`:
+- [ ] ST08 · Stub `WidgetRepositoryAdapter.save()`:
   ```java
   public Widget save(Widget widget) {
       // maps the domain Widget to a WidgetEntity, persists it, and returns the domain Widget with its generated id
       return null;
   }
   ```
-- [ ] Update `WidgetController.createWidget()` to call `createWidgetPort.createWidget(...)` and fix any remaining
+- [ ] ST09 · Update `WidgetController.createWidget()` to call `createWidgetPort.createWidget(...)` and fix any remaining
   compile errors until the module builds green
 
 **Shared Test Infrastructure**
 
-- [ ] Add a `WidgetTestDataFactory` (`aWidget()`, `aWidget().withName(...)`) to the module's shared test-fixture
+- [ ] ST10 · Add a `WidgetTestDataFactory` (`aWidget()`, `aWidget().withName(...)`) to the module's shared test-fixture
   location — both `WidgetRepositoryAdapterTest` (Integration Red Phase) and `CreateWidgetTest` (System Test Red
   Phase) need a valid widget precondition, and neither Red Phase step is scoped to create shared fixtures on its
   own
@@ -187,7 +187,7 @@ public Settings loadSettings(long userId) {
 
 #### TDD Unit Red Phase
 
-- [ ] `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest` · covers: `createWidget()`, `validateRequest()`
+- [ ] RU01 · `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest` · covers: `createWidget()`, `validateRequest()`
     - `createWidget()`:
         - given: a valid request
           when: createWidget() is called
@@ -202,7 +202,7 @@ public Settings loadSettings(long userId) {
         - given: a null request
           when: validateRequest() is called
           then: throws NullPointerException
-- [ ] `WidgetAssembler` · test: `WidgetAssemblerTest` · covers: `assemble()`, `normalize()`
+- [ ] RU02 · `WidgetAssembler` · test: `WidgetAssemblerTest` · covers: `assemble()`, `normalize()`
     - `assemble()`:
         - given: a list of parts
           when: assemble() is called
@@ -217,7 +217,7 @@ public Settings loadSettings(long userId) {
         - given: input with leading and trailing spaces
           when: normalize() is called
           then: returns trimmed result
-- [ ] `WidgetUtils` · test: `WidgetUtilsTest` · covers: `toRest()`
+- [ ] RU03 · `WidgetUtils` · test: `WidgetUtilsTest` · covers: `toRest()`
     - `toRest()`:
         - given: a fully populated domain object
           when: toRest() is called
@@ -228,7 +228,7 @@ public Settings loadSettings(long userId) {
 
 #### TDD Integration Red Phase
 
-- [ ] `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest` · covers: `findById()`,
+- [ ] RI01 · `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest` · covers: `findById()`,
   `save()`
     - `findById()`:
         - given: an existing widget
@@ -244,7 +244,7 @@ public Settings loadSettings(long userId) {
         - given: an unknown parent id
           when: save() is called
           then: throws ResourceNotFoundException
-- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort`
+- [ ] RI02 · `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort`
     - Happy Path:
         - given: the mocked port returns a created widget
           when: request is made with a valid payload
@@ -257,7 +257,7 @@ public Settings loadSettings(long userId) {
 
 #### TDD System Test Red Phase
 
-- [ ] `CreateWidgetTest` · covers: `POST /widgets`
+- [ ] RS01 · `CreateWidgetTest` · covers: `POST /widgets`
     - Happy Path:
         - given: a valid parent resource
           when: request is made with a valid payload
@@ -271,25 +271,25 @@ public Settings loadSettings(long userId) {
 
 #### TDD Unit Green Phase
 
-- [ ] `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest`
-- [ ] `WidgetAssembler` · test: `WidgetAssemblerTest`
-- [ ] `WidgetUtils` · test: `WidgetUtilsTest`
+- [ ] GU01 · `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest`
+- [ ] GU02 · `WidgetAssembler` · test: `WidgetAssemblerTest`
+- [ ] GU03 · `WidgetUtils` · test: `WidgetUtilsTest`
 
 #### TDD Integration Green Phase
 
-- [ ] `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest`
-- [ ] `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort` ·
-  after: `WidgetUtils`
+- [ ] GI01 · `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest`
+- [ ] GI02 · `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort` ·
+  after: GU03
 
 #### TDD System Test Green Phase
 
-- [ ] `CreateWidgetTest` · covers: `POST /widgets`
+- [ ] GS01 · `CreateWidgetTest` · covers: `POST /widgets`
 
 ### Post-Implementation Steps
 
 #### Manual Request Files
 
-- [ ] Update `.http` files to reflect the new request shape
+- [ ] P01 · Update `.http` files to reflect the new request shape
 
 ## Open Questions / Blockers
 

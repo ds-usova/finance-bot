@@ -1,12 +1,18 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
+      "Edit(.claude/**)",
+      "Edit(tools/**)",
       "Bash(tools/agent-test/agent-test.sh:*)",
       "Bash(./tools/agent-test/agent-test.sh:*)",
       "Bash(bash tools/agent-test/agent-test.sh:*)",
       "Bash(tools/inspect-jar/inspect-jar.sh:*)",
       "Bash(./tools/inspect-jar/inspect-jar.sh:*)",
       "Bash(bash tools/inspect-jar/inspect-jar.sh:*)",
+      "Bash(.claude/scripts/plan/plan.sh:*)",
+      "Bash(./.claude/scripts/plan/plan.sh:*)",
+      "Bash(bash .claude/scripts/plan/plan.sh:*)",
       "Bash(./gradlew:*)",
       "Bash(git add:*)",
       "Bash(git diff:*)",
@@ -14,12 +20,22 @@
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
+      "Bash(bash -n:*)",
+      "Bash(gawk --posix:*)",
       "Bash(jar tf:*)",
       "Bash(javap:*)",
       "Bash(unzip -l:*)",
       "Bash(unzip -p:*)",
       "Edit(docs/**)",
       "Read(//c/Users/rieic/.gradle/**)"
+    ],
+    "ask": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(py:*)",
+      "Bash(node:*)",
+      "Bash(perl:*)",
+      "Bash(sed -i:*)"
     ],
     "deny": [
       "Bash(git push:*)",

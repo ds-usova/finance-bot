@@ -40,6 +40,33 @@ spawn fall back to the default model.
    commands per layer, the architecture-enforcement test, and file locations. Pass the relevant conventions along in
    every sub-agent prompt — sub-agents must not guess build commands.
 
+**Addressing the plan.** Every checklist item carries an ID (`GU07`), and `plan.sh` — which ships with these
+instructions at `scripts/plan/plan.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under
+`.claude/` in a plain checkout — is how this skill reads and writes them. Its README sits beside it.
+
+| Need                          | Command                                                     |
+|-------------------------------|-------------------------------------------------------------|
+| Where the run stands          | `plan.sh status`                                            |
+| One item's text and scenarios | `plan.sh show GU07`                                         |
+| What is spawnable right now   | `plan.sh next --group <group>` (`--all` also shows waiting) |
+| Mark an item done             | `plan.sh tick GU07`                                         |
+| Leave it open, record why     | `plan.sh block GU07 "<reason>"`                             |
+
+**Always scope `next` to the stage you are running.** Unscoped, it advances to the next group the moment the
+current one is fully ticked — so a run covering only the Red Phase would start handing back Green Phase items
+instead of reporting that it is finished. `--group red` returns `every item in scope is ticked` instead, which is
+the stage's completion signal. `--section` narrows further within a group and may be repeated. Both match any part
+of the heading, case-insensitively; an ambiguous `--group` lists the candidates rather than guessing.
+
+Refer to items by ID in every sub-agent prompt and ask for the ID back in the report, so a tick is never matched
+against wording that may have changed mid-run.
+
+A plan whose items have no IDs predates this format: `plan.sh validate` will say so item by item. Add the IDs
+first (the orchestrator owns plan edits), then proceed.
+
+If the script is genuinely absent — an incomplete install — say so and fall back to editing the checkboxes
+directly. Everything below still applies; only the mechanics change.
+
 ## Version Control
 
 Whether this run commits its own progress is a **module convention, not a skill default.** Read the module's
@@ -136,7 +163,8 @@ Covers the plan's **Red Phase** group — its **TDD Unit Red Phase**, **TDD Inte
 System Test Red Phase** sections. Writing tests has no cross-dependencies — the stubs they compile against all
 exist after Stage 1 — so:
 
-- Spawn **one sub-agent per unchecked checklist item**, across all three red sections. Respect the module
+- Spawn **one sub-agent per unchecked checklist item**, across all three red sections — `plan.sh next --group red`
+  lists them, and reports the stage finished rather than rolling into Green. Respect the module
   conventions' **Parallelism** section: if it sets a max parallel RED-phase sub-agents count, spawn no more than
   that many at once, launching the next queued item as each running one finishes, until the whole batch is done. If
   the section is missing or silent, spawn everything at once, uncapped — the step count in the plan is the batch
@@ -148,7 +176,8 @@ exist after Stage 1 — so:
     - system steps → `.claude/commands/tdd-system-red-phase-step.md`
 
 **Per-step guardrail** (the sub-agent verifies; the orchestrator trusts the reports — the stage guardrail below is
-the systematic check): the test class it wrote **compiles cleanly and fails at runtime**. A red test that passes against a stub is as much a defect as one
+the systematic check): the test class it wrote **compiles cleanly and fails at runtime**. A red test that passes against
+a stub is as much a defect as one
 that doesn't compile — it means the test asserts nothing — with one exception: tests asserting the *absence* of
 behaviour (e.g. "no exception is thrown") may legitimately pass against a no-op stub, and sub-agents list those as
 expected passes in their reports rather than rework them. Production code must not be touched in this stage.
@@ -189,19 +218,37 @@ must exist), so it starts only after every unit and integration green item is ti
 implementation lands here.
 
 1. Take the unchecked items of **TDD Unit Green Phase** and **TDD Integration Green Phase** as one batch and
-   schedule it in **dependency waves**: every item whose `after:` dependencies are all ticked (or that has none) is
-   eligible to spawn; each time a step reports success and its item is ticked, re-evaluate what that unblocks.
-   Never spawn a step while an `after:` dependency of it is unticked. If a dependency step reports a blocker, do not
-   spawn its dependents — record them as blocked by that dependency rather than letting them fail for a confusing
-   downstream reason. Respect the module conventions' **Parallelism** section: if it sets a max parallel
-   GREEN-phase sub-agents per wave, never have more than that many running at once — when eligible items exceed
-   the cap, spawn up to the cap and queue the rest, launching a queued one as soon as a running slot frees up. If
-   the section is missing or silent, spawn every eligible item at once, uncapped. Prompts come from
-   `.claude/commands/tdd-unit-green-phase-step.md` and `.claude/commands/tdd-integration-green-phase-step.md`
-   respectively, plus step context and conventions.
-   - **One class = one sub-agent**: the plan structure normally gives each target class exactly one green item, so
-     no two parallel sub-agents ever edit the same production file. If two items do name the same target class,
-     merge them into a single sub-agent task covering both — never hand the same class to multiple parallel agents.
+   schedule it in **dependency waves**:
+
+   ```
+   plan.sh next --group green --section unit --section integration
+   ```
+
+   That is the scheduler: it lists exactly the items whose `after:` dependencies are all ticked, so re-running it
+   after each tick is what reveals the next wave. Never spawn a step `next` does not list. If a dependency step
+   reports a blocker, do not spawn its dependents — record them as blocked by that dependency rather than letting
+   them fail for a confusing downstream reason.
+
+   The two `--section` flags are what keep system green out of this batch. System-green items often carry no
+   `after:` edges — they depend on everything, which plans express by ordering rather than by listing every ID —
+   so without the sections they would come back eligible in the first wave, against the rule below that they run
+   last.
+
+   Respect the module conventions' **Parallelism** section: if it sets a max parallel GREEN-phase sub-agents per
+   wave, never have more than that many running at once — when eligible items exceed the cap, spawn up to the cap
+   and queue the rest, launching a queued one as soon as a running slot frees up. If the section is missing or
+   silent, spawn every eligible item at once, uncapped.
+
+   **When the cap forces a choice, take them in the order `next` gives.** It ranks by longest remaining dependency
+   chain, and that chain — not the cap — is what sets the phase's wall time: deferring an item that heads a deep
+   chain in favour of a leaf costs a whole wave for nothing. The ordering is only advice when every eligible item
+   fits under the cap.
+
+   Prompts come from `.claude/commands/tdd-unit-green-phase-step.md` and
+   `.claude/commands/tdd-integration-green-phase-step.md` respectively, plus step context and conventions.
+    - **One class = one sub-agent**: the plan structure normally gives each target class exactly one green item, so
+      no two parallel sub-agents ever edit the same production file. If two items do name the same target class,
+      merge them into a single sub-agent task covering both — never hand the same class to multiple parallel agents.
 2. Wait until every item in the unit + integration batch is ticked or recorded as blocked. Tick items as they
    succeed; run the module's unit and integration suites once the batch is done and confirm both are fully green
    before proceeding. Once green, commit per the Version Control policy (if its granularity commits per wave —
@@ -274,6 +321,9 @@ wins and the bug gets reported, not chased.
 
 ## Tick Policy
 
+- Tick with `plan.sh tick <ID>` and record blockers with `plan.sh block <ID> "<reason>"`; never hand-edit a
+  checkbox. Both address the item by ID, so neither depends on the wording matching what it was when the run
+  started.
 - Completed and verified in this run → `- [x]`; not done or blocked → keep `- [ ]`.
 - A checkbox with multiple sub-tasks is ticked only when all of them are done.
 - Never tick on a sub-agent's claim alone if the stage guardrail later contradicts it — the guardrail wins.
