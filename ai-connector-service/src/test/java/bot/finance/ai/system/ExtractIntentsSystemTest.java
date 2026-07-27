@@ -63,8 +63,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when text creates a category and an expense in it - then returns both intents in the user's order")
-        void whenTextCreatesACategoryAndAnExpenseInIt_thenReturnsBothIntentsInOrder() {
+        @DisplayName("when text creates a category and an expense in it - then the expense uses the category created earlier in the message")
+        void whenTextCreatesACategoryAndAnExpenseInIt_thenExpenseUsesTheCategoryCreatedEarlierInMessage() {
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.extractedIntentsJson(
                     ChatCompletionFixtures.intentEntry()
                             .target("category")
@@ -81,7 +81,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                             .build()));
 
             ExtractIntentsRequest request = RequestFixtures.request(
-                    "create a Travel category and put 50 euros of taxi in it");
+                    "create a Travel category and put 50 euros of taxi in it", List.of("Food", "Other"));
 
             ExtractIntentsResponse response = intentExtractionStub.extractIntents(request);
             log.info("response: {}", response);
@@ -124,7 +124,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             List<LoggedRequest> requests =
                     WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(CHAT_COMPLETIONS_PATH)));
             assertThat(requests).hasSize(1);
-            String requestBody = requests.get(0).getBodyAsString();
+            String requestBody = requests.getFirst().getBodyAsString();
             log.info("request body received by the provider: {}", requestBody);
             assertThat(requestBody).contains("Food").contains("Travel").contains("Other");
         }
@@ -158,6 +158,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             ExtractIntentsRequest request = RequestFixtures.request();
 
+            // be aware: catchThrowableOfType is deprecated
             StatusRuntimeException exception = catchThrowableOfType(
                     () -> intentExtractionStub.extractIntents(request), StatusRuntimeException.class);
 

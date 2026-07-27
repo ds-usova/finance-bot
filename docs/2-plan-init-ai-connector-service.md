@@ -10,13 +10,20 @@ by an OpenAI chat model through **Spring AI 2**.
 
 One message can carry **several** intents: *"create a Travel category and put 50 euros of taxi in it"* is a
 category creation followed by an expense. The response is therefore an ordered list, not a single intent, and
-**the order is the order the user expressed them** — the caller executes them in sequence, and in that example
-the category must exist before the expense referencing it can be recorded.
+**the order is the order the user expressed them** — the service never reorders. A user may equally name the
+expense first (*"I ordered a coffee for 5 euros while traveling, so create a Travel category too"*), so a
+caller executing the list in sequence must be ready to create a category an earlier expense already named.
 
 The request carries **the categories the user already has**, and an expense may only be filed under one of
 them: *"spent 15 euros on lunch"* becomes an expense in `Food` if `Food` is one of theirs. The caller always
 includes a catch-all (`Other`), so there is always a fit. **The service never proposes a new category** — a
 category is created only when the user asks for one outright.
+
+A category the user asks to create **anywhere in the same message** joins that set, for every entry whatever
+its position: *"create a Travel category and put 50 euros of taxi in it"* and *"I ordered a coffee for 5 euros
+while traveling, so create a Travel category too"* both file the expense under `Travel`, though the caller had
+never heard of it. A message is one unit of intent — a user who mentions the expense first has still asked for
+the category.
 
 Two intent families are in scope, each with the full CRUD operation set:
 
@@ -43,9 +50,14 @@ naming it) and **never empty** ("nothing found" is one entry with `OPERATION_UNK
 
 `known_categories` is a **closed set** and must be non-empty — an empty list is `INVALID_ARGUMENT`, since a
 caller that omits it would otherwise get every categorized expense back as `UNKNOWN`. An `ExpenseIntent` whose
-category is not in the set becomes `UNKNOWN`. Matching is case-insensitive and the caller's spelling is
+category is not in the set becomes `UNKNOWN`. Matching is case-insensitive and the matched spelling is
 returned. The constraint applies to the category an expense is *filed under*, not to `CategoryIntent.name` — a
 user asking to create `Travel` names something deliberately absent from the set.
+
+The set is closed per request but **includes what the message creates**: every answer that is a category
+`CREATE` with a usable name contributes it, wherever it sits. Only a creation contributes — a read, update or
+delete does not — and only one that can actually be assembled, since a creation with a blank name never
+happens.
 
 A `CREATE` expense always carries a category: the catch-all guarantees a fit, so an omission is model
 non-compliance and becomes `UNKNOWN`. `READ` and `DELETE` may omit it — *"delete my last expense"* names no
@@ -144,6 +156,11 @@ record of **nullable `String` fields** carrying one unvalidated answer — and a
 Each entry is assembled inside its own `try`, so one bad answer yields an `UnknownIntent` in its position and
 leaves its neighbours intact; a single try around the loop would discard a message's usable intents. Order is
 preserved throughout — `List`, never `Set`, no sorting.
+
+Assembly is therefore **two passes**: the first collects the name of every raw answer that is a usable category
+creation, the second assembles each entry against the command's categories plus those. `assemble` takes that
+combined set rather than reading the command's list directly, so an expense does not depend on where in the
+message its category was created.
 
 The adapter never builds domain objects or parses amounts: it passes the model's decimal string through, and
 `Money.of(String, String)` parses it with `new BigDecimal(String)`.
@@ -714,6 +731,29 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
           when: extractIntents() is called
           then: a CategoryIntent is returned — the closed set constrains what an expense is filed under, not
           what the user may ask to create
+        - given: a category-creation answer naming "Travel", then an expense answer filed under "Travel", and a
+          command whose known categories do **not** include it
+          when: extractIntents() is called
+          then: returns a CategoryIntent then an ExpenseIntent carrying "Travel" — a category created earlier in
+          the message is available to the entries that follow it
+        - given: the same two answers in the opposite order — the expense filed under "Travel" first, the
+          creation of "Travel" second — with "Travel" absent from the known categories
+          when: extractIntents() is called
+          then: returns an ExpenseIntent carrying "Travel" then a CategoryIntent — position does not matter, as
+          in *"I ordered a coffee for 5 euros while traveling, so create a Travel category too"*
+        - given: a creation of "Travel" followed by an expense naming "travel" in a different case
+          when: extractIntents() is called
+          then: the ExpenseIntent carries "Travel" — a category created in-message matches case-insensitively
+          and returns its own spelling, exactly as a pre-existing one does
+        - given: a category answer whose operation is **delete** naming "Travel", followed by an expense filed
+          under "Travel", with "Travel" absent from the known categories
+          when: extractIntents() is called
+          then: the expense position holds an UnknownIntent — only a creation adds to the set
+        - given: a category-creation answer that fails to assemble (a blank name), followed by an expense filed
+          under that same name
+          when: extractIntents() is called
+          then: both positions hold an UnknownIntent — a creation that did not survive assembly never happened,
+          so it adds nothing
         - given: the mocked port returns one raw category answer with target "category" and operation "delete"
           when: extractIntents() is called
           then: returns a single CategoryIntent with operation DELETE and the given name
@@ -878,10 +918,11 @@ public List<Intent> extractIntents(IntentExtractionCommand command) {
           then: returns OK with one intent — OPERATION_CREATE, the expense payload, `minor_units` 1500 and
           currency "EUR"
         - given: the provider is stubbed to extract a "Travel" category creation followed by a 50 EUR taxi
-          expense
+          expense filed under "Travel", and known categories that do **not** include "Travel"
           when: ExtractIntents is called with "create a Travel category and put 50 euros of taxi in it"
-          then: returns OK with two intents — the category creation first, the expense second — proving the
-          whole stack carries a multi-intent answer through in the user's order
+          then: returns OK with two intents — the category creation first, then an expense carrying "Travel" —
+          proving the whole stack carries a multi-intent answer through in the user's order, and that a category
+          created in the message is available to the expense that follows it
         - given: known categories "Food", "Travel" and "Other", and the provider stubbed to file the expense
           under "Food"
           when: ExtractIntents is called with "spent 15 euros on lunch", naming no category
@@ -1020,15 +1061,19 @@ Blockers recorded during implementation:
   `RestClient` as the plan claimed. `spring.ai.openai.base-url` still redirects it and the wire format is
   unchanged, so the WireMock strategy holds — but it is now proven only at the first outbound-adapter test,
   not by the plan's reasoning.
-- **B5** (red phase, open — design question, not a blocker to implementation): a category created in one message
-  cannot be named by an expense in that same message unless it *already* appears in `known_categories`. The
-  closed-set rule is evaluated against the request's list, and the use case assembles each entry independently,
-  so *"create a Travel category and put 50 euros of taxi in it"* yields `CategoryIntent(Travel)` followed by
-  `UnknownIntent` whenever `Travel` is absent from the caller's list. The plan's own system-test scenario passes
-  only because `RequestFixtures` happens to carry `Travel` by default. Either the use case must treat a
-  preceding `CREATE` category as extending the closed set for later entries, or the caller must accept that a
-  same-message create-then-use pair does not resolve. `ExtractIntentsUseCaseTest` was written to the plan as
-  specified — its multi-intent scenarios file the expense under a pre-existing category.
+- **B5** (red phase, **resolved**): a category created in one message could not be named by an expense in that
+  same message unless it already appeared in `known_categories`, so *"create a Travel category and put 50 euros
+  of taxi in it"* yielded `CategoryIntent(Travel)` followed by `UnknownIntent`. Resolved by letting a
+  category `CREATE` anywhere in the message extend the available set for **every** entry, whatever its position
+  — see [Contract](#contract) and the flow description. Position deliberately does not matter: *"I ordered a
+  coffee for 5 euros while traveling, so create a Travel category too"* names the expense first and must still
+  resolve. Five scenarios were added to `ExtractIntentsUseCaseTest` and the system test's multi-intent scenario
+  now withholds `Travel` from `known_categories`, so it proves the rule rather than passing by fixture
+  coincidence.
+
+  Consequence for the caller: the response preserves the user's order and the service never reorders, so a
+  ledger executing the list in sequence may meet an expense naming a category created later in the same list.
+  Reconciling that is the caller's job, consistent with **Q11**.
 - **B3** (stabilization, resolved): a `void` RPC stub with an empty body terminates no `StreamObserver`, so
   every red-phase gRPC test would block to its deadline instead of failing. Overriding the generated method had
   removed the base class's own `UNIMPLEMENTED` response. `IntentExtractionGrpcService.extractIntents` now ends
