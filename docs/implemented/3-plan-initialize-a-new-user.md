@@ -500,6 +500,28 @@ end
   this plan.
 - A: Nothing should reach the port in this plan right now.
 
+### Raised by the refactor phase (2026-07-28)
+
+Found against the finished, green implementation. None is a defect in this plan's delivered scope — each would
+change behaviour, so the refactor agent reported rather than fixed them. They are recorded here for the plan that
+wires a caller.
+
+- **B1:** `UserRepositoryAdapter.create()` translates only `DataIntegrityViolationException`. Any other
+  `DataAccessException` — connection loss, deadlock, timeout — crosses the `UserRepository` port as an
+  `org.springframework.dao.*` type. ArchUnit cannot see it: a propagating exception is not a compile-time
+  dependency, so the framework-agnostic-core guarantee currently holds only on the happy path. F11 narrowed the
+  plan's claim to match this, so the text is accurate — but the gap is real and untested.
+- **B2:** `MAX_EXTERNAL_ID_LENGTH = 255` and `MAX_CATEGORY_NAME_LENGTH = 100` restate `V001`'s column widths with
+  nothing linking them. A later migration that widens a column leaves the adapter rejecting values the database
+  would accept.
+- **B3:** A null element inside a `Category` child list throws `NullPointerException` rather than
+  `InvalidCategoryException` — the compact constructor dereferences `child.children()` before `List.copyOf` runs.
+  Every other invalid input to the record yields the domain exception. Untested.
+- **B4:** `UserRepositoryAdapter.validateExternalId` returns early on a null external id, so `User.newUser(null)`
+  reaches the insert and fails the NOT NULL constraint as `PersistenceFailedException` instead of
+  `InvalidUserException`. Unreachable through `InitializeUserUseCase` (`NewUser` rejects blanks), but
+  `UserRepository.create` is a public port operation and `User` deliberately validates nothing.
+
 ## Review Findings
 
 - **F1:** `Category` permits arbitrary nesting while persistence handles exactly two levels. The canonical
