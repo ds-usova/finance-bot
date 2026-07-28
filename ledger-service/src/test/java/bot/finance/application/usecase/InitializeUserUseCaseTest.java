@@ -20,7 +20,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -80,20 +79,6 @@ class InitializeUserUseCaseTest {
 
             assertThat(result).isSameAs(storedUser);
             verify(userRepository, never()).create(any(), any());
-        }
-
-        @Test
-        @DisplayName("when no user is stored for the external id - then the creation is logged at info level "
-                + "carrying the external id")
-        void whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
-            when(userRepository.create(any(), any())).thenReturn(User.stored(1L, EXTERNAL_ID));
-
-            useCase.initialize(new NewUser(EXTERNAL_ID));
-
-            ArgumentCaptor<Object[]> loggedArguments = ArgumentCaptor.forClass(Object[].class);
-            verify(log).info(anyString(), loggedArguments.capture());
-            assertThat(loggedArguments.getValue()).contains(EXTERNAL_ID);
         }
 
         @Test

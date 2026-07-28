@@ -11,9 +11,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +25,9 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @PersistenceAdapterTest
 @Import(UserRepositoryAdapter.class)
@@ -87,15 +94,27 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an unstored user carrying an external id already stored - then the unique constraint rejects the insert and a PersistenceFailedException is raised, carrying the framework exception it replaced as its cause")
-        void whenCalledWithAlreadyStoredExternalId_thenPersistenceFailedExceptionCarriesFrameworkExceptionAsCause() {
-            userEntityRepository.save(new UserEntity(null, "duplicate-external-id"));
+        @DisplayName("when called with an unstored user whose external id is absent - then throws InvalidUserException before anything is written")
+        void whenUnstoredUserExternalIdIsAbsent_thenThrowsInvalidUserExceptionBeforeWritingAnything() {
+            User user = User.newUser(null);
+
+            assertThatThrownBy(() -> adapter.create(user, List.of()))
+                    .isInstanceOf(InvalidUserException.class);
+
+            assertThat(userEntityRepository.count()).isZero();
+        }
+
+        @Test
+        @DisplayName("when called with an unstored user carrying an already-stored external id - then returns that user and writes no categories")
+        void whenCalledWithAlreadyStoredExternalId_thenReturnsThatUserAndWritesNoCategories() {
+            UserEntity stored = userEntityRepository.save(new UserEntity(null, "duplicate-external-id"));
             User duplicateUser = User.newUser("duplicate-external-id");
 
-            assertThatThrownBy(() -> adapter.create(duplicateUser, List.of()))
-                    .isInstanceOf(PersistenceFailedException.class)
-                    .extracting(Throwable::getCause)
-                    .isInstanceOf(DataIntegrityViolationException.class);
+            User result = adapter.create(duplicateUser, Category.defaults());
+
+            assertThat(result.id()).contains(stored.id());
+            assertThat(result.externalId()).isEqualTo("duplicate-external-id");
+            assertThat(categoryRowsFor(stored.id())).isEmpty();
         }
 
         @Test
@@ -167,7 +186,7 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called for two users one after the other - then each user owns its own 98 category rows and neither user's rows reference the other's")
+        @DisplayName("when called for two users one after the other - then each user owns its own 97 category rows and neither user's rows reference the other's")
         void whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsWithNoCrossReferences() {
             User firstCreatedUser = adapter.create(User.newUser("first-user-external-id"), Category.defaults());
             User secondCreatedUser = adapter.create(User.newUser("second-user-external-id"), Category.defaults());
@@ -185,6 +204,90 @@ class UserRepositoryAdapterTest {
 
     }
 
+    // The scenarios below need a store that misbehaves in ways the healthy containerized
+    // Postgres cannot be made to: an unreachable connection, a non-constraint failure, and a
+    // batch insert that hands generated ids back out of input order. Each constructs its own
+    // adapter over Mockito mocks and calls the adapter's own public methods directly - it is
+    // still the adapter under test, just not wired against the real database.
+    @Nested
+    @DisplayName("against a mocked store, not the containerized database")
+    class WithAMockedStore {
+
+        private final UserEntityRepository mockedUserEntityRepository = mock(UserEntityRepository.class);
+        private final JdbcAggregateTemplate mockedJdbcAggregateTemplate = mock(JdbcAggregateTemplate.class);
+        private final UserRepositoryAdapter mockedAdapter =
+                new UserRepositoryAdapter(mockedUserEntityRepository, mockedJdbcAggregateTemplate);
+
+        @Test
+        @DisplayName("when the database is unreachable - then findByExternalId() throws PersistenceFailedException carrying the framework exception as its cause")
+        void whenDatabaseIsUnreachable_thenFindByExternalIdThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            DataAccessResourceFailureException frameworkException =
+                    new DataAccessResourceFailureException("connection refused");
+            when(mockedUserEntityRepository.findByExternalId("unreachable-external-id")).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findByExternalId("unreachable-external-id"))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedUserEntityRepository.save(any())).thenThrow(frameworkException);
+            User user = User.newUser("non-constraint-failure-external-id");
+
+            assertThatThrownBy(() -> mockedAdapter.create(user, List.of()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when the store hands generated group ids back in an order that does not match the input - then each child still pairs to the right group by name")
+        void whenGroupOrderIsNotPreserved_thenChildrenStillPairToTheRightGroupByName() {
+            when(mockedUserEntityRepository.save(any()))
+                    .thenReturn(new UserEntity(1L, "reordered-groups-external-id"));
+
+            Category first = Category.group("First", "First Child");
+            Category second = Category.group("Second", "Second Child");
+
+            @SuppressWarnings("unchecked")
+            List<CategoryEntity>[] capturedChildren = new List[1];
+            // Reverses the group order it was given before assigning generated ids - the store's
+            // insertAll is not guaranteed to preserve input order, unlike the real containerized
+            // Postgres this class otherwise runs against.
+            when(mockedJdbcAggregateTemplate.<CategoryEntity>insertAll(any()))
+                    .thenAnswer(invocation -> reversedWithGeneratedIds(invocation.getArgument(0)))
+                    .thenAnswer(invocation -> {
+                        capturedChildren[0] = invocation.getArgument(0);
+                        return capturedChildren[0];
+                    });
+
+            mockedAdapter.create(User.newUser("reordered-groups-external-id"), List.of(first, second));
+
+            Map<String, Long> parentIdByChildName = capturedChildren[0].stream()
+                    .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::parentId));
+            assertThat(parentIdByChildName)
+                    .as("children paired to their group by name, not by insertAll's return position")
+                    .containsEntry("First Child", 101L)
+                    .containsEntry("Second Child", 100L);
+        }
+
+        private List<CategoryEntity> reversedWithGeneratedIds(List<CategoryEntity> givenGroups) {
+            List<CategoryEntity> reversed = new ArrayList<>(givenGroups);
+            Collections.reverse(reversed);
+            List<CategoryEntity> withGeneratedIds = new ArrayList<>();
+            long id = 100;
+            for (CategoryEntity group : reversed) {
+                withGeneratedIds.add(new CategoryEntity(id++, group.userId(), group.parentId(), group.name()));
+            }
+            return withGeneratedIds;
+        }
+
+    }
+
     private List<CategoryEntity> categoryRowsFor(long userId) {
         return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
                 .filter(row -> row.userId() == userId)
@@ -193,12 +296,12 @@ class UserRepositoryAdapterTest {
 
     private void assertCategoryTreeWritten(long userId, List<Category> expectedTree) {
         List<CategoryEntity> rows = categoryRowsFor(userId);
-        assertThat(rows).hasSize(98);
+        assertThat(rows).hasSize(97);
 
         List<CategoryEntity> groupRows = rows.stream().filter(row -> row.parentId() == null).toList();
         List<CategoryEntity> childRows = rows.stream().filter(row -> row.parentId() != null).toList();
         assertThat(groupRows).hasSize(20);
-        assertThat(childRows).hasSize(78);
+        assertThat(childRows).hasSize(77);
 
         Map<String, Long> groupIdByName = groupRows.stream()
                 .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));

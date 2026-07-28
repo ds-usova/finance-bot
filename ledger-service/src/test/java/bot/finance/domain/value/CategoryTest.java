@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,6 +34,17 @@ class CategoryTest {
         @DisplayName("when the child list is absent - then throws InvalidCategoryException")
         void whenChildListIsAbsent_thenThrowsInvalidCategoryException() {
             assertThatThrownBy(() -> new Category("Groceries", null))
+                    .isInstanceOf(InvalidCategoryException.class);
+        }
+
+        @Test
+        @DisplayName("when the child list carries a null element - then throws InvalidCategoryException")
+        void whenChildListCarriesANullElement_thenThrowsInvalidCategoryException() {
+            List<Category> childrenWithNull = new ArrayList<>();
+            childrenWithNull.add(Category.leaf("Rent"));
+            childrenWithNull.add(null);
+
+            assertThatThrownBy(() -> new Category("Housing", childrenWithNull))
                     .isInstanceOf(InvalidCategoryException.class);
         }
 
@@ -112,15 +124,15 @@ class CategoryTest {
         }
 
         @Test
-        @DisplayName("when defaults() is called - then the whole tree holds 98 categories, of which 78 are children")
-        void whenDefaultsIsCalled_thenTheWholeTreeHolds98CategoriesOf78AreChildren() {
+        @DisplayName("when defaults() is called - then the whole tree holds 97 categories, of which 77 are children")
+        void whenDefaultsIsCalled_thenTheWholeTreeHolds97CategoriesOf77AreChildren() {
             List<Category> groups = Category.defaults();
             assertThat(groups).hasSize(20);
 
             int childCount = groups.stream().mapToInt(group -> group.children().size()).sum();
 
-            assertThat(childCount).isEqualTo(78);
-            assertThat(groups.size() + childCount).isEqualTo(98);
+            assertThat(childCount).isEqualTo(77);
+            assertThat(groups.size() + childCount).isEqualTo(97);
         }
 
         @Test
@@ -168,6 +180,20 @@ class CategoryTest {
             assertThat(groups).allSatisfy(group ->
                     assertThat(group.children()).allSatisfy(child ->
                             assertThat(child.children()).isEmpty()));
+        }
+
+        @Test
+        @DisplayName("when defaults() is called - then no category name is a brand")
+        void whenDefaultsIsCalled_thenNoCategoryNameIsABrand() {
+            List<Category> groups = Category.defaults();
+            List<String> brandNames = List.of("Netflix", "Spotify");
+
+            List<String> allNames = groups.stream()
+                    .flatMap(group -> Stream.concat(Stream.of(group.name()),
+                            group.children().stream().map(Category::name)))
+                    .toList();
+
+            assertThat(allNames).noneMatch(brandNames::contains);
         }
 
         private Category groupNamed(List<Category> groups, String name) {

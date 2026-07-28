@@ -502,7 +502,7 @@ only where the decision is already made.
 
 #### TDD Unit Red Phase
 
-- [ ] RU05 · `Category` · test: `CategoryTest` · covers: `Category()`, `defaults()`
+- [x] RU05 · `Category` · test: `CategoryTest` · covers: `Category()`, `defaults()`
     - `Category()`:
         - given: a child list carrying a null element
           when: the record is constructed
@@ -518,7 +518,7 @@ only where the decision is already made.
           substance; confirm the 20 group names still match the revised table
         - update: `whenDefaultsIsCalled_thenTravelIsPresentAsGroupAndAsChildOfInsurance()` — keep it. The
           repeat survives **Q4**, so ADR 0003's parent-scoped uniqueness keeps the case that justifies it
-- [ ] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
+- [x] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
         - update: `whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId()` — delete it.
           The logging matters but does not earn a test of its own, and asserting on it pins a message format
@@ -526,7 +526,7 @@ only where the decision is already made.
 
 #### TDD Integration Red Phase
 
-- [ ] RI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
+- [x] RI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
   `create()`
     - `findByExternalId()`:
         - given: the database is unreachable
@@ -551,7 +551,7 @@ only where the decision is already made.
         - update: `assertCategoryTreeWritten()` — the row counts become 97 and 77 (**Q4**)
         - update: `whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsWithNoCrossReferences()` — same count
           change, and the method name follows
-- [ ] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · covers: `create()`
+- [x] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · covers: `create()`
     - `create()`:
         - given: two threads released together by a `CountDownLatch`, both creating a user under the same
           external id
@@ -567,7 +567,7 @@ only where the decision is already made.
     - This step is what proves the conditional insert actually serializes two live callers. The single-threaded
       tests cannot: they never exercise the wait-for-an-uncommitted-insert path, which is the case the design
       leans on
-- [ ] RI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `EXTERNAL_ID`, `CATEGORY_NAME`
+- [x] RI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `EXTERNAL_ID`, `CATEGORY_NAME`
     - `EXTERNAL_ID`:
         - given: the migrated schema in the containerized database
           when: `app_user.external_id`'s `character_maximum_length` is read from `information_schema.columns`
