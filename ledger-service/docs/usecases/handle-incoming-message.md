@@ -29,6 +29,33 @@ Nothing is called outward.
 | Message discarded | the message carries no text           | nothing is logged and the message is not seen again                     |
 | Handling failed   | handling the message raises a failure | the failure is logged in its place and the batch is acknowledged anyway |
 
+## Components
+
+```plantuml
+@startuml C3-Component-ReceiveUserMessage
+!include <C4/C4_Component>
+
+AddElementTag("telegramExternal", $bgColor="#1c94e0", $fontColor="#ffffff", $borderColor="#125d8c")
+AddElementTag("portIn", $bgColor="#16a085", $fontColor="#ffffff", $borderColor="#0e6655", $legendText="inbound port (interface)")
+AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1b2631", $legendText="application core")
+AddRelTag("implements", $lineStyle="dashed")
+
+System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot", $tags="telegramExternal")
+
+Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
+  Component(telegramListener, "Telegram Update Listener", "Spring Component", "Long-polls the Bot API", $tags="telegramExternal")
+  Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port", $tags="portIn")
+  Component(handleMessageService, "Handle Incoming Message Use Case", "Plain Java", "Logs the conversation and the text", $tags="core")
+}
+
+Rel(telegram, telegramListener, "Update (message)", "Telegram Bot API, long polling")
+Rel_R(telegramListener, handleMessagePort, "Invokes")
+Rel_L(handleMessageService, handleMessagePort, "Implements", $tags="implements")
+
+SHOW_LEGEND()
+@enduml
+```
+
 ## Flow
 
 ```plantuml

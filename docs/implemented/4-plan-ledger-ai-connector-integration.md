@@ -485,25 +485,25 @@ end
 
 #### Documentation
 
-- [ ] P01 · `ledger-service/docs/configuration.md` — add the `AI_CONNECTOR_GRPC_TARGET` row (sets where the AI
+- [x] P01 · `ledger-service/docs/configuration.md` — add the `AI_CONNECTOR_GRPC_TARGET` row (sets where the AI
   Connector's gRPC server is reached; default the connector's local port; not required) and a note that the
   default matches `infrastructure/docker-compose.yaml`.
-- [ ] P02 · `ledger-service/docs/conventions/orientation.md` — correct the Tech Stack: the AI Connector Service
+- [x] P02 · `ledger-service/docs/conventions/orientation.md` — correct the Tech Stack: the AI Connector Service
   is consumed over gRPC, not HTTP/REST, and contract-first codegen is no longer "none" but the repo-root
   `proto/` schema generating into `build/generated/sources/proto/main/`.
-- [ ] P03 · `ledger-service/docs/conventions/architecture.md` — add the generated-sources location to File
+- [x] P03 · `ledger-service/docs/conventions/architecture.md` — add the generated-sources location to File
   Locations, and bring the Architecture Enforcement rule list in line with ST10's banned packages and name
   fragments.
-- [ ] P04 · `ledger-service/README.md` — the C3 diagram illustrates **one** primary use case, the expense
+- [x] P04 · `ledger-service/README.md` — the C3 diagram illustrates **one** primary use case, the expense
   pipeline. Drop the `Initialize User Port` / `Initialize a New User Use Case` / `User Repository Port` /
   `User Repository Adapter` components and their relationships, and rename the placeholder
   `Expense Extraction Port` / `AI Connector Adapter` pair to the names this plan built.
-- [ ] P05 · Record the diagram convention where each file already says what a document holds — the
+- [x] P05 · Record the diagram convention where each file already says what a document holds — the
   Documentation References entries in `ledger-service/docs/conventions/orientation.md` and
   `ai-connector-service/docs/conventions/orientation.md`: the README's C3 covers one primary use case rather
   than every port and adapter, and each page under `docs/usecases/` carries its own C3 showing that use case's
   collaborators and interfaces.
-- [ ] P06 · Add that C3 diagram to every existing use-case page — `ledger-service/docs/usecases/`'s
+- [x] P06 · Add that C3 diagram to every existing use-case page — `ledger-service/docs/usecases/`'s
   `handle-incoming-message.md` and `initialize-a-new-user.md`, and
   `ai-connector-service/docs/usecases/extract-intents.md` — showing the components each use case touches on
   both sides, its ports, and the external systems they front. No page is left describing a convention it does

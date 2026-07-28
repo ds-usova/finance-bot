@@ -34,10 +34,10 @@ Background reading before making changes. These documents provide context; where
 conventions, the conventions win.
 
 - Architecture / diagrams: [`ai-connector-service/README.md`](../../README.md) — a C4 **C3 Component** diagram
-  (PlantUML) of every port and adapter and the external system each fronts. The repo-root `README.md` holds C1
+  (PlantUML) of one primary use case, not of every port and adapter. The repo-root `README.md` holds C1
   (System Context) and C2 (Container).
 - Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
-  with, in the product's words.
+  with, in the product's words, and a C3 of the components, ports and external systems that use case touches.
 - Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment

@@ -11,6 +11,7 @@ deployment supplies its own.
 | `TELEGRAM_BOT_TOKEN`       | which bot the service collects messages for and acts as     | *(none)*                                      | when polling is on |
 | `TELEGRAM_POLLING_ENABLED` | whether the service collects Telegram messages at all       | `true`                                        | no                 |
 | `TELEGRAM_API_URL`         | where Telegram's Bot API is reached                         | Telegram's own address                        | no                 |
+| `AI_CONNECTOR_GRPC_TARGET` | where the AI Connector's gRPC server is reached             | `static://localhost:1001`                     | no                 |
 
 ## Notes
 
@@ -24,3 +25,6 @@ deployment supplies its own.
 - The database defaults match the local Postgres in
   [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml), which also supplies all
   three database values to the service when it runs under compose.
+- `AI_CONNECTOR_GRPC_TARGET` defaults to the port that same file publishes for the AI Connector; under compose
+  the service is given the connector's container address instead. `/actuator/health` carries the connector's own
+  health answer, so a target pointing nowhere shows there rather than at the first extraction call.

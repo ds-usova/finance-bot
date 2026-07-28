@@ -66,6 +66,36 @@ Nothing calls this use case yet.
 | Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                               |
 | Storage failed         | the store cannot be reached or refuses the write | the failure reaches the caller                                                 |
 
+## Components
+
+```plantuml
+@startuml C3-Component-InitializeUser
+!include <C4/C4_Component>
+
+AddElementTag("dbExternal", $bgColor="#d68910", $fontColor="#ffffff", $borderColor="#8f5c0a")
+AddElementTag("portIn", $bgColor="#16a085", $fontColor="#ffffff", $borderColor="#0e6655", $legendText="inbound port (interface)")
+AddElementTag("portOut", $bgColor="#7f8c8d", $fontColor="#ffffff", $borderColor="#566573", $legendText="outbound port (interface)")
+AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1b2631", $legendText="application core")
+AddRelTag("implements", $lineStyle="dashed")
+
+ContainerDb(db, "Database", "PostgreSQL", "Stores users and their categories", $tags="dbExternal")
+
+Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
+  Component(initializeUserPort, "Initialize User Port", "Interface", "Inbound port", $tags="portIn")
+  Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Creates a user and their categories", $tags="core")
+  Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
+}
+
+Rel_L(initializeUserService, initializeUserPort, "Implements", $tags="implements")
+Rel_D(initializeUserService, userRepositoryPort, "Uses")
+Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
+Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
+
+SHOW_LEGEND()
+@enduml
+```
+
 ## Flow
 
 ```plantuml

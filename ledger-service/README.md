@@ -23,9 +23,10 @@ C3 is below. Package structure is in the
 
 ### C3 — Component
 
-Every interaction with something outside the service boundary goes through a port,
-never a direct call from the core. Adapters are colour-coded by the external
-dependency they front.
+The expense pipeline, the service's primary use case; each [use case](#use-cases)
+page carries its own C3. Every interaction with something outside the service
+boundary goes through a port, never a direct call from the core. Adapters are
+colour-coded by the external dependency they front.
 
 ```plantuml
 @startuml C3-Component-LedgerService
@@ -50,20 +51,15 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port", $tags="portIn")
   Component(expenseService, "Expense Recording Use Case", "Plain Java", "Orchestrates the pipeline", $tags="core")
 
-  Component(initializeUserPort, "Initialize User Port", "Interface", "Inbound port", $tags="portIn")
-  Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Creates a user and their categories", $tags="core")
-  Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
-
   Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port", $tags="portOut")
   Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port", $tags="portOut")
-  Component(extractionPort, "Expense Extraction Port", "Interface", "Outbound port", $tags="portOut")
+  Component(extractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(repositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(notificationPort, "Notification Port", "Interface", "Outbound port", $tags="portOut")
 
   Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Downloads audio", $tags="telegramExternal")
   Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Calls the transcriber", $tags="transcriberExternal")
-  Component(aiConnectorAdapter, "AI Connector Adapter", "gRPC Client", "Calls the AI connector", $tags="aiConnectorExternal")
+  Component(aiConnectorAdapter, "AI Connector Intent Extraction Adapter", "gRPC Client", "Calls the AI connector", $tags="aiConnectorExternal")
   Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists expenses", $tags="dbExternal")
   Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Sends the confirmation", $tags="telegramExternal")
 }
@@ -89,11 +85,6 @@ Lay_D(repositoryPort, transcriptionPort)
 Rel_R(expenseService, repositoryPort, "Uses")
 Rel_L(repositoryAdapter, repositoryPort, "Implements", $tags="implements")
 Rel_R(repositoryAdapter, db, "SQL", "JDBC")
-
-Rel_L(initializeUserService, initializeUserPort, "Implements", $tags="implements")
-Rel_D(initializeUserService, userRepositoryPort, "Uses")
-Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
-Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
 
 Rel_D(expenseService, notificationPort, "Uses")
 Rel_R(telegramNotifierAdapter, notificationPort, "Implements", $tags="implements")

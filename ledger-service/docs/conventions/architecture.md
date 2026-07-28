@@ -21,6 +21,7 @@ src/main
 │       ├── config      # use-case bean wiring only
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
+│       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── web
 │       └── persistence
 └── resources
@@ -49,8 +50,9 @@ config in `adapter/persistence`, web config in `adapter/web`. Use-case wiring is
 
 External services get one adapter subpackage each, holding everything that fronts that system — outbound
 clients *and* any inbound adapter it drives. `adapter/telegram` holds the long-polling listener and, in time,
-the file fetch and notification clients; `adapter/transcription` and `adapter/aiconnector` follow. `adapter/web`
-is for HTTP endpoints this service exposes, not for every inbound adapter.
+the file fetch and notification clients; `adapter/aiconnector` holds the gRPC client, and every generated proto
+type stays inside it; `adapter/transcription` follows. `adapter/web` is for HTTP endpoints this service exposes,
+not for every inbound adapter.
 
 ## Naming Across the Layer Boundary
 
@@ -67,6 +69,9 @@ The first is enforced below; the second by review.
 ## File Locations
 
 - Migrations: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`.
+- Protocol Buffers schema: repo-root `proto/<snake_case_name>.proto`, shared by every module that speaks the
+  contract and added to this build as an extra proto source directory. Generated Java lands in
+  `build/generated/sources/proto/main/`, never edited or committed.
 - API schema file: none yet — intended `src/main/resources/schemas/api.yaml`, to be confirmed with the first
   contract.
 - Manual `.http` request files: none yet — intended `ledger-service/docs/requests/`.
@@ -78,7 +83,8 @@ The first is enforced below; the second by review.
   [Build & Test Commands](build.md#build--test-commands)).
 - Rules:
   - the layer-dependency rules;
-  - `org.springframework..`, `jakarta..`, `org.slf4j..` and `com.pengrad..` banned from `domain`/`application`;
-    each new external-service library joins the list as its adapter lands;
+  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`
+    and `bot.finance.ai..` — the generated schema's own package — banned from `domain`/`application`; each new
+    external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
-    `Whisper` or `Postgres`; the list grows the same way.
+    `Whisper`, `Postgres`, `AiConnector`, `Grpc` or `Proto`; the list grows the same way.
