@@ -36,7 +36,7 @@ public final class IntentProtoUtils {
     private static Intent toIntent(bot.finance.ai.adapter.grpc.v1.Intent entry) {
         try {
             return switch (entry.getOperation()) {
-                case OPERATION_UNKNOWN -> new UnknownIntent(entry.getReason());
+                case OPERATION_UNKNOWN -> unknownIntent(entry.getReason());
                 case OPERATION_CREATE -> toIntentForPayload(Operation.CREATE, entry);
                 case OPERATION_READ -> toIntentForPayload(Operation.READ, entry);
                 case OPERATION_UPDATE -> toIntentForPayload(Operation.UPDATE, entry);
@@ -47,6 +47,11 @@ public final class IntentProtoUtils {
             // A shape the domain rejects becomes that one entry's reason; the rest of the response still maps.
             return new UnknownIntent(e.getMessage());
         }
+    }
+
+    private static Intent unknownIntent(String reason) {
+        String message = (reason == null || reason.isBlank()) ? "Unknown reason" : reason;
+        return new UnknownIntent(message);
     }
 
     private static Intent unrecognizedOperationIntent(bot.finance.ai.adapter.grpc.v1.Intent entry) {

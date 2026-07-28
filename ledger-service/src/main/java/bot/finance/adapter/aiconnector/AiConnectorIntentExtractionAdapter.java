@@ -33,12 +33,14 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
             throw new InvalidExtractionRequestException("Intent extraction request must not be null");
         }
 
+        log.debug("Extracting the intent with text {}", request.text());
+
         ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
         ExtractIntentsResponse protoResponse;
         try {
-            log.debug("calling IntentExtractionService/ExtractIntents");
             protoResponse = intentExtractionStub.extractIntents(protoRequest);
         } catch (StatusRuntimeException e) {
+            log.error("Failed to extract the intent:", e);
             throw new IntentExtractionFailedException(
                     "Intent extraction call failed with status "
                             + e.getStatus().getCode().name(),
