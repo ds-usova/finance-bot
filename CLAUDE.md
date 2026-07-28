@@ -5,6 +5,12 @@
 [`tools/`](tools/README.md) holds the scripts that answer recurring questions about this repository — what a
 dependency contains, what a build did. Check its table before assembling a shell pipeline for the same thing.
 
+## Reading files
+
+Use the Read, Glob, and Grep tools to inspect files and directories — not `cat`, `find`, `sed`, or shell loops.
+The file tools run unprompted; shell equivalents (especially wrapped in `cd ... &&` or `for f in ...; do cat; done`)
+trigger permission prompts and can't be allowlisted around.
+
 ## Writing docs and plans
 
 Applies to READMEs, `docs/conventions/**`, and plan files in `docs/`.
