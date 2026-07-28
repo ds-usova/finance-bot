@@ -11,14 +11,17 @@ public record Category(String name, List<Category> children) {
         if (name == null || name.isBlank()) {
             throw new InvalidCategoryException("category has no name");
         }
+
         if (children == null) {
             throw new InvalidCategoryException("category has no child list");
         }
+
         for (Category child : children) {
             if (!child.children().isEmpty()) {
                 throw new InvalidCategoryException("category tree exceeds two levels");
             }
         }
+
         children = List.copyOf(children);
     }
 

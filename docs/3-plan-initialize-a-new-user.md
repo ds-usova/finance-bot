@@ -332,6 +332,33 @@ end
 - [x] ST14 · Compile the module and confirm `bot.finance.architecture.CleanArchitectureTest` still passes ·
   after: ST01, ST02, ST03, ST04, ST05, ST06, ST07, ST08, ST09, ST10, ST11, ST12, ST13
 
+### Stabilization — follow-up round
+
+Raised after the first round shipped. See **Q4**–**Q9** for what is still undecided; an item below is written
+only where the decision is already made.
+
+#### Tooling
+
+- [ ] ST15 · Wire an automatic formatter into the module's build so import order and layout stop being
+  hand-maintained (see **Q7** for which). It must be runnable as a check and as a fix, and the fix task belongs
+  in [Build](../ledger-service/docs/conventions/build.md) alongside the test wrapper. Apply it once across the
+  module in its own commit, so the reformatting does not ride along with behaviour changes ·
+  after: GU05, GU06, GI02, GI03
+
+#### Interface-First / Build Stabilization
+
+**Interface & Signature Sync**
+
+- [ ] ST16 · Document on each outbound and inbound port interface which runtime exceptions its operations
+  throw, as `@throws` javadoc on `UserRepository.findByExternalId`, `UserRepository.create` and
+  `InitializeUserPort.initialize`. A port is a contract and its failures are part of it; this is the one place
+  the conventions' "comments only for what the code cannot show" rule does not cut against writing them, since
+  an unchecked exception appears in no signature
+- [ ] ST17 · Extend `docs/conventions/code-style.md` with the two rules this round settles: a port interface
+  documents the runtime exceptions it throws (ST16), and an outbound adapter translates **every** runtime
+  exception from its infrastructure into a domain exception (GI02). Without this the next adapter repeats the
+  gap
+
 ### Red Phase
 
 #### TDD Unit Red Phase
@@ -424,7 +451,53 @@ end
           when: initialize() is called
           then: the exception reaches the caller unchanged and is not swallowed or retried
 
+### Red Phase — follow-up round
+
+#### TDD Unit Red Phase
+
+- [ ] RU05 · `Category` · test: `CategoryTest` · covers: `Category()`
+    - `Category()`:
+        - given: a child list carrying a null element
+          when: the record is constructed
+          then: throws InvalidCategoryException rather than NullPointerException — every invalid input to this
+          record yields the domain exception (finding **B3**)
+- [ ] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
+    - `initialize()`:
+        - update: `whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId()` — delete it.
+          The logging matters but does not earn a test of its own, and asserting on it pins a message format
+          nothing else depends on
+
 #### TDD Integration Red Phase
+
+- [ ] RI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
+  `create()`
+    - `findByExternalId()`:
+        - given: the database is unreachable
+          when: findByExternalId() is called
+          then: throws PersistenceFailedException carrying the framework exception as its cause — today the
+          framework type escapes through the port untranslated
+    - `create()`:
+        - given: an unstored user whose external id is absent
+          when: create() is called
+          then: throws InvalidUserException before anything is written, rather than failing the NOT NULL
+          constraint downstream (finding **B4**)
+        - given: a database failure that is not a constraint violation
+          when: create() is called
+          then: throws PersistenceFailedException carrying the framework exception as its cause (finding **B1**)
+        - update: `whenCalledWithUnstoredUserAndDefaultCategories_thenCategoryTreeIsWrittenMatchingByName()` —
+          keep the assertion, and add one that the pairing survives a group order the store does not preserve,
+          so the test stops depending on `insertAll` returning rows in input order
+- [ ] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · covers: `create()`
+    - `create()`:
+        - given: two threads released together by a `CountDownLatch`, both creating a user under the same
+          external id
+          when: both call create()
+          then: exactly one user row and one set of 98 category rows exist afterwards, and the loser's outcome
+          is whatever **Q5** settles
+    - A separate test class because it must commit rather than roll back, so it cannot share
+      `UserRepositoryAdapterTest`'s transactional slice; it cleans up after itself
+
+#### TDD Integration Red Phase — first round
 
 - [x] RI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
   `create()`
@@ -476,9 +549,38 @@ end
 - [x] GU03 · `NewUser` · test: `NewUserTest`
 - [x] GU04 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU01, GU02, GU03
 
+### Green Phase — follow-up round
+
+#### TDD Unit Green Phase
+
+- [ ] GU05 · `Category` · test: `CategoryTest` · after: GU01
+- [ ] GU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU04
+
 #### TDD Integration Green Phase
 
+- [ ] GI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU05
+- [ ] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · after: GI02
+
+#### TDD Integration Green Phase — first round
+
 - [x] GI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU01, GU02
+
+### Post-Implementation Steps
+
+#### Documentation
+
+- [ ] P01 · Cut the ADR template in the `archive-knowledge` instructions down to something a reader will
+  actually read — the four existing ADRs run to full pages for what are each a single settled decision. Fix the
+  template, not the symptom: state a target length, and make **Context** one paragraph on what forced the
+  decision, **Decision** the rule, **Consequences** what it costs. The instructions live in
+  `.claude/commands/archive-knowledge.md`, which is pulled into other projects as a plugin, so the change stays
+  project-agnostic
+- [ ] P02 · Rewrite the four existing ADRs to the shortened template — `0001`, `0002`, `0003`, `0004`. Rewriting
+  is not superseding: the decisions stand unchanged, only their length changes, so no new ADR number is taken ·
+  after: P01
+- [ ] P03 · Update `ledger-service/docs/usecases/initialize-a-new-user.md` for whatever **Q4** settles about the
+  catalogue, and bring `handle-incoming-message.md` onto the current use-case page shape — it still carries a
+  numbered **Flow** list beside its sequence diagram, which commit `db00a15` replaced · after: GU06
 
 ## Open Questions / Blockers
 
@@ -500,6 +602,42 @@ end
   this plan.
 - A: Nothing should reach the port in this plan right now.
 
+### Follow-up round (2026-07-28)
+
+- **Q4:** The predefined catalogue names specific brands — `Netflix`, `Spotify` — where a general label would
+  cover more (`Streaming` also covers YouTube). `Streaming Services` under Entertainment and `Netflix`/`Spotify`
+  under Subscriptions already overlap. Which catalogue does the product want? See the options in the
+  conversation; the answer replaces the table in **The category tree** and drives RU05/GU05 and P03.
+- A:
+
+- **Q5:** Two callers racing on the same external id: the loser currently gets `PersistenceFailedException`,
+  because the lookup and the insert are separate statements. Should the loser instead get the user the winner
+  created — making `initialize` idempotent under concurrency, not just in sequence? That is what RI03 asserts,
+  and it changes `create`'s contract.
+- A:
+
+- **Q6:** Should the domain model be records? `User` is a class because its identity is `externalId` alone,
+  while a record's generated `equals` covers every component including the database id. A record is possible if
+  identity moves out of `equals` — or if `User` stops carrying its id. Which?
+- A:
+
+- **Q7:** Which formatter for ST15 — Spotless (with `palantir-java-format` or `google-java-format`), or
+  Checkstyle as a check-only gate? A formatter rewrites; a linter only reports. The complaint is that style is
+  being hand-applied, which argues for the rewriter.
+- A:
+
+- **Q8:** Where do the adapter's validators belong? Options: private methods where they are now; a
+  package-private validator type in `adapter/persistence`; or on the entities, next to the columns whose widths
+  they enforce. The last keeps the width and its check in one place — but the entities are mapping types today
+  and would gain behaviour.
+- A:
+
+- **Q9:** Finding **B2** — the column widths are stated in both `V001` and the adapter, with nothing linking
+  them. Reading them from the database at startup would align them at the cost of a runtime dependency on the
+  schema; a comment in the migration pointing at the constants is free but only advisory. Which, or leave the
+  duplication and accept it?
+- A:
+
 ### Raised by the refactor phase (2026-07-28)
 
 Found against the finished, green implementation. None is a defect in this plan's delivered scope — each would
@@ -511,16 +649,22 @@ wires a caller.
   `org.springframework.dao.*` type. ArchUnit cannot see it: a propagating exception is not a compile-time
   dependency, so the framework-agnostic-core guarantee currently holds only on the happy path. F11 narrowed the
   plan's claim to match this, so the text is accurate — but the gap is real and untested.
+- Accepted 2026-07-28, widened: **every** runtime exception out of a repository is translated, in
+  `findByExternalId` as well as `create`. Fixed by RI02 / GI02; the rule is written down by ST17.
 - **B2:** `MAX_EXTERNAL_ID_LENGTH = 255` and `MAX_CATEGORY_NAME_LENGTH = 100` restate `V001`'s column widths with
   nothing linking them. A later migration that widens a column leaves the adapter rejecting values the database
   would accept.
+- Open — see **Q9**. The intent is settled (catch it in Java rather than let the database raise it); only the
+  mechanism for keeping the two in step is not.
 - **B3:** A null element inside a `Category` child list throws `NullPointerException` rather than
   `InvalidCategoryException` — the compact constructor dereferences `child.children()` before `List.copyOf` runs.
   Every other invalid input to the record yields the domain exception. Untested.
+- Accepted 2026-07-28; fixed by RU05 / GU05.
 - **B4:** `UserRepositoryAdapter.validateExternalId` returns early on a null external id, so `User.newUser(null)`
   reaches the insert and fails the NOT NULL constraint as `PersistenceFailedException` instead of
   `InvalidUserException`. Unreachable through `InitializeUserUseCase` (`NewUser` rejects blanks), but
   `UserRepository.create` is a public port operation and `User` deliberately validates nothing.
+- Accepted 2026-07-28; a null external id is rejected. Fixed by RI02 / GI02.
 
 ## Review Findings
 
