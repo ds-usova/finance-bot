@@ -1,20 +1,19 @@
 package bot.finance.adapter.persistence;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class UserRepositoryAdapter implements UserRepository {
@@ -26,7 +25,7 @@ public class UserRepositoryAdapter implements UserRepository {
     private final JdbcAggregateTemplate jdbcAggregateTemplate;
 
     public UserRepositoryAdapter(UserEntityRepository userEntityRepository,
-                                  JdbcAggregateTemplate jdbcAggregateTemplate) {
+                                 JdbcAggregateTemplate jdbcAggregateTemplate) {
         this.userEntityRepository = userEntityRepository;
         this.jdbcAggregateTemplate = jdbcAggregateTemplate;
     }

@@ -2,6 +2,7 @@ package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidCategoryException;
 
+import java.util.Arrays;
 import java.util.List;
 
 public record Category(String name, List<Category> children) {
@@ -26,7 +27,7 @@ public record Category(String name, List<Category> children) {
     }
 
     public static Category group(String name, String... childNames) {
-        return new Category(name, List.of(childNames).stream().map(Category::leaf).toList());
+        return new Category(name, Arrays.stream(childNames).map(Category::leaf).toList());
     }
 
     public static List<Category> defaults() {

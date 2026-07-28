@@ -1,9 +1,8 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.domain.value.Category;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-
-import bot.finance.domain.value.Category;
 
 @Table("category")
 public record CategoryEntity(@Id Long id, Long userId, Long parentId, String name) {

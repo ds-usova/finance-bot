@@ -1,8 +1,5 @@
 package bot.finance.application.usecase;
 
-import java.util.List;
-import java.util.Optional;
-
 import bot.finance.application.dto.NewUser;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -16,6 +13,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

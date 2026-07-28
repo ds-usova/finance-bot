@@ -5,9 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.stream.Stream;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,16 +17,13 @@ class NewUserTest {
     @DisplayName("constructing a new user")
     class NewUserConstructor {
 
-        @ParameterizedTest(name = "externalId=\"{0}\"")
-        @MethodSource("invalidExternalIds")
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"  "})
         @DisplayName("when the external id is absent, empty, or only whitespace - then throws InvalidUserException")
         void whenExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String externalId) {
             assertThatThrownBy(() -> new NewUser(externalId))
                     .isInstanceOf(InvalidUserException.class);
-        }
-
-        static Stream<String> invalidExternalIds() {
-            return Stream.of(null, "", "  ");
         }
 
         @Test

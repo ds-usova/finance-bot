@@ -35,36 +35,6 @@ class UserRepositoryAdapterTest {
     @Autowired
     private JdbcAggregateTemplate jdbcAggregateTemplate;
 
-    private List<CategoryEntity> categoryRowsFor(long userId) {
-        return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
-                .filter(row -> row.userId() == userId)
-                .toList();
-    }
-
-    private void assertCategoryTreeWritten(long userId, List<Category> expectedTree) {
-        List<CategoryEntity> rows = categoryRowsFor(userId);
-        assertThat(rows).hasSize(98);
-
-        List<CategoryEntity> groupRows = rows.stream().filter(row -> row.parentId() == null).toList();
-        List<CategoryEntity> childRows = rows.stream().filter(row -> row.parentId() != null).toList();
-        assertThat(groupRows).hasSize(20);
-        assertThat(childRows).hasSize(78);
-
-        Map<String, Long> groupIdByName = groupRows.stream()
-                .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
-
-        for (Category group : expectedTree) {
-            Long groupId = groupIdByName.get(group.name());
-            assertThat(groupId).as("group row for '%s'", group.name()).isNotNull();
-
-            for (Category child : group.children()) {
-                assertThat(childRows)
-                        .as("child row for '%s' under '%s'", child.name(), group.name())
-                        .anyMatch(row -> row.name().equals(child.name()) && groupId.equals(row.parentId()));
-            }
-        }
-    }
-
     @Nested
     @DisplayName("finding a user by its external id")
     class FindByExternalId {
@@ -213,6 +183,36 @@ class UserRepositoryAdapterTest {
             assertThat(firstUserRowIds).doesNotContainAnyElementsOf(secondUserRowIds);
         }
 
+    }
+
+    private List<CategoryEntity> categoryRowsFor(long userId) {
+        return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
+                .filter(row -> row.userId() == userId)
+                .toList();
+    }
+
+    private void assertCategoryTreeWritten(long userId, List<Category> expectedTree) {
+        List<CategoryEntity> rows = categoryRowsFor(userId);
+        assertThat(rows).hasSize(98);
+
+        List<CategoryEntity> groupRows = rows.stream().filter(row -> row.parentId() == null).toList();
+        List<CategoryEntity> childRows = rows.stream().filter(row -> row.parentId() != null).toList();
+        assertThat(groupRows).hasSize(20);
+        assertThat(childRows).hasSize(78);
+
+        Map<String, Long> groupIdByName = groupRows.stream()
+                .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
+
+        for (Category group : expectedTree) {
+            Long groupId = groupIdByName.get(group.name());
+            assertThat(groupId).as("group row for '%s'", group.name()).isNotNull();
+
+            for (Category child : group.children()) {
+                assertThat(childRows)
+                        .as("child row for '%s' under '%s'", child.name(), group.name())
+                        .anyMatch(row -> row.name().equals(child.name()) && groupId.equals(row.parentId()));
+            }
+        }
     }
 
 }

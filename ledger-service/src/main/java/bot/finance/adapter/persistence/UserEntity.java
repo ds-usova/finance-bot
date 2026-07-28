@@ -1,9 +1,8 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.domain.model.User;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
-
-import bot.finance.domain.model.User;
 
 @Table("app_user")
 public record UserEntity(@Id Long id, String externalId) {

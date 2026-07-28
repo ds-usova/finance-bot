@@ -1,10 +1,10 @@
 package bot.finance.application.port;
 
-import java.util.List;
-import java.util.Optional;
-
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface UserRepository {
 
