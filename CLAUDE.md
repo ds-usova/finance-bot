@@ -1,5 +1,10 @@
 # Finance Bot — Instructions
 
+## Tools
+
+[`tools/`](tools/README.md) holds the scripts that answer recurring questions about this repository — what a
+dependency contains, what a build did. Check its table before assembling a shell pipeline for the same thing.
+
 ## Writing docs and plans
 
 Applies to READMEs, `docs/conventions/**`, and plan files in `docs/`.
