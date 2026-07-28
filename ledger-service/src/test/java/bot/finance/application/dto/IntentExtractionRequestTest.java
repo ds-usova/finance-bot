@@ -27,8 +27,8 @@ class IntentExtractionRequestTest {
         @Test
         @DisplayName("when text, one category, and a default currency are valid - then it holds all three")
         void whenTextOneCategoryAndDefaultCurrencyAreValid_thenItHoldsAllThree() {
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro", List.of("food"), Optional.of(CurrencyCode.of("EUR")));
+            IntentExtractionRequest request =
+                    new IntentExtractionRequest("lunch 12 euro", List.of("food"), Optional.of(CurrencyCode.of("EUR")));
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.knownCategories()).containsExactly("food");
@@ -39,8 +39,8 @@ class IntentExtractionRequestTest {
         @MethodSource("nullOrBlankText")
         @DisplayName("when text is null or blank - then throws InvalidExtractionRequestException")
         void whenTextIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String text) {
-            assertThatThrownBy(() -> new IntentExtractionRequest(
-                            text, List.of("food"), Optional.of(CurrencyCode.of("EUR"))))
+            assertThatThrownBy(() ->
+                            new IntentExtractionRequest(text, List.of("food"), Optional.of(CurrencyCode.of("EUR"))))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 

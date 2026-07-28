@@ -511,6 +511,16 @@ end
 
 ## Open Questions / Blockers
 
+- **B1** (raised by the refactor pass, 2026-07-28): the stand-in reason for an `OPERATION_UNKNOWN` entry whose
+  `reason` is empty is accidental. `IntentProtoUtils` builds `new UnknownIntent(entry.getReason())`, which throws
+  on a blank reason, and the catch-and-convert path then turns the **domain validation message** into the
+  user-facing reason — so the intent reads `"Reason must not be null or blank"`. RU07's scenario asked for "a
+  stand-in reason rather than throwing" and the test only asserts `isNotBlank()`, so this passes. If an
+  explanatory fallback was meant, it was never written. Left as-is; behaviour is correct, the wording is not.
+- **B2** (raised by the refactor pass, 2026-07-28): `AiConnectorHealthIndicator` takes no `LoggerFactory` and
+  logs nothing when a health check fails, while the sibling adapter in the same package logs at `debug`. The
+  conventions force neither. Left as-is.
+
 - **Q1:** What deadline should an intent-extraction call carry? ST11 proposes `10s` on
   `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover a model round trip on the
   connector's side.

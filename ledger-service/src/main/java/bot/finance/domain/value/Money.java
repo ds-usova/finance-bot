@@ -1,7 +1,6 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidMoneyException;
-
 import java.math.BigDecimal;
 import java.util.Currency;
 

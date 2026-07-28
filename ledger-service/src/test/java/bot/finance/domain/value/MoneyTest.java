@@ -24,8 +24,7 @@ class MoneyTest {
         @Test
         @DisplayName("when minor units is -1 - then throws InvalidMoneyException")
         void whenMinorUnitsIsNegative_thenThrowsInvalidMoneyException() {
-            assertThatThrownBy(() -> new Money(-1, CurrencyCode.of("EUR")))
-                    .isInstanceOf(InvalidMoneyException.class);
+            assertThatThrownBy(() -> new Money(-1, CurrencyCode.of("EUR"))).isInstanceOf(InvalidMoneyException.class);
         }
 
         @Test
@@ -42,7 +41,8 @@ class MoneyTest {
     class Amount {
 
         @Test
-        @DisplayName("when there are 1250 minor units of EUR, a currency with two fraction digits - then it compares equal to 12.50")
+        @DisplayName(
+                "when there are 1250 minor units of EUR, a currency with two fraction digits - then it compares equal to 12.50")
         void whenMinorUnitsIs1250OfEur_thenAmountComparesEqualTo1250() {
             Money money = new Money(1250, CurrencyCode.of("EUR"));
 
@@ -50,7 +50,8 @@ class MoneyTest {
         }
 
         @Test
-        @DisplayName("when there are 1200 minor units of JPY, a currency with no fraction digits - then it compares equal to 1200")
+        @DisplayName(
+                "when there are 1200 minor units of JPY, a currency with no fraction digits - then it compares equal to 1200")
         void whenMinorUnitsIs1200OfJpy_thenAmountComparesEqualTo1200() {
             Money money = new Money(1200, CurrencyCode.of("JPY"));
 

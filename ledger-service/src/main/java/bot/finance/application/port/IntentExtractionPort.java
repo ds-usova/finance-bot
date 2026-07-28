@@ -4,7 +4,6 @@ import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.Intent;
-
 import java.util.List;
 
 public interface IntentExtractionPort {

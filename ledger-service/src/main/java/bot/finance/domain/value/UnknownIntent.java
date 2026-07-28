@@ -9,5 +9,4 @@ public record UnknownIntent(String reason) implements Intent {
             throw new InvalidIntentException("Reason must not be null or blank");
         }
     }
-
 }

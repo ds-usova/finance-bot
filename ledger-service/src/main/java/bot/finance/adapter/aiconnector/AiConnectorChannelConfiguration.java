@@ -3,7 +3,6 @@ package bot.finance.adapter.aiconnector;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.health.v1.HealthGrpc;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.client.GrpcChannelFactory;

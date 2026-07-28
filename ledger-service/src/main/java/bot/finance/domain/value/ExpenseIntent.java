@@ -1,7 +1,6 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidIntentException;
-
 import java.util.Optional;
 
 public record ExpenseIntent(
@@ -24,10 +23,10 @@ public record ExpenseIntent(
 
         if (operation == Operation.CREATE) {
             if (amount.isEmpty()) {
-                throw new InvalidIntentException("Operation " + operation.name() + " requires an amount");
+                throw new InvalidIntentException("Operation CREATE requires an amount");
             }
             if (categoryName.isEmpty()) {
-                throw new InvalidIntentException("Operation " + operation.name() + " requires a categoryName");
+                throw new InvalidIntentException("Operation CREATE requires a category name");
             }
         }
     }

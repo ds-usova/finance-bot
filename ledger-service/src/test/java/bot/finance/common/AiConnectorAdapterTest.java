@@ -5,7 +5,10 @@ import bot.finance.adapter.aiconnector.AiConnectorHealthIndicator;
 import bot.finance.adapter.aiconnector.AiConnectorIntentExtractionAdapter;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.containers.GrpcStubServer;
-
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.grpc.client.autoconfigure.CompositeChannelFactoryAutoConfiguration;
@@ -16,11 +19,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistrar;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 
 /**
  * Boots {@link AiConnectorIntentExtractionAdapter}, {@link AiConnectorHealthIndicator} and
@@ -57,8 +55,7 @@ public @interface AiConnectorAdapterTest {
 
         @Bean
         DynamicPropertyRegistrar aiConnectorTarget() {
-            return registry ->
-                    registry.add("spring.grpc.client.channel.ai-connector.target", GrpcStubServer::target);
+            return registry -> registry.add("spring.grpc.client.channel.ai-connector.target", GrpcStubServer::target);
         }
     }
 }

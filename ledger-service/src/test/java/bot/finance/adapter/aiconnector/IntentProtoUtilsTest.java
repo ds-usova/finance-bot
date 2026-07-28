@@ -1,5 +1,14 @@
 package bot.finance.adapter.aiconnector;
 
+import static bot.finance.common.IntentFixtures.categoryEntry;
+import static bot.finance.common.IntentFixtures.expenseEntry;
+import static bot.finance.common.IntentFixtures.payloadlessEntry;
+import static bot.finance.common.IntentFixtures.rawOperationValueEntry;
+import static bot.finance.common.IntentFixtures.response;
+import static bot.finance.common.IntentFixtures.unknownEntry;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
@@ -10,19 +19,12 @@ import bot.finance.domain.value.Intent;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.Operation;
 import bot.finance.domain.value.UnknownIntent;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Optional;
-
-import static bot.finance.common.IntentFixtures.categoryEntry;
-import static bot.finance.common.IntentFixtures.expenseEntry;
-import static bot.finance.common.IntentFixtures.response;
-import static bot.finance.common.IntentFixtures.unknownEntry;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class IntentProtoUtilsTest {
 
@@ -35,9 +37,7 @@ class IntentProtoUtilsTest {
                 + "generated request carries the text, the categories in order, and default_currency EUR")
         void whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll() {
             IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro",
-                    List.of("Groceries", "Transport", "Other"),
-                    Optional.of(CurrencyCode.of("EUR")));
+                    "lunch 12 euro", List.of("Groceries", "Transport", "Other"), Optional.of(CurrencyCode.of("EUR")));
 
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
@@ -68,8 +68,8 @@ class IntentProtoUtilsTest {
         @DisplayName("when the response holds one OPERATION_CREATE entry with a category payload - then a "
                 + "CategoryIntent with operation CREATE, that name, and an empty new name comes back")
         void whenCreateCategoryEntry_thenCategoryIntentWithCreateNameAndEmptyNewNameComesBack() {
-            ExtractIntentsResponse response = response(categoryEntry(
-                    bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE, "Groceries", null));
+            ExtractIntentsResponse response = response(
+                    categoryEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE, "Groceries", null));
 
             List<Intent> intents = IntentProtoUtils.toIntents(response);
 
@@ -80,13 +80,12 @@ class IntentProtoUtilsTest {
         @DisplayName("when the response holds one OPERATION_UPDATE category entry carrying new_name - then the "
                 + "CategoryIntent holds that new name")
         void whenUpdateCategoryEntryCarriesNewName_thenCategoryIntentHoldsThatNewName() {
-            ExtractIntentsResponse response = response(categoryEntry(
-                    bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_UPDATE, "Groceries", "Food"));
+            ExtractIntentsResponse response = response(
+                    categoryEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_UPDATE, "Groceries", "Food"));
 
             List<Intent> intents = IntentProtoUtils.toIntents(response);
 
-            assertThat(intents)
-                    .containsExactly(new CategoryIntent(Operation.UPDATE, "Groceries", Optional.of("Food")));
+            assertThat(intents).containsExactly(new CategoryIntent(Operation.UPDATE, "Groceries", Optional.of("Food")));
         }
 
         @Test
@@ -115,8 +114,8 @@ class IntentProtoUtilsTest {
         @DisplayName("when the response holds one OPERATION_READ expense entry with no amount and no "
                 + "description - then an ExpenseIntent with operation READ and empty optionals comes back")
         void whenReadExpenseEntryWithNoAmountAndNoDescription_thenExpenseIntentWithReadAndEmptyOptionalsComesBack() {
-            ExtractIntentsResponse response = response(expenseEntry(
-                    bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_READ, null, null, null, null));
+            ExtractIntentsResponse response = response(
+                    expenseEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_READ, null, null, null, null));
 
             List<Intent> intents = IntentProtoUtils.toIntents(response);
 
@@ -156,8 +155,9 @@ class IntentProtoUtilsTest {
         void whenUnknownEntryReasonIsEmpty_thenUnknownIntentCarriesStandInReasonRatherThanThrowing() {
             ExtractIntentsResponse response = response(unknownEntry(""));
 
-            List<Intent> intents = new java.util.ArrayList<>();
-            assertThatCode(() -> intents.addAll(IntentProtoUtils.toIntents(response))).doesNotThrowAnyException();
+            List<Intent> intents = new ArrayList<>();
+            assertThatCode(() -> intents.addAll(IntentProtoUtils.toIntents(response)))
+                    .doesNotThrowAnyException();
 
             assertThat(intents).hasSize(1);
             assertThat(intents.get(0)).isInstanceOf(UnknownIntent.class);
@@ -168,10 +168,8 @@ class IntentProtoUtilsTest {
         @DisplayName("when the response holds one OPERATION_UNSPECIFIED entry - then an UnknownIntent comes "
                 + "back whose reason names the unrecognized operation")
         void whenUnspecifiedEntry_thenUnknownIntentReasonNamesTheUnrecognizedOperation() {
-            bot.finance.ai.adapter.grpc.v1.Intent entry = bot.finance.ai.adapter.grpc.v1.Intent.newBuilder()
-                    .setOperation(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_UNSPECIFIED)
-                    .build();
-            ExtractIntentsResponse response = response(entry);
+            ExtractIntentsResponse response =
+                    response(payloadlessEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_UNSPECIFIED));
 
             List<Intent> intents = IntentProtoUtils.toIntents(response);
 
@@ -185,14 +183,13 @@ class IntentProtoUtilsTest {
                 + "does not define - then an UnknownIntent comes back whose reason names the unrecognized "
                 + "operation, and nothing is thrown")
         void whenEntryHasUndefinedOperationValue_thenUnknownIntentReasonNamesItAndNothingIsThrown() {
-            bot.finance.ai.adapter.grpc.v1.Intent entry = bot.finance.ai.adapter.grpc.v1.Intent.newBuilder()
-                    .setOperationValue(99)
-                    .build();
+            bot.finance.ai.adapter.grpc.v1.Intent entry = rawOperationValueEntry(99);
             ExtractIntentsResponse response = response(entry);
             assertThat(entry.getOperation()).isEqualTo(bot.finance.ai.adapter.grpc.v1.Operation.UNRECOGNIZED);
 
-            List<Intent> intents = new java.util.ArrayList<>();
-            assertThatCode(() -> intents.addAll(IntentProtoUtils.toIntents(response))).doesNotThrowAnyException();
+            List<Intent> intents = new ArrayList<>();
+            assertThatCode(() -> intents.addAll(IntentProtoUtils.toIntents(response)))
+                    .doesNotThrowAnyException();
 
             assertThat(intents).hasSize(1);
             assertThat(intents.get(0)).isInstanceOf(UnknownIntent.class);
@@ -203,10 +200,8 @@ class IntentProtoUtilsTest {
         @DisplayName("when the response holds one OPERATION_CREATE entry with neither payload set - then an "
                 + "UnknownIntent comes back whose reason says the entry carried no payload")
         void whenCreateEntryWithNeitherPayloadSet_thenUnknownIntentReasonSaysNoPayload() {
-            bot.finance.ai.adapter.grpc.v1.Intent entry = bot.finance.ai.adapter.grpc.v1.Intent.newBuilder()
-                    .setOperation(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE)
-                    .build();
-            ExtractIntentsResponse response = response(entry);
+            ExtractIntentsResponse response =
+                    response(payloadlessEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE));
 
             List<Intent> intents = IntentProtoUtils.toIntents(response);
 

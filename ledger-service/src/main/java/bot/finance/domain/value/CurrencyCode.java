@@ -1,7 +1,6 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidMoneyException;
-
 import java.util.Currency;
 
 public record CurrencyCode(String code) {
@@ -20,7 +19,6 @@ public record CurrencyCode(String code) {
     }
 
     public static CurrencyCode of(String code) {
-        // named factory over the compact constructor, which does the normalizing and the rejecting
         return new CurrencyCode(code);
     }
 }

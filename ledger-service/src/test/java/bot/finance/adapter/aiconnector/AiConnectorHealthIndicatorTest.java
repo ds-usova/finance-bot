@@ -31,7 +31,8 @@ class AiConnectorHealthIndicatorTest {
     class HealthCheck {
 
         @Test
-        @DisplayName("when the stub server reports SERVING for the empty service name - then the status is UP, and the check the server received named the empty service")
+        @DisplayName(
+                "when the stub server reports SERVING for the empty service name - then the status is UP, and the check the server received named the empty service")
         void whenStubServerReportsServing_thenStatusIsUpAndCheckNamedEmptyService() {
             GrpcStubServer.reportServingStatus(HealthCheckResponse.ServingStatus.SERVING);
 
@@ -45,7 +46,8 @@ class AiConnectorHealthIndicatorTest {
         @EnumSource(
                 value = HealthCheckResponse.ServingStatus.class,
                 names = {"NOT_SERVING", "UNKNOWN", "SERVICE_UNKNOWN"})
-        @DisplayName("when the stub server reports a non-SERVING status for the empty service name - then the status is DOWN and the detail carries the returned serving status")
+        @DisplayName(
+                "when the stub server reports a non-SERVING status for the empty service name - then the status is DOWN and the detail carries the returned serving status")
         void whenStubServerReportsNonServingStatus_thenStatusIsDownAndDetailCarriesServingStatus(
                 HealthCheckResponse.ServingStatus servingStatus) {
             GrpcStubServer.reportServingStatus(servingStatus);
@@ -60,7 +62,8 @@ class AiConnectorHealthIndicatorTest {
         @EnumSource(
                 value = Status.Code.class,
                 names = {"UNAVAILABLE", "UNIMPLEMENTED"})
-        @DisplayName("when the stub server fails the health check - then the status is DOWN and the detail names the status")
+        @DisplayName(
+                "when the stub server fails the health check - then the status is DOWN and the detail names the status")
         void whenStubServerFailsHealthCheck_thenStatusIsDownAndDetailNamesStatus(Status.Code code) {
             GrpcStubServer.failHealthCheckWith(Status.fromCode(code).withDescription("stub failure"));
 

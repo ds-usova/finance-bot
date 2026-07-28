@@ -6,8 +6,7 @@ import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseIntent;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.Operation;
-import bot.finance.domain.value.UnknownIntent;
-
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -68,8 +67,25 @@ public final class IntentFixtures {
         return builder.build();
     }
 
+    /** An entry carrying an operation but neither a category nor an expense payload. */
+    public static bot.finance.ai.adapter.grpc.v1.Intent payloadlessEntry(
+            bot.finance.ai.adapter.grpc.v1.Operation operation) {
+        return bot.finance.ai.adapter.grpc.v1.Intent.newBuilder()
+                .setOperation(operation)
+                .build();
+    }
+
+    /** An entry whose operation is a raw number, so the generated enum reads back as UNRECOGNIZED. */
+    public static bot.finance.ai.adapter.grpc.v1.Intent rawOperationValueEntry(int operationValue) {
+        return bot.finance.ai.adapter.grpc.v1.Intent.newBuilder()
+                .setOperationValue(operationValue)
+                .build();
+    }
+
     public static ExtractIntentsResponse response(bot.finance.ai.adapter.grpc.v1.Intent... entries) {
-        return ExtractIntentsResponse.newBuilder().addAllIntents(java.util.List.of(entries)).build();
+        return ExtractIntentsResponse.newBuilder()
+                .addAllIntents(List.of(entries))
+                .build();
     }
 
     public static CategoryIntent categoryIntent(Operation operation, String name, Optional<String> newName) {
@@ -79,10 +95,6 @@ public final class IntentFixtures {
     public static ExpenseIntent expenseIntent(
             Operation operation, Optional<String> categoryName, Optional<Money> amount, Optional<String> description) {
         return new ExpenseIntent(operation, categoryName, amount, description);
-    }
-
-    public static UnknownIntent unknownIntent(String reason) {
-        return new UnknownIntent(reason);
     }
 
     public static Money money(long minorUnits, String currencyCode) {

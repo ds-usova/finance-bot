@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.AiConnectorAdapterTest;
 import bot.finance.common.IntentFixtures;
@@ -47,7 +48,8 @@ class AiConnectorIntentExtractionAdapterTest {
                 "when the stub server answers a two-entry response - then the two domain intents come back in order, and the request the server received carries that text, those two categories in order, and that default currency")
         void whenStubServerAnswersTwoEntryResponse_thenDomainIntentsComeBackInOrderAndServerReceivedRequestFields() {
             GrpcStubServer.answerExtractionWith(IntentFixtures.response(
-                    IntentFixtures.categoryEntry(bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE, "Groceries", null),
+                    IntentFixtures.categoryEntry(
+                            bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE, "Groceries", null),
                     IntentFixtures.expenseEntry(
                             bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE,
                             "Groceries",
@@ -68,15 +70,15 @@ class AiConnectorIntentExtractionAdapterTest {
                     Optional.of("milk"));
             assertThat(intents).containsExactly(expectedCategoryIntent, expectedExpenseIntent);
 
-            bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest receivedRequest =
-                    GrpcStubServer.lastExtractionRequest();
+            ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
             assertThat(receivedRequest.getKnownCategoriesList()).containsExactly("Groceries", "Other");
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
         }
 
         @Test
-        @DisplayName("when the stub server answers a response with no entries - then throws IntentExtractionFailedException")
+        @DisplayName(
+                "when the stub server answers a response with no entries - then throws IntentExtractionFailedException")
         void whenStubServerAnswersResponseWithNoEntries_thenThrowsIntentExtractionFailedException() {
             GrpcStubServer.answerExtractionWith(IntentFixtures.response());
             IntentExtractionRequest request =
@@ -91,8 +93,9 @@ class AiConnectorIntentExtractionAdapterTest {
                 names = {"INVALID_ARGUMENT", "UNAVAILABLE"})
         @DisplayName(
                 "when the stub server fails the call - then throws IntentExtractionFailedException carrying the StatusRuntimeException as its cause and naming the status")
-        void whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionCarryingStatusRuntimeExceptionAsCauseAndNamingStatus(
-                Status.Code code) {
+        void
+                whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionCarryingStatusRuntimeExceptionAsCauseAndNamingStatus(
+                        Status.Code code) {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
             IntentExtractionRequest request =
                     new IntentExtractionRequest("connector unavailable", List.of("Other"), Optional.empty());
@@ -108,7 +111,8 @@ class AiConnectorIntentExtractionAdapterTest {
         }
 
         @Test
-        @DisplayName("when extract is called with null - then throws InvalidExtractionRequestException and the server is never called")
+        @DisplayName(
+                "when extract is called with null - then throws InvalidExtractionRequestException and the server is never called")
         void whenCalledWithNull_thenThrowsInvalidExtractionRequestExceptionAndServerIsNeverCalled() {
             assertThatThrownBy(() -> adapter.extract(null)).isInstanceOf(InvalidExtractionRequestException.class);
 

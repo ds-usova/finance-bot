@@ -69,7 +69,8 @@ class ExpenseIntentTest {
         @Test
         @DisplayName("when the operation is CREATE with an amount but no category name - then throws "
                 + "InvalidIntentException naming CREATE and the category")
-        void whenOperationIsCreateWithAmountButNoCategoryName_thenThrowsInvalidIntentExceptionNamingCreateAndCategory() {
+        void
+                whenOperationIsCreateWithAmountButNoCategoryName_thenThrowsInvalidIntentExceptionNamingCreateAndCategory() {
             Money amount = new Money(1250, new CurrencyCode("EUR"));
 
             assertThatThrownBy(() -> new ExpenseIntent(

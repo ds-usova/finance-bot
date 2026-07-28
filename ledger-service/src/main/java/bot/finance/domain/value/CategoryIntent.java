@@ -1,7 +1,6 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidIntentException;
-
 import java.util.Optional;
 
 public record CategoryIntent(Operation operation, String name, Optional<String> newName) implements Intent {

@@ -12,7 +12,6 @@ import bot.finance.domain.value.Intent;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.Operation;
 import bot.finance.domain.value.UnknownIntent;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +28,9 @@ public final class IntentProtoUtils {
     }
 
     public static List<Intent> toIntents(ExtractIntentsResponse response) {
-        return response.getIntentsList().stream().map(IntentProtoUtils::toIntent).toList();
+        return response.getIntentsList().stream()
+                .map(IntentProtoUtils::toIntent)
+                .toList();
     }
 
     private static Intent toIntent(bot.finance.ai.adapter.grpc.v1.Intent entry) {
@@ -43,9 +44,7 @@ public final class IntentProtoUtils {
                 case OPERATION_UNSPECIFIED, UNRECOGNIZED -> unrecognizedOperationIntent(entry);
             };
         } catch (InvalidIntentException | InvalidMoneyException e) {
-            // The domain values validate their own shape in their compact constructors; catching their
-            // rejection here keeps their message as the single reason, instead of re-checking the same
-            // constraints a second time in this mapper.
+            // A shape the domain rejects becomes that one entry's reason; the rest of the response still maps.
             return new UnknownIntent(e.getMessage());
         }
     }
@@ -59,8 +58,8 @@ public final class IntentProtoUtils {
         return switch (entry.getPayloadCase()) {
             case CATEGORY -> toCategoryIntent(operation, entry.getCategory());
             case EXPENSE -> toExpenseIntent(operation, entry.getExpense());
-            case PAYLOAD_NOT_SET -> new UnknownIntent(
-                    "Entry with operation " + operation + " carried no category or expense payload");
+            case PAYLOAD_NOT_SET ->
+                new UnknownIntent("Entry with operation " + operation + " carried no category or expense payload");
         };
     }
 

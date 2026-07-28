@@ -10,7 +10,6 @@ import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;
 import io.grpc.stub.StreamObserver;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,8 +23,7 @@ public class GrpcStubServer {
 
     private static volatile ExtractIntentsResponse extractionResponse = ExtractIntentsResponse.getDefaultInstance();
     private static volatile Status extractionFailure;
-    private static volatile HealthCheckResponse.ServingStatus servingStatus =
-            HealthCheckResponse.ServingStatus.SERVING;
+    private static volatile HealthCheckResponse.ServingStatus servingStatus = HealthCheckResponse.ServingStatus.SERVING;
     private static volatile Status healthFailure;
 
     static {
