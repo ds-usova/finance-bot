@@ -14,7 +14,7 @@ Nothing drives the use case yet — this plan adds the inbound port and its impl
 
 ### The category tree
 
-Categories are stored per user, two levels deep: 20 groups holding 78 children, 98 rows per user. The tree is
+Categories are stored per user, two levels deep: 20 groups holding 77 children, 97 rows per user. The tree is
 domain knowledge and lives on `Category.defaults()`:
 
 | Group             | Children                                                                    |
@@ -27,7 +27,7 @@ domain knowledge and lives on `Category.defaults()`:
 | Healthcare        | Doctors, Pharmacy, Dental, Vision, Health Insurance                         |
 | Education         | Tuition, Books, Courses, Certifications                                     |
 | Shopping          | Clothing, Electronics, Home Goods, Gifts                                    |
-| Entertainment     | Movies, Games, Streaming Services, Hobbies                                  |
+| Entertainment     | Movies, Games, Hobbies                                                      |
 | Travel            | Hotels, Flights, Vacation, Attractions                                      |
 | Pets              | Food, Vet, Grooming                                                         |
 | Family & Children | Childcare, School Supplies, Toys                                            |
@@ -37,11 +37,17 @@ domain knowledge and lives on `Category.defaults()`:
 | Work              | Office Supplies, Business Expenses                                          |
 | Insurance         | Life, Home, Vehicle, Travel                                                 |
 | Personal Care     | Haircuts, Cosmetics, Gym, Spa                                               |
-| Subscriptions     | Netflix, Spotify, Cloud Storage, Software                                   |
+| Subscriptions     | Streaming, Music, Cloud Storage, Apps & Software                            |
 | Miscellaneous     | Uncategorized Expenses                                                      |
 
 One name repeats across the tree — `Travel`, both as a group and as a child of Insurance. Uniqueness is
 therefore on `(user_id, parent_id, name)`, not on `(user_id, name)`.
+
+Revised by **Q4**: the catalogue names no brands. `Netflix`/`Spotify` became `Streaming`/`Music`, `Software`
+became `Apps & Software` — which is where a finance app goes — and `Streaming Services` left Entertainment,
+since Subscriptions already owned it. Two overlaps are knowingly left standing and are not this plan's work:
+Insurance repeats `Home Insurance`, `Car Insurance` and `Health Insurance` from the domain groups, and
+`Shopping > Gifts` sits beside the Gifts & Donations group.
 
 ### Domain
 
@@ -57,9 +63,10 @@ checks the external id upstream of every production call site, and the column wi
 **Persistence**).
 
 `domain/exception/InvalidUserException`, `domain/exception/InvalidCategoryException`, and
-`domain/exception/PersistenceFailedException` — the last one available to every repository adapter.
-`UserRepositoryAdapter.create()` uses it for the one failure it can provoke, the unique external id, so that
-failure does not reach the port as a framework type; no other translation is in this plan's scope.
+`domain/exception/PersistenceFailedException` — the last one available to every repository adapter. Every
+runtime exception a repository's infrastructure raises leaves it as this type, in `findByExternalId` as well as
+`create`, so no framework type reaches an outbound port (revised by the follow-up round; ST17 writes the rule
+down).
 
 ### Application
 
@@ -70,12 +77,17 @@ a person by; it carries no transport name inward.
 `application/port/InitializeUserPort` — `User initialize(NewUser newUser)`.
 
 `application/port/UserRepository` — the outbound port, with `Optional<User> findByExternalId(String externalId)`
-and `User create(User user, List<Category> categories)`. The user row and its 98 category rows are written by one
+and `User create(User user, List<Category> categories)`. The user row and its 97 category rows are written by one
 port operation so they can share a transaction; transaction machinery lives in the adapter.
 
 `application/usecase/InitializeUserUseCase` — looks the external id up, returns the user already there, or creates
-it with `Category.defaults()` and returns what was stored. A null command throws `InvalidUserException`. A storage
-failure is not caught: `PersistenceFailedException` propagates to the caller.
+it with `Category.defaults()` and returns what was stored. A null command throws `InvalidUserException`.
+
+Initialization is idempotent under concurrency as well as in sequence (**Q5**): when `create` fails, the use case
+looks the external id up once more. A user found on that second read means another caller won the race, and it is
+returned; nothing found means a real storage failure, and `PersistenceFailedException` reaches the caller. The
+recovery lives here rather than in the adapter because the adapter's transaction is already aborted by the
+constraint violation.
 
 `adapter/config/UseCaseConfiguration` gains the bean method for the new port.
 
@@ -83,7 +95,7 @@ failure is not caught: `PersistenceFailedException` propagates to the caller.
 
 `adapter/persistence/UserRepositoryAdapter` implements `UserRepository` over `UserEntityRepository`, a Spring Data
 JDBC interface, and `JdbcAggregateTemplate`. `create` runs in one transaction and three round trips: the user row,
-then all 20 groups in one batch, then all 78 children in one batch. `JdbcAggregateTemplate.insertAll` batches its
+then all 20 groups in one batch, then all 77 children in one batch. `JdbcAggregateTemplate.insertAll` batches its
 inserts and hands the stored entities back in the order it was given them, which is how each group's generated id
 is paired with its `Category`.
 
@@ -92,8 +104,9 @@ name of at most 100 — and rejects a violation with `InvalidUserException` / `I
 letting it surface as a driver error. The domain types do not carry these caps; the schema does, and the adapter is
 what knows the schema.
 
-A `DataIntegrityViolationException` out of the insert — the unique external id, under a race between two
-concurrent `initialize` calls — is translated into `PersistenceFailedException` on the way out.
+Every runtime exception the store raises is translated into `PersistenceFailedException`, carrying the original
+as its cause — the unique-external-id violation under a race, and equally a connection loss or a timeout, in both
+port operations. `create` does not recover from the race itself; see **Application**.
 
 Mapping lives on `UserEntity` (`toDomain()` / `fromDomain(User)`) and `CategoryEntity` (`root(...)` /
 `child(...)`); a category is never read back into the domain, since no use case reads categories yet.
@@ -212,7 +225,7 @@ else external id not seen before
     UserRepository -> Database : INSERT app_user
     UserRepository -> Database : batch INSERT 20 groups
     Database --> UserRepository : generated group ids
-    UserRepository -> Database : batch INSERT 78 children
+    UserRepository -> Database : batch INSERT 77 children
     UserRepository --> InitializeUserUseCase : the created user
     InitializeUserUseCase --> Caller : the created user
 end
@@ -339,11 +352,12 @@ only where the decision is already made.
 
 #### Tooling
 
-- [ ] ST15 · Wire an automatic formatter into the module's build so import order and layout stop being
-  hand-maintained (see **Q7** for which). It must be runnable as a check and as a fix, and the fix task belongs
-  in [Build](../ledger-service/docs/conventions/build.md) alongside the test wrapper. Apply it once across the
-  module in its own commit, so the reformatting does not ride along with behaviour changes ·
-  after: GU05, GU06, GI02, GI03
+- [ ] ST15 · Wire **Spotless with `palantir-java-format`** into `ledger-service/build.gradle` (**Q7**), so
+  import order and layout stop being hand-maintained. `spotlessApply` fixes, `spotlessCheck` gates; record both
+  in [Build](../ledger-service/docs/conventions/build.md) alongside the test wrapper, and drop the manual
+  import-order guidance from [Code Style](../ledger-service/docs/conventions/code-style.md) that the formatter
+  now owns. Apply it across the module in its own commit, so a whole-module reformat never rides along with a
+  behaviour change · after: GU05, GU06, GI02, GI03
 
 #### Interface-First / Build Stabilization
 
@@ -354,10 +368,12 @@ only where the decision is already made.
   `InitializeUserPort.initialize`. A port is a contract and its failures are part of it; this is the one place
   the conventions' "comments only for what the code cannot show" rule does not cut against writing them, since
   an unchecked exception appears in no signature
-- [ ] ST17 · Extend `docs/conventions/code-style.md` with the two rules this round settles: a port interface
-  documents the runtime exceptions it throws (ST16), and an outbound adapter translates **every** runtime
-  exception from its infrastructure into a domain exception (GI02). Without this the next adapter repeats the
-  gap
+- [ ] ST17 · Extend `ledger-service/docs/conventions/code-style.md` with the three rules this round settles:
+  a port interface documents the runtime exceptions it throws (ST16); an outbound adapter translates **every**
+  runtime exception from its infrastructure into a domain exception (GI02); and `domain/model` holds classes
+  while `domain/value` and `application/dto` hold records (**Q6**) — an entity whose identity is one field
+  cannot use a record's generated `equals`, and that is why `User` is a class. Without these written down, the
+  next adapter and the next entity repeat the same reasoning from scratch
 
 ### Red Phase
 
@@ -455,14 +471,36 @@ only where the decision is already made.
 
 #### TDD Unit Red Phase
 
-- [ ] RU05 · `Category` · test: `CategoryTest` · covers: `Category()`
+- [ ] RU05 · `Category` · test: `CategoryTest` · covers: `Category()`, `defaults()`
     - `Category()`:
         - given: a child list carrying a null element
           when: the record is constructed
           then: throws InvalidCategoryException rather than NullPointerException — every invalid input to this
           record yields the domain exception (finding **B3**)
+    - `defaults()`:
+        - given: nothing
+          when: defaults() is called
+          then: no category name is a brand — the catalogue stays legible when a service is renamed or replaced
+        - update: `whenDefaultsIsCalled_thenTheWholeTreeHolds98CategoriesOf78AreChildren()` — the counts become
+          97 and 77, and the method name follows
+        - update: `whenDefaultsIsCalled_thenReturnsThe20PredefinedGroupsByNameAndInOrder()` — unchanged in
+          substance; confirm the 20 group names still match the revised table
+        - update: `whenDefaultsIsCalled_thenTravelIsPresentAsGroupAndAsChildOfInsurance()` — keep it. The
+          repeat survives **Q4**, so ADR 0003's parent-scoped uniqueness keeps the case that justifies it
 - [ ] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
+        - given: the lookup finds nothing, create raises PersistenceFailedException, and a second lookup then
+          finds a user — another caller won the race between the two calls
+          when: initialize() is called
+          then: that user is returned, so initialization is idempotent under concurrency and not only in
+          sequence (**Q5**)
+        - given: the lookup finds nothing, create raises PersistenceFailedException, and a second lookup still
+          finds nothing — the failure was not a lost race
+          when: initialize() is called
+          then: the PersistenceFailedException reaches the caller, so a genuine storage failure is not
+          disguised as a race
+        - update: `whenRepositoryRaisesPersistenceFailedExceptionOnCreate_thenExceptionPropagatesUnchanged()` —
+          it now states the second case above; fold it into that scenario rather than keeping both
         - update: `whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId()` — delete it.
           The logging matters but does not earn a test of its own, and asserting on it pins a message format
           nothing else depends on
@@ -487,15 +525,26 @@ only where the decision is already made.
         - update: `whenCalledWithUnstoredUserAndDefaultCategories_thenCategoryTreeIsWrittenMatchingByName()` —
           keep the assertion, and add one that the pairing survives a group order the store does not preserve,
           so the test stops depending on `insertAll` returning rows in input order
+        - update: `assertCategoryTreeWritten()` — the row counts become 97 and 77 (**Q4**)
+        - update: `whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsWithNoCrossReferences()` — same count
+          change, and the method name follows
 - [ ] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · covers: `create()`
     - `create()`:
         - given: two threads released together by a `CountDownLatch`, both creating a user under the same
           external id
           when: both call create()
-          then: exactly one user row and one set of 98 category rows exist afterwards, and the loser's outcome
-          is whatever **Q5** settles
+          then: one call returns the stored user and the other throws PersistenceFailedException; exactly one
+          user row exists afterwards and it owns exactly 97 category rows, with none left behind by the loser
+        - given: two threads released together by a `CountDownLatch`, creating users under different external
+          ids
+          when: both call create()
+          then: both users are stored, each owning its own 97 category rows
     - A separate test class because it must commit rather than roll back, so it cannot share
-      `UserRepositoryAdapterTest`'s transactional slice; it cleans up after itself
+      `UserRepositoryAdapterTest`'s transactional slice; it cleans up after itself.
+    - **The recovery is not the adapter's.** The losing transaction is already aborted by the constraint
+      violation, so `create()` cannot re-read inside it without a second transaction. `create` therefore keeps
+      failing, and the use case turns that failure into the winner's user — see RU06. This step proves the
+      database half: the race really is decided by the constraint, and the loser leaves nothing behind
 
 #### TDD Integration Red Phase — first round
 
@@ -608,23 +657,32 @@ only where the decision is already made.
   cover more (`Streaming` also covers YouTube). `Streaming Services` under Entertainment and `Netflix`/`Spotify`
   under Subscriptions already overlap. Which catalogue does the product want? See the options in the
   conversation; the answer replaces the table in **The category tree** and drives RU05/GU05 and P03.
-- A:
+- A: Minimal — de-brand only. Applied: `Netflix`/`Spotify` became `Streaming`/`Music`, `Software` became
+  `Apps & Software`, and `Streaming Services` left Entertainment. 20 groups, 77 children, 97 rows. The
+  Insurance and `Shopping > Gifts` overlaps stay, knowingly, and are noted in **The category tree** for a later
+  pass. `Travel` still repeats, so ADR 0003 needs no change.
 
 - **Q5:** Two callers racing on the same external id: the loser currently gets `PersistenceFailedException`,
   because the lookup and the insert are separate statements. Should the loser instead get the user the winner
   created — making `initialize` idempotent under concurrency, not just in sequence? That is what RI03 asserts,
   and it changes `create`'s contract.
-- A:
+- A: The loser gets the winner's user. Applied — but **not** inside `create`: the losing transaction is already
+  aborted by the constraint violation, so re-reading within it would need a second transaction. `create` keeps
+  failing (RI03 proves the constraint decides the race and the loser leaves no rows behind), and
+  `InitializeUserUseCase` turns that failure into the winner's user, telling a lost race from a real storage
+  failure by re-reading (RU06).
 
 - **Q6:** Should the domain model be records? `User` is a class because its identity is `externalId` alone,
   while a record's generated `equals` covers every component including the database id. A record is possible if
   identity moves out of `equals` — or if `User` stops carrying its id. Which?
-- A:
+- A: `User` stays a class. `domain/model` holds classes, `domain/value` and `application/dto` hold records;
+  written down by ST17.
 
 - **Q7:** Which formatter for ST15 — Spotless (with `palantir-java-format` or `google-java-format`), or
   Checkstyle as a check-only gate? A formatter rewrites; a linter only reports. The complaint is that style is
   being hand-applied, which argues for the rewriter.
-- A:
+- A: Spotless with `palantir-java-format` — closest to the code already written, and it rewrites rather than
+  only reporting. ST15.
 
 - **Q8:** Where do the adapter's validators belong? Options: private methods where they are now; a
   package-private validator type in `adapter/persistence`; or on the entities, next to the columns whose widths
