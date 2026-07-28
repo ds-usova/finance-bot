@@ -42,13 +42,13 @@ public class UserRepositoryAdapter implements UserRepository {
         ColumnLimits.validateCategoryNames(categories);
 
         try {
-            return insert(user, categories);
+            return insertOrFindExisting(user, categories);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to store user " + user.externalId(), e);
         }
     }
 
-    private User insert(User user, List<Category> categories) {
+    private User insertOrFindExisting(User user, List<Category> categories) {
         // A concurrent uncommitted insert for the same external id makes this statement wait
         // rather than conflict, so the follow-up read below runs only after that insert commits.
         Optional<Long> insertedId = userEntityRepository.insertIfAbsent(user.externalId());

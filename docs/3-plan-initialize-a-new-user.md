@@ -441,7 +441,7 @@ only where the decision is already made.
           then: returns the 20 predefined groups, by name and in order
         - given: nothing
           when: defaults() is called
-          then: the whole tree holds 98 categories, of which 78 are children
+          then: the whole tree holds 97 categories, of which 77 are children (revised by **Q4**; RU05)
         - given: nothing
           when: defaults() is called
           then: the group named Housing carries exactly Rent, Mortgage, HOA, Property Tax, Home Insurance,
@@ -514,17 +514,17 @@ only where the decision is already made.
         - given: nothing
           when: defaults() is called
           then: no category name is a brand — the catalogue stays legible when a service is renamed or replaced
-        - update: `whenDefaultsIsCalled_thenTheWholeTreeHolds98CategoriesOf78AreChildren()` — the counts become
-          97 and 77, and the method name follows
+        - renamed: the counts-and-children test became
+          `whenDefaultsIsCalled_thenTheWholeTreeHolds97CategoriesOf77AreChildren()`, asserting 97 and 77
         - update: `whenDefaultsIsCalled_thenReturnsThe20PredefinedGroupsByNameAndInOrder()` — unchanged in
           substance; confirm the 20 group names still match the revised table
         - update: `whenDefaultsIsCalled_thenTravelIsPresentAsGroupAndAsChildOfInsurance()` — keep it. The
           repeat survives **Q4**, so ADR 0003's parent-scoped uniqueness keeps the case that justifies it
 - [x] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
-        - update: `whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId()` — delete it.
-          The logging matters but does not earn a test of its own, and asserting on it pins a message format
-          nothing else depends on
+        - deleted: the test asserting the creation is logged at info level with the external id. The logging
+          matters but does not earn a test of its own, and asserting on it pins a message format nothing else
+          depends on. The use case still logs; only the assertion is gone
 
 #### TDD Integration Red Phase
 
@@ -540,10 +540,10 @@ only where the decision is already made.
           when: create() is called
           then: throws InvalidUserException before anything is written, rather than failing the NOT NULL
           constraint downstream (finding **B4**)
-        - update: `whenCalledWithAlreadyStoredExternalId_thenPersistenceFailedExceptionCarriesFrameworkExceptionAsCause()`
-          — it now asserts the opposite. A second `create` under a stored external id returns that user and
-          writes no categories, instead of raising; rename it to match. The constraint violation is no longer
-          reachable through `create`
+        - renamed: the already-stored-external-id test became
+          `whenCalledWithAlreadyStoredExternalId_thenReturnsThatUserAndWritesNoCategories()` and now asserts the
+          opposite — a second `create` under a stored external id returns that user and writes no categories,
+          instead of raising. The constraint violation is no longer reachable through `create`
         - given: a database failure that is not a constraint violation
           when: create() is called
           then: throws PersistenceFailedException carrying the framework exception as its cause (finding **B1**)
@@ -600,7 +600,7 @@ only where the decision is already made.
           then: the user row is written and the returned user carries its generated database id
         - given: an unstored user and `Category.defaults()`
           when: create() is called
-          then: 98 category rows exist for that user — 20 with no parent, and each remaining row pointing at the
+          then: 97 category rows exist for that user — 20 with no parent, and each remaining row pointing at the
           row of the group it belongs to, matching the tree by name
         - given: a user already stored under an external id
           when: create() is called with an unstored user carrying the same external id
@@ -624,7 +624,7 @@ only where the decision is already made.
           children
         - given: two users created one after the other
           when: create() is called for each
-          then: each user owns its own 98 category rows, and neither user's rows reference the other's
+          then: each user owns its own 97 category rows, and neither user's rows reference the other's
 
 ### Green Phase
 
@@ -777,6 +777,23 @@ wires a caller.
   `InvalidUserException`. Unreachable through `InitializeUserUseCase` (`NewUser` rejects blanks), but
   `UserRepository.create` is a public port operation and `User` deliberately validates nothing.
 - Accepted 2026-07-28; a null external id is rejected. Fixed by RI02 / GI02.
+
+### Raised by the follow-up refactor phase (2026-07-28)
+
+Found against the finished, green follow-up round. Each would change behaviour, so the refactor agent reported
+rather than fixed them.
+
+- **B5:** `create` double-wraps its own `PersistenceFailedException`. On the lost-race path,
+  `insertOrFindExisting`'s `orElseThrow` is thrown *inside* the `try`, so `catch (RuntimeException e)` wraps it
+  again — the caller gets a `PersistenceFailedException` whose cause is another one with the same message. Same
+  type and message either way, so no test sees it, and the branch is unreachable in practice: the follow-up read
+  cannot come back empty when the conditional insert has just said the id is taken.
+- **B6:** `create(user, null)` throws a raw `NullPointerException`. `ColumnLimits.validateCategoryNames` iterates
+  without a null guard and runs before the `try`, so the NPE escapes untranslated — against the rule ST17 just
+  wrote down. Uncovered; the only caller passes `Category.defaults()`.
+- **B7:** `UserEntity.fromDomain` is dead. Moving `create` to `insertIfAbsent` removed its last caller.
+  `code-style.md` prescribes the `toDomain`/`fromDomain` pair on persistence entities, so deleting it is not
+  obviously right — but nothing calls it today.
 
 ### Test defect found during the follow-up green phase (2026-07-28)
 

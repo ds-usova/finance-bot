@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
@@ -143,9 +144,7 @@ class UserRepositoryAdapterConcurrencyTest {
     }
 
     private List<CategoryEntity> categoryRowsFor(long userId) {
-        return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
-                .filter(row -> row.userId() == userId)
-                .toList();
+        return CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId);
     }
 
 }

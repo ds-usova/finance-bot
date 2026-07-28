@@ -15,6 +15,7 @@ bot.finance
     ├── containers            # Testcontainers / WireMock singleton lifecycle
     ├── AbstractSystemTest    # full-application base class
     ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
+    ├── CategoryRowUtils      # reads back a user's stored category rows
     ├── WireMockStubs         # stub registration, one static method per endpoint
     ├── JsonUtils             # loads JSON fixtures from src/test/resources
     ├── LogCapture            # Logback appender, for asserting on log output

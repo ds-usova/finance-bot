@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidUserException;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +85,7 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an unstored user and Category.defaults() - then 98 category rows exist for that user, 20 with no parent and each remaining row pointing at the row of the group it belongs to, matching the tree by name")
+        @DisplayName("when called with an unstored user and Category.defaults() - then 97 category rows exist for that user, 20 with no parent and each remaining row pointing at the row of the group it belongs to, matching the tree by name")
         void whenCalledWithUnstoredUserAndDefaultCategories_thenCategoryTreeIsWrittenMatchingByName() {
             User user = User.newUser("category-tree-external-id");
 
@@ -253,21 +254,21 @@ class UserRepositoryAdapterTest {
             Category first = Category.group("First", "First Child");
             Category second = Category.group("Second", "Second Child");
 
-            @SuppressWarnings("unchecked")
-            List<CategoryEntity>[] capturedChildren = new List[1];
+            AtomicReference<List<CategoryEntity>> capturedChildren = new AtomicReference<>();
             // Reverses the group order it was given before assigning generated ids - the store's
             // insertAll is not guaranteed to preserve input order, unlike the real containerized
             // Postgres this class otherwise runs against.
             when(mockedJdbcAggregateTemplate.<CategoryEntity>insertAll(any()))
                     .thenAnswer(invocation -> reversedWithGeneratedIds(invocation.getArgument(0)))
                     .thenAnswer(invocation -> {
-                        capturedChildren[0] = invocation.getArgument(0);
-                        return capturedChildren[0];
+                        List<CategoryEntity> children = invocation.getArgument(0);
+                        capturedChildren.set(children);
+                        return children;
                     });
 
             mockedAdapter.create(User.newUser("reordered-groups-external-id"), List.of(first, second));
 
-            Map<String, Long> parentIdByChildName = capturedChildren[0].stream()
+            Map<String, Long> parentIdByChildName = capturedChildren.get().stream()
                     .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::parentId));
             assertThat(parentIdByChildName)
                     .as("children paired to their group by name, not by insertAll's return position")
@@ -289,9 +290,7 @@ class UserRepositoryAdapterTest {
     }
 
     private List<CategoryEntity> categoryRowsFor(long userId) {
-        return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
-                .filter(row -> row.userId() == userId)
-                .toList();
+        return CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId);
     }
 
     private void assertCategoryTreeWritten(long userId, List<Category> expectedTree) {
