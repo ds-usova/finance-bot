@@ -101,6 +101,11 @@ in_fence { next }
     if ($0 ~ /^### /) {
         group = substr($0, 5)
         section = ""
+        # Position in the plan, which is the order the groups run in. Headings outside the step map
+        # are numbered too and never compared, because no checklist item sits under them.
+        if (!(group in group_pos)) {
+            group_pos[group] = ++n_groups
+        }
     } else if ($0 ~ /^#### /) {
         section = substr($0, 6)
     }
@@ -501,8 +506,17 @@ function emit_validate(   i, id, j, d, nd, problems) {
         id = order[i]
         nd = split(deps[id], d, ",")
         for (j = 1; j <= nd; j++) {
-            if (d[j] != "" && !(d[j] in seen)) {
+            if (d[j] == "") {
+                continue
+            }
+            if (!(d[j] in seen)) {
                 print id " depends on " d[j] ", which no item defines"
+                problems++
+            # A group runs to completion before the next one starts, so an edge into a later group
+            # can never resolve: the item waits for work its own stage has already ruled out.
+            } else if (group_of[id] in group_pos && group_of[d[j]] in group_pos \
+                    && group_pos[group_of[id]] < group_pos[group_of[d[j]]]) {
+                print id " (" group_of[id] ") depends on " d[j] " (" group_of[d[j]] "), which runs later"
                 problems++
             }
         }

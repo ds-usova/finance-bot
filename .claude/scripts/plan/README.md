@@ -60,6 +60,7 @@ and the numbering rule belong to the plan format, defined by the `plan-task` ski
 |------------------------------------------------------------------------------|--------------------------------------------------------------|
 | Duplicate IDs, items with no ID                                              | an item nothing can address                                  |
 | `after:` naming an ID nothing defines, dependency cycles                     | a schedule that never becomes eligible                       |
+| `after:` reaching into a group the plan lists later                          | a stage waiting on work a later stage owns                   |
 | A `given:` / `when:` / `then:` whose value is empty, `—`, `TBD` or `N/A`     | a scenario a step agent cannot implement                     |
 | An `update:` bullet naming a method found nowhere in the tree                | a plan written against remembered code                       |
 | A finding with no `Resolution:`, or an unrecognized one                      | a review that skipped the mechanical/decision classification |
