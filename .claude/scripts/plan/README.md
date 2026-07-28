@@ -33,14 +33,18 @@ Run it with bash, from anywhere inside the project:
 .claude/scripts/plan/plan.sh status
 .claude/scripts/plan/plan.sh next
 .claude/scripts/plan/plan.sh tick GU07
+.claude/scripts/plan/plan.sh tick ST01 ST02 ST03
 ```
+
+`show` and `tick` take a whole stage's worth of IDs in one call, so neither needs a loop around it. `tick`
+resolves every ID before it writes any, and a name nothing defines ticks none of them.
 
 | Command             | Effect                                                                                                    |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
 | `status`            | Done/total per group, and the IDs still open.                                                             |
 | `next [--all]`      | Items that can start now, longest remaining chain first. `--all` also lists what is waiting, and on what. |
-| `show <ID>`         | One item: its header and everything indented under it.                                                    |
-| `tick <ID>`         | Mark the item done. Saying so twice is not an error.                                                      |
+| `show <ID>...`      | One item: its header and everything indented under it. Several print in order, blank-line separated.      |
+| `tick <ID>...`      | Mark the items done. Saying so twice is not an error.                                                     |
 | `block <ID> <note>` | Leave the item open; record the note under Open Questions / Blockers.                                     |
 | `validate`          | See [What `validate` checks](#what-validate-checks).                                                      |
 

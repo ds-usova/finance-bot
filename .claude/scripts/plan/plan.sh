@@ -24,8 +24,8 @@ usage() {
 Usage:
   <plugin>/scripts/plan/plan.sh status   [--file <plan>]
   <plugin>/scripts/plan/plan.sh next     [--group <g>] [--section <s>]... [--all] [--file <plan>]
-  <plugin>/scripts/plan/plan.sh show     <ID> [--file <plan>]
-  <plugin>/scripts/plan/plan.sh tick     <ID> [--file <plan>]
+  <plugin>/scripts/plan/plan.sh show     <ID>... [--file <plan>]
+  <plugin>/scripts/plan/plan.sh tick     <ID>... [--file <plan>]
   <plugin>/scripts/plan/plan.sh block    <ID> <note> [--file <plan>]
   <plugin>/scripts/plan/plan.sh validate [--file <plan>]
 
@@ -36,8 +36,10 @@ Commands:
             --group and --section confine it to part of the plan, matched case-insensitively on any
             part of the heading. A run covering one phase must pass --group, or the phase after it
             becomes eligible the moment this one is finished. --section may be repeated.
-  show      One item: its header and everything indented under it.
-  tick      Mark the item done.
+  show      One item: its header and everything indented under it. Several IDs print in order,
+            separated by a blank line.
+  tick      Mark the items done. Several IDs are one batch: all are resolved before any is written,
+            so a name nothing defines ticks none of them.
   block     Leave the item open and record the reason under Open Questions / Blockers.
   validate  Duplicate IDs, items with no ID, dependencies on IDs nothing defines, cycles, placeholder
             given/when/then values, update: bullets naming a test method that is nowhere in the tree,
@@ -158,27 +160,40 @@ case "$command" in
         ;;
 
     show)
-        id="${args[0]:-}"
-        [ -n "$id" ] || die "show needs an item ID"
+        [ "${#args[@]}" -gt 0 ] || die "show needs at least one item ID"
         resolve_plan
-        range="$(item_range "$id")" || die "no item $id in ${plan_file#"$repo_root/"}" 1
-        [ -n "$range" ] || die "no item $id in ${plan_file#"$repo_root/"}" 1
-        sed -n "${range% *},${range#* }p" "$plan_file"
+        first=1
+        for id in "${args[@]}"; do
+            range="$(item_range "$id")" || die "no item $id in ${plan_file#"$repo_root/"}" 1
+            [ -n "$range" ] || die "no item $id in ${plan_file#"$repo_root/"}" 1
+            [ "$first" = "0" ] && echo
+            first=0
+            sed -n "${range% *},${range#* }p" "$plan_file"
+        done
         ;;
 
     tick)
-        id="${args[0]:-}"
-        [ -n "$id" ] || die "tick needs an item ID"
+        [ "${#args[@]}" -gt 0 ] || die "tick needs at least one item ID"
         resolve_plan
-        range="$(item_range "$id")" || die "no item $id in ${plan_file#"$repo_root/"}" 1
-        [ -n "$range" ] || die "no item $id in ${plan_file#"$repo_root/"}" 1
-        line="${range% *}"
-        if sed -n "${line}p" "$plan_file" | grep -q '^- \[[xX]\]'; then
-            echo "$id was already ticked"
-            exit 0
-        fi
-        rewrite_plan awk -v n="$line" 'NR == n { sub(/^- \[ \]/, "- [x]") } { print }' "$plan_file"
-        sed -n "${line}p" "$plan_file"
+        # Every ID is resolved before any is written, so a typo in the third leaves the first two
+        # alone instead of half-applying a stage's batch.
+        lines=()
+        for id in "${args[@]}"; do
+            range="$(item_range "$id")" || die "no item $id in ${plan_file#"$repo_root/"}" 1
+            [ -n "$range" ] || die "no item $id in ${plan_file#"$repo_root/"}" 1
+            lines+=("${range% *}")
+        done
+        # Ticking replaces "- [ ]" with "- [x]" in place, so no line moves and the ranges resolved
+        # above stay valid for the whole batch.
+        for i in "${!args[@]}"; do
+            line="${lines[$i]}"
+            if sed -n "${line}p" "$plan_file" | grep -q '^- \[[xX]\]'; then
+                echo "${args[$i]} was already ticked"
+                continue
+            fi
+            rewrite_plan awk -v n="$line" 'NR == n { sub(/^- \[ \]/, "- [x]") } { print }' "$plan_file"
+            sed -n "${line}p" "$plan_file"
+        done
         ;;
 
     block)
