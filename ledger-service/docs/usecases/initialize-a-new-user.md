@@ -35,9 +35,9 @@ A new user is given 97 categories: 20 groups holding 77 children.
 
 ## Collaborators
 
-| Direction | Collaborator | Through | For                                       |
-|-----------|--------------|---------|-------------------------------------------|
-| out       | Database     | —       | storing the user and their 97 categories  |
+| Direction | Collaborator | Through | For                                      |
+|-----------|--------------|---------|------------------------------------------|
+| out       | Database     | —       | storing the user and their 97 categories |
 
 Nothing calls this use case yet.
 
@@ -58,13 +58,13 @@ Nothing calls this use case yet.
 
 ## Outcomes
 
-| Outcome                | When                                                | Result                                                            |
-|------------------------|-----------------------------------------------------|-------------------------------------------------------------------|
-| User created           | nothing is stored under the identity                | the user and the 97 categories are stored together, and the creation is logged |
-| Existing user returned | a user is already stored under the identity         | that user is returned and nothing is written                      |
-| Request rejected       | the request is absent or carries no identity        | invalid user — nothing is looked up                               |
-| Identity too long      | the identity is over 255 characters                 | invalid user — nothing is stored                                  |
-| Storage failed         | the store cannot be reached or refuses the write     | the failure reaches the caller                                     |
+| Outcome                | When                                             | Result                                                                         |
+|------------------------|--------------------------------------------------|--------------------------------------------------------------------------------|
+| User created           | nothing is stored under the identity             | the user and the 97 categories are stored together, and the creation is logged |
+| Existing user returned | a user is already stored under the identity      | that user is returned and nothing is written                                   |
+| Request rejected       | the request is absent or carries no identity     | invalid user — nothing is looked up                                            |
+| Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                               |
+| Storage failed         | the store cannot be reached or refuses the write | the failure reaches the caller                                                 |
 
 ## Flow
 

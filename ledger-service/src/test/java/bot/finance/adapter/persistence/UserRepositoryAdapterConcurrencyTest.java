@@ -78,7 +78,7 @@ class UserRepositoryAdapterConcurrencyTest {
             List<UserEntity> storedRows = userRowsFor(SAME_EXTERNAL_ID);
             assertThat(storedRows).hasSize(1);
 
-            long userId = storedRows.get(0).id();
+            long userId = storedRows.getFirst().id();
             assertThat(categoryRowsFor(userId)).hasSize(CATEGORY_ROW_COUNT);
         }
 

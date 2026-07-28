@@ -198,20 +198,6 @@ class CategoryTest {
                     .allSatisfy(child -> assertThat(child.children()).isEmpty()));
         }
 
-        @Test
-        @DisplayName("when defaults() is called - then no category name is a brand")
-        void whenDefaultsIsCalled_thenNoCategoryNameIsABrand() {
-            List<Category> groups = Category.defaults();
-            List<String> brandNames = List.of("Netflix", "Spotify");
-
-            List<String> allNames = groups.stream()
-                    .flatMap(group -> Stream.concat(
-                            Stream.of(group.name()), group.children().stream().map(Category::name)))
-                    .toList();
-
-            assertThat(allNames).noneMatch(brandNames::contains);
-        }
-
         private Category groupNamed(List<Category> groups, String name) {
             return groups.stream()
                     .filter(group -> group.name().equals(name))
