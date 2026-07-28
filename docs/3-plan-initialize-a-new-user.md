@@ -371,15 +371,6 @@ end
 Raised after the first round shipped. See **Q4**–**Q9** for what is still undecided; an item below is written
 only where the decision is already made.
 
-#### Tooling
-
-- [ ] ST15 · Wire **Spotless with `palantir-java-format`** into `ledger-service/build.gradle` (**Q7**), so
-  import order and layout stop being hand-maintained. `spotlessApply` fixes, `spotlessCheck` gates; record both
-  in [Build](../ledger-service/docs/conventions/build.md) alongside the test wrapper, and drop the manual
-  import-order guidance from [Code Style](../ledger-service/docs/conventions/code-style.md) that the formatter
-  now owns. Apply it across the module in its own commit, so a whole-module reformat never rides along with a
-  behaviour change · after: GU05, GU06, GI02, GI03
-
 #### Interface-First / Build Stabilization
 
 **Interface & Signature Sync**
@@ -675,6 +666,13 @@ only where the decision is already made.
 - [ ] P03 · Update `ledger-service/docs/usecases/initialize-a-new-user.md` for whatever **Q4** settles about the
   catalogue, and bring `handle-incoming-message.md` onto the current use-case page shape — it still carries a
   numbered **Flow** list beside its sequence diagram, which commit `db00a15` replaced · after: GU06
+- [ ] P04 · Wire **Spotless with `palantir-java-format`** into `ledger-service/build.gradle` (**Q7**), apply it
+  across the module, and bind `spotlessCheck` to the build so style stops being hand-maintained. Record
+  `spotlessApply` and `spotlessCheck` in [Build](../ledger-service/docs/conventions/build.md) beside the test
+  wrapper, and drop the manual import-order guidance from
+  [Code Style](../ledger-service/docs/conventions/code-style.md) that the formatter now owns. Its own commit —
+  a whole-module reformat must never ride along with a behaviour change. Last, because enabling the gate before
+  the code is written would fail every run in between
 
 ## Open Questions / Blockers
 
