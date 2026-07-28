@@ -83,11 +83,10 @@ port operation so they can share a transaction; transaction machinery lives in t
 `application/usecase/InitializeUserUseCase` — looks the external id up, returns the user already there, or creates
 it with `Category.defaults()` and returns what was stored. A null command throws `InvalidUserException`.
 
-Initialization is idempotent under concurrency as well as in sequence (**Q5**): when `create` fails, the use case
-looks the external id up once more. A user found on that second read means another caller won the race, and it is
-returned; nothing found means a real storage failure, and `PersistenceFailedException` reaches the caller. The
-recovery lives here rather than in the adapter because the adapter's transaction is already aborted by the
-constraint violation.
+Initialization is idempotent under concurrency as well as in sequence (**Q5**), but the use case does nothing
+special to achieve it: `create` is itself race-safe, so a lost race returns the winner's user rather than
+failing. `PersistenceFailedException` still reaches the caller untouched — it now means a real storage failure
+and nothing else.
 
 `adapter/config/UseCaseConfiguration` gains the bean method for the new port.
 
@@ -104,9 +103,27 @@ name of at most 100 — and rejects a violation with `InvalidUserException` / `I
 letting it surface as a driver error. The domain types do not carry these caps; the schema does, and the adapter is
 what knows the schema.
 
-Every runtime exception the store raises is translated into `PersistenceFailedException`, carrying the original
-as its cause — the unique-external-id violation under a race, and equally a connection loss or a timeout, in both
-port operations. `create` does not recover from the race itself; see **Application**.
+`create` claims the external id with a single conditional insert rather than trusting the lookup that preceded
+it:
+
+```sql
+INSERT INTO app_user (external_id) VALUES (:externalId)
+ON CONFLICT (external_id) DO NOTHING
+RETURNING id
+```
+
+A returned id means this caller won and writes the 97 categories. No row means another caller holds the id, and
+a follow-up read returns theirs — the categories are already the winner's work. The race is therefore decided
+without an exception, which is what lets the recovery sit inside `create`: nothing aborts the transaction, so it
+stays usable.
+
+Two facts this depends on, both worth a comment where they are relied on. A concurrent uncommitted insert makes
+this statement **wait** rather than conflict, so the follow-up read runs after the winner commits. And that read
+only sees the winner's row under `READ COMMITTED`, which takes a fresh snapshot per statement — Postgres' default,
+unchanged here, and load-bearing.
+
+Every runtime exception the store raises is still translated into `PersistenceFailedException`, carrying the
+original as its cause, in both port operations. It no longer carries the meaning "someone else won the race".
 
 Mapping lives on `UserEntity` (`toDomain()` / `fromDomain(User)`) and `CategoryEntity` (`root(...)` /
 `child(...)`); a category is never read back into the domain, since no use case reads categories yet.
@@ -374,6 +391,20 @@ only where the decision is already made.
   while `domain/value` and `application/dto` hold records (**Q6**) — an entity whose identity is one field
   cannot use a record's generated `equals`, and that is why `User` is a class. Without these written down, the
   next adapter and the next entity repeat the same reasoning from scratch
+- [ ] ST18 · Add the conditional insert to `UserEntityRepository` as a `@Query` method, returning the generated
+  id when the row was written and nothing when the external id was already taken:
+  ```java
+  @Query("""
+          INSERT INTO app_user (external_id) VALUES (:externalId)
+          ON CONFLICT (external_id) DO NOTHING
+          RETURNING id
+          """)
+  Optional<Long> insertIfAbsent(@Param("externalId") String externalId);
+  ```
+  **Confirm first that Spring Data JDBC runs an `INSERT … RETURNING` through a `@Query` query method** — write
+  the method and one throwaway call against the containerized Postgres before the rest of the round depends on
+  it. If it does not, put the statement on `JdbcTemplate` inside the adapter instead and record the reason here.
+  Either way the port and the tests are unaffected — this is an implementation detail of one adapter
 
 ### Red Phase
 
@@ -489,18 +520,6 @@ only where the decision is already made.
           repeat survives **Q4**, so ADR 0003's parent-scoped uniqueness keeps the case that justifies it
 - [ ] RU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
-        - given: the lookup finds nothing, create raises PersistenceFailedException, and a second lookup then
-          finds a user — another caller won the race between the two calls
-          when: initialize() is called
-          then: that user is returned, so initialization is idempotent under concurrency and not only in
-          sequence (**Q5**)
-        - given: the lookup finds nothing, create raises PersistenceFailedException, and a second lookup still
-          finds nothing — the failure was not a lost race
-          when: initialize() is called
-          then: the PersistenceFailedException reaches the caller, so a genuine storage failure is not
-          disguised as a race
-        - update: `whenRepositoryRaisesPersistenceFailedExceptionOnCreate_thenExceptionPropagatesUnchanged()` —
-          it now states the second case above; fold it into that scenario rather than keeping both
         - update: `whenNoUserExistsForExternalId_thenCreationIsLoggedAtInfoLevelWithExternalId()` — delete it.
           The logging matters but does not earn a test of its own, and asserting on it pins a message format
           nothing else depends on
@@ -519,6 +538,10 @@ only where the decision is already made.
           when: create() is called
           then: throws InvalidUserException before anything is written, rather than failing the NOT NULL
           constraint downstream (finding **B4**)
+        - update: `whenCalledWithAlreadyStoredExternalId_thenPersistenceFailedExceptionCarriesFrameworkExceptionAsCause()`
+          — it now asserts the opposite. A second `create` under a stored external id returns that user and
+          writes no categories, instead of raising; rename it to match. The constraint violation is no longer
+          reachable through `create`
         - given: a database failure that is not a constraint violation
           when: create() is called
           then: throws PersistenceFailedException carrying the framework exception as its cause (finding **B1**)
@@ -533,18 +556,17 @@ only where the decision is already made.
         - given: two threads released together by a `CountDownLatch`, both creating a user under the same
           external id
           when: both call create()
-          then: one call returns the stored user and the other throws PersistenceFailedException; exactly one
-          user row exists afterwards and it owns exactly 97 category rows, with none left behind by the loser
+          then: both calls return the same user and neither throws; exactly one user row exists afterwards and
+          it owns exactly 97 category rows, so the loser wrote no second set
         - given: two threads released together by a `CountDownLatch`, creating users under different external
           ids
           when: both call create()
           then: both users are stored, each owning its own 97 category rows
     - A separate test class because it must commit rather than roll back, so it cannot share
       `UserRepositoryAdapterTest`'s transactional slice; it cleans up after itself.
-    - **The recovery is not the adapter's.** The losing transaction is already aborted by the constraint
-      violation, so `create()` cannot re-read inside it without a second transaction. `create` therefore keeps
-      failing, and the use case turns that failure into the winner's user — see RU06. This step proves the
-      database half: the race really is decided by the constraint, and the loser leaves nothing behind
+    - This step is what proves the conditional insert actually serializes two live callers. The single-threaded
+      tests cannot: they never exercise the wait-for-an-uncommitted-insert path, which is the case the design
+      leans on
 
 #### TDD Integration Red Phase — first round
 
@@ -666,11 +688,13 @@ only where the decision is already made.
   because the lookup and the insert are separate statements. Should the loser instead get the user the winner
   created — making `initialize` idempotent under concurrency, not just in sequence? That is what RI03 asserts,
   and it changes `create`'s contract.
-- A: The loser gets the winner's user. Applied — but **not** inside `create`: the losing transaction is already
-  aborted by the constraint violation, so re-reading within it would need a second transaction. `create` keeps
-  failing (RI03 proves the constraint decides the race and the loser leaves no rows behind), and
-  `InitializeUserUseCase` turns that failure into the winner's user, telling a lost race from a real storage
-  failure by re-reading (RU06).
+- A: The loser gets the winner's user.
+  *First applied* as a re-read in `InitializeUserUseCase`, because a constraint violation aborts the adapter's
+  transaction and the recovery could not sit inside `create`.
+  *Superseded the same day:* `create` claims the id with `INSERT ... ON CONFLICT (external_id) DO NOTHING
+  RETURNING id`, so a lost race raises nothing, the transaction survives, and `create` returns the winner's user
+  itself. The use case needs no recovery, and `PersistenceFailedException` goes back to meaning only a real
+  storage failure. See **Persistence**; ST18 carries the query, RI03 the concurrency proof.
 
 - **Q6:** Should the domain model be records? `User` is a class because its identity is `externalId` alone,
   while a record's generated `equals` covers every component including the database id. A record is possible if
