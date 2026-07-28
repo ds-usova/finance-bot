@@ -1,7 +1,8 @@
 # Receive a user's message
 
-Takes a message a user sent to the bot — the conversation it belongs to and its text — and writes it to the
-service's log. It is the point at which a user's words enter the service; today the log entry is where they stop.
+- **In:** the conversation a message belongs to · its text
+- **Out:** a log entry
+- **Why:** it is the point at which a user's words enter the service; today the log is where they stop
 
 *Implemented by `HandleIncomingMessageUseCase`.*
 
@@ -11,22 +12,14 @@ service's log. It is the point at which a user's words enter the service; today 
 |-----------|-------------------------------------------------|----------------------------------------------------------|-----------------------------------------|
 | in        | [Telegram](../contracts/in/telegram-updates.md) | [Incoming messages](../contracts/in/telegram-updates.md) | delivering what a user typed to the bot |
 
-Nothing is called outward: no other system takes part.
-
-## Flow
-
-1. Telegram delivers a batch of messages waiting for the bot.
-2. Each message carrying text is taken as one message from one conversation; every other message is discarded.
-3. The conversation and the text are written to the log.
-4. The whole batch is acknowledged, so Telegram moves on to the messages behind it.
+Nothing is called outward.
 
 ## Rules
 
-- A message is accepted only when it names a conversation and carries text. A message missing either is not a
-  message this service can receive.
+- A message is accepted only when it names a conversation and carries text.
 - The conversation is whatever Telegram identifies it by, kept as opaque text.
-- The log entry is all that happens: nothing is stored, nothing is extracted from the text, and the user gets no
-  reply.
+- The log entry is all that happens: nothing is stored, nothing is extracted, and the user gets no reply.
+- A batch is acknowledged whole, so Telegram moves on to the messages behind it.
 
 ## Outcomes
 
@@ -36,7 +29,7 @@ Nothing is called outward: no other system takes part.
 | Message discarded | the message carries no text           | nothing is logged and the message is not seen again                     |
 | Handling failed   | handling the message raises a failure | the failure is logged in its place and the batch is acknowledged anyway |
 
-## Sequence
+## Flow
 
 ```plantuml
 @startuml ReceiveUserMessage-Sequence

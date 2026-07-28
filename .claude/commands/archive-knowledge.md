@@ -84,6 +84,10 @@ Yours to write: a decision spanning services cannot be assembled from two agents
 
 Number is one past the highest in `docs/adr/`, four digits, never reused.
 
+**An ADR fits on one screen — roughly 20 lines, never more than 30.** It records one decision, and a reader
+reaches for it to answer one question: why is it like this, and what may I not break? Everything past that
+answer costs a re-read every time someone opens the file. A decision needing more room is two decisions.
+
 ```
 # ADR <nnnn>: <the decision, stated as a fact>
 
@@ -93,19 +97,24 @@ Number is one past the highest in `docs/adr/`, four digits, never reused.
 
 ## Context
 
-<What made this a decision rather than a default.>
+<One paragraph: what forced a decision here instead of a default. Name the alternative only if it was
+genuinely tempting.>
 
 ## Decision
 
-<What holds now, present tense.>
+<The rule, present tense. Two or three sentences.>
 
 ## Consequences
 
-<What it makes cheap, what expensive, what must stay true.>
+<What it costs and what must stay true. Two or three sentences, or a short bullet list.>
 ```
 
+Write what the code cannot say. Skip anything a reader can get from the schema, the tests, or the diff — an ADR
+that walks through the implementation has become a worse copy of it. Link to the contract and use-case docs
+rather than restating them.
+
 Reversing a decision writes a new ADR and marks the old one **Superseded by [ADR nnnn](nnnn-<slug>.md)** — never
-edits it. An ADR links to the contract and use-case docs instead of restating them.
+edits it.
 
 ## Stage 4 — Reconcile
 

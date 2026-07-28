@@ -656,19 +656,19 @@ only where the decision is already made.
 
 #### Documentation
 
-- [ ] P01 · Cut the ADR template in the `archive-knowledge` instructions down to something a reader will
+- [x] P01 · Cut the ADR template in the `archive-knowledge` instructions down to something a reader will
   actually read — the four existing ADRs run to full pages for what are each a single settled decision. Fix the
   template, not the symptom: state a target length, and make **Context** one paragraph on what forced the
   decision, **Decision** the rule, **Consequences** what it costs. The instructions live in
   `.claude/commands/archive-knowledge.md`, which is pulled into other projects as a plugin, so the change stays
   project-agnostic
-- [ ] P02 · Rewrite the four existing ADRs to the shortened template — `0001`, `0002`, `0003`, `0004`. Rewriting
+- [x] P02 · Rewrite the four existing ADRs to the shortened template — `0001`, `0002`, `0003`, `0004`. Rewriting
   is not superseding: the decisions stand unchanged, only their length changes, so no new ADR number is taken ·
   after: P01
-- [ ] P03 · Update `ledger-service/docs/usecases/initialize-a-new-user.md` for whatever **Q4** settles about the
+- [x] P03 · Update `ledger-service/docs/usecases/initialize-a-new-user.md` for whatever **Q4** settles about the
   catalogue, and bring `handle-incoming-message.md` onto the current use-case page shape — it still carries a
   numbered **Flow** list beside its sequence diagram, which commit `db00a15` replaced · after: GU06
-- [ ] P04 · Wire **Spotless with `palantir-java-format`** into `ledger-service/build.gradle` (**Q7**), apply it
+- [x] P04 · Wire **Spotless with `palantir-java-format`** into `ledger-service/build.gradle` (**Q7**), apply it
   across the module, and bind `spotlessCheck` to the build so style stops being hand-maintained. Record
   `spotlessApply` and `spotlessCheck` in [Build](../ledger-service/docs/conventions/build.md) beside the test
   wrapper, and drop the manual import-order guidance from

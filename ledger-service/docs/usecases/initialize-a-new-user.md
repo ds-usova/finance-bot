@@ -8,7 +8,7 @@
 
 ## The categories
 
-A new user is given 98 categories: 20 groups holding 78 children.
+A new user is given 97 categories: 20 groups holding 77 children.
 
 | Group             | Children                                                                    |
 |-------------------|-----------------------------------------------------------------------------|
@@ -20,7 +20,7 @@ A new user is given 98 categories: 20 groups holding 78 children.
 | Healthcare        | Doctors, Pharmacy, Dental, Vision, Health Insurance                         |
 | Education         | Tuition, Books, Courses, Certifications                                     |
 | Shopping          | Clothing, Electronics, Home Goods, Gifts                                    |
-| Entertainment     | Movies, Games, Streaming Services, Hobbies                                  |
+| Entertainment     | Movies, Games, Hobbies                                                      |
 | Travel            | Hotels, Flights, Vacation, Attractions                                      |
 | Pets              | Food, Vet, Grooming                                                         |
 | Family & Children | Childcare, School Supplies, Toys                                            |
@@ -30,14 +30,14 @@ A new user is given 98 categories: 20 groups holding 78 children.
 | Work              | Office Supplies, Business Expenses                                          |
 | Insurance         | Life, Home, Vehicle, Travel                                                 |
 | Personal Care     | Haircuts, Cosmetics, Gym, Spa                                               |
-| Subscriptions     | Netflix, Spotify, Cloud Storage, Software                                   |
+| Subscriptions     | Streaming, Music, Cloud Storage, Apps & Software                            |
 | Miscellaneous     | Uncategorized Expenses                                                      |
 
 ## Collaborators
 
 | Direction | Collaborator | Through | For                                       |
 |-----------|--------------|---------|-------------------------------------------|
-| out       | Database     | —       | storing the user and their 98 categories  |
+| out       | Database     | —       | storing the user and their 97 categories  |
 
 Nothing calls this use case yet.
 
@@ -51,17 +51,20 @@ Nothing calls this use case yet.
 - The catalogue is fixed at release. Each user gets a copy of it at creation, and it is never re-applied: a
   user who edits their categories diverges from it, and a changed catalogue reaches only users created
   afterwards.
+- The catalogue names no brands, so it stays legible when a service is renamed or replaced.
 - An identity is at most 255 characters.
+- Two callers initializing the same identity at once both get the same user. One of them creates it; the other
+  is given what the first created, and no second set of categories is written.
 
 ## Outcomes
 
 | Outcome                | When                                                | Result                                                            |
 |------------------------|-----------------------------------------------------|-------------------------------------------------------------------|
-| User created           | nothing is stored under the identity                | the user and the 98 categories are stored together, and the creation is logged |
+| User created           | nothing is stored under the identity                | the user and the 97 categories are stored together, and the creation is logged |
 | Existing user returned | a user is already stored under the identity         | that user is returned and nothing is written                      |
 | Request rejected       | the request is absent or carries no identity        | invalid user — nothing is looked up                               |
 | Identity too long      | the identity is over 255 characters                 | invalid user — nothing is stored                                  |
-| Storage failed         | the identity is taken between the lookup and the write | the failure reaches the caller                                 |
+| Storage failed         | the store cannot be reached or refuses the write     | the failure reaches the caller                                     |
 
 ## Flow
 
@@ -84,14 +87,14 @@ else identity is given
     alt identity is too long
       LS --> Caller : invalid user
     else identity fits
-      LS -> DB : store the user and its categories
-      alt stored
-        DB --> LS : the created user
+      LS -> DB : claim the identity
+      alt claimed
+        LS -> DB : store the categories
         LS -> LS : log the creation
         LS --> Caller : the created user
-      else identity taken meanwhile
-        DB --> LS : identity already taken
-        LS --> Caller : storage failed
+      else another caller claimed it first
+        DB --> LS : the user they created
+        LS --> Caller : that user
       end
     end
   end
