@@ -98,10 +98,14 @@ then all 20 groups in one batch, then all 77 children in one batch. `JdbcAggrega
 inserts and hands the stored entities back in the order it was given them, which is how each group's generated id
 is paired with its `Category`.
 
-Before writing, the adapter checks what the columns require — an external id of at most 255 characters, a category
-name of at most 100 — and rejects a violation with `InvalidUserException` / `InvalidCategoryException` instead of
-letting it surface as a driver error. The domain types do not carry these caps; the schema does, and the adapter is
-what knows the schema.
+Before writing, `ColumnLimits` checks what the columns require — an external id of at most 255 characters, a
+category name of at most 100 — and rejects a violation with `InvalidUserException` / `InvalidCategoryException`
+instead of letting it surface as a driver error. The domain types do not carry these caps; the schema does, and
+the persistence adapter is what knows the schema.
+
+`ColumnLimits` holds both the widths and the checks, so neither can be changed without the other. The widths are
+still stated twice — here and in the migration — but `ColumnLimitsSchemaTest` reads the live schema and fails if
+the two disagree, so the second copy cannot drift unnoticed.
 
 `create` claims the external id with a single conditional insert rather than trusting the lookup that preceded
 it:
@@ -405,6 +409,11 @@ only where the decision is already made.
   the method and one throwaway call against the containerized Postgres before the rest of the round depends on
   it. If it does not, put the statement on `JdbcTemplate` inside the adapter instead and record the reason here.
   Either way the port and the tests are unaffected — this is an implementation detail of one adapter
+- [ ] ST19 · Add `adapter/persistence/ColumnLimits` and move the width checks off `UserRepositoryAdapter` into
+  it (**Q8**). It owns `EXTERNAL_ID` and `CATEGORY_NAME` as the widths `V001` declares, and the two checks that
+  reject a value exceeding them with `InvalidUserException` / `InvalidCategoryException`; the category check
+  walks groups and children alike. Keeping the number and its enforcement in one type is the point — and it puts
+  the widths somewhere RI04 can read them. `UserRepositoryAdapter` calls it and keeps no private validators
 
 ### Red Phase
 
@@ -567,6 +576,19 @@ only where the decision is already made.
     - This step is what proves the conditional insert actually serializes two live callers. The single-threaded
       tests cannot: they never exercise the wait-for-an-uncommitted-insert path, which is the case the design
       leans on
+- [ ] RI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `EXTERNAL_ID`, `CATEGORY_NAME`
+    - `EXTERNAL_ID`:
+        - given: the migrated schema in the containerized database
+          when: `app_user.external_id`'s `character_maximum_length` is read from `information_schema.columns`
+          then: it equals the constant — a migration that widens the column and leaves the constant behind
+          fails here rather than silently rejecting values the database would accept (finding **B2**)
+    - `CATEGORY_NAME`:
+        - given: the migrated schema in the containerized database
+          when: `category.name`'s `character_maximum_length` is read from `information_schema.columns`
+          then: it equals the constant
+    - This is the whole answer to **Q9**: the widths stay written down twice, and the second copy can no longer
+      drift unnoticed. It asserts against the live schema, not against `V001`'s text, so a later migration that
+      alters the column is caught too
 
 #### TDD Integration Red Phase — first round
 
@@ -631,6 +653,7 @@ only where the decision is already made.
 
 - [ ] GI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU05
 - [ ] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · after: GI02
+- [ ] GI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
 
 #### TDD Integration Green Phase — first round
 
@@ -712,13 +735,20 @@ only where the decision is already made.
   package-private validator type in `adapter/persistence`; or on the entities, next to the columns whose widths
   they enforce. The last keeps the width and its check in one place — but the entities are mapping types today
   and would gain behaviour.
-- A:
+- A: The validators move out of the repository. Applied as `adapter/persistence/ColumnLimits` (ST19): it owns
+  the two widths *and* the checks against them, so the number and its enforcement cannot drift apart, and the
+  widths become reachable from a test — which is what **Q9** needs. Not put on `UserEntity`/`CategoryEntity`:
+  they are mapping types, and a category name is checked before any entity exists.
 
 - **Q9:** Finding **B2** — the column widths are stated in both `V001` and the adapter, with nothing linking
   them. Reading them from the database at startup would align them at the cost of a runtime dependency on the
   schema; a comment in the migration pointing at the constants is free but only advisory. Which, or leave the
   duplication and accept it?
-- A:
+- A: Yes — a test. Applied as RI04/GI04: an integration test reads the real column widths from
+  `information_schema.columns` against the containerized Postgres and asserts they equal `ColumnLimits`'
+  constants. The duplication stays, but it can no longer drift silently: a migration that widens a column and
+  leaves the constant behind fails the build. No runtime dependency on the schema, and no advisory comment
+  nobody reads.
 
 ### Raised by the refactor phase (2026-07-28)
 
@@ -736,8 +766,8 @@ wires a caller.
 - **B2:** `MAX_EXTERNAL_ID_LENGTH = 255` and `MAX_CATEGORY_NAME_LENGTH = 100` restate `V001`'s column widths with
   nothing linking them. A later migration that widens a column leaves the adapter rejecting values the database
   would accept.
-- Open — see **Q9**. The intent is settled (catch it in Java rather than let the database raise it); only the
-  mechanism for keeping the two in step is not.
+- Resolved 2026-07-28 by **Q9**: the duplication stays and a test enforces it (RI04/GI04). The widths move to
+  `ColumnLimits` (ST19) so there is one Java-side statement of each.
 - **B3:** A null element inside a `Category` child list throws `NullPointerException` rather than
   `InvalidCategoryException` — the compact constructor dereferences `child.children()` before `List.copyOf` runs.
   Every other invalid input to the record yields the domain exception. Untested.
