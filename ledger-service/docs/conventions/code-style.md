@@ -37,6 +37,8 @@ Applies across all layers.
   belongs on that class — not as a free function taking it as a parameter, and not on a persistence entity.
 - Value objects validate themselves in their compact constructor, so an invalid instance cannot exist anywhere
   in the system. Parsing that can fail is exposed as a named static factory that throws.
+- `domain/model` holds classes; `domain/value` and `application/dto` hold records. An entity whose identity is
+  one field cannot use a record's generated `equals`.
 
 ### Application
 
@@ -49,6 +51,8 @@ Applies across all layers.
 - An adapter mapping external input into a command checks its own preconditions **before** constructing it, so
   that unusable input takes that adapter's normal rejection path instead of surfacing as an exception from the
   record.
+- A port interface documents the runtime exceptions its operations throw, as `@throws` javadoc — the one
+  exception to the no-`@param`/`@return` rule, since an unchecked exception appears in no signature.
 
 ### Adapter — Web
 
@@ -63,6 +67,8 @@ Applies across all layers.
   `fromDomain(...)` factory — never private mapping helpers scattered through the adapter.
 - Persistence entities are types of their own, distinct from domain types. Repositories are Spring Data JDBC
   interfaces with derived or `@Query` methods.
+- An outbound adapter translates every runtime exception its infrastructure raises into a domain exception; no
+  framework type crosses an outbound port.
 
 ## Refactoring Conventions
 

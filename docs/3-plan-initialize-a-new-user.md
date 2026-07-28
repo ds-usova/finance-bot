@@ -375,18 +375,18 @@ only where the decision is already made.
 
 **Interface & Signature Sync**
 
-- [ ] ST16 · Document on each outbound and inbound port interface which runtime exceptions its operations
+- [x] ST16 · Document on each outbound and inbound port interface which runtime exceptions its operations
   throw, as `@throws` javadoc on `UserRepository.findByExternalId`, `UserRepository.create` and
   `InitializeUserPort.initialize`. A port is a contract and its failures are part of it; this is the one place
   the conventions' "comments only for what the code cannot show" rule does not cut against writing them, since
   an unchecked exception appears in no signature
-- [ ] ST17 · Extend `ledger-service/docs/conventions/code-style.md` with the three rules this round settles:
+- [x] ST17 · Extend `ledger-service/docs/conventions/code-style.md` with the three rules this round settles:
   a port interface documents the runtime exceptions it throws (ST16); an outbound adapter translates **every**
   runtime exception from its infrastructure into a domain exception (GI02); and `domain/model` holds classes
   while `domain/value` and `application/dto` hold records (**Q6**) — an entity whose identity is one field
   cannot use a record's generated `equals`, and that is why `User` is a class. Without these written down, the
   next adapter and the next entity repeat the same reasoning from scratch
-- [ ] ST18 · Add the conditional insert to `UserEntityRepository` as a `@Query` method, returning the generated
+- [x] ST18 · Add the conditional insert to `UserEntityRepository` as a `@Query` method, returning the generated
   id when the row was written and nothing when the external id was already taken:
   ```java
   @Query("""
@@ -400,7 +400,7 @@ only where the decision is already made.
   the method and one throwaway call against the containerized Postgres before the rest of the round depends on
   it. If it does not, put the statement on `JdbcTemplate` inside the adapter instead and record the reason here.
   Either way the port and the tests are unaffected — this is an implementation detail of one adapter
-- [ ] ST19 · Add `adapter/persistence/ColumnLimits` and move the width checks off `UserRepositoryAdapter` into
+- [x] ST19 · Add `adapter/persistence/ColumnLimits` and move the width checks off `UserRepositoryAdapter` into
   it (**Q8**). It owns `EXTERNAL_ID` and `CATEGORY_NAME` as the widths `V001` declares, and the two checks that
   reject a value exceeding them with `InvalidUserException` / `InvalidCategoryException`; the category check
   walks groups and children alike. Keeping the number and its enforcement in one type is the point — and it puts

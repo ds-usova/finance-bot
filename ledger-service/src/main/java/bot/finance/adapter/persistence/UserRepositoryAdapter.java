@@ -1,8 +1,6 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
@@ -17,9 +15,6 @@ import java.util.Optional;
 
 @Component
 public class UserRepositoryAdapter implements UserRepository {
-
-    private static final int MAX_EXTERNAL_ID_LENGTH = 255;
-    private static final int MAX_CATEGORY_NAME_LENGTH = 100;
 
     private final UserEntityRepository userEntityRepository;
     private final JdbcAggregateTemplate jdbcAggregateTemplate;
@@ -38,8 +33,8 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     @Transactional
     public User create(User user, List<Category> categories) {
-        validateExternalId(user.externalId());
-        validateCategoryNames(categories);
+        ColumnLimits.validateExternalId(user.externalId());
+        ColumnLimits.validateCategoryNames(categories);
 
         try {
             return insert(user, categories);
@@ -75,28 +70,6 @@ public class UserRepositoryAdapter implements UserRepository {
         }
 
         return storedUser.toDomain();
-    }
-
-    private void validateExternalId(String externalId) {
-        if (externalId != null && externalId.length() > MAX_EXTERNAL_ID_LENGTH) {
-            throw new InvalidUserException("external id exceeds " + MAX_EXTERNAL_ID_LENGTH + " characters");
-        }
-    }
-
-    private void validateCategoryNames(List<Category> categories) {
-        for (Category group : categories) {
-            validateCategoryName(group);
-            for (Category child : group.children()) {
-                validateCategoryName(child);
-            }
-        }
-    }
-
-    private void validateCategoryName(Category category) {
-        if (category.name().length() > MAX_CATEGORY_NAME_LENGTH) {
-            throw new InvalidCategoryException(
-                    "category name exceeds " + MAX_CATEGORY_NAME_LENGTH + " characters: " + category.name());
-        }
     }
 
 }
