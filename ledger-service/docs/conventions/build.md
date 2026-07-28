@@ -15,9 +15,9 @@ from the **repository root**, and takes the same JUnit patterns Gradle does:
 Name the class in full. The architecture tests ignore Gradle's filter, so a wildcard pattern would pull them into
 a run that was meant for one class elsewhere; the wrapper leaves them out of any filtered run that does not ask
 for them by name.
-- Coverage report (JaCoCo): `./gradlew test jacocoTestReport` from `ledger-service/`
-- Reformat to style (Spotless): `./gradlew spotlessApply` from `ledger-service/`
-- Check formatting (Spotless): `./gradlew spotlessCheck` from `ledger-service/` — runs as part of `check`
+- Coverage report (JaCoCo): `ledger-service/gradlew test jacocoTestReport`
+- Reformat to style (Spotless): `ledger-service/gradlew spotlessApply`
+- Check formatting (Spotless): `ledger-service/gradlew spotlessCheck` — runs as part of `check`
 - Run contract codegen: n/a — no codegen is wired
 
 The wrapper reports a run rather than a build log: a `PASS` / `FAIL` / `COMPILE ERROR` / `NO TESTS RAN`
@@ -35,8 +35,9 @@ Give the command a generous timeout and let a run finish instead of interrupting
 Docker must be running for container-based tests; without it they skip silently, and the summary says so when a
 whole run was skipped.
 
-The Gradle wrapper itself still works (`./gradlew …` from `ledger-service/`) and is the way to run a task the
-script does not cover. Two of its invocations at once will clobber each other's results in
+The Gradle wrapper itself still works and is the way to run a task the script does not cover. It runs from the
+repository root as `ledger-service/gradlew …`, so no command here needs a `cd`. Two of its invocations at once
+will clobber each other's results in
 `build/test-results/test/`, which is exactly what the script exists to prevent.
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are written up in
