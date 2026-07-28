@@ -1,24 +1,23 @@
 package bot.finance.system;
 
+import static bot.finance.common.TelegramTestBot.POLL_RECOVERY_TOKEN;
+import static bot.finance.common.TelegramTestBot.recordedPolls;
+import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.AbstractSystemTest;
 import bot.finance.common.LogCapture;
 import bot.finance.common.TelegramFixtures;
 import bot.finance.common.WireMockStubs;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
-
-import java.time.Duration;
-
-import static bot.finance.common.TelegramTestBot.POLL_RECOVERY_TOKEN;
-import static bot.finance.common.TelegramTestBot.recordedPolls;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /**
  * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
@@ -62,7 +61,8 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the first poll fails with error code 429 - then the loop recovers and the message text is still logged")
+        @DisplayName(
+                "when the first poll fails with error code 429 - then the loop recovers and the message text is still logged")
         void whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageTextIsStillLogged() {
             await("the message text is logged after the failed poll")
                     .atMost(TIMEOUT)
@@ -74,17 +74,13 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
                                 .anyMatch(message -> message.contains(MESSAGE_TEXT));
                     });
 
-            await("a follow-up getUpdates confirms the batch")
-                    .atMost(TIMEOUT)
-                    .untilAsserted(() -> {
-                        log.debug("Recorded getUpdates requests: {}", recordedPolls(POLL_RECOVERY_TOKEN));
+            await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> {
+                log.debug("Recorded getUpdates requests: {}", recordedPolls(POLL_RECOVERY_TOKEN));
 
-                        assertThat(recordedPollsWithOffset(POLL_RECOVERY_TOKEN, CONFIRMED_OFFSET))
-                                .as("follow-up getUpdates polls carrying offset=%s", CONFIRMED_OFFSET)
-                                .isNotEmpty();
-                    });
+                assertThat(recordedPollsWithOffset(POLL_RECOVERY_TOKEN, CONFIRMED_OFFSET))
+                        .as("follow-up getUpdates polls carrying offset=%s", CONFIRMED_OFFSET)
+                        .isNotEmpty();
+            });
         }
-
     }
-
 }

@@ -16,8 +16,6 @@ Applies across all layers.
   that logs takes the factory as a constructor parameter and derives its logger from it. `debug` for
   infrastructure operations, `info` for business events; never `System.out`. Messages use `{}` placeholders,
   never string concatenation. Domain objects normally do not log at all.
-- **Imports**: import types directly. A fully qualified name appears in a body only to disambiguate two types
-  with the same simple name.
 - **Long string literals** (SQL, JSON, multi-line text): text blocks — never concatenation, never one cramped
   line.
 - **Method decomposition**: extract private helpers once a method exceeds roughly one screen. One public method
@@ -76,8 +74,8 @@ The default cleanup checklist (cross-class duplication, duplicated test fixtures
 scaffolding, needless complexity, import hygiene) applies; the points below prioritize and extend it.
 
 - **Priorities**: (1) deduplicate mapping logic and test fixtures written independently in different places;
-  (2) align idioms with this file; (3) import hygiene — no unused imports, no fully qualified names in bodies;
-  (4) collapse needless conditionals and scaffolding left over from getting tests to pass.
+  (2) align idioms with this file; (3) no fully qualified names in bodies; (4) collapse needless conditionals
+  and scaffolding left over from getting tests to pass.
 - **Extraction targets**: shared test helpers go to the shared test package, and get listed there (see
   [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes onto the type that owns
   the data, not into a new helper class.

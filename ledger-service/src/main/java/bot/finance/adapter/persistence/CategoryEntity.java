@@ -14,5 +14,4 @@ public record CategoryEntity(@Id Long id, Long userId, Long parentId, String nam
     public static CategoryEntity child(long userId, long parentId, Category category) {
         return new CategoryEntity(null, userId, parentId, category.name());
     }
-
 }

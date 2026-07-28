@@ -4,13 +4,11 @@ import bot.finance.application.dto.IncomingMessage;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
-
 import java.util.Optional;
 
 public final class TelegramUpdateUtils {
 
-    private TelegramUpdateUtils() {
-    }
+    private TelegramUpdateUtils() {}
 
     /**
      * @param update the update to map, possibly {@code null}
@@ -34,5 +32,4 @@ public final class TelegramUpdateUtils {
         }
         return Optional.of(new IncomingMessage(String.valueOf(chat.id()), text));
     }
-
 }

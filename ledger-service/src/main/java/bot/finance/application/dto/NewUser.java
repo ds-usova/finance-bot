@@ -9,5 +9,4 @@ public record NewUser(String externalId) {
             throw new InvalidUserException("new user has no external id");
         }
     }
-
 }

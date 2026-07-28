@@ -3,7 +3,6 @@ package bot.finance.adapter.persistence;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.Category;
-
 import java.util.List;
 
 final class ColumnLimits {
@@ -11,8 +10,7 @@ final class ColumnLimits {
     static final int EXTERNAL_ID = 255;
     static final int CATEGORY_NAME = 100;
 
-    private ColumnLimits() {
-    }
+    private ColumnLimits() {}
 
     static void validateExternalId(String externalId) {
         if (externalId == null) {
@@ -38,5 +36,4 @@ final class ColumnLimits {
                     "category name exceeds " + CATEGORY_NAME + " characters: " + category.name());
         }
     }
-
 }

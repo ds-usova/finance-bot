@@ -21,5 +21,4 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         }
         log.info("incoming message from conversation {}: {}", message.conversationId(), message.text());
     }
-
 }

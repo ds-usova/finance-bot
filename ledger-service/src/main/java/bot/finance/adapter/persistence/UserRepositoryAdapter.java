@@ -4,15 +4,14 @@ import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
-import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class UserRepositoryAdapter implements UserRepository {
@@ -20,8 +19,8 @@ public class UserRepositoryAdapter implements UserRepository {
     private final UserEntityRepository userEntityRepository;
     private final JdbcAggregateTemplate jdbcAggregateTemplate;
 
-    public UserRepositoryAdapter(UserEntityRepository userEntityRepository,
-                                 JdbcAggregateTemplate jdbcAggregateTemplate) {
+    public UserRepositoryAdapter(
+            UserEntityRepository userEntityRepository, JdbcAggregateTemplate jdbcAggregateTemplate) {
         this.userEntityRepository = userEntityRepository;
         this.jdbcAggregateTemplate = jdbcAggregateTemplate;
     }
@@ -55,10 +54,11 @@ public class UserRepositoryAdapter implements UserRepository {
         if (insertedId.isEmpty()) {
             // READ COMMITTED (Postgres' default, unchanged here) takes a fresh snapshot for this
             // statement, so it is guaranteed to see the row the other caller just committed.
-            return userEntityRepository.findByExternalId(user.externalId())
+            return userEntityRepository
+                    .findByExternalId(user.externalId())
                     .map(UserEntity::toDomain)
-                    .orElseThrow(() -> new PersistenceFailedException(
-                            "failed to store user " + user.externalId(), null));
+                    .orElseThrow(
+                            () -> new PersistenceFailedException("failed to store user " + user.externalId(), null));
         }
 
         long userId = insertedId.get();
@@ -71,8 +71,8 @@ public class UserRepositoryAdapter implements UserRepository {
                 .map(group -> CategoryEntity.root(userId, group))
                 .toList();
         List<CategoryEntity> storedGroups = jdbcAggregateTemplate.insertAll(groupEntities);
-        Map<String, Long> groupIdByName = storedGroups.stream()
-                .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
+        Map<String, Long> groupIdByName =
+                storedGroups.stream().collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
 
         List<CategoryEntity> childEntities = new ArrayList<>();
         for (Category group : categories) {
@@ -85,5 +85,4 @@ public class UserRepositoryAdapter implements UserRepository {
             jdbcAggregateTemplate.insertAll(childEntities);
         }
     }
-
 }

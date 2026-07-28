@@ -11,8 +11,10 @@ public class TelegramBotConfiguration {
 
     @Bean
     TelegramBot telegramBot(TelegramBotProperties properties) {
-        if (properties.polling().enabled() && (properties.token() == null || properties.token().isBlank())) {
-            throw new IllegalStateException("""
+        if (properties.polling().enabled()
+                && (properties.token() == null || properties.token().isBlank())) {
+            throw new IllegalStateException(
+                    """
                     telegram.bot.token is blank while telegram.bot.polling.enabled is true: set \
                     TELEGRAM_BOT_TOKEN, or set TELEGRAM_POLLING_ENABLED=false to boot without long polling""");
         }
@@ -21,5 +23,4 @@ public class TelegramBotConfiguration {
                 .updateListenerSleep(properties.polling().sleepMillis())
                 .build();
     }
-
 }

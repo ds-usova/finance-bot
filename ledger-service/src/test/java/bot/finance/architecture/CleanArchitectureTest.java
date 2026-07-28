@@ -1,11 +1,11 @@
 package bot.finance.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
+
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 @AnalyzeClasses(packages = "bot.finance")
 class CleanArchitectureTest {
@@ -13,19 +13,27 @@ class CleanArchitectureTest {
     @ArchTest
     static final ArchRule layersRespectCleanArchitectureDependencies = layeredArchitecture()
             .consideringOnlyDependenciesInLayers()
-            .layer("Domain").definedBy("bot.finance.domain..")
-            .layer("Application").definedBy("bot.finance.application..")
-            .layer("Adapter").definedBy("bot.finance.adapter..")
-            .whereLayer("Domain").mayNotAccessAnyLayer()
-            .whereLayer("Application").mayOnlyAccessLayers("Domain")
-            .whereLayer("Adapter").mayOnlyAccessLayers("Domain", "Application")
+            .layer("Domain")
+            .definedBy("bot.finance.domain..")
+            .layer("Application")
+            .definedBy("bot.finance.application..")
+            .layer("Adapter")
+            .definedBy("bot.finance.adapter..")
+            .whereLayer("Domain")
+            .mayNotAccessAnyLayer()
+            .whereLayer("Application")
+            .mayOnlyAccessLayers("Domain")
+            .whereLayer("Adapter")
+            .mayOnlyAccessLayers("Domain", "Application")
             .withOptionalLayers(true);
 
     @ArchTest
     static final ArchRule domainAndApplicationStayFrameworkAgnostic = noClasses()
-            .that().resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
-            .should().dependOnClassesThat().resideInAnyPackage(
-                    "org.springframework..", "jakarta..", "org.slf4j..", "com.pengrad..")
+            .that()
+            .resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework..", "jakarta..", "org.slf4j..", "com.pengrad..")
             .allowEmptyShould(true);
 
     /**
@@ -35,10 +43,13 @@ class CleanArchitectureTest {
      */
     @ArchTest
     static final ArchRule coreTypesCarryNoExternalSystemName = noClasses()
-            .that().resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
-            .should().haveSimpleNameContaining("Telegram")
-            .orShould().haveSimpleNameContaining("Whisper")
-            .orShould().haveSimpleNameContaining("Postgres")
+            .that()
+            .resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
+            .should()
+            .haveSimpleNameContaining("Telegram")
+            .orShould()
+            .haveSimpleNameContaining("Whisper")
+            .orShould()
+            .haveSimpleNameContaining("Postgres")
             .allowEmptyShould(true);
-
 }

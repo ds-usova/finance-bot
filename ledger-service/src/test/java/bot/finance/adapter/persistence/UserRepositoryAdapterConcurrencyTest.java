@@ -1,9 +1,18 @@
 package bot.finance.adapter.persistence;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,16 +22,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Exercises {@link UserRepositoryAdapter#create} across two real, concurrently-committing
@@ -63,7 +62,8 @@ class UserRepositoryAdapterConcurrencyTest {
     class Create {
 
         @Test
-        @DisplayName("when two threads race to create a user under the same external id - then both calls return the same user, neither throws, and exactly one user row owning exactly 97 category rows exists afterwards")
+        @DisplayName(
+                "when two threads race to create a user under the same external id - then both calls return the same user, neither throws, and exactly one user row owning exactly 97 category rows exists afterwards")
         void whenTwoThreadsRaceOnTheSameExternalId_thenBothReturnTheSameUserAndOnlyOneRowSetIsWritten()
                 throws Exception {
             List<Future<User>> results = runConcurrently(
@@ -83,7 +83,8 @@ class UserRepositoryAdapterConcurrencyTest {
         }
 
         @Test
-        @DisplayName("when two threads race to create users under different external ids - then both users are stored, each owning its own 97 category rows")
+        @DisplayName(
+                "when two threads race to create users under different external ids - then both users are stored, each owning its own 97 category rows")
         void whenTwoThreadsRaceOnDifferentExternalIds_thenBothUsersAreStoredEachOwningItsOwnCategoryRows()
                 throws Exception {
             List<Future<User>> results = runConcurrently(
@@ -104,11 +105,12 @@ class UserRepositoryAdapterConcurrencyTest {
             assertThat(firstUserRows).hasSize(CATEGORY_ROW_COUNT);
             assertThat(secondUserRows).hasSize(CATEGORY_ROW_COUNT);
 
-            List<Long> firstRowIds = firstUserRows.stream().map(CategoryEntity::id).toList();
-            List<Long> secondRowIds = secondUserRows.stream().map(CategoryEntity::id).toList();
+            List<Long> firstRowIds =
+                    firstUserRows.stream().map(CategoryEntity::id).toList();
+            List<Long> secondRowIds =
+                    secondUserRows.stream().map(CategoryEntity::id).toList();
             assertThat(firstRowIds).doesNotContainAnyElementsOf(secondRowIds);
         }
-
     }
 
     private List<Future<User>> runConcurrently(Callable<User> first, Callable<User> second)
@@ -132,7 +134,8 @@ class UserRepositoryAdapterConcurrencyTest {
     }
 
     private void deleteIfStored(String externalId) {
-        userEntityRepository.findByExternalId(externalId)
+        userEntityRepository
+                .findByExternalId(externalId)
                 .map(UserEntity::id)
                 .ifPresent(userEntityRepository::deleteById);
     }
@@ -146,5 +149,4 @@ class UserRepositoryAdapterConcurrencyTest {
     private List<CategoryEntity> categoryRowsFor(long userId) {
         return CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId);
     }
-
 }

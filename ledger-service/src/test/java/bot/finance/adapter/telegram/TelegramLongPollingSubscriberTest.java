@@ -1,22 +1,5 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.adapter.telegram.TelegramBotProperties.Polling;
-import bot.finance.common.LogCapture;
-import bot.finance.common.containers.WireMockSupport;
-import com.pengrad.telegrambot.TelegramBot;
-import com.pengrad.telegrambot.UpdatesListener;
-import com.pengrad.telegrambot.model.Update;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import static bot.finance.common.TelegramTestBot.SUBSCRIBER_TOKEN;
 import static bot.finance.common.TelegramTestBot.forToken;
 import static bot.finance.common.TelegramTestBot.getUpdatesPath;
@@ -29,6 +12,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.telegram.TelegramBotProperties.Polling;
+import bot.finance.common.LogCapture;
+import bot.finance.common.containers.WireMockSupport;
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.UpdatesListener;
+import com.pengrad.telegrambot.model.Update;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * Outbound-adapter integration test: the subscriber is what drives pengrad's outbound {@code getUpdates} HTTP
@@ -84,23 +83,25 @@ class TelegramLongPollingSubscriberTest {
     class Start {
 
         @Test
-        @DisplayName("when start() is called - then getUpdates is polled with the configured limit, timeout and allowed updates, and isRunning() reports true")
+        @DisplayName(
+                "when start() is called - then getUpdates is polled with the configured limit, timeout and allowed updates, and isRunning() reports true")
         void whenStartIsCalled_thenPollsGetUpdatesWithConfiguredParametersAndReportsRunning() {
             telegramReturnsNoUpdates(SUBSCRIBER_TOKEN);
 
             subscriber.start();
 
             await().atMost(AWAIT_TIMEOUT).untilAsserted(() -> assertThat(WireMockSupport.SERVER.findAll(
-                    postRequestedFor(urlPathEqualTo(getUpdatesPath(SUBSCRIBER_TOKEN)))
-                            .withFormParam("limit", equalTo(String.valueOf(POLL_LIMIT)))
-                            .withFormParam("timeout", equalTo(String.valueOf(POLL_TIMEOUT_SECONDS)))
-                            .withFormParam("allowed_updates", containing("message"))))
+                            postRequestedFor(urlPathEqualTo(getUpdatesPath(SUBSCRIBER_TOKEN)))
+                                    .withFormParam("limit", equalTo(String.valueOf(POLL_LIMIT)))
+                                    .withFormParam("timeout", equalTo(String.valueOf(POLL_TIMEOUT_SECONDS)))
+                                    .withFormParam("allowed_updates", containing("message"))))
                     .isNotEmpty());
             assertThat(subscriber.isRunning()).isTrue();
         }
 
         @Test
-        @DisplayName("when every poll fails with an error response - then the loop keeps polling and the failure is logged")
+        @DisplayName(
+                "when every poll fails with an error response - then the loop keeps polling and the failure is logged")
         void whenEveryPollFails_thenKeepsPollingAndLogsTheFailure() {
             telegramFails(SUBSCRIBER_TOKEN, RATE_LIMITED, RATE_LIMITED_DESCRIPTION);
 
@@ -111,7 +112,6 @@ class TelegramLongPollingSubscriberTest {
             await().atMost(AWAIT_TIMEOUT).untilAsserted(() -> assertThat(logCapture.messages())
                     .anyMatch(message -> message.contains(RATE_LIMITED_DESCRIPTION)));
         }
-
     }
 
     @Nested
@@ -119,11 +119,13 @@ class TelegramLongPollingSubscriberTest {
     class Stop {
 
         @Test
-        @DisplayName("when stop() is called on a started subscriber - then polling ceases and isRunning() reports false")
+        @DisplayName(
+                "when stop() is called on a started subscriber - then polling ceases and isRunning() reports false")
         void whenStopIsCalledOnStartedSubscriber_thenPollingCeasesAndReportsNotRunning() throws InterruptedException {
             telegramReturnsNoUpdates(SUBSCRIBER_TOKEN);
             subscriber.start();
-            await().atMost(AWAIT_TIMEOUT).untilAsserted(() -> assertThat(getUpdatesRequestCount()).isPositive());
+            await().atMost(AWAIT_TIMEOUT)
+                    .untilAsserted(() -> assertThat(getUpdatesRequestCount()).isPositive());
 
             subscriber.stop();
 
@@ -133,7 +135,6 @@ class TelegramLongPollingSubscriberTest {
             assertThat(getUpdatesRequestCount()).isEqualTo(requestsAfterStop);
             assertThat(subscriber.isRunning()).isFalse();
         }
-
     }
 
     @Nested
@@ -145,7 +146,6 @@ class TelegramLongPollingSubscriberTest {
         void whenSubscriberWasNeverStarted_thenReportsNotRunning() {
             assertThat(subscriber.isRunning()).isFalse();
         }
-
     }
 
     /**
@@ -162,7 +162,5 @@ class TelegramLongPollingSubscriberTest {
             received.addAll(updates);
             return UpdatesListener.CONFIRMED_UPDATES_ALL;
         }
-
     }
-
 }

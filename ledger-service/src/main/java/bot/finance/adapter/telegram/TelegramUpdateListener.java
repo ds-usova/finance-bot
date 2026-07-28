@@ -6,10 +6,9 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 @Component
 public class TelegramUpdateListener implements UpdatesListener {
@@ -47,5 +46,4 @@ public class TelegramUpdateListener implements UpdatesListener {
             log.error("failed to handle telegram update {}", update.updateId(), e);
         }
     }
-
 }

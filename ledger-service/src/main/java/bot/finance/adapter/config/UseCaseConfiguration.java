@@ -21,5 +21,4 @@ public class UseCaseConfiguration {
     InitializeUserPort initializeUserPort(UserRepository userRepository, LoggerFactory loggerFactory) {
         return new InitializeUserUseCase(userRepository, loggerFactory);
     }
-
 }

@@ -1,19 +1,16 @@
 package bot.finance.common;
 
 import bot.finance.adapter.persistence.CategoryEntity;
-import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-
 import java.util.List;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 public class CategoryRowUtils {
 
-    private CategoryRowUtils() {
-    }
+    private CategoryRowUtils() {}
 
     public static List<CategoryEntity> categoryRowsFor(JdbcAggregateTemplate jdbcAggregateTemplate, long userId) {
         return jdbcAggregateTemplate.findAll(CategoryEntity.class).stream()
                 .filter(row -> row.userId() == userId)
                 .toList();
     }
-
 }

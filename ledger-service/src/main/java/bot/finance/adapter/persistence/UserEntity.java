@@ -14,5 +14,4 @@ public record UserEntity(@Id Long id, String externalId) {
     public static UserEntity fromDomain(User user) {
         return new UserEntity(user.id().orElse(null), user.externalId());
     }
-
 }

@@ -1,7 +1,6 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidCategoryException;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,7 +40,13 @@ public record Category(String name, List<Category> children) {
                 group("Housing", "Rent", "Mortgage", "HOA", "Property Tax", "Home Insurance", "Repairs", "Furniture"),
                 group("Groceries", "Supermarkets", "Markets", "Household Supplies"),
                 group("Dining", "Restaurants", "Cafés", "Fast Food", "Delivery"),
-                group("Transportation", "Fuel", "Public Transport", "Parking", "Taxis/Uber", "Car Maintenance",
+                group(
+                        "Transportation",
+                        "Fuel",
+                        "Public Transport",
+                        "Parking",
+                        "Taxis/Uber",
+                        "Car Maintenance",
                         "Car Insurance"),
                 group("Utilities", "Electricity", "Gas", "Water", "Internet", "Mobile Phone"),
                 group("Healthcare", "Doctors", "Pharmacy", "Dental", "Vision", "Health Insurance"),
@@ -60,5 +65,4 @@ public record Category(String name, List<Category> children) {
                 group("Subscriptions", "Streaming", "Music", "Cloud Storage", "Apps & Software"),
                 group("Miscellaneous", "Uncategorized Expenses"));
     }
-
 }

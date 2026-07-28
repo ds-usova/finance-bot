@@ -16,6 +16,8 @@ Name the class in full. The architecture tests ignore Gradle's filter, so a wild
 a run that was meant for one class elsewhere; the wrapper leaves them out of any filtered run that does not ask
 for them by name.
 - Coverage report (JaCoCo): `./gradlew test jacocoTestReport` from `ledger-service/`
+- Reformat to style (Spotless): `./gradlew spotlessApply` from `ledger-service/`
+- Check formatting (Spotless): `./gradlew spotlessCheck` from `ledger-service/` — runs as part of `check`
 - Run contract codegen: n/a — no codegen is wired
 
 The wrapper reports a run rather than a build log: a `PASS` / `FAIL` / `COMPILE ERROR` / `NO TESTS RAN`

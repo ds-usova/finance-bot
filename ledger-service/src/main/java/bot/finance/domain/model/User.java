@@ -44,5 +44,4 @@ public final class User {
     public int hashCode() {
         return Objects.hash(externalId);
     }
-
 }

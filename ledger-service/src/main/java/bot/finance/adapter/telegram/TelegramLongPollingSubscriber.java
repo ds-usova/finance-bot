@@ -24,10 +24,8 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
     private volatile boolean running;
 
-    public TelegramLongPollingSubscriber(TelegramBot bot,
-                                         UpdatesListener listener,
-                                         TelegramBotProperties properties,
-                                         LoggerFactory loggerFactory) {
+    public TelegramLongPollingSubscriber(
+            TelegramBot bot, UpdatesListener listener, TelegramBotProperties properties, LoggerFactory loggerFactory) {
         this.bot = bot;
         this.listener = listener;
         this.properties = properties;
@@ -44,8 +42,10 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
         bot.setUpdatesListener(listener, this::logPollFailure, request);
         running = true;
-        log.debug("telegram long polling started with limit {} and timeout {}s",
-                polling.limit(), polling.timeoutSeconds());
+        log.debug(
+                "telegram long polling started with limit {} and timeout {}s",
+                polling.limit(),
+                polling.timeoutSeconds());
     }
 
     @Override
@@ -66,5 +66,4 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
     private void logPollFailure(TelegramException exception) {
         log.error("telegram getUpdates polling failed: {}", exception.getMessage());
     }
-
 }

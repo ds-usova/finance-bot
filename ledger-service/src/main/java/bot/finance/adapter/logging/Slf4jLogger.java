@@ -34,5 +34,4 @@ public class Slf4jLogger implements Logger {
     public void error(String message, Throwable t) {
         delegate.error(message, t);
     }
-
 }

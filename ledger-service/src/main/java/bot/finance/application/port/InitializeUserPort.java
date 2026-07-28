@@ -12,5 +12,4 @@ public interface InitializeUserPort {
      * @throws PersistenceFailedException if storing the user fails
      */
     User initialize(NewUser newUser);
-
 }

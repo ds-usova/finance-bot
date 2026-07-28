@@ -1,21 +1,5 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.application.dto.IncomingMessage;
-import bot.finance.application.port.HandleIncomingMessagePort;
-import bot.finance.common.containers.WireMockSupport;
-import bot.finance.domain.exception.InvalidIncomingMessageException;
-import com.pengrad.telegrambot.TelegramBot;
-import com.pengrad.telegrambot.request.GetUpdates;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.time.Duration;
-
 import static bot.finance.common.TelegramFixtures.textMessageUpdate;
 import static bot.finance.common.TelegramFixtures.updatesResponse;
 import static bot.finance.common.TelegramFixtures.voiceMessageUpdate;
@@ -31,6 +15,21 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.port.HandleIncomingMessagePort;
+import bot.finance.common.containers.WireMockSupport;
+import bot.finance.domain.exception.InvalidIncomingMessageException;
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.GetUpdates;
+import java.time.Duration;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Integration test for the inbound Telegram adapter. Its protocol is pengrad's {@code getUpdates} long-poll loop
@@ -68,23 +67,21 @@ class TelegramUpdateListenerTest {
     }
 
     private void startLoop() {
-        bot.setUpdatesListener(listener, new GetUpdates()
-                .limit(POLL_LIMIT)
-                .timeout(POLL_TIMEOUT_SECONDS)
-                .allowedUpdates("message"));
+        bot.setUpdatesListener(
+                listener,
+                new GetUpdates().limit(POLL_LIMIT).timeout(POLL_TIMEOUT_SECONDS).allowedUpdates("message"));
     }
 
     private void awaitFollowUpPollWithOffset(String offset) {
-        await().atMost(AWAIT_TIMEOUT).untilAsserted(() ->
-                assertThat(recordedPollsWithOffset(LISTENER_TOKEN, offset))
-                        .as("follow-up getUpdates polls carrying offset=%s", offset)
-                        .isNotEmpty());
+        await().atMost(AWAIT_TIMEOUT).untilAsserted(() -> assertThat(recordedPollsWithOffset(LISTENER_TOKEN, offset))
+                .as("follow-up getUpdates polls carrying offset=%s", offset)
+                .isNotEmpty());
     }
 
     private IncomingMessage awaitSingleHandledCommand() {
         ArgumentCaptor<IncomingMessage> command = ArgumentCaptor.forClass(IncomingMessage.class);
-        await().atMost(AWAIT_TIMEOUT).untilAsserted(() ->
-                verify(handleIncomingMessagePort).handle(command.capture()));
+        await().atMost(AWAIT_TIMEOUT)
+                .untilAsserted(() -> verify(handleIncomingMessagePort).handle(command.capture()));
         return command.getValue();
     }
 
@@ -93,10 +90,11 @@ class TelegramUpdateListenerTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when a text-message update is polled - then the port handles the mapped command and the batch is confirmed")
+        @DisplayName(
+                "when a text-message update is polled - then the port handles the mapped command and the batch is confirmed")
         void whenTextMessageUpdateIsPolled_thenPortHandlesMappedCommandAndBatchIsConfirmed() {
-            telegramReturnsOnFirstPoll(LISTENER_TOKEN,
-                    updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 
@@ -105,7 +103,6 @@ class TelegramUpdateListenerTest {
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
         }
-
     }
 
     @Nested
@@ -113,18 +110,19 @@ class TelegramUpdateListenerTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName("when the port rejects the delivered update - then the batch is still confirmed so the loop is not stalled")
+        @DisplayName(
+                "when the port rejects the delivered update - then the batch is still confirmed so the loop is not stalled")
         void whenPortRejectsTheDeliveredUpdate_thenBatchIsStillConfirmedSoTheLoopIsNotStalled() {
             doThrow(new InvalidIncomingMessageException("incoming message is invalid"))
-                    .when(handleIncomingMessagePort).handle(any());
-            telegramReturnsOnFirstPoll(LISTENER_TOKEN,
-                    updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                    .when(handleIncomingMessagePort)
+                    .handle(any());
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 
             awaitFollowUpPollWithOffset("43");
         }
-
     }
 
     @Nested
@@ -132,10 +130,10 @@ class TelegramUpdateListenerTest {
     class Validation {
 
         @Test
-        @DisplayName("when a voice-message update is polled - then the port is never called and the batch is still confirmed")
+        @DisplayName(
+                "when a voice-message update is polled - then the port is never called and the batch is still confirmed")
         void whenVoiceMessageUpdateIsPolled_thenPortIsNeverCalledAndBatchIsStillConfirmed() {
-            telegramReturnsOnFirstPoll(LISTENER_TOKEN,
-                    updatesResponse(voiceMessageUpdate(TEXT_UPDATE_ID, CHAT_ID)));
+            telegramReturnsOnFirstPoll(LISTENER_TOKEN, updatesResponse(voiceMessageUpdate(TEXT_UPDATE_ID, CHAT_ID)));
 
             startLoop();
 
@@ -144,11 +142,14 @@ class TelegramUpdateListenerTest {
         }
 
         @Test
-        @DisplayName("when a batch mixing a text and a voice update is polled - then only the text update is handled and the whole batch is confirmed")
+        @DisplayName(
+                "when a batch mixing a text and a voice update is polled - then only the text update is handled and the whole batch is confirmed")
         void whenBatchMixingTextAndVoiceUpdateIsPolled_thenOnlyTextUpdateIsHandledAndWholeBatchIsConfirmed() {
-            telegramReturnsOnFirstPoll(LISTENER_TOKEN, updatesResponse(
-                    textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT),
-                    voiceMessageUpdate(VOICE_UPDATE_ID, CHAT_ID)));
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN,
+                    updatesResponse(
+                            textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT),
+                            voiceMessageUpdate(VOICE_UPDATE_ID, CHAT_ID)));
 
             startLoop();
 
@@ -157,7 +158,5 @@ class TelegramUpdateListenerTest {
             assertThat(handled.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
         }
-
     }
-
 }

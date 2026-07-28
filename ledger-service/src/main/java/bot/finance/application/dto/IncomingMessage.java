@@ -16,5 +16,4 @@ public record IncomingMessage(String conversationId, String text) {
             throw new InvalidIncomingMessageException("incoming message has no text");
         }
     }
-
 }

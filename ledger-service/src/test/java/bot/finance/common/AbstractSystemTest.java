@@ -24,10 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
 @ImportTestcontainers(PostgresContainers.class)
-@SpringBootTest(
-        classes = LedgerServiceApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
-)
+@SpringBootTest(classes = LedgerServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class AbstractSystemTest {
 
@@ -68,9 +65,7 @@ public abstract class AbstractSystemTest {
     }
 
     @BeforeEach
-    void setUp() {
-
-    }
+    void setUp() {}
 
     @AfterEach
     void tearDown() {
@@ -80,5 +75,4 @@ public abstract class AbstractSystemTest {
     protected void logResponse(Response response) {
         log.debug("Response: {} {}", System.lineSeparator(), response.asPrettyString());
     }
-
 }

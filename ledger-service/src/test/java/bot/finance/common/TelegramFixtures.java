@@ -27,8 +27,7 @@ public final class TelegramFixtures {
     private static final int MESSAGE_ID = 1;
     private static final int MESSAGE_DATE = 1700000000;
 
-    private TelegramFixtures() {
-    }
+    private TelegramFixtures() {}
 
     /**
      * A bare {@code Update} carrying a text message in a private chat.
@@ -43,7 +42,8 @@ public final class TelegramFixtures {
                     "chat": { "id": %d, "type": "private" },
                     "text": "%s"
                   }
-                }""".formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId, escaped(text));
+                }"""
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId, escaped(text));
     }
 
     /**
@@ -64,7 +64,8 @@ public final class TelegramFixtures {
                       "mime_type": "audio/ogg"
                     }
                   }
-                }""".formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId);
+                }"""
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId);
     }
 
     /**
@@ -80,7 +81,8 @@ public final class TelegramFixtures {
                     "date": %d,
                     "text": "%s"
                   }
-                }""".formatted(updateId, MESSAGE_ID, MESSAGE_DATE, escaped(text));
+                }"""
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, escaped(text));
     }
 
     /**
@@ -96,7 +98,8 @@ public final class TelegramFixtures {
                     "chat_instance": "callback-chat-instance",
                     "data": "noop"
                   }
-                }""".formatted(updateId);
+                }"""
+                .formatted(updateId);
     }
 
     /**
@@ -110,7 +113,8 @@ public final class TelegramFixtures {
                   "result": [
                 %s
                   ]
-                }""".formatted(updates);
+                }"""
+                .formatted(updates);
     }
 
     /**
@@ -133,11 +137,11 @@ public final class TelegramFixtures {
                   "ok": false,
                   "error_code": %d,
                   "description": "%s"
-                }""".formatted(errorCode, escaped(description));
+                }"""
+                .formatted(errorCode, escaped(description));
     }
 
     private static String escaped(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
-
 }

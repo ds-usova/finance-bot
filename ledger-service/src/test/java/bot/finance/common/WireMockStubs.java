@@ -1,13 +1,13 @@
 package bot.finance.common;
 
-import bot.finance.common.containers.WireMockSupport;
-
 import static bot.finance.common.TelegramTestBot.getUpdatesPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+
+import bot.finance.common.containers.WireMockSupport;
 
 /**
  * Static helpers for registering WireMock stubs against external partner services.
@@ -43,8 +43,7 @@ public final class WireMockStubs {
     private static final int UPDATE_BEARING_PRIORITY = 1;
     private static final int CATCH_ALL_PRIORITY = 10;
 
-    private WireMockStubs() {
-    }
+    private WireMockStubs() {}
 
     /**
      * The low-priority catch-all: every {@code getUpdates} poll for this token gets an empty batch, so a poll
@@ -104,5 +103,4 @@ public final class WireMockStubs {
                 .withFormParam("offset", absent())
                 .willReturn(okJson(responseBody)));
     }
-
 }

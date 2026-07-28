@@ -1,6 +1,7 @@
 plugins {
     id "java"
     id "jacoco"
+    id "com.diffplug.spotless" version "$spotlessVersion"
     id "org.springframework.boot" version "$springBootVersion"
     id "io.spring.dependency-management" version "$springDependencyManagementVersion"
 }
@@ -67,4 +68,12 @@ test {
 
 jacoco {
     toolVersion = "${jacocoVersion}"
+}
+
+spotless {
+    java {
+        palantirJavaFormat("${palantirJavaFormatVersion}")
+        removeUnusedImports()
+        importOrder()
+    }
 }

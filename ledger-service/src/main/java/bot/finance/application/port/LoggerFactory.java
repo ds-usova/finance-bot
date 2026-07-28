@@ -7,5 +7,4 @@ package bot.finance.application.port;
 public interface LoggerFactory {
 
     Logger getLogger(Class<?> clazz);
-
 }

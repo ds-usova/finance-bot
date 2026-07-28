@@ -1,14 +1,13 @@
 package bot.finance.common;
 
-import bot.finance.common.containers.WireMockSupport;
-import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import com.pengrad.telegrambot.TelegramBot;
-
-import java.util.List;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
+import bot.finance.common.containers.WireMockSupport;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import com.pengrad.telegrambot.TelegramBot;
+import java.util.List;
 
 /**
  * The single home for pointing a real pengrad {@link TelegramBot} at the WireMock singleton, for the bot tokens
@@ -44,8 +43,7 @@ public final class TelegramTestBot {
 
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
-    private TelegramTestBot() {
-    }
+    private TelegramTestBot() {}
 
     /**
      * The token-scoped path pengrad posts {@code getUpdates} to: {@code /bot<token>/getUpdates}. Stub
@@ -79,8 +77,7 @@ public final class TelegramTestBot {
      * was consumed.
      */
     public static List<LoggedRequest> recordedPollsWithOffset(String token, String offset) {
-        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(getUpdatesPath(token)))
-                .withFormParam("offset", equalTo(offset)));
+        return WireMockSupport.SERVER.findAll(
+                postRequestedFor(urlPathEqualTo(getUpdatesPath(token))).withFormParam("offset", equalTo(offset)));
     }
-
 }

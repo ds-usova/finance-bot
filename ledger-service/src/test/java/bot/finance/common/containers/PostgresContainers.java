@@ -28,6 +28,5 @@ public class PostgresContainers {
         POSTGRES_CONTAINER.start();
     }
 
-    private PostgresContainers() { }
-
+    private PostgresContainers() {}
 }

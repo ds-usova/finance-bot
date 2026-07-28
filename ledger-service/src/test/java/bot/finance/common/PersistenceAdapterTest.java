@@ -32,6 +32,4 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @ImportTestcontainers(PostgresContainers.class)
-public @interface PersistenceAdapterTest {
-
-}
+public @interface PersistenceAdapterTest {}

@@ -1,5 +1,11 @@
 package bot.finance.adapter.persistence;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.domain.exception.InvalidCategoryException;
@@ -7,6 +13,13 @@ import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,20 +28,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @PersistenceAdapterTest
 @Import(UserRepositoryAdapter.class)
@@ -48,7 +47,8 @@ class UserRepositoryAdapterTest {
     class FindByExternalId {
 
         @Test
-        @DisplayName("when a user row is stored under the external id - then returns the user carrying its generated database id and its external id")
+        @DisplayName(
+                "when a user row is stored under the external id - then returns the user carrying its generated database id and its external id")
         void whenUserRowStoredUnderExternalId_thenReturnsUserCarryingGeneratedIdAndExternalId() {
             UserEntity stored = userEntityRepository.save(new UserEntity(null, "existing-external-id"));
 
@@ -66,7 +66,6 @@ class UserRepositoryAdapterTest {
 
             assertThat(found).isEmpty();
         }
-
     }
 
     @Nested
@@ -74,7 +73,8 @@ class UserRepositoryAdapterTest {
     class Create {
 
         @Test
-        @DisplayName("when called with an unstored user and Category.defaults() - then the user row is written and the returned user carries its generated database id")
+        @DisplayName(
+                "when called with an unstored user and Category.defaults() - then the user row is written and the returned user carries its generated database id")
         void whenCalledWithUnstoredUserAndDefaultCategories_thenUserRowWrittenAndReturnedUserCarriesGeneratedId() {
             User user = User.newUser("new-user-external-id");
 
@@ -85,7 +85,8 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an unstored user and Category.defaults() - then 97 category rows exist for that user, 20 with no parent and each remaining row pointing at the row of the group it belongs to, matching the tree by name")
+        @DisplayName(
+                "when called with an unstored user and Category.defaults() - then 97 category rows exist for that user, 20 with no parent and each remaining row pointing at the row of the group it belongs to, matching the tree by name")
         void whenCalledWithUnstoredUserAndDefaultCategories_thenCategoryTreeIsWrittenMatchingByName() {
             User user = User.newUser("category-tree-external-id");
 
@@ -95,18 +96,19 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an unstored user whose external id is absent - then throws InvalidUserException before anything is written")
+        @DisplayName(
+                "when called with an unstored user whose external id is absent - then throws InvalidUserException before anything is written")
         void whenUnstoredUserExternalIdIsAbsent_thenThrowsInvalidUserExceptionBeforeWritingAnything() {
             User user = User.newUser(null);
 
-            assertThatThrownBy(() -> adapter.create(user, List.of()))
-                    .isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(() -> adapter.create(user, List.of())).isInstanceOf(InvalidUserException.class);
 
             assertThat(userEntityRepository.count()).isZero();
         }
 
         @Test
-        @DisplayName("when called with an unstored user carrying an already-stored external id - then returns that user and writes no categories")
+        @DisplayName(
+                "when called with an unstored user carrying an already-stored external id - then returns that user and writes no categories")
         void whenCalledWithAlreadyStoredExternalId_thenReturnsThatUserAndWritesNoCategories() {
             UserEntity stored = userEntityRepository.save(new UserEntity(null, "duplicate-external-id"));
             User duplicateUser = User.newUser("duplicate-external-id");
@@ -119,7 +121,8 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an external id exactly 255 characters long - then the user is written and returned with its generated id")
+        @DisplayName(
+                "when called with an external id exactly 255 characters long - then the user is written and returned with its generated id")
         void whenExternalIdIsExactly255Characters_thenUserIsWrittenAndReturnedWithGeneratedId() {
             String externalId = "a".repeat(255);
             User user = User.newUser(externalId);
@@ -131,19 +134,20 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with an external id 256 characters long - then throws InvalidUserException before anything is written, so no user row exists afterwards")
+        @DisplayName(
+                "when called with an external id 256 characters long - then throws InvalidUserException before anything is written, so no user row exists afterwards")
         void whenExternalIdIs256Characters_thenThrowsInvalidUserExceptionBeforeWritingAnything() {
             String externalId = "a".repeat(256);
             User user = User.newUser(externalId);
 
-            assertThatThrownBy(() -> adapter.create(user, List.of()))
-                    .isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(() -> adapter.create(user, List.of())).isInstanceOf(InvalidUserException.class);
 
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
         }
 
         @Test
-        @DisplayName("when called with a category tree whose child name is exactly 100 characters long - then the tree is written and that child's row carries the whole name")
+        @DisplayName(
+                "when called with a category tree whose child name is exactly 100 characters long - then the tree is written and that child's row carries the whole name")
         void whenChildNameIsExactly100Characters_thenTreeIsWrittenAndChildRowCarriesWholeName() {
             String childName = "a".repeat(100);
             Category tree = Category.group("boundary-group", childName);
@@ -159,35 +163,36 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with a category tree whose child name is 101 characters long - then throws InvalidCategoryException before anything is written, so no user row exists afterwards")
+        @DisplayName(
+                "when called with a category tree whose child name is 101 characters long - then throws InvalidCategoryException before anything is written, so no user row exists afterwards")
         void whenChildNameIs101Characters_thenThrowsInvalidCategoryExceptionBeforeWritingAnything() {
             String childName = "a".repeat(101);
             Category tree = Category.group("boundary-group-2", childName);
             String externalId = "overlong-child-external-id";
             User user = User.newUser(externalId);
 
-            assertThatThrownBy(() -> adapter.create(user, List.of(tree)))
-                    .isInstanceOf(InvalidCategoryException.class);
+            assertThatThrownBy(() -> adapter.create(user, List.of(tree))).isInstanceOf(InvalidCategoryException.class);
 
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
         }
 
         @Test
-        @DisplayName("when called with a category tree whose group name is 101 characters long - then throws InvalidCategoryException before anything is written, groups are checked as well as children")
+        @DisplayName(
+                "when called with a category tree whose group name is 101 characters long - then throws InvalidCategoryException before anything is written, groups are checked as well as children")
         void whenGroupNameIs101Characters_thenThrowsInvalidCategoryExceptionBeforeWritingAnything() {
             String groupName = "a".repeat(101);
             Category tree = Category.group(groupName, "Valid Child");
             String externalId = "overlong-group-external-id";
             User user = User.newUser(externalId);
 
-            assertThatThrownBy(() -> adapter.create(user, List.of(tree)))
-                    .isInstanceOf(InvalidCategoryException.class);
+            assertThatThrownBy(() -> adapter.create(user, List.of(tree))).isInstanceOf(InvalidCategoryException.class);
 
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
         }
 
         @Test
-        @DisplayName("when called for two users one after the other - then each user owns its own 97 category rows and neither user's rows reference the other's")
+        @DisplayName(
+                "when called for two users one after the other - then each user owns its own 97 category rows and neither user's rows reference the other's")
         void whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsWithNoCrossReferences() {
             User firstCreatedUser = adapter.create(User.newUser("first-user-external-id"), Category.defaults());
             User secondCreatedUser = adapter.create(User.newUser("second-user-external-id"), Category.defaults());
@@ -198,11 +203,14 @@ class UserRepositoryAdapterTest {
             assertCategoryTreeWritten(firstUserId, Category.defaults());
             assertCategoryTreeWritten(secondUserId, Category.defaults());
 
-            List<Long> firstUserRowIds = categoryRowsFor(firstUserId).stream().map(CategoryEntity::id).toList();
-            List<Long> secondUserRowIds = categoryRowsFor(secondUserId).stream().map(CategoryEntity::id).toList();
+            List<Long> firstUserRowIds = categoryRowsFor(firstUserId).stream()
+                    .map(CategoryEntity::id)
+                    .toList();
+            List<Long> secondUserRowIds = categoryRowsFor(secondUserId).stream()
+                    .map(CategoryEntity::id)
+                    .toList();
             assertThat(firstUserRowIds).doesNotContainAnyElementsOf(secondUserRowIds);
         }
-
     }
 
     // The scenarios below need a store that misbehaves in ways the healthy containerized
@@ -220,11 +228,14 @@ class UserRepositoryAdapterTest {
                 new UserRepositoryAdapter(mockedUserEntityRepository, mockedJdbcAggregateTemplate);
 
         @Test
-        @DisplayName("when the database is unreachable - then findByExternalId() throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenDatabaseIsUnreachable_thenFindByExternalIdThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName(
+                "when the database is unreachable - then findByExternalId() throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenDatabaseIsUnreachable_thenFindByExternalIdThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             DataAccessResourceFailureException frameworkException =
                     new DataAccessResourceFailureException("connection refused");
-            when(mockedUserEntityRepository.findByExternalId("unreachable-external-id")).thenThrow(frameworkException);
+            when(mockedUserEntityRepository.findByExternalId("unreachable-external-id"))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findByExternalId("unreachable-external-id"))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -233,8 +244,10 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName(
+                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedUserEntityRepository.insertIfAbsent(any())).thenThrow(frameworkException);
             User user = User.newUser("non-constraint-failure-external-id");
@@ -246,10 +259,10 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when the store hands generated group ids back in an order that does not match the input - then each child still pairs to the right group by name")
+        @DisplayName(
+                "when the store hands generated group ids back in an order that does not match the input - then each child still pairs to the right group by name")
         void whenGroupOrderIsNotPreserved_thenChildrenStillPairToTheRightGroupByName() {
-            when(mockedUserEntityRepository.insertIfAbsent(any()))
-                    .thenReturn(Optional.of(1L));
+            when(mockedUserEntityRepository.insertIfAbsent(any())).thenReturn(Optional.of(1L));
 
             Category first = Category.group("First", "First Child");
             Category second = Category.group("Second", "Second Child");
@@ -286,7 +299,6 @@ class UserRepositoryAdapterTest {
             }
             return withGeneratedIds;
         }
-
     }
 
     private List<CategoryEntity> categoryRowsFor(long userId) {
@@ -297,13 +309,15 @@ class UserRepositoryAdapterTest {
         List<CategoryEntity> rows = categoryRowsFor(userId);
         assertThat(rows).hasSize(97);
 
-        List<CategoryEntity> groupRows = rows.stream().filter(row -> row.parentId() == null).toList();
-        List<CategoryEntity> childRows = rows.stream().filter(row -> row.parentId() != null).toList();
+        List<CategoryEntity> groupRows =
+                rows.stream().filter(row -> row.parentId() == null).toList();
+        List<CategoryEntity> childRows =
+                rows.stream().filter(row -> row.parentId() != null).toList();
         assertThat(groupRows).hasSize(20);
         assertThat(childRows).hasSize(77);
 
-        Map<String, Long> groupIdByName = groupRows.stream()
-                .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
+        Map<String, Long> groupIdByName =
+                groupRows.stream().collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
 
         for (Category group : expectedTree) {
             Long groupId = groupIdByName.get(group.name());
@@ -316,5 +330,4 @@ class UserRepositoryAdapterTest {
             }
         }
     }
-
 }

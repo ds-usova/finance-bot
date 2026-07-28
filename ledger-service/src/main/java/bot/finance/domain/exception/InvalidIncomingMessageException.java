@@ -5,5 +5,4 @@ public class InvalidIncomingMessageException extends RuntimeException {
     public InvalidIncomingMessageException(String message) {
         super(message);
     }
-
 }

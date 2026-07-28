@@ -1,5 +1,13 @@
 package bot.finance.application.usecase;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import bot.finance.application.dto.IncomingMessage;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -9,14 +17,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 class HandleIncomingMessageUseCaseTest {
 
@@ -51,12 +51,9 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when the command is null - then throws InvalidIncomingMessageException and logs nothing")
         void whenCommandIsNull_thenThrowsInvalidIncomingMessageExceptionAndLogsNothing() {
-            assertThatThrownBy(() -> useCase.handle(null))
-                    .isInstanceOf(InvalidIncomingMessageException.class);
+            assertThatThrownBy(() -> useCase.handle(null)).isInstanceOf(InvalidIncomingMessageException.class);
 
             verifyNoInteractions(log);
         }
-
     }
-
 }

@@ -14,6 +14,5 @@ public record TelegramBotProperties(String token, String apiUrl, Polling polling
      * @param timeoutSeconds how long Telegram holds an empty {@code getUpdates} call open
      * @param sleepMillis    how long the poll loop waits between calls
      */
-    public record Polling(boolean enabled, int limit, int timeoutSeconds, long sleepMillis) { }
-
+    public record Polling(boolean enabled, int limit, int timeoutSeconds, long sleepMillis) {}
 }

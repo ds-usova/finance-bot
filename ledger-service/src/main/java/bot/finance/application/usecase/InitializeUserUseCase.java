@@ -24,8 +24,7 @@ public class InitializeUserUseCase implements InitializeUserPort {
         if (newUser == null) {
             throw new InvalidUserException("new user command is absent");
         }
-        return userRepository.findByExternalId(newUser.externalId())
-                .orElseGet(() -> createUser(newUser.externalId()));
+        return userRepository.findByExternalId(newUser.externalId()).orElseGet(() -> createUser(newUser.externalId()));
     }
 
     private User createUser(String externalId) {
@@ -33,5 +32,4 @@ public class InitializeUserUseCase implements InitializeUserPort {
         log.info("created user with external id {}", externalId);
         return created;
     }
-
 }
