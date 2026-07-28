@@ -26,5 +26,5 @@ deployment supplies its own.
   [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml), which also supplies all
   three database values to the service when it runs under compose.
 - `AI_CONNECTOR_GRPC_TARGET` defaults to the port that same file publishes for the AI Connector; under compose
-  the service is given the connector's container address instead. `/actuator/health` carries the connector's own
-  health answer, so a target pointing nowhere shows there rather than at the first extraction call.
+  the service is given the connector's container address instead. A target pointing nowhere shows in
+  `/actuator/health` — see [AI Connector Service](contracts/out/ai-connector.md).

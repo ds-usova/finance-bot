@@ -16,6 +16,7 @@ C3 is below. Package structure is in the
 ### Contracts
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
+- [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 
 ### Running It
 

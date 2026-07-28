@@ -4,16 +4,17 @@ A line a user wrote crosses this boundary in, and the actions it asks for cross 
 nothing about the text; it sends what the user said, the categories that user already has, and — optionally —
 the currency to assume when an amount is stated without one.
 
-- **Counterpart:** the Ledger Service, which executes the returned actions against the user's ledger
+- **Counterpart:** [the Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)
 - **Transport:** gRPC
 - **Schema:** [`proto/intent_extraction.proto`](../../../../proto/intent_extraction.proto), shared at the
   repository root so both sides read the same file
 
 ## Operations
 
-| Operation       | Purpose                                                    | Used by                                                                                                          |
-|-----------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| Extract intents | reads the actions a user's message asks for, in their order | [Extract the intents in a user's message](../../usecases/extract-intents.md); on the caller's side, the Ledger Service, which has no page yet |
+| Operation       | Purpose                                                     | Used by                                                                                                                                                          |
+|-----------------|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Extract intents | reads the actions a user's message asks for, in their order | here, [Extract the intents in a user's message](../../usecases/extract-intents.md) · on the caller's side, [the Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md) |
+| Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md), which reports it in its own health endpoint |
 
 ## Semantics
 
