@@ -1,12 +1,24 @@
 package bot.finance.domain.value;
 
+import bot.finance.domain.exception.InvalidCategoryException;
+
 import java.util.List;
 
 public record Category(String name, List<Category> children) {
 
     public Category {
-        // rejects a blank name, an absent child list, and a child that carries children of its
-        // own, with InvalidCategoryException; keeps children as an unmodifiable copy
+        if (name == null || name.isBlank()) {
+            throw new InvalidCategoryException("category has no name");
+        }
+        if (children == null) {
+            throw new InvalidCategoryException("category has no child list");
+        }
+        for (Category child : children) {
+            if (!child.children().isEmpty()) {
+                throw new InvalidCategoryException("category tree exceeds two levels");
+            }
+        }
+        children = List.copyOf(children);
     }
 
     public static Category leaf(String name) {
@@ -18,8 +30,28 @@ public record Category(String name, List<Category> children) {
     }
 
     public static List<Category> defaults() {
-        // the 20 predefined groups and their 78 children, in the order the plan lists them
-        return List.of();
+        return List.of(
+                group("Housing", "Rent", "Mortgage", "HOA", "Property Tax", "Home Insurance", "Repairs", "Furniture"),
+                group("Groceries", "Supermarkets", "Markets", "Household Supplies"),
+                group("Dining", "Restaurants", "Cafés", "Fast Food", "Delivery"),
+                group("Transportation", "Fuel", "Public Transport", "Parking", "Taxis/Uber", "Car Maintenance",
+                        "Car Insurance"),
+                group("Utilities", "Electricity", "Gas", "Water", "Internet", "Mobile Phone"),
+                group("Healthcare", "Doctors", "Pharmacy", "Dental", "Vision", "Health Insurance"),
+                group("Education", "Tuition", "Books", "Courses", "Certifications"),
+                group("Shopping", "Clothing", "Electronics", "Home Goods", "Gifts"),
+                group("Entertainment", "Movies", "Games", "Streaming Services", "Hobbies"),
+                group("Travel", "Hotels", "Flights", "Vacation", "Attractions"),
+                group("Pets", "Food", "Vet", "Grooming"),
+                group("Family & Children", "Childcare", "School Supplies", "Toys"),
+                group("Financial", "Taxes", "Bank Fees", "Loan Payments", "Interest"),
+                group("Investments", "Brokerage", "Retirement", "Crypto", "Savings Transfers"),
+                group("Gifts & Donations", "Charity", "Birthday Gifts", "Holidays"),
+                group("Work", "Office Supplies", "Business Expenses"),
+                group("Insurance", "Life", "Home", "Vehicle", "Travel"),
+                group("Personal Care", "Haircuts", "Cosmetics", "Gym", "Spa"),
+                group("Subscriptions", "Netflix", "Spotify", "Cloud Storage", "Software"),
+                group("Miscellaneous", "Uncategorized Expenses"));
     }
 
 }

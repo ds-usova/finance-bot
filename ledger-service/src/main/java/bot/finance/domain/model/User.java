@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public final class User {
@@ -26,6 +27,22 @@ public final class User {
 
     public String externalId() {
         return externalId;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof User user)) {
+            return false;
+        }
+        return Objects.equals(externalId, user.externalId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(externalId);
     }
 
 }

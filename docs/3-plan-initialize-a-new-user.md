@@ -471,14 +471,14 @@ end
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Category` · test: `CategoryTest`
-- [ ] GU02 · `User` · test: `UserTest`
-- [ ] GU03 · `NewUser` · test: `NewUserTest`
-- [ ] GU04 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU01, GU02, GU03
+- [x] GU01 · `Category` · test: `CategoryTest`
+- [x] GU02 · `User` · test: `UserTest`
+- [x] GU03 · `NewUser` · test: `NewUserTest`
+- [x] GU04 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU01, GU02, GU03
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU01, GU02
+- [x] GI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU01, GU02
 
 ## Open Questions / Blockers
 

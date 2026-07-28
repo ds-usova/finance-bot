@@ -5,7 +5,9 @@ import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
 
 public class InitializeUserUseCase implements InitializeUserPort {
 
@@ -19,9 +21,17 @@ public class InitializeUserUseCase implements InitializeUserPort {
 
     @Override
     public User initialize(NewUser newUser) {
-        // rejects an absent command; returns the user already stored under the external id,
-        // otherwise creates it together with Category.defaults() and returns what was stored
-        return null;
+        if (newUser == null) {
+            throw new InvalidUserException("new user command is absent");
+        }
+        return userRepository.findByExternalId(newUser.externalId())
+                .orElseGet(() -> createUser(newUser.externalId()));
+    }
+
+    private User createUser(String externalId) {
+        User created = userRepository.create(User.newUser(externalId), Category.defaults());
+        log.info("created user with external id {}", externalId);
+        return created;
     }
 
 }
