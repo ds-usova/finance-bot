@@ -1,15 +1,23 @@
 package bot.finance.domain.value;
 
+import bot.finance.domain.exception.InvalidMoneyException;
+
 import java.math.BigDecimal;
+import java.util.Currency;
 
 public record Money(long minorUnits, CurrencyCode currencyCode) {
 
     public Money {
-        // TODO: GU02 rejects a null currencyCode and negative minorUnits, with InvalidMoneyException.
+        if (currencyCode == null) {
+            throw new InvalidMoneyException("Currency code must not be null");
+        }
+        if (minorUnits < 0) {
+            throw new InvalidMoneyException("Minor units must not be negative");
+        }
     }
 
     public BigDecimal amount() {
-        // scales the minor units by the currency's default fraction digits
-        return BigDecimal.ZERO;
+        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
+        return BigDecimal.valueOf(minorUnits, fractionDigits);
     }
 }

@@ -1,5 +1,7 @@
 package bot.finance.domain.value;
 
+import bot.finance.domain.exception.InvalidIntentException;
+
 import java.util.Optional;
 
 public record ExpenseIntent(
@@ -7,8 +9,26 @@ public record ExpenseIntent(
         implements Intent {
 
     public ExpenseIntent {
-        // TODO: GU04 rejects a null operation and a null categoryName/amount/description Optional, and a
-        // CREATE with no amount or no category name, each with InvalidIntentException. READ, UPDATE and
-        // DELETE carry no requirement of their own.
+        if (operation == null) {
+            throw new InvalidIntentException("Operation must not be null");
+        }
+        if (categoryName == null) {
+            throw new InvalidIntentException("Category name must not be null; use Optional.empty() when absent");
+        }
+        if (amount == null) {
+            throw new InvalidIntentException("Amount must not be null; use Optional.empty() when absent");
+        }
+        if (description == null) {
+            throw new InvalidIntentException("Description must not be null; use Optional.empty() when absent");
+        }
+
+        if (operation == Operation.CREATE) {
+            if (amount.isEmpty()) {
+                throw new InvalidIntentException("Operation " + operation.name() + " requires an amount");
+            }
+            if (categoryName.isEmpty()) {
+                throw new InvalidIntentException("Operation " + operation.name() + " requires a categoryName");
+            }
+        }
     }
 }

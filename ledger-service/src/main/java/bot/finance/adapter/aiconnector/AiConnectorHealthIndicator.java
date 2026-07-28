@@ -1,5 +1,8 @@
 package bot.finance.adapter.aiconnector;
 
+import io.grpc.StatusRuntimeException;
+import io.grpc.health.v1.HealthCheckRequest;
+import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;
 
 import org.springframework.boot.health.contributor.Health;
@@ -17,9 +20,17 @@ public class AiConnectorHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        // TODO: GI02 calls the connector's grpc.health.v1.Health/Check for the empty service name -- the
-        // server as a whole, which is the only name the connector registers -- and reports UP for SERVING
-        // and DOWN for everything else, carrying the returned status as a detail.
-        return Health.unknown().build();
+        try {
+            HealthCheckResponse response = healthStub.check(
+                    HealthCheckRequest.newBuilder().setService("").build());
+            HealthCheckResponse.ServingStatus servingStatus = response.getStatus();
+            Health.Builder builder =
+                    servingStatus == HealthCheckResponse.ServingStatus.SERVING ? Health.up() : Health.down();
+            return builder.withDetail("status", servingStatus.name()).build();
+        } catch (StatusRuntimeException e) {
+            return Health.down()
+                    .withDetail("status", e.getStatus().getCode().name())
+                    .build();
+        }
     }
 }

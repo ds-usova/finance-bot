@@ -467,19 +467,19 @@ end
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `CurrencyCode` · test: `CurrencyCodeTest`
-- [ ] GU02 · `Money` · test: `MoneyTest` · after: GU01
-- [ ] GU03 · `CategoryIntent` · test: `CategoryIntentTest`
-- [ ] GU04 · `ExpenseIntent` · test: `ExpenseIntentTest` · after: GU02
-- [ ] GU05 · `UnknownIntent` · test: `UnknownIntentTest`
-- [ ] GU06 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
-- [ ] GU07 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: GU01, GU02, GU03, GU04, GU05, GU06
+- [x] GU01 · `CurrencyCode` · test: `CurrencyCodeTest`
+- [x] GU02 · `Money` · test: `MoneyTest` · after: GU01
+- [x] GU03 · `CategoryIntent` · test: `CategoryIntentTest`
+- [x] GU04 · `ExpenseIntent` · test: `ExpenseIntentTest` · after: GU02
+- [x] GU05 · `UnknownIntent` · test: `UnknownIntentTest`
+- [x] GU06 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
+- [x] GU07 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: GU01, GU02, GU03, GU04, GU05, GU06
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
+- [x] GI01 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
   after: GU06, GU07
-- [ ] GI02 · `AiConnectorHealthIndicator` · test: `AiConnectorHealthIndicatorTest`
+- [x] GI02 · `AiConnectorHealthIndicator` · test: `AiConnectorHealthIndicatorTest`
 
 ### Post-Implementation Steps
 

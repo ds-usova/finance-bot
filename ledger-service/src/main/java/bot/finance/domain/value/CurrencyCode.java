@@ -1,11 +1,22 @@
 package bot.finance.domain.value;
 
+import bot.finance.domain.exception.InvalidMoneyException;
+
+import java.util.Currency;
+
 public record CurrencyCode(String code) {
 
     public CurrencyCode {
-        // TODO: GU01 normalizes the code to upper case, then rejects a null or blank one and one ISO 4217
-        // does not know, with InvalidMoneyException. The normalization belongs here, not in of(String), so
-        // no invalid or unnormalized instance can exist however it was built.
+        if (code == null || code.isBlank()) {
+            throw new InvalidMoneyException("Currency code must not be null or blank");
+        }
+
+        code = code.toUpperCase();
+        try {
+            Currency.getInstance(code);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidMoneyException("Unrecognized ISO 4217 currency code: " + code);
+        }
     }
 
     public static CurrencyCode of(String code) {

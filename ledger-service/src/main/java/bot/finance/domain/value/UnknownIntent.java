@@ -1,8 +1,13 @@
 package bot.finance.domain.value;
 
+import bot.finance.domain.exception.InvalidIntentException;
+
 public record UnknownIntent(String reason) implements Intent {
 
     public UnknownIntent {
-        // TODO: GU05 rejects a null or blank reason with InvalidIntentException.
+        if (reason == null || reason.isBlank()) {
+            throw new InvalidIntentException("Reason must not be null or blank");
+        }
     }
+
 }
