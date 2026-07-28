@@ -270,7 +270,7 @@ end
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `CurrencyCode(String)`, `of(String)`
+- [x] RU01 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `CurrencyCode(String)`, `of(String)`
   - `CurrencyCode(String)`:
     - given: the code `"eur"`
       when: the record is constructed
@@ -286,7 +286,7 @@ end
       when: `of` is called
       then: a `CurrencyCode` equal to `new CurrencyCode("JPY")` comes back
 
-- [ ] RU02 · `Money` · test: `MoneyTest` · covers: `Money(long, CurrencyCode)`, `amount()`
+- [x] RU02 · `Money` · test: `MoneyTest` · covers: `Money(long, CurrencyCode)`, `amount()`
   - `Money(long, CurrencyCode)`:
     - given: a null currency code
       when: the record is constructed
@@ -305,7 +305,7 @@ end
       when: `amount()` is called
       then: it compares equal to `1200`
 
-- [ ] RU03 · `CategoryIntent` · test: `CategoryIntentTest` · covers:
+- [x] RU03 · `CategoryIntent` · test: `CategoryIntentTest` · covers:
   `CategoryIntent(Operation, String, Optional<String>)`
   - `CategoryIntent(Operation, String, Optional<String>)`:
     - given: operation `CREATE`, name `"Coffee"`, no new name
@@ -321,7 +321,7 @@ end
       when: the record is constructed
       then: the record holds that new name
 
-- [ ] RU04 · `ExpenseIntent` · test: `ExpenseIntentTest` · covers:
+- [x] RU04 · `ExpenseIntent` · test: `ExpenseIntentTest` · covers:
   `ExpenseIntent(Operation, Optional<String>, Optional<Money>, Optional<String>)`
   - `ExpenseIntent(Operation, Optional<String>, Optional<Money>, Optional<String>)`:
     - given: operation `CREATE`, category `"Dining"`, an amount, and a description
@@ -341,7 +341,7 @@ end
       then: the record is accepted (parameterized over the three) — only `CREATE` carries a requirement, as on
       `ai-connector-service`'s own `ExpenseIntent`
 
-- [ ] RU05 · `UnknownIntent` · test: `UnknownIntentTest` · covers: `UnknownIntent(String)`
+- [x] RU05 · `UnknownIntent` · test: `UnknownIntentTest` · covers: `UnknownIntent(String)`
   - `UnknownIntent(String)`:
     - given: the reason `"no amount was stated"`
       when: the record is constructed
@@ -350,7 +350,7 @@ end
       when: the record is constructed
       then: `InvalidIntentException` is thrown (parameterized over both)
 
-- [ ] RU06 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers:
+- [x] RU06 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers:
   `IntentExtractionRequest(String, List<String>, Optional<CurrencyCode>)`
   - `IntentExtractionRequest(String, List<String>, Optional<CurrencyCode>)`:
     - given: text, one category, and a default currency
@@ -375,7 +375,7 @@ end
       when: that list is modified afterwards
       then: `knownCategories()` is unchanged
 
-- [ ] RU07 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers:
+- [x] RU07 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers:
   `toProtoRequest(IntentExtractionRequest)`, `toIntents(ExtractIntentsResponse)`
   - `toProtoRequest(IntentExtractionRequest)`:
     - given: a request with text, three categories, and the default currency `EUR`
@@ -431,7 +431,7 @@ end
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI01 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract(IntentExtractionRequest)`
   - `extract(IntentExtractionRequest)`:
     - given: the stub server answers a two-entry response
@@ -449,7 +449,7 @@ end
       when: `extract` is called with `null`
       then: `InvalidExtractionRequestException` is thrown and the server is never called
 
-- [ ] RI02 · `AiConnectorHealthIndicator` · test: `AiConnectorHealthIndicatorTest` · covers: `health()`
+- [x] RI02 · `AiConnectorHealthIndicator` · test: `AiConnectorHealthIndicatorTest` · covers: `health()`
   - `health()`:
     - given: the stub server's health service reports `SERVING` for the empty service name
       when: `health()` is called

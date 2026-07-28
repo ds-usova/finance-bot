@@ -7,6 +7,7 @@ import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.containers.GrpcStubServer;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.grpc.client.autoconfigure.CompositeChannelFactoryAutoConfiguration;
 import org.springframework.boot.grpc.client.autoconfigure.GrpcClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +29,10 @@ import java.lang.annotation.Target;
  * redirected to the stub server's dynamic port through a {@link DynamicPropertyRegistrar} bean:
  * {@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type
  * cannot declare, so this is the composed-annotation-compatible equivalent.
+ *
+ * <p>{@link SslAutoConfiguration} is listed because {@code GrpcClientAutoConfiguration}'s channel-credentials
+ * bean requires {@code SslBundles}, which nothing else here contributes; without it the context fails to load
+ * before any test body runs.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -39,7 +44,11 @@ import java.lang.annotation.Target;
             AiConnectorChannelConfiguration.class,
             Slf4jLoggerFactory.class
         })
-@ImportAutoConfiguration({GrpcClientAutoConfiguration.class, CompositeChannelFactoryAutoConfiguration.class})
+@ImportAutoConfiguration({
+    SslAutoConfiguration.class,
+    GrpcClientAutoConfiguration.class,
+    CompositeChannelFactoryAutoConfiguration.class
+})
 @Import(AiConnectorAdapterTest.GrpcStubServerTargetConfiguration.class)
 public @interface AiConnectorAdapterTest {
 
