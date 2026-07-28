@@ -336,7 +336,7 @@ end
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Category` · test: `CategoryTest` · covers: `Category()`, `leaf()`, `group()`, `defaults()`
+- [x] RU01 · `Category` · test: `CategoryTest` · covers: `Category()`, `leaf()`, `group()`, `defaults()`
     - `Category()`:
         - given: a name that is absent, empty, or only whitespace
           when: the record is constructed
@@ -380,7 +380,7 @@ end
         - given: nothing
           when: defaults() is called
           then: the tree is exactly two levels — no child of a group carries children of its own
-- [ ] RU02 · `User` · test: `UserTest` · covers: `newUser()`, `stored()`, `equals()`, `hashCode()`
+- [x] RU02 · `User` · test: `UserTest` · covers: `newUser()`, `stored()`, `equals()`, `hashCode()`
     - `newUser()`:
         - given: an external id
           when: newUser() is called
@@ -396,7 +396,7 @@ end
         - given: two stored users with the same database id but different external ids
           when: they are compared
           then: they are not equal
-- [ ] RU03 · `NewUser` · test: `NewUserTest` · covers: `NewUser()`
+- [x] RU03 · `NewUser` · test: `NewUserTest` · covers: `NewUser()`
     - `NewUser()`:
         - given: an external id that is absent, empty, or only whitespace
           when: the record is constructed
@@ -404,7 +404,7 @@ end
         - given: a non-blank external id
           when: the record is constructed
           then: the record carries it
-- [ ] RU04 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
+- [x] RU04 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
         - given: the repository holds no user for the external id
           when: initialize() is called
@@ -426,7 +426,7 @@ end
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
+- [x] RI01 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findByExternalId()`,
   `create()`
     - `findByExternalId()`:
         - given: a user row stored under an external id
