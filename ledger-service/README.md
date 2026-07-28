@@ -11,6 +11,7 @@ C3 is below. Package structure is in the
 ### Use Cases
 
 - [Receive a user's message](docs/usecases/handle-incoming-message.md)
+- [Initialize a new user](docs/usecases/initialize-a-new-user.md)
 
 ### Contracts
 
@@ -49,6 +50,11 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(handleMessagePort, "Handle Incoming Message Port", "Interface", "Inbound port", $tags="portIn")
   Component(expenseService, "Expense Recording Use Case", "Plain Java", "Orchestrates the pipeline", $tags="core")
 
+  Component(initializeUserPort, "Initialize User Port", "Interface", "Inbound port", $tags="portIn")
+  Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Creates a user and their categories", $tags="core")
+  Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
+
   Component(audioFetchPort, "Audio Fetch Port", "Interface", "Outbound port", $tags="portOut")
   Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port", $tags="portOut")
   Component(extractionPort, "Expense Extraction Port", "Interface", "Outbound port", $tags="portOut")
@@ -58,7 +64,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Downloads audio", $tags="telegramExternal")
   Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Calls the transcriber", $tags="transcriberExternal")
   Component(aiConnectorAdapter, "AI Connector Adapter", "gRPC Client", "Calls the AI connector", $tags="aiConnectorExternal")
-  Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists users and expenses", $tags="dbExternal")
+  Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists expenses", $tags="dbExternal")
   Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Sends the confirmation", $tags="telegramExternal")
 }
 
@@ -83,6 +89,11 @@ Lay_D(repositoryPort, transcriptionPort)
 Rel_R(expenseService, repositoryPort, "Uses")
 Rel_L(repositoryAdapter, repositoryPort, "Implements", $tags="implements")
 Rel_R(repositoryAdapter, db, "SQL", "JDBC")
+
+Rel_L(initializeUserService, initializeUserPort, "Implements", $tags="implements")
+Rel_D(initializeUserService, userRepositoryPort, "Uses")
+Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
+Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
 
 Rel_D(expenseService, notificationPort, "Uses")
 Rel_R(telegramNotifierAdapter, notificationPort, "Implements", $tags="implements")
