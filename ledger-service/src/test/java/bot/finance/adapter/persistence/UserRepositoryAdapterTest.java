@@ -235,7 +235,7 @@ class UserRepositoryAdapterTest {
         @DisplayName("when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
         void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedUserEntityRepository.save(any())).thenThrow(frameworkException);
+            when(mockedUserEntityRepository.insertIfAbsent(any())).thenThrow(frameworkException);
             User user = User.newUser("non-constraint-failure-external-id");
 
             assertThatThrownBy(() -> mockedAdapter.create(user, List.of()))
@@ -247,8 +247,8 @@ class UserRepositoryAdapterTest {
         @Test
         @DisplayName("when the store hands generated group ids back in an order that does not match the input - then each child still pairs to the right group by name")
         void whenGroupOrderIsNotPreserved_thenChildrenStillPairToTheRightGroupByName() {
-            when(mockedUserEntityRepository.save(any()))
-                    .thenReturn(new UserEntity(1L, "reordered-groups-external-id"));
+            when(mockedUserEntityRepository.insertIfAbsent(any()))
+                    .thenReturn(Optional.of(1L));
 
             Category first = Category.group("First", "First Child");
             Category second = Category.group("Second", "Second Child");

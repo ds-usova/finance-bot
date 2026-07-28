@@ -95,8 +95,10 @@ and nothing else.
 `adapter/persistence/UserRepositoryAdapter` implements `UserRepository` over `UserEntityRepository`, a Spring Data
 JDBC interface, and `JdbcAggregateTemplate`. `create` runs in one transaction and three round trips: the user row,
 then all 20 groups in one batch, then all 77 children in one batch. `JdbcAggregateTemplate.insertAll` batches its
-inserts and hands the stored entities back in the order it was given them, which is how each group's generated id
-is paired with its `Category`.
+inserts and returns the stored groups with their generated ids; each child is paired to its group **by name**, not
+by position. Group names are unique within a user's catalogue, so the pairing needs no assumption about the order
+the store returns rows in — an assumption that held in this version of Spring Data JDBC but rested on
+undocumented internals.
 
 Before writing, `ColumnLimits` checks what the columns require — an external id of at most 255 characters, a
 category name of at most 100 — and rejects a violation with `InvalidUserException` / `InvalidCategoryException`
@@ -637,14 +639,14 @@ only where the decision is already made.
 
 #### TDD Unit Green Phase
 
-- [ ] GU05 · `Category` · test: `CategoryTest` · after: GU01
-- [ ] GU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU04
+- [x] GU05 · `Category` · test: `CategoryTest` · after: GU01
+- [x] GU06 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU04
 
 #### TDD Integration Green Phase
 
-- [ ] GI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU05
-- [ ] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · after: GI02
-- [ ] GI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
+- [x] GI02 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU05
+- [x] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterConcurrencyTest` · after: GI02
+- [x] GI04 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
 
 #### TDD Integration Green Phase — first round
 
@@ -775,6 +777,17 @@ wires a caller.
   `InvalidUserException`. Unreachable through `InitializeUserUseCase` (`NewUser` rejects blanks), but
   `UserRepository.create` is a public port operation and `User` deliberately validates nothing.
 - Accepted 2026-07-28; a null external id is rejected. Fixed by RI02 / GI02.
+
+### Test defect found during the follow-up green phase (2026-07-28)
+
+- **D1:** RI02 wrote the two `WithAMockedStore` tests in `UserRepositoryAdapterTest` against the *current*
+  `create()`, stubbing `UserEntityRepository.save`, when the step's own end state replaces `save` with
+  `insertIfAbsent`. With `save` stubbed and `insertIfAbsent` not, Mockito returned `Optional.empty()`, both tests
+  took the "another caller holds this id" branch, and neither reached what its name claims to test. GI02 hit it,
+  reported it, and correctly refused to bend the implementation to fit. Resolved by re-delegating to a red-phase
+  agent that retargeted the two stubs; no production code changed, and the class went to 15/15. The lesson for
+  the next plan: a red step told to write against an end state its production code has not reached yet needs the
+  *method names* of that end state spelled out, not just its behaviour.
 
 ## Review Findings
 

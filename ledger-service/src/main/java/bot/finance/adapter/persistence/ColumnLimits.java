@@ -15,7 +15,10 @@ final class ColumnLimits {
     }
 
     static void validateExternalId(String externalId) {
-        if (externalId != null && externalId.length() > EXTERNAL_ID) {
+        if (externalId == null) {
+            throw new InvalidUserException("external id is required");
+        }
+        if (externalId.length() > EXTERNAL_ID) {
             throw new InvalidUserException("external id exceeds " + EXTERNAL_ID + " characters");
         }
     }

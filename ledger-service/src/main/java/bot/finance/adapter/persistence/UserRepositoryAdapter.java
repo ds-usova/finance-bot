@@ -4,14 +4,15 @@ import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class UserRepositoryAdapter implements UserRepository {
@@ -27,7 +28,11 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<User> findByExternalId(String externalId) {
-        return userEntityRepository.findByExternalId(externalId).map(UserEntity::toDomain);
+        try {
+            return userEntityRepository.findByExternalId(externalId).map(UserEntity::toDomain);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find user " + externalId, e);
+        }
     }
 
     @Override
@@ -38,29 +43,40 @@ public class UserRepositoryAdapter implements UserRepository {
 
         try {
             return insert(user, categories);
-        } catch (DataIntegrityViolationException e) {
+        } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to store user " + user.externalId(), e);
         }
     }
 
     private User insert(User user, List<Category> categories) {
-        UserEntity storedUser = userEntityRepository.save(UserEntity.fromDomain(user));
-        long userId = storedUser.id();
+        // A concurrent uncommitted insert for the same external id makes this statement wait
+        // rather than conflict, so the follow-up read below runs only after that insert commits.
+        Optional<Long> insertedId = userEntityRepository.insertIfAbsent(user.externalId());
+        if (insertedId.isEmpty()) {
+            // READ COMMITTED (Postgres' default, unchanged here) takes a fresh snapshot for this
+            // statement, so it is guaranteed to see the row the other caller just committed.
+            return userEntityRepository.findByExternalId(user.externalId())
+                    .map(UserEntity::toDomain)
+                    .orElseThrow(() -> new PersistenceFailedException(
+                            "failed to store user " + user.externalId(), null));
+        }
 
+        long userId = insertedId.get();
+        writeCategoryTree(userId, categories);
+        return User.stored(userId, user.externalId());
+    }
+
+    private void writeCategoryTree(long userId, List<Category> categories) {
         List<CategoryEntity> groupEntities = categories.stream()
                 .map(group -> CategoryEntity.root(userId, group))
                 .toList();
         List<CategoryEntity> storedGroups = jdbcAggregateTemplate.insertAll(groupEntities);
+        Map<String, Long> groupIdByName = storedGroups.stream()
+                .collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
 
-        // JdbcAggregateTemplate.insertAll returns the stored entities in the same order it was
-        // given them (verified against spring-data-jdbc-4.1.0: insertAll -> doInBatch ->
-        // performSaveAll, and JdbcAggregateChangeExecutionContext.populateIdsIfNecessary()
-        // re-reverses its internal list before returning), so the group at index i pairs with
-        // the generated id at index i.
         List<CategoryEntity> childEntities = new ArrayList<>();
-        for (int i = 0; i < categories.size(); i++) {
-            Category group = categories.get(i);
-            long groupId = storedGroups.get(i).id();
+        for (Category group : categories) {
+            long groupId = groupIdByName.get(group.name());
             for (Category child : group.children()) {
                 childEntities.add(CategoryEntity.child(userId, groupId, child));
             }
@@ -68,8 +84,6 @@ public class UserRepositoryAdapter implements UserRepository {
         if (!childEntities.isEmpty()) {
             jdbcAggregateTemplate.insertAll(childEntities);
         }
-
-        return storedUser.toDomain();
     }
 
 }

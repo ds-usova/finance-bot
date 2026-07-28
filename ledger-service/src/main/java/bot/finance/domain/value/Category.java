@@ -17,6 +17,9 @@ public record Category(String name, List<Category> children) {
         }
 
         for (Category child : children) {
+            if (child == null) {
+                throw new InvalidCategoryException("category has a null child");
+            }
             if (!child.children().isEmpty()) {
                 throw new InvalidCategoryException("category tree exceeds two levels");
             }
@@ -44,7 +47,7 @@ public record Category(String name, List<Category> children) {
                 group("Healthcare", "Doctors", "Pharmacy", "Dental", "Vision", "Health Insurance"),
                 group("Education", "Tuition", "Books", "Courses", "Certifications"),
                 group("Shopping", "Clothing", "Electronics", "Home Goods", "Gifts"),
-                group("Entertainment", "Movies", "Games", "Streaming Services", "Hobbies"),
+                group("Entertainment", "Movies", "Games", "Hobbies"),
                 group("Travel", "Hotels", "Flights", "Vacation", "Attractions"),
                 group("Pets", "Food", "Vet", "Grooming"),
                 group("Family & Children", "Childcare", "School Supplies", "Toys"),
@@ -54,7 +57,7 @@ public record Category(String name, List<Category> children) {
                 group("Work", "Office Supplies", "Business Expenses"),
                 group("Insurance", "Life", "Home", "Vehicle", "Travel"),
                 group("Personal Care", "Haircuts", "Cosmetics", "Gym", "Spa"),
-                group("Subscriptions", "Netflix", "Spotify", "Cloud Storage", "Software"),
+                group("Subscriptions", "Streaming", "Music", "Cloud Storage", "Apps & Software"),
                 group("Miscellaneous", "Uncategorized Expenses"));
     }
 
