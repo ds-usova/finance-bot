@@ -12,11 +12,14 @@ bot.finance
 ├── architecture    # ArchUnit dependency-rule tests
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
-    ├── containers            # Testcontainers / WireMock singleton lifecycle
+    ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     ├── AbstractSystemTest    # full-application base class
     ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
+    ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     ├── CategoryRowUtils      # reads back a user's stored category rows
     ├── WireMockStubs         # stub registration, one static method per endpoint
+    ├── IntentFixtures        # generated ExtractIntentsResponse shapes and the domain Intent/Money
+    │                         # values they map onto
     ├── JsonUtils             # loads JSON fixtures from src/test/resources
     ├── LogCapture            # Logback appender, for asserting on log output
     ├── TelegramFixtures      # Bot API JSON bodies
@@ -43,10 +46,11 @@ bot.finance
 
 - JUnit 5, AssertJ, Mockito, WireMock, Awaitility. API-level client: **RestAssured** (with `json-path`) against
   the booted application's random port.
-- `containers/` (`PostgresContainers`, `WireMockSupport`, `Network`) — JVM-wide singletons for the containerized
-  Postgres and the WireMock stub server. Tests never manage their lifecycle. Every class touching them carries
-  `@Testcontainers(disabledWithoutDocker = true)`, directly or via `AbstractSystemTest`, so the suite skips
-  rather than errors without Docker.
+- `containers/` (`PostgresContainers`, `WireMockSupport`, `Network`, `GrpcStubServer`) — JVM-wide singletons for
+  the containerized Postgres, the WireMock stub server, and a real in-JVM gRPC server on a dynamic port
+  fronting the AI connector's contract. Tests never manage their lifecycle. `@Testcontainers(disabledWithoutDocker
+  = true)` applies to the container-backed singletons only, directly or via `AbstractSystemTest`, so the suite
+  skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such annotation.
 - `AbstractSystemTest` — the full-application base class, wiring the containerized database via
   `@ImportTestcontainers(PostgresContainers.class)` and `@ServiceConnection`; subclasses declare nothing.
   System tests extend it; outbound-adapter and slice tests do not.

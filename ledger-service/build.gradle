@@ -4,6 +4,7 @@ plugins {
     id "com.diffplug.spotless" version "$spotlessVersion"
     id "org.springframework.boot" version "$springBootVersion"
     id "io.spring.dependency-management" version "$springDependencyManagementVersion"
+    id "com.google.protobuf" version "$protobufGradlePluginVersion"
 }
 
 group = "bot.finance"
@@ -18,6 +19,32 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir("$rootDir/../proto")
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().configureEach {
+            plugins {
+                grpc {}
+            }
+        }
+    }
 }
 
 dependencies {
@@ -40,6 +67,11 @@ dependencies {
 
     // Telegram Bot API
     implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
+
+    implementation "org.springframework.boot:spring-boot-starter-grpc-client"
+    implementation "io.grpc:grpc-services"
+
+    testImplementation "io.grpc:grpc-testing"
 
     testImplementation "org.springframework.boot:spring-boot-starter-actuator-test"
     testImplementation "org.springframework.boot:spring-boot-starter-data-jdbc-test"
@@ -72,6 +104,7 @@ jacoco {
 
 spotless {
     java {
+        target "src/main/java/**/*.java", "src/test/java/**/*.java"
         palantirJavaFormat("${palantirJavaFormatVersion}")
         removeUnusedImports()
         importOrder()

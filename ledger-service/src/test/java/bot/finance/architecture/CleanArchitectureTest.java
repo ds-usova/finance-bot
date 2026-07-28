@@ -33,7 +33,14 @@ class CleanArchitectureTest {
             .resideInAnyPackage("bot.finance.domain..", "bot.finance.application..")
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage("org.springframework..", "jakarta..", "org.slf4j..", "com.pengrad..")
+            .resideInAnyPackage(
+                    "org.springframework..",
+                    "jakarta..",
+                    "org.slf4j..",
+                    "com.pengrad..",
+                    "io.grpc..",
+                    "com.google.protobuf..",
+                    "bot.finance.ai..")
             .allowEmptyShould(true);
 
     /**
@@ -51,5 +58,11 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Whisper")
             .orShould()
             .haveSimpleNameContaining("Postgres")
+            .orShould()
+            .haveSimpleNameContaining("AiConnector")
+            .orShould()
+            .haveSimpleNameContaining("Grpc")
+            .orShould()
+            .haveSimpleNameContaining("Proto")
             .allowEmptyShould(true);
 }
