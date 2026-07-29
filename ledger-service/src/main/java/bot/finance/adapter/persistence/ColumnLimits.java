@@ -34,13 +34,6 @@ final class ColumnLimits {
         }
     }
 
-    private static void validateCategoryName(Category category) {
-        if (category.name().length() > CATEGORY_NAME) {
-            throw new InvalidCategoryException(
-                    "category name exceeds " + CATEGORY_NAME + " characters: " + category.name());
-        }
-    }
-
     static void validateExpenseText(String description, String merchant) {
         if (description == null) {
             throw new InvalidExpenseException("description is required");
@@ -50,6 +43,13 @@ final class ColumnLimits {
         }
         if (merchant != null && merchant.length() > MERCHANT) {
             throw new InvalidExpenseException("merchant exceeds " + MERCHANT + " characters");
+        }
+    }
+
+    private static void validateCategoryName(Category category) {
+        if (category.name().length() > CATEGORY_NAME) {
+            throw new InvalidCategoryException(
+                    "category name exceeds " + CATEGORY_NAME + " characters: " + category.name());
         }
     }
 }
