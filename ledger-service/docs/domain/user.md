@@ -1,0 +1,18 @@
+# User
+
+A person the service keeps a ledger for, known by the identity of the platform that delivers their messages.
+
+## Invariants
+
+- The identity is the user: two users with the same external identity are the same user, whatever else differs.
+- A user is stored or not yet stored, and carries the store's own id only once it is.
+
+## Made of / held by
+
+An external identity, plus the store's id once there is one.
+
+- [Category](category.md) — what a user files spending under; a set is stored with them at creation.
+- [Initialize a new user](../usecases/initialize-a-new-user.md) — creates one, or hands back the one already
+  stored under an identity.
+- How long an identity may be is checked where it is stored
+  ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).

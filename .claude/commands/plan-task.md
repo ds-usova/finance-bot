@@ -549,15 +549,34 @@ Apply every finding the reviewer marked `Resolution: mechanical` to the plan, th
 - Action: applied — [what changed in the plan, in a clause]
 ```
 
-A finding marked `Resolution: decision` is never applied here. Leave its `Action:` empty for the user, no matter
-how obvious the answer looks — the reviewer already judged that it is a choice, and this step does not overrule
-that classification in either direction.
+A finding marked `Resolution: decision` keeps that classification — this step never regrades the reviewer's
+verdict. It still gets **attempted against the repository**: the sibling service's code, the module conventions,
+an existing ADR, the schema. Answer it when the evidence is there and write the evidence into `Action:`
+(`resolved — the connector's own `ExpenseIntent` imposes no `UPDATE` rule`). Leave `Action:` empty for the user
+only when the answer is a product, operational, or business rule that exists nowhere yet — and add a line
+`- Missing: [what the repository does not say]` beneath it, so the user answers a question rather than picking
+from a menu.
 
 How to apply them:
 
 - **Batch by affected step, not by finding.** Two findings often rewrite the same checklist item; applied one at a
   time they produce an incoherent step. Group the findings by the item each one touches and rewrite that item once,
   satisfying all of them together.
+- **Compress the finding as you apply it.** Once the plan text embodies the fix, the finding's problem statement
+  describes a defect that is no longer there, and it sits between the reader and the findings that still need
+  them. In the same edit, cut it to one sentence — keeping the `- **F<n>:**` / `- Resolution:` / `- Action:`
+  shape, so `plan.sh validate` and the readiness gate are unaffected:
+
+  ```
+  - **F1:** RU07's `toIntents` matrix omitted `OPERATION_DELETE` and the generated `UNRECOGNIZED` constant.
+  - Resolution: mechanical
+  - Action: applied — added both scenarios.
+  ```
+
+  Keep the ID and its number, one sentence of what was wrong, and the `Action:` line. Drop the reasoning, the
+  file-and-line citations, and the instruction of what to change — the plan now carries all three. A finding that
+  was **not** applied keeps its full text: an empty `Action:`, a `- Missing:` line, an `- Escalated:` line. The
+  section's length then tracks the work left rather than the work done.
 - **Stay inside the finding.** Apply what the finding says to change and nothing adjacent that looks improvable —
   an unreviewed edit riding along with a reviewed one is the thing this step must not smuggle in.
 - **Escalate rather than guess.** If a `mechanical` finding does not say clearly enough what to change, or applying

@@ -16,10 +16,11 @@ report.
 | Artifact      | Location                                               | Written by        |
 |---------------|--------------------------------------------------------|-------------------|
 | Use-case docs | `<service>/docs/usecases/<use-case>.md`                | service sub-agent |
+| Domain docs   | `<service>/docs/domain/<type>.md`                      | service sub-agent |
 | Contracts in  | `<service>/docs/contracts/in/<interface>.md`           | service sub-agent |
 | Contracts out | `<service>/docs/contracts/out/<counterpart>.md`        | service sub-agent |
 | Configuration | `<service>/docs/configuration.md`                      | service sub-agent |
-| ADRs          | `docs/adr/<nnnn>-<slug>.md`                            | orchestrator      |
+| ADRs          | `<service>/docs/adr/<nnnn>-<slug>.md`, or `docs/adr/` when it crosses services | orchestrator |
 | Link updates  | root and service READMEs, `conventions/orientation.md` | orchestrator      |
 
 Each is new or updated in place. A second file on the same subject is a defect.
@@ -49,6 +50,17 @@ The inventory is the module's usecase package, filtered to what this plan added 
 green-phase steps name them directly. Each document lists collaborators in both directions — who asks for it,
 and what it depends on — and reads as product documentation: an analyst is the audience, so the usecase class
 is the only code name any of it carries.
+
+**Domain** — one per type in the module's domain layer, entities and value objects alike, filtered to what this
+plan added or changed. Each says what the type represents in the product's words, lists the invariants under
+which it refuses to exist, and names what it is made of and what holds it. A value object earns a page as much
+as an entity does: `Money` carrying minor units with the exponent from the currency, and never a binary float,
+is exactly the rule a reader cannot get from a two-line record. A type with little to say gets a short page —
+that is a fact about the type, not a reason to skip it.
+
+Invariants belong here and nowhere else. A use-case page's **Rules** keeps the decisions that use case makes and
+links out for the rest: "a message is accepted only when it names a conversation and carries text" is the
+message type's rule, not the use case's.
 
 **Contract** — one per edge to a system outside the service, another service in this repository included.
 Direction is from that service's side: **in** is what it serves or receives, **out** what it calls or consumes.
@@ -82,7 +94,23 @@ excepted, since the migrations hold no current state to link to.
 
 Yours to write: a decision spanning services cannot be assembled from two agents that each saw half of it.
 
-Number is one past the highest in `docs/adr/`, four digits, never reused.
+**Gate — name the document that would otherwise own the fact.** Before writing an ADR, say which existing page
+would hold this if the ADR did not exist. If the answer is a contract page's Semantics, a use-case page's Rules,
+or a domain page's invariants, then that page owns it and there is no ADR. An ADR records a decision about *how
+the system is built*; what the product does is documentation. A rule that can be stated without naming a
+technology, a file layout, or a type is not an ADR however consequential it is.
+
+**Scope — where it goes.** Two tiers:
+
+- `<module>/docs/adr/` — the decision's consequences stay inside one service;
+- repo-root `docs/adr/` — it constrains more than one service, or the repository itself.
+
+The test: would changing this decision force a change in another service, or in a shared artifact — a shared
+schema, the compose file, the repository layout? If yes it is repo-root; otherwise it belongs to the module.
+
+**Number is one global sequence** — one past the highest across *both* tiers, four digits, never reused and never
+renumbered. So an ADR keeps its number if its scope is later judged differently, a bare "ADR 0007" names one
+document wherever it lives, and each tier's sequence carries gaps. Gaps are expected, not a defect.
 
 **An ADR fits on one screen — roughly 20 lines, never more than 30.** It records one decision, and a reader
 reaches for it to answer one question: why is it like this, and what may I not break? Everything past that
@@ -126,7 +154,8 @@ edits it.
   and leaves a link.
 - `conventions/orientation.md` — **Documentation References** points at `docs/adr/`, the configuration page,
   and the new folders.
-- Links resolve, including the relative paths out of `docs/adr/`.
+- Links resolve, including the relative paths out of either ADR tier — a module ADR sits one level deeper than a
+  repo-root one, so the two reach a shared file by different paths.
 
 ## Stage 5 — Commit
 

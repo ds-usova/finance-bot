@@ -20,7 +20,7 @@ deployment supplies its own.
 - The bot token is a secret and it appears in the address every Bot API call is made to. It belongs in the
   deployment's secret store, never in a committed file or a log line.
 - `TELEGRAM_API_URL` exists so the service can be pointed at a stand-in for Telegram. A deployment leaves it
-  alone; see [ADR 0001](../../docs/adr/0001-telegram-updates-arrive-by-long-polling.md) for why every Telegram
+  alone; see [ADR 0001](adr/0001-telegram-updates-arrive-by-long-polling.md) for why every Telegram
   interaction is an outbound call to this address.
 - The database defaults match the local Postgres in
   [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml), which also supplies all

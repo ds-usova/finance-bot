@@ -28,6 +28,9 @@ The wrapper reports a run rather than printing a build log: a `PASS` / `FAIL` / 
 `bot.finance`. Read that summary — do not grep the console output, and do not open the JUnit XML or the HTML
 report to reconstruct what it already says. Its exit code is 0 only when everything passed.
 
+Run it unpiped. Its output *is* the summary, so a `| head` or `| tail` only truncates it — and truncates the
+saved output of a backgrounded run, where the failure list is the reason to read it at all.
+
 Each run gets a directory of its own, `ai-connector-service/build/agent-runs/<label>-<timestamp>-<pid>/`,
 holding `summary.txt`, the full `console.log`, the JUnit XML, and the HTML report. The name is unique per run,
 so two runs of the same class never share one. Anything the summary omits — a full stack trace, printed

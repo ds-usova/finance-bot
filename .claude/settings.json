@@ -23,6 +23,7 @@
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git mv:*)",
+      "Bash(git rm:*)",
       "Bash(git check-ignore:*)",
       "Bash(docker info:*)",
       "Bash(bash -n:*)",

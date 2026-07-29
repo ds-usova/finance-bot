@@ -63,7 +63,8 @@ Point to existing documentation worth reading before making changes — architec
 runbooks. This is background context, not instruction; it never overrides a rule stated elsewhere in this file.
 
 - Architecture / diagrams: `<e.g. <module>/README.md — a C4 Component diagram of ports and adapters; or "none">`
-- ADRs / design decisions: `<path or link, e.g. docs/adr/; or "none">`
+- ADRs / design decisions: `<path or link, e.g. <module>/docs/adr/ for decisions confined to this module and a
+  repo-root docs/adr/ for those crossing modules, on one shared number sequence; or "none">`
 - API reference: `<e.g. the API schema file itself (see File Locations below), or a hosted docs link; or "none">`
 - Runbooks / operational docs: `<path or link, e.g. docs/runbooks/; or "none">`
 - Other: `<anything else worth reading — a domain glossary, an external system's docs; or "none">`

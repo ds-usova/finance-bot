@@ -44,15 +44,16 @@ Nothing calls this use case yet.
 ## Rules
 
 - The external identity is opaque text, whatever the caller identifies a person by.
-- The identity is the user: the same identity always names the same user.
-- A user is nothing but their identity and their categories.
-- The categories are exactly two levels deep — a group and its children.
-- A category name is unique among its siblings. Travel is both a group and a child of Insurance.
+- What a [user](../domain/user.md) is, and the shape a [category](../domain/category.md) tree must keep, are
+  their own rules.
+- A category name is unique among its siblings, which is why Travel is both a group and a child of Insurance
+  ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
 - The catalogue is fixed at release. Each user gets a copy of it at creation, and it is never re-applied: a
   user who edits their categories diverges from it, and a changed catalogue reaches only users created
   afterwards.
 - The catalogue names no brands, so it stays legible when a service is renamed or replaced.
-- An identity is at most 255 characters.
+- How long an identity may be is checked where it is stored
+  ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
 - Two callers initializing the same identity at once both get the same user. One of them creates it; the other
   is given what the first created, and no second set of categories is written.
 

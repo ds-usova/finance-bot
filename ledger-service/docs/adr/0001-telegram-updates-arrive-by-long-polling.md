@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-25
-- **Source:** [Telegram Update Listener](../implemented/1-plan-telegram-update-listener.md)
+- **Source:** [Telegram Update Listener](../../../docs/implemented/1-plan-telegram-update-listener.md)
 
 ## Context
 
@@ -17,7 +17,7 @@ The service polls Telegram for message updates. The address it polls is configur
 pointed at a stub server. With polling enabled and no bot token, the service refuses to start rather than
 polling anonymously.
 
-See [the Telegram contract](../../ledger-service/docs/contracts/in/telegram-updates.md) for what crosses that
+See [the Telegram contract](../contracts/in/telegram-updates.md) for what crosses that
 boundary.
 
 ## Consequences

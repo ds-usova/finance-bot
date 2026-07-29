@@ -66,6 +66,11 @@ bot.finance
   `parseUpdate` deserializes) and `getUpdates` envelopes (what the stub server serves).
 - `LogCapture` requires the real `Slf4jLoggerFactory`: it keys on the logger named after the class, a name a
   mocked factory never produces.
+- **Shared test infrastructure that only proves itself at runtime ships with a test that boots it.** A composed
+  annotation, a container singleton, a stub server: compiling says nothing about whether the context loads. A
+  throwaway class carrying the annotation, autowiring one bean and asserting nothing is enough. Without it the
+  first real test to use the infrastructure is where a missing autoconfiguration surfaces, and it surfaces as
+  that test's failure rather than as its own.
 
 ### Isolating the long-polling listener
 

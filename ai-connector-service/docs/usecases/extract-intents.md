@@ -32,11 +32,12 @@ Nothing else. A message about anything but a category or an expense comes back u
 - The service never proposes a category. An invented one is refused.
 - A category named anywhere in the message counts for every entry, before it or after it.
 - A category answer that failed to assemble contributes nothing.
-- Recording an expense requires an amount and a category. Reading and deleting require neither.
-- Renaming a category requires the new name.
+- What each action requires is the [expense](../domain/expense-intent.md) and
+  [category](../domain/category-intent.md) intents' own rule: recording needs an amount and a category, renaming
+  needs the new name, reading and deleting need neither.
 - An entry missing what its action requires is unknown, and names the missing piece.
 - An amount with no currency and no assumed currency is unknown.
-- An amount with more decimal places than its currency is unknown. Never rounded.
+- An amount with more decimal places than its [currency](../domain/money.md) allows is unknown. Never rounded.
 - Entries are never compared with one another.
 - Ordering, a never-empty answer, per-entry unknown, category matching and the assumed currency are in
   [Intent extraction](../contracts/in/intent-extraction.md#semantics).

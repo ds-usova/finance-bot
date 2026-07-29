@@ -61,6 +61,11 @@ of the heading, case-insensitively; an ambiguous `--group` lists the candidates 
 Refer to items by ID in every sub-agent prompt and ask for the ID back in the report, so a tick is never matched
 against wording that may have changed mid-run.
 
+**`plan.sh show <ID>` is also how a step's text reaches its sub-agent** — its target class, its test class, its
+`covers:` list and its scenarios verbatim. Read it from there rather than extracting it from the plan file by
+hand: the step context goes into the prompt exactly as written, and hand-extraction is both a permission prompt
+and a chance to paraphrase a scenario the agent is supposed to implement literally.
+
 A plan whose items have no IDs predates this format: `plan.sh validate` will say so item by item. Add the IDs
 first (the orchestrator owns plan edits), then proceed.
 

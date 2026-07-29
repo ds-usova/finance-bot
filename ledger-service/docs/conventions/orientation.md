@@ -32,10 +32,14 @@ conventions, the conventions win.
   (System Context) and C2 (Container).
 - Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
   with, in the product's words, and a C3 of the components, ports and external systems that use case touches.
+- Domain: [`docs/domain/`](../domain/) — one page per entity and value object, what it represents and the
+  invariants under which it refuses to exist. A type's own rules live here, not in the use cases that apply them.
 - Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
   supplies, and what breaks without them.
-- ADRs / design decisions: repo-root [`docs/adr/`](../../../docs/adr/) — decisions the code cannot explain by
-  itself; repo-root `docs/implemented` — implemented plans.
+- ADRs / design decisions: [`docs/adr/`](../adr/) — decisions the code cannot explain by itself, whose
+  consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
+  constrain another service or the repository. One number sequence spans both, so each tier carries gaps.
+  Repo-root `docs/implemented` — implemented plans.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.

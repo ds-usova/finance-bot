@@ -25,6 +25,9 @@ verdict, test counts, and each failure with its message and the stack frames ins
 summary — do not grep the console output or open the JUnit XML to reconstruct what it already says. Exit code is
 0 only when everything passed.
 
+Run it unpiped. Its output *is* the summary, so a `| head` or `| tail` only truncates it — and truncates the
+saved output of a backgrounded run, where the failure list is the reason to read it at all.
+
 Each run gets its own directory, `ledger-service/build/agent-runs/<label>-<timestamp>-<pid>/`, holding
 `summary.txt`, the full `console.log`, the JUnit XML and the HTML report. Anything the summary omits — a full
 stack trace, printed application logs — is in `console.log`. The wrapper prints the path it used.
