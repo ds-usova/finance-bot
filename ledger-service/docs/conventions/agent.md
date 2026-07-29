@@ -70,5 +70,23 @@ What runs once a plan is finished — every item ticked, the guardrail green, th
 `docs/implemented/`. A run that ends with anything open runs none of them.
 
 1. `archive-knowledge`, given the archived plan: a document per usecase class with its collaborators on both
-   sides, the contracts with the systems around the service, and an ADR for each decision the code cannot
-   explain by itself. Commits its own output.
+   sides, the contracts with the systems around the service, and the ADRs the plan was authorized to record.
+   Commits its own output.
+
+## Post-Implementation Plan Sections
+
+What a plan lists under **Post-Implementation Steps**, and nothing else:
+
+- **ADRs** — one item per decision the developer approved for recording, as `Write ADR: <the decision, stated as a
+  fact>`. The number is not chosen in the plan; it is assigned when the ADR is written, so a rejected candidate
+  consumes none.
+
+**An ADR exists only because it was approved.** The plan raises each candidate as a numbered open question — the
+decision as a fact, and the page that holds it if no ADR is written — and only an answered `yes` becomes an item
+above. A candidate rejected, or never asked, means no ADR: nothing downstream writes one that has no item, and a
+decision discovered too late for the plan is proposed in the archiving report instead of appearing as a fact
+nobody agreed to.
+
+Screen candidates before asking, so the list is one or none rather than every decision the plan made: a rule
+statable without naming a technology, a file layout, or a type is product behaviour, and the use-case, contract,
+or domain page that owns it is the whole answer.

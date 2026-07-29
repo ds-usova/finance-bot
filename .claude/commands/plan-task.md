@@ -219,11 +219,11 @@ installed as a plugin, under `.claude/` in a plain checkout.
 
 - **Manual Request Files** — manual request files (e.g. `.http`), only if the module's conventions file lists this
   as a convention
-- **ADRs** — one item per architecture decision the user **approved** for recording, in the form
-  `Write ADR: <the decision, stated as a fact>`. Nothing appears here that is not answered `yes` under an
-  ADR-candidate question (see [Open Questions / Blockers](#open-questions--blockers)), and nothing outside this
-  section may write an ADR later. The number is not chosen here — it is assigned when the ADR is written, so a
-  candidate the user rejects consumes none
+
+Sections here come from the module's conventions file — whatever it lists as work that only makes sense once the
+feature is green, in the order it lists them. The framework prescribes none of them beyond the rule that they run
+last. A module that names a post-implementation artifact requiring the user's approval says so there, and the
+approval is a question under [Open Questions / Blockers](#open-questions--blockers) like any other.
 
 ### Test Layer Mapping — reference, **not** a section of the plan
 
@@ -517,20 +517,12 @@ Generate placeholders for the user's answers beneath each open question, for exa
 document. Numbers are assigned once and never renumbered: a question that is answered or withdrawn keeps its
 number, and a new one takes the next unused value, so a reference stays valid for the life of the plan.
 
-**An architecture decision worth recording is asked here, never assumed.** A plan that makes a decision the code
-cannot explain by itself raises it as a question of its own, in this shape:
-
-```
-- **Q3:** ADR candidate — [the decision, stated as a fact]. Without an ADR, [the page that would own it] holds
-  this. Record it?
-- A:
-```
-
-Screen candidates before asking: a decision statable without naming a technology, a file layout, or a type is
-product behaviour, and the use-case, contract, or domain page that owns it is the whole answer — so it is not a
-candidate and is not asked about. What survives is usually one or none. An answered `yes` becomes an item in
-**Post-Implementation Steps** → **ADRs**; an answered `no` stays here as the record of why there is no ADR. The
-question is what authorizes one to exist: nothing downstream writes an ADR that has no approved item.
+**An artifact the module's conventions put under the user's approval is asked here, never assumed.** Where a
+conventions file says a post-implementation artifact is written only with the user's consent, the plan asks for it
+as a numbered question — what would be written, and what holds the same fact if it is not — and a `yes` becomes the
+item in **Post-Implementation Steps** that authorizes it. Planning is the moment to ask: the plan is where the
+decision is being made, so the candidate list is honest, and asking later means reconstructing intent from finished
+code.
 
 ### Review Findings
 

@@ -77,10 +77,10 @@ operator sets from outside the build. One document per service and never more: a
 leaves it alone, and a plan that changed one variable still has the whole file re-read against the code, since
 it is the only page anyone consults before a deploy.
 
-**ADR** — the plan's Post-Implementation **ADRs** items, which are the decisions the user approved for recording;
-the inventory is that list and nothing else. What earns a place there is a decision constraining future change
-whose *why* cannot be reconstructed from the code, the schema, and the tests — an external constraint, a rule that
-looks arbitrary until you know what it prevents. One decision per ADR; most plans list none.
+**ADR** — the decisions the plan authorized under **Post-Implementation Steps**; the inventory is that list and
+nothing else. What earns a place there is a decision constraining future change whose *why* cannot be reconstructed
+from the code, the schema, and the tests — an external constraint, a rule that looks arbitrary until you know what
+it prevents. One decision per ADR; most plans authorize none.
 
 ## Stage 2 — Service Documentation
 
@@ -101,11 +101,11 @@ excepted, since the migrations hold no current state to link to.
 
 Yours to write: a decision spanning services cannot be assembled from two agents that each saw half of it.
 
-**Write exactly the ADRs the plan's Post-Implementation **ADRs** section lists, and no others.** Each item there
-is a decision the user approved for recording; a plan with no such section or no such items yields no ADR. A
-decision this run believes deserves one that is not on the list goes in the **report**, unwritten, naming the
-decision and the page that holds it today — so an ADR that should exist is visible as a proposal rather than
-appearing as a fact nobody approved.
+**Write exactly the ADRs the plan authorizes, and no others.** The authorization is an item under the plan's
+**Post-Implementation Steps**, in whatever shape the module conventions define for it; a plan with no such item
+yields no ADR, and so does a plan whose conventions say nothing about them. A decision this run believes deserves
+one that is not authorized goes in the **report**, unwritten, naming the decision and the page that holds it today
+— so an ADR that should exist is visible as a proposal rather than appearing as a fact nobody approved.
 
 **Gate — name the document that would otherwise own the fact.** Applies to each approved item as you write it, and
 to anything you are about to propose in the report. Say which existing page would hold this if the ADR did not

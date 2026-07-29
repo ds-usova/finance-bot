@@ -121,13 +121,6 @@ Defects the missing review would have caught surface instead at the stage guardr
 diagnose against real compiler and test output. When a stage agent reports a plan defect, record it under
 `### Open Questions / Blockers` and fix the plan text in place — do not spawn a review to confirm it.
 
-**A decision the run discovers is an ADR candidate the plan could not have listed.** A constraint a step agent
-hits — an infrastructure behaviour nobody expected, a rejected approach the code now depends on — is exactly the
-kind of decision the plan's **ADRs** section exists to authorize, and the plan was written before it existed. Add
-the candidate to `### Open Questions / Blockers` in the shape `plan-task` defines, put it to the user with the
-stage report, and on a `yes` add the matching item to **Post-Implementation Steps** → **ADRs** before Stage 5. The
-same screen applies as at plan time: a constraint the code and its comment already explain is not a candidate.
-
 ## Stage 0 — Baseline (prerequisite, before any change)
 
 Before touching a single file, run the affected module(s)' full build and entire test suite (including the
