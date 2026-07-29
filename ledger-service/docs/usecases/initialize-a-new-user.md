@@ -35,9 +35,9 @@ A new user is given 97 categories: 20 groups holding 77 children.
 
 ## Collaborators
 
-| Direction | Collaborator | Through | For                                      |
-|-----------|--------------|---------|------------------------------------------|
-| out       | Database     | —       | storing the user and their 97 categories |
+| Direction | Collaborator | Through                                             | For                                      |
+|-----------|--------------|-----------------------------------------------------|------------------------------------------|
+| out       | Database     | [Users and their categories](../contracts/out/database.md) | storing the user and their 97 categories |
 
 Nothing calls this use case yet.
 

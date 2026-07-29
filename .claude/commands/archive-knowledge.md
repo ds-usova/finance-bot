@@ -66,6 +66,11 @@ message type's rule, not the use case's.
 Direction is from that service's side: **in** is what it serves or receives, **out** what it calls or consumes.
 Every edge is written from both sides in the same run.
 
+The inventory is **every edge the service has, not only the ones this plan added.** Walk the service's outbound
+ports and its README's C3, and write a page for any edge that has none yet — a database the service has always
+talked to has an undocumented contract just as much as one added yesterday. The tell is a use-case page's
+Collaborators table with a dash where a contract link belongs.
+
 **Configuration** — one document per service, always updated when the plan added, removed, or changed a knob an
 operator sets from outside the build. One document per service and never more: a plan that changed nothing
 leaves it alone, and a plan that changed one variable still has the whole file re-read against the code, since
