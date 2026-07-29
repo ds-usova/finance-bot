@@ -64,7 +64,8 @@ So a second messenger, transcriber or data store can be added without touching t
 - **No type in `domain`/`application` carries a transport-shaped field.** `IncomingMessage` identifies a
   conversation with a `String conversationId`; a `long chatId` would be a Telegram fact leaking inward.
 
-The first is enforced below; the second by review.
+The first is enforced below; the second by review. How a command is named is a
+[code style](code-style.md#application) rule.
 
 ## File Locations
 

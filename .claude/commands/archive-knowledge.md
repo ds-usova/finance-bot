@@ -51,8 +51,9 @@ green-phase steps name them directly. Each document lists collaborators in both 
 and what it depends on — and reads as product documentation: an analyst is the audience, so the usecase class
 is the only code name any of it carries.
 
-**Domain** — one per type in the module's domain layer, entities and value objects alike, filtered to what this
-plan added or changed. Each says what the type represents in the product's words, lists the invariants under
+**Domain** — one per type in the module's **domain layer**, entities and value objects alike, filtered to what this
+plan added or changed. The domain layer only: a command or any other application-layer carrier gets no page of its
+own, and its rules belong to the **Rules** of the use case that receives it. Each says what the type represents in the product's words, lists the invariants under
 which it refuses to exist, and names what it is made of and what holds it. A value object earns a page as much
 as an entity does: `Money` carrying minor units with the exponent from the currency, and never a binary float,
 is exactly the rule a reader cannot get from a two-line record. A type with little to say gets a short page —
@@ -76,9 +77,10 @@ operator sets from outside the build. One document per service and never more: a
 leaves it alone, and a plan that changed one variable still has the whole file re-read against the code, since
 it is the only page anyone consults before a deploy.
 
-**ADR** — a decision that constrains future change and whose *why* cannot be reconstructed from the code, the
-schema, and the tests: a rejected alternative, an external constraint, a rule that looks arbitrary until you
-know what it prevents. One decision per ADR; a plan yields one or two, often none.
+**ADR** — the plan's Post-Implementation **ADRs** items, which are the decisions the user approved for recording;
+the inventory is that list and nothing else. What earns a place there is a decision constraining future change
+whose *why* cannot be reconstructed from the code, the schema, and the tests — an external constraint, a rule that
+looks arbitrary until you know what it prevents. One decision per ADR; most plans list none.
 
 ## Stage 2 — Service Documentation
 
@@ -99,11 +101,21 @@ excepted, since the migrations hold no current state to link to.
 
 Yours to write: a decision spanning services cannot be assembled from two agents that each saw half of it.
 
-**Gate — name the document that would otherwise own the fact.** Before writing an ADR, say which existing page
-would hold this if the ADR did not exist. If the answer is a contract page's Semantics, a use-case page's Rules,
-or a domain page's invariants, then that page owns it and there is no ADR. An ADR records a decision about *how
-the system is built*; what the product does is documentation. A rule that can be stated without naming a
-technology, a file layout, or a type is not an ADR however consequential it is.
+**Write exactly the ADRs the plan's Post-Implementation **ADRs** section lists, and no others.** Each item there
+is a decision the user approved for recording; a plan with no such section or no such items yields no ADR. A
+decision this run believes deserves one that is not on the list goes in the **report**, unwritten, naming the
+decision and the page that holds it today — so an ADR that should exist is visible as a proposal rather than
+appearing as a fact nobody approved.
+
+**Gate — name the document that would otherwise own the fact.** Applies to each approved item as you write it, and
+to anything you are about to propose in the report. Say which existing page would hold this if the ADR did not
+exist. If the answer is a contract page's Semantics, a use-case page's Rules, or a domain page's invariants, then
+that page owns it and there is no ADR. An ADR records a decision about *how the system is built*; what the product
+does is documentation. A rule that can be stated without naming a technology, a file layout, or a type is not an
+ADR however consequential it is — the shape of a port's input, the type of an identifier, and which side of a
+boundary resolves a name are all contract behaviour, whatever alternative was rejected in choosing them. **Write
+the gate's answer into the report** for every ADR written and every one proposed; a gate whose answer is never
+recorded is a gate that can be skipped silently.
 
 **Scope — where it goes.** Two tiers:
 
@@ -168,7 +180,8 @@ Per the module's **Version Control** policy, documentation prefix. Policy silent
 
 ## Report
 
-Files created and updated, by service · ADRs with their one-line decisions · configuration that changed ·
+Files created and updated, by service · ADRs written, each with its one-line decision and the gate's answer ·
+ADRs proposed but not written, each with the page holding the fact today · configuration that changed ·
 discrepancies between plan and code · anything left unwritten, and why.
 
 No production code, no tests, no edit to the plan. A discrepancy is recorded, never fixed.

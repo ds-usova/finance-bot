@@ -43,6 +43,8 @@ bot.finance
   inbound port mocked.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
+- **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`
+  rather than repeated in each type's test class. A rule about one type stays with that type.
 
 ## Test Tooling
 

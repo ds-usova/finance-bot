@@ -12,9 +12,9 @@ Nothing calls this use case yet.
 
 ## Collaborators
 
-| Direction | Collaborator | Through | For |
-|-----------|--------------|---------|-----|
-| out | Database | [Users, categories and expenses](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
+| Direction | Collaborator | Through                                                        | For                                                    |
+|-----------|--------------|----------------------------------------------------------------|--------------------------------------------------------|
+| out       | Database     | [Users, categories and expenses](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
 
 ## Rules
 
@@ -29,12 +29,12 @@ Nothing calls this use case yet.
 
 ## Outcomes
 
-| Outcome | When | Result |
-|---------|------|--------|
-| Expense created | the identity names a stored user, and every field is valid | the expense is stored, stamped with the current instant, and the creation is logged |
-| Request rejected | the command is absent, or a field violates [new expense](../domain/new-expense.md)'s invariants | invalid expense — nothing is looked up or written |
-| Identity unknown | nothing is stored under the identity | the request is rejected and nothing is written |
-| Storage failed | the store cannot be reached, refuses the write, or a value is too long for its column | the failure reaches the caller |
+| Outcome          | When                                                                                            | Result                                                                              |
+|------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| Expense created  | the identity names a stored user, and every field is valid                                      | the expense is stored, stamped with the current instant, and the creation is logged |
+| Request rejected | the command is absent, or a field violates [new expense](../domain/new-expense.md)'s invariants | invalid expense — nothing is looked up or written                                   |
+| Identity unknown | nothing is stored under the identity                                                            | the request is rejected and nothing is written                                      |
+| Storage failed   | the store cannot be reached, refuses the write, or a value is too long for its column           | the failure reaches the caller                                                      |
 
 ## Components
 
