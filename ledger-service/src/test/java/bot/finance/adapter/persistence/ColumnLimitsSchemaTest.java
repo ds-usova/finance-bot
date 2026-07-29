@@ -53,4 +53,49 @@ class ColumnLimitsSchemaTest {
             assertThat(characterMaximumLength).isEqualTo(ColumnLimits.CATEGORY_NAME);
         }
     }
+
+    @Nested
+    @DisplayName("expense.description column width")
+    class Description {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense.description - then it equals ColumnLimits.DESCRIPTION")
+        void whenMigratedColumnWidthRead_thenEqualsDescriptionConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "description");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.DESCRIPTION);
+        }
+    }
+
+    @Nested
+    @DisplayName("expense.merchant column width")
+    class Merchant {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense.merchant - then it equals ColumnLimits.MERCHANT")
+        void whenMigratedColumnWidthRead_thenEqualsMerchantConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "merchant");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.MERCHANT);
+        }
+    }
+
+    @Nested
+    @DisplayName("expense.currency_code column width")
+    class CurrencyCode {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense.currency_code - then it equals ColumnLimits.CURRENCY_CODE")
+        void whenMigratedColumnWidthRead_thenEqualsCurrencyCodeConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "currency_code");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.CURRENCY_CODE);
+        }
+    }
 }

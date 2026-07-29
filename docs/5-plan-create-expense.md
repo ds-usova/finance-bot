@@ -349,7 +349,7 @@ end
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Expense` · test: `ExpenseTest` · covers: `newExpense()`, `stored()`, `equals()`, `hashCode()`
+- [x] RU01 · `Expense` · test: `ExpenseTest` · covers: `newExpense()`, `stored()`, `equals()`, `hashCode()`
     - `newExpense()`:
         - given: a user id, a category id, a description, a merchant, a money and an instant
           when: newExpense() is called
@@ -372,7 +372,7 @@ end
         - given: two unstored expenses built from identical fields
           when: they are compared
           then: they are not equal — an expense with no id is only itself
-- [ ] RU02 · `NewExpense` · test: `NewExpenseTest` · covers: `NewExpense()`
+- [x] RU02 · `NewExpense` · test: `NewExpenseTest` · covers: `NewExpense()`
     - `NewExpense()`:
         - given: a user external id that is absent, empty, or only whitespace
           when: the record is constructed
@@ -396,7 +396,7 @@ end
         - given: every field present, the merchant a non-blank name
           when: the record is constructed
           then: the record carries them unchanged
-- [ ] RU03 · `CreateExpenseUseCase` · test: `CreateExpenseUseCaseTest` · covers: `create()`
+- [x] RU03 · `CreateExpenseUseCase` · test: `CreateExpenseUseCaseTest` · covers: `create()`
     - `create()`:
         - given: a user stored under the command's external id and a clock fixed at a known instant
           when: create() is called
@@ -418,7 +418,7 @@ end
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`
+- [x] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`
     - `create()`:
         - given: a stored user, a stored category, and an unstored expense carrying a merchant
           when: create() is called
@@ -461,7 +461,7 @@ end
         - given: two expenses created for two different stored users, each with its own stored category
           when: create() is called for each
           then: each user owns exactly its own row, and neither references the other's
-- [ ] RI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `DESCRIPTION`, `MERCHANT`,
+- [x] RI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `DESCRIPTION`, `MERCHANT`,
   `CURRENCY_CODE`
     - `DESCRIPTION`:
         - given: the migrated schema in the containerized database
