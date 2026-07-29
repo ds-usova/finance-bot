@@ -13,4 +13,10 @@ public class CategoryRowUtils {
                 .filter(row -> row.userId() == userId)
                 .toList();
     }
+
+    public static long storedCategoryId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String name) {
+        return jdbcAggregateTemplate
+                .insert(new CategoryEntity(null, userId, null, name))
+                .id();
+    }
 }

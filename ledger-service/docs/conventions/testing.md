@@ -16,7 +16,9 @@ bot.finance
     ├── AbstractSystemTest    # full-application base class
     ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
-    ├── CategoryRowUtils      # reads back a user's stored category rows
+    ├── CategoryRowUtils      # reads back a user's stored category rows, and stores one
+    ├── ExpenseRowUtils       # reads back a user's stored expense rows
+    ├── UserRowUtils          # stores a user row and returns its generated id
     ├── WireMockStubs         # stub registration, one static method per endpoint
     ├── IntentFixtures        # generated ExtractIntentsResponse shapes and the domain Intent/Money
     │                         # values they map onto

@@ -49,6 +49,8 @@ Applies across all layers.
 - An adapter mapping external input into a command checks its own preconditions **before** constructing it, so
   that unusable input takes that adapter's normal rejection path instead of surfacing as an exception from the
   record.
+- A command's optional text field normalizes a present-but-blank value to `Optional.empty()` rather than
+  rejecting it, so absence has one representation by the time anything downstream reads it.
 - A port interface documents the runtime exceptions its operations throw, as `@throws` javadoc — the one
   exception to the no-`@param`/`@return` rule, since an unchecked exception appears in no signature.
 

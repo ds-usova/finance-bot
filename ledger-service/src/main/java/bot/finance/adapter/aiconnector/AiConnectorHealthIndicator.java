@@ -16,10 +16,7 @@ public class AiConnectorHealthIndicator implements HealthIndicator {
     private final HealthGrpc.HealthBlockingStub healthStub;
     private final Logger log;
 
-    public AiConnectorHealthIndicator(
-            HealthGrpc.HealthBlockingStub healthStub,
-            LoggerFactory loggerFactory
-    ) {
+    public AiConnectorHealthIndicator(HealthGrpc.HealthBlockingStub healthStub, LoggerFactory loggerFactory) {
         this.healthStub = healthStub;
         this.log = loggerFactory.getLogger(AiConnectorHealthIndicator.class);
     }
