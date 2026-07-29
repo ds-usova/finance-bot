@@ -52,6 +52,10 @@ the domain would not be. `java.time` is JDK, so the core stays framework-free. T
 `TIMESTAMPTZ` stores microseconds, `Instant` carries nanoseconds. A value written and read back is therefore the
 stamped instant truncated to microseconds, which the round-trip test asserts rather than exact equality.
 
+Found while implementing GI01: the JDBC driver **rounds** the sub-microsecond remainder rather than truncating it,
+so `…123456789` came back as `…123457`. The adapter truncates to microseconds before saving, which makes the
+round trip exact and what is stored equal to what a reader of the domain object sees.
+
 ### Domain
 
 `domain/model/Expense` — an entity carrying an optional database id, the owning user's database id, the
@@ -482,14 +486,14 @@ end
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Expense` · test: `ExpenseTest`
-- [ ] GU02 · `NewExpense` · test: `NewExpenseTest`
-- [ ] GU03 · `CreateExpenseUseCase` · test: `CreateExpenseUseCaseTest` · after: GU01, GU02
+- [x] GU01 · `Expense` · test: `ExpenseTest`
+- [x] GU02 · `NewExpense` · test: `NewExpenseTest`
+- [x] GU03 · `CreateExpenseUseCase` · test: `CreateExpenseUseCaseTest` · after: GU01, GU02
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
-- [ ] GI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
+- [x] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
+- [x] GI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
 
 ## Open Questions / Blockers
 

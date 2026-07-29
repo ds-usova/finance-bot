@@ -2,6 +2,7 @@ package bot.finance.domain.model;
 
 import bot.finance.domain.value.Money;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class Expense {
@@ -81,5 +82,21 @@ public final class Expense {
 
     public Instant updatedAt() {
         return updatedAt;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof Expense expense)) {
+            return false;
+        }
+        return id != null && Objects.equals(id, expense.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }
