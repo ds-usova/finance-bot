@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.CreateExpenseProposalCommand;
+import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -20,6 +21,7 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
@@ -40,6 +42,7 @@ class CreateExpenseProposalUseCaseTest {
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
 
     private UserRepository userRepository;
+    private CategoryRepository categoryRepository;
     private ExpenseProposalRepository expenseProposalRepository;
     private Logger log;
     private CreateExpenseProposalUseCase useCase;
@@ -47,17 +50,24 @@ class CreateExpenseProposalUseCaseTest {
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
+        categoryRepository = mock(CategoryRepository.class);
         expenseProposalRepository = mock(ExpenseProposalRepository.class);
         log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(CreateExpenseProposalUseCase.class)).thenReturn(log);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
-        useCase = new CreateExpenseProposalUseCase(userRepository, expenseProposalRepository, clock, loggerFactory);
+        useCase = new CreateExpenseProposalUseCase(
+                userRepository, categoryRepository, expenseProposalRepository, clock, loggerFactory);
     }
 
     private CreateExpenseProposalCommand newExpenseProposal() {
         return new CreateExpenseProposalCommand(
-                EXTERNAL_ID, CATEGORY_ID, "coffee", Optional.of("Starbucks"), new Money(500, CurrencyCode.of("USD")));
+                new AuthenticatedUserId(EXTERNAL_ID),
+                "Groceries",
+                Optional.empty(),
+                "coffee",
+                Optional.of("Starbucks"),
+                new Money(500, CurrencyCode.of("USD")));
     }
 
     @Nested

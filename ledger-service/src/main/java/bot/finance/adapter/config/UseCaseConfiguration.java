@@ -1,5 +1,6 @@
 package bot.finance.adapter.config;
 
+import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ExpenseProposalRepository;
@@ -38,9 +39,10 @@ public class UseCaseConfiguration {
     @Bean
     CreateExpenseProposalPort createExpenseProposalPort(
             UserRepository userRepository,
+            CategoryRepository categoryRepository,
             ExpenseProposalRepository expenseProposalRepository,
             LoggerFactory loggerFactory) {
         return new CreateExpenseProposalUseCase(
-                userRepository, expenseProposalRepository, Clock.systemUTC(), loggerFactory);
+                userRepository, categoryRepository, expenseProposalRepository, Clock.systemUTC(), loggerFactory);
     }
 }

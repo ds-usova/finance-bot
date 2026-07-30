@@ -1,20 +1,23 @@
 package bot.finance.application.dto;
 
 import bot.finance.domain.exception.InvalidExpenseProposalException;
-import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 
 public record CreateExpenseProposalCommand(
-        String userExternalId, long categoryId, String description, Optional<String> merchant, Money money) {
+        AuthenticatedUserId userId,
+        String categoryName,
+        Optional<String> parentCategoryName,
+        String description,
+        Optional<String> merchant,
+        Money money) {
 
     public CreateExpenseProposalCommand {
-        if (userExternalId == null || userExternalId.isBlank()) {
-            throw new InvalidUserException("new expense proposal has no user external id");
-        }
-        if (categoryId <= 0) {
-            throw new InvalidExpenseProposalException("new expense proposal has a non-positive category id");
-        }
+        // TODO: reject an absent userId with InvalidUserException; reject an absent, empty or
+        // whitespace-only categoryName and an absent parentCategoryName Optional with
+        // InvalidExpenseProposalException; normalize a present-but-blank parentCategoryName to
+        // Optional.empty()
         if (description == null || description.isBlank()) {
             throw new InvalidExpenseProposalException("new expense proposal has no description");
         }

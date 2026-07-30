@@ -22,6 +22,8 @@ src/main
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
 │       ├── aiconnector # everything fronting the AI Connector Service
+│       ├── mcp         # the MCP server's tools and their wire types
+│       ├── security    # the filter chain, the token decoder, the minter and the JWKS endpoint
 │       ├── web
 │       └── persistence
 └── resources
@@ -83,14 +85,16 @@ The first is enforced below; the second by review. How a command is named is enf
   [Build & Test Commands](build.md#build--test-commands)).
 - Rules:
   - the layer-dependency rules;
-  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`
-    and `bot.finance.ai..` — the generated schema's own package — banned from `domain`/`application`; each new
-    external-service library joins the list as its adapter lands;
+  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,
+    `bot.finance.ai..` — the generated schema's own package — and `io.modelcontextprotocol..` banned from
+    `domain`/`application`; each new external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
-    `Whisper`, `Postgres`, `AiConnector`, `Grpc` or `Proto`; the list grows the same way;
+    `Whisper`, `Postgres`, `AiConnector`, `Grpc`, `Proto`, `Mcp` or `Jwt`; the list grows the same way;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
-    `application/usecase` class names its `application/dto` parameters `<UseCase>Command`.
+    `application/usecase` class names its `application/dto` parameters `<UseCase>Command`;
+  - `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` — no class outside `bot.finance.adapter.security`
+    constructs `AuthenticatedUserId`.
 
 ## Diagram Format
 

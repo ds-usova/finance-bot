@@ -19,4 +19,11 @@ public class CategoryRowUtils {
                 .insert(new CategoryEntity(null, userId, null, name))
                 .id();
     }
+
+    public static long storedChildCategoryId(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId, long parentId, String name) {
+        return jdbcAggregateTemplate
+                .insert(new CategoryEntity(null, userId, parentId, name))
+                .id();
+    }
 }

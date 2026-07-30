@@ -7,6 +7,13 @@ spring:
   threads:
     virtual:
       enabled: true
+  ai:
+    mcp:
+      server:
+        enabled: ${MCP_ENABLED:true}
+        name: ledger-service
+        version: 1.0.0
+        protocol: STATELESS
   datasource:
     url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/ledger-db}
     username: ${DB_USER:ledger-user}
@@ -32,6 +39,15 @@ spring:
           target: ${AI_CONNECTOR_GRPC_TARGET:static://localhost:1001}
           default:
             deadline: 10s
+
+mcp:
+  token:
+    keystore: ${MCP_JWT_KEYSTORE:classpath:local-mcp-signing.p12}
+    keystore-password: ${MCP_JWT_KEYSTORE_PASSWORD:changeit}
+    key-alias: ${MCP_JWT_KEY_ALIAS:mcp-signing}
+    issuer: ledger-service
+    audience: mcp-adapter
+    ttl: ${MCP_JWT_TTL:2m}
 
 telegram:
   bot:

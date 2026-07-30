@@ -5,6 +5,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import bot.finance.domain.model.Entity;
+import bot.finance.domain.value.AuthenticatedUserId;
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -49,7 +51,8 @@ class CleanArchitectureTest {
                     "com.pengrad..",
                     "io.grpc..",
                     "com.google.protobuf..",
-                    "bot.finance.ai..")
+                    "bot.finance.ai..",
+                    "io.modelcontextprotocol..")
             .allowEmptyShould(true);
 
     /**
@@ -73,6 +76,10 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Grpc")
             .orShould()
             .haveSimpleNameContaining("Proto")
+            .orShould()
+            .haveSimpleNameContaining("Mcp")
+            .orShould()
+            .haveSimpleNameContaining("Jwt")
             .allowEmptyShould(true);
 
     @ArchTest
@@ -130,6 +137,35 @@ class CleanArchitectureTest {
                         }
                     }
                 }
+            }
+        };
+    }
+
+    /**
+     * {@code @AnalyzeClasses(packages = "bot.finance")} scans test classes too, so a fixture that builds an
+     * {@link AuthenticatedUserId} for a test is excluded rather than flagged: a class whose top-level name ends
+     * with {@code Test}, and any class in {@code bot.finance.common}.
+     */
+    @ArchTest
+    static final ArchRule authenticatedUserIdIsConstructedOnlyBySecurityAdapter = noClasses()
+            .that()
+            .resideOutsideOfPackage("bot.finance.adapter.security..")
+            .and(DescribedPredicate.not(topLevelClassNameEndingWithTest()))
+            .and()
+            .resideOutsideOfPackage("bot.finance.common..")
+            .should()
+            .callConstructor(AuthenticatedUserId.class)
+            .allowEmptyShould(true);
+
+    private static DescribedPredicate<JavaClass> topLevelClassNameEndingWithTest() {
+        return new DescribedPredicate<>("have a top-level class name ending with Test") {
+            @Override
+            public boolean test(JavaClass javaClass) {
+                JavaClass topLevelClass = javaClass;
+                while (topLevelClass.getEnclosingClass().isPresent()) {
+                    topLevelClass = topLevelClass.getEnclosingClass().get();
+                }
+                return topLevelClass.getSimpleName().endsWith("Test");
             }
         };
     }
