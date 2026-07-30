@@ -9,7 +9,8 @@ How the coding agent commits, parallelizes work, and where its planning artifact
 - Granularity: one commit per passed stage guardrail (stabilization, red, green, refactor, wrap-up) — not per
   step or per wave.
 - Branch policy: the developer creates and checks out the branch manually before work starts; the agent never
-  creates, switches, or deletes branches — it commits to the current branch only.
+  creates, switches, or deletes branches — it commits to the current branch only. `main` is a normal choice of
+  current branch: development happens there, so a run that starts on it commits to it and asks nothing.
 - Message format: `<Prefix>: <description>` — one subject line stating what the change does, and a prefix naming
   the kind of change:
   - `Feature` — new or extended functionality;
