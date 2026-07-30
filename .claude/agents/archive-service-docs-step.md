@@ -31,6 +31,11 @@ The repository's writing rules apply. Load-bearing here:
 - **No justification** — the rule, not the argument for it.
 - Diagram labels are a few words.
 
+**What diagrams are written in comes from the module conventions' Diagram Format section** — the language, the
+fenced block's language tag, and any preamble a diagram needs. Where a module names none, use PlantUML with the
+bundled C4-PlantUML standard library. Every diagram sample below is written in that assumed default; a module
+naming another language gets the same diagram in it, showing exactly the same thing.
+
 **Scannable over readable.** A reader looks things up here; nobody reads the page front to back.
 
 - **One line, one fact.** A bullet, a step, or a table cell is a single line. Needing a second sentence means
@@ -98,8 +103,8 @@ report.
 Every collaborator is a participant in the sequence diagram and every participant is a row in the table.
 Participants carry the collaborators' plain names, never class names. The diagram runs from whoever asks,
 through the service, to each system it depends on, with `alt`/`else`/`end` for each branch the outcomes table
-lists. Add a **Components** section (`!include <C4/C4_Component>`) only for
-components the service README's C3 does not already show.
+lists. Add a **Components** section — a C3 component diagram — only for components the service README's C3 does
+not already show.
 
 Updating: edit in place. The file describes the system as it is, never what changed.
 

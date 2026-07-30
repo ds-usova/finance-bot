@@ -91,3 +91,7 @@ The first is enforced below; the second by review. How a command is named is enf
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`.
+
+## Diagram Format
+
+Repo-root [`docs/conventions/diagrams.md`](../../../docs/conventions/diagrams.md), unchanged for this module.

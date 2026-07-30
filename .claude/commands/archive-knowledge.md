@@ -32,8 +32,8 @@ Each is new or updated in place. A second file on the same subject is a defect.
 2. **The diff it produced**, and the files it touched. The plan is the lead; **the code is the source of
    truth**. Every sentence written must be traceable to code that exists; where the two disagree the code wins
    and the discrepancy goes in the report.
-3. **`<module>/docs/conventions.md`** per affected module — its **Sub-Agent Models**, **Parallelism**, and
-   **Version Control** sections govern this run.
+3. **`<module>/docs/conventions.md`** per affected module — its **Sub-Agent Models**, **Parallelism**,
+   **Version Control**, and **Diagram Format** sections govern this run.
 4. **The existing corpus** — root README, service READMEs, `docs/usecases/`, `docs/contracts/`, `docs/adr/`.
 
 ## Gate
@@ -93,9 +93,10 @@ writing.
 
 Model: the one **Sub-Agent Models** names for deciding work. Respect the **Parallelism** cap.
 
-**Guardrail**: every listed file exists, none outside its service, every diagram a fenced ` ```plantuml ` block,
-and nothing restated that a schema, a conventions file, or a README already owns — the database schema diagram
-excepted, since the migrations hold no current state to link to.
+**Guardrail**: every listed file exists, none outside its service, every diagram a fenced block in the language
+the module conventions' **Diagram Format** section names, and nothing restated that a schema, a conventions file,
+or a README already owns — the database schema diagram excepted, since the migrations hold no current state to
+link to.
 
 ## Stage 3 — ADRs
 

@@ -7,7 +7,7 @@ Each section covers one concern, but changes rarely stay inside one: a new endpo
 code style, and testing at once.
 
 - [Orientation](conventions/orientation.md) — project structure, documentation references, tech stack.
-- [Architecture & Layering](conventions/architecture.md) — package structure, dependency rules.
+- [Architecture & Layering](conventions/architecture.md) — package structure, dependency rules, diagram format.
 - [Testing Conventions](conventions/testing.md) — test layers, test tooling, naming conventions, testing style.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
 - [Build](conventions/build.md) — build & test commands.

@@ -90,3 +90,7 @@ The first is enforced below; the second by review.
     inbound adapter can inject a use-case class instead of its port and still compile;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`.
+
+## Diagram Format
+
+Repo-root [`docs/conventions/diagrams.md`](../../../docs/conventions/diagrams.md), unchanged for this module.
