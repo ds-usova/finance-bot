@@ -91,6 +91,9 @@ instruction is repeated at each stage.
 A plan is ready for implementation only when the user has actually closed the loops the planning phase opened.
 Before running anything, check the plan file itself:
 
+- **The design file** the plan's `**Design:**` header links: `design.sh settled --file <design>` exits 0. An
+  unsettled decision means step agents will each invent their own answer to the same question, in different layers.
+  The script ships with the `design-task` skill at `scripts/design/design.sh`.
 - **Open Questions / Blockers**: every `- Q:` has a non-empty `- A:`, and every blocker recorded by a previous
   (partial) run has a resolution noted. An unanswered question means a step agent downstream will hit exactly the
   ambiguity the planner already flagged.
@@ -306,9 +309,10 @@ Once the guardrail holds, commit per the Version Control policy.
 2. **Whole-plan guardrail** — run yourself, from the conventions' commands: the module(s) fully compile, the
    architecture-enforcement test passes, and **the entire test suite is green** — not just the classes this plan
    touched.
-3. Only when the guardrail holds and **no `- [ ]` remains anywhere in the plan file**, move the plan from `docs/`
-   to `docs/implemented/`. If unchecked items or blockers remain, leave the file in place and summarize what is
-   open.
+3. Only when the guardrail holds and **no `- [ ]` remains anywhere in the plan file**, move the plan **and the
+   design file its `**Design:**` header links** from `docs/` to `docs/implemented/`. The pair moves together, so
+   the relative link between them survives. If unchecked items or blockers remain, leave both files in place and
+   summarize what is open.
 4. Commit per the Version Control policy — this is where its **squash-before-archiving** setting applies, if the
    plan was archived in step 3.
 5. **Post-implementation actions.** Run what the module conventions' **Post-Implementation Actions** section

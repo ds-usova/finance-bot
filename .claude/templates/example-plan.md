@@ -7,102 +7,16 @@ structure (plan sections, section order, step formats, RED/GREEN choreography) u
 and file formats as recorded in the module's `docs/conventions.md`
 (see `.claude/templates/conventions-template.md`).
 
+What the feature *is* — the objective, the solution, the file names, the diagrams and the decisions behind them —
+lives in `.claude/templates/example-design.md`, the design this plan is written from. The plan links it rather than
+restating it, and starts at the step map.
+
 ---
 
 # Plan: Add Widget Creation
 
 **Affected Modules:** `module-a`
-
-## Objective
-
-Allow API clients to create widgets. A widget has a `name` and a `value`; it is validated, persisted, and returned
-with its generated id.
-
-## Proposed Solution
-
-Add a `POST /widgets` endpoint to the module's API contract (`<api-schema-file>`) with a `CreateWidgetRequest`
-request schema and a `Widget` response schema.
-
-Introduce a `CreateWidgetPort` inbound port in the application layer, implemented by a `CreateWidgetUseCase`
-use case: it validates the command, assembles the domain `Widget` via `WidgetAssembler`, and persists it through
-a new `WidgetRepository` outbound port. That outbound port is implemented by `WidgetRepositoryAdapter` in the
-persistence adapter, backed by a new `widget` table created in migration `<migration-file>`:
-
-```sql
-CREATE TABLE widget (
-    id    BIGSERIAL PRIMARY KEY,
-    name  VARCHAR(255) NOT NULL,
-    value VARCHAR(255) NOT NULL
-);
-```
-
-`WidgetController` exposes the endpoint and maps between the REST model and the domain model via `WidgetUtils`.
-
-Files touched: `<api-schema-file>`, `<migration-file>`, `CreateWidgetPort`, `CreateWidgetUseCase`,
-`WidgetAssembler`, `WidgetRepository`, `WidgetRepositoryAdapter`, `WidgetController`, `WidgetUtils`.
-
-#### Diagrams
-
-```plantuml
-@startuml
-' Uses PlantUML's bundled C4-PlantUML stdlib (angle-bracket include — no network fetch, no relative file
-' path, resolved the same way regardless of where this diagram is rendered from). If a renderer's PlantUML
-' version doesn't have the C4 stdlib bundled, fall back to:
-' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
-!include <C4/C4_Component>
-
-Container_Boundary(domain, "domain") {
-  Component(widget, "Widget", "domain entity")
-  Component(widgetAssembler, "WidgetAssembler", "domain service")
-}
-Container_Boundary(application, "application") {
-  Component(createWidgetPort, "CreateWidgetPort", "inbound port")
-  Component(createWidgetUseCase, "CreateWidgetUseCase", "use case")
-  Component(widgetRepository, "WidgetRepository", "outbound port")
-}
-Container_Boundary(inboundAdapter, "adapter (inbound)") {
-  Component(widgetController, "WidgetController", "REST controller")
-  Component(widgetUtils, "WidgetUtils", "REST mapper")
-}
-Container_Boundary(outboundAdapter, "adapter (outbound)") {
-  Component(widgetRepositoryAdapter, "WidgetRepositoryAdapter", "persistence adapter")
-}
-
-Rel(widgetController, createWidgetPort, "calls")
-Rel(createWidgetUseCase, createWidgetPort, "implements")
-Rel(widgetController, widgetUtils, "maps via")
-Rel(createWidgetUseCase, widgetAssembler, "uses")
-Rel(createWidgetUseCase, widget, "produces")
-Rel(createWidgetUseCase, widgetRepository, "depends on")
-Rel(widgetRepositoryAdapter, widgetRepository, "implements")
-@enduml
-```
-
-```plantuml
-@startuml
-actor Client
-Client -> WidgetController : POST /widgets
-WidgetController -> CreateWidgetUseCase : createWidget(command)
-
-alt invalid request
-    CreateWidgetUseCase -> CreateWidgetUseCase : validateRequest(command)
-    CreateWidgetUseCase --> WidgetController : IllegalArgumentException
-    WidgetController --> Client : 400 Bad Request
-else unknown parent id
-    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : ResourceNotFoundException
-    CreateWidgetUseCase --> WidgetController : ResourceNotFoundException
-    WidgetController --> Client : 404 Not Found
-else happy path
-    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : persisted widget
-    CreateWidgetUseCase --> WidgetController : widget
-    WidgetController --> Client : 200 OK
-end
-@enduml
-```
+**Design:** [Add Widget Creation](1-design-add-widget.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 
@@ -134,13 +48,16 @@ end
 
 #### Database
 
-- [ ] ST04 · Add migration `<migration-file>` (named per the project's migration tool conventions):
+- [ ] ST04 · Add migration `<migration-file>` (named per the project's migration tool conventions), as designed:
   ```sql
   CREATE TABLE widget (
-      id    BIGSERIAL PRIMARY KEY,
-      name  VARCHAR(255) NOT NULL,
-      value VARCHAR(255) NOT NULL
+      id        BIGSERIAL PRIMARY KEY,
+      parent_id BIGINT       NOT NULL REFERENCES parent (id) ON DELETE CASCADE,
+      name      VARCHAR(255) NOT NULL,
+      value     VARCHAR(255) NOT NULL
   );
+
+  CREATE UNIQUE INDEX idx_widget_parent_name ON widget (parent_id, name);
   ```
 
 #### Interface-First / Build Stabilization
@@ -244,6 +161,9 @@ public Settings loadSettings(long userId) {
         - given: an unknown parent id
           when: save() is called
           then: throws ResourceNotFoundException
+        - given: a widget whose name is already taken under the same parent
+          when: save() is called
+          then: throws DuplicateResourceException
 - [ ] RI02 · `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort`
     - Happy Path:
         - given: the mocked port returns a created widget
@@ -253,6 +173,12 @@ public Settings loadSettings(long userId) {
         - given: the mocked port throws ResourceNotFoundException
           when: request is made
           then: return 404
+        - given: the mocked port throws DuplicateResourceException
+          when: request is made
+          then: return 409
+        - given: the mocked port throws PersistenceFailedException
+          when: request is made
+          then: return 503
     - Validation: `name` — blank, null, exceeds max length
 
 #### TDD System Test Red Phase
@@ -293,17 +219,13 @@ public Settings loadSettings(long userId) {
 
 ## Open Questions / Blockers
 
-- **Q1:** Must widget names be unique, and if so, should a duplicate `POST /widgets` return 409?
-- A:
-
-- **Q2:** `module-a` has no conventions file yet (`module-a/docs/conventions.md` is missing) — please create one from
-  `.claude/templates/conventions-template.md`; this plan assumes generic defaults where conventions were needed.
+- **Q1:** `module-a`'s integration tests need a containerized database; the CI runner has no container runtime
+  configured, so `RI01` cannot run there until it does. Run it locally, or configure the runner first?
 - A:
 
 ## Review Findings
 
-- **F1:** `WidgetRepositoryAdapterTest` has no scenario for a duplicate `name` violating a uniqueness constraint,
-  and the `widget` table defined above declares no unique constraint on `name` — this may be intentional pending the
-  open question above about duplicate names, but is flagged here since the schema currently allows duplicates
-  silently.
-- Action:
+- **F1:** `RI02`'s error-mapping scenarios cover 404 and 409, but `WidgetControllerTest` must also assert the 503
+  the design maps `PersistenceFailedException` to — no scenario covers it at any layer.
+- Resolution: mechanical
+- Action: applied — added the scenario to `RI02`.

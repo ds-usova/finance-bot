@@ -1,36 +1,60 @@
 ---
-description: Create a step-by-step implementation plan for a user request before starting to code. Use when starting a new complex feature, refactoring, or when the user explicitly asks for a plan.
-argument-hint: [ description of the feature or task to plan ]
+description: Translate a settled design file into a step-by-step implementation plan before starting to code. Use when starting a new complex feature, refactoring, or when the user explicitly asks for a plan.
+argument-hint: [ design file path, or a description of the feature to plan ]
 ---
 
 # Plan Task
 
 When the user asks you to plan a task, create a step-by-step implementation plan in a file before starting your work.
 
-> **Architecture Contract:** this framework requires the module to follow clean/hexagonal architecture — a
-> dependency-free domain layer; an application layer of usecases implementing inbound ports and depending only on
-> outbound ports; and adapters implementing the outbound ports and driving the inbound ones. The module's
-> conventions file maps these abstract layers onto its concrete packages/folders. If a module does not follow this
-> architecture, the skill's phase structure does not apply.
+This skill is **mechanical translation**: a settled design becomes checklist items, test scenarios and a dependency
+graph. It decides nothing about what the change does. What it does about a failure, a duplicate request, or a
+missing constraint was settled by `design-task`, and anything this skill discovers that is *not* settled goes back
+there — never into this plan as a new question.
 
-## 1. Create a Plan File
+> **Architecture Contract:** the design file states it and places every class in a layer — a dependency-free
+> domain, an application layer of usecases on ports, adapters implementing the outbound ports and driving the
+> inbound ones. Steps inherit that placement; a step that would land a class in a different layer than the design
+> puts it in is a defect in one of the two, and it is resolved in the design. If a module does not follow this
+> architecture, the phase structure below does not apply.
+
+## 1. Require a Settled Design
+
+Every plan is written from a design file — `docs/<n>-design-<task-name>.md`, produced by `design-task`. Read it in
+full before anything else. It carries the **Objective**, the **Proposed Solution** with the real file names, the
+diagrams, and the **Decisions** this plan's steps have to encode.
+
+**Two gates, both hard:**
+
+- **No design file for this task** — stop and say so. Do not write the plan and do not reconstruct the design
+  inline; a plan that invents its own design is exactly the back-and-forth the two-stage split removes. Point the
+  user at `design-task`.
+- **`design.sh settled` exits non-zero** — stop and repeat what it printed. Those entries decide what the steps
+  are; planning around them writes items that the answer will invalidate. The script ships with the `design-task`
+  skill at `scripts/design/design.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/`
+  in a plain checkout.
+
+A design gap found *while* planning — a case the **Decisions** section does not cover — is amended in the design
+file (a new `D` entry, answered against the repository or escalated to the user), not absorbed into the plan.
+
+## 2. Create a Plan File
 
 All plans live in the repository-root `docs/` folder, regardless of whether the task touches one module or several.
 
 Create a Markdown file in the repository-root `docs/` folder named `<plan-number>-plan-<task-name>.md`. For example,
 `1-plan-add-auth.md`.
 
-> **Numbering rule:** `<plan-number>` is one more than the highest number already in use, scanning filenames
-> matching `<number>-plan-*.md` in **both** `docs/` and `docs/implemented/` — archiving a plan does not free its
-> number for reuse. If neither directory has a matching file, start at 1.
+> **Numbering rule:** `<plan-number>` is the number of the design file this plan is written from, and the task name
+> matches it — `7-design-create-expense.md` yields `7-plan-create-expense.md`. The shared number is how the pair is
+> known to belong together.
 
-> **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move the file from
-> `docs/` into `docs/implemented/`. Active (in-progress) plans live in `docs/`; completed ones live in
-> `docs/implemented/`.
+> **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move **both the plan
+> and its design file** from `docs/` into `docs/implemented/`. Active (in-progress) work lives in `docs/`; completed
+> work lives in `docs/implemented/`.
 > Never archive a plan just because one section is complete; archive it only when there are no unchecked `- [ ]` items
 > anywhere in the file.
 
-## 2. Read Module Conventions
+## 3. Read Module Conventions
 
 After determining the **Affected Modules**, read `<module>/docs/conventions.md` for **every** affected module before
 generating the plan's layer sections. Also read the repo-root `docs/conventions.md` if it exists — it holds
@@ -43,58 +67,28 @@ If a module has no conventions file: use generic defaults, and add an entry unde
 the generated plan asking the user to create one from the template at `.claude/templates/conventions-template.md`.
 Never fail and never silently guess module conventions.
 
-## 3. Plan Structure
+## 4. Plan Structure
 
 The plan file MUST contain the following sections. Headings below that say "reference" or "Step Format" are
 instructions for writing those sections, not sections to reproduce in the plan.
 
-### Affected Modules
+### Header
 
-A single line at the very top of the plan (immediately after the title) listing every module/service the task
-touches, e.g.:
+Two lines at the very top of the plan, immediately after the title:
 
 ```
 **Affected Modules:** `module-a`, `module-b`
+**Design:** [<task name>](<n>-design-<task-name>.md)
 ```
 
-List only the top-level modules whose code, config, or migrations change as part of this plan (e.g. a monorepo
-service directory). If the task touches only one module, list that single module — do not omit this property.
+**Affected Modules** lists only the top-level modules whose code, config, or migrations change as part of this plan
+(e.g. a monorepo service directory) — the same list the design file carries. If the task touches only one module,
+list that single module; do not omit the property.
 
-### Objective
+**Design** links the design file this plan translates. The objective, the solution, the file names and the diagrams
+live there and are **not** repeated here: one fact, one owner. The plan's own content starts at the step map.
 
-A short, clear summary of what needs to be achieved in this task.
-
-### Proposed Solution
-
-A high-level description of the architectural or implementation changes.
-If the solution involves a database migration, include the migration content in the module's migration format (see
-conventions file).
-If the solution involves API contract changes, include the endpoint and schema changes.
-
-Make sure to include the actual file names.
-
-#### Diagrams
-
-Optional — include only when the plan introduces new classes/flows worth visualizing; a one-line stub change does
-not need one. Generate both diagrams yourself as part of writing this plan. 
-Diagrams live in the plan file itself as fenced ` ```plantuml ` code blocks; there is no separate artifact.
-
-- **Component diagram (C4 model, Component level)** — the new/changed classes grouped by architectural layer as
-  `Container_Boundary` groups: **domain**, **application**, and adapters split into two separate boundaries —
-  **adapter (inbound)** (driving adapters: REST controllers, messaging handlers, cron triggers) and **adapter
-  (outbound)** (adapters implementing outbound ports: persistence, outbound HTTP clients) — rather than one combined
-  adapter group, since the inbound/outbound direction is exactly what the Architecture Contract distinguishes.
-  Use `Component(...)` entries and `Rel(...)` relationships to show dependencies between them. Include PlantUML's
-  bundled C4-PlantUML standard library with
-  `!include <C4/C4_Component>` (angle brackets, no `.puml` extension — this resolves against PlantUML's own bundled
-  stdlib, so it needs neither a network fetch nor a relative file path). If a renderer's PlantUML version is too old
-  to have the C4 stdlib bundled, fall back to
-  `!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml`. See
-  `.claude/templates/example-plan.md` for the exact working syntax. Doubles as a manual pre-check of the Architecture
-  Contract before the module's real architecture-enforcement test ever runs.
-- **Sequence diagram** — the flow from the inbound adapter through the usecase to the outbound port(s). Use
-  `alt`/`else`/`end` combined fragments to show alternative branches (e.g. a validation failure, a not-found case, an
-  outbound call erroring) alongside the happy path — not just a single straight-line flow.
+The link is relative and survives archiving, since `implement-plan` moves both files together.
 
 ### Step-by-Step Implementation Map (To-Do List)
 
@@ -503,8 +497,11 @@ See `.claude/templates/example-plan.md` for a complete worked example.
 
 ### Open Questions / Blockers
 
-List any questions you need the user to clarify before you can proceed with specific steps, or potential blockers you
-foresee.
+**Scope:** this section holds questions about *executing* the plan — a blocker foreseen in a step, a tool or
+credential that may be missing, an approval a conventions file requires. Questions about what the change should
+**do** belong in the design file's **Decisions** section and are settled before this plan exists; a design question
+appearing here means step 1's gate was skipped.
+
 Generate placeholders for the user's answers beneath each open question, for example:
 
 - **Q1:** [Your question here]?
@@ -540,20 +537,20 @@ and continuing past the highest existing number on a re-review.
 
 `Resolution:` is the reviewer's classification of **who** resolves the finding — `mechanical` when a written rule
 or the code already determines the fix, `decision` when it is a genuine choice. The reviewer assigns it; the
-orchestrator acts on it in step 4. It is deliberately not the planner's call: a planner grading the review of its
+orchestrator acts on it in step 6. It is deliberately not the planner's call: a planner grading the review of its
 own plan is how a real objection gets reclassified into something that can be quietly applied.
 
 If the review has nothing to report, this section still contains a single "No issues found" statement (or
 equivalent) — its presence must be consistent across every plan, clean or not.
 
-## 4. Invoke the Review Subagent
+## 5. Invoke the Review Subagent
 
-Once every section in **3. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
+Once every section in **4. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
 plan file, on the model the module conventions' **Sub-Agent Models** section names for deciding work (reviewing a
 plan is exactly that); without such a section, the default model. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
-proceed to **5. Resolve the Mechanical Findings** below.
+proceed to **6. Resolve the Mechanical Findings** below.
 
-## 5. Resolve the Mechanical Findings
+## 6. Resolve the Mechanical Findings
 
 Apply every finding the reviewer marked `Resolution: mechanical` to the plan, then write under it what changed:
 
@@ -598,10 +595,10 @@ How to apply them:
 - **Re-run `plan.sh validate`** afterwards. Rewriting steps in bulk is exactly when an ID or an `after:` reference
   breaks.
 
-## 6. Review Only — Do NOT Implement
+## 7. Review Only — Do NOT Implement
 
 - Present the generated plan file to the user.
-- **Report what step 5 applied** — the findings' IDs and a clause each, in one short list. An automatic edit the
+- **Report what step 6 applied** — the findings' IDs and a clause each, in one short list. An automatic edit the
   user cannot see is an automatic edit the user cannot catch.
 - Put the findings still needing them — the `decision` ones and anything escalated — in front of the user
   explicitly, alongside the unanswered Open Questions.

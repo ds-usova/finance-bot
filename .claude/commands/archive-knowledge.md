@@ -107,6 +107,12 @@ yields no ADR, and so does a plan whose conventions say nothing about them. A de
 one that is not authorized goes in the **report**, unwritten, naming the decision and the page that holds it today
 — so an ADR that should exist is visible as a proposal rather than appearing as a fact nobody approved.
 
+**Where the candidates come from.** The design file the plan links records every judgment call the change made, as
+`D<n>` entries. An entry marked `Basis: decided` is a decision the user made between defensible options — the
+strongest ADR candidate there is, and already written down with its rationale. Entries marked `assumed` are not:
+the repository already determined them, so the code and the conventions own the fact. Cite the `D` number in the
+ADR's context, and in any proposal made in the report.
+
 **Gate — name the document that would otherwise own the fact.** Applies to each approved item as you write it, and
 to anything you are about to propose in the report. Say which existing page would hold this if the ADR did not
 exist. If the answer is a contract page's Semantics, a use-case page's Rules, or a domain page's invariants, then

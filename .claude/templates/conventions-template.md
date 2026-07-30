@@ -14,6 +14,7 @@ module, say so explicitly rather than deleting it — a missing answer should ne
 - [Architecture & Layering](#architecture--layering)
   - [Architecture Enforcement](#architecture-enforcement)
   - [Layer → Test-Type Mapping](#layer--test-type-mapping)
+  - [Diagram Format](#diagram-format)
 - [Testing Conventions](#testing-conventions)
   - [Test Tooling](#test-tooling)
   - [Naming Conventions](#naming-conventions)
@@ -103,6 +104,22 @@ target.
 - **Integration-test targets (outbound adapters):** `<packages/folders containing outbound adapters — e.g. adapter/persistence/, adapter/httpclient/>`
 - **Integration-test targets (inbound adapters):** `<packages/folders containing inbound adapters tested as framework slices, and the kinds of entry point each covers — e.g. adapter/web/ (REST controllers), adapter/messaging/ (event listeners), adapter/scheduling/ (cron triggers)>`
 - **System-test entry points:** `<by default, the same inbound adapters listed above, entered end-to-end instead of as a framework slice — list only exceptions here, e.g. an entry point with no system-level coverage; or "same as integration-test inbound adapters above">`
+
+### Diagram Format
+
+How diagrams are written in this module's documents — design files, READMEs, use-case pages. What a diagram must
+*show* is fixed by whoever asks for it; this section only says what to write it in, so a document renders wherever
+this module's docs are read. Leave it silent and PlantUML with the bundled C4-PlantUML stdlib is assumed.
+
+- Diagram language: `<e.g. PlantUML, Mermaid, Structurizr DSL, D2>`
+- Fenced-block language tag: `<the tag a fenced code block carries so the renderer picks it up — e.g. plantuml, mermaid>`
+- Preamble / includes: `<any lines a diagram needs before its own content — e.g. !include <C4/C4_Component> for a
+  C4 component diagram, or "none">`
+- Renderer constraints: `<anything that limits what the docs toolchain can draw — e.g. "GitHub renders Mermaid
+  natively but not PlantUML"; "the PlantUML version in CI predates the bundled C4 stdlib, so diagrams include the
+  raw URL instead"; or "none">`
+- Rendered output: `<where generated images live, if any are committed — e.g. docs/diagrams/*.svg; or "none —
+  diagrams live inline in the document as fenced blocks">`
 
 ## Testing Conventions
 
