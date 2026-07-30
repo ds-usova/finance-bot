@@ -98,4 +98,49 @@ class ColumnLimitsSchemaTest {
             assertThat(characterMaximumLength).isEqualTo(ColumnLimits.CURRENCY_CODE);
         }
     }
+
+    @Nested
+    @DisplayName("expense_proposal.description column width")
+    class ProposalDescription {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense_proposal.description - then it equals ColumnLimits.DESCRIPTION")
+        void whenMigratedColumnWidthRead_thenEqualsDescriptionConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "description");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.DESCRIPTION);
+        }
+    }
+
+    @Nested
+    @DisplayName("expense_proposal.merchant column width")
+    class ProposalMerchant {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense_proposal.merchant - then it equals ColumnLimits.MERCHANT")
+        void whenMigratedColumnWidthRead_thenEqualsMerchantConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "merchant");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.MERCHANT);
+        }
+    }
+
+    @Nested
+    @DisplayName("expense_proposal.currency_code column width")
+    class ProposalCurrencyCode {
+
+        @Test
+        @DisplayName(
+                "when the migrated schema's character_maximum_length is read for expense_proposal.currency_code - then it equals ColumnLimits.CURRENCY_CODE")
+        void whenMigratedColumnWidthRead_thenEqualsCurrencyCodeConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "currency_code");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.CURRENCY_CODE);
+        }
+    }
 }

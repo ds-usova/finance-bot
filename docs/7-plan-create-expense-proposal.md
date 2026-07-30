@@ -342,7 +342,7 @@ end
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ExpenseProposal` · test: `ExpenseProposalTest` · covers: `newExpenseProposal()`, `stored()`
+- [x] RU01 · `ExpenseProposal` · test: `ExpenseProposalTest` · covers: `newExpenseProposal()`, `stored()`
     - `newExpenseProposal()`:
         - given: a user id, a category id, a description, a merchant, a money and an instant
           when: newExpenseProposal() is called
@@ -381,7 +381,7 @@ end
           then: throws InvalidExpenseProposalException
     - Identity (`equals`/`hashCode`, `id()`) is a rule of `Entity` and is asserted once in `EntityTest`; this step
       adds no identity scenarios
-- [ ] RU02 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers:
+- [x] RU02 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers:
   `CreateExpenseProposalCommand()`
     - `CreateExpenseProposalCommand()`:
         - given: a user external id that is absent, empty, or only whitespace
@@ -405,7 +405,7 @@ end
         - given: every field present, the merchant a non-blank name
           when: the record is constructed
           then: the record carries them unchanged
-- [ ] RU03 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
+- [x] RU03 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
     - `create()`:
         - given: a user stored under the command's external id and a clock fixed at a known instant
           when: create() is called
@@ -428,7 +428,7 @@ end
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
+- [x] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
   `create()`
     - `create()`:
         - given: a stored user, a stored category, and an unstored proposal carrying a merchant
@@ -474,7 +474,7 @@ end
           violation naming neither of `expense_proposal`'s own foreign keys
           when: create() is called
           then: throws PersistenceFailedException carrying the framework exception as its cause
-- [ ] RI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `DESCRIPTION`, `MERCHANT`, `CURRENCY_CODE`
+- [x] RI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest` · covers: `DESCRIPTION`, `MERCHANT`, `CURRENCY_CODE`
     - `DESCRIPTION`:
         - given: the migrated schema in the containerized database
           when: `expense_proposal.description`'s `character_maximum_length` is read from
@@ -547,6 +547,18 @@ end
 - A: It's an ADT. The reason is to keep short-lived proposals in a separate table, also it might store some metadata if
   we want to store the rejection reason in the future.
   Approved — **P01** writes it.
+
+### Blockers recorded during implementation
+
+- **B1** (2026-07-30, RED exit check): `tools/agent-test/agent-test.sh` reports neither
+  `CreateExpenseProposalCommandTest` nor the pre-existing `HandleIncomingMessageCommandTest`. Both run and both
+  produce results; their JUnit XML filename — `TEST-bot.finance.application.dto.<Class>$<NestedClass>.xml` — is long
+  enough that inside a `build/agent-runs/<label>-<timestamp>-<pid>/test-results/` path it overflows the Windows path
+  limit, so Gradle writes it as `__TES-<hash>…xml` and the wrapper's `TEST-*.xml` glob misses it. Consequence: the
+  wrapper's totals and class list silently omit those classes, in the baseline as much as in any later run.
+- Resolution: unrelated to this plan (reproduces on the pre-existing class, and on the baseline commit) — reported,
+  not fixed. This run verified `CreateExpenseProposalCommandTest` by reading the run's `console.log` directly, which
+  does carry every test. A fix belongs to `tools/agent-test/` — widen the glob, or shorten the run-directory name.
 
 ## Review Findings
 
