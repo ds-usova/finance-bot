@@ -497,14 +497,14 @@ end
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ExpenseProposal` · test: `ExpenseProposalTest`
-- [ ] GU02 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest`
-- [ ] GU03 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01, GU02
+- [x] GU01 · `ExpenseProposal` · test: `ExpenseProposalTest`
+- [x] GU02 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest`
+- [x] GU03 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01, GU02
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01
-- [ ] GI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
+- [x] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01
+- [x] GI02 · `ColumnLimits` · test: `ColumnLimitsSchemaTest`
 
 ### Post-Implementation Steps
 

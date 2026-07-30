@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -24,9 +25,27 @@ public final class ExpenseProposal extends Entity {
             Instant createdAt,
             Instant updatedAt) {
         super(id);
-        // rejects an absent or blank description, an absent merchant Optional, an absent money, a
-        // non-positive user id, a non-positive category id, and an absent created_at or updated_at,
-        // each with InvalidExpenseProposalException
+        if (description == null || description.isBlank()) {
+            throw new InvalidExpenseProposalException("description must be present");
+        }
+        if (merchant == null) {
+            throw new InvalidExpenseProposalException("merchant must be present");
+        }
+        if (money == null) {
+            throw new InvalidExpenseProposalException("money must be present");
+        }
+        if (userId <= 0) {
+            throw new InvalidExpenseProposalException("user id must be positive");
+        }
+        if (categoryId <= 0) {
+            throw new InvalidExpenseProposalException("category id must be positive");
+        }
+        if (createdAt == null) {
+            throw new InvalidExpenseProposalException("created at must be present");
+        }
+        if (updatedAt == null) {
+            throw new InvalidExpenseProposalException("updated at must be present");
+        }
         this.userId = userId;
         this.categoryId = categoryId;
         this.description = description;

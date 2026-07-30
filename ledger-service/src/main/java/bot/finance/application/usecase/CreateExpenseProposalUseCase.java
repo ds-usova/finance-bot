@@ -6,8 +6,12 @@ import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.User;
 import java.time.Clock;
+import java.time.Instant;
 
 public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
 
@@ -29,11 +33,23 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
 
     @Override
     public ExpenseProposal create(CreateExpenseProposalCommand command) {
-        // rejects an absent command with InvalidExpenseProposalException; resolves the external id
-        // through UserRepository and throws EntityNotFoundException("user", ...) when nothing is
-        // stored under it; builds the ExpenseProposal against the resolved user's database id and the
-        // command's category id, with Instant.now(clock); stores it, logs the creation at info level,
-        // and returns what was stored
-        return null;
+        if (command == null) {
+            throw new InvalidExpenseProposalException("new expense proposal command is absent");
+        }
+        User user = userRepository
+                .findByExternalId(command.userExternalId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "user", "no user stored under external id " + command.userExternalId()));
+        Instant now = Instant.now(clock);
+        ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
+                user.id().orElseThrow(),
+                command.categoryId(),
+                command.description(),
+                command.merchant(),
+                command.money(),
+                now);
+        ExpenseProposal created = expenseProposalRepository.create(proposal);
+        log.info("created expense proposal for user with external id {}", command.userExternalId());
+        return created;
     }
 }
