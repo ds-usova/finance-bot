@@ -509,7 +509,7 @@
 
 #### ADRs
 
-- [ ] P01 · Write ADR: the caller's identity reaches an MCP tool as a signed token on the transport and never as a
+- [x] P01 · Write ADR: the caller's identity reaches an MCP tool as a signed token on the transport and never as a
   tool argument, and the Ledger Service mints and validates that token itself with an RS256 key pair from a
   keystore (**Q1**)
 
