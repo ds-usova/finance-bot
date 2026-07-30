@@ -13,10 +13,10 @@ deployment supplies its own.
 | `TELEGRAM_API_URL`         | where Telegram's Bot API is reached                         | Telegram's own address                        | no                 |
 | `AI_CONNECTOR_GRPC_TARGET` | where the AI Connector's gRPC server is reached             | `static://localhost:1001`                     | no                 |
 | `MCP_ENABLED`               | whether the MCP server endpoint is served at all             | `true`                                        | no                 |
-| `MCP_JWT_KEYSTORE`          | where the MCP token signing keystore is read from            | `classpath:local-mcp-signing.p12`             | no                 |
-| `MCP_JWT_KEYSTORE_PASSWORD` | the password for that keystore                                | *(a local placeholder)*                       | no                 |
-| `MCP_JWT_KEY_ALIAS`         | which key pair in the keystore signs and verifies MCP tokens  | `mcp-signing`                                 | no                 |
-| `MCP_JWT_TTL`               | how long a minted MCP token is valid                          | `2m`                                          | no                 |
+| `MCP_JWT_KEYSTORE`          | where the MCP token signing keystore is read from            | the committed development keystore            | yes                |
+| `MCP_JWT_KEYSTORE_PASSWORD` | the password for that keystore                               | *(a local placeholder)*                       | yes                |
+| `MCP_JWT_KEY_ALIAS`         | which key pair in the keystore signs and verifies MCP tokens | `mcp-signing`                                 | with a supplied keystore |
+| `MCP_JWT_TTL`               | how long a minted MCP token is valid                         | `2m`                                          | no                 |
 
 ## Notes
 
@@ -33,5 +33,14 @@ deployment supplies its own.
 - `AI_CONNECTOR_GRPC_TARGET` defaults to the port that same file publishes for the AI Connector; under compose
   the service is given the connector's container address instead. A target pointing nowhere shows in
   `/actuator/health` — see [AI Connector Service](contracts/out/ai-connector.md).
-- The committed keystore behind `MCP_JWT_KEYSTORE` is a development default; a deployment replaces it, and the
-  password behind it, from its secret store.
+- The keystore `MCP_JWT_KEYSTORE` defaults to is committed to the repository, and its password with it. It is a
+  development convenience and nothing more: a deployment supplies its own keystore, and its password, from its
+  secret store.
+- The keystore is read once at startup. A keystore that cannot be opened, or that holds no key under the alias,
+  stops startup.
+- `MCP_JWT_KEY_ALIAS` only needs setting when the supplied keystore names its key something other than the
+  default.
+- `MCP_JWT_TTL` is both how long a minted token lives and the longest lifetime an arriving token may claim; a
+  token claiming more is refused. See
+  [Agent acting for a user — the expense proposal tool](contracts/in/mcp.md).
+- `MCP_ENABLED=false` leaves the service running with the MCP endpoint gone.

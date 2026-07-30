@@ -82,6 +82,8 @@ cannot be removed while either references it.
 | Find a user by identity | reads the user stored under an external identity | [Initialize a new user](../../usecases/initialize-a-new-user.md), [Create an expense](../../usecases/create-an-expense.md), [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 | Create a user           | stores a user and their categories together      | [Initialize a new user](../../usecases/initialize-a-new-user.md) |
 | Create an expense       | stores an expense against a user and category    | [Create an expense](../../usecases/create-an-expense.md)         |
+| Find a user's categories by name | reads every category of one user carrying a name, each with the name of the one it sits under | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
+| Find a category's children | reads the names of the categories filed under one category | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 | Create an expense proposal | stores a proposal against a user and category | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 
 ## Compatibility

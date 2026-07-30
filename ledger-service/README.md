@@ -18,6 +18,7 @@ C3 is below. Package structure is in the
 ### Contracts
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
+- [Agent acting for a user — the expense proposal tool](docs/contracts/in/mcp.md) (inbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
 

@@ -18,6 +18,9 @@ Telegram Bot API is reached through the `com.github.pengrad:java-telegram-bot-ap
 than exposing a webhook, so every Telegram interaction is an outbound HTTP call and can be pointed at a stub
 server in tests. The gRPC client comes from Spring Boot's own `spring-boot-starter-grpc-client`, which wraps
 Spring gRPC;
+**APIs exposed**: an MCP server endpoint over HTTP, built on Spring AI's MCP server and reachable only with a
+token this service issues and validates itself — see
+[Agent acting for a user — the expense proposal tool](../contracts/in/mcp.md);
 **Contract-first codegen**: **yes** — the repo-root `proto/` schema is the contract with the AI Connector
 Service, and the `com.google.protobuf` Gradle plugin generates the message classes and client stubs into
 `build/generated/sources/proto/main/` (see [File Locations](architecture.md#file-locations)).
