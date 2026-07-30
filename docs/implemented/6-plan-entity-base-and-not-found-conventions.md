@@ -457,7 +457,7 @@ end
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Entity` · test: `EntityTest` · covers: `equals()`, `hashCode()`, `id()`
+- [x] RU01 · `Entity` · test: `EntityTest` · covers: `equals()`, `hashCode()`, `id()`
     - The test defines its own concrete subclasses; per the nested-class shadowing rule they are named for their
       role, e.g. `StoredThing` and `OtherThing`, both trivial `Entity` subclasses taking a `Long id`
     - `equals()`:
@@ -493,7 +493,7 @@ end
         - given: an instance built with an id and one built without
           when: `id()` is read
           then: the first contains that id and the second is empty
-- [ ] RU02 · `Expense` · test: `ExpenseTest` · covers: `newExpense()`, `stored()`
+- [x] RU02 · `Expense` · test: `ExpenseTest` · covers: `newExpense()`, `stored()`
     - `newExpense()`:
         - given: a description that is absent, empty, or only whitespace
           when: `newExpense()` is called
@@ -522,7 +522,7 @@ end
           then: throws InvalidExpenseException
     - update: the `Equality` nested class — delete it. All three of its cases are `Entity`'s behaviour and are
       covered once in `EntityTest`
-- [ ] RU03 · `User` · test: `UserTest` · covers: `newUser()`, `stored()`
+- [x] RU03 · `User` · test: `UserTest` · covers: `newUser()`, `stored()`
     - `newUser()`:
         - given: an external id that is absent, empty, or only whitespace
           when: `newUser()` is called
@@ -537,7 +537,7 @@ end
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`
+- [x] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`
     - `create()`:
         - given: a stored user and an expense whose category id is positive and names no stored category
           when: `create()` is called
@@ -566,13 +566,13 @@ end
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Entity` · test: `EntityTest`
-- [ ] GU02 · `Expense` · test: `ExpenseTest` · after: GU01
-- [ ] GU03 · `User` · test: `UserTest` · after: GU01
+- [x] GU01 · `Entity` · test: `EntityTest`
+- [x] GU02 · `Expense` · test: `ExpenseTest` · after: GU01
+- [x] GU03 · `User` · test: `UserTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU02
+- [x] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU02
 
 ## Open Questions / Blockers
 
