@@ -485,25 +485,25 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest`
-- [ ] GU02 · `StoredCategory` · test: `StoredCategoryTest`
-- [ ] GU03 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · after: GU01
-- [ ] GU04 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01, GU02, GU03
-- [ ] GU05 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · after: GU01
-- [ ] GU06 · `AccessTokenMinter` · test: `AccessTokenMinterTest`
-- [ ] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01, GU03
+- [x] GU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest`
+- [x] GU02 · `StoredCategory` · test: `StoredCategoryTest`
+- [x] GU03 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · after: GU01
+- [x] GU04 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01, GU02, GU03
+- [x] GU05 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · after: GU01
+- [x] GU06 · `AccessTokenMinter` · test: `AccessTokenMinterTest`
+- [x] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01, GU03
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU02
-- [ ] GI02 · `JwksController` · test: `JwksControllerTest`
-- [ ] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU05, GU06, GU07,
+- [x] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU02
+- [x] GI02 · `JwksController` · test: `JwksControllerTest`
+- [x] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU05, GU06, GU07,
   GI02
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
-- [ ] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] GS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
 
 ### Post-Implementation Steps
 
@@ -528,6 +528,7 @@
 - A: withdrawn — answered by D23, and ST22 follows it.
 - **RI03 blocked:** GI03 also depends on GI02: until JwksController serves a real JWK Set, NimbusJwtDecoder resolves no signing key, so every token-bearing call to /mcp is rejected 401 before reaching the tool. RI03's tests are written and compile, but they currently fail at the transport rather than on the tool stub. Plan amended: GI03 now carries after: GU05, GU06, GU07, GI02.
 - **RS02 blocked:** RS02 needed two additions the plan did not list: a tools/list body added to McpRequests (ST27 produced only initialize and tools/call), and a class-scoped @DynamicPropertySource pointing spring.grpc.client.channel.ai-connector.target at GrpcStubServer, because AbstractSystemTest leaves it unwired and AiConnectorHealthIndicator then reports DOWN, making /actuator/health answer 503. Both are scoped to this run; the health-indicator wiring gap is pre-existing and unrelated to this plan.
+- **GI03 blocked:** SecurityConfiguration.jwtDecoder builds its JWKS URI from server.port, which stays 0 under @SpringBootTest(RANDOM_PORT) - only local.server.port carries the bound port. Every token-bearing call therefore 401s in McpAdapterTest and system tests. Defect in ST13's class, found by GI03; fixed under ST13's ownership by resolving local.server.port with server.port as the fallback.
 
 ## Review Findings
 

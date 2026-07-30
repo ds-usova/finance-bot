@@ -1,11 +1,20 @@
 package bot.finance.adapter.security;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
+import java.util.UUID;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -25,8 +34,27 @@ public class AccessTokenMinter {
     }
 
     public String mint(String userExternalId) {
-        // signs an RS256 JWT carrying sub, iss, aud, iat, exp at the configured ttl and a random jti
-        return null;
+        Date issuedAt = new Date();
+        Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .subject(userExternalId)
+                .issuer(properties.issuer())
+                .audience(properties.audience())
+                .issueTime(issuedAt)
+                .expirationTime(expiresAt)
+                .jwtID(UUID.randomUUID().toString())
+                .build();
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .keyID(keyId())
+                .build();
+        SignedJWT signedJwt = new SignedJWT(header, claims);
+        try {
+            JWSSigner signer = new RSASSASigner(privateKey);
+            signedJwt.sign(signer);
+        } catch (JOSEException e) {
+            throw new IllegalStateException("failed to sign MCP access token", e);
+        }
+        return signedJwt.serialize();
     }
 
     public RSAPublicKey publicKey() {
