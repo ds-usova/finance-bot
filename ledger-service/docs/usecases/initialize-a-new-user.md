@@ -43,7 +43,7 @@ Nothing calls this use case yet.
 
 ## Rules
 
-- The external identity is opaque text, whatever the caller identifies a person by.
+- The external identity is opaque text, whatever the caller identifies a person by, present and not blank.
 - What a [user](../domain/user.md) is, and the shape a [category](../domain/category.md) tree must keep, are
   their own rules.
 - A category name is unique among its siblings, which is why Travel is both a group and a child of Insurance

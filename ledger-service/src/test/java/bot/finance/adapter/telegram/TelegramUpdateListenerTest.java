@@ -17,7 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
@@ -78,8 +78,9 @@ class TelegramUpdateListenerTest {
                 .isNotEmpty());
     }
 
-    private IncomingMessage awaitSingleHandledCommand() {
-        ArgumentCaptor<IncomingMessage> command = ArgumentCaptor.forClass(IncomingMessage.class);
+    private HandleIncomingMessageCommand awaitSingleHandledCommand() {
+        ArgumentCaptor<HandleIncomingMessageCommand> command =
+                ArgumentCaptor.forClass(HandleIncomingMessageCommand.class);
         await().atMost(AWAIT_TIMEOUT)
                 .untilAsserted(() -> verify(handleIncomingMessagePort).handle(command.capture()));
         return command.getValue();
@@ -98,7 +99,7 @@ class TelegramUpdateListenerTest {
 
             startLoop();
 
-            IncomingMessage handled = awaitSingleHandledCommand();
+            HandleIncomingMessageCommand handled = awaitSingleHandledCommand();
             assertThat(handled.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
@@ -154,7 +155,7 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset("44");
-            IncomingMessage handled = awaitSingleHandledCommand();
+            HandleIncomingMessageCommand handled = awaitSingleHandledCommand();
             assertThat(handled.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
         }

@@ -2,12 +2,10 @@ package bot.finance.domain.model;
 
 import bot.finance.domain.value.Money;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 
-public final class Expense {
+public final class Expense extends Entity {
 
-    private final Long id;
     private final long userId;
     private final long categoryId;
     private final String description;
@@ -25,7 +23,10 @@ public final class Expense {
             Money money,
             Instant createdAt,
             Instant updatedAt) {
-        this.id = id;
+        super(id);
+        // asserts, throwing InvalidExpenseException: a present, non-blank description; a present money;
+        // a positive userId and categoryId; both instants present. The merchant Optional itself is
+        // asserted in each factory, before it is unwrapped - it does not reach this constructor
         this.userId = userId;
         this.categoryId = categoryId;
         this.description = description;
@@ -50,10 +51,6 @@ public final class Expense {
             Instant createdAt,
             Instant updatedAt) {
         return new Expense(id, userId, categoryId, description, merchant.orElse(null), money, createdAt, updatedAt);
-    }
-
-    public Optional<Long> id() {
-        return Optional.ofNullable(id);
     }
 
     public long userId() {
@@ -82,21 +79,5 @@ public final class Expense {
 
     public Instant updatedAt() {
         return updatedAt;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof Expense expense)) {
-            return false;
-        }
-        return id != null && Objects.equals(id, expense.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id);
     }
 }

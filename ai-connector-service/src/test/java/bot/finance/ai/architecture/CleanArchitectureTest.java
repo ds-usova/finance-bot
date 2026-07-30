@@ -1,9 +1,18 @@
 package bot.finance.ai.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
@@ -51,5 +60,48 @@ class CleanArchitectureTest {
             .and().resideOutsideOfPackage("bot.finance.ai.adapter.config..")
             .should().dependOnClassesThat().resideInAnyPackage("bot.finance.ai.application.usecase..")
             .allowEmptyShould(true);
+
+    /**
+     * Reads the port, not the {@code dto} package: {@code RawIntent} lives in {@code dto} too and must not be
+     * named {@code ...Command}, since it is an outbound port's result, not an inbound port's command. An
+     * interface no {@code application/usecase} class implements is outbound and is left unchecked.
+     */
+    @ArchTest
+    static final ArchRule inboundPortCommandsAreNamedAfterTheirUseCase = classes()
+            .that().resideInAPackage("bot.finance.ai.application.port")
+            .and().areInterfaces()
+            .should(nameCommandParametersAfterTheirUseCase())
+            .allowEmptyShould(true);
+
+    private static ArchCondition<JavaClass> nameCommandParametersAfterTheirUseCase() {
+        return new ArchCondition<>("name their application.dto parameters <UseCase>Command") {
+            @Override
+            public void check(JavaClass port, ConditionEvents events) {
+                Set<JavaClass> implementingUseCases = port.getAllSubclasses().stream()
+                        .filter(clazz -> clazz.getPackageName().equals("bot.finance.ai.application.usecase"))
+                        .collect(Collectors.toSet());
+                for (JavaClass useCase : implementingUseCases) {
+                    String expectedCommandName = useCase.getSimpleName().replaceFirst("UseCase$", "") + "Command";
+                    for (JavaMethod method : port.getMethods()) {
+                        for (JavaClass parameterType : method.getRawParameterTypes()) {
+                            if (parameterType.getPackageName().equals("bot.finance.ai.application.dto")) {
+                                boolean satisfied = parameterType.getSimpleName().equals(expectedCommandName);
+                                events.add(new SimpleConditionEvent(
+                                        port,
+                                        satisfied,
+                                        String.format(
+                                                "%s's parameter %s should be named %s, matching the use case "
+                                                        + "implementing it, %s",
+                                                port.getName(),
+                                                parameterType.getSimpleName(),
+                                                expectedCommandName,
+                                                useCase.getSimpleName())));
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
 
 }

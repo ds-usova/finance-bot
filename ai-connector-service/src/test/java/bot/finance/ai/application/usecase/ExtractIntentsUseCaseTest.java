@@ -1,6 +1,6 @@
 package bot.finance.ai.application.usecase;
 
-import bot.finance.ai.application.dto.IntentExtractionCommand;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.RawIntent;
 import bot.finance.ai.application.port.IntentInferencePort;
 import bot.finance.ai.domain.exception.IntentInferenceException;
@@ -47,13 +47,13 @@ class ExtractIntentsUseCaseTest {
         useCase = new ExtractIntentsUseCase(intentInferencePort);
     }
 
-    private static IntentExtractionCommand command(String text, List<String> knownCategories) {
-        return new IntentExtractionCommand(text, knownCategories, Optional.empty());
+    private static ExtractIntentsCommand command(String text, List<String> knownCategories) {
+        return new ExtractIntentsCommand(text, knownCategories, Optional.empty());
     }
 
-    private static IntentExtractionCommand command(
+    private static ExtractIntentsCommand command(
             String text, List<String> knownCategories, CurrencyCode defaultCurrency) {
-        return new IntentExtractionCommand(text, knownCategories, Optional.of(defaultCurrency));
+        return new ExtractIntentsCommand(text, knownCategories, Optional.of(defaultCurrency));
     }
 
     @Nested
@@ -65,7 +65,7 @@ class ExtractIntentsUseCaseTest {
                 + "and the port was called with the command's text and known categories")
         void whenPortReturnsOneRawExpenseAnswer_thenReturnsSingleExpenseIntentAndPortCalledWithTextAndCategories() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, KNOWN_CATEGORIES);
+            ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(TEXT, KNOWN_CATEGORIES)).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -85,7 +85,7 @@ class ExtractIntentsUseCaseTest {
                 + "holds an UnknownIntent whose reason names the rejected category")
         void whenExpenseAnswerNamesCategoryNotInKnownCategories_thenUnknownIntentReasonNamesRejectedCategory() {
             RawIntent raw = rawIntent("expense", "create", "Shopping", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food", "Other"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -100,7 +100,7 @@ class ExtractIntentsUseCaseTest {
                 + "carries the known category's own spelling")
         void whenExpenseAnswerNamesKnownCategoryInDifferentCase_thenExpenseIntentCarriesKnownCategorysSpelling() {
             RawIntent raw = rawIntent("expense", "create", "food", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -115,7 +115,7 @@ class ExtractIntentsUseCaseTest {
                 + "CategoryIntent is returned")
         void whenCategoryCreationAnswerNamesCategoryAbsentFromKnownCategories_thenReturnsCategoryIntent() {
             RawIntent raw = rawIntent("category", "create", "Travel", null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food", "Other"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -132,7 +132,7 @@ class ExtractIntentsUseCaseTest {
                 + "with operation DELETE and the given name")
         void whenPortReturnsOneRawCategoryDeleteAnswer_thenReturnsSingleCategoryIntentWithDeleteOperationAndName() {
             RawIntent raw = rawIntent("category", "delete", "Food", null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, KNOWN_CATEGORIES);
+            ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -151,7 +151,7 @@ class ExtractIntentsUseCaseTest {
             RawIntent firstExpense = rawIntent("expense", "create", "Food", null, "10", "EUR", null);
             RawIntent category = rawIntent("category", "delete", "Travel", null, null, null, null);
             RawIntent secondExpense = rawIntent("expense", "create", "Food", null, "20", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(firstExpense, category, secondExpense));
 
@@ -173,7 +173,7 @@ class ExtractIntentsUseCaseTest {
             RawIntent category = rawIntent("category", "create", "Travel", null, null, null, null);
             RawIntent badExpense = rawIntent("expense", "create", "Food", null, "10", "XYZ", null);
             RawIntent goodExpense = rawIntent("expense", "create", "Food", null, "20", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(category, badExpense, goodExpense));
 
@@ -193,7 +193,7 @@ class ExtractIntentsUseCaseTest {
                 + "UnknownIntent whose reason names the target")
         void whenAnswerTargetIsNullOrUnrecognized_thenUnknownIntentReasonNamesTarget(String target) {
             RawIntent raw = rawIntent(target, "read", null, null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -208,7 +208,7 @@ class ExtractIntentsUseCaseTest {
                 + "whose reason names the operation")
         void whenAnswerOperationIsUnrecognized_thenUnknownIntentReasonNamesOperation() {
             RawIntent raw = rawIntent("expense", "invalid-operation", null, null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -223,7 +223,7 @@ class ExtractIntentsUseCaseTest {
                 + "UnknownIntent whose reason is the rejected value's exception message")
         void whenExpenseAnswerAmountIsNotDecimal_thenUnknownIntentReasonIsRejectedValueExceptionMessage() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, "twelve", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -240,7 +240,7 @@ class ExtractIntentsUseCaseTest {
                 + "UnknownIntent whose reason names the missing amount")
         void whenExpenseAnswerCreateHasNoAmount_thenUnknownIntentReasonNamesMissingAmount() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -255,7 +255,7 @@ class ExtractIntentsUseCaseTest {
                 + "currency - then the ExpenseIntent carries money in the default currency")
         void whenCommandHasDefaultCurrencyAndExpenseAnswerHasNoCurrency_thenExpenseIntentUsesDefaultCurrency() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, "15", null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"), CurrencyCode.of("EUR"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"), CurrencyCode.of("EUR"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -272,7 +272,7 @@ class ExtractIntentsUseCaseTest {
                 + "currency - then that position holds an UnknownIntent")
         void whenCommandHasNoDefaultCurrencyAndExpenseAnswerHasNoCurrency_thenUnknownIntent() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, "15", null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -286,7 +286,7 @@ class ExtractIntentsUseCaseTest {
                 + "then the ExpenseIntent carries USD")
         void whenCommandHasDefaultCurrencyAndExpenseAnswerNamesUsdExplicitly_thenExpenseIntentCarriesUsd() {
             RawIntent raw = rawIntent("expense", "create", "Food", null, "15", "USD", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"), CurrencyCode.of("EUR"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"), CurrencyCode.of("EUR"));
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of(raw));
 
             List<Intent> result = useCase.extractIntents(command);
@@ -300,7 +300,7 @@ class ExtractIntentsUseCaseTest {
         @DisplayName("when the port returns an empty list - then returns exactly one UnknownIntent with a "
                 + "non-blank reason")
         void whenPortReturnsEmptyList_thenReturnsExactlyOneUnknownIntentWithNonBlankReason() {
-            IntentExtractionCommand command = command(TEXT, KNOWN_CATEGORIES);
+            ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(List.of());
 
             List<Intent> result = useCase.extractIntents(command);
@@ -313,7 +313,7 @@ class ExtractIntentsUseCaseTest {
         @Test
         @DisplayName("when the port returns null - then returns exactly one UnknownIntent")
         void whenPortReturnsNull_thenReturnsExactlyOneUnknownIntent() {
-            IntentExtractionCommand command = command(TEXT, KNOWN_CATEGORIES);
+            ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(command.text(), command.knownCategories())).thenReturn(null);
 
             List<Intent> result = useCase.extractIntents(command);
@@ -328,7 +328,7 @@ class ExtractIntentsUseCaseTest {
         void whenPortReturnsListContainingNullElement_thenThatPositionHoldsUnknownIntentAndOthersUnaffected() {
             RawIntent category = rawIntent("category", "delete", "Food", null, null, null, null);
             RawIntent expense = rawIntent("expense", "create", "Food", null, "20", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(Arrays.asList(category, null, expense));
 
@@ -343,7 +343,7 @@ class ExtractIntentsUseCaseTest {
         @Test
         @DisplayName("when the port throws IntentInferenceException - then the exception propagates")
         void whenPortThrowsIntentInferenceException_thenExceptionPropagates() {
-            IntentExtractionCommand command = command(TEXT, KNOWN_CATEGORIES);
+            ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenThrow(new IntentInferenceException("provider unreachable"));
 
@@ -367,7 +367,7 @@ class ExtractIntentsUseCaseTest {
         void whenCategoryCreationOfTravelPrecedesExpenseFiledUnderTravel_thenReturnsCategoryIntentThenExpenseIntentCarryingTravel() {
             RawIntent categoryRaw = rawIntent("category", "create", "Travel", null, null, null, null);
             RawIntent expenseRaw = rawIntent("expense", "create", "Travel", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food", "Other"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
@@ -386,7 +386,7 @@ class ExtractIntentsUseCaseTest {
         void whenExpenseFiledUnderTravelPrecedesCategoryCreationOfTravel_thenReturnsExpenseIntentCarryingTravelThenCategoryIntent() {
             RawIntent expenseRaw = rawIntent("expense", "create", "Travel", null, "15.00", "EUR", null);
             RawIntent categoryRaw = rawIntent("category", "create", "Travel", null, null, null, null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food", "Other"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(expenseRaw, categoryRaw));
 
@@ -405,7 +405,7 @@ class ExtractIntentsUseCaseTest {
         void whenCategoryCreationOfTravelPrecedesExpenseNamingTravelInDifferentCase_thenExpenseIntentCarriesTravel() {
             RawIntent categoryRaw = rawIntent("category", "create", "Travel", null, null, null, null);
             RawIntent expenseRaw = rawIntent("expense", "create", "travel", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
@@ -423,7 +423,7 @@ class ExtractIntentsUseCaseTest {
         void whenCategoryDeletionOfTravelPrecedesExpenseFiledUnderTravel_thenReturnsCategoryIntentThenExpenseIntentCarryingTravel() {
             RawIntent categoryRaw = rawIntent("category", "delete", "Travel", null, null, null, null);
             RawIntent expenseRaw = rawIntent("expense", "create", "Travel", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food", "Other"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food", "Other"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
@@ -442,7 +442,7 @@ class ExtractIntentsUseCaseTest {
         void whenCategoryCreationWithBlankNameFailsAssembly_thenBothItAndFollowingExpenseHoldUnknownIntent() {
             RawIntent categoryRaw = rawIntent("category", "create", "", null, null, null, null);
             RawIntent expenseRaw = rawIntent("expense", "create", "", null, "15.00", "EUR", null);
-            IntentExtractionCommand command = command(TEXT, List.of("Food"));
+            ExtractIntentsCommand command = command(TEXT, List.of("Food"));
             when(intentInferencePort.infer(command.text(), command.knownCategories()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 

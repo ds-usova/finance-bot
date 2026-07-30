@@ -9,14 +9,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import bot.finance.application.dto.NewExpense;
+import bot.finance.application.dto.CreateExpenseCommand;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.exception.UnknownUserException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.CurrencyCode;
@@ -54,8 +54,8 @@ class CreateExpenseUseCaseTest {
         useCase = new CreateExpenseUseCase(userRepository, expenseRepository, clock, loggerFactory);
     }
 
-    private NewExpense newExpense() {
-        return new NewExpense(
+    private CreateExpenseCommand newExpense() {
+        return new CreateExpenseCommand(
                 EXTERNAL_ID, CATEGORY_ID, "coffee", Optional.of("Starbucks"), new Money(500, CurrencyCode.of("USD")));
     }
 
@@ -98,12 +98,15 @@ class CreateExpenseUseCaseTest {
         }
 
         @Test
-        @DisplayName("when nothing is stored under the command's external id - then throws UnknownUserException "
-                + "and the expense repository is untouched")
-        void whenNoUserExistsForExternalId_thenThrowsUnknownUserExceptionAndExpenseRepositoryIsUntouched() {
+        @DisplayName("when nothing is stored under the command's external id - then throws "
+                + "EntityNotFoundException naming \"user\" and the expense repository is untouched")
+        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryIsUntouched() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> useCase.create(newExpense())).isInstanceOf(UnknownUserException.class);
+            assertThatThrownBy(() -> useCase.create(newExpense()))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .satisfies(e -> assertThat(((EntityNotFoundException) e).entityType())
+                            .isEqualTo("user"));
 
             verifyNoInteractions(expenseRepository);
         }

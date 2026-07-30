@@ -15,7 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class NewExpenseTest {
+class CreateExpenseCommandTest {
 
     private static final long CATEGORY_ID = 42L;
     private static final String DESCRIPTION = "groceries";
@@ -24,7 +24,7 @@ class NewExpenseTest {
 
     @Nested
     @DisplayName("constructing a new expense")
-    class NewExpenseConstructor {
+    class CreateExpenseCommandConstructor {
 
         @ParameterizedTest
         @NullAndEmptySource
@@ -32,7 +32,8 @@ class NewExpenseTest {
         @DisplayName(
                 "when the user external id is absent, empty, or only whitespace - then throws InvalidUserException")
         void whenUserExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String userExternalId) {
-            assertThatThrownBy(() -> new NewExpense(userExternalId, CATEGORY_ID, DESCRIPTION, MERCHANT, MONEY))
+            assertThatThrownBy(
+                            () -> new CreateExpenseCommand(userExternalId, CATEGORY_ID, DESCRIPTION, MERCHANT, MONEY))
                     .isInstanceOf(InvalidUserException.class);
         }
 
@@ -41,7 +42,7 @@ class NewExpenseTest {
         @ValueSource(strings = {"  "})
         @DisplayName("when the description is absent, empty, or only whitespace - then throws InvalidExpenseException")
         void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseException(String description) {
-            assertThatThrownBy(() -> new NewExpense("555", CATEGORY_ID, description, MERCHANT, MONEY))
+            assertThatThrownBy(() -> new CreateExpenseCommand("555", CATEGORY_ID, description, MERCHANT, MONEY))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
@@ -49,14 +50,14 @@ class NewExpenseTest {
         @ValueSource(longs = {0L, -1L})
         @DisplayName("when the category id is zero or negative - then throws InvalidExpenseException")
         void whenCategoryIdIsZeroOrNegative_thenThrowsInvalidExpenseException(long categoryId) {
-            assertThatThrownBy(() -> new NewExpense("555", categoryId, DESCRIPTION, MERCHANT, MONEY))
+            assertThatThrownBy(() -> new CreateExpenseCommand("555", categoryId, DESCRIPTION, MERCHANT, MONEY))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
         @Test
         @DisplayName("when the merchant Optional is absent - then throws InvalidExpenseException")
         void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseException() {
-            assertThatThrownBy(() -> new NewExpense("555", CATEGORY_ID, DESCRIPTION, null, MONEY))
+            assertThatThrownBy(() -> new CreateExpenseCommand("555", CATEGORY_ID, DESCRIPTION, null, MONEY))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
@@ -65,15 +66,16 @@ class NewExpenseTest {
         @DisplayName(
                 "when the merchant is present but empty or only whitespace - then the record's merchant is Optional.empty()")
         void whenMerchantIsPresentButBlank_thenTheRecordsMerchantIsEmpty(String merchant) {
-            NewExpense newExpense = new NewExpense("555", CATEGORY_ID, DESCRIPTION, Optional.of(merchant), MONEY);
+            CreateExpenseCommand createExpenseCommand =
+                    new CreateExpenseCommand("555", CATEGORY_ID, DESCRIPTION, Optional.of(merchant), MONEY);
 
-            assertThat(newExpense.merchant()).isEmpty();
+            assertThat(createExpenseCommand.merchant()).isEmpty();
         }
 
         @Test
         @DisplayName("when money is absent - then throws InvalidExpenseException")
         void whenMoneyIsAbsent_thenThrowsInvalidExpenseException() {
-            assertThatThrownBy(() -> new NewExpense("555", CATEGORY_ID, DESCRIPTION, MERCHANT, null))
+            assertThatThrownBy(() -> new CreateExpenseCommand("555", CATEGORY_ID, DESCRIPTION, MERCHANT, null))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
@@ -81,13 +83,14 @@ class NewExpenseTest {
         @DisplayName(
                 "when every field is present and the merchant is a non-blank name - then the record carries them unchanged")
         void whenEveryFieldIsPresentAndMerchantIsNonBlank_thenTheRecordCarriesThemUnchanged() {
-            NewExpense newExpense = new NewExpense("555", CATEGORY_ID, DESCRIPTION, MERCHANT, MONEY);
+            CreateExpenseCommand createExpenseCommand =
+                    new CreateExpenseCommand("555", CATEGORY_ID, DESCRIPTION, MERCHANT, MONEY);
 
-            assertThat(newExpense.userExternalId()).isEqualTo("555");
-            assertThat(newExpense.categoryId()).isEqualTo(CATEGORY_ID);
-            assertThat(newExpense.description()).isEqualTo(DESCRIPTION);
-            assertThat(newExpense.merchant()).isEqualTo(MERCHANT);
-            assertThat(newExpense.money()).isEqualTo(MONEY);
+            assertThat(createExpenseCommand.userExternalId()).isEqualTo("555");
+            assertThat(createExpenseCommand.categoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(createExpenseCommand.description()).isEqualTo(DESCRIPTION);
+            assertThat(createExpenseCommand.merchant()).isEqualTo(MERCHANT);
+            assertThat(createExpenseCommand.money()).isEqualTo(MONEY);
         }
     }
 }

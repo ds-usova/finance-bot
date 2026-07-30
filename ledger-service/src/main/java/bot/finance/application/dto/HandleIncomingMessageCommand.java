@@ -6,9 +6,9 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
  * {@code conversationId} is whatever the delivering adapter's transport identifies a conversation by, rendered
  * as a string.
  */
-public record IncomingMessage(String conversationId, String text) {
+public record HandleIncomingMessageCommand(String conversationId, String text) {
 
-    public IncomingMessage {
+    public HandleIncomingMessageCommand {
         if (conversationId == null || conversationId.isBlank()) {
             throw new InvalidIncomingMessageException("incoming message has no conversation id");
         }

@@ -1,6 +1,6 @@
 package bot.finance.application.usecase;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -15,7 +15,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     }
 
     @Override
-    public void handle(IncomingMessage message) {
+    public void handle(HandleIncomingMessageCommand message) {
         if (message == null) {
             throw new InvalidIncomingMessageException("incoming message is absent");
         }

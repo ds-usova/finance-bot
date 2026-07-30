@@ -1,6 +1,6 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
@@ -14,7 +14,7 @@ public final class TelegramUpdateUtils {
      * @param update the update to map, possibly {@code null}
      * @return the command, or empty for an update the listener should skip
      */
-    public static Optional<IncomingMessage> toIncomingMessage(Update update) {
+    public static Optional<HandleIncomingMessageCommand> toHandleIncomingMessageCommand(Update update) {
         if (update == null) {
             return Optional.empty();
         }
@@ -30,6 +30,6 @@ public final class TelegramUpdateUtils {
         if (chat == null) {
             return Optional.empty();
         }
-        return Optional.of(new IncomingMessage(String.valueOf(chat.id()), text));
+        return Optional.of(new HandleIncomingMessageCommand(String.valueOf(chat.id()), text));
     }
 }

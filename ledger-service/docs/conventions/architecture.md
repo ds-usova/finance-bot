@@ -61,11 +61,10 @@ So a second messenger, transcriber or data store can be added without touching t
 - **No type in `domain`/`application` carries an external-system or transport name.** The adapter names its
   system, the core names the capability: `HandleIncomingMessagePort` driven by `TelegramUpdateListener`, never
   `HandleTelegramMessagePort`.
-- **No type in `domain`/`application` carries a transport-shaped field.** `IncomingMessage` identifies a
-  conversation with a `String conversationId`; a `long chatId` would be a Telegram fact leaking inward.
+- **No type in `domain`/`application` carries a transport-shaped field.** `HandleIncomingMessageCommand` identifies
+  a conversation with a `String conversationId`; a `long chatId` would be a Telegram fact leaking inward.
 
-The first is enforced below; the second by review. How a command is named is a
-[code style](code-style.md#application) rule.
+The first is enforced below; the second by review. How a command is named is enforced below too.
 
 ## File Locations
 
@@ -88,4 +87,7 @@ The first is enforced below; the second by review. How a command is named is a
     and `bot.finance.ai..` — the generated schema's own package — banned from `domain`/`application`; each new
     external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
-    `Whisper`, `Postgres`, `AiConnector`, `Grpc` or `Proto`; the list grows the same way.
+    `Whisper`, `Postgres`, `AiConnector`, `Grpc` or `Proto`; the list grows the same way;
+  - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
+  - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
+    `application/usecase` class names its `application/dto` parameters `<UseCase>Command`.

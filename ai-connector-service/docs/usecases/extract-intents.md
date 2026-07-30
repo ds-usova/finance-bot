@@ -28,6 +28,8 @@ Nothing else. A message about anything but a category or an expense comes back u
 
 ## Rules
 
+- The `ExtractIntentsCommand` is fixed once built: its text is present and not blank, at least one category is
+  given and none of them is blank, and the assumed currency is stated as present or absent, never left unsaid.
 - Categories are a closed set: the caller's, plus the ones the message asks to create.
 - The service never proposes a category. An invented one is refused.
 - A category named anywhere in the message counts for every entry, before it or after it.

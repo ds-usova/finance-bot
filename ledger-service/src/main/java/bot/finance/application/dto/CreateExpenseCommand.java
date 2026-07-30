@@ -5,10 +5,10 @@ import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 
-public record NewExpense(
+public record CreateExpenseCommand(
         String userExternalId, long categoryId, String description, Optional<String> merchant, Money money) {
 
-    public NewExpense {
+    public CreateExpenseCommand {
         if (userExternalId == null || userExternalId.isBlank()) {
             throw new InvalidUserException("new expense has no user external id");
         }

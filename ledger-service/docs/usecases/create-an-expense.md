@@ -18,23 +18,28 @@ Nothing calls this use case yet.
 
 ## Rules
 
-- The identity is opaque text, whatever the caller identifies a person by.
+- The identity is opaque text, whatever the caller identifies a person by, present and not blank.
+- A description is present, and it is not blank.
+- A category is named by its stored id, never by name, and the id is positive: a name is unique only among its
+  siblings, so it can be ambiguous, and the caller that holds the name resolves it before calling.
+- A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
+  absent rather than rejected.
+- A money amount is present.
 - Nothing is stored, and no expense is built, when the identity names no user
-  ([new expense](../domain/new-expense.md) invariants; [expense](../domain/expense.md) invariants).
-- A category is named by its stored id, never by name — resolving a name to an id is the caller's own concern
-  ([ADR 0007](../adr/0007-a-category-is-named-by-its-stored-id.md)).
+  ([expense](../domain/expense.md) invariants).
 - Both timestamps are stamped at creation, equal to each other.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
 
 ## Outcomes
 
-| Outcome          | When                                                                                            | Result                                                                              |
-|------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Expense created  | the identity names a stored user, and every field is valid                                      | the expense is stored, stamped with the current instant, and the creation is logged |
-| Request rejected | the command is absent, or a field violates [new expense](../domain/new-expense.md)'s invariants | invalid expense — nothing is looked up or written                                   |
-| Identity unknown | nothing is stored under the identity                                                            | the request is rejected and nothing is written                                      |
-| Storage failed   | the store cannot be reached, refuses the write, or a value is too long for its column           | the failure reaches the caller                                                      |
+| Outcome          | When                                                                                    | Result                                                                              |
+|------------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| Expense created  | the identity names a stored user, and every field is valid                             | the expense is stored, stamped with the current instant, and the creation is logged |
+| Request rejected | the command is absent, or a field violates [expense](../domain/expense.md)'s invariants | invalid expense — nothing is looked up or written                                   |
+| Identity unknown | nothing is stored under the identity                                                   | the request is rejected and nothing is written                                      |
+| Category unknown | the category id names no stored category                                               | the request is rejected and nothing is written                                      |
+| Storage failed   | the store cannot be reached, refuses the write for a reason other than an unknown category, or a value is too long for its column | the failure reaches the caller |
 
 ## Components
 
@@ -84,7 +89,13 @@ else identity is unknown
   LS -> DB : look the identity up
   DB --> LS : nothing
   LS --> Caller : identity unknown
-else the store refuses the write
+else the category id names no category
+  LS -> DB : look the identity up
+  DB --> LS : the user
+  LS -> DB : store the expense
+  DB --> LS : category unknown
+  LS --> Caller : category unknown
+else the store fails
   LS -> DB : look the identity up
   DB --> LS : the user
   LS -> DB : store the expense

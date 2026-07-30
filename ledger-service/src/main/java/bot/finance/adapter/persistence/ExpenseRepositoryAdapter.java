@@ -23,6 +23,11 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
                 expense.description(), expense.merchant().orElse(null));
 
         try {
+            // TODO: classify the failure: walk the cause chain for a SQLException with SQLState 23503; a
+            // violation of expense_category_id_fkey becomes EntityNotFoundException("category", ...), one of
+            // expense_user_id_fkey becomes EntityNotFoundException("user", ...), everything else stays
+            // PersistenceFailedException; and the .toDomain() of the saved row moves out of the try, since
+            // Expense's invariants would otherwise surface a row that violates them as a storage failure
             return expenseEntityRepository.save(truncatedToMicros(expense)).toDomain();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);

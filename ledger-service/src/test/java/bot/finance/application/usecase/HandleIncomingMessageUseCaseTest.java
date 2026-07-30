@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
@@ -41,7 +41,7 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when the command carries a conversation id and text - then both are logged at info level")
         void whenCommandCarriesConversationIdAndText_thenLogsBothAtInfoLevel() {
-            useCase.handle(new IncomingMessage(CONVERSATION_ID, TEXT));
+            useCase.handle(new HandleIncomingMessageCommand(CONVERSATION_ID, TEXT));
 
             ArgumentCaptor<Object[]> loggedArguments = ArgumentCaptor.forClass(Object[].class);
             verify(log).info(anyString(), loggedArguments.capture());

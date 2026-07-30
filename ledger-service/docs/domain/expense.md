@@ -5,8 +5,8 @@ One purchase or payment recorded against a user, filed under a category.
 ## Invariants
 
 - An expense is stored or not yet stored, and carries the store's own id only once it is.
-- An unstored expense equals only itself; two stored expenses are the same expense when their ids match,
-  whatever else differs.
+- Two expenses of the same concrete class and the same id are the same expense; an expense whose id is absent
+  equals only itself.
 
 ## Made of / held by
 
@@ -16,7 +16,6 @@ and the instants it was created and last updated.
 - [User](user.md) — who the expense is recorded against.
 - [Category](category.md) — what it is filed under, by the category's stored id.
 - [Money](money.md) — what was spent, and its [currency](currency-code.md).
-- [New expense](new-expense.md) — what it is built from.
-- [Create an expense](../usecases/create-an-expense.md) — what stores one.
+- [Create an expense](../usecases/create-an-expense.md) — what it is built from, and what stores one.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).

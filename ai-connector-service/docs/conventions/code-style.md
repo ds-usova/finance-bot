@@ -47,6 +47,8 @@ Applies across all layers.
 
 - Use cases are plain classes with no framework annotations, wired as beans from configuration in the adapter
   layer.
+- **An inbound-port command is named `<UseCase>Command`**, so a reader tells it from the domain type it carries
+  data toward. The input of an *outbound* port is not a command and keeps its own name.
 - **Inbound-port commands validate themselves** in their compact constructor, throwing a domain exception. A
   use case therefore trusts its command's fields and checks only that the command itself is present. Validating
   in both places is the failure mode this rule exists to prevent: the two checks drift apart, and neither

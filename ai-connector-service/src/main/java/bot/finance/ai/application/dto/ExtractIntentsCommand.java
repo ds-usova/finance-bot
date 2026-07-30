@@ -6,13 +6,13 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import java.util.List;
 import java.util.Optional;
 
-public record IntentExtractionCommand(
+public record ExtractIntentsCommand(
         String text,
         List<String> knownCategories,
         Optional<CurrencyCode> defaultCurrency
 ) {
 
-    public IntentExtractionCommand {
+    public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
             throw new InvalidValueException("Text must not be null or blank");
         }

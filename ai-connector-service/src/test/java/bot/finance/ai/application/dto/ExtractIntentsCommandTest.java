@@ -17,7 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class IntentExtractionCommandTest {
+class ExtractIntentsCommandTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
     private static final List<String> KNOWN_CATEGORIES = List.of("Food", "Travel", "Other");
@@ -30,7 +30,7 @@ class IntentExtractionCommandTest {
         @DisplayName("when non-blank text and a category list are given - then the command is created and "
                 + "exposes both")
         void whenNonBlankTextAndCategoryList_thenCommandExposesBoth() {
-            IntentExtractionCommand command = new IntentExtractionCommand(TEXT, KNOWN_CATEGORIES, Optional.empty());
+            ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, KNOWN_CATEGORIES, Optional.empty());
 
             assertThat(command.text()).isEqualTo(TEXT);
             assertThat(command.knownCategories()).containsExactlyElementsOf(KNOWN_CATEGORIES);
@@ -41,21 +41,21 @@ class IntentExtractionCommandTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when text is null, empty, or whitespace-only - then throws InvalidValueException")
         void whenTextIsNullEmptyOrBlank_thenThrowsInvalidValueException(String text) {
-            assertThatThrownBy(() -> new IntentExtractionCommand(text, KNOWN_CATEGORIES, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(text, KNOWN_CATEGORIES, Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
         }
 
         @Test
         @DisplayName("when the category list is empty - then throws InvalidValueException")
         void whenCategoryListIsEmpty_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new IntentExtractionCommand(TEXT, List.of(), Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, List.of(), Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
         }
 
         @Test
         @DisplayName("when the category list is null - then throws InvalidValueException")
         void whenCategoryListIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new IntentExtractionCommand(TEXT, null, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, null, Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -66,7 +66,7 @@ class IntentExtractionCommandTest {
         void whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException(String element) {
             List<String> categories = Arrays.asList("Food", element, "Other");
 
-            assertThatThrownBy(() -> new IntentExtractionCommand(TEXT, categories, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, categories, Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -76,7 +76,7 @@ class IntentExtractionCommandTest {
         void whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchangedAndOwnListImmutable() {
             List<String> mutable = new ArrayList<>(List.of("Food", "Travel"));
 
-            IntentExtractionCommand command = new IntentExtractionCommand(TEXT, mutable, Optional.empty());
+            ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, mutable, Optional.empty());
             mutable.add("Other");
 
             assertThat(command.knownCategories()).containsExactly("Food", "Travel");
@@ -89,7 +89,7 @@ class IntentExtractionCommandTest {
         void whenDefaultCurrencyPresent_thenCommandExposesCurrencyCode() {
             CurrencyCode eur = CurrencyCode.of("EUR");
 
-            IntentExtractionCommand command = new IntentExtractionCommand(TEXT, KNOWN_CATEGORIES, Optional.of(eur));
+            ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, KNOWN_CATEGORIES, Optional.of(eur));
 
             assertThat(command.defaultCurrency()).contains(eur);
         }
@@ -97,7 +97,7 @@ class IntentExtractionCommandTest {
         @Test
         @DisplayName("when the defaultCurrency Optional is null - then throws InvalidValueException")
         void whenDefaultCurrencyOptionalIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new IntentExtractionCommand(TEXT, KNOWN_CATEGORIES, null))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, KNOWN_CATEGORIES, null))
                     .isInstanceOf(InvalidValueException.class);
         }
 

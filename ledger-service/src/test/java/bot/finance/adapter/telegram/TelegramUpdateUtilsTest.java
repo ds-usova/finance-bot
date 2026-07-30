@@ -3,7 +3,7 @@ package bot.finance.adapter.telegram;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.common.TelegramFixtures;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.utility.BotUtils;
@@ -23,7 +23,7 @@ class TelegramUpdateUtilsTest {
 
     @Nested
     @DisplayName("mapping a Telegram update onto the inbound command")
-    class ToIncomingMessage {
+    class ToHandleIncomingMessageCommand {
 
         @Test
         @DisplayName(
@@ -32,9 +32,9 @@ class TelegramUpdateUtilsTest {
             Update update =
                     BotUtils.parseUpdate(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, "lunch 12 euro"));
 
-            Optional<IncomingMessage> command = TelegramUpdateUtils.toIncomingMessage(update);
+            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
 
-            assertThat(command).contains(new IncomingMessage("555", "lunch 12 euro"));
+            assertThat(command).contains(new HandleIncomingMessageCommand("555", "lunch 12 euro"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -44,7 +44,7 @@ class TelegramUpdateUtilsTest {
                 String description, String updateJson) {
             Update update = BotUtils.parseUpdate(updateJson);
 
-            Optional<IncomingMessage> command = TelegramUpdateUtils.toIncomingMessage(update);
+            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
 
             assertThat(command).isEmpty();
         }
@@ -62,7 +62,7 @@ class TelegramUpdateUtilsTest {
         @Test
         @DisplayName("when the update is null - then returns an empty Optional")
         void whenUpdateIsNull_thenReturnsAnEmptyOptional() {
-            Optional<IncomingMessage> command = TelegramUpdateUtils.toIncomingMessage(null);
+            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(null);
 
             assertThat(command).isEmpty();
         }

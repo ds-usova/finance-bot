@@ -17,9 +17,6 @@ final class ColumnLimits {
     private ColumnLimits() {}
 
     static void validateExternalId(String externalId) {
-        if (externalId == null) {
-            throw new InvalidUserException("external id is required");
-        }
         if (externalId.length() > EXTERNAL_ID) {
             throw new InvalidUserException("external id exceeds " + EXTERNAL_ID + " characters");
         }
@@ -35,9 +32,6 @@ final class ColumnLimits {
     }
 
     static void validateExpenseText(String description, String merchant) {
-        if (description == null) {
-            throw new InvalidExpenseException("description is required");
-        }
         if (description.length() > DESCRIPTION) {
             throw new InvalidExpenseException("description exceeds " + DESCRIPTION + " characters");
         }

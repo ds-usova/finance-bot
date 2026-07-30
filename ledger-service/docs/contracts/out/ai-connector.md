@@ -27,6 +27,7 @@ What this side adds:
 
 - A request is fixed once made: blank text, no categories, or a blank one among them is refused where the
   request is built, so it never crosses.
+- The assumed currency is stated as present or absent; it is never left unsaid.
 - An absent request is refused before the connector is reached.
 - The answer is read entry by entry, in the order it arrives.
 - An entry this side cannot make sense of becomes an unknown intent carrying the reason, never a failed call.

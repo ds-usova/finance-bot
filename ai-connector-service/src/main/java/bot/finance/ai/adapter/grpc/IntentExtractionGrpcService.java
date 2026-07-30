@@ -3,7 +3,7 @@ package bot.finance.ai.adapter.grpc;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
-import bot.finance.ai.application.dto.IntentExtractionCommand;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
@@ -42,7 +42,7 @@ public class IntentExtractionGrpcService
             return;
         }
 
-        IntentExtractionCommand command = new IntentExtractionCommand(
+        ExtractIntentsCommand command = new ExtractIntentsCommand(
                 request.getText(), request.getKnownCategoriesList(), defaultCurrency);
         ExtractIntentsResponse response = IntentProtoUtils.toResponse(extractIntentsPort.extractIntents(command));
 

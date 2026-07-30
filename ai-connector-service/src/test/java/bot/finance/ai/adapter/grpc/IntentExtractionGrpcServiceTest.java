@@ -3,7 +3,7 @@ package bot.finance.ai.adapter.grpc;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
-import bot.finance.ai.application.dto.IntentExtractionCommand;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.GrpcAdapterTest;
 import bot.finance.ai.common.IntentFixtures;
@@ -59,8 +59,8 @@ class IntentExtractionGrpcServiceTest {
             ExtractIntentsResponse response =
                     intentExtractionStub.extractIntents(RequestFixtures.request(TEXT, knownCategories));
 
-            ArgumentCaptor<IntentExtractionCommand> commandCaptor =
-                    ArgumentCaptor.forClass(IntentExtractionCommand.class);
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
+                    ArgumentCaptor.forClass(ExtractIntentsCommand.class);
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().text()).isEqualTo(TEXT);
             assertThat(commandCaptor.getValue().knownCategories()).containsExactly("Food", "Travel");
@@ -100,8 +100,8 @@ class IntentExtractionGrpcServiceTest {
             intentExtractionStub.extractIntents(
                     RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, defaultCurrency));
 
-            ArgumentCaptor<IntentExtractionCommand> commandCaptor =
-                    ArgumentCaptor.forClass(IntentExtractionCommand.class);
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
+                    ArgumentCaptor.forClass(ExtractIntentsCommand.class);
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().defaultCurrency()).isPresent();
             assertThat(commandCaptor.getValue().defaultCurrency().get().code()).isEqualTo("EUR");

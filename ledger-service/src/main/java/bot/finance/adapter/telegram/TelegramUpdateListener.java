@@ -1,6 +1,6 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -34,7 +34,7 @@ public class TelegramUpdateListener implements UpdatesListener {
      * poll loop on one bad update.
      */
     private void handle(Update update) {
-        Optional<IncomingMessage> message = TelegramUpdateUtils.toIncomingMessage(update);
+        Optional<HandleIncomingMessageCommand> message = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
         if (message.isEmpty()) {
             log.debug("skipping non-text telegram update {}", update.updateId());
             return;

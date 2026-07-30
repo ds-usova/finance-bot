@@ -1,6 +1,6 @@
 package bot.finance.ai.application.usecase;
 
-import bot.finance.ai.application.dto.IntentExtractionCommand;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.RawIntent;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.IntentInferencePort;
@@ -27,7 +27,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
     }
 
     @Override
-    public List<Intent> extractIntents(IntentExtractionCommand command) {
+    public List<Intent> extractIntents(ExtractIntentsCommand command) {
         if (command == null) {
             throw new InvalidValueException("Command must not be null");
         }
@@ -70,7 +70,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         return Optional.of(raw.categoryName());
     }
 
-    private Intent assemble(RawIntent raw, IntentExtractionCommand command, List<String> availableCategories) {
+    private Intent assemble(RawIntent raw, ExtractIntentsCommand command, List<String> availableCategories) {
         try {
             if (raw == null) {
                 throw new InvalidValueException("Raw intent must not be null");
@@ -91,7 +91,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
     }
 
     private ExpenseIntent buildExpenseIntent(
-            RawIntent raw, Operation operation, IntentExtractionCommand command, List<String> availableCategories) {
+            RawIntent raw, Operation operation, ExtractIntentsCommand command, List<String> availableCategories) {
         Optional<String> categoryName = matchCategory(raw.categoryName(), availableCategories);
         Optional<Money> amount = resolveAmount(raw, command);
         Optional<String> description = Optional.ofNullable(raw.description());
@@ -108,7 +108,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
                 .orElseThrow(() -> new InvalidValueException("Unrecognized category: " + rawCategoryName)));
     }
 
-    private Optional<Money> resolveAmount(RawIntent raw, IntentExtractionCommand command) {
+    private Optional<Money> resolveAmount(RawIntent raw, ExtractIntentsCommand command) {
         if (raw.amount() == null || raw.amount().isBlank()) {
             return Optional.empty();
         }

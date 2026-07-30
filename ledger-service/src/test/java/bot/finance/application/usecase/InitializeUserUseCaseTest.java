@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import bot.finance.application.dto.NewUser;
+import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
@@ -55,7 +55,7 @@ class InitializeUserUseCaseTest {
             User createdUser = User.stored(1L, EXTERNAL_ID);
             when(userRepository.create(any(), any())).thenReturn(createdUser);
 
-            User result = useCase.initialize(new NewUser(EXTERNAL_ID));
+            User result = useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             ArgumentCaptor<List<Category>> categoriesCaptor = ArgumentCaptor.forClass(List.class);
@@ -72,7 +72,7 @@ class InitializeUserUseCaseTest {
             User storedUser = User.stored(1L, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
 
-            User result = useCase.initialize(new NewUser(EXTERNAL_ID));
+            User result = useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
 
             assertThat(result).isSameAs(storedUser);
             verify(userRepository, never()).create(any(), any());
@@ -96,7 +96,7 @@ class InitializeUserUseCaseTest {
                     new PersistenceFailedException("insert failed", new RuntimeException());
             when(userRepository.create(any(), any())).thenThrow(failure);
 
-            assertThatThrownBy(() -> useCase.initialize(new NewUser(EXTERNAL_ID)))
+            assertThatThrownBy(() -> useCase.initialize(new InitializeUserCommand(EXTERNAL_ID)))
                     .isSameAs(failure);
 
             verify(userRepository, times(1)).create(any(), any());

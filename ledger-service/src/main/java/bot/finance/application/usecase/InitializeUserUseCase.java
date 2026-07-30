@@ -1,6 +1,6 @@
 package bot.finance.application.usecase;
 
-import bot.finance.application.dto.NewUser;
+import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -20,11 +20,13 @@ public class InitializeUserUseCase implements InitializeUserPort {
     }
 
     @Override
-    public User initialize(NewUser newUser) {
-        if (newUser == null) {
+    public User initialize(InitializeUserCommand initializeUserCommand) {
+        if (initializeUserCommand == null) {
             throw new InvalidUserException("new user command is absent");
         }
-        return userRepository.findByExternalId(newUser.externalId()).orElseGet(() -> createUser(newUser.externalId()));
+        return userRepository
+                .findByExternalId(initializeUserCommand.externalId())
+                .orElseGet(() -> createUser(initializeUserCommand.externalId()));
     }
 
     private User createUser(String externalId) {

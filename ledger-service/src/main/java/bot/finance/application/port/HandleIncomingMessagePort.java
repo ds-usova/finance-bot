@@ -1,8 +1,8 @@
 package bot.finance.application.port;
 
-import bot.finance.application.dto.IncomingMessage;
+import bot.finance.application.dto.HandleIncomingMessageCommand;
 
 public interface HandleIncomingMessagePort {
 
-    void handle(IncomingMessage message);
+    void handle(HandleIncomingMessageCommand message);
 }

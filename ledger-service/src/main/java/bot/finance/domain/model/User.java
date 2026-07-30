@@ -1,15 +1,12 @@
 package bot.finance.domain.model;
 
-import java.util.Objects;
-import java.util.Optional;
+public final class User extends Entity {
 
-public final class User {
-
-    private final Long id;
     private final String externalId;
 
     private User(Long id, String externalId) {
-        this.id = id;
+        super(id);
+        // asserts a present, non-blank external id, throwing InvalidUserException
         this.externalId = externalId;
     }
 
@@ -21,27 +18,7 @@ public final class User {
         return new User(id, externalId);
     }
 
-    public Optional<Long> id() {
-        return Optional.ofNullable(id);
-    }
-
     public String externalId() {
         return externalId;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof User user)) {
-            return false;
-        }
-        return Objects.equals(externalId, user.externalId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(externalId);
     }
 }

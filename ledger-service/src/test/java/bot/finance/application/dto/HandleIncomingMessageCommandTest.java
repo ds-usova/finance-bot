@@ -13,17 +13,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class IncomingMessageTest {
+class HandleIncomingMessageCommandTest {
 
     @Nested
     @DisplayName("constructing an incoming message")
-    class IncomingMessageConstructor {
+    class HandleIncomingMessageCommandConstructor {
 
         @Test
         @DisplayName(
                 "when the conversation id and the text are non-blank - then both components are readable unchanged")
         void whenConversationIdAndTextAreNonBlank_thenBothComponentsAreReadableUnchanged() {
-            IncomingMessage message = new IncomingMessage("555", "lunch 12 euro");
+            HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("555", "lunch 12 euro");
 
             assertThat(message.conversationId()).isEqualTo("555");
             assertThat(message.text()).isEqualTo("lunch 12 euro");
@@ -35,7 +35,7 @@ class IncomingMessageTest {
                 "when the conversation id or the text is null or blank - then throws InvalidIncomingMessageException")
         void whenConversationIdOrTextIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
                 String conversationId, String text) {
-            assertThatThrownBy(() -> new IncomingMessage(conversationId, text))
+            assertThatThrownBy(() -> new HandleIncomingMessageCommand(conversationId, text))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 

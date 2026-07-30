@@ -16,8 +16,9 @@ Nothing is called outward.
 
 ## Rules
 
-- What makes an [incoming message](../domain/incoming-message.md) acceptable is its own rule; here it is
-  Telegram that names the conversation.
+- A conversation is named, and the name is not blank; text is present, and it is not blank. The conversation
+  name is opaque text — whatever the delivering platform calls a conversation, kept as it came; here it is
+  Telegram that names it.
 - The log entry is all that happens: nothing is stored, nothing is extracted, and the user gets no reply.
 - A batch is acknowledged whole, so Telegram moves on to the messages behind it.
 

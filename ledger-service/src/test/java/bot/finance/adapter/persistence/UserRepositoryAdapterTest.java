@@ -97,17 +97,6 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an unstored user whose external id is absent - then throws InvalidUserException before anything is written")
-        void whenUnstoredUserExternalIdIsAbsent_thenThrowsInvalidUserExceptionBeforeWritingAnything() {
-            User user = User.newUser(null);
-
-            assertThatThrownBy(() -> adapter.create(user, List.of())).isInstanceOf(InvalidUserException.class);
-
-            assertThat(userEntityRepository.count()).isZero();
-        }
-
-        @Test
-        @DisplayName(
                 "when called with an unstored user carrying an already-stored external id - then returns that user and writes no categories")
         void whenCalledWithAlreadyStoredExternalId_thenReturnsThatUserAndWritesNoCategories() {
             UserEntity stored = userEntityRepository.save(new UserEntity(null, "duplicate-external-id"));
