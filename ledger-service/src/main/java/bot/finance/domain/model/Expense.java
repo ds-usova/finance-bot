@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -24,9 +25,24 @@ public final class Expense extends Entity {
             Instant createdAt,
             Instant updatedAt) {
         super(id);
-        // asserts, throwing InvalidExpenseException: a present, non-blank description; a present money;
-        // a positive userId and categoryId; both instants present. The merchant Optional itself is
-        // asserted in each factory, before it is unwrapped - it does not reach this constructor
+        if (description == null || description.isBlank()) {
+            throw new InvalidExpenseException("Description must not be blank");
+        }
+        if (money == null) {
+            throw new InvalidExpenseException("Money must not be null");
+        }
+        if (userId <= 0) {
+            throw new InvalidExpenseException("User id must be positive");
+        }
+        if (categoryId <= 0) {
+            throw new InvalidExpenseException("Category id must be positive");
+        }
+        if (createdAt == null) {
+            throw new InvalidExpenseException("Created-at must not be null");
+        }
+        if (updatedAt == null) {
+            throw new InvalidExpenseException("Updated-at must not be null");
+        }
         this.userId = userId;
         this.categoryId = categoryId;
         this.description = description;
@@ -38,6 +54,9 @@ public final class Expense extends Entity {
 
     public static Expense newExpense(
             long userId, long categoryId, String description, Optional<String> merchant, Money money, Instant now) {
+        if (merchant == null) {
+            throw new InvalidExpenseException("Merchant must not be null");
+        }
         return new Expense(null, userId, categoryId, description, merchant.orElse(null), money, now, now);
     }
 
@@ -50,6 +69,9 @@ public final class Expense extends Entity {
             Money money,
             Instant createdAt,
             Instant updatedAt) {
+        if (merchant == null) {
+            throw new InvalidExpenseException("Merchant must not be null");
+        }
         return new Expense(id, userId, categoryId, description, merchant.orElse(null), money, createdAt, updatedAt);
     }
 

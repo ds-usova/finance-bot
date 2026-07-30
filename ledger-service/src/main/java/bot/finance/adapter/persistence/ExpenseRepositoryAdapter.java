@@ -1,14 +1,22 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.ExpenseRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
+import java.sql.SQLException;
 import java.time.temporal.ChronoUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class ExpenseRepositoryAdapter implements ExpenseRepository {
+
+    // Postgres SQLState for a foreign key violation.
+    private static final String FOREIGN_KEY_VIOLATION = "23503";
+    private static final Pattern CONSTRAINT_NAME_PATTERN = Pattern.compile("constraint \"([^\"]+)\"");
 
     private final ExpenseEntityRepository expenseEntityRepository;
 
@@ -22,16 +30,44 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         ColumnLimits.validateExpenseText(
                 expense.description(), expense.merchant().orElse(null));
 
+        ExpenseEntity saved;
         try {
-            // TODO: classify the failure: walk the cause chain for a SQLException with SQLState 23503; a
-            // violation of expense_category_id_fkey becomes EntityNotFoundException("category", ...), one of
-            // expense_user_id_fkey becomes EntityNotFoundException("user", ...), everything else stays
-            // PersistenceFailedException; and the .toDomain() of the saved row moves out of the try, since
-            // Expense's invariants would otherwise surface a row that violates them as a storage failure
-            return expenseEntityRepository.save(truncatedToMicros(expense)).toDomain();
+            saved = expenseEntityRepository.save(truncatedToMicros(expense));
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);
+            throw classify(expense, e);
         }
+        return saved.toDomain();
+    }
+
+    private static RuntimeException classify(Expense expense, RuntimeException e) {
+        String constraint = foreignKeyConstraintName(e);
+        if ("expense_category_id_fkey".equals(constraint)) {
+            return new EntityNotFoundException("category", "no category stored for id " + expense.categoryId());
+        }
+        if ("expense_user_id_fkey".equals(constraint)) {
+            return new EntityNotFoundException("user", "no user stored for id " + expense.userId());
+        }
+        return new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);
+    }
+
+    // The constraint name is not exposed as a structured field anywhere in the exception chain -
+    // Postgres reports it only inside the SQLException's message text.
+    private static String foreignKeyConstraintName(Throwable e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sqlException
+                    && FOREIGN_KEY_VIOLATION.equals(sqlException.getSQLState())) {
+                return constraintNameFromMessage(sqlException.getMessage());
+            }
+        }
+        return null;
+    }
+
+    private static String constraintNameFromMessage(String message) {
+        if (message == null) {
+            return null;
+        }
+        Matcher matcher = CONSTRAINT_NAME_PATTERN.matcher(message);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     // The column's microsecond precision does not round-trip nanosecond-precision instants: the

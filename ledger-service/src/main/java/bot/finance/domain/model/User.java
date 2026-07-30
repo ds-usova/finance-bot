@@ -1,12 +1,16 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidUserException;
+
 public final class User extends Entity {
 
     private final String externalId;
 
     private User(Long id, String externalId) {
         super(id);
-        // asserts a present, non-blank external id, throwing InvalidUserException
+        if (externalId == null || externalId.isBlank()) {
+            throw new InvalidUserException("external id must be present");
+        }
         this.externalId = externalId;
     }
 

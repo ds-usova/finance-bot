@@ -16,14 +16,20 @@ public abstract class Entity {
 
     @Override
     public final boolean equals(Object other) {
-        // equal when other is the same concrete class (getClass(), never instanceof) and carries the
-        // same non-null id; reference equality while this id is absent
-        return this == other;
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        if (id == null) {
+            return false;
+        }
+        return id.equals(((Entity) other).id);
     }
 
     @Override
     public final int hashCode() {
-        // the id's hash when present, System.identityHashCode(this) when absent
-        return 0;
+        return id == null ? System.identityHashCode(this) : id.hashCode();
     }
 }
