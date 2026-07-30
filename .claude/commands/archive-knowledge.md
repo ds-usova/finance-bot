@@ -13,15 +13,15 @@ report.
 
 ## Artifacts
 
-| Artifact      | Location                                               | Written by        |
-|---------------|--------------------------------------------------------|-------------------|
-| Use-case docs | `<service>/docs/usecases/<use-case>.md`                | service sub-agent |
-| Domain docs   | `<service>/docs/domain/<type>.md`                      | service sub-agent |
-| Contracts in  | `<service>/docs/contracts/in/<interface>.md`           | service sub-agent |
-| Contracts out | `<service>/docs/contracts/out/<counterpart>.md`        | service sub-agent |
-| Configuration | `<service>/docs/configuration.md`                      | service sub-agent |
-| ADRs          | `<service>/docs/adr/<nnnn>-<slug>.md`, or `docs/adr/` when it crosses services | orchestrator |
-| Link updates  | root and service READMEs, `conventions/orientation.md` | orchestrator      |
+| Artifact      | Location                                                                       | Written by        |
+|---------------|--------------------------------------------------------------------------------|-------------------|
+| Use-case docs | `<service>/docs/usecases/<use-case>.md`                                        | service sub-agent |
+| Domain docs   | `<service>/docs/domain/<type>.md`                                              | service sub-agent |
+| Contracts in  | `<service>/docs/contracts/in/<interface>.md`                                   | service sub-agent |
+| Contracts out | `<service>/docs/contracts/out/<counterpart>.md`                                | service sub-agent |
+| Configuration | `<service>/docs/configuration.md`                                              | service sub-agent |
+| ADRs          | `<service>/docs/adr/<nnnn>-<slug>.md`, or `docs/adr/` when it crosses services | orchestrator      |
+| Link updates  | root and service READMEs, `conventions/orientation.md`                         | orchestrator      |
 
 Each is new or updated in place. A second file on the same subject is a defect.
 
@@ -53,7 +53,8 @@ is the only code name any of it carries.
 
 **Domain** — one per type in the module's **domain layer**, entities and value objects alike, filtered to what this
 plan added or changed. The domain layer only: a command or any other application-layer carrier gets no page of its
-own, and its rules belong to the **Rules** of the use case that receives it. Each says what the type represents in the product's words, lists the invariants under
+own, and its rules belong to the **Rules** of the use case that receives it. Each says what the type represents in the
+product's words, lists the invariants under
 which it refuses to exist, and names what it is made of and what holds it. A value object earns a page as much
 as an entity does: `Money` carrying minor units with the exponent from the currency, and never a binary float,
 is exactly the rule a reader cannot get from a two-line record. A type with little to say gets a short page —
@@ -84,8 +85,7 @@ it prevents. One decision per ADR; most plans authorize none.
 
 ## Stage 2 — Service Documentation
 
-One sub-agent per affected service, never two in the same `docs/` folder. Prompt from
-`.claude/commands/archive-service-docs-step.md` (under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin) plus:
+One `archive-service-docs-step` sub-agent per affected service, never two in the same `docs/` folder. Pass each:
 its slice of the work list marked new or update, the plan path, its diff scope, the module conventions, and for
 each edge the counterpart, which side this service is on, and the path of the use-case document on the other
 side. The whole work list determines those paths, so an agent can link a file a parallel agent is still

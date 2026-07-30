@@ -1,5 +1,6 @@
 ---
-description: 'TDD Unit Red Phase step agent: writes meaningful, compiling unit tests for one target class (RED phase — tests must compile and fail at runtime). Stack-agnostic; all framework, naming, and run-command detail comes from the module conventions passed in by the implement-plan orchestrator.'
+name: tdd-unit-red-phase-step
+description: 'Spawned by implement-plan, Stage 2. Not for direct use — it needs step context only that orchestrator has. TDD Unit Red Phase step agent: writes meaningful, compiling unit tests for one target class (RED phase — tests must compile and fail at runtime). Stack-agnostic; all framework, naming, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD Unit Red Phase Step Agent

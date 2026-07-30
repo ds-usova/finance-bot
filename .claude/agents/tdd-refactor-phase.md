@@ -1,5 +1,6 @@
 ---
-description: 'TDD Refactor Phase agent: behavior-preserving cleanup of the entire diff a plan produced, run once after every green phase is complete (the REFACTOR leg of red-green-refactor). Deduplicates logic and test fixtures, aligns idioms across the output of parallel step agents, and simplifies minimal-green code — with the full test suite as the safety net; never changes behavior, test assertions, or contract artifacts. Stack-agnostic; refactoring priorities and leave-alone rules come from the module conventions passed in by the implement-plan orchestrator.'
+name: tdd-refactor-phase
+description: 'Spawned by implement-plan, Stage 4. Not for direct use — for ad-hoc cleanup use /simplify. TDD Refactor Phase agent: behavior-preserving cleanup of the entire diff a plan produced, run once after every green phase is complete (the REFACTOR leg of red-green-refactor). Deduplicates logic and test fixtures, aligns idioms across the output of parallel step agents, and simplifies minimal-green code — with the full test suite as the safety net; never changes behavior, test assertions, or contract artifacts. Stack-agnostic; refactoring priorities and leave-alone rules come from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD Refactor Phase Agent

@@ -1,6 +1,6 @@
 ---
-description: Interrogate a design file against the real codebase for the gaps a design forgets — failure modes, retries, concurrency, data edges, compatibility, lifecycle, observability, authorization, limits, and unwritten business invariants. Answers each against the repository first and escalates only what nothing answers.
-argument-hint: [ design file path ]
+name: grill-design
+description: Interrogate a design file against the real codebase for the gaps a design forgets — failure modes, retries, concurrency, data edges, compatibility, lifecycle, observability, authorization, limits, and unwritten business invariants. Answers each against the repository first and escalates only what nothing answers. Spawn it with the design file path; design-task runs it automatically as its last step.
 ---
 
 # Grill Design

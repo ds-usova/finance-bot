@@ -1,5 +1,6 @@
 ---
-description: 'TDD Unit Green Phase step agent: implements the production logic for one class until every test in its test class passes (GREEN phase of TDD). Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the implement-plan orchestrator.'
+name: tdd-unit-green-phase-step
+description: 'Spawned by implement-plan, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD Unit Green Phase step agent: implements the production logic for one class until every test in its test class passes (GREEN phase of TDD). Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD Unit Green Phase Step Agent

@@ -38,6 +38,7 @@ Every finding **names the artifact to change** and what to put in it:
 |--------------------------------|------------------------------------------------------------------------|
 | `.claude/settings.json`        | What may run without asking, what must ask, what is denied.            |
 | `.claude/commands/<skill>.md`  | Workflow — stage order, guardrails, what a sub-agent is told.          |
+| `.claude/agents/<agent>.md`    | What one sub-agent does with the context it is handed.                 |
 | `<module>/docs/conventions.md` | Project rules the workflow reads: build commands, models, parallelism. |
 | `.claude/scripts/`             | Mechanics worth doing the same way every time.                         |
 | Agent memory                   | Habits of the agent that no repo file should have to carry.            |

@@ -1,5 +1,6 @@
 ---
-description: 'TDD System Test Green Phase step agent: makes one system test class fully green against the fully wired application (GREEN phase of TDD at the system level). Fixes implementation bugs in any production layer and wires entry points that have no integration step; never modifies tests. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the implement-plan orchestrator.'
+name: tdd-system-green-phase-step
+description: 'Spawned by implement-plan, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD System Test Green Phase step agent: makes one system test class fully green against the fully wired application (GREEN phase of TDD at the system level). Fixes implementation bugs in any production layer and wires entry points that have no integration step; never modifies tests. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD System Test Green Phase Step Agent

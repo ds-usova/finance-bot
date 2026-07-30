@@ -1,5 +1,6 @@
 ---
-description: 'TDD Integration Green Phase step agent: implements one adapter class until every test in its integration test class passes (GREEN phase of TDD). Handles both variants: outbound adapters against real test infrastructure, inbound adapters behind the framework slice with their ports mocked. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the implement-plan orchestrator.'
+name: tdd-integration-green-phase-step
+description: 'Spawned by implement-plan, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD Integration Green Phase step agent: implements one adapter class until every test in its integration test class passes (GREEN phase of TDD). Handles both variants: outbound adapters against real test infrastructure, inbound adapters behind the framework slice with their ports mocked. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD Integration Green Phase Step Agent

@@ -1,6 +1,6 @@
 ---
-description: Review an existing plan file against the real codebase (mechanical lint, boundary audit, test-scenario audit) and append findings to its Review Findings section. Runs as a fresh-context subagent — automatically as plan-task's last step, or standalone against any plan file.
-argument-hint: [ plan file path ]
+name: review-plan
+description: Review an existing plan file against the real codebase (mechanical lint, boundary audit, test-scenario audit) and append findings to its Review Findings section. Spawn it with the plan file path; plan-task runs it automatically as its last step.
 ---
 
 # Review Plan

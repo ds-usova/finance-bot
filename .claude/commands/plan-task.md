@@ -545,9 +545,14 @@ equivalent) — its presence must be consistent across every plan, clean or not.
 
 ## 5. Invoke the Review Subagent
 
-Once every section in **4. Plan Structure** is written, spawn `review-plan` as a subagent against the just-created
+Once every section in **4. Plan Structure** is written, spawn the **`review-plan` agent** against the just-created
 plan file, on the model the module conventions' **Sub-Agent Models** section names for deciding work (reviewing a
-plan is exactly that); without such a section, the default model. Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
+plan is exactly that); without such a section, the default model.
+
+Never review the plan in this context instead — the reviewer must verify the plan's claims against the repository
+unbiased by the reasoning that produced them, and this session holds that reasoning.
+
+Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
 proceed to **6. Resolve the Mechanical Findings** below.
 
 ## 6. Resolve the Mechanical Findings

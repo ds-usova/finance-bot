@@ -1,5 +1,6 @@
 ---
-description: Writes one service's use-case documentation with diagrams and its in/out contract files, from a finished plan and the code that plan produced. Stack-agnostic — the work list, diff scope, and module conventions come from the archive-knowledge orchestrator that spawns it.
+name: archive-service-docs-step
+description: Spawned by archive-knowledge, Stage 2. Not for direct use — it needs a work list only that orchestrator produces. Writes one service's use-case documentation with diagrams and its in/out contract files, from a finished plan and the code that plan produced. Stack-agnostic — the work list, diff scope, and module conventions come from the orchestrator.
 ---
 
 # Archive: Service Documentation Step

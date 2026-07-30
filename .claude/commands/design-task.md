@@ -169,10 +169,13 @@ See `.claude/templates/example-design.md` for a complete worked example of every
 
 ## 5. Invoke the Grill Subagent
 
-Once every section above is written, spawn `grill-design` against the design file **as a subagent, in a fresh
-context** — it must judge the file as written, not the reasoning that produced it, and this session holds that
-reasoning. Use the model the module conventions' **Sub-Agent Models** section names for deciding work; without such
-a section, the default model. It appends its findings to **Decisions** as new entries and writes the
+Once every section above is written, spawn the **`grill-design` agent** against the design file. Use the model the
+module conventions' **Sub-Agent Models** section names for deciding work; without such a section, the default model.
+
+Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
+produced it, and this session holds that reasoning.
+
+It appends its findings to **Decisions** as new entries and writes the
 **Design Findings** line.
 
 ## 6. Put the Open Questions to the User — in One Batch

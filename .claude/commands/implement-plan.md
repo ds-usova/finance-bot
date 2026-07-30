@@ -179,11 +179,11 @@ exist after Stage 1 — so:
   that many at once, launching the next queued item as each running one finishes, until the whole batch is done. If
   the section is missing or silent, spawn everything at once, uncapped — the step count in the plan is the batch
   size.
-- Build each prompt from the matching step-agent instructions file, appending the parsed step context (target
-  class, test class, covered methods, and the given/when/then scenarios verbatim) and the module conventions:
-    - unit steps → `.claude/commands/tdd-unit-red-phase-step.md`
-    - integration steps → `.claude/commands/tdd-integration-red-phase-step.md`
-    - system steps → `.claude/commands/tdd-system-red-phase-step.md`
+- Spawn each item on the agent matching its kind, passing the parsed step context (target class, test class,
+  covered methods, and the given/when/then scenarios verbatim) and the module conventions:
+    - unit steps → `tdd-unit-red-phase-step`
+    - integration steps → `tdd-integration-red-phase-step`
+    - system steps → `tdd-system-red-phase-step`
 
 **Per-step guardrail** (the sub-agent verifies; the orchestrator trusts the reports — the stage guardrail below is
 the systematic check): the test class it wrote **compiles cleanly and fails at runtime**. A red test that passes against
@@ -254,8 +254,8 @@ implementation lands here.
    chain in favour of a leaf costs a whole wave for nothing. The ordering is only advice when every eligible item
    fits under the cap.
 
-   Prompts come from `.claude/commands/tdd-unit-green-phase-step.md` and
-   `.claude/commands/tdd-integration-green-phase-step.md` respectively, plus step context and conventions.
+   Unit items run on `tdd-unit-green-phase-step` and integration items on `tdd-integration-green-phase-step`,
+   each passed its step context and the module conventions.
     - **One class = one sub-agent**: the plan structure normally gives each target class exactly one green item, so
       no two parallel sub-agents ever edit the same production file. If two items do name the same target class,
       merge them into a single sub-agent task covering both — never hand the same class to multiple parallel agents.
@@ -264,7 +264,7 @@ implementation lands here.
    before proceeding. Once green, commit per the Version Control policy (if its granularity commits per wave —
    otherwise this checkpoint is a no-op and the commit happens at stage end).
 3. Only then run the **TDD System Test Green Phase** steps — **sequentially, one sub-agent at a time, in plan
-   order**, using `.claude/commands/tdd-system-green-phase-step.md`. These fix remaining production bugs until the
+   order**, on `tdd-system-green-phase-step`. These fix remaining production bugs until the
    system tests pass; they never modify test classes. System green steps are never parallelized: their fixes may
    land in any production layer, and two entry points routinely share a usecase or an outbound adapter — parallel
    agents would race on the same production files. The one-class-one-agent rule only protects steps whose write
@@ -284,8 +284,7 @@ red–green–**refactor** cycle by reviewing the plan's whole diff at once. Run
 and system green item is ticked (blocked items excluded — a partially blocked plan still gets its completed part
 refactored) and the module's full suite is green.
 
-Spawn **one** sub-agent for the entire plan — never in parallel with anything — using
-`.claude/commands/tdd-refactor-phase.md`, and pass it:
+Spawn **one** `tdd-refactor-phase` sub-agent for the entire plan — never in parallel with anything — and pass it:
 
 - the **diff scope**: every production and test file this plan created or modified, compiled from the plan's step
   targets plus the file lists in the step agents' reports (and a version-control diff against the pre-plan
