@@ -13,12 +13,13 @@ C3 is below. Package structure is in the
 - [Receive a user's message](docs/usecases/handle-incoming-message.md)
 - [Initialize a new user](docs/usecases/initialize-a-new-user.md)
 - [Create an expense](docs/usecases/create-an-expense.md)
+- [Create an expense proposal](docs/usecases/create-an-expense-proposal.md)
 
 ### Contracts
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
-- [Database — users, categories and expenses](docs/contracts/out/database.md) (outbound)
+- [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
 
 ### Running It
 

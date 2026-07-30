@@ -14,7 +14,7 @@ Nothing calls this use case yet.
 
 | Direction | Collaborator | Through                                                        | For                                                    |
 |-----------|--------------|----------------------------------------------------------------|--------------------------------------------------------|
-| out       | Database     | [Users, categories and expenses](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
+| out       | Database     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
 
 ## Rules
 
