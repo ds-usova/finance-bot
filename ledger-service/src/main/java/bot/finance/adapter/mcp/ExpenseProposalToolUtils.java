@@ -14,9 +14,6 @@ public final class ExpenseProposalToolUtils {
 
     public static CreateExpenseProposalCommand toCommand(
             CreateExpenseProposalToolRequest request, AuthenticatedUserId userId) {
-        // builds the command from the request and the caller's identity, lifting a null or blank
-        // parentCategory and merchant to Optional.empty() and building Money from amountMinorUnits and
-        // CurrencyCode; rejects an absent request before constructing the command
         if (request == null) {
             throw new InvalidExpenseProposalException("expense proposal request must be present");
         }
@@ -35,7 +32,6 @@ public final class ExpenseProposalToolUtils {
     }
 
     public static CreateExpenseProposalToolResponse toResponse(ExpenseProposal proposal, String categoryName) {
-        // maps the stored proposal onto the tool's result record
         return new CreateExpenseProposalToolResponse(
                 proposal.id().orElseThrow(),
                 categoryName,

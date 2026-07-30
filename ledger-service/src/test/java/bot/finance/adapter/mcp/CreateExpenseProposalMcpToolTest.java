@@ -45,7 +45,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class CreateExpenseProposalMcpToolTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-07-30T12:00:00Z");
-    private static final String MCP_ACCEPT_HEADER = "application/json, text/event-stream";
 
     @LocalServerPort
     private int port;
@@ -78,7 +77,7 @@ class CreateExpenseProposalMcpToolTest {
         return RestAssured.given()
                 .port(port)
                 .contentType(ContentType.JSON)
-                .accept(MCP_ACCEPT_HEADER)
+                .accept(McpRequests.ACCEPT_HEADER)
                 .header("Authorization", "Bearer " + token)
                 .body(body)
                 .when()

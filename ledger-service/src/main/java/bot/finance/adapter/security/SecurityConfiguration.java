@@ -44,14 +44,13 @@ public class SecurityConfiguration {
         // The actual bound port is only published as local.server.port once the embedded server has started,
         // which happens after this bean is eagerly instantiated under a random-port test. Resolving it lazily,
         // on first decode, lets the JWKS route still resolve to this service's own listening port.
-        SingletonSupplier<JwtDecoder> delegate =
-                SingletonSupplier.of(() -> buildJwtDecoder(properties, environment));
+        SingletonSupplier<JwtDecoder> delegate = SingletonSupplier.of(() -> buildJwtDecoder(properties, environment));
         return token -> delegate.obtain().decode(token);
     }
 
     private static JwtDecoder buildJwtDecoder(AccessTokenProperties properties, Environment environment) {
-        int serverPort = environment.getProperty("local.server.port", Integer.class,
-                environment.getProperty("server.port", Integer.class, 0));
+        int serverPort = environment.getProperty(
+                "local.server.port", Integer.class, environment.getProperty("server.port", Integer.class, 0));
         String jwkSetUri = "http://localhost:" + serverPort + "/.well-known/jwks.json";
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
                 .jwsAlgorithm(SignatureAlgorithm.RS256)

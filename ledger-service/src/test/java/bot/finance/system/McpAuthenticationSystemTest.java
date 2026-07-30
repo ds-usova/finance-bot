@@ -35,8 +35,6 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 class McpAuthenticationSystemTest extends AbstractSystemTest {
 
-    private static final String MCP_ACCEPT_HEADER = "application/json, text/event-stream";
-
     @Autowired
     private AccessTokenMinter accessTokenMinter;
 
@@ -62,6 +60,20 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         RestAssured.port = port;
     }
 
+    /** Posts {@code body} to {@code /mcp}; a null {@code token} sends no {@code Authorization} header at all. */
+    private Response postMcp(String token, String body) {
+        RequestSpecification request = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .accept(McpRequests.ACCEPT_HEADER)
+                .body(body);
+        if (token != null) {
+            request = request.header("Authorization", "Bearer " + token);
+        }
+        Response response = request.when().post("/mcp");
+        logResponse(response);
+        return response;
+    }
+
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -74,14 +86,7 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);
 
-            Response response = RestAssured.given()
-                    .contentType(ContentType.JSON)
-                    .accept(MCP_ACCEPT_HEADER)
-                    .header("Authorization", "Bearer " + token)
-                    .body(McpRequests.toolsList())
-                    .when()
-                    .post("/mcp");
-            logResponse(response);
+            Response response = postMcp(token, McpRequests.toolsList());
 
             response.then().statusCode(200);
 
@@ -119,16 +124,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                 String scenario, String token, String externalId) {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
 
-            RequestSpecification request = RestAssured.given()
-                    .contentType(ContentType.JSON)
-                    .accept(MCP_ACCEPT_HEADER)
-                    .body(McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", 1000L, "EUR"));
-            if (token != null) {
-                request = request.header("Authorization", "Bearer " + token);
-            }
-
-            Response response = request.when().post("/mcp");
-            logResponse(response);
+            Response response = postMcp(
+                    token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", 1000L, "EUR"));
 
             response.then().statusCode(401);
             assertThat(response.getBody().asString())

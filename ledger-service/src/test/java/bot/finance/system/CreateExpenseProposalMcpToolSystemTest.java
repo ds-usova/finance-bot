@@ -66,7 +66,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     private Response callCreateExpenseProposal(String token, String requestBody) {
         Response response = RestAssured.given()
                 .contentType(ContentType.JSON)
-                .accept("application/json, text/event-stream")
+                .accept(McpRequests.ACCEPT_HEADER)
                 .header("Authorization", "Bearer " + token)
                 .body(requestBody)
                 .when()

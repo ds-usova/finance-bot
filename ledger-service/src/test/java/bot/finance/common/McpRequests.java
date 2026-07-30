@@ -2,6 +2,9 @@ package bot.finance.common;
 
 public final class McpRequests {
 
+    /** The {@code Accept} header the MCP server requires on every {@code /mcp} POST. */
+    public static final String ACCEPT_HEADER = "application/json, text/event-stream";
+
     private McpRequests() {}
 
     public static String initialize() {

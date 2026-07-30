@@ -2,6 +2,7 @@ package bot.finance.adapter.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.common.McpTokens;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -22,9 +23,7 @@ class AccessTokenMinterTest {
 
     private static final String USER_EXTERNAL_ID = "user-external-id-42";
 
-    private final AccessTokenProperties properties = new AccessTokenProperties(
-            "classpath:local-mcp-signing.p12", "changeit", "mcp-signing", "ledger-service", "mcp-adapter",
-            Duration.ofMinutes(2));
+    private final AccessTokenProperties properties = McpTokens.properties();
 
     private final AccessTokenMinter minter = new AccessTokenMinter(properties, new DefaultResourceLoader());
 

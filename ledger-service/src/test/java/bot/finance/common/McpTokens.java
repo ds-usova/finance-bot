@@ -1,6 +1,7 @@
 package bot.finance.common;
 
 import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.adapter.security.AccessTokenProperties;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -34,6 +35,11 @@ public final class McpTokens {
     private static final Duration TTL = Duration.ofMinutes(2);
 
     private McpTokens() {}
+
+    /** The {@code mcp.token.*} configuration the test profile runs with, for a hand-built {@link AccessTokenMinter}. */
+    public static AccessTokenProperties properties() {
+        return new AccessTokenProperties(KEYSTORE, KEYSTORE_PASSWORD, KEY_ALIAS, ISSUER, AUDIENCE, TTL);
+    }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {
         return accessTokenMinter.mint(externalId);

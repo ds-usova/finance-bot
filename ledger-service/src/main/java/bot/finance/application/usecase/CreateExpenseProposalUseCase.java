@@ -73,8 +73,8 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         candidates = narrowByParentName(candidates, command.parentCategoryName());
         if (candidates.isEmpty()) {
             throw new InvalidCategoryException(
-                    "no category named " + categoryName + " under parent " + command.parentCategoryName().get()
-                            + " is stored for this user");
+                    "no category named " + categoryName + " under parent "
+                            + command.parentCategoryName().orElseThrow() + " is stored for this user");
         }
         if (candidates.size() > 1) {
             throw new InvalidCategoryException("several categories named " + categoryName
@@ -96,7 +96,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         }
         return candidates.stream()
                 .filter(candidate -> candidate.parentName().equals(parentCategoryName))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private String groupingsOf(List<StoredCategory> candidates) {

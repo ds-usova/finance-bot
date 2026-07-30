@@ -31,9 +31,9 @@ public record CreateExpenseProposalCommand(
         if (merchant == null) {
             throw new InvalidExpenseProposalException("new expense proposal has no merchant");
         }
+        merchant = merchant.filter(m -> !m.isBlank());
         if (money == null) {
             throw new InvalidExpenseProposalException("new expense proposal has no money");
         }
-        merchant = merchant.filter(m -> !m.isBlank());
     }
 }
