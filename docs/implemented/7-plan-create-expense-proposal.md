@@ -510,7 +510,7 @@ end
 
 #### ADRs
 
-- [ ] P01 · Write ADR: an expense proposal is a table and an entity of its own, not a status on `expense` — so
+- [x] P01 · Write ADR: an expense proposal is a table and an entity of its own, not a status on `expense` — so
   short-lived proposals stay out of the ledger's own table, and the proposal row can carry metadata of its own
   (a rejection reason) that an expense has no use for (**Q5**)
 
