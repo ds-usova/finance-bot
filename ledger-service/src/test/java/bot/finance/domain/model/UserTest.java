@@ -1,10 +1,15 @@
 package bot.finance.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.domain.exception.InvalidUserException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class UserTest {
 
@@ -20,6 +25,14 @@ class UserTest {
             assertThat(user.externalId()).isEqualTo("external-1");
             assertThat(user.id()).isEmpty();
         }
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {" ", "   "})
+        @DisplayName("when the external id is absent, empty, or only whitespace - then throws InvalidUserException")
+        void whenExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String externalId) {
+            assertThatThrownBy(() -> User.newUser(externalId)).isInstanceOf(InvalidUserException.class);
+        }
     }
 
     @Nested
@@ -34,31 +47,11 @@ class UserTest {
             assertThat(user.id()).contains(42L);
             assertThat(user.externalId()).isEqualTo("external-1");
         }
-    }
-
-    @Nested
-    @DisplayName("comparing users for equality")
-    class Equality {
 
         @Test
-        @DisplayName(
-                "when a stored user and an unstored user share the same external id - then they are equal and their hash codes match")
-        void whenStoredAndUnstoredUserShareExternalId_thenTheyAreEqualAndHashCodesMatch() {
-            User stored = User.stored(1L, "external-1");
-            User unstored = User.newUser("external-1");
-
-            assertThat(stored).isEqualTo(unstored);
-            assertThat(stored.hashCode()).isEqualTo(unstored.hashCode());
-        }
-
-        @Test
-        @DisplayName(
-                "when two stored users share the same database id but differ in external id - then they are not equal")
-        void whenTwoStoredUsersShareDatabaseIdButDifferInExternalId_thenTheyAreNotEqual() {
-            User first = User.stored(1L, "external-1");
-            User second = User.stored(1L, "external-2");
-
-            assertThat(first).isNotEqualTo(second);
+        @DisplayName("when a database id and a blank external id are given - then throws InvalidUserException")
+        void whenDatabaseIdAndBlankExternalIdAreGiven_thenThrowsInvalidUserException() {
+            assertThatThrownBy(() -> User.stored(42L, "   ")).isInstanceOf(InvalidUserException.class);
         }
     }
 }

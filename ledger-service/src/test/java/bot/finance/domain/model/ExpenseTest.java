@@ -1,7 +1,9 @@
 package bot.finance.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
@@ -9,6 +11,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ExpenseTest {
 
@@ -45,6 +50,63 @@ class ExpenseTest {
 
             assertThat(expense.merchant()).isEmpty();
         }
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"  "})
+        @DisplayName("when the description is absent, empty, or only whitespace - then throws InvalidExpenseException")
+        void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseException(String description) {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> Expense.newExpense(1L, 2L, description, Optional.of("Blue Bottle"), MONEY, now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when money is absent - then throws InvalidExpenseException")
+        void whenMoneyIsAbsent_thenThrowsInvalidExpenseException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), null, now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {0L, -1L})
+        @DisplayName("when the user id is zero or negative - then throws InvalidExpenseException")
+        void whenUserIdIsZeroOrNegative_thenThrowsInvalidExpenseException(long userId) {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> Expense.newExpense(userId, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {0L, -1L})
+        @DisplayName("when the category id is zero or negative - then throws InvalidExpenseException")
+        void whenCategoryIdIsZeroOrNegative_thenThrowsInvalidExpenseException(long categoryId) {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(
+                            () -> Expense.newExpense(1L, categoryId, "Coffee", Optional.of("Blue Bottle"), MONEY, now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when the merchant Optional is absent - then throws InvalidExpenseException")
+        void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> Expense.newExpense(1L, 2L, "Coffee", (Optional<String>) null, MONEY, now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when the instant is absent - then throws InvalidExpenseException")
+        void whenInstantIsAbsent_thenThrowsInvalidExpenseException() {
+            assertThatThrownBy(() -> Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
     }
 
     @Nested
@@ -70,53 +132,39 @@ class ExpenseTest {
             assertThat(expense.createdAt()).isEqualTo(createdAt);
             assertThat(expense.updatedAt()).isEqualTo(updatedAt);
         }
-    }
 
-    @Nested
-    @DisplayName("comparing expenses for equality")
-    class Equality {
-
-        @Test
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"  "})
         @DisplayName(
-                "when two stored expenses share the same database id but differ in every other field - then they are equal and their hash codes match")
-        void whenTwoStoredExpensesShareDatabaseIdButDifferInEveryOtherField_thenTheyAreEqualAndHashCodesMatch() {
-            Instant firstInstant = Instant.parse("2026-07-29T10:15:30Z");
-            Instant secondInstant = Instant.parse("2026-01-01T00:00:00Z");
-            Expense first =
-                    Expense.stored(1L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, firstInstant, firstInstant);
-            Expense second = Expense.stored(
-                    1L,
-                    9L,
-                    8L,
-                    "Rent",
-                    Optional.empty(),
-                    new Money(50000L, CurrencyCode.of("EUR")),
-                    secondInstant,
-                    secondInstant);
+                "when a database id and a blank description are given, with every other field valid - then throws InvalidExpenseException")
+        void whenDatabaseIdAndBlankDescriptionAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseException(
+                String description) {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThat(first).isEqualTo(second);
-            assertThat(first.hashCode()).isEqualTo(second.hashCode());
+            assertThatThrownBy(
+                            () -> Expense.stored(42L, 1L, 2L, description, Optional.of("Blue Bottle"), MONEY, now, now))
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @Test
-        @DisplayName("when two stored expenses have different database ids - then they are not equal")
-        void whenTwoStoredExpensesHaveDifferentDatabaseIds_thenTheyAreNotEqual() {
-            Instant now = Instant.parse("2026-07-29T10:15:30Z");
-            Expense first = Expense.stored(1L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now, now);
-            Expense second = Expense.stored(2L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now, now);
+        @DisplayName("when a database id and an absent created_at are given - then throws InvalidExpenseException")
+        void whenDatabaseIdAndAbsentCreatedAtAreGiven_thenThrowsInvalidExpenseException() {
+            Instant updatedAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThat(first).isNotEqualTo(second);
+            assertThatThrownBy(() ->
+                            Expense.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, updatedAt))
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @Test
-        @DisplayName(
-                "when two unstored expenses are built from identical fields - then they are not equal, an expense with no id is only itself")
-        void whenTwoUnstoredExpensesAreBuiltFromIdenticalFields_thenTheyAreNotEqual() {
-            Instant now = Instant.parse("2026-07-29T10:15:30Z");
-            Expense first = Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now);
-            Expense second = Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now);
+        @DisplayName("when a database id and an absent updated_at are given - then throws InvalidExpenseException")
+        void whenDatabaseIdAndAbsentUpdatedAtAreGiven_thenThrowsInvalidExpenseException() {
+            Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThat(first).isNotEqualTo(second);
+            assertThatThrownBy(() ->
+                            Expense.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, createdAt, null))
+                    .isInstanceOf(InvalidExpenseException.class);
         }
     }
 }

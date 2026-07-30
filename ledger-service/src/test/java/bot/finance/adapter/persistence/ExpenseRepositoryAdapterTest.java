@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -10,11 +11,13 @@ import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.ExpenseRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.common.UserRowUtils;
+import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
@@ -125,20 +129,6 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an expense whose description is absent - then throws InvalidExpenseException before anything is written")
-        void whenDescriptionIsAbsent_thenThrowsInvalidExpenseExceptionBeforeWritingAnything() {
-            long userId = storedUserId("absent-description-user");
-            long categoryId = storedCategoryId(userId, "Misc");
-            Expense expense = Expense.newExpense(
-                    userId, categoryId, null, Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
-
-            assertThatThrownBy(() -> adapter.create(expense)).isInstanceOf(InvalidExpenseException.class);
-
-            assertThat(expenseRowsFor(userId)).isEmpty();
-        }
-
-        @Test
-        @DisplayName(
                 "when called with a description exactly 500 characters long - then the row is written and carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-user");
@@ -225,9 +215,29 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an expense whose user id names no stored user - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenUserIdNamesNoStoredUser_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
-            long unknownUserId = -1L;
+                "when called with an expense whose category id is positive and names no stored category - then throws EntityNotFoundException whose entityType() is \"category\", not PersistenceFailedException")
+        void whenCategoryIdNamesNoStoredCategory_thenThrowsEntityNotFoundExceptionForCategory() {
+            long userId = storedUserId("unknown-category-user");
+            long unknownCategoryId = 999_999_999L;
+            Expense expense = Expense.newExpense(
+                    userId,
+                    unknownCategoryId,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    Instant.now());
+
+            assertThatExceptionOfType(EntityNotFoundException.class)
+                    .isThrownBy(() -> adapter.create(expense))
+                    .extracting(EntityNotFoundException::entityType)
+                    .isEqualTo("category");
+        }
+
+        @Test
+        @DisplayName(
+                "when called with an expense whose user id is positive and names no stored user - then throws EntityNotFoundException whose entityType() is \"user\"")
+        void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
+            long unknownUserId = 999_999_999L;
             long categoryId = storedCategoryId(storedUserId("category-owner-for-unknown-user"), "Category");
             Expense expense = Expense.newExpense(
                     unknownUserId,
@@ -237,31 +247,10 @@ class ExpenseRepositoryAdapterTest {
                     new Money(100, CurrencyCode.of("USD")),
                     Instant.now());
 
-            assertThatThrownBy(() -> adapter.create(expense))
-                    .isInstanceOf(PersistenceFailedException.class)
-                    .extracting(Throwable::getCause)
-                    .isNotNull();
-        }
-
-        @Test
-        @DisplayName(
-                "when called with an expense whose category id names no stored category - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenCategoryIdNamesNoStoredCategory_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
-            long userId = storedUserId("unknown-category-user");
-            long unknownCategoryId = -1L;
-            Expense expense = Expense.newExpense(
-                    userId,
-                    unknownCategoryId,
-                    "Purchase",
-                    Optional.empty(),
-                    new Money(100, CurrencyCode.of("USD")),
-                    Instant.now());
-
-            assertThatThrownBy(() -> adapter.create(expense))
-                    .isInstanceOf(PersistenceFailedException.class)
-                    .extracting(Throwable::getCause)
-                    .isNotNull();
+            assertThatExceptionOfType(EntityNotFoundException.class)
+                    .isThrownBy(() -> adapter.create(expense))
+                    .extracting(EntityNotFoundException::entityType)
+                    .isEqualTo("user");
         }
 
         @Test
@@ -318,10 +307,31 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
+                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException, not EntityNotFoundException, carrying the framework exception as its cause")
         void
                 whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.save(any())).thenThrow(frameworkException);
+            Expense expense = Expense.newExpense(
+                    1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
+
+            assertThatThrownBy(() -> mockedAdapter.create(expense))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .isNotInstanceOf(EntityNotFoundException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when create() hits a foreign key constraint violation naming neither of expense's own foreign keys - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenCreateHitsConstraintViolationNamingNeitherForeignKey_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            SQLException sqlException = new SQLException(
+                    "ERROR: insert or update on table \"expense\" violates foreign key constraint \"some_other_table_fkey\"",
+                    "23503");
+            DataIntegrityViolationException frameworkException =
+                    new DataIntegrityViolationException("constraint violation", sqlException);
             when(mockedExpenseEntityRepository.save(any())).thenThrow(frameworkException);
             Expense expense = Expense.newExpense(
                     1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
