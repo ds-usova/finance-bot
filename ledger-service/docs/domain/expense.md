@@ -5,7 +5,7 @@ One purchase or payment recorded against a user, filed under a category.
 ## Invariants
 
 - An expense is stored or not yet stored, and carries the store's own id only once it is.
-- Two expenses of the same concrete class and the same id are the same expense; an expense whose id is absent
+- Two stored expenses with the same id are the same expense, whatever else differs; an expense not yet stored
   equals only itself.
 
 ## Made of / held by

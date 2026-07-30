@@ -11,5 +11,5 @@ public interface InitializeUserPort {
      * @throws InvalidUserException if the command is absent
      * @throws PersistenceFailedException if storing the user fails
      */
-    User initialize(InitializeUserCommand initializeUserCommand);
+    User initialize(InitializeUserCommand command);
 }

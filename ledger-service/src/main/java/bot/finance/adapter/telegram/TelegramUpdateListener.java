@@ -34,14 +34,14 @@ public class TelegramUpdateListener implements UpdatesListener {
      * poll loop on one bad update.
      */
     private void handle(Update update) {
-        Optional<HandleIncomingMessageCommand> message = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
-        if (message.isEmpty()) {
+        Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
+        if (command.isEmpty()) {
             log.debug("skipping non-text telegram update {}", update.updateId());
             return;
         }
 
         try {
-            handleIncomingMessagePort.handle(message.get());
+            handleIncomingMessagePort.handle(command.get());
         } catch (RuntimeException e) {
             log.error("failed to handle telegram update {}", update.updateId(), e);
         }

@@ -32,24 +32,24 @@ public class CreateExpenseUseCase implements CreateExpensePort {
     }
 
     @Override
-    public Expense create(CreateExpenseCommand createExpenseCommand) {
-        if (createExpenseCommand == null) {
+    public Expense create(CreateExpenseCommand command) {
+        if (command == null) {
             throw new InvalidExpenseException("new expense command is absent");
         }
         User user = userRepository
-                .findByExternalId(createExpenseCommand.userExternalId())
+                .findByExternalId(command.userExternalId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "user", "no user stored under external id " + createExpenseCommand.userExternalId()));
+                        "user", "no user stored under external id " + command.userExternalId()));
         Instant now = Instant.now(clock);
-        Expense newExpenseEntity = Expense.newExpense(
+        Expense expense = Expense.newExpense(
                 user.id().orElseThrow(),
-                createExpenseCommand.categoryId(),
-                createExpenseCommand.description(),
-                createExpenseCommand.merchant(),
-                createExpenseCommand.money(),
+                command.categoryId(),
+                command.description(),
+                command.merchant(),
+                command.money(),
                 now);
-        Expense created = expenseRepository.create(newExpenseEntity);
-        log.info("created expense for user with external id {}", createExpenseCommand.userExternalId());
+        Expense created = expenseRepository.create(expense);
+        log.info("created expense for user with external id {}", command.userExternalId());
         return created;
     }
 }

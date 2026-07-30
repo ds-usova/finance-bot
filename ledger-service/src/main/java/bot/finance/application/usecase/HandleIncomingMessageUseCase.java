@@ -15,10 +15,10 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     }
 
     @Override
-    public void handle(HandleIncomingMessageCommand message) {
-        if (message == null) {
+    public void handle(HandleIncomingMessageCommand command) {
+        if (command == null) {
             throw new InvalidIncomingMessageException("incoming message is absent");
         }
-        log.info("incoming message from conversation {}: {}", message.conversationId(), message.text());
+        log.info("incoming message from conversation {}: {}", command.conversationId(), command.text());
     }
 }

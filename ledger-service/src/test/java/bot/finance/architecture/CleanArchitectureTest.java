@@ -90,7 +90,7 @@ class CleanArchitectureTest {
 
     /**
      * Reads the port, not the {@code dto} package: {@code IntentExtractionRequest} lives in {@code dto} too and
-     * must not be named {@code ...Command}, since it is an outbound port's result, not an inbound port's command.
+     * must not be named {@code ...Command}, since it is an outbound port's input, not an inbound port's command.
      * An interface no {@code application/usecase} class implements is outbound and is left unchecked.
      */
     @ArchTest

@@ -20,13 +20,11 @@ public class InitializeUserUseCase implements InitializeUserPort {
     }
 
     @Override
-    public User initialize(InitializeUserCommand initializeUserCommand) {
-        if (initializeUserCommand == null) {
+    public User initialize(InitializeUserCommand command) {
+        if (command == null) {
             throw new InvalidUserException("new user command is absent");
         }
-        return userRepository
-                .findByExternalId(initializeUserCommand.externalId())
-                .orElseGet(() -> createUser(initializeUserCommand.externalId()));
+        return userRepository.findByExternalId(command.externalId()).orElseGet(() -> createUser(command.externalId()));
     }
 
     private User createUser(String externalId) {

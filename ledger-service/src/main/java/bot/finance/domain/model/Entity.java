@@ -22,10 +22,7 @@ public abstract class Entity {
         if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        if (id == null) {
-            return false;
-        }
-        return id.equals(((Entity) other).id);
+        return id != null && id.equals(((Entity) other).id);
     }
 
     @Override

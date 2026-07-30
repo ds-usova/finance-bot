@@ -16,6 +16,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     // Postgres SQLState for a foreign key violation.
     private static final String FOREIGN_KEY_VIOLATION = "23503";
+    private static final String CATEGORY_FOREIGN_KEY = "expense_category_id_fkey";
+    private static final String USER_FOREIGN_KEY = "expense_user_id_fkey";
     private static final Pattern CONSTRAINT_NAME_PATTERN = Pattern.compile("constraint \"([^\"]+)\"");
 
     private final ExpenseEntityRepository expenseEntityRepository;
@@ -41,10 +43,10 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {
         String constraint = foreignKeyConstraintName(e);
-        if ("expense_category_id_fkey".equals(constraint)) {
+        if (CATEGORY_FOREIGN_KEY.equals(constraint)) {
             return new EntityNotFoundException("category", "no category stored for id " + expense.categoryId());
         }
-        if ("expense_user_id_fkey".equals(constraint)) {
+        if (USER_FOREIGN_KEY.equals(constraint)) {
             return new EntityNotFoundException("user", "no user stored for id " + expense.userId());
         }
         return new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);

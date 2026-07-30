@@ -30,8 +30,8 @@ exchange. The provider is told to leave a field out rather than guess at it, and
 when the message asks for nothing actionable.
 
 Each entry carries a target, an operation, a category name, a new category name, an amount, a currency and a
-description — all as text, exactly as it came back. None of them is required: a bad or partial answer from the
-model is an ordinary outcome on this boundary, never an error.
+description, exactly as they came back. None of them is required: a bad or partial answer from the model is an
+ordinary outcome on this boundary, never an error.
 
 Nothing the provider says is trusted. Every field is checked afterwards against
 [what the caller promised](../in/intent-extraction.md#semantics): an invented category, an unusable amount, an

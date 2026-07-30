@@ -4,5 +4,5 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 
 public interface HandleIncomingMessagePort {
 
-    void handle(HandleIncomingMessageCommand message);
+    void handle(HandleIncomingMessageCommand command);
 }

@@ -14,5 +14,5 @@ public interface CreateExpensePort {
      *     names no stored category
      * @throws PersistenceFailedException if storing the expense fails
      */
-    Expense create(CreateExpenseCommand createExpenseCommand);
+    Expense create(CreateExpenseCommand command);
 }

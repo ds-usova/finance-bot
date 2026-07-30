@@ -99,10 +99,10 @@ would inherit the first's advanced state. Give each new class a token constant i
 ## Testing Style
 
 - Group tests into `@Nested` classes, never a flat list. Unit and outbound-adapter tests group by the method
-  under test (`toHandleIncomingMessageCommand()` → `@Nested class ToHandleIncomingMessageCommand`); inbound-adapter and system tests group
-  by scenario kind (`HappyPath`, `UnhappyPath`, `ErrorMapping`, `Validation`). Each nested class carries a prose
-  `@DisplayName`; only the outer class is suffixed `Test`. A class whose tests form one group still uses a
-  nested class.
+  under test (`toHandleIncomingMessageCommand()` → `@Nested class ToHandleIncomingMessageCommand`);
+  inbound-adapter and system tests group by scenario kind (`HappyPath`, `UnhappyPath`, `ErrorMapping`,
+  `Validation`). Each nested class carries a prose `@DisplayName`; only the outer class is suffixed `Test`. A
+  class whose tests form one group still uses a nested class.
 - A nested class named after the type under test shadows its import, so `@Nested class Widget` inside
   `WidgetTest` would make `new Widget(...)` resolve to the test class. Name it for the role instead:
   `WidgetConstructor`.

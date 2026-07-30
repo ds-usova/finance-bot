@@ -1,6 +1,7 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -103,10 +104,10 @@ class CreateExpenseUseCaseTest {
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryIsUntouched() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> useCase.create(newExpense()))
-                    .isInstanceOf(EntityNotFoundException.class)
-                    .satisfies(e -> assertThat(((EntityNotFoundException) e).entityType())
-                            .isEqualTo("user"));
+            assertThatExceptionOfType(EntityNotFoundException.class)
+                    .isThrownBy(() -> useCase.create(newExpense()))
+                    .extracting(EntityNotFoundException::entityType)
+                    .isEqualTo("user");
 
             verifyNoInteractions(expenseRepository);
         }

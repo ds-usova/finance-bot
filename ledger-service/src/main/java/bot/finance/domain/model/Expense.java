@@ -20,33 +20,36 @@ public final class Expense extends Entity {
             long userId,
             long categoryId,
             String description,
-            String merchant,
+            Optional<String> merchant,
             Money money,
             Instant createdAt,
             Instant updatedAt) {
         super(id);
         if (description == null || description.isBlank()) {
-            throw new InvalidExpenseException("Description must not be blank");
+            throw new InvalidExpenseException("description must be present");
+        }
+        if (merchant == null) {
+            throw new InvalidExpenseException("merchant must be present");
         }
         if (money == null) {
-            throw new InvalidExpenseException("Money must not be null");
+            throw new InvalidExpenseException("money must be present");
         }
         if (userId <= 0) {
-            throw new InvalidExpenseException("User id must be positive");
+            throw new InvalidExpenseException("user id must be positive");
         }
         if (categoryId <= 0) {
-            throw new InvalidExpenseException("Category id must be positive");
+            throw new InvalidExpenseException("category id must be positive");
         }
         if (createdAt == null) {
-            throw new InvalidExpenseException("Created-at must not be null");
+            throw new InvalidExpenseException("created at must be present");
         }
         if (updatedAt == null) {
-            throw new InvalidExpenseException("Updated-at must not be null");
+            throw new InvalidExpenseException("updated at must be present");
         }
         this.userId = userId;
         this.categoryId = categoryId;
         this.description = description;
-        this.merchant = merchant;
+        this.merchant = merchant.orElse(null);
         this.money = money;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -54,10 +57,7 @@ public final class Expense extends Entity {
 
     public static Expense newExpense(
             long userId, long categoryId, String description, Optional<String> merchant, Money money, Instant now) {
-        if (merchant == null) {
-            throw new InvalidExpenseException("Merchant must not be null");
-        }
-        return new Expense(null, userId, categoryId, description, merchant.orElse(null), money, now, now);
+        return new Expense(null, userId, categoryId, description, merchant, money, now, now);
     }
 
     public static Expense stored(
@@ -69,10 +69,7 @@ public final class Expense extends Entity {
             Money money,
             Instant createdAt,
             Instant updatedAt) {
-        if (merchant == null) {
-            throw new InvalidExpenseException("Merchant must not be null");
-        }
-        return new Expense(id, userId, categoryId, description, merchant.orElse(null), money, createdAt, updatedAt);
+        return new Expense(id, userId, categoryId, description, merchant, money, createdAt, updatedAt);
     }
 
     public long userId() {

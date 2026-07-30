@@ -4,7 +4,7 @@ A person the service keeps a ledger for, known by the identity of the platform t
 
 ## Invariants
 
-- Two users of the same concrete class and the same id are the same user; a user whose id is absent equals only
+- Two stored users with the same id are the same user, whatever else differs; a user not yet stored equals only
   itself.
 - A user is stored or not yet stored, and carries the store's own id only once it is.
 

@@ -25,21 +25,20 @@ Nothing calls this use case yet.
 - A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
   absent rather than rejected.
 - A money amount is present.
-- Nothing is stored, and no expense is built, when the identity names no user
-  ([expense](../domain/expense.md) invariants).
+- Nothing is stored, and no expense is built, when the identity names no user.
 - Both timestamps are stamped at creation, equal to each other.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
 
 ## Outcomes
 
-| Outcome          | When                                                                                    | Result                                                                              |
-|------------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Expense created  | the identity names a stored user, and every field is valid                             | the expense is stored, stamped with the current instant, and the creation is logged |
-| Request rejected | the command is absent, or a field violates [expense](../domain/expense.md)'s invariants | invalid expense — nothing is looked up or written                                   |
-| Identity unknown | nothing is stored under the identity                                                   | the request is rejected and nothing is written                                      |
-| Category unknown | the category id names no stored category                                               | the request is rejected and nothing is written                                      |
-| Storage failed   | the store cannot be reached, refuses the write for a reason other than an unknown category, or a value is too long for its column | the failure reaches the caller |
+| Outcome          | When                                                                                       | Result                                                                              |
+|------------------|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| Expense created  | the identity names a stored user, and every field is valid                                 | the expense is stored, stamped with the current instant, and the creation is logged |
+| Request rejected | the command is absent, or a field violates [expense](../domain/expense.md)'s invariants    | invalid expense — nothing is looked up or written                                   |
+| Identity unknown | nothing is stored under the identity                                                       | the request is rejected and nothing is written                                      |
+| Category unknown | the category id names no stored category                                                   | the request is rejected and nothing is written                                      |
+| Storage failed   | the store cannot be reached, or a value is too long for its column                         | the failure reaches the caller                                                      |
 
 ## Components
 
