@@ -73,37 +73,37 @@
             "type": "command",
             "if": "Bash(find *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-find-jar.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-find-jar.ps1')\""
           },
           {
             "type": "command",
             "if": "Bash(for *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-loop-around-script.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-loop-around-script.ps1')\""
           },
           {
             "type": "command",
             "if": "Bash(find *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-find-locator.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-find-locator.ps1')\""
           },
           {
             "type": "command",
             "if": "Bash(cat *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-cat-read.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-cat-read.ps1')\""
           },
           {
             "type": "command",
             "if": "Bash(awk *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-awk-range.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-awk-range.ps1')\""
           },
           {
             "type": "command",
             "if": "Bash(grep *)",
             "shell": "powershell",
-            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-grep-search.ps1"
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-grep-search.ps1')\""
           }
         ]
       }

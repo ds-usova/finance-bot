@@ -11,6 +11,13 @@ Use the Read, Glob, and Grep tools to inspect files and directories — not `cat
 The file tools run unprompted; shell equivalents (especially wrapped in `cd ... &&` or `for f in ...; do cat; done`)
 trigger permission prompts and can't be allowlisted around.
 
+## No `cd` prefix
+
+Never prefix a shell command with `cd "<repo path>" &&` — the Bash tool already runs from the repo's working
+directory, so every path in this repo (`tools/...`, `.claude/scripts/...`, `docs/...`) already resolves without it.
+A `cd &&` wrapper, like `git -C`, a `for` loop, or an absolute quoted path, changes the literal command string and
+breaks every allowlisted permission rule for the command that follows, forcing a manual approval every time.
+
 ## Writing docs and plans
 
 Applies to READMEs, `docs/conventions/**`, and plan files in `docs/`.
