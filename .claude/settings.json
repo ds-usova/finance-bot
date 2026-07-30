@@ -95,6 +95,12 @@
             "if": "Bash(awk *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-awk-range.ps1"
+          },
+          {
+            "type": "command",
+            "if": "Bash(grep *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-grep-search.ps1"
           }
         ]
       }

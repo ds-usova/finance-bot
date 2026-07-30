@@ -242,7 +242,9 @@ if [ "$mode" = "compile" ]; then
         echo "Gradle exit code: $exit_code"
     } > "$summary_file"
 else
-    result_files=("$run_dir"/test-results/TEST-*.xml)
+    # *.xml, not TEST-*.xml: Gradle renames files whose path would exceed the Windows path limit to
+    # __TES-<hash>.<original tail>.xml, dropping the TEST- prefix the naive glob relied on.
+    result_files=("$run_dir"/test-results/*.xml)
     if [ ! -e "${result_files[0]}" ]; then
         result_files=()
     fi
