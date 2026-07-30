@@ -54,7 +54,50 @@
       "Bash(git rebase:*)",
       "Bash(git checkout:*)",
       "Bash(git branch:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "Bash(find /:*)",
+      "Bash(find /c:*)",
+      "Bash(find /mnt:*)",
+      "Bash(unzip -d:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(find *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-find-jar.ps1"
+          },
+          {
+            "type": "command",
+            "if": "Bash(for *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-loop-around-script.ps1"
+          },
+          {
+            "type": "command",
+            "if": "Bash(find *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-find-locator.ps1"
+          },
+          {
+            "type": "command",
+            "if": "Bash(cat *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-cat-read.ps1"
+          },
+          {
+            "type": "command",
+            "if": "Bash(awk *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File .claude/scripts/hooks/deny-awk-range.ps1"
+          }
+        ]
+      }
     ]
   }
 }
