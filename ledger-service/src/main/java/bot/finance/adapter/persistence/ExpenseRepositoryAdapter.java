@@ -4,12 +4,13 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.sql.SQLException;
 import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class ExpenseRepositoryAdapter implements ExpenseRepository {
@@ -42,14 +43,11 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {
-        String constraint = foreignKeyConstraintName(e);
-        if (CATEGORY_FOREIGN_KEY.equals(constraint)) {
-            return new EntityNotFoundException("category", "no category stored for id " + expense.categoryId());
-        }
-        if (USER_FOREIGN_KEY.equals(constraint)) {
-            return new EntityNotFoundException("user", "no user stored for id " + expense.userId());
-        }
-        return new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);
+        return switch (foreignKeyConstraintName(e)) {
+            case CATEGORY_FOREIGN_KEY -> new EntityNotFoundException("category", "no category stored for id " + expense.categoryId());
+            case USER_FOREIGN_KEY -> new EntityNotFoundException("user", "no user stored for id " + expense.userId());
+            case null, default -> new PersistenceFailedException("failed to store expense for user " + expense.userId(), e);
+        };
     }
 
     // The constraint name is not exposed as a structured field anywhere in the exception chain -
