@@ -11,21 +11,21 @@
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · Add `springAiVersion=2.0.0` to `ledger-service/gradle.properties` and, to
+- [x] ST01 · Add `springAiVersion=2.0.0` to `ledger-service/gradle.properties` and, to
   `ledger-service/build.gradle`, `implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")`
   plus `implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"`, beside the existing starters
-- [ ] ST02 · Resolve the MCP annotation and result types the tool class uses from the dependency the previous step
+- [x] ST02 · Resolve the MCP annotation and result types the tool class uses from the dependency the previous step
   adds, with `tools/inspect-jar/inspect-jar.sh` — the annotation that declares a tool, the one that describes a
   single argument, and the type a tool method returns to signal a tool error. Every later step names them from what
   this step found; no step guesses an import
-- [ ] ST03 · Add `domain/value/AuthenticatedUserId` as `record AuthenticatedUserId(String externalId)` with a stub
+- [x] ST03 · Add `domain/value/AuthenticatedUserId` as `record AuthenticatedUserId(String externalId)` with a stub
   compact constructor:
   ```java
   public AuthenticatedUserId {
       // rejects an absent, empty or whitespace-only external id with InvalidUserException
   }
   ```
-- [ ] ST04 · Change `application/dto/CreateExpenseProposalCommand` to
+- [x] ST04 · Change `application/dto/CreateExpenseProposalCommand` to
   `record CreateExpenseProposalCommand(AuthenticatedUserId userId, String categoryName,
   Optional<String> parentCategoryName, String description, Optional<String> merchant, Money money)`. Keep the
   existing description, merchant and money checks and the blank-merchant normalization intact; drop the
@@ -39,18 +39,18 @@
       ...existing checks unchanged...
   }
   ```
-- [ ] ST05 · Add `application/dto/StoredCategory` as
+- [x] ST05 · Add `application/dto/StoredCategory` as
   `record StoredCategory(long id, String name, Optional<String> parentName)` — **written complete**, with a compact
   constructor rejecting a non-positive id, a blank name and an absent `parentName` Optional with
   `InvalidCategoryException`. An absent `parentName` means the category is a grouping
-- [ ] ST06 · Add `application/port/CategoryRepository` with
+- [x] ST06 · Add `application/port/CategoryRepository` with
   `List<StoredCategory> findByUserIdAndName(long userId, String name)` and
   `List<String> findChildNames(long categoryId)`, each documenting `PersistenceFailedException` as `@throws`
   javadoc
-- [ ] ST07 · Update `application/port/CreateExpenseProposalPort`'s `@throws` javadoc: `EntityNotFoundException` now
+- [x] ST07 · Update `application/port/CreateExpenseProposalPort`'s `@throws` javadoc: `EntityNotFoundException` now
   means the command's identity names no stored user, and `InvalidCategoryException` is added for a category name
   that is unknown, a grouping, or ambiguous
-- [ ] ST08 · Update `application/usecase/CreateExpenseProposalUseCase` — add `CategoryRepository` to the
+- [x] ST08 · Update `application/usecase/CreateExpenseProposalUseCase` — add `CategoryRepository` to the
   constructor, read the identity as `command.userId().externalId()`, and keep every existing step of `create()`
   intact, with a `TODO` at the point the category id is needed:
   ```java
@@ -60,10 +60,10 @@
   // several (message naming the candidates' groupings)
   long categoryId = 1L;
   ```
-- [ ] ST09 · Add `adapter/persistence/CategoryEntityRepository extends CrudRepository<CategoryEntity, Long>` —
+- [x] ST09 · Add `adapter/persistence/CategoryEntityRepository extends CrudRepository<CategoryEntity, Long>` —
   **written complete** — with derived queries `List<CategoryEntity> findByUserIdAndName(Long userId, String name)`
   and `List<CategoryEntity> findByParentId(Long parentId)`
-- [ ] ST10 · Add `adapter/persistence/CategoryRepositoryAdapter` as a `@Component` implementing
+- [x] ST10 · Add `adapter/persistence/CategoryRepositoryAdapter` as a `@Component` implementing
   `CategoryRepository`, taking `CategoryEntityRepository` on its constructor, with stubbed methods:
   ```java
   @Override
@@ -80,11 +80,11 @@
       return List.of();
   }
   ```
-- [ ] ST11 · Add `adapter/security/AccessTokenProperties` as
+- [x] ST11 · Add `adapter/security/AccessTokenProperties` as
   `@ConfigurationProperties("mcp.token")` over `keystore`, `keystorePassword`, `keyAlias`, `issuer`, `audience`
   and `Duration ttl` — **written complete** — and enable it with `@EnableConfigurationProperties` from
   `SecurityConfiguration`
-- [ ] ST12 · Add `adapter/security/AccessTokenMinter` as a `@Component` taking `AccessTokenProperties` and a
+- [x] ST12 · Add `adapter/security/AccessTokenMinter` as a `@Component` taking `AccessTokenProperties` and a
   `ResourceLoader`, loading the PKCS#12 keystore's key pair once at construction, with a stubbed method:
   ```java
   public String mint(String userExternalId) {
@@ -94,12 +94,12 @@
   ```
   plus a `public RSAPublicKey publicKey()` and a `public String keyId()` the JWKS endpoint reads, both written
   complete from the loaded keystore
-- [ ] ST13 · Add `adapter/security/SecurityConfiguration` — **written complete** — declaring the module's first
+- [x] ST13 · Add `adapter/security/SecurityConfiguration` — **written complete** — declaring the module's first
   `SecurityFilterChain` (`/mcp/**` authenticated, `/actuator/**` and `/.well-known/jwks.json` permitted, everything
   else denied, CSRF disabled for the stateless token flow) and a `JwtDecoder` built with
   `NimbusJwtDecoder.withJwkSetUri(...)` against this service's own JWKS, pinned to RS256, validating timestamp,
   issuer and audience, and rejecting a token whose `exp - iat` exceeds `AccessTokenProperties.ttl`
-- [ ] ST14 · Add `adapter/security/JwksController` as a `@RestController` serving
+- [x] ST14 · Add `adapter/security/JwksController` as a `@RestController` serving
   `GET /.well-known/jwks.json`, taking `AccessTokenMinter`, with a stubbed method:
   ```java
   public Map<String, Object> jwks() {
@@ -107,7 +107,7 @@
       return Map.of();
   }
   ```
-- [ ] ST15 · Add `adapter/security/AuthenticatedCallerUtils` as a static `*Utils` class with a private
+- [x] ST15 · Add `adapter/security/AuthenticatedCallerUtils` as a static `*Utils` class with a private
   constructor and a stubbed method:
   ```java
   public static AuthenticatedUserId authenticatedUserId() {
@@ -116,15 +116,15 @@
       return null;
   }
   ```
-- [ ] ST16 · Add `adapter/mcp/CreateExpenseProposalToolRequest` as
+- [x] ST16 · Add `adapter/mcp/CreateExpenseProposalToolRequest` as
   `record CreateExpenseProposalToolRequest(String category, String parentCategory, String description,
   String merchant, Long amountMinorUnits, String currencyCode)` — **written complete** — each component carrying
   the argument-description annotation ST02 named, with the wording from the design's argument table. No identity
   component
-- [ ] ST17 · Add `adapter/mcp/CreateExpenseProposalToolResponse` as
+- [x] ST17 · Add `adapter/mcp/CreateExpenseProposalToolResponse` as
   `record CreateExpenseProposalToolResponse(long id, String category, String description, String merchant,
   long amountMinorUnits, String currencyCode, Instant createdAt)` — **written complete**. No `userId` component
-- [ ] ST18 · Add `adapter/mcp/ExpenseProposalToolUtils` as a static `*Utils` class with a private constructor and
+- [x] ST18 · Add `adapter/mcp/ExpenseProposalToolUtils` as a static `*Utils` class with a private constructor and
   two stubbed methods:
   ```java
   public static CreateExpenseProposalCommand toCommand(
@@ -141,7 +141,7 @@
       return null;
   }
   ```
-- [ ] ST19 · Add `adapter/mcp/CreateExpenseProposalMcpTool` as a `@Component` taking `CreateExpenseProposalPort`
+- [x] ST19 · Add `adapter/mcp/CreateExpenseProposalMcpTool` as a `@Component` taking `CreateExpenseProposalPort`
   and `LoggerFactory`, with one method annotated as a tool named `create_expense_proposal` (the annotation ST02
   named), taking `CreateExpenseProposalToolRequest` and returning the framework's tool-result type carrying
   `CreateExpenseProposalToolResponse` as its success payload — a plain record return cannot express the tool error
@@ -153,25 +153,25 @@
   // and neither the arguments nor the token
   return null;
   ```
-- [ ] ST20 · Update `ledger-service/docs/conventions/architecture.md`: add `mcp` and `security` to the package
+- [x] ST20 · Update `ledger-service/docs/conventions/architecture.md`: add `mcp` and `security` to the package
   tree, each with a few words on what it holds, and bring **Architecture Enforcement** in step with ST25 —
   `io.modelcontextprotocol..` on the banned-packages bullet, `Mcp` and `Jwt` on the forbidden-names bullet, and
   `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` in the rules list
 
 **Configuration**
 
-- [ ] ST21 · Add the `spring.ai.mcp.server` and `mcp.token` blocks to
+- [x] ST21 · Add the `spring.ai.mcp.server` and `mcp.token` blocks to
   `ledger-service/src/main/resources/application.yaml`, verbatim from the design's **Build and configuration**
   section
-- [ ] ST22 · Generate the local development keystore
+- [x] ST22 · Generate the local development keystore
   `ledger-service/src/main/resources/local-mcp-signing.p12` with `keytool` — an RS256 key pair under alias
   `mcp-signing`, password `changeit` — matching the defaults ST21 writes (**Q2**)
-- [ ] ST23 · Wire `CategoryRepository` into the `createExpenseProposalPort` bean in
+- [x] ST23 · Wire `CategoryRepository` into the `createExpenseProposalPort` bean in
   `adapter/config/UseCaseConfiguration`
-- [ ] ST24 · Add every `MCP_*` variable — `MCP_ENABLED`, `MCP_JWT_KEYSTORE`, `MCP_JWT_KEYSTORE_PASSWORD`,
+- [x] ST24 · Add every `MCP_*` variable — `MCP_ENABLED`, `MCP_JWT_KEYSTORE`, `MCP_JWT_KEYSTORE_PASSWORD`,
   `MCP_JWT_KEY_ALIAS`, `MCP_JWT_TTL` — to the table in `ledger-service/docs/configuration.md`, with a note that
   the committed keystore is a development default a deployment replaces from its secret store
-- [ ] ST25 · Extend `bot.finance.architecture.CleanArchitectureTest` with the three rules from the design's
+- [x] ST25 · Extend `bot.finance.architecture.CleanArchitectureTest` with the three rules from the design's
   **Architecture enforcement** section: `io.modelcontextprotocol..` added to the banned packages, `Mcp` and `Jwt`
   added to `coreTypesCarryNoExternalSystemName`, and a new
   `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` rule. `@AnalyzeClasses(packages = "bot.finance")` scans
@@ -180,19 +180,19 @@
 
 **Shared Test Infrastructure**
 
-- [ ] ST26 · Extend `bot.finance.common.CategoryRowUtils` with
+- [x] ST26 · Extend `bot.finance.common.CategoryRowUtils` with
   `static long storedChildCategoryId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, long parentId,
   String name)`, beside the existing `storedCategoryId`, and keep its entry in the package-structure tree in
   `ledger-service/docs/conventions/testing.md` accurate
-- [ ] ST27 · Add `bot.finance.common.McpRequests` with static methods building the JSON-RPC bodies the system
+- [x] ST27 · Add `bot.finance.common.McpRequests` with static methods building the JSON-RPC bodies the system
   tests post to `/mcp` — an `initialize` body and a `tools/call` body for `create_expense_proposal` taking the six
   arguments — as text-block builders, and list it in the package-structure tree in
   `ledger-service/docs/conventions/testing.md`
-- [ ] ST28 · Add `bot.finance.common.McpTokens` with a static method minting a token for a given external id
+- [x] ST28 · Add `bot.finance.common.McpTokens` with a static method minting a token for a given external id
   through the application's own `AccessTokenMinter`, and static methods producing, from the same keystore, an
   expired token, a wrong-audience token, and a token whose `exp - iat` exceeds the configured TTL, and list it in
   the same tree
-- [ ] ST30 · Add the composed annotation `bot.finance.common.McpAdapterTest`, shaped like
+- [x] ST30 · Add the composed annotation `bot.finance.common.McpAdapterTest`, shaped like
   `ai-connector-service`'s `GrpcAdapterTest`: it boots the application over a random HTTP port so the MCP endpoint
   is reachable, with the containerized Postgres wired as `AbstractSystemTest` wires it (the context needs a
   datasource), and leaves isolation to `@MockitoBean` in the test class. Ship the throwaway class that boots it
@@ -201,7 +201,7 @@
 
 **Close-out**
 
-- [ ] ST29 · Compile the module and confirm `bot.finance.architecture.CleanArchitectureTest` passes ·
+- [x] ST29 · Compile the module and confirm `bot.finance.architecture.CleanArchitectureTest` passes ·
   after: ST01, ST02, ST03, ST04, ST05, ST06, ST07, ST08, ST09, ST10, ST11, ST12, ST13, ST14, ST15, ST16, ST17,
   ST18, ST19, ST20, ST21, ST22, ST23, ST24, ST25, ST26, ST27, ST28, ST30
 
@@ -209,7 +209,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest` · covers: `AuthenticatedUserId()`
+- [x] RU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest` · covers: `AuthenticatedUserId()`
     - `AuthenticatedUserId()`:
         - given: an external id that is absent, empty, or only whitespace
           when: the record is constructed
@@ -217,7 +217,7 @@
         - given: a non-blank external id
           when: the record is constructed
           then: the record carries it unchanged
-- [ ] RU02 · `StoredCategory` · test: `StoredCategoryTest` · covers: `StoredCategory()`
+- [x] RU02 · `StoredCategory` · test: `StoredCategoryTest` · covers: `StoredCategory()`
     - `StoredCategory()`:
         - given: an id of zero or negative
           when: the record is constructed
@@ -231,7 +231,7 @@
         - given: an id, a name and an empty parentName
           when: the record is constructed
           then: the record carries them unchanged, its parentName empty
-- [ ] RU03 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers:
+- [x] RU03 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers:
   `CreateExpenseProposalCommand()`
     - `CreateExpenseProposalCommand()`:
         - given: an absent userId
@@ -258,7 +258,7 @@
         - update: `whenEveryFieldIsPresentAndMerchantIsNonBlank_thenTheRecordCarriesThemUnchanged()` — assert the
           new `userId`, `categoryName` and `parentCategoryName` components instead of `userExternalId` and
           `categoryId`
-- [ ] RU04 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
+- [x] RU04 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
     - `create()`:
         - given: a stored user, and one stored category with that name carrying a parent
           when: create() is called
@@ -296,7 +296,7 @@
           `whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched()`
           — carry the new command shape and the added `CategoryRepository` constructor argument; the assertions are
           unchanged, and the identity lookup is still asserted to run before the category one
-- [ ] RU05 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · covers: `authenticatedUserId()`
+- [x] RU05 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · covers: `authenticatedUserId()`
     - `authenticatedUserId()`:
         - given: a security context holding a validated token whose subject is an external id
           when: authenticatedUserId() is called
@@ -310,7 +310,7 @@
         - given: a security context holding a validated token with a blank subject
           when: authenticatedUserId() is called
           then: throws InvalidUserException
-- [ ] RU06 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint()`, `publicKey()`
+- [x] RU06 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint()`, `publicKey()`
     - The test constructs the minter itself, with a `new DefaultResourceLoader()` and an `AccessTokenProperties`
       pointing at the classpath development keystore — no Spring context and no infrastructure, which is what puts
       this class in the unit layer despite living in an adapter package
@@ -329,7 +329,7 @@
         - given: the classpath development keystore
           when: publicKey() is called
           then: it returns the RSA public key matching the private key `mint()` signs with
-- [ ] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`,
+- [x] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`,
   `toResponse()`
     - `toCommand()`:
         - given: a request carrying every argument and an AuthenticatedUserId
@@ -367,7 +367,7 @@
           then: the response's merchant is null
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
+- [x] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
   `findByUserIdAndName()`, `findChildNames()`
     - `findByUserIdAndName()`:
         - given: a stored user with one grouping and one child category under it, and the child's name
@@ -399,7 +399,7 @@
         - given: an adapter over a mocked `CategoryEntityRepository` whose query raises a database failure
           when: findChildNames() is called
           then: throws PersistenceFailedException carrying the framework exception as its cause
-- [ ] RI02 · `JwksController` · test: `JwksControllerTest` · covers: `GET /.well-known/jwks.json` ·
+- [x] RI02 · `JwksController` · test: `JwksControllerTest` · covers: `GET /.well-known/jwks.json` ·
   mocks: `AccessTokenMinter`
     - Happy Path:
         - given: a `@WebMvcTest` slice importing `SecurityConfiguration`, and a mocked minter reporting an RSA
@@ -407,7 +407,7 @@
           when: the endpoint is requested with no token
           then: 200 with a JWK Set whose single key carries `kty=RSA`, `alg=RS256`, `use=sig`, that key id, and the
           key's modulus and exponent — and no private material
-- [ ] RI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
+- [x] RI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
   mocks: `CreateExpenseProposalPort`
     - The class carries `@McpAdapterTest` (ST30) and posts JSON-RPC `tools/call` bodies built by `McpRequests`,
       authenticated with a token from `McpTokens` — the adapter is entered through its own protocol with its
@@ -452,7 +452,7 @@
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] RS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
     - The user and their category tree are seeded through the wired `UserRepository` with `Category.defaults()` —
       the only writer of the tree — not through a `bot.finance.common` row helper
     - Happy Path:
@@ -466,7 +466,7 @@
           when: the same call is posted naming a grouping — `Groceries` — as the category
           then: the response is a tool error naming that grouping's children, and no `expense_proposal` row exists
           for that user
-- [ ] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
     - Happy Path:
         - given: a stored user and a token minted for them
           when: `tools/list` is posted to `/mcp`
@@ -497,7 +497,8 @@
 
 - [ ] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU02
 - [ ] GI02 · `JwksController` · test: `JwksControllerTest`
-- [ ] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU05, GU06, GU07
+- [ ] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU05, GU06, GU07,
+  GI02
 
 #### TDD System Test Green Phase
 
@@ -525,6 +526,8 @@
   repository. Withdrawn: D23 already settles it ("the repository ships a local-development keystore for the
   default; a deployment supplies its own from its secret store").
 - A: withdrawn — answered by D23, and ST22 follows it.
+- **RI03 blocked:** GI03 also depends on GI02: until JwksController serves a real JWK Set, NimbusJwtDecoder resolves no signing key, so every token-bearing call to /mcp is rejected 401 before reaching the tool. RI03's tests are written and compile, but they currently fail at the transport rather than on the tool stub. Plan amended: GI03 now carries after: GU05, GU06, GU07, GI02.
+- **RS02 blocked:** RS02 needed two additions the plan did not list: a tools/list body added to McpRequests (ST27 produced only initialize and tools/call), and a class-scoped @DynamicPropertySource pointing spring.grpc.client.channel.ai-connector.target at GrpcStubServer, because AbstractSystemTest leaves it unwired and AiConnectorHealthIndicator then reports DOWN, making /actuator/health answer 503. Both are scoped to this run; the health-indicator wiring gap is pre-existing and unrelated to this plan.
 
 ## Review Findings
 

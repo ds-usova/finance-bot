@@ -29,34 +29,49 @@ class CreateExpenseProposalCommandTest {
     @DisplayName("constructing a new expense proposal")
     class CreateExpenseProposalCommandConstructor {
 
-        @ParameterizedTest
-        @NullAndEmptySource
-        @ValueSource(strings = {"  "})
-        @DisplayName(
-                "when the user external id is absent, empty, or only whitespace - then throws InvalidUserException")
-        void whenUserExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String userExternalId) {
+        @Test
+        @DisplayName("when the userId is absent - then throws InvalidUserException")
+        void whenUserIdIsAbsent_thenThrowsInvalidUserException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            new AuthenticatedUserId(userExternalId),
-                            CATEGORY_NAME,
-                            PARENT_CATEGORY_NAME,
-                            DESCRIPTION,
-                            MERCHANT,
-                            MONEY))
+                            null, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY))
                     .isInstanceOf(InvalidUserException.class);
         }
 
         @ParameterizedTest
-        @ValueSource(longs = {0L, -1L})
-        @DisplayName("when the category id is zero or negative - then throws InvalidExpenseProposalException")
-        void whenCategoryIdIsZeroOrNegative_thenThrowsInvalidExpenseProposalException(long categoryId) {
+        @NullAndEmptySource
+        @ValueSource(strings = {"  "})
+        @DisplayName(
+                "when the category name is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
+        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(
+                String categoryName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID,
-                            String.valueOf(categoryId),
-                            PARENT_CATEGORY_NAME,
-                            DESCRIPTION,
-                            MERCHANT,
-                            MONEY))
+                            USER_ID, categoryName, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY))
                     .isInstanceOf(InvalidExpenseProposalException.class);
+        }
+
+        @Test
+        @DisplayName("when the parentCategoryName Optional is absent - then throws InvalidExpenseProposalException")
+        void whenParentCategoryNameOptionalIsAbsent_thenThrowsInvalidExpenseProposalException() {
+            assertThatThrownBy(() -> new CreateExpenseProposalCommand(
+                            USER_ID, CATEGORY_NAME, null, DESCRIPTION, MERCHANT, MONEY))
+                    .isInstanceOf(InvalidExpenseProposalException.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", "  "})
+        @DisplayName(
+                "when the parentCategoryName is present but empty or only whitespace - then the record's parentCategoryName is Optional.empty()")
+        void whenParentCategoryNameIsPresentButBlank_thenTheRecordsParentCategoryNameIsEmpty(
+                String parentCategoryName) {
+            CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
+                    USER_ID,
+                    CATEGORY_NAME,
+                    Optional.of(parentCategoryName),
+                    DESCRIPTION,
+                    MERCHANT,
+                    MONEY);
+
+            assertThat(createExpenseProposalCommand.parentCategoryName()).isEmpty();
         }
 
         @ParameterizedTest

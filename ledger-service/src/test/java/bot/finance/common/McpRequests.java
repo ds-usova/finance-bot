@@ -19,6 +19,16 @@ public final class McpRequests {
                 """;
     }
 
+    public static String toolsList() {
+        return """
+                {
+                  "jsonrpc": "2.0",
+                  "id": 3,
+                  "method": "tools/list"
+                }
+                """;
+    }
+
     public static String createExpenseProposal(
             String category,
             String parentCategory,

@@ -11,12 +11,14 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.CreateExpenseProposalCommand;
+import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
@@ -27,6 +29,7 @@ import bot.finance.domain.value.Money;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,10 +64,14 @@ class CreateExpenseProposalUseCaseTest {
     }
 
     private CreateExpenseProposalCommand newExpenseProposal() {
+        return newExpenseProposal("Groceries", Optional.empty());
+    }
+
+    private CreateExpenseProposalCommand newExpenseProposal(String categoryName, Optional<String> parentCategoryName) {
         return new CreateExpenseProposalCommand(
                 new AuthenticatedUserId(EXTERNAL_ID),
-                "Groceries",
-                Optional.empty(),
+                categoryName,
+                parentCategoryName,
                 "coffee",
                 Optional.of("Starbucks"),
                 new Money(500, CurrencyCode.of("USD")));
@@ -82,6 +89,8 @@ class CreateExpenseProposalUseCaseTest {
         void whenUserExistsForExternalId_thenRepositoryStoresProposalWithResolvedUserIdAndClockInstant() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food"))));
             ExpenseProposal createdProposal = ExpenseProposal.stored(
                     10L,
                     USER_ID,
@@ -119,6 +128,7 @@ class CreateExpenseProposalUseCaseTest {
                     .extracting(EntityNotFoundException::entityType)
                     .isEqualTo("user");
 
+            verifyNoInteractions(categoryRepository);
             verifyNoInteractions(expenseProposalRepository);
         }
 
@@ -129,6 +139,7 @@ class CreateExpenseProposalUseCaseTest {
             assertThatThrownBy(() -> useCase.create(null)).isInstanceOf(InvalidExpenseProposalException.class);
 
             verifyNoInteractions(userRepository);
+            verifyNoInteractions(categoryRepository);
             verifyNoInteractions(expenseProposalRepository);
         }
 
@@ -138,6 +149,8 @@ class CreateExpenseProposalUseCaseTest {
         void whenProposalRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food"))));
             PersistenceFailedException failure =
                     new PersistenceFailedException("insert failed", new RuntimeException());
             when(expenseProposalRepository.create(any())).thenThrow(failure);
@@ -155,6 +168,152 @@ class CreateExpenseProposalUseCaseTest {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenThrow(failure);
+
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
+
+            verifyNoInteractions(categoryRepository);
+            verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when a stored category with the command's name carries a parent - then the proposal "
+                + "repository is asked to store a proposal carrying that category's id, and the stored proposal "
+                + "is returned")
+        void whenExactlyOneStoredCategoryMatchesNameWithParent_thenProposalRepositoryStoresProposalWithThatCategoryId() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food"))));
+            ExpenseProposal createdProposal = ExpenseProposal.stored(
+                    10L,
+                    USER_ID,
+                    CATEGORY_ID,
+                    "coffee",
+                    Optional.of("Starbucks"),
+                    new Money(500, CurrencyCode.of("USD")),
+                    FIXED_INSTANT,
+                    FIXED_INSTANT);
+            when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
+
+            ExpenseProposal result = useCase.create(newExpenseProposal());
+
+            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
+            verify(expenseProposalRepository).create(proposalCaptor.capture());
+            assertThat(proposalCaptor.getValue().categoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(result).isSameAs(createdProposal);
+        }
+
+        @Test
+        @DisplayName("when no stored category of the user's carries the command's name - then throws "
+                + "InvalidCategoryException naming the unknown name, and the proposal repository is untouched")
+        void whenNoStoredCategoryMatchesName_thenThrowsInvalidCategoryExceptionNamingUnknownNameAndProposalRepositoryUntouched() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(List.of());
+
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
+                    .isInstanceOf(InvalidCategoryException.class)
+                    .hasMessageContaining("Groceries");
+
+            verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when the only stored category matching the command's name carries no parent - then throws "
+                + "InvalidCategoryException whose message names that grouping's children, and the proposal "
+                + "repository is untouched")
+        void whenOnlyMatchingCategoryIsAGrouping_thenThrowsInvalidCategoryExceptionNamingGroupingsChildrenAndProposalRepositoryUntouched() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of("Coffee", "Restaurant"));
+
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
+                    .isInstanceOf(InvalidCategoryException.class)
+                    .hasMessageContaining("Coffee")
+                    .hasMessageContaining("Restaurant");
+
+            verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when several stored categories carry the command's name and the command carries no "
+                + "parentCategoryName - then throws InvalidCategoryException whose message names the candidates' "
+                + "groupings, and the proposal repository is untouched")
+        void whenSeveralCategoriesMatchNameAndCommandCarriesNoParentCategoryName_thenThrowsInvalidCategoryExceptionNamingCandidatesGroupingsAndProposalRepositoryUntouched() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(
+                            new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food")),
+                            new StoredCategory(3L, "Groceries", Optional.of("Shopping"))));
+
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
+                    .isInstanceOf(InvalidCategoryException.class)
+                    .hasMessageContaining("Food")
+                    .hasMessageContaining("Shopping");
+
+            verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when several stored categories carry the command's name and the command's parentCategoryName "
+                + "matches exactly one of them - then the proposal repository is asked to store a proposal "
+                + "carrying that candidate's id")
+        void whenParentCategoryNameMatchesExactlyOneCandidate_thenProposalRepositoryStoresProposalWithThatCandidatesId() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            long matchingCandidateId = 3L;
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(
+                            new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food")),
+                            new StoredCategory(matchingCandidateId, "Groceries", Optional.of("Shopping"))));
+            ExpenseProposal createdProposal = ExpenseProposal.stored(
+                    10L,
+                    USER_ID,
+                    matchingCandidateId,
+                    "coffee",
+                    Optional.of("Starbucks"),
+                    new Money(500, CurrencyCode.of("USD")),
+                    FIXED_INSTANT,
+                    FIXED_INSTANT);
+            when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
+
+            useCase.create(newExpenseProposal("Groceries", Optional.of("Shopping")));
+
+            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
+            verify(expenseProposalRepository).create(proposalCaptor.capture());
+            assertThat(proposalCaptor.getValue().categoryId()).isEqualTo(matchingCandidateId);
+        }
+
+        @Test
+        @DisplayName("when several stored categories carry the command's name and the command's parentCategoryName "
+                + "matches none of them - then throws InvalidCategoryException, and the proposal repository is "
+                + "untouched")
+        void whenParentCategoryNameMatchesNoCandidate_thenThrowsInvalidCategoryExceptionAndProposalRepositoryUntouched() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(
+                            new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food")),
+                            new StoredCategory(3L, "Groceries", Optional.of("Shopping"))));
+
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal("Groceries", Optional.of("Travel"))))
+                    .isInstanceOf(InvalidCategoryException.class);
+
+            verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when the category repository raises PersistenceFailedException while resolving the name - "
+                + "then the exception reaches the caller unchanged and the proposal repository is untouched")
+        void whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            PersistenceFailedException failure =
+                    new PersistenceFailedException("lookup failed", new RuntimeException());
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
