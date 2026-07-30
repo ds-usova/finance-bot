@@ -39,9 +39,6 @@ class ExpenseProposalRepositoryAdapterTest {
     private ExpenseProposalRepositoryAdapter adapter;
 
     @Autowired
-    private ExpenseProposalEntityRepository expenseProposalEntityRepository;
-
-    @Autowired
     private UserEntityRepository userEntityRepository;
 
     @Autowired

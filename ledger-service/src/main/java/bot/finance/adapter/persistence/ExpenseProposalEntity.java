@@ -4,6 +4,7 @@ import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
@@ -21,16 +22,20 @@ public record ExpenseProposalEntity(
         Instant updatedAt) {
 
     public ExpenseProposal toDomain() {
-        Money money = new Money(amountMinorUnits, CurrencyCode.of(currencyCode));
-        Optional<String> merchantOptional = Optional.ofNullable(merchant);
-        if (id == null) {
-            return ExpenseProposal.newExpenseProposal(
-                    userId, categoryId, description, merchantOptional, money, createdAt);
-        }
         return ExpenseProposal.stored(
-                id, userId, categoryId, description, merchantOptional, money, createdAt, updatedAt);
+                id,
+                userId,
+                categoryId,
+                description,
+                Optional.ofNullable(merchant),
+                new Money(amountMinorUnits, CurrencyCode.of(currencyCode)),
+                createdAt,
+                updatedAt);
     }
 
+    // The timestamp columns' microsecond precision does not round-trip nanosecond-precision
+    // instants: the driver rounds rather than truncates. Truncating here removes the
+    // sub-microsecond remainder so the stored value is exact.
     public static ExpenseProposalEntity fromDomain(ExpenseProposal proposal) {
         return new ExpenseProposalEntity(
                 proposal.id().orElse(null),
@@ -40,7 +45,7 @@ public record ExpenseProposalEntity(
                 proposal.merchant().orElse(null),
                 proposal.money().minorUnits(),
                 proposal.money().currencyCode().code(),
-                proposal.createdAt(),
-                proposal.updatedAt());
+                proposal.createdAt().truncatedTo(ChronoUnit.MICROS),
+                proposal.updatedAt().truncatedTo(ChronoUnit.MICROS));
     }
 }
