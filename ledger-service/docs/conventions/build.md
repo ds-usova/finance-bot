@@ -45,3 +45,10 @@ will clobber each other's results in
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are written up in
 [`tools/agent-test/README.md`](../../../tools/agent-test/README.md).
+
+## Inspecting a Dependency
+
+What a jar on the classpath contains — its classes, a class's signatures, the code a generator emits — comes from
+`tools/inspect-jar/inspect-jar.sh`, documented in
+[`tools/inspect-jar/README.md`](../../../tools/inspect-jar/README.md). It resolves the jar from the module's own
+dependency set, so nothing has to be located, unpacked, or decompiled by hand.

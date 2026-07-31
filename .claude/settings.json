@@ -61,7 +61,8 @@
       "Bash(find /:*)",
       "Bash(find /c:*)",
       "Bash(find /mnt:*)",
-      "Bash(unzip -d:*)"
+      "Bash(unzip -d:*)",
+      "Bash(java:*)"
     ]
   },
   "hooks": {

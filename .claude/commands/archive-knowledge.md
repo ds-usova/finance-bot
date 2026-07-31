@@ -149,8 +149,9 @@ answer costs a re-read every time someone opens the file. A decision needing mor
 
 ## Context
 
-<One paragraph: what forced a decision here instead of a default. Name the alternative only if it was
-genuinely tempting.>
+<One paragraph — never two: what forced a decision here instead of a default. Name the alternative only if it
+was genuinely tempting. Not what the codebase did or did not have at the time: the reader arrives years later,
+to a tree that has moved on, and a status report reads as a fact about today.>
 
 ## Decision
 

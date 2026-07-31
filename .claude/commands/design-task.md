@@ -48,6 +48,11 @@ there under another name, or misses the sibling feature whose shape this one sho
 read the closest existing feature end to end — its domain types, its usecase, its adapters, its migration — and the
 conventions that govern them. Name it in **Context**; every later section is allowed to say "as `X` does".
 
+The same holds for a contract a **library generates** rather than the code declaring — a tool or endpoint schema
+derived from a signature, a serializer's wire form, a generated client. What reaches the wire is the generator's
+reading of the annotated declaration, not the declaration. Read the generator itself before the design fixes the
+shape, decompiling it from the dependency if the source is not at hand.
+
 ## 4. Design Structure
 
 The file MUST contain these sections, in this order.

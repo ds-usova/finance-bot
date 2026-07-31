@@ -106,6 +106,11 @@ through the service, to each system it depends on, with `alt`/`else`/`end` for e
 lists. Add a **Components** section — a C3 component diagram — only for components the service README's C3 does
 not already show.
 
+**A use case's C3 shows the whole chain it runs through**, entry point to every store it reaches, whoever added
+each part. The plan's diff decides which page you write, never which components appear on it: a use case that
+gained a step still reaches everything it reached before, and a collaborator missing from the diagram reads as
+one the use case does not have.
+
 Updating: edit in place. The file describes the system as it is, never what changed.
 
 ## Contract Documents

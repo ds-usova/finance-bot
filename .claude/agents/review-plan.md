@@ -81,6 +81,13 @@ job — do not re-derive them by hand and do not report them again as findings.
   naming it; flag a missing marker, and flag an `after:` on a collaborator the tests actually mock (a false
   dependency that needlessly serializes the schedule).
 
+- Confirm a step entering through an authenticated endpoint carries `after:` on every step that makes
+  authentication succeed — the filter chain, the key source, the token minter — whether or not its tests name
+  those classes; without them the step's calls are rejected at the transport and it can never go green.
+- Confirm a step that pins the shape of a **library-generated** contract — a schema derived from a signature, a
+  wire form a serializer emits — was written against the generator, not against the declaration; read the
+  generator and flag a shape it would not produce.
+
 Treat this as a dry run, at plan level, of the module's architecture-enforcement test — flag anything that test
 would reject if the code existed today.
 
