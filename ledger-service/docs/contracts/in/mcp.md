@@ -13,22 +13,22 @@ reviews before it becomes one.
 
 ## Operations
 
-| Operation                 | Purpose                                                  | Used by                                                                          |
-|---------------------------|----------------------------------------------------------|----------------------------------------------------------------------------------|
-| List the tools            | tells a client which tools exist and what each takes     | the client, before its first call                                                |
-| `create_expense_proposal` | records spending the agent has assembled for its caller  | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)       |
-| Fetch the signing keys    | publishes the public half of the key tokens are signed with, so a client can verify and follow a rotation | any holder of a token |
+| Operation                 | Purpose                                                                                                   | Used by                                                                    |
+|---------------------------|-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| List the tools            | tells a client which tools exist and what each takes                                                      | the client, before its first call                                          |
+| `create_expense_proposal` | records spending the agent has assembled for its caller                                                   | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
+| Fetch the signing keys    | publishes the public half of the key tokens are signed with, so a client can verify and follow a rotation | any holder of a token                                                      |
 
 ### What the tool takes
 
-| Argument           | Meaning                                                                   | Required |
-|--------------------|---------------------------------------------------------------------------|----------|
-| `category`         | the category's name — one filed under a grouping, never a grouping        | yes      |
-| `parentCategory`   | the grouping's name — only to break a tie between categories sharing one  | no       |
-| `description`      | what was bought                                                            | yes      |
-| `merchant`         | who it was bought from — null or blank is none                             | no       |
-| `amountMinorUnits` | the amount in the currency's minor units                                   | yes      |
-| `currencyCode`     | ISO 4217, three letters                                                    | yes      |
+| Argument           | Meaning                                                                  | Required |
+|--------------------|--------------------------------------------------------------------------|----------|
+| `category`         | the category's name — one filed under a grouping, never a grouping       | yes      |
+| `parentCategory`   | the grouping's name — only to break a tie between categories sharing one | no       |
+| `description`      | what was bought                                                          | yes      |
+| `merchant`         | who it was bought from — null or blank is none                           | no       |
+| `amountMinorUnits` | the amount in the currency's minor units                                 | yes      |
+| `currencyCode`     | ISO 4217, three letters                                                  | yes      |
 
 **There is no identity argument.** Who the proposal is recorded against is the token's subject and nothing else
 ([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
@@ -69,15 +69,15 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 
 ## Failures
 
-| Condition                                                              | Signal                                                                 |
-|------------------------------------------------------------------------|------------------------------------------------------------------------|
-| No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why  |
-| An argument's value cannot be read as the type the schema declares      | the protocol's own binding failure, before the tool runs               |
-| An argument is missing or unusable                                      | a tool error naming the invalid request and the field at fault         |
-| The category name is unknown, names a grouping, or matches several      | a tool error carrying what to retry with                               |
-| The token's subject names no stored user                                | a tool error saying the user is unknown                                |
-| The proposal cannot be stored                                           | a tool error saying so, naming no table, constraint or stack frame     |
-| Anything else                                                           | a tool error saying the proposal could not be created                  |
+| Condition                                                                               | Signal                                                               |
+|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why |
+| An argument's value cannot be read as the type the schema declares                      | the protocol's own binding failure, before the tool runs             |
+| An argument is missing or unusable                                                      | a tool error naming the invalid request and the field at fault       |
+| The category name is unknown, names a grouping, or matches several                      | a tool error carrying what to retry with                             |
+| The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
+| The proposal cannot be stored                                                           | a tool error saying so, naming no table, constraint or stack frame   |
+| Anything else                                                                           | a tool error saying the proposal could not be created                |
 
 A failure inside the tool is a successful call carrying an error result, never an exception on the transport.
 Authentication is the exception: it never reaches the tool at all, so a model never reads why it was refused.

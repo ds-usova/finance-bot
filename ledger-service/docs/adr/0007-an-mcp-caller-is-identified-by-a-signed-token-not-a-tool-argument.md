@@ -11,10 +11,6 @@ content can dictate any of them. The obvious shape for `create_expense_proposal`
 beside the category and the amount — therefore lets whoever controls the text the agent is reading choose whose
 ledger the spending lands in.
 
-The service also had no `SecurityFilterChain` at all: `spring-boot-starter-security` and the resource-server
-starter were on the classpath, and every endpoint sat behind Boot's default. Something had to say who may call
-`/mcp` before a tool could be exposed on it.
-
 ## Decision
 
 The caller's identity travels as a short-lived RS256 JWT on the HTTP transport and is read server-side from the

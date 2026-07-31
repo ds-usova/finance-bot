@@ -3,20 +3,20 @@
 Every value below is read from the environment at startup. The defaults suit a developer's machine; a
 deployment supplies its own.
 
-| Variable                   | Sets                                                        | Default                                       | Required           |
-|----------------------------|-------------------------------------------------------------|-----------------------------------------------|--------------------|
-| `DB_JDBC_URL`              | the database the service reads and writes                   | `jdbc:postgresql://localhost:5432/ledger-db`  | yes                |
-| `DB_USER`                  | the database account                                        | `ledger-user`                                 | yes                |
-| `DB_PASSWORD`              | the password for that account                               | *(a local placeholder)*                       | yes                |
-| `TELEGRAM_BOT_TOKEN`       | which bot the service collects messages for and acts as     | *(none)*                                      | when polling is on |
-| `TELEGRAM_POLLING_ENABLED` | whether the service collects Telegram messages at all       | `true`                                        | no                 |
-| `TELEGRAM_API_URL`         | where Telegram's Bot API is reached                         | Telegram's own address                        | no                 |
-| `AI_CONNECTOR_GRPC_TARGET` | where the AI Connector's gRPC server is reached             | `static://localhost:1001`                     | no                 |
-| `MCP_ENABLED`               | whether the MCP server endpoint is served at all             | `true`                                        | no                 |
-| `MCP_JWT_KEYSTORE`          | where the MCP token signing keystore is read from            | the committed development keystore            | yes                |
-| `MCP_JWT_KEYSTORE_PASSWORD` | the password for that keystore                               | *(a local placeholder)*                       | yes                |
-| `MCP_JWT_KEY_ALIAS`         | which key pair in the keystore signs and verifies MCP tokens | `mcp-signing`                                 | with a supplied keystore |
-| `MCP_JWT_TTL`               | how long a minted MCP token is valid                         | `2m`                                          | no                 |
+| Variable                    | Sets                                                         | Default                                      | Required                 |
+|-----------------------------|--------------------------------------------------------------|----------------------------------------------|--------------------------|
+| `DB_JDBC_URL`               | the database the service reads and writes                    | `jdbc:postgresql://localhost:5432/ledger-db` | yes                      |
+| `DB_USER`                   | the database account                                         | `ledger-user`                                | yes                      |
+| `DB_PASSWORD`               | the password for that account                                | *(a local placeholder)*                      | yes                      |
+| `TELEGRAM_BOT_TOKEN`        | which bot the service collects messages for and acts as      | *(none)*                                     | when polling is on       |
+| `TELEGRAM_POLLING_ENABLED`  | whether the service collects Telegram messages at all        | `true`                                       | no                       |
+| `TELEGRAM_API_URL`          | where Telegram's Bot API is reached                          | Telegram's own address                       | no                       |
+| `AI_CONNECTOR_GRPC_TARGET`  | where the AI Connector's gRPC server is reached              | `static://localhost:1001`                    | no                       |
+| `MCP_ENABLED`               | whether the MCP server endpoint is served at all             | `true`                                       | no                       |
+| `MCP_JWT_KEYSTORE`          | where the MCP token signing keystore is read from            | the committed development keystore           | yes                      |
+| `MCP_JWT_KEYSTORE_PASSWORD` | the password for that keystore                               | *(a local placeholder)*                      | yes                      |
+| `MCP_JWT_KEY_ALIAS`         | which key pair in the keystore signs and verifies MCP tokens | `mcp-signing`                                | with a supplied keystore |
+| `MCP_JWT_TTL`               | how long a minted MCP token is valid                         | `2m`                                         | no                       |
 
 ## Notes
 

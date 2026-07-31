@@ -10,10 +10,10 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                                                     | Through                                                                          | For                                                                       |
-|-----------|----------------------------------------------------------------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| in        | [An agent acting for a user](../contracts/in/mcp.md)                             | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                 | recording spending it has assembled from a conversation                   |
-| out       | [Database](../contracts/out/database.md)                                          | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the category name, storing the proposal |
+| Direction | Collaborator                                         | Through                                                                           | For                                                                       |
+|-----------|------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| in        | [An agent acting for a user](../contracts/in/mcp.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                  | recording spending it has assembled from a conversation                   |
+| out       | [Database](../contracts/out/database.md)             | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the category name, storing the proposal |
 
 ## Rules
 
@@ -41,15 +41,15 @@
 
 ## Outcomes
 
-| Outcome           | When                                                                                                     | Result                                                                              |
-|-------------------|----------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Proposal created  | the identity names a stored user, the name resolves to exactly one of their categories under a grouping  | the proposal is stored, stamped with the current instant, and the creation is logged |
-| Request rejected  | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                           |
-| Identity unknown  | nothing is stored under the identity                                                                     | the request is rejected and nothing is written                                       |
-| Category unknown  | no category of theirs carries that name, or none of them sits under the grouping given                   | the request is rejected, naming what was asked for, and nothing is written           |
-| Category is a grouping | the name resolves to a first-level grouping                                                          | the request is rejected, naming that grouping's children, and nothing is written     |
-| Category ambiguous | the name resolves to several of their categories                                                        | the request is rejected, naming the groupings to choose from, and nothing is written |
-| Storage failed    | the store cannot be reached, or a value is too long for its column                                       | the failure reaches the caller                                                       |
+| Outcome                | When                                                                                                      | Result                                                                               |
+|------------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Proposal created       | the identity names a stored user, the name resolves to exactly one of their categories under a grouping   | the proposal is stored, stamped with the current instant, and the creation is logged |
+| Request rejected       | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                           |
+| Identity unknown       | nothing is stored under the identity                                                                      | the request is rejected and nothing is written                                       |
+| Category unknown       | no category of theirs carries that name, or none of them sits under the grouping given                    | the request is rejected, naming what was asked for, and nothing is written           |
+| Category is a grouping | the name resolves to a first-level grouping                                                               | the request is rejected, naming that grouping's children, and nothing is written     |
+| Category ambiguous     | the name resolves to several of their categories                                                          | the request is rejected, naming the groupings to choose from, and nothing is written |
+| Storage failed         | the store cannot be reached, or a value is too long for its column                                        | the failure reaches the caller                                                       |
 
 ## Components
 
@@ -77,19 +77,25 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads categories by name", $tags="dbExternal")
   Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Persists expense proposals", $tags="dbExternal")
+  Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Checks if user exists", $tags="dbExternal")
 }
 
 Rel(agent, accessControl, "Tool call", "MCP over HTTP")
 Rel_D(accessControl, mcpTool, "Admits the call, with the caller's identity")
 Rel_D(mcpTool, createProposalPort, "Invokes")
 Rel_L(createProposalService, createProposalPort, "Implements", $tags="implements")
-Rel_D(createProposalService, userRepositoryPort, "Resolves the identity through")
-Rel_D(createProposalService, categoryRepositoryPort, "Resolves the category name through")
-Rel_D(createProposalService, proposalRepositoryPort, "Stores through")
+Rel_R(createProposalService, userRepositoryPort, "Resolves the identity through")
+Rel_R(createProposalService, categoryRepositoryPort, "Resolves the category name through")
+Rel_R(createProposalService, proposalRepositoryPort, "Stores through")
 Rel_L(categoryRepositoryAdapter, categoryRepositoryPort, "Implements", $tags="implements")
 Rel_L(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
+Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
+Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(categoryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
+
+Lay_D(userRepositoryPort, categoryRepositoryPort)
+Lay_D(categoryRepositoryPort, proposalRepositoryPort)
 
 SHOW_LEGEND()
 @enduml
