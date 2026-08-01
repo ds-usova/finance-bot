@@ -11,7 +11,7 @@ it asks Telegram for whatever has arrived and waits, rather than being called wh
 
 | Operation                | Purpose                                                                                              | Used by                                                               |
 |--------------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| Collect waiting messages | delivers the messages users have sent since the last collection, and acknowledges the previous batch | [Receive a user's message](../../usecases/handle-incoming-message.md) |
+| Collect waiting messages | delivers the messages users have sent since the last collection, and acknowledges the previous batch | [Act on a user's message](../../usecases/handle-incoming-message.md) |
 
 ## Semantics
 

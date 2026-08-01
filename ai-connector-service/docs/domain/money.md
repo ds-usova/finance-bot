@@ -16,5 +16,5 @@ every step, and never a binary floating-point number.
 - **Made of:** a count of minor units · a [Currency code](currency-code.md), which fixes how many minor units
   make one unit.
 - **Held by:** [Expense intent](expense-intent.md), as the amount of an expense.
-- **Crossing out:** what an amount means to a caller is in
-  [Intent extraction](../contracts/in/intent-extraction.md#semantics).
+- **Crossing out:** an amount reaches the ledger as whole minor units and a code —
+  [the expense proposal tool](../contracts/out/ledger-mcp.md).

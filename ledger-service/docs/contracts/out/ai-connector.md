@@ -1,62 +1,68 @@
 # AI Connector Service — intent extraction (gRPC)
 
-The service asks the AI Connector what actions a user's message asks for. What crosses out is the user's text,
-the categories that user already has and — optionally — the currency to assume; what comes back is one entry per
-action found.
-
-*Nothing in this service calls it yet: the boundary exists ahead of its first caller.*
+The service hands a user's turn to the AI Connector: the text, the categories that user may file spending under,
+and a credential to act as them. The connector acts on whatever the message asks for and answers only that the
+turn completed — no action crosses back.
 
 - **Counterpart:** the AI Connector Service — its address is [configuration](../../configuration.md)
-- **Transport:** gRPC, one call per extraction
+- **Transport:** gRPC, one call per message
 - **Schema:** [`proto/intent_extraction.proto`](../../../../proto/intent_extraction.proto), shared with the
   counterpart at the repository root
 
 ## Operations
 
-| Operation                     | Purpose                                              | Used by                                                                                                              |
-|-------------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| Extract intents               | the actions a message asks for                       | no use case yet; answered by [Extract the intents in a user's message](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
-| Check the connector is serving | whether the connector is answering at all           | this service's health endpoint                                                                                       |
+| Operation                      | Purpose                                    | Used by                                                                                                                                                                                          |
+|--------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Extract intents                | act on what a message asks for             | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Extract the intents in a user's message](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
+| Check the connector is serving | whether the connector is answering at all  | this service's health endpoint                                                                                                                                                                   |
 
 ## Semantics
 
-**Sent:** the user's text · that user's categories · the currency to assume (optional).
+**Sent:** the user's text · every category they may file spending under, each with its grouping · the currency to
+assume (optional) · a credential naming the user, carried on the call rather than in the payload.
 
-What the connector promises about the answer is [its side of this boundary](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md#semantics).
+**Answered:** an acknowledgement carrying nothing. Success means the turn was acted on — no count, no per-action
+outcome, no text for the user.
+
+What the connector promises is [its side of this boundary](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md#semantics).
 What this side adds:
 
-- A request is fixed once made: blank text, no categories, or a blank one among them is refused where the
-  request is built, so it never crosses.
+- A request is fixed once made: blank text, no categories, or a blank name or grouping among them is refused
+  where the request is built, so it never crosses.
+- A category and its grouping always travel as a pair; neither is ever left unsaid.
+- Only categories spending can be filed under are sent — a grouping is not one of them.
 - The assumed currency is stated as present or absent; it is never left unsaid.
 - An absent request is refused before the connector is reached.
-- The answer is read entry by entry, in the order it arrives.
-- An entry this side cannot make sense of becomes an unknown intent carrying the reason, never a failed call.
-- That covers an action this service does not know, an entry carrying no payload, a currency ISO 4217 does not
-  know, and any shape the ledger's own rules reject.
-- A negative amount is not an amount this side accepts.
+- The credential is minted per call, names the user as its subject, and is what the connector calls back with
+  ([the tool it calls](../in/mcp.md)).
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
-- A call has ten seconds to answer, which has to cover a model round trip on the connector's side.
+- A call has ten seconds to answer, which has to cover a model round trip and every callback the turn makes.
+- A call that runs out of time is abandoned on this side while the connector runs on: a failure here does not
+  mean nothing was recorded.
 - The connector's own serving status is polled and reported in this service's health endpoint, so a target
-  pointing nowhere shows there rather than at the first extraction call.
-- The check asks about the connector's server as a whole, not one service on it.
+  pointing nowhere shows there rather than at the first message.
+- The check asks about the connector's server as a whole, not one service on it, and carries no credential.
 
 ## Failures
 
-| Condition                                                       | Signal                                                                      |
-|-----------------------------------------------------------------|-------------------------------------------------------------------------------|
-| The request is absent                                           | rejected as invalid; the connector is never reached                          |
-| The call fails, times out, or the connector is unreachable      | the extraction fails, naming the status it came back with                    |
-| The answer holds no entries                                     | the extraction fails — a never-empty answer is what the connector promises   |
-| One entry cannot be made sense of                               | none — that entry alone becomes unknown, carrying the reason                 |
-| The health check fails, or reports anything but serving         | the health endpoint reports down, carrying what came back                    |
+| Condition                                                  | Signal                                                                    |
+|------------------------------------------------------------|-----------------------------------------------------------------------------|
+| The request is absent                                      | rejected as invalid; the connector is never reached                       |
+| The user has no category spending can be filed under       | rejected as invalid where the request is built                            |
+| The connector refuses an action it cannot complete         | the extraction fails, naming the status it came back with                 |
+| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                                  |
+| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with                 |
+| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back                 |
 
 ## Compatibility
 
-A wider schema costs this side nothing: an action or an entry kind it does not recognize already arrives as an
-unknown intent.
+Both sides build from the one schema, so a change to it reaches the build rather than the runtime.
 
-Removing what the connector promises breaks it. An answer that could legitimately be empty is the sharpest one —
-this side reads emptiness as a failure — followed by an order that is not the user's, and an unknown arriving as
-a failed call.
+The credential's shape is the fragile part: the connector passes it through untouched, and it is this service
+that mints and later validates it. Changing who signs it, or how long it lives, changes both ends of the turn.
 
-Pointing the service at a different connector is an address change and nothing else.
+Removing what the connector promises breaks this side: an acknowledgement that no longer means the turn was
+acted on, and a permanent refusal arriving as an unavailability, are the sharpest.
+
+Pointing the service at a different connector is an address change and nothing else — but that connector must
+reach this service's tool back, with the credential it was given.

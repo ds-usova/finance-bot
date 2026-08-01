@@ -10,7 +10,7 @@ C3 is below. Package structure is in the
 
 ### Use Cases
 
-- [Receive a user's message](docs/usecases/handle-incoming-message.md)
+- [Act on a user's message](docs/usecases/handle-incoming-message.md)
 - [Initialize a new user](docs/usecases/initialize-a-new-user.md)
 - [Create an expense](docs/usecases/create-an-expense.md)
 - [Create an expense proposal](docs/usecases/create-an-expense-proposal.md)

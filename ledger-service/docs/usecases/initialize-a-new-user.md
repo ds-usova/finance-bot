@@ -35,11 +35,10 @@ A new user is given 97 categories: 20 groups holding 77 children.
 
 ## Collaborators
 
-| Direction | Collaborator | Through                                             | For                                      |
-|-----------|--------------|-----------------------------------------------------|------------------------------------------|
-| out       | Database     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their 97 categories |
-
-Nothing calls this use case yet.
+| Direction | Collaborator                                                                     | Through                                                                           | For                                                       |
+|-----------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
+| in        | [Act on a user's message](handle-incoming-message.md)                            | [Act on a user's message](handle-incoming-message.md)                             | resolving the person behind a conversation, on every message |
+| out       | [Database](../contracts/out/database.md)                                         | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their 97 categories                     |
 
 ## Rules
 
@@ -101,7 +100,7 @@ SHOW_LEGEND()
 
 ```plantuml
 @startuml InitializeUser-Sequence
-participant "Caller" as Caller
+participant "Act on a user's message" as Caller
 participant "Ledger Service" as LS
 database "Database" as DB
 

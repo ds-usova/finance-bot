@@ -10,6 +10,6 @@ One action a user's message asks for.
 ## Made of / held by
 
 - **Made of:** nothing of its own — each kind carries its own fields.
-- **Held by:** the answer to an extraction, one entry per action —
-  [Extract the intents in a user's message](../usecases/extract-intents.md). What the answer means to a caller
-  is in [Intent extraction](../contracts/in/intent-extraction.md#semantics).
+- **Held by:** what a message was read as, one entry per action — no intent leaves the service.
+- **Acted on:** which kinds are acted on and which are skipped is decided by
+  [Act on the actions in a user's message](../usecases/extract-intents.md#rules).

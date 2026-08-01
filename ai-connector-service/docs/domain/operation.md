@@ -15,4 +15,4 @@ What a user asks to be done to the thing they named.
 - **Held by:** [Category intent](category-intent.md) · [Expense intent](expense-intent.md), each of which
   requires one.
 - **Absence:** turned into an unknown entry by
-  [Extract the intents in a user's message](../usecases/extract-intents.md#rules).
+  [Act on the actions in a user's message](../usecases/extract-intents.md#rules).

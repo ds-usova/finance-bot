@@ -11,6 +11,8 @@ An action on one of the user's categories.
 ## Made of / held by
 
 - **Made of:** an [Operation](operation.md) · the category's name · the new name, when renaming.
-- **Held by:** one entry of an extraction answer, as a kind of [Intent](intent.md).
+- **Held by:** one entry of what a message was read as, as a kind of [Intent](intent.md).
 - **Which names may appear:** decided by
-  [Extract the intents in a user's message](../usecases/extract-intents.md#rules).
+  [Act on the actions in a user's message](../usecases/extract-intents.md#rules).
+- **Acted on:** never — it is logged and skipped, though a created name widens the set later entries may be
+  filed under.

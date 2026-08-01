@@ -1,57 +1,66 @@
-# Extract the intents in a user's message
+# Act on the actions in a user's message
 
-- **In:** the user's text · the categories they already have · an assumed currency (optional)
-- **Out:** one entry per action the message asks for, in the order the user said them
-- **Why:** a user records money by writing a sentence instead of filling a form
+- **In:** the user's text · the categories they already have, each with its grouping · an assumed currency
+  (optional) · the caller's token
+- **Out:** nothing — a call that returns has been acted on
+- **Why:** a user records spending by writing a sentence instead of filling a form
 
 *Implemented by `ExtractIntentsUseCase`.*
 
-## What is extracted
+## What is read out of the message
 
 Every entry names one thing acted on and one action on it.
 
-| Acted on | Actions                      | Carries                                |
-|----------|------------------------------|----------------------------------------|
-| Category | create, read, update, delete | its name · a new name, when renaming   |
-| Expense  | create, read, update, delete | a category · an amount · a description |
+| Acted on | Actions                      | Carries                                               | Acted on further        |
+|----------|------------------------------|-------------------------------------------------------|-------------------------|
+| Category | create, read, update, delete | its name · a new name, when renaming                  | no — logged and skipped |
+| Expense  | create                       | a category · its grouping · an amount · a description | proposed to the ledger  |
+| Expense  | read, update, delete         | a category · an amount · a description, each optional | no — logged and skipped |
 
-**Unknown** is the third kind: an entry that could not be read, carrying why.
+**Unknown** is the third kind: an entry that could not be read, carrying why. Logged and skipped.
 
-Nothing else. A message about anything but a category or an expense comes back unknown.
+Nothing else. A message about anything but a category or an expense is unknown.
 
 ## Collaborators
 
-| Direction | Collaborator                                           | Through                                                   | For                                                    |
-|-----------|--------------------------------------------------------|-----------------------------------------------------------|--------------------------------------------------------|
-| in        | [Ledger Service](../contracts/in/intent-extraction.md) | [Intent extraction](../contracts/in/intent-extraction.md) | turning what a user typed into actions on their ledger |
-| out       | [AI provider](../contracts/out/ai-provider.md)         | [Intent inference](../contracts/out/ai-provider.md)       | reading the actions out of the text                    |
+| Direction | Collaborator                                                                                 | Through                                                   | For                                         |
+|-----------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------|---------------------------------------------|
+| in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)           | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user   |
+| out       | [AI Provider](../contracts/out/ai-provider.md)                                               | [Intent inference](../contracts/out/ai-provider.md)       | reading the actions out of the text         |
+| out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Expense proposal tool](../contracts/out/ledger-mcp.md)   | recording each expense the message asks for |
 
 ## Rules
 
-- The `ExtractIntentsCommand` is fixed once built: its text is present and not blank, at least one category is
-  given and none of them is blank, and the assumed currency is stated as present or absent, never left unsaid.
+- A caller's token is required. Without one nothing happens and the model is never prompted.
+- The token is opaque: held for the call, put on every proposal, never parsed, logged or stored.
 - Categories are a closed set: the caller's, plus the ones the message asks to create.
 - The service never proposes a category. An invented one is refused.
 - A category named anywhere in the message counts for every entry, before it or after it.
 - A category answer that failed to assemble contributes nothing.
-- What each action requires is the [expense](../domain/expense-intent.md) and
-  [category](../domain/category-intent.md) intents' own rule: recording needs an amount and a category, renaming
-  needs the new name, reading and deleting need neither.
-- An entry missing what its action requires is unknown, and names the missing piece.
+- The closed set reaches the model as `Grouping > Category` labels.
+- An answer naming a category is matched by label first, then by bare name.
+- A bare name matching several categories is unknown, naming the labels to retry with.
+- Matching ignores case; the caller's spelling is what travels on.
+- A matched category carries its grouping onward; a category the message asks to create has none.
+- Only an expense to record is proposed. Every other entry is logged by what it acted on and what it asked for.
+- Expenses are proposed in the order the user said them.
+- The first proposal the ledger refuses or cannot take ends the turn. Earlier proposals stand.
+- A message asking for nothing this service does is not a failure.
 - An amount with no currency and no assumed currency is unknown.
-- An amount with more decimal places than its [currency](../domain/money.md) allows is unknown. Never rounded.
-- Entries are never compared with one another.
-- Ordering, a never-empty answer, per-entry unknown, category matching and the assumed currency are in
-  [Intent extraction](../contracts/in/intent-extraction.md#semantics).
+- What each action requires is the [expense](../domain/expense-intent.md) and
+  [category](../domain/category-intent.md) intents' own rule.
 
 ## Outcomes
 
-| Outcome              | When                                       | Result                                          |
-|----------------------|--------------------------------------------|-------------------------------------------------|
-| Intents extracted    | the provider finds one or more actions     | one entry per action, in the user's order       |
-| Entry not understood | one answer is missing or unusable          | that position is unknown; its neighbours stand  |
-| Nothing found        | the provider finds no action               | a single unknown entry with a reason            |
-| Extraction failed    | the provider is unreachable or unreadable  | no intents — extraction is unavailable          |
+| Outcome               | When                                                  | Result                                                             |
+|-----------------------|-------------------------------------------------------|--------------------------------------------------------------------|
+| Turn acted on         | every expense to record was accepted                  | an empty answer                                                    |
+| Nothing to act on     | the message asks for nothing this service does        | an empty answer; each entry logged                                 |
+| Entry skipped         | one answer is unusable or names no placeable category | that entry logged; the rest of the message still acted on          |
+| Proposal refused      | the ledger will not record an expense                 | the turn stops; the caller is told the precondition failed         |
+| Ledger unreachable    | a proposal cannot be delivered                        | the turn stops; the caller is told the service is unavailable      |
+| Extraction failed     | the provider is unreachable or its answer unreadable  | nothing is proposed; the caller is told the service is unavailable |
+| Caller not identified | the call arrives with no token                        | refused before the provider is called                              |
 
 ## Components
 
@@ -64,29 +73,41 @@ AddElementTag("aiExternal", $bgColor="#8e44ad", $fontColor="#ffffff", $borderCol
 AddElementTag("portIn", $bgColor="#16a085", $fontColor="#ffffff", $borderColor="#0e6655", $legendText="inbound port (interface)")
 AddElementTag("portOut", $bgColor="#7f8c8d", $fontColor="#ffffff", $borderColor="#566573", $legendText="outbound port (interface)")
 AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1b2631", $legendText="application core")
+
 AddRelTag("implements", $lineStyle="dashed")
 
-Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service", $tags="callerExternal")
+Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service, and is called back", $tags="callerExternal")
 System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", $tags="aiExternal")
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
-  Component(grpcService, "Intent Extraction gRPC Service", "@GrpcService", "Serves the ExtractIntents RPC", $tags="callerExternal")
-  Component(protoUtils, "Intent Proto Utils", "Static mapper", "Domain intents to protobuf response", $tags="callerExternal")
+  Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Refuses an untokened call, holds the token for the turn", $tags="callerExternal")
+  Component(grpcService, "Intent Extraction gRPC Service", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Turns each raw answer into a validated intent", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Assembles each intent, then acts on it", $tags="core")
+  Component(intent, "Intent / Money", "Domain value objects", "Intent hierarchy, money", $tags="core")
 
   Component(inferencePort, "Intent Inference Port", "Interface", "Outbound port", $tags="portOut")
+  Component(proposalPort, "Expense Proposal Port", "Interface", "Outbound port", $tags="portOut")
   Component(aiAdapter, "AI Intent Inference Adapter", "Spring AI ChatClient", "Prompts the model, returns raw answers", $tags="aiExternal")
+  Component(mcpAdapter, "MCP Expense Proposal Adapter", "Spring AI MCP client", "Calls the tool as the caller", $tags="callerExternal")
 }
 
-Rel(ledger, grpcService, "ExtractIntents", "gRPC")
+Rel_R(ledger, tokenInterceptor, "ExtractIntents + token", "gRPC")
+Rel_R(tokenInterceptor, grpcService, "Passes the call on")
 Rel_R(grpcService, extractIntentsPort, "Invokes")
-Rel_D(grpcService, protoUtils, "Maps via")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
+Rel_D(useCase, intent, "Assembles")
 
 Rel_R(useCase, inferencePort, "Uses")
+Rel_R(useCase, proposalPort, "Uses")
 Rel_L(aiAdapter, inferencePort, "Implements", $tags="implements")
+Rel_L(mcpAdapter, proposalPort, "Implements", $tags="implements")
 Rel_R(aiAdapter, aiProvider, "Prompt + JSON schema", "HTTPS")
+Rel_D(mcpAdapter, tokenInterceptor, "Reads the token from")
+Rel_L(mcpAdapter, ledger, "create_expense_proposal", "MCP over HTTP")
+
+Lay_D(inferencePort, proposalPort)
+Lay_D(aiAdapter, mcpAdapter)
 
 SHOW_LEGEND()
 @enduml
@@ -99,27 +120,38 @@ SHOW_LEGEND()
 participant "Ledger Service" as Caller
 participant "AI Connector Service" as Service
 participant "AI Provider" as Provider
+participant "Expense Proposal Tool" as Tool
 
-Caller -> Service : text, categories, assumed currency
-Service -> Provider : the text and the categories
+Caller -> Service : text, categories with their groupings, assumed currency, token
 
-alt actions found
-    Provider --> Service : one raw answer per action
-    Service -> Service : collect the categories the message names
-    loop each answer, in its own place
-        alt the answer holds together
-            Service -> Service : assemble the intent
-        else the answer cannot be used
-            Service -> Service : unknown entry with the reason
+alt no token
+    Service --> Caller : caller not identified
+else the call carries a token
+    Service -> Provider : the text and the categories as labels
+
+    alt the provider fails
+        Provider --> Service : failure
+        Service --> Caller : extraction unavailable
+    else the provider answered
+        Provider --> Service : one raw answer per action
+        Service -> Service : collect the categories the message names
+        loop each answer, in the user's order
+            alt an expense to record
+                Service -> Tool : the expense, as the token's subject
+                alt refused
+                    Tool --> Service : tool error
+                    Service --> Caller : precondition failed
+                else the ledger is unreachable
+                    Service --> Caller : unavailable
+                else recorded
+                    Tool --> Service : the stored proposal
+                end
+            else anything else, or unusable
+                Service -> Service : log the entry and move on
+            end
         end
+        Service --> Caller : acted on
     end
-    Service --> Caller : the intents, in the user's order
-else nothing found
-    Provider --> Service : no actions
-    Service --> Caller : one unknown entry
-else provider fails
-    Provider --> Service : failure
-    Service --> Caller : extraction unavailable
 end
 @enduml
 ```

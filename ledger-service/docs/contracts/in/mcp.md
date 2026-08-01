@@ -4,9 +4,8 @@ An agent that has assembled spending from a conversation records it here, as a t
 an AI agent reaches the ledger through; the only thing it can do across it is propose an expense, which a human
 reviews before it becomes one.
 
-- **Counterpart:** an MCP client acting for a user. **None exists yet** — the AI Connector Service is the
-  intended one, and it becomes a client in a separate change; until then the callers are this service's own
-  tests.
+- **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
+  acting for the user whose message it was handed
 - **Transport:** MCP over Streamable HTTP, stateless, at `/mcp` on the service's own port
 - **Schema:** none held in a file — the server publishes each tool's argument schema over the protocol itself,
   and a client reads it by listing the tools
@@ -62,8 +61,11 @@ How a caller authenticates:
   `/.well-known/jwks.json`. A rotation is a new key in the keystore and a restart — a client re-reads the keys
   and needs no change.
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
-- Nothing mints a token in production yet. It gets one caller when the Ledger Service dispatches a turn to the
-  AI Connector Service and hands it a token to call back with.
+- A token is minted when this service [hands a user's turn to the connector](../out/ai-connector.md), which
+  calls back with it while the turn runs. A token outlives the turn it was minted for by design, and nothing
+  revokes one early.
+- The caller sends its own token per call rather than establishing a session, so a turn making several proposals
+  makes several independent calls.
 
 Monitoring endpoints stay reachable without a token. Every other address on the service answers to nobody.
 

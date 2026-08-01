@@ -1,26 +1,31 @@
 # Configuration
 
-Every value below is read from the environment at startup, and the AI provider is all the service is
-configured against. The defaults suit a developer's machine.
+Every value below is read from the environment at startup: the AI provider the service reads a message with, and
+the ledger it records the result in. The defaults suit a developer's machine.
 
-| Variable          | Sets                                                  | Default                     | Required |
-|-------------------|--------------------------------------------------------|-----------------------------|----------|
-| `OPENAI_API_KEY`  | the credential the AI provider is called with          | *(empty)*                   | yes      |
-| `OPENAI_BASE_URL` | where that provider is reached                         | `https://api.openai.com/v1` | no       |
-| `OPENAI_MODEL`    | which model extracts the intents                       | `gpt-4o-mini`               | no       |
+| Variable          | Sets                                          | Default                     | Required |
+|-------------------|-----------------------------------------------|-----------------------------|----------|
+| `OPENAI_API_KEY`  | the credential the AI provider is called with | *(empty)*                   | yes      |
+| `OPENAI_BASE_URL` | where that provider is reached                | `https://api.openai.com/v1` | no       |
+| `OPENAI_MODEL`    | which model reads the message                 | `gpt-4o-mini`               | no       |
+| `LEDGER_MCP_URL`  | where the ledger's tools are reached          | `http://localhost:1000`     | yes      |
 
 ## Notes
 
-- The key's default is empty so the service can boot without one; every extraction then fails at the provider
-  and the caller is told the service is
-  [unavailable](contracts/in/intent-extraction.md#failures). The key is a secret and belongs in the
-  deployment's secret store, never in a committed file or a log line.
+- The key's default is empty so the service can boot without one; every turn then fails at the provider and the
+  caller is told the service is [unavailable](contracts/in/intent-extraction.md#failures). The key is a secret
+  and belongs in the deployment's secret store, never in a committed file or a log line.
 - The address is the base the chat-completions path hangs off, version segment included. One without it makes
   the provider answer not-found on every call, which reaches the caller as the same unavailable result.
 - `OPENAI_BASE_URL` also exists so the service can be pointed at a stand-in for the provider. A deployment
   leaves it alone.
-- The model must be able to follow a supplied answer shape. One that cannot turns every message into unknown
-  entries rather than into a failure, so a wrong model here looks like a service that understands nothing.
-- [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml) supplies only the key and
-  takes the other two defaults; it also holds the ports the service is reached on, which are not configurable
-  from the environment.
+- The model must be able to follow a supplied answer shape. One that cannot turns every message into entries
+  that are skipped rather than into a failure, so a wrong model here looks like a service that understands
+  nothing.
+- `LEDGER_MCP_URL` is the ledger's base address; the tool path is fixed. Its default reaches a ledger on the
+  same machine and nothing else, so a deployment supplies it. A wrong one makes every expense fail as an
+  [unreachable ledger](contracts/out/ledger-mcp.md#failures) and takes the whole turn down with it.
+- The ledger can switch its tool endpoint off, which has the same effect as a wrong address here.
+- [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml) supplies the key and the
+  ledger's container address, and takes the other two defaults; it also holds the ports the service is reached
+  on, which are not configurable from the environment.

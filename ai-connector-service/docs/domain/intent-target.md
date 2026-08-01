@@ -14,4 +14,4 @@ The thing a user's action is about: a category or an expense.
 - **Made of:** the two values, and nothing else.
 - **Held by:** no intent carries it — it decides which kind of [Intent](intent.md) an entry becomes.
 - **Absence:** turned into an unknown entry by
-  [Extract the intents in a user's message](../usecases/extract-intents.md#rules).
+  [Act on the actions in a user's message](../usecases/extract-intents.md#rules).

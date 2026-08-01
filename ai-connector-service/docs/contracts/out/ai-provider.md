@@ -11,9 +11,9 @@ answer per action the model found.
 
 ## Operations
 
-| Operation                        | Purpose                                                        | Used by                                                                 |
-|----------------------------------|-----------------------------------------------------------------|-------------------------------------------------------------------------|
-| Ask what the message asks for    | returns one entry per action found, in the order they were said | [Extract the intents in a user's message](../../usecases/extract-intents.md) |
+| Operation                     | Purpose                                                         | Used by                                                                     |
+|-------------------------------|-----------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Ask what the message asks for | returns one entry per action found, in the order they were said | [Act on the actions in a user's message](../../usecases/extract-intents.md) |
 
 ## Semantics
 
@@ -22,6 +22,10 @@ told everything it needs each time.
 
 The standing instructions never change and never mention a user. The categories and the text vary per call and
 travel together in the same message, so one user's categories can never reach another's extraction.
+
+Each category is rendered as a `Grouping > Category` label, so two categories sharing a name can be told apart
+and the model can say which it means. It may answer with a label or with a bare name; both are matched on this
+side.
 
 The answer is asked for as a list of entries, one per action the message asks for, in the order the user said
 them, and as a one-entry list when the message asks for a single action. Every field of an entry is asked for
@@ -42,12 +46,12 @@ Cost and latency grow with the number of categories sent, since every one of the
 
 ## Failures
 
-| Condition                                                     | Signal                                                                     |
-|---------------------------------------------------------------|-----------------------------------------------------------------------------|
-| The provider is unreachable, refuses the call, or errors      | the extraction fails and the caller is told the service is unavailable      |
-| The answer cannot be read as the expected list of entries     | the same — an unreadable answer is a provider failure, not an unknown intent |
-| The answer holds no entries                                   | none — it becomes the single unknown entry the caller is promised           |
-| An entry is missing a field or carries an unusable one        | none — that entry alone becomes unknown, saying why                        |
+| Condition                                                 | Signal                                                                       |
+|-----------------------------------------------------------|------------------------------------------------------------------------------|
+| The provider is unreachable, refuses the call, or errors  | the extraction fails and the caller is told the service is unavailable       |
+| The answer cannot be read as the expected list of entries | the same — an unreadable answer is a provider failure, not an unknown intent |
+| The answer holds no entries                               | none — the turn is logged as having nothing to act on and still succeeds     |
+| An entry is missing a field or carries an unusable one    | none — that entry alone becomes unknown, and is logged and skipped           |
 
 ## Compatibility
 

@@ -9,5 +9,6 @@ An entry that could not be read as an action, carrying why.
 ## Made of / held by
 
 - **Made of:** the reason.
-- **Held by:** one entry of an extraction answer, as a kind of [Intent](intent.md). What unknown means to a
-  caller is in [Intent extraction](../contracts/in/intent-extraction.md#semantics).
+- **Held by:** one entry of what a message was read as, as a kind of [Intent](intent.md).
+- **Acted on:** never — it is logged and skipped by
+  [Act on the actions in a user's message](../usecases/extract-intents.md#rules).

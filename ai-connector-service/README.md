@@ -1,10 +1,11 @@
 # AI Connector Service
 
-The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC
-and returns the structured **intents** it expresses: what the user is acting on (a category or an expense),
-what they want done, and the details.
+The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC,
+reads the **intents** it expresses — what the user is acting on, what they want done, and the details — and acts
+on each expense the message asks to record, by calling the Ledger Service's expense proposal tool as the caller
+whose token arrived with the request.
 
-It holds no state — every request is answered from its own input plus one call to the model.
+It holds no state: a call carries its own text, its own closed set of categories, and its own credential.
 
 For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture); C3 is below.
 Package structure is in the
@@ -12,12 +13,13 @@ Package structure is in the
 
 ### Use Cases
 
-- [Extract the intents in a user's message](docs/usecases/extract-intents.md)
+- [Act on the actions in a user's message](docs/usecases/extract-intents.md)
 
 ### Contracts
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
 - [AI provider — intent inference](docs/contracts/out/ai-provider.md) (outbound)
+- [Ledger Service — the expense proposal tool](docs/contracts/out/ledger-mcp.md) (outbound)
 
 ### Running It
 
@@ -41,24 +43,30 @@ System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", 
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(grpcService, "Intent Extraction gRPC Service", "@GrpcService", "Serves the ExtractIntents RPC", $tags="callerExternal")
-  Component(protoUtils, "Intent Proto Utils", "Static mapper", "Domain intents to protobuf response", $tags="callerExternal")
+  Component(tokenInterceptor, "Caller Token Interceptor", "ServerInterceptor", "Holds the call's token for its duration", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Turns each raw answer into a validated intent", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Assembles intents, then acts on each expense", $tags="core")
   Component(intent, "Intent / Money", "Domain value objects", "Intent hierarchy, money", $tags="core")
 
   Component(inferencePort, "Intent Inference Port", "Interface", "Outbound port", $tags="portOut")
+  Component(proposalPort, "Expense Proposal Port", "Interface", "Outbound port", $tags="portOut")
   Component(aiAdapter, "AI Intent Inference Adapter", "Spring AI ChatClient", "Prompts the model, returns raw answers", $tags="aiExternal")
+  Component(mcpAdapter, "MCP Expense Proposal Adapter", "Spring AI MCP client", "Calls the tool as the caller", $tags="callerExternal")
 }
 
-Rel(ledger, grpcService, "ExtractIntents", "gRPC")
+Rel(ledger, grpcService, "ExtractIntents + token", "gRPC")
+Rel_D(grpcService, tokenInterceptor, "Token held by")
 Rel_R(grpcService, extractIntentsPort, "Invokes")
-Rel_D(grpcService, protoUtils, "Maps via")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
 Rel_D(useCase, intent, "Assembles")
 
 Rel_R(useCase, inferencePort, "Uses")
+Rel_R(useCase, proposalPort, "Uses")
 Rel_L(aiAdapter, inferencePort, "Implements", $tags="implements")
+Rel_L(mcpAdapter, proposalPort, "Implements", $tags="implements")
 Rel_R(aiAdapter, aiProvider, "Prompt + JSON schema", "HTTPS")
+Rel_D(mcpAdapter, tokenInterceptor, "Reads the token from")
+Rel_L(mcpAdapter, ledger, "create_expense_proposal", "MCP over HTTP")
 
 SHOW_LEGEND()
 @enduml
@@ -69,9 +77,13 @@ SHOW_LEGEND()
 Because gRPC server reflection is enabled, the running service can be explored
 without a copy of the schema:
 
+A call carries its categories as a name and its grouping, and is refused without a bearer token — the one the
+service calls the ledger back with.
+
 ```bash
 grpcurl -plaintext localhost:1001 list
 grpcurl -plaintext \
-  -d '{"text":"spent 15 on lunch","known_categories":["Food","Travel"],"default_currency":"EUR"}' \
+  -H 'authorization: Bearer <jwt>' \
+  -d '{"text":"spent 15 on lunch","known_categories":[{"name":"Lunch","parent_name":"Food"}],"default_currency":"EUR"}' \
   localhost:1001 bot.finance.ai.v1.IntentExtractionService/ExtractIntents
 ```
