@@ -107,6 +107,11 @@ filling it yourself.
   natural fit, assertion style, import/qualified-name rules, description annotations). Whatever the form, never
   cover the same scenario twice.
 - Do not add helper utilities or shared fixtures beyond what this step needs.
+- **A fixture standing in for a value another component produces takes its shape from that component, not from
+  imagination.** When a test seeds a value some other class writes — a header a filter stored, an id a repository
+  assigned, a payload an upstream adapter built — find that class's own test and copy the shape it proves. A
+  plausible-looking value invented here passes this step and disagrees with production: two tests can agree with
+  each other and still both be wrong, and the system test is where that surfaces, several steps later.
 
 ### Phase 3 — Verify RED
 

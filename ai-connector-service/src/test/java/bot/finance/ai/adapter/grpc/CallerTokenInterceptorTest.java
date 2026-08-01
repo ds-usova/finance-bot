@@ -48,7 +48,7 @@ class CallerTokenInterceptorTest {
         @DisplayName("when the stub carries an authorization header - then the port is called with the caller token available in its context")
         void whenStubCarriesAuthorizationHeader_thenPortSeesCallerTokenInContext() {
             AtomicReference<Optional<String>> capturedToken = new AtomicReference<>();
-            doAnswer(invocation -> {
+            doAnswer(_ -> {
                 capturedToken.set(CallerTokenUtils.callerToken());
                 return null;
             }).when(extractIntentsPort).extractIntents(any());

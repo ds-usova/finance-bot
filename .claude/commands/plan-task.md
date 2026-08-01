@@ -305,6 +305,12 @@ The step sub-agent implements exactly the scenarios and `update:` bullets listed
 existing tests to touch. An update missing here is a plan defect, caught by the sub-agent's report or the plan review
 — not the sub-agent's call to fix.
 
+**Removed behaviour is searched for, not remembered.** Reviewing the classes a step already names finds a test that
+asserts *more* than it should; it does not find the test in some other class that asserts something the change
+**deletes**. When a decision removes anything a test can observe — a response field, a status, a component of a
+record, a value a message carries — search the test tree for that value and list every hit as an `update:` bullet,
+whatever class it lands in. The search term is the removed thing itself, not the classes the plan happens to touch.
+
 **Exclusion — simple delegation**: Do NOT add a class to this section if every method under test is a simple
 delegation (e.g., a one-line usecase method that only calls an outbound port with no logic of its own — no
 conditionals, no transformations, no error handling). Such trivial pass-through changes belong in the

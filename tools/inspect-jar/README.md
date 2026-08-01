@@ -33,6 +33,10 @@ tools/inspect-jar/inspect-jar.sh --javap  openai-java-core 'com.openai.core.Clie
 | `--source <artifact> <Class>`   | A class's `.java`, from the artifact's `-sources` jar.                |
 | `--javap <artifact> <Class>`    | The class disassembled with `-p -c`.                                  |
 
+`--head <n>` may follow any mode and caps the output at that many lines. Use it for a long class instead of
+redirecting to a file and measuring it: this tool writes nothing by design, and a redirect is also what stops
+the command from matching its permission rule, so it turns a silent run into an approval prompt.
+
 Exit codes: **0** found, **1** no match, **2** the artifact fragment was ambiguous, or the usage was wrong.
 
 ### Naming an artifact

@@ -81,6 +81,20 @@ mode="${1:-}"
 [ -n "$mode" ] || { usage; exit 2; }
 shift
 
+# --head <n> anywhere after the mode. It exists so a long class never has to be redirected to a file
+# and measured: this tool writes nothing, and a shell redirect is also what stops the command from
+# matching its permission rule.
+head_lines=""
+remaining=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --head) head_lines="${2:-}"; shift 2 ;;
+        *)      remaining+=("$1"); shift ;;
+    esac
+done
+set -- ${remaining[@]+"${remaining[@]}"}
+
+run_mode() {
 case "$mode" in
     --find)
         fragment="${1:-}"; [ -n "$fragment" ] || { usage; exit 2; }
@@ -152,3 +166,10 @@ case "$mode" in
         exit 2
         ;;
 esac
+}
+
+if [ -n "$head_lines" ]; then
+    run_mode "$@" | head -n "$head_lines"
+    exit "${PIPESTATUS[0]}"
+fi
+run_mode "$@"

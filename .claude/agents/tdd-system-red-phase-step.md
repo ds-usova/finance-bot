@@ -86,6 +86,11 @@ your report instead of filling it yourself.
 - Every test must assert something **meaningful**, derived from the entry point's contract and the scenario —
   specific response codes, specific response body values or outcomes, specific error responses — no trivial
   "call succeeded" checks.
+- **A `then` about stored state is asserted after the trigger, never arranged before it.** When a scenario says
+  state exists once the entry point has run — a user the turn created, a row the request wrote — read it back
+  afterwards and assert it. Seeding that state as a precondition deletes the assertion: the step goes green
+  whether or not the stack ever produced it, and the behaviour the scenario exists to prove is the one thing left
+  untested. Only state the scenario's `given` names is set up in advance.
 - Create every external test data file (e.g. request payload files) the tests need, in the location and naming
   scheme the conventions define — a test that references a missing file does not count as compiling.
 - Follow the testing-style rules in the conventions (parameterized-test preference, assertion style, import/

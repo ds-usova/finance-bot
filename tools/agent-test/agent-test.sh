@@ -19,6 +19,7 @@ mode="test"
 lock_wait=540
 use_lock=1
 keep_runs=20
+brief=0
 
 usage() {
     cat <<'EOF'
@@ -38,6 +39,9 @@ Options:
   --wait <seconds>    How long to wait for another run to finish before giving up. Default 540.
   --no-lock           Start immediately even if another run is in progress. Results stay separate,
                       but the runs compete for build/classes, Docker, and RAM.
+  --brief             Print the verdict, the totals and every failure, but not the per-class table.
+                      The table is still written to summary.txt. Use this instead of piping the
+                      output through head or tail, which truncates the failure list.
   --keep <count>      Previous run directories to keep. Older ones are deleted as a run starts.
                       Default 20; the current run's own directory is never counted.
 
@@ -59,6 +63,7 @@ while [ $# -gt 0 ]; do
         --compile)  mode="compile"; shift ;;
         --all)      mode="test"; shift ;;
         --no-lock)  use_lock=0; shift ;;
+        --brief)    brief=1; shift ;;
         -h|--help)  usage; exit 0 ;;
         *)          echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
@@ -271,7 +276,14 @@ fi
 
 echo "Run directory: ${run_dir#"$repo_root/"}  (console.log, test-results/, test-report/)"
 echo ""
-cat "$summary_file"
+if [ "$brief" = "1" ]; then
+    # The per-class table is the long half of the summary and is rarely what a run is read for; it stays
+    # in summary.txt either way. Dropping it here is what removes the reason to pipe this script's output.
+    awk '/^== Test classes ==$/ { print "(per-class table omitted; see summary.txt)"; exit } { print }' \
+        "$summary_file"
+else
+    cat "$summary_file"
+fi
 
 if [ "$exit_code" = "0" ]; then exit 0; fi
 exit 1

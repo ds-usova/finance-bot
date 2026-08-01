@@ -112,6 +112,11 @@ while [ $# -gt 0 ]; do
         --section) section_filter="${section_filter:+$section_filter,}${2:-}"; shift 2 ;;
         --all)     verbose=1; shift ;;
         -h|--help) usage; exit 0 ;;
+        # A bare plan path is accepted wherever --file is, on every subcommand. Without this the
+        # ID-taking ones read it as an ID and fail with "no item docs/x.md in docs/x.md".
+        *.md|*/*)
+            [ -z "$plan_file" ] || die "plan file given twice: $plan_file and $1"
+            plan_file="$1"; shift ;;
         *) args+=("$1"); shift ;;
     esac
 done

@@ -145,6 +145,13 @@ Covers the plan's **Stabilization** group — its **API Contract**, **Database**
 Stabilization** sections, in that order. Delegate them as one sub-agent task (they are small, sequential, and share
 context), passing the plan's checklist items verbatim plus the module conventions.
 
+**A test is never deleted to make the tree compile.** Stabilization changes signatures, and an existing test
+written against the old one often cannot compile against the new. Comment out only the lines that cannot compile,
+leave the rest of the test standing, and put a comment above them naming the red-phase step that owns the rework
+(`// TODO RU08: …`). The red agent then adapts a real scenario instead of writing one from nothing, and the plan's
+`update:` bullets still name methods that exist. Deleting a test class or method is done only where a checklist
+item says so.
+
 **Stabilization guardrail** — verify yourself before ticking the sections and moving on:
 
 1. **Compile-green**: the affected module(s) compile, including test sources.
@@ -152,7 +159,10 @@ context), passing the plan's checklist items verbatim plus the module convention
    it passes — this catches new or moved files that break the layer rules before any test is written against them.
 3. **Existing suite still green**: run the module's pre-existing test suite. Unless the plan explicitly calls for a
    breaking change, it must still pass.
-4. **Intent comments present and consistent**: the intent comments inside the stubs are load-bearing — red agents
+4. **No test was lost**: compare each module's test count against the Stage 0 baseline. A drop is a defect unless
+   the plan names the deletion — a green suite proves nothing when the tests that would have failed are gone. The
+   subtraction is the whole check, and both numbers are already in hand.
+5. **Intent comments present and consistent**: the intent comments inside the stubs are load-bearing — red agents
    derive their assertions from them and green agents implement against them, so a vague or wrong one poisons every
    downstream step and surfaces late, as confusing blockers or wrong-behavior implementations. For every stub
    method that a red-phase step covers (unit or integration — match the plan's `covers:` lists against the stubbed

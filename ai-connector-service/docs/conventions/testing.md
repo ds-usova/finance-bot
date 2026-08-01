@@ -76,6 +76,10 @@ bot.finance.ai
   the annotation, autowiring one bean and asserting nothing is enough. Without it the first real test to use the
   infrastructure is where a missing autoconfiguration surfaces, and it surfaces as that test's failure rather
   than as its own.
+- **A stub standing in for a protocol ships with a test that completes one exchange through it**, not one that
+  loads a context. A protocol has a preamble and correlation rules of its own — an MCP client sends `initialize`
+  and `notifications/initialized` before any tool call, and matches each response by the id it generated — so a
+  stub that answers only the interesting message is green on its own and unusable by the adapter it exists for.
 
 ## Naming Conventions
 
