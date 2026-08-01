@@ -13,7 +13,11 @@ public record KnownCategory(String name, String parentName) {
         }
     }
 
-    public String label() {
+    public static String label(String parentName, String name) {
         return parentName + " > " + name;
+    }
+
+    public String label() {
+        return label(parentName, name);
     }
 }

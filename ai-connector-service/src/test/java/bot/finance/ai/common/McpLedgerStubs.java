@@ -1,5 +1,8 @@
 package bot.finance.ai.common;
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.http.Fault;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
@@ -65,8 +68,7 @@ public final class McpLedgerStubs {
      */
     public static void stubCreateExpenseProposalTransportFailure() {
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(MCP_PATH))
-                .willReturn(aResponse()
-                        .withFault(com.github.tomakehurst.wiremock.http.Fault.CONNECTION_RESET_BY_PEER)));
+                .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
     }
 
     /**
@@ -101,7 +103,7 @@ public final class McpLedgerStubs {
                 .willReturn(jsonRpc(bodyTemplate)));
     }
 
-    private static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder jsonRpc(String bodyTemplate) {
+    private static ResponseDefinitionBuilder jsonRpc(String bodyTemplate) {
         return aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")

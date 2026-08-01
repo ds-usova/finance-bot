@@ -1,10 +1,12 @@
 package bot.finance.ai.adapter.grpc;
 
+import io.grpc.Context;
+
 import java.util.Optional;
 
 public final class CallerTokenUtils {
 
-    static final io.grpc.Context.Key<String> CALLER_TOKEN = io.grpc.Context.key("callerToken");
+    static final Context.Key<String> CALLER_TOKEN = Context.key("callerToken");
 
     private CallerTokenUtils() {}
 

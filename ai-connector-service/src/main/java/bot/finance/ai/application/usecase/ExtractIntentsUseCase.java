@@ -79,15 +79,16 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         }
     }
 
+    /**
+     * Reads the three fields unconditionally: {@code ExpenseIntent}'s compact constructor already rejects a
+     * CREATE missing any of them, and only a CREATE reaches here.
+     */
     private ProposedExpense toProposedExpense(ExpenseIntent expenseIntent) {
         return new ProposedExpense(
-                expenseIntent.categoryName()
-                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry a category")),
+                expenseIntent.categoryName().orElseThrow(),
                 expenseIntent.parentCategoryName(),
-                expenseIntent.description()
-                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry a description")),
-                expenseIntent.amount()
-                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry an amount")));
+                expenseIntent.description().orElseThrow(),
+                expenseIntent.amount().orElseThrow());
     }
 
     private List<CategoryOption> availableCategories(List<RawIntent> rawIntents, List<KnownCategory> knownCategories) {
@@ -197,7 +198,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
     private record CategoryOption(String name, Optional<String> parentName) {
 
         private Optional<String> label() {
-            return parentName.map(parent -> parent + " > " + name);
+            return parentName.map(parent -> KnownCategory.label(parent, name));
         }
 
         private String describe() {

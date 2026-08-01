@@ -2,15 +2,14 @@ package bot.finance.ai.adapter.grpc;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.GrpcAdapterTest;
 import bot.finance.ai.common.RequestFixtures;
-import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;
-import io.grpc.stub.MetadataUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,9 +31,6 @@ import static org.mockito.Mockito.verify;
 @ImportGrpcClients(types = HealthGrpc.HealthBlockingStub.class)
 class CallerTokenInterceptorTest {
 
-    private static final Metadata.Key<String> AUTHORIZATION =
-            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
-
     @Autowired
     private IntentExtractionServiceBlockingStub intentExtractionStub;
 
@@ -43,13 +39,6 @@ class CallerTokenInterceptorTest {
 
     @MockitoBean
     private ExtractIntentsPort extractIntentsPort;
-
-    private static IntentExtractionServiceBlockingStub withAuthorization(
-            IntentExtractionServiceBlockingStub stub, String value) {
-        Metadata headers = new Metadata();
-        headers.put(AUTHORIZATION, value);
-        return stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
-    }
 
     @Nested
     @DisplayName("Happy path")
@@ -64,7 +53,8 @@ class CallerTokenInterceptorTest {
                 return null;
             }).when(extractIntentsPort).extractIntents(any());
 
-            withAuthorization(intentExtractionStub, "Bearer abc").extractIntents(RequestFixtures.request());
+            AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer abc")
+                    .extractIntents(RequestFixtures.request());
 
             verify(extractIntentsPort).extractIntents(any());
             assertThat(capturedToken.get()).contains("Bearer abc");

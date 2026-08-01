@@ -4,16 +4,15 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.common.AbstractSystemTest;
+import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.ChatCompletionFixtures;
 import bot.finance.ai.common.McpLedgerStubs;
 import bot.finance.ai.common.RequestFixtures;
 import bot.finance.ai.common.WireMockStubs;
 import bot.finance.ai.common.WireMockSupport;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.MetadataUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,14 +31,10 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
  */
 class ExtractIntentsSystemTest extends AbstractSystemTest {
 
-    private static final Metadata.Key<String> AUTHORIZATION =
-            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
     private static final String CALLER_TOKEN = "caller-token-1";
 
     private IntentExtractionServiceBlockingStub authenticatedStub() {
-        Metadata headers = new Metadata();
-        headers.put(AUTHORIZATION, "Bearer " + CALLER_TOKEN);
-        return intentExtractionStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+        return AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer " + CALLER_TOKEN);
     }
 
     @Nested

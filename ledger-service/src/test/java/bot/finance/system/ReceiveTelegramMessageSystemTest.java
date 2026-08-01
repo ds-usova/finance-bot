@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.KnownCategory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.AbstractSystemTest;
@@ -130,9 +131,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
             assertThat(request.getText()).as("extraction request text").isEqualTo(MESSAGE_TEXT);
 
-            List<bot.finance.ai.adapter.grpc.v1.KnownCategory> expectedKnownCategories = Category.defaults().stream()
+            List<KnownCategory> expectedKnownCategories = Category.defaults().stream()
                     .flatMap(group -> group.children().stream()
-                            .map(child -> bot.finance.ai.adapter.grpc.v1.KnownCategory.newBuilder()
+                            .map(child -> KnownCategory.newBuilder()
                                     .setName(child.name())
                                     .setParentName(group.name())
                                     .build()))

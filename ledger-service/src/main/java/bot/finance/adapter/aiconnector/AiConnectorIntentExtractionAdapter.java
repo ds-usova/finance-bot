@@ -17,6 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort {
 
+    private static final Metadata.Key<String> AUTHORIZATION =
+            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+
     private final IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub intentExtractionStub;
     private final AccessTokenMinter accessTokenMinter;
     private final Logger log;
@@ -40,9 +43,7 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
 
         ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
         Metadata metadata = new Metadata();
-        metadata.put(
-                Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER),
-                "Bearer " + accessTokenMinter.mint(request.userExternalId()));
+        metadata.put(AUTHORIZATION, "Bearer " + accessTokenMinter.mint(request.userExternalId()));
         try {
             intentExtractionStub
                     .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))

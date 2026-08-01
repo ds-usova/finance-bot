@@ -6,15 +6,14 @@ import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtracti
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.GrpcAdapterTest;
 import bot.finance.ai.common.RequestFixtures;
 import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
 import bot.finance.ai.domain.exception.ExpenseProposalFailedException.Reason;
 import bot.finance.ai.domain.exception.IntentInferenceException;
-import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.MetadataUtils;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,9 +42,6 @@ class IntentExtractionGrpcServiceTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
 
-    private static final Metadata.Key<String> AUTHORIZATION =
-            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
-
     @Autowired
     private IntentExtractionServiceBlockingStub intentExtractionStub;
 
@@ -53,9 +49,7 @@ class IntentExtractionGrpcServiceTest {
     private ExtractIntentsPort extractIntentsPort;
 
     private IntentExtractionServiceBlockingStub authenticatedStub() {
-        Metadata headers = new Metadata();
-        headers.put(AUTHORIZATION, "Bearer opaque-caller-token");
-        return intentExtractionStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+        return AuthorizedStubs.withCallerToken(intentExtractionStub, "Bearer opaque-caller-token");
     }
 
     @Nested

@@ -6,6 +6,7 @@ import bot.finance.ai.common.LedgerAdapterTest;
 import bot.finance.ai.common.McpLedgerStubs;
 import bot.finance.ai.common.WireMockSupport;
 import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
+import bot.finance.ai.domain.exception.ExpenseProposalFailedException.Reason;
 import bot.finance.ai.domain.value.Money;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,17 +49,28 @@ class McpExpenseProposalAdapterTest {
     }
 
     /**
-     * Among the requests a session sent, the one invoking {@code create_expense_proposal} — as opposed to any
-     * handshake request the session also performs.
+     * Among the requests a session sent, those invoking {@code create_expense_proposal} — as opposed to the
+     * handshake requests every session also performs.
      */
-    private static LoggedRequest toolCallRequest(List<LoggedRequest> requests) throws JsonProcessingException {
-        for (LoggedRequest request : requests) {
-            JsonNode body = requestBody(request);
-            if ("create_expense_proposal".equals(body.at("/params/name").asText())) {
-                return request;
-            }
+    private static List<LoggedRequest> toolCallRequests(List<LoggedRequest> requests) {
+        return requests.stream()
+                .filter(request -> {
+                    try {
+                        return "create_expense_proposal".equals(
+                                requestBody(request).at("/params/name").asText());
+                    } catch (JsonProcessingException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                })
+                .toList();
+    }
+
+    private static LoggedRequest toolCallRequest(List<LoggedRequest> requests) {
+        List<LoggedRequest> toolCalls = toolCallRequests(requests);
+        if (toolCalls.isEmpty()) {
+            throw new AssertionError("no create_expense_proposal call among " + requests);
         }
-        throw new AssertionError("no create_expense_proposal call among " + requests);
+        return toolCalls.getFirst();
     }
 
     private static ProposedExpense proposedExpense(Optional<String> parentCategoryName) {
@@ -114,11 +127,9 @@ class McpExpenseProposalAdapterTest {
 
             assertThatThrownBy(() -> CallerTokenTestSupport.withCallerToken(
                             "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
-                    .isInstanceOf(ExpenseProposalFailedException.class)
-                    .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(
-                            ExpenseProposalFailedException.class))
-                    .extracting(ExpenseProposalFailedException::reason)
-                    .isEqualTo(ExpenseProposalFailedException.Reason.REFUSED);
+                    .isInstanceOfSatisfying(
+                            ExpenseProposalFailedException.class,
+                            failure -> assertThat(failure.reason()).isEqualTo(Reason.REFUSED));
         }
 
         @Test
@@ -129,11 +140,9 @@ class McpExpenseProposalAdapterTest {
 
             assertThatThrownBy(() -> CallerTokenTestSupport.withCallerToken(
                             "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
-                    .isInstanceOf(ExpenseProposalFailedException.class)
-                    .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(
-                            ExpenseProposalFailedException.class))
-                    .extracting(ExpenseProposalFailedException::reason)
-                    .isEqualTo(ExpenseProposalFailedException.Reason.UNREACHABLE);
+                    .isInstanceOfSatisfying(
+                            ExpenseProposalFailedException.class,
+                            failure -> assertThat(failure.reason()).isEqualTo(Reason.UNREACHABLE));
         }
 
         @Test
@@ -144,11 +153,9 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
 
             assertThatThrownBy(() -> adapter.propose(proposedExpense(Optional.empty())))
-                    .isInstanceOf(ExpenseProposalFailedException.class)
-                    .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(
-                            ExpenseProposalFailedException.class))
-                    .extracting(ExpenseProposalFailedException::reason)
-                    .isEqualTo(ExpenseProposalFailedException.Reason.UNREACHABLE);
+                    .isInstanceOfSatisfying(
+                            ExpenseProposalFailedException.class,
+                            failure -> assertThat(failure.reason()).isEqualTo(Reason.UNREACHABLE));
 
             assertThat(capturedRequests()).isEmpty();
         }
@@ -156,7 +163,7 @@ class McpExpenseProposalAdapterTest {
         @Test
         @DisplayName("when propose() is called twice - "
                 + "then each call performs its own MCP session and each carries its own token")
-        void whenCalledTwice_thenEachCallCarriesItsOwnToken() throws JsonProcessingException {
+        void whenCalledTwice_thenEachCallCarriesItsOwnToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
 
             CallerTokenTestSupport.withCallerToken(
@@ -164,17 +171,7 @@ class McpExpenseProposalAdapterTest {
             CallerTokenTestSupport.withCallerToken(
                     "Bearer caller-token-2", () -> adapter.propose(proposedExpense(Optional.empty())));
 
-            List<LoggedRequest> requests = capturedRequests();
-            List<LoggedRequest> toolCalls = requests.stream()
-                    .filter(request -> {
-                        try {
-                            return "create_expense_proposal".equals(
-                                    requestBody(request).at("/params/name").asText());
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .toList();
+            List<LoggedRequest> toolCalls = toolCallRequests(capturedRequests());
             assertThat(toolCalls).hasSize(2);
             assertThat(toolCalls.get(0).getHeader("Authorization")).isEqualTo("Bearer caller-token-1");
             assertThat(toolCalls.get(1).getHeader("Authorization")).isEqualTo("Bearer caller-token-2");
