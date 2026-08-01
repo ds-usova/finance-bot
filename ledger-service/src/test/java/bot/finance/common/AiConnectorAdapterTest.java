@@ -4,6 +4,8 @@ import bot.finance.adapter.aiconnector.AiConnectorChannelConfiguration;
 import bot.finance.adapter.aiconnector.AiConnectorHealthIndicator;
 import bot.finance.adapter.aiconnector.AiConnectorIntentExtractionAdapter;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.adapter.security.AccessTokenProperties;
 import bot.finance.common.containers.GrpcStubServer;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -11,6 +13,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.grpc.client.autoconfigure.CompositeChannelFactoryAutoConfiguration;
 import org.springframework.boot.grpc.client.autoconfigure.GrpcClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,8 +43,10 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
             AiConnectorIntentExtractionAdapter.class,
             AiConnectorHealthIndicator.class,
             AiConnectorChannelConfiguration.class,
+            AccessTokenMinter.class,
             Slf4jLoggerFactory.class
         })
+@EnableConfigurationProperties(AccessTokenProperties.class)
 @ImportAutoConfiguration({
     SslAutoConfiguration.class,
     GrpcClientAutoConfiguration.class,

@@ -21,7 +21,10 @@ bot.finance.ai
     ├── LogCapture             # Logback appender, for asserting on log output
     ├── ChatCompletionFixtures # provider response bodies
     ├── IntentFixtures         # domain Intent / Money builders
-    └── RequestFixtures        # valid ExtractIntentsRequest builders
+    ├── RequestFixtures        # valid ExtractIntentsRequest builders
+    ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
+    ├── LedgerAdapterTest      # composed annotation — McpExpenseProposalAdapter tests
+    └── LedgerAdapterContextTest # boots-itself test for LedgerAdapterTest
 ```
 
 ## Test Layers

@@ -44,5 +44,6 @@ conventions, the conventions win.
 - ADRs / design decisions: [`docs/adr/`](../adr/) — decisions the code cannot explain by itself, whose
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.
-  Repo-root `docs/implemented` — implemented plans.
+  Lifecycle rules: [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` —
+  implemented plans.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.

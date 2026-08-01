@@ -12,5 +12,3 @@ An amount of one currency, counted in that currency's smallest unit.
 ## Made of / held by
 
 A count of minor units and a [currency code](currency-code.md).
-
-- [Expense intent](expense-intent.md) — the amount a create carries.

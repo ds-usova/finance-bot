@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExtractIntentsCommandTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final List<String> KNOWN_CATEGORIES = List.of("Food", "Travel", "Other");
+    private static final List<KnownCategory> KNOWN_CATEGORIES = List.of(
+            new KnownCategory("Food", "Groceries"), new KnownCategory("Travel", "Trips"),
+            new KnownCategory("Other", "Other"));
 
     @Nested
     @DisplayName("constructing the command")
@@ -59,12 +61,10 @@ class ExtractIntentsCommandTest {
                     .isInstanceOf(InvalidValueException.class);
         }
 
-        @ParameterizedTest
-        @NullSource
-        @ValueSource(strings = {"", "   "})
-        @DisplayName("when the category list contains a null or blank element - then throws InvalidValueException")
-        void whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException(String element) {
-            List<String> categories = Arrays.asList("Food", element, "Other");
+        @Test
+        @DisplayName("when the category list contains a null element - then throws InvalidValueException")
+        void whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException() {
+            List<KnownCategory> categories = Arrays.asList(new KnownCategory("Food", "Groceries"), null);
 
             assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, categories, Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
@@ -74,13 +74,15 @@ class ExtractIntentsCommandTest {
         @DisplayName("when a mutable category list used to construct the command is modified afterwards - then "
                 + "the command's list is unchanged, and attempting to modify the command's own list throws")
         void whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchangedAndOwnListImmutable() {
-            List<String> mutable = new ArrayList<>(List.of("Food", "Travel"));
+            List<KnownCategory> mutable = new ArrayList<>(
+                    List.of(new KnownCategory("Food", "Groceries"), new KnownCategory("Travel", "Trips")));
 
             ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, mutable, Optional.empty());
-            mutable.add("Other");
+            mutable.add(new KnownCategory("Other", "Other"));
 
-            assertThat(command.knownCategories()).containsExactly("Food", "Travel");
-            assertThatThrownBy(() -> command.knownCategories().add("Other"))
+            assertThat(command.knownCategories())
+                    .containsExactly(new KnownCategory("Food", "Groceries"), new KnownCategory("Travel", "Trips"));
+            assertThatThrownBy(() -> command.knownCategories().add(new KnownCategory("Other", "Other")))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
 

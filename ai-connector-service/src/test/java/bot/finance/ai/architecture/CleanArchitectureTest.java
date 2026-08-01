@@ -34,7 +34,12 @@ class CleanArchitectureTest {
     static final ArchRule domainAndApplicationStayFrameworkAgnostic = noClasses()
             .that().resideInAnyPackage("bot.finance.ai.domain..", "bot.finance.ai.application..")
             .should().dependOnClassesThat().resideInAnyPackage(
-                    "org.springframework..", "jakarta..", "org.slf4j..", "io.grpc..", "com.google.protobuf..")
+                    "org.springframework..",
+                    "jakarta..",
+                    "org.slf4j..",
+                    "io.grpc..",
+                    "com.google.protobuf..",
+                    "io.modelcontextprotocol..")
             .allowEmptyShould(true);
 
     /**
@@ -48,6 +53,7 @@ class CleanArchitectureTest {
             .should().haveSimpleNameContaining("OpenAi")
             .orShould().haveSimpleNameContaining("Grpc")
             .orShould().haveSimpleNameContaining("Proto")
+            .orShould().haveSimpleNameContaining("Mcp")
             .allowEmptyShould(true);
 
     /**

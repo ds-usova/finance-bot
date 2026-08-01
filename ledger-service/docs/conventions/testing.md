@@ -22,8 +22,6 @@ bot.finance
     ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows
     ├── UserRowUtils          # stores a user row and returns its generated id
     ├── WireMockStubs         # stub registration, one static method per endpoint
-    ├── IntentFixtures        # generated ExtractIntentsResponse shapes and the domain Intent/Money
-    │                         # values they map onto
     ├── JsonUtils             # loads JSON fixtures from src/test/resources
     ├── LogCapture            # Logback appender, for asserting on log output
     ├── McpRequests           # JSON-RPC request bodies posted to /mcp

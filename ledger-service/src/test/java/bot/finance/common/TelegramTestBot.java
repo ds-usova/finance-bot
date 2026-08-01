@@ -41,6 +41,11 @@ public final class TelegramTestBot {
      */
     public static final String POLL_RECOVERY_TOKEN = "poll-recovery-test-token";
 
+    /**
+     * Token owned by {@code HandleIncomingMessageFailureSystemTest}.
+     */
+    public static final String HANDLE_MESSAGE_FAILURE_TOKEN = "handle-message-failure-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private TelegramTestBot() {}

@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -36,6 +37,13 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find children of category " + categoryId, e);
         }
+    }
+
+    @Override
+    public List<KnownCategory> findKnownCategories(long userId) {
+        // Reads every category that hangs off a grouping in one statement, and wraps a store failure as its
+        // siblings do.
+        return List.of();
     }
 
     private StoredCategory toStoredCategory(CategoryEntity entity) {

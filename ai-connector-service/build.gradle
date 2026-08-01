@@ -53,6 +53,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-webmvc"
     implementation "org.springframework.ai:spring-ai-starter-model-openai"
+    implementation "org.springframework.ai:spring-ai-starter-mcp-client"
 
     testImplementation "org.springframework.boot:spring-boot-starter-grpc-server-test"
     testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"

@@ -1,6 +1,7 @@
 package bot.finance.common;
 
 import bot.finance.LedgerServiceApplication;
+import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.WireMockSupport;
 import io.restassured.response.Response;
@@ -54,6 +55,15 @@ public abstract class AbstractSystemTest {
         registry.add("telegram.bot.api-url", () -> WireMockSupport.baseUrl() + "/bot");
     }
 
+    /**
+     * Points the application at the in-JVM gRPC stub connector rather than a dead address, so the fully wired
+     * application reaches it for every system test.
+     */
+    @DynamicPropertySource
+    static void aiConnectorProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.grpc.client.channel.ai-connector.target", GrpcStubServer::target);
+    }
+
     @PostConstruct
     void init() {
         // no op - in case we need to add something later
@@ -70,6 +80,7 @@ public abstract class AbstractSystemTest {
     @AfterEach
     void tearDown() {
         WireMockSupport.SERVER.resetAll();
+        GrpcStubServer.reset();
     }
 
     protected void logResponse(Response response) {

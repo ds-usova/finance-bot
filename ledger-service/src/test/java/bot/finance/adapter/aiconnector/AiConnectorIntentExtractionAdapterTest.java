@@ -1,21 +1,19 @@
 package bot.finance.adapter.aiconnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
+import bot.finance.application.dto.KnownCategory;
 import bot.finance.common.AiConnectorAdapterTest;
-import bot.finance.common.IntentFixtures;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
-import bot.finance.domain.value.CategoryIntent;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.ExpenseIntent;
-import bot.finance.domain.value.Intent;
-import bot.finance.domain.value.Operation;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.List;
@@ -45,60 +43,39 @@ class AiConnectorIntentExtractionAdapterTest {
 
         @Test
         @DisplayName(
-                "when the stub server answers a two-entry response - then the two domain intents come back in order, and the request the server received carries that text, those two categories in order, and that default currency")
-        void whenStubServerAnswersTwoEntryResponse_thenDomainIntentsComeBackInOrderAndServerReceivedRequestFields() {
-            GrpcStubServer.answerExtractionWith(IntentFixtures.response(
-                    IntentFixtures.categoryEntry(
-                            bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE, "Groceries", null),
-                    IntentFixtures.expenseEntry(
-                            bot.finance.ai.adapter.grpc.v1.Operation.OPERATION_CREATE,
-                            "Groceries",
-                            1500L,
-                            "USD",
-                            "milk")));
+                "when the stub server answers an empty response - then returns without throwing, and the request "
+                        + "the server received carries the text, categories and default currency")
+        void whenStubServerAnswersEmptyResponse_thenReturnsAndServerReceivedRequestFields() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
-                    "spent 15 on milk", List.of("Groceries", "Other"), Optional.of(CurrencyCode.of("USD")));
+                    "spent 15 on milk",
+                    List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id");
 
-            List<Intent> intents = adapter.extract(request);
-
-            CategoryIntent expectedCategoryIntent =
-                    IntentFixtures.categoryIntent(Operation.CREATE, "Groceries", Optional.empty());
-            ExpenseIntent expectedExpenseIntent = IntentFixtures.expenseIntent(
-                    Operation.CREATE,
-                    Optional.of("Groceries"),
-                    Optional.of(IntentFixtures.money(1500L, "USD")),
-                    Optional.of("milk"));
-            assertThat(intents).containsExactly(expectedCategoryIntent, expectedExpenseIntent);
+            assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
-            assertThat(receivedRequest.getKnownCategoriesList()).containsExactly("Groceries", "Other");
+            assertThat(receivedRequest.getKnownCategoriesList()).hasSize(2);
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
-        }
-
-        @Test
-        @DisplayName(
-                "when the stub server answers a response with no entries - then throws IntentExtractionFailedException")
-        void whenStubServerAnswersResponseWithNoEntries_thenThrowsIntentExtractionFailedException() {
-            GrpcStubServer.answerExtractionWith(IntentFixtures.response());
-            IntentExtractionRequest request =
-                    new IntentExtractionRequest("no intents here", List.of("Other"), Optional.empty());
-
-            assertThatThrownBy(() -> adapter.extract(request)).isInstanceOf(IntentExtractionFailedException.class);
         }
 
         @ParameterizedTest
         @EnumSource(
                 value = Status.Code.class,
-                names = {"INVALID_ARGUMENT", "UNAVAILABLE"})
+                names = {"INVALID_ARGUMENT", "UNAVAILABLE", "FAILED_PRECONDITION", "UNAUTHENTICATED"})
         @DisplayName(
                 "when the stub server fails the call - then throws IntentExtractionFailedException carrying the StatusRuntimeException as its cause and naming the status")
         void
                 whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionCarryingStatusRuntimeExceptionAsCauseAndNamingStatus(
                         Status.Code code) {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
-            IntentExtractionRequest request =
-                    new IntentExtractionRequest("connector unavailable", List.of("Other"), Optional.empty());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "connector unavailable",
+                    List.of(new KnownCategory("Other", "Other")),
+                    Optional.empty(),
+                    "user-external-id");
 
             IntentExtractionFailedException thrown =
                     catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);

@@ -1,9 +1,14 @@
 package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.KnownCategory;
+import bot.finance.ai.application.dto.ProposedExpense;
 import bot.finance.ai.application.dto.RawIntent;
+import bot.finance.ai.application.port.ExpenseProposalPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.IntentInferencePort;
+import bot.finance.ai.application.port.Logger;
+import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CategoryIntent;
 import bot.finance.ai.domain.value.CurrencyCode;
@@ -21,29 +26,43 @@ import java.util.Optional;
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
     private final IntentInferencePort intentInferencePort;
+    private final ExpenseProposalPort expenseProposalPort;
+    private final Logger log;
 
-    public ExtractIntentsUseCase(IntentInferencePort intentInferencePort) {
+    public ExtractIntentsUseCase(
+            IntentInferencePort intentInferencePort, ExpenseProposalPort expenseProposalPort,
+            LoggerFactory loggerFactory) {
         this.intentInferencePort = intentInferencePort;
+        this.expenseProposalPort = expenseProposalPort;
+        this.log = loggerFactory.getLogger(ExtractIntentsUseCase.class);
     }
 
     @Override
-    public List<Intent> extractIntents(ExtractIntentsCommand command) {
+    public void extractIntents(ExtractIntentsCommand command) {
         if (command == null) {
             throw new InvalidValueException("Command must not be null");
         }
 
-        List<RawIntent> rawIntents = intentInferencePort.infer(command.text(), command.knownCategories());
+        // TODO: render command.knownCategories() as labels (KnownCategory.label()) for the prompt, so the model
+        // sees "Insurance > Travel" beside "Travel".
+        List<String> knownCategoryLabels =
+                command.knownCategories().stream().map(KnownCategory::label).toList();
+        List<RawIntent> rawIntents = intentInferencePort.infer(command.text(), knownCategoryLabels);
         if (rawIntents == null || rawIntents.isEmpty()) {
-            return List.of(new UnknownIntent("The provider returned no intents"));
+            // TODO: nothing usable was extracted; the turn still completes normally (D22).
+            return;
         }
 
-        List<String> availableCategories = availableCategories(rawIntents, command.knownCategories());
+        List<String> availableCategories = availableCategories(rawIntents, knownCategoryLabels);
         List<Intent> intents = new ArrayList<>(rawIntents.size());
         for (RawIntent raw : rawIntents) {
             intents.add(assemble(raw, command, availableCategories));
         }
 
-        return intents;
+        // TODO: walk `intents` in order and call expenseProposalPort.propose for every ExpenseIntent whose
+        // operation is CREATE, matching a raw category name against the closed set by label first, then by
+        // bare name (D27), and log every other intent at info by target and operation (D22). Let
+        // ExpenseProposalFailedException propagate on the first failure (D24).
     }
 
     private List<String> availableCategories(List<RawIntent> rawIntents, List<String> knownCategories) {
@@ -95,7 +114,9 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         Optional<String> categoryName = matchCategory(raw.categoryName(), availableCategories);
         Optional<Money> amount = resolveAmount(raw, command);
         Optional<String> description = Optional.ofNullable(raw.description());
-        return new ExpenseIntent(operation, categoryName, amount, description);
+        // TODO: carry the matched category's parent name (D27); empty when the category was created by this
+        // same message (D28). Passing Optional.empty() for now.
+        return new ExpenseIntent(operation, categoryName, amount, description, Optional.empty());
     }
 
     private Optional<String> matchCategory(String rawCategoryName, List<String> availableCategories) {

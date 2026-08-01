@@ -52,6 +52,15 @@ public abstract class AbstractSystemTest {
         registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
     }
 
+    /**
+     * Points the application's MCP client at the WireMock singleton. It cannot live in
+     * {@code application-test.yaml} because the stub server binds a port that is only known at runtime.
+     */
+    @DynamicPropertySource
+    static void ledgerMcpProperties(DynamicPropertyRegistry registry) {
+        registry.add("ledger.mcp.url", WireMockSupport::baseUrl);
+    }
+
     @BeforeAll
     void openChannel() {
         channel = ManagedChannelBuilder.forAddress("localhost", grpcPort).usePlaintext().build();

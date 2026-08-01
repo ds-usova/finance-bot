@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public record ExtractIntentsCommand(
         String text,
-        List<String> knownCategories,
+        List<KnownCategory> knownCategories,
         Optional<CurrencyCode> defaultCurrency
 ) {
 
@@ -21,8 +21,8 @@ public record ExtractIntentsCommand(
             throw new InvalidValueException("Known categories must not be null or empty");
         }
 
-        if (knownCategories.stream().anyMatch(category -> category == null || category.isBlank())) {
-            throw new InvalidValueException("Known categories must not contain a null or blank element");
+        if (knownCategories.stream().anyMatch(category -> category == null)) {
+            throw new InvalidValueException("Known categories must not contain a null element");
         }
 
         if (defaultCurrency == null) {

@@ -3,8 +3,15 @@ package bot.finance.common.containers;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
+import io.grpc.Context;
+import io.grpc.Contexts;
+import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.ServerInterceptors;
 import io.grpc.Status;
 import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
@@ -19,6 +26,7 @@ public class GrpcStubServer {
     public static final Server SERVER;
 
     private static final AtomicReference<ExtractIntentsRequest> LAST_EXTRACTION_REQUEST = new AtomicReference<>();
+    private static final AtomicReference<Metadata> LAST_EXTRACTION_METADATA = new AtomicReference<>();
     private static final AtomicReference<HealthCheckRequest> LAST_HEALTH_CHECK_REQUEST = new AtomicReference<>();
 
     private static volatile ExtractIntentsResponse extractionResponse = ExtractIntentsResponse.getDefaultInstance();
@@ -29,7 +37,8 @@ public class GrpcStubServer {
     static {
         try {
             SERVER = ServerBuilder.forPort(0)
-                    .addService(new StubIntentExtractionService())
+                    .addService(ServerInterceptors.intercept(
+                            new StubIntentExtractionService(), new ExtractionMetadataInterceptor()))
                     .addService(new StubHealthService())
                     .build()
                     .start();
@@ -57,6 +66,10 @@ public class GrpcStubServer {
         return LAST_EXTRACTION_REQUEST.get();
     }
 
+    public static Metadata lastExtractionMetadata() {
+        return LAST_EXTRACTION_METADATA.get();
+    }
+
     public static void reportServingStatus(HealthCheckResponse.ServingStatus status) {
         servingStatus = status;
         healthFailure = null;
@@ -72,11 +85,22 @@ public class GrpcStubServer {
 
     public static void reset() {
         LAST_EXTRACTION_REQUEST.set(null);
+        LAST_EXTRACTION_METADATA.set(null);
         LAST_HEALTH_CHECK_REQUEST.set(null);
         extractionResponse = ExtractIntentsResponse.getDefaultInstance();
         extractionFailure = null;
         servingStatus = HealthCheckResponse.ServingStatus.SERVING;
         healthFailure = null;
+    }
+
+    private static final class ExtractionMetadataInterceptor implements ServerInterceptor {
+
+        @Override
+        public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+            LAST_EXTRACTION_METADATA.set(headers);
+            return Contexts.interceptCall(Context.current(), call, headers, next);
+        }
     }
 
     private static final class StubIntentExtractionService

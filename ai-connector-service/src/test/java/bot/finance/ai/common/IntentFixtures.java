@@ -39,19 +39,39 @@ public final class IntentFixtures {
     }
 
     public static ExpenseIntent expenseIntent(
-            Operation operation, Optional<String> categoryName, Optional<Money> amount, Optional<String> description) {
-        return new ExpenseIntent(operation, categoryName, amount, description);
+            Operation operation,
+            Optional<String> categoryName,
+            Optional<Money> amount,
+            Optional<String> description,
+            Optional<String> parentCategoryName) {
+        return new ExpenseIntent(operation, categoryName, amount, description, parentCategoryName);
     }
 
     /**
-     * An {@link ExpenseIntent} valid for {@code operation}: carries both a category and an amount when the
-     * operation is {@code CREATE}, since the compact constructor rejects a CREATE missing either.
+     * An {@link ExpenseIntent} valid for {@code operation}: carries a category, an amount and a description
+     * when the operation is {@code CREATE}, since the compact constructor rejects a CREATE missing any of them.
+     * The parent category name is empty.
      */
     public static ExpenseIntent expenseIntent(Operation operation) {
         if (operation == Operation.CREATE) {
-            return expenseIntent(operation, Optional.of("Food"), Optional.of(money()), Optional.of("lunch"));
+            return expenseIntent(
+                    operation, Optional.of("Food"), Optional.of(money()), Optional.of("lunch"), Optional.empty());
         }
-        return expenseIntent(operation, Optional.empty(), Optional.empty(), Optional.empty());
+        return expenseIntent(operation, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+    }
+
+    /**
+     * A {@code CREATE} {@link ExpenseIntent} carrying the given parent category name and description, for
+     * scenarios that need the grouping ExtractIntentsUseCase matched or the description a proposal carries.
+     */
+    public static ExpenseIntent expenseIntentWithParentAndDescription(
+            String categoryName, String parentCategoryName, String description) {
+        return expenseIntent(
+                Operation.CREATE,
+                Optional.of(categoryName),
+                Optional.of(money()),
+                Optional.of(description),
+                Optional.of(parentCategoryName));
     }
 
     public static UnknownIntent unknownIntent(String reason) {

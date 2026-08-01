@@ -27,11 +27,14 @@ class IntentExtractionRequestTest {
         @Test
         @DisplayName("when text, one category, and a default currency are valid - then it holds all three")
         void whenTextOneCategoryAndDefaultCurrencyAreValid_thenItHoldsAllThree() {
-            IntentExtractionRequest request =
-                    new IntentExtractionRequest("lunch 12 euro", List.of("food"), Optional.of(CurrencyCode.of("EUR")));
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(new KnownCategory("food", "groceries")),
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id");
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
-            assertThat(request.knownCategories()).containsExactly("food");
+            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
             assertThat(request.defaultCurrency()).contains(CurrencyCode.of("EUR"));
         }
 
@@ -39,8 +42,11 @@ class IntentExtractionRequestTest {
         @MethodSource("nullOrBlankText")
         @DisplayName("when text is null or blank - then throws InvalidExtractionRequestException")
         void whenTextIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String text) {
-            assertThatThrownBy(() ->
-                            new IntentExtractionRequest(text, List.of("food"), Optional.of(CurrencyCode.of("EUR"))))
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            text,
+                            List.of(new KnownCategory("food", "groceries")),
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id"))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -52,9 +58,9 @@ class IntentExtractionRequestTest {
         @MethodSource("nullOrEmptyCategories")
         @DisplayName("when known categories is null or empty - then throws InvalidExtractionRequestException")
         void whenKnownCategoriesIsNullOrEmpty_thenThrowsInvalidExtractionRequestException(
-                List<String> knownCategories) {
+                List<KnownCategory> knownCategories) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR"))))
+                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id"))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -62,48 +68,67 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments(List.of()));
         }
 
-        @ParameterizedTest
-        @MethodSource("categoriesWithInvalidEntry")
+        @Test
         @DisplayName(
-                "when known categories contains a null or blank entry - then throws InvalidExtractionRequestException")
-        void whenKnownCategoriesContainsNullOrBlankEntry_thenThrowsInvalidExtractionRequestException(
-                List<String> knownCategories) {
-            assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR"))))
-                    .isInstanceOf(InvalidExtractionRequestException.class);
-        }
+                "when known categories contains a null entry - then throws InvalidExtractionRequestException")
+        void whenKnownCategoriesContainsNullOrBlankEntry_thenThrowsInvalidExtractionRequestException() {
+            List<KnownCategory> knownCategories = Arrays.asList(new KnownCategory("food", "groceries"), null);
 
-        static Stream<Arguments> categoriesWithInvalidEntry() {
-            return Stream.of(arguments(Arrays.asList("food", null)), arguments(List.of("food", "   ")));
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id"))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
         @Test
         @DisplayName("when the default currency optional is null - then throws InvalidExtractionRequestException")
         void whenDefaultCurrencyIsNull_thenThrowsInvalidExtractionRequestException() {
-            assertThatThrownBy(() -> new IntentExtractionRequest("lunch 12 euro", List.of("food"), null))
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of(new KnownCategory("food", "groceries")),
+                            null,
+                            "user-external-id"))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
         @Test
         @DisplayName("when the default currency is empty - then default currency comes back empty")
         void whenDefaultCurrencyIsEmpty_thenDefaultCurrencyComesBackEmpty() {
-            IntentExtractionRequest request =
-                    new IntentExtractionRequest("lunch 12 euro", List.of("food"), Optional.empty());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(new KnownCategory("food", "groceries")),
+                    Optional.empty(),
+                    "user-external-id");
 
             assertThat(request.defaultCurrency()).isEmpty();
+        }
+
+        @ParameterizedTest(name = "userExternalId={0}")
+        @MethodSource("nullOrBlankUserExternalId")
+        @DisplayName("when userExternalId is null or blank - then throws InvalidExtractionRequestException")
+        void whenUserExternalIdIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String userExternalId) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of(new KnownCategory("food", "groceries")),
+                            Optional.of(CurrencyCode.of("EUR")),
+                            userExternalId))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> nullOrBlankUserExternalId() {
+            return Stream.of(arguments((Object) null), arguments("   "));
         }
 
         @Test
         @DisplayName("when the mutable category list handed to the constructor is modified afterwards - "
                 + "then known categories is unchanged")
         void whenKnownCategoriesListIsModifiedAfterConstruction_thenKnownCategoriesIsUnchanged() {
-            List<String> mutableCategories = new ArrayList<>(List.of("food"));
+            List<KnownCategory> mutableCategories = new ArrayList<>(List.of(new KnownCategory("food", "groceries")));
 
             IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro", mutableCategories, Optional.of(CurrencyCode.of("EUR")));
-            mutableCategories.add("transport");
+                    "lunch 12 euro", mutableCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id");
+            mutableCategories.add(new KnownCategory("transport", "travel"));
 
-            assertThat(request.knownCategories()).containsExactly("food");
+            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
         }
     }
 }

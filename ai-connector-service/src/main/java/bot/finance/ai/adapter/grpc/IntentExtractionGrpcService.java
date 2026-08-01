@@ -4,6 +4,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
@@ -11,6 +12,7 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.springframework.grpc.server.service.GrpcService;
 
+import java.util.List;
 import java.util.Optional;
 
 @GrpcService
@@ -42,11 +44,13 @@ public class IntentExtractionGrpcService
             return;
         }
 
-        ExtractIntentsCommand command = new ExtractIntentsCommand(
-                request.getText(), request.getKnownCategoriesList(), defaultCurrency);
-        ExtractIntentsResponse response = IntentProtoUtils.toResponse(extractIntentsPort.extractIntents(command));
+        List<KnownCategory> knownCategories = request.getKnownCategoriesList().stream()
+                .map(entry -> new KnownCategory(entry.getName(), entry.getParentName()))
+                .toList();
+        ExtractIntentsCommand command = new ExtractIntentsCommand(request.getText(), knownCategories, defaultCurrency);
+        extractIntentsPort.extractIntents(command);
 
-        responseObserver.onNext(response);
+        responseObserver.onNext(ExtractIntentsResponse.getDefaultInstance());
         responseObserver.onCompleted();
     }
 
@@ -65,12 +69,8 @@ public class IntentExtractionGrpcService
             return true;
         }
 
-        if (request.getKnownCategoriesList().stream().anyMatch(String::isBlank)) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Known categories must not contain a blank entry")
-                    .asRuntimeException());
-            return true;
-        }
+        // TODO: reject an entry whose name or parent_name is blank with INVALID_ARGUMENT (D41), before the
+        // provider is called.
 
         return false;
     }

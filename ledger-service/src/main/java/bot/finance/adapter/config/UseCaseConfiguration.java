@@ -7,6 +7,7 @@ import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
+import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
@@ -21,8 +22,13 @@ import org.springframework.context.annotation.Configuration;
 public class UseCaseConfiguration {
 
     @Bean
-    HandleIncomingMessagePort handleIncomingMessagePort(LoggerFactory loggerFactory) {
-        return new HandleIncomingMessageUseCase(loggerFactory);
+    HandleIncomingMessagePort handleIncomingMessagePort(
+            InitializeUserPort initializeUserPort,
+            CategoryRepository categoryRepository,
+            IntentExtractionPort intentExtractionPort,
+            LoggerFactory loggerFactory) {
+        return new HandleIncomingMessageUseCase(
+                initializeUserPort, categoryRepository, intentExtractionPort, loggerFactory);
     }
 
     @Bean

@@ -23,6 +23,10 @@ ai:
     system-prompt: classpath:prompts/extract-intents.st
     user-message-template: classpath:prompts/user-message.st
 
+ledger:
+  mcp:
+    url: ${LEDGER_MCP_URL:http://localhost:1000}
+
 management:
   endpoints:
     web:

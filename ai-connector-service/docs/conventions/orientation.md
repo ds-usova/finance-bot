@@ -46,8 +46,9 @@ conventions, the conventions win.
   supplies, and what breaks without them.
 - ADRs / design decisions: `docs/adr/` here — decisions the code cannot explain by itself, whose consequences
   stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also constrain another
-  service or the repository. One number sequence spans both, so each tier carries gaps. Repo-root
-  `docs/implemented` — implemented plans.
+  service or the repository. One number sequence spans both, so each tier carries gaps. Lifecycle rules:
+  [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` — implemented
+  plans.
 - API reference: the Protocol Buffers schema itself (see
   [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.

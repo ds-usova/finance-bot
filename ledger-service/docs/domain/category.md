@@ -16,6 +16,5 @@ A name and its children, which are categories themselves.
 
 - [User](user.md) — a set of categories is stored with each one.
 - [Initialize a new user](../usecases/initialize-a-new-user.md) — lists the catalogue every new user starts with.
-- [Category intent](category-intent.md) — names a category to act on.
 - Which names may repeat under which parent
   ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).

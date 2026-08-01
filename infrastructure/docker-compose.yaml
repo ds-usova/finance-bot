@@ -54,6 +54,7 @@ services:
       - "1002:1002"
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LEDGER_MCP_URL: http://ledger-service:1000
     networks:
       - backend
 

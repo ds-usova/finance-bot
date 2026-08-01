@@ -48,7 +48,8 @@ class ExpenseIntentTest {
         @Test
         @DisplayName("when the operation is null - then throws InvalidValueException")
         void whenOperationIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new ExpenseIntent(null, Optional.empty(), Optional.empty(), Optional.empty()))
+            assertThatThrownBy(() -> new ExpenseIntent(
+                            null, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -56,16 +57,21 @@ class ExpenseIntentTest {
         @MethodSource("nullOptionalPositions")
         @DisplayName("when a null Optional is given in any optional position - then throws InvalidValueException")
         void whenNullOptionalGivenInAnyOptionalPosition_thenThrowsInvalidValueException(
-                Optional<String> categoryName, Optional<Money> amount, Optional<String> description) {
-            assertThatThrownBy(() -> new ExpenseIntent(Operation.READ, categoryName, amount, description))
+                Optional<String> categoryName,
+                Optional<Money> amount,
+                Optional<String> description,
+                Optional<String> parentCategoryName) {
+            assertThatThrownBy(() -> new ExpenseIntent(
+                            Operation.READ, categoryName, amount, description, parentCategoryName))
                     .isInstanceOf(InvalidValueException.class);
         }
 
         static Stream<Arguments> nullOptionalPositions() {
             return Stream.of(
-                    Arguments.of(null, Optional.empty(), Optional.empty()),
-                    Arguments.of(Optional.empty(), null, Optional.empty()),
-                    Arguments.of(Optional.empty(), Optional.empty(), null));
+                    Arguments.of(null, Optional.empty(), Optional.empty(), Optional.empty()),
+                    Arguments.of(Optional.empty(), null, Optional.empty(), Optional.empty()),
+                    Arguments.of(Optional.empty(), Optional.empty(), null, Optional.empty()),
+                    Arguments.of(Optional.empty(), Optional.empty(), Optional.empty(), null));
         }
 
         @Test
@@ -73,7 +79,11 @@ class ExpenseIntentTest {
                 + "operation and the field")
         void whenOperationCreateHasNoAmount_thenThrowsInvalidValueExceptionNamingOperationAndField() {
             assertThatThrownBy(() -> new ExpenseIntent(
-                    Operation.CREATE, Optional.of("Food"), Optional.empty(), Optional.empty()))
+                            Operation.CREATE,
+                            Optional.of("Food"),
+                            Optional.empty(),
+                            Optional.empty(),
+                            Optional.empty()))
                     .isInstanceOf(InvalidValueException.class)
                     .hasMessageContaining(Operation.CREATE.name())
                     .hasMessageContaining("amount");
@@ -84,7 +94,11 @@ class ExpenseIntentTest {
                 + "operation and the field")
         void whenOperationCreateHasNoCategory_thenThrowsInvalidValueExceptionNamingOperationAndField() {
             assertThatThrownBy(() -> new ExpenseIntent(
-                    Operation.CREATE, Optional.empty(), Optional.of(IntentFixtures.money()), Optional.empty()))
+                            Operation.CREATE,
+                            Optional.empty(),
+                            Optional.of(IntentFixtures.money()),
+                            Optional.empty(),
+                            Optional.empty()))
                     .isInstanceOf(InvalidValueException.class)
                     .hasMessageContaining(Operation.CREATE.name())
                     .hasMessageContaining("categoryName");
