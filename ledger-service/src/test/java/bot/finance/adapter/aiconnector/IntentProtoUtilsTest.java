@@ -55,5 +55,24 @@ class IntentProtoUtilsTest {
 
             assertThat(protoRequest.hasDefaultCurrency()).isFalse();
         }
+
+        @Test
+        @DisplayName("when the request carries two known categories - then the generated request holds two "
+                + "KnownCategory messages, each with its name and parent name, in order")
+        void whenRequestCarriesTwoKnownCategories_thenGeneratedRequestHoldsTwoKnownCategoryMessagesInOrder() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Transport", "Travel")),
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id");
+
+            ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+
+            assertThat(protoRequest.getKnownCategoriesList()).hasSize(2);
+            assertThat(protoRequest.getKnownCategories(0).getName()).isEqualTo("Groceries");
+            assertThat(protoRequest.getKnownCategories(0).getParentName()).isEqualTo("Food");
+            assertThat(protoRequest.getKnownCategories(1).getName()).isEqualTo("Transport");
+            assertThat(protoRequest.getKnownCategories(1).getParentName()).isEqualTo("Travel");
+        }
     }
 }

@@ -14,10 +14,15 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -57,8 +62,35 @@ class AiConnectorIntentExtractionAdapterTest {
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
-            assertThat(receivedRequest.getKnownCategoriesList()).hasSize(2);
+            assertThat(receivedRequest.getKnownCategoriesList())
+                    .extracting(
+                            bot.finance.ai.adapter.grpc.v1.KnownCategory::getName,
+                            bot.finance.ai.adapter.grpc.v1.KnownCategory::getParentName)
+                    .containsExactly(Tuple.tuple("Groceries", "Food"), Tuple.tuple("Other", "Other"));
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
+        }
+
+        @Test
+        @DisplayName(
+                "when extract is called - then the call's metadata carries authorization: Bearer <jwt>, whose sub claim is the request's userExternalId")
+        void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of(new KnownCategory("Groceries", "Food")),
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id-77");
+
+            adapter.extract(request);
+
+            Metadata metadata = GrpcStubServer.lastExtractionMetadata();
+            assertThat(metadata).isNotNull();
+            String authorizationHeader = metadata.get(
+                    Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            assertThat(authorizationHeader).startsWith("Bearer ");
+            String token = authorizationHeader.substring("Bearer ".length());
+            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            assertThat(claims.getSubject()).isEqualTo("user-external-id-77");
         }
 
         @ParameterizedTest
@@ -94,6 +126,7 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThatThrownBy(() -> adapter.extract(null)).isInstanceOf(InvalidExtractionRequestException.class);
 
             assertThat(GrpcStubServer.lastExtractionRequest()).isNull();
+            assertThat(GrpcStubServer.lastExtractionMetadata()).isNull();
         }
     }
 }

@@ -157,7 +157,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `KnownCategory` (`bot.finance.application.dto`) · test: `KnownCategoryTest` · covers:
+- [x] RU01 · `KnownCategory` (`bot.finance.application.dto`) · test: `KnownCategoryTest` · covers:
   `KnownCategory(String, String)`
   - `KnownCategory(String, String)`:
     - given: a name and a parent name, both non-blank
@@ -170,7 +170,7 @@
       when: the record is constructed
       then: `InvalidExtractionRequestException` is thrown
 
-- [ ] RU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers:
+- [x] RU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers:
   `IntentExtractionRequest(String, List, Optional, String)`
   - `IntentExtractionRequest(String, List, Optional, String)`:
     - given: a valid text, one `KnownCategory`, an empty currency and a non-blank external id
@@ -190,7 +190,7 @@
     `whenKnownCategoriesListIsModifiedAfterConstruction_thenKnownCategoriesIsUnchanged()` — each construction
     site takes a `List<KnownCategory>` and the new `userExternalId` argument.
 
-- [ ] RU03 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] RU03 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
   - `handle()`:
     - given: mocked ports where `initialize` answers a `User` with an id and an external id, and
       `findKnownCategories` answers two categories
@@ -215,7 +215,7 @@
   - update: `whenCommandIsNull_thenThrowsInvalidIncomingMessageExceptionAndLogsNothing()` — also assert none of
     the three ports is called.
 
-- [ ] RU04 · `KnownCategory` (`bot.finance.ai.application.dto`) · test: `KnownCategoryTest` · covers:
+- [x] RU04 · `KnownCategory` (`bot.finance.ai.application.dto`) · test: `KnownCategoryTest` · covers:
   `KnownCategory(String, String)`, `label()`
   - `KnownCategory(String, String)`:
     - given: a name and a parent name, both non-blank
@@ -229,7 +229,7 @@
       when: `label()` is called
       then: it renders `Insurance > Travel`
 
-- [ ] RU05 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers:
+- [x] RU05 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers:
   `ExtractIntentsCommand(String, List, Optional)`
   - update: `whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException()` — the blank case
     moves to RU04's `KnownCategory`; keep only the null element and rename accordingly.
@@ -242,7 +242,7 @@
     `whenDefaultCurrencyOptionalIsNull_thenThrowsInvalidValueException()` — each construction site takes a
     `List<KnownCategory>`.
 
-- [ ] RU06 · `ExpenseIntent` · test: `ExpenseIntentTest` · covers: `ExpenseIntent(Operation, Optional,
+- [x] RU06 · `ExpenseIntent` · test: `ExpenseIntentTest` · covers: `ExpenseIntent(Operation, Optional,
   Optional, Optional, Optional)`
   - `ExpenseIntent(Operation, Optional, Optional, Optional, Optional)`:
     - given: a `CREATE` intent with an amount, a category, a description and a present parent category name
@@ -265,7 +265,7 @@
     construction site passes the new `parentCategoryName` component, and every `CREATE` case that currently
     omits a description gains one.
 
-- [ ] RU07 · `ProposedExpense` · test: `ProposedExpenseTest` · covers:
+- [x] RU07 · `ProposedExpense` · test: `ProposedExpenseTest` · covers:
   `ProposedExpense(String, Optional, String, Money)`
   - `ProposedExpense(String, Optional, String, Money)`:
     - given: a category name, a present parent category name, a description and a `Money`
@@ -278,7 +278,7 @@
       when: the record is constructed
       then: `InvalidValueException` is thrown
 
-- [ ] RU08 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
+- [x] RU08 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
   - `extractIntents()`:
     - given: a command whose known categories are `Insurance > Travel` and `Food > Lunch`
       when: `extractIntents` is called
@@ -343,7 +343,7 @@
     captured log lines instead of on a returned list, and each builds its command from `KnownCategory` values.
     Keep the assembly behaviour they cover; drop only the return-value assertions.
 
-- [ ] RU09 · `CallerTokenUtils` · test: `CallerTokenUtilsTest` · covers: `callerToken()`
+- [x] RU09 · `CallerTokenUtils` · test: `CallerTokenUtilsTest` · covers: `callerToken()`
   - `callerToken()`:
     - given: the context key holds `Bearer abc`
       when: `callerToken()` is called inside that context
@@ -352,7 +352,7 @@
       when: `callerToken()` is called
       then: it answers an empty `Optional`
 
-- [ ] RU10 · `IntentProtoUtils` (`bot.finance.adapter.aiconnector`) · test: `IntentProtoUtilsTest` · covers:
+- [x] RU10 · `IntentProtoUtils` (`bot.finance.adapter.aiconnector`) · test: `IntentProtoUtilsTest` · covers:
   `toProtoRequest()`
   - `toProtoRequest()`:
     - given: a request carrying two `KnownCategory` values
@@ -366,7 +366,7 @@
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
+- [x] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
   `findKnownCategories()`
   - `findKnownCategories()`:
     - given: a stored user with one grouping and two categories under it
@@ -386,7 +386,7 @@
       when: `findKnownCategories` is called
       then: `PersistenceFailedException` is thrown carrying the framework exception as its cause
 
-- [ ] RI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()`
   - `extract()`:
     - given: the stub server answers an empty `ExtractIntentsResponse`
@@ -409,7 +409,7 @@
   - note: `whenStubServerAnswersTwoEntryResponse_thenDomainIntentsComeBackInOrderAndServerReceivedRequestFields`
     was deleted in stabilization; the first scenario above replaces it.
 
-- [ ] RI03 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI03 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `ExtractIntents` · mocks: `ExtractIntentsPort`
   - Happy Path:
     - given: the mocked port returns normally
@@ -440,7 +440,7 @@
     `MetadataUtils.newAttachHeadersInterceptor`: `@GrpcAdapterTest` boots the whole application, so ST16's
     interceptor is registered and would refuse an unauthenticated call before the mocked port is reached.
 
-- [ ] RI04 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `ExtractIntents` ·
+- [x] RI04 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `ExtractIntents` ·
   mocks: `ExtractIntentsPort`
   - Happy Path:
     - given: a stub carrying `authorization: Bearer abc` in the call's metadata
@@ -456,7 +456,7 @@
       then: it succeeds — the refusal is scoped to `IntentExtractionService`, and the ledger's health
       indicator probes with no token
 
-- [ ] RI05 · `McpExpenseProposalAdapter` · test: `McpExpenseProposalAdapterTest` · covers: `propose()`
+- [x] RI05 · `McpExpenseProposalAdapter` · test: `McpExpenseProposalAdapterTest` · covers: `propose()`
   - `propose()`:
     - given: the stubbed ledger accepts `create_expense_proposal` and answers a stored proposal, and the
       caller's token is held in the gRPC context
@@ -483,7 +483,7 @@
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
   - Happy Path:
     - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — the
       batch is still confirmed, but the assertion on the logged message text goes (**D15**). Instead: the user
@@ -492,7 +492,7 @@
       `authorization: Bearer <jwt>` whose `sub` is the conversation id, and the use case's info line names the
       conversation without the text.
 
-- [ ] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
   - Unhappy Path:
     - given: the stub connector fails `ExtractIntents` with `UNAVAILABLE`, and the poll loop is stubbed with
       one text-message update under this class's own bot token
@@ -500,7 +500,7 @@
       then: the failure is logged by `TelegramUpdateListener` and the batch is still confirmed with the
       follow-up `getUpdates` offset (**D6**)
 
-- [ ] RS03 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
+- [x] RS03 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
   - Happy Path:
     - given: the provider answers one `CREATE` expense filed under `Insurance > Travel`, the stubbed ledger
       accepts the tool call, and the request carries a bearer token

@@ -82,7 +82,7 @@ class ExpenseIntentTest {
                             Operation.CREATE,
                             Optional.of("Food"),
                             Optional.empty(),
-                            Optional.empty(),
+                            Optional.of("lunch"),
                             Optional.empty()))
                     .isInstanceOf(InvalidValueException.class)
                     .hasMessageContaining(Operation.CREATE.name())
@@ -97,11 +97,44 @@ class ExpenseIntentTest {
                             Operation.CREATE,
                             Optional.empty(),
                             Optional.of(IntentFixtures.money()),
-                            Optional.empty(),
+                            Optional.of("lunch"),
                             Optional.empty()))
                     .isInstanceOf(InvalidValueException.class)
                     .hasMessageContaining(Operation.CREATE.name())
                     .hasMessageContaining("categoryName");
+        }
+
+        @Test
+        @DisplayName("when operation CREATE has an amount, a category, a description and a present parent "
+                + "category name - then parentCategoryName reads back with that value")
+        void whenOperationCreateHasPresentParentCategoryName_thenParentCategoryNameReadsBack() {
+            ExpenseIntent intent = IntentFixtures.expenseIntentWithParentAndDescription("Food", "Groceries", "lunch");
+
+            assertThat(intent.parentCategoryName()).contains("Groceries");
+        }
+
+        @Test
+        @DisplayName("when operation CREATE has an amount, a category and a description but an empty parent "
+                + "category name - then the intent is created")
+        void whenOperationCreateHasEmptyParentCategoryName_thenIntentIsCreated() {
+            ExpenseIntent intent = IntentFixtures.expenseIntent(Operation.CREATE);
+
+            assertThat(intent.parentCategoryName()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when operation CREATE has an amount and a category but an empty description - then throws "
+                + "InvalidValueException naming the description")
+        void whenOperationCreateHasNoDescription_thenThrowsInvalidValueExceptionNamingDescription() {
+            assertThatThrownBy(() -> new ExpenseIntent(
+                            Operation.CREATE,
+                            Optional.of("Food"),
+                            Optional.of(IntentFixtures.money()),
+                            Optional.empty(),
+                            Optional.empty()))
+                    .isInstanceOf(InvalidValueException.class)
+                    .hasMessageContaining(Operation.CREATE.name())
+                    .hasMessageContaining("description");
         }
 
     }

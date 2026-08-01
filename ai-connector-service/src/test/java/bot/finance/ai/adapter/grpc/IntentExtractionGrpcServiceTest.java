@@ -1,14 +1,21 @@
 package bot.finance.ai.adapter.grpc;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.GrpcAdapterTest;
 import bot.finance.ai.common.RequestFixtures;
+import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
+import bot.finance.ai.domain.exception.ExpenseProposalFailedException.Reason;
 import bot.finance.ai.domain.exception.IntentInferenceException;
+import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.MetadataUtils;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,11 +43,20 @@ class IntentExtractionGrpcServiceTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
 
+    private static final Metadata.Key<String> AUTHORIZATION =
+            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+
     @Autowired
     private IntentExtractionServiceBlockingStub intentExtractionStub;
 
     @MockitoBean
     private ExtractIntentsPort extractIntentsPort;
+
+    private IntentExtractionServiceBlockingStub authenticatedStub() {
+        Metadata headers = new Metadata();
+        headers.put(AUTHORIZATION, "Bearer opaque-caller-token");
+        return intentExtractionStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+    }
 
     @Nested
     @DisplayName("Happy path")
@@ -51,7 +67,7 @@ class IntentExtractionGrpcServiceTest {
         @DisplayName("when the request carries a default currency in any casing - then the command holds it as a present, upper-cased currency code")
         void whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode(
                 String defaultCurrency) {
-            intentExtractionStub.extractIntents(
+            authenticatedStub().extractIntents(
                     RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, defaultCurrency));
 
             ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
@@ -59,6 +75,27 @@ class IntentExtractionGrpcServiceTest {
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().defaultCurrency()).isPresent();
             assertThat(commandCaptor.getValue().defaultCurrency().get().code()).isEqualTo("EUR");
+        }
+
+        @Test
+        @DisplayName("when a request carrying a text and two known categories arrives - then the port is called with a command whose known categories hold both names and parent names in order, and the RPC answers an empty response")
+        void whenRequestCarriesTextAndTwoKnownCategories_thenPortReceivesOrderedCategoriesAndResponseIsEmpty() {
+            List<bot.finance.ai.adapter.grpc.v1.KnownCategory> knownCategories = List.of(
+                    RequestFixtures.knownCategory("Lunch", "Food"),
+                    RequestFixtures.knownCategory("Travel", "Insurance"));
+
+            ExtractIntentsResponse response =
+                    authenticatedStub().extractIntents(RequestFixtures.request(TEXT, knownCategories));
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
+                    ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().knownCategories())
+                    .extracting(KnownCategory::name, KnownCategory::parentName)
+                    .containsExactly(
+                            Tuple.tuple("Lunch", "Food"),
+                            Tuple.tuple("Travel", "Insurance"));
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
 
     }
@@ -73,7 +110,7 @@ class IntentExtractionGrpcServiceTest {
             doThrow(new IntentInferenceException("provider unreachable"))
                     .when(extractIntentsPort).extractIntents(any());
 
-            assertThatThrownBy(() -> intentExtractionStub.extractIntents(RequestFixtures.request()))
+            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.UNAVAILABLE);
@@ -85,13 +122,37 @@ class IntentExtractionGrpcServiceTest {
             String secretMessage = "sensitive internal detail";
             doThrow(new RuntimeException(secretMessage)).when(extractIntentsPort).extractIntents(any());
 
-            assertThatThrownBy(() -> intentExtractionStub.extractIntents(RequestFixtures.request()))
+            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
                     .satisfies(ex -> {
                         Status status = ((StatusRuntimeException) ex).getStatus();
                         assertThat(status.getCode()).isEqualTo(Status.Code.UNKNOWN);
                         assertThat(Optional.ofNullable(status.getDescription()).orElse("")).doesNotContain(secretMessage);
                     });
+        }
+
+        @Test
+        @DisplayName("when the port throws ExpenseProposalFailedException for a refused proposal - then the RPC fails with status FAILED_PRECONDITION")
+        void whenPortThrowsExpenseProposalFailedExceptionForRefusedProposal_thenFailsWithFailedPrecondition() {
+            doThrow(new ExpenseProposalFailedException("ledger refused the proposal", Reason.REFUSED))
+                    .when(extractIntentsPort).extractIntents(any());
+
+            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
+                    .isInstanceOf(StatusRuntimeException.class)
+                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
+                    .isEqualTo(Status.Code.FAILED_PRECONDITION);
+        }
+
+        @Test
+        @DisplayName("when the port throws ExpenseProposalFailedException for an unreachable ledger - then the RPC fails with status UNAVAILABLE")
+        void whenPortThrowsExpenseProposalFailedExceptionForUnreachableLedger_thenFailsWithUnavailable() {
+            doThrow(new ExpenseProposalFailedException("ledger unreachable", Reason.UNREACHABLE))
+                    .when(extractIntentsPort).extractIntents(any());
+
+            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
+                    .isInstanceOf(StatusRuntimeException.class)
+                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
+                    .isEqualTo(Status.Code.UNAVAILABLE);
         }
 
     }
@@ -105,7 +166,7 @@ class IntentExtractionGrpcServiceTest {
         @DisplayName("when the request violates a validation constraint - then it fails with INVALID_ARGUMENT and the port is never called")
         void whenRequestViolatesConstraint_thenFailsWithInvalidArgumentAndPortNeverCalled(
                 String caseName, ExtractIntentsRequest request) {
-            assertThatThrownBy(() -> intentExtractionStub.extractIntents(request))
+            assertThatThrownBy(() -> authenticatedStub().extractIntents(request))
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.INVALID_ARGUMENT);
@@ -118,7 +179,11 @@ class IntentExtractionGrpcServiceTest {
                     Arguments.of("text whitespace-only", RequestFixtures.request("   ")),
                     Arguments.of("known_categories empty", RequestFixtures.request(TEXT, List.of())),
                     Arguments.of("default_currency not a known ISO 4217 code",
-                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, "ZZZ")));
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, "ZZZ")),
+                    Arguments.of("known_categories entry with a blank name",
+                            RequestFixtures.request(TEXT, List.of(RequestFixtures.knownCategory("", "Food")))),
+                    Arguments.of("known_categories entry with a blank parent_name",
+                            RequestFixtures.request(TEXT, List.of(RequestFixtures.knownCategory("Lunch", "")))));
         }
 
     }

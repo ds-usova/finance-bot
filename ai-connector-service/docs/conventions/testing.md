@@ -82,7 +82,10 @@ bot.finance.ai
 - Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
 - Helpers: static `*Utils` classes with a private constructor.
 - New shared builders and factories go in `bot.finance.ai.common` and get listed in
-  [Package Structure](#package-structure), so later tests reuse them instead of recreating them.
+  [Package Structure](#package-structure), so later tests reuse them instead of recreating them. The exception
+  is a helper needing package-private access to the class it fronts: it stays in that class's package and is
+  listed there — `adapter/grpc/CallerTokenTestSupport` runs a body inside a context holding a caller token,
+  which `bot.finance.ai.common` could not reach.
 
 ## Testing Style
 

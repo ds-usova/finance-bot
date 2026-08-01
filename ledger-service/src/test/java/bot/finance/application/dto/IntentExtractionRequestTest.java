@@ -38,6 +38,24 @@ class IntentExtractionRequestTest {
             assertThat(request.defaultCurrency()).contains(CurrencyCode.of("EUR"));
         }
 
+        @Test
+        @DisplayName("when text, one category, an empty currency and a non-blank external id are valid - "
+                + "then every component reads back unchanged and known categories is unmodifiable")
+        void whenTextOneCategoryEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndKnownCategoriesIsUnmodifiable() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(new KnownCategory("food", "groceries")),
+                    Optional.empty(),
+                    "user-external-id");
+
+            assertThat(request.text()).isEqualTo("lunch 12 euro");
+            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
+            assertThat(request.defaultCurrency()).isEmpty();
+            assertThat(request.userExternalId()).isEqualTo("user-external-id");
+            assertThatThrownBy(() -> request.knownCategories().add(new KnownCategory("transport", "travel")))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+
         @ParameterizedTest(name = "text={0}")
         @MethodSource("nullOrBlankText")
         @DisplayName("when text is null or blank - then throws InvalidExtractionRequestException")
@@ -71,7 +89,7 @@ class IntentExtractionRequestTest {
         @Test
         @DisplayName(
                 "when known categories contains a null entry - then throws InvalidExtractionRequestException")
-        void whenKnownCategoriesContainsNullOrBlankEntry_thenThrowsInvalidExtractionRequestException() {
+        void whenKnownCategoriesContainsNullEntry_thenThrowsInvalidExtractionRequestException() {
             List<KnownCategory> knownCategories = Arrays.asList(new KnownCategory("food", "groceries"), null);
 
             assertThatThrownBy(() -> new IntentExtractionRequest(

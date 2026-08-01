@@ -63,7 +63,7 @@ class ExtractIntentsCommandTest {
 
         @Test
         @DisplayName("when the category list contains a null element - then throws InvalidValueException")
-        void whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException() {
+        void whenCategoryListContainsNullElement_thenThrowsInvalidValueException() {
             List<KnownCategory> categories = Arrays.asList(new KnownCategory("Food", "Groceries"), null);
 
             assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, categories, Optional.empty()))

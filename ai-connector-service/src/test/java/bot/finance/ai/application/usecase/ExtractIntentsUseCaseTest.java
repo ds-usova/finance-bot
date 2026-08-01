@@ -2,14 +2,17 @@ package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.KnownCategory;
+import bot.finance.ai.application.dto.ProposedExpense;
 import bot.finance.ai.application.dto.RawIntent;
 import bot.finance.ai.application.port.ExpenseProposalPort;
 import bot.finance.ai.application.port.IntentInferencePort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
+import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
 import bot.finance.ai.domain.exception.IntentInferenceException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.Money;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,17 +20,24 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static bot.finance.ai.common.IntentFixtures.rawIntent;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,6 +50,7 @@ class ExtractIntentsUseCaseTest {
 
     private IntentInferencePort intentInferencePort;
     private ExpenseProposalPort expenseProposalPort;
+    private Logger log;
     private ExtractIntentsUseCase useCase;
 
     @BeforeEach
@@ -47,7 +58,8 @@ class ExtractIntentsUseCaseTest {
         intentInferencePort = mock(IntentInferencePort.class);
         expenseProposalPort = mock(ExpenseProposalPort.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
-        when(loggerFactory.getLogger(any())).thenReturn(mock(Logger.class));
+        log = mock(Logger.class);
+        when(loggerFactory.getLogger(any())).thenReturn(log);
         useCase = new ExtractIntentsUseCase(intentInferencePort, expenseProposalPort, loggerFactory);
     }
 
@@ -64,6 +76,21 @@ class ExtractIntentsUseCaseTest {
         return new ExtractIntentsCommand(text, knownCategories, Optional.of(defaultCurrency));
     }
 
+    /**
+     * The lines {@code log} received at info, message and placeholders flattened into one string each, in call
+     * order.
+     */
+    private List<String> loggedInfoLines() {
+        return mockingDetails(log).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("info"))
+                .map(invocation -> {
+                    Object[] arguments = invocation.getArguments();
+                    Object[] placeholders = Arrays.copyOfRange(arguments, 1, arguments.length);
+                    return arguments[0] + " " + Arrays.toString(placeholders);
+                })
+                .toList();
+    }
+
     @Nested
     @DisplayName("extracting intents")
     class ExtractIntents {
@@ -76,11 +103,17 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(eq(TEXT), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert the port was called with the rendered labels, and that the CREATE expense
-            //  was proposed carrying Food, its grouping, the amount and the description.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
 
-            verify(intentInferencePort).infer(eq(TEXT), any());
+            verify(intentInferencePort).infer(
+                    eq(TEXT), eq(List.of("Everyday > Food", "Everyday > Travel", "Everyday > Other")));
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            ProposedExpense proposed = captor.getValue();
+            assertThat(proposed.categoryName()).isEqualTo("Food");
+            assertThat(proposed.parentCategoryName()).contains("Everyday");
+            assertThat(proposed.description()).isEqualTo("lunch");
+            assertThat(proposed.amount()).isEqualTo(Money.of("15.00", "EUR"));
         }
 
         @Test
@@ -91,8 +124,11 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food"), known("Other")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the unmatched entry was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
+            assertThat(loggedInfoLines().get(0)).contains("Shopping");
         }
 
         @Test
@@ -103,8 +139,11 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert the proposal carries the known category's own spelling, "Food".
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Food");
         }
 
         @Test
@@ -115,8 +154,11 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food"), known("Other")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the category intent was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
+            assertThat(loggedInfoLines().get(0)).contains("Travel");
         }
 
         @Test
@@ -127,8 +169,11 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the DELETE category intent was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
+            assertThat(loggedInfoLines().get(0)).contains("Food");
         }
 
         @Test
@@ -142,9 +187,13 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(firstExpense, category, secondExpense));
 
-            // TODO RU08: assert both CREATE expenses were proposed, in the user's order, and the category
-            //  intent between them was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort, times(2)).propose(captor.capture());
+            assertThat(captor.getAllValues()).extracting(ProposedExpense::description)
+                    .containsExactly("breakfast", "dinner");
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -159,9 +208,11 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(category, badExpense, goodExpense));
 
-            // TODO RU08: assert only the last entry was proposed, and the unusable one between them did not
-            //  stop the walk.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort, times(1)).propose(captor.capture());
+            assertThat(captor.getValue().description()).isEqualTo("dinner");
         }
 
         @ParameterizedTest
@@ -174,8 +225,10 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the unrecognized entry was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -186,8 +239,10 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the unrecognized operation was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -198,8 +253,10 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the rejected amount was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -210,8 +267,10 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed and the missing amount was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -222,8 +281,13 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")), CurrencyCode.of("EUR"));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert the proposal carries 1500 minor units in EUR, the command's default.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            Money amount = captor.getValue().amount();
+            assertThat(amount.minorUnits()).isEqualTo(1500);
+            assertThat(amount.currencyCode().code()).isEqualTo("EUR");
         }
 
         @Test
@@ -234,8 +298,9 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert nothing was proposed - an amount with no currency and no default is unknown.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
         }
 
         @Test
@@ -246,8 +311,11 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, List.of(known("Food")), CurrencyCode.of("EUR"));
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
 
-            // TODO RU08: assert the proposal carries USD, the currency the answer named, not the default.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().amount().currencyCode().code()).isEqualTo("USD");
         }
 
         @Test
@@ -257,8 +325,10 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(any(), any())).thenReturn(List.of());
 
-            // TODO RU08: assert nothing was proposed and the empty answer was logged as skipped.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test
@@ -267,8 +337,9 @@ class ExtractIntentsUseCaseTest {
             ExtractIntentsCommand command = command(TEXT, KNOWN_CATEGORIES);
             when(intentInferencePort.infer(any(), any())).thenReturn(null);
 
-            // TODO RU08: assert nothing was proposed.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
         }
 
         @Test
@@ -281,8 +352,11 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(Arrays.asList(category, null, expense));
 
-            // TODO RU08: assert the trailing expense was still proposed - a null element does not stop the walk.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().description()).isEqualTo("dinner");
         }
 
         @Test
@@ -294,6 +368,8 @@ class ExtractIntentsUseCaseTest {
 
             assertThatThrownBy(() -> useCase.extractIntents(command))
                     .isInstanceOf(IntentInferenceException.class);
+
+            verifyNoInteractions(expenseProposalPort);
         }
 
         @Test
@@ -317,9 +393,12 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
-            // TODO RU08: assert the proposal carries Travel with an empty parent - a category the same message
-            //  created has no grouping (D28).
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Travel");
+            assertThat(captor.getValue().parentCategoryName()).isEmpty();
         }
 
         @Test
@@ -333,8 +412,11 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(expenseRaw, categoryRaw));
 
-            // TODO RU08: assert the proposal carries Travel even though the creation answer follows it.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Travel");
         }
 
         @Test
@@ -347,8 +429,11 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
-            // TODO RU08: assert the proposal carries the creation answer's spelling, "Travel".
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Travel");
         }
 
         @Test
@@ -362,8 +447,11 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
-            // TODO RU08: assert the proposal carries Travel, added to the available set by the deletion answer.
-            assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Travel");
         }
 
         @Test
@@ -376,8 +464,163 @@ class ExtractIntentsUseCaseTest {
             when(intentInferencePort.infer(any(), any()))
                     .thenReturn(List.of(categoryRaw, expenseRaw));
 
-            // TODO RU08: assert nothing was proposed and both entries were logged as skipped.
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("when known categories render to distinct labels - then the port is called with the "
+                + "rendered labels in the command's order")
+        void whenKnownCategoriesRenderToDistinctLabels_thenPortCalledWithLabelsInCommandsOrder() {
+            List<KnownCategory> knownCategories =
+                    List.of(new KnownCategory("Travel", "Insurance"), new KnownCategory("Lunch", "Food"));
+            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of());
+
+            useCase.extractIntents(command);
+
+            verify(intentInferencePort).infer(eq(TEXT), eq(List.of("Insurance > Travel", "Food > Lunch")));
+        }
+
+        @Test
+        @DisplayName("when an expense answer names a category by its full label - then the proposal carries the "
+                + "category name and its parent")
+        void whenExpenseAnswerNamesCategoryByItsFullLabel_thenProposalCarriesNameAndParent() {
+            List<KnownCategory> knownCategories = List.of(new KnownCategory("Travel", "Insurance"));
+            RawIntent raw = rawIntent("expense", "create", "Insurance > Travel", null, "12.00", "EUR", "flight");
+            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
+
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Travel");
+            assertThat(captor.getValue().parentCategoryName()).contains("Insurance");
+            assertThat(captor.getValue().description()).isEqualTo("flight");
+            assertThat(captor.getValue().amount()).isEqualTo(Money.of("12.00", "EUR"));
+        }
+
+        @Test
+        @DisplayName("when a bare category name matches multiple known categories - then nothing is proposed "
+                + "and the ambiguity is logged")
+        void whenBareNameMatchesMultipleKnownCategories_thenNothingProposedAndAmbiguityLogged() {
+            List<KnownCategory> knownCategories =
+                    List.of(new KnownCategory("Travel", "Insurance"), new KnownCategory("Travel", "Trips"));
+            RawIntent raw = rawIntent("expense", "create", "Travel", null, "12.00", "EUR", "cab");
+            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
+
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
+            assertThat(loggedInfoLines().get(0)).contains("Travel");
+        }
+
+        @Test
+        @DisplayName("when a bare category name matches exactly one known category - then the proposal carries "
+                + "the category name and its parent")
+        void whenBareNameMatchesExactlyOneKnownCategory_thenProposalCarriesNameAndParent() {
+            List<KnownCategory> knownCategories =
+                    List.of(new KnownCategory("Travel", "Insurance"), new KnownCategory("Lunch", "Food"));
+            RawIntent raw = rawIntent("expense", "create", "Lunch", null, "12.00", "EUR", "noodles");
+            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
+
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Lunch");
+            assertThat(captor.getValue().parentCategoryName()).contains("Food");
+        }
+
+        @Test
+        @DisplayName("when an expense is filed under a category the same message creates - then the proposal "
+                + "carries an empty parent")
+        void whenExpenseIsFiledUnderCategoryCreatedByTheSameMessage_thenProposalCarriesEmptyParent() {
+            RawIntent categoryRaw = rawIntent("category", "create", "Trips", null, null, null, null);
+            RawIntent expenseRaw = rawIntent("expense", "create", "Trips", null, "12.00", "EUR", "gear");
+            ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
+            when(intentInferencePort.infer(any(), any()))
+                    .thenReturn(List.of(categoryRaw, expenseRaw));
+
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort).propose(captor.capture());
+            assertThat(captor.getValue().categoryName()).isEqualTo("Trips");
+            assertThat(captor.getValue().parentCategoryName()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when the answers mix a CREATE expense with a READ expense, a category intent and an "
+                + "unusable entry - then only the CREATE expense is proposed and the others are logged")
+        void whenAnswersMixCreateExpenseWithReadCategoryAndUnusable_thenOnlyCreateExpenseIsProposedAndOthersLogged() {
+            RawIntent createExpense = rawIntent("expense", "create", "Food", null, "10", "EUR", "lunch");
+            RawIntent readExpense = rawIntent("expense", "read", null, null, null, null, null);
+            RawIntent categoryIntentRaw = rawIntent("category", "delete", "Food", null, null, null, null);
+            RawIntent unusableRaw = rawIntent(null, "read", null, null, null, null, null);
+            ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
+            when(intentInferencePort.infer(any(), any()))
+                    .thenReturn(List.of(createExpense, readExpense, categoryIntentRaw, unusableRaw));
+
+            useCase.extractIntents(command);
+
+            ArgumentCaptor<ProposedExpense> captor = ArgumentCaptor.forClass(ProposedExpense.class);
+            verify(expenseProposalPort, times(1)).propose(captor.capture());
+            assertThat(captor.getValue().description()).isEqualTo("lunch");
+            assertThat(loggedInfoLines()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("when propose fails on the second of three CREATE expenses - then the exception propagates "
+                + "and the third is never proposed")
+        void whenProposeFailsOnSecondOfThreeCreateExpenses_thenExceptionPropagatesAndThirdIsNeverProposed() {
+            RawIntent first = rawIntent("expense", "create", "Food", null, "10", "EUR", "e1");
+            RawIntent second = rawIntent("expense", "create", "Food", null, "20", "EUR", "e2");
+            RawIntent third = rawIntent("expense", "create", "Food", null, "30", "EUR", "e3");
+            ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(first, second, third));
+            doNothing()
+                    .doThrow(new ExpenseProposalFailedException(
+                            "refused", ExpenseProposalFailedException.Reason.REFUSED))
+                    .when(expenseProposalPort).propose(any());
+
+            assertThatThrownBy(() -> useCase.extractIntents(command))
+                    .isInstanceOf(ExpenseProposalFailedException.class);
+
+            verify(expenseProposalPort, times(2)).propose(any());
+        }
+
+        @Test
+        @DisplayName("when a CREATE expense answer has no description - then nothing is proposed and the "
+                + "skipped entry is logged")
+        void whenCreateExpenseAnswerHasNoDescription_thenNothingProposedAndSkippedEntryLogged() {
+            RawIntent raw = rawIntent("expense", "create", "Food", null, "10", "EUR", null);
+            ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(raw));
+
+            useCase.extractIntents(command);
+
+            verify(expenseProposalPort, never()).propose(any());
+            assertThat(loggedInfoLines()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("when no answer is usable - then no proposal is made and the call returns normally")
+        void whenNoAnswerIsUsable_thenNoProposalIsMadeAndCallReturnsNormally() {
+            RawIntent categoryRaw = rawIntent("category", "delete", "Food", null, null, null, null);
+            RawIntent unusableRaw = rawIntent(null, "read", null, null, null, null, null);
+            ExtractIntentsCommand command = command(TEXT, List.of(known("Food")));
+            when(intentInferencePort.infer(any(), any())).thenReturn(List.of(categoryRaw, unusableRaw));
+
             assertThatCode(() -> useCase.extractIntents(command)).doesNotThrowAnyException();
+
+            verify(expenseProposalPort, never()).propose(any());
         }
 
     }
