@@ -29,6 +29,7 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
 
     private static final int UPDATE_ID = 42;
     private static final long CHAT_ID = 555L;
+    private static final String CONVERSATION_ID = "555";
     private static final String MESSAGE_TEXT = "lunch 12 euro";
     private static final String CONFIRMED_OFFSET = String.valueOf(UPDATE_ID + 1);
     private static final int TOO_MANY_REQUESTS = 429;
@@ -62,16 +63,16 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName(
-                "when the first poll fails with error code 429 - then the loop recovers and the message text is still logged")
-        void whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageTextIsStillLogged() {
-            await("the message text is logged after the failed poll")
+                "when the first poll fails with error code 429 - then the loop recovers and the message is still handled")
+        void whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageIsStillHandled() {
+            await("the message is handled after the failed poll")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
                         log.debug("Captured log messages: {}", logCapture.messages());
 
                         assertThat(logCapture.messages())
                                 .as("messages logged by the use case once the good response arrived")
-                                .anyMatch(message -> message.contains(MESSAGE_TEXT));
+                                .anyMatch(message -> message.contains(CONVERSATION_ID));
                     });
 
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> {

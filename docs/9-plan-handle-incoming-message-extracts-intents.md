@@ -179,9 +179,9 @@
     - given: a null or blank `userExternalId`, everything else valid
       when: the record is constructed
       then: `InvalidExtractionRequestException` is thrown
-  - update: `whenKnownCategoriesContainsNullOrBlankEntry_thenThrowsInvalidExtractionRequestException()` — the
-    blank case moves to `KnownCategory`, so this test and its `categoriesWithInvalidEntry` source now cover only
-    a null element; rename accordingly.
+  - update: `whenKnownCategoriesContainsNullEntry_thenThrowsInvalidExtractionRequestException()` — the blank
+    case moved to `KnownCategory`, so this test and its `categoriesWithInvalidEntry` source cover only a null
+    element, and the name lost its `OrBlank`.
   - update: `whenTextOneCategoryAndDefaultCurrencyAreValid_thenItHoldsAllThree()`,
     `whenTextIsNullOrBlank_thenThrowsInvalidExtractionRequestException()`,
     `whenKnownCategoriesIsNullOrEmpty_thenThrowsInvalidExtractionRequestException()`,
@@ -231,8 +231,8 @@
 
 - [x] RU05 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers:
   `ExtractIntentsCommand(String, List, Optional)`
-  - update: `whenCategoryListContainsNullOrBlankElement_thenThrowsInvalidValueException()` — the blank case
-    moves to RU04's `KnownCategory`; keep only the null element and rename accordingly.
+  - update: `whenCategoryListContainsNullElement_thenThrowsInvalidValueException()` — the blank case moved to
+    RU04's `KnownCategory`, leaving only the null element, and the name lost its `OrBlank`.
   - update: `whenNonBlankTextAndCategoryList_thenCommandExposesBoth()`,
     `whenTextIsNullEmptyOrBlank_thenThrowsInvalidValueException()`,
     `whenCategoryListIsEmpty_thenThrowsInvalidValueException()`,
@@ -530,32 +530,32 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `KnownCategory` (`bot.finance.application.dto`) · test: `KnownCategoryTest`
-- [ ] GU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
-- [ ] GU03 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU02
-- [ ] GU04 · `KnownCategory` (`bot.finance.ai.application.dto`) · test: `KnownCategoryTest`
-- [ ] GU05 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU04
-- [ ] GU06 · `ExpenseIntent` · test: `ExpenseIntentTest`
-- [ ] GU07 · `ProposedExpense` · test: `ProposedExpenseTest`
-- [ ] GU08 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU04, GU05, GU06, GU07
-- [ ] GU09 · `CallerTokenUtils` · test: `CallerTokenUtilsTest`
-- [ ] GU10 · `IntentProtoUtils` (`bot.finance.adapter.aiconnector`) · test: `IntentProtoUtilsTest` ·
+- [x] GU01 · `KnownCategory` (`bot.finance.application.dto`) · test: `KnownCategoryTest`
+- [x] GU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
+- [x] GU03 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU02
+- [x] GU04 · `KnownCategory` (`bot.finance.ai.application.dto`) · test: `KnownCategoryTest`
+- [x] GU05 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU04
+- [x] GU06 · `ExpenseIntent` · test: `ExpenseIntentTest`
+- [x] GU07 · `ProposedExpense` · test: `ProposedExpenseTest`
+- [x] GU08 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU04, GU05, GU06, GU07
+- [x] GU09 · `CallerTokenUtils` · test: `CallerTokenUtilsTest`
+- [x] GU10 · `IntentProtoUtils` (`bot.finance.adapter.aiconnector`) · test: `IntentProtoUtilsTest` ·
   after: GU01, GU02
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU01
-- [ ] GI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
+- [x] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU01
+- [x] GI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
   after: GU01, GU02, GU10
-- [ ] GI03 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU04, GU05, GI04
-- [ ] GI04 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · after: GU09
-- [ ] GI05 · `McpExpenseProposalAdapter` · test: `McpExpenseProposalAdapterTest` · after: GU07, GU09
+- [x] GI03 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU04, GU05, GI04
+- [x] GI04 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · after: GU09
+- [x] GI05 · `McpExpenseProposalAdapter` · test: `McpExpenseProposalAdapterTest` · after: GU07, GU09
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS03 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
+- [x] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS03 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
 
 ## Open Questions / Blockers
 
@@ -571,6 +571,22 @@
   the coordinate does not resolve, ST18 blocks and every connector step behind it stalls — is a build with
   network access available for this run?
 - A: yes
+- **GI05 blocked:** McpLedgerStubs (ST24) stubs only tools/call, not the mandatory MCP initialize handshake, so 4 of 6 scenarios are unreachable by a correct adapter. Orchestrator fixing the shared stub.
+- Resolved: `McpLedgerStubs` now answers `initialize` and the `notifications/initialized` notification, and
+  echoes the client's JSON-RPC id instead of a fixed one — a response carrying the wrong id is never correlated,
+  so the tool-call stub could not have worked either. GI05's adapter needed no change; 6/6 green.
+
+- **Plan defect (existing-test updates):** the plan listed `ReceiveTelegramMessageSystemTest` as losing its
+  message-text assertion under **D15**, but not `TelegramPollFailureRecoverySystemTest`, which asserted the same
+  removed behaviour and broke when the info line stopped carrying the text.
+- Resolved: its assertion now names the conversation instead of the text, and the method and `@DisplayName` say
+  "the message is still handled". The test's own subject — that a 429 does not kill the poll loop — is unchanged.
+
+- **Plan defect (token shape):** RI05's fixture put a bare token in the caller-token context and expected the MCP
+  adapter to prepend `Bearer `, but RU09 and RI04 pin `callerToken()` to the raw `authorization` value, scheme
+  included — so production produced `Bearer Bearer <jwt>`, which RS03 caught end to end.
+- Resolved: **D21** settles it ("opaque text … never parsed"), so the adapter now passes the token through
+  verbatim and RI05's fixture holds the value the interceptor really stores.
 
 ## Review Findings
 

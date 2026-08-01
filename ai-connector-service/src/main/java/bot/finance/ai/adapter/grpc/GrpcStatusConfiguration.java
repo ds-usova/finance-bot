@@ -16,13 +16,11 @@ public class GrpcStatusConfiguration {
             if (throwable instanceof IntentInferenceException) {
                 return Status.UNAVAILABLE.withDescription(throwable.getMessage()).withCause(throwable).asException();
             }
-            if (throwable instanceof ExpenseProposalFailedException) {
-                // TODO: FAILED_PRECONDITION when the ledger refused the proposal, UNAVAILABLE when it could
-                // not be reached (D35), read off ExpenseProposalFailedException.reason().
-                return Status.FAILED_PRECONDITION
-                        .withDescription(throwable.getMessage())
-                        .withCause(throwable)
-                        .asException();
+            if (throwable instanceof ExpenseProposalFailedException e) {
+                Status status = e.reason() == ExpenseProposalFailedException.Reason.UNREACHABLE
+                        ? Status.UNAVAILABLE
+                        : Status.FAILED_PRECONDITION;
+                return status.withDescription(throwable.getMessage()).withCause(throwable).asException();
             }
             return null;
         };

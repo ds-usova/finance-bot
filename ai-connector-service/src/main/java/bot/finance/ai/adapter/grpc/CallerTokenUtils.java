@@ -9,8 +9,6 @@ public final class CallerTokenUtils {
     private CallerTokenUtils() {}
 
     public static Optional<String> callerToken() {
-        // Reads the caller's token back off the io.grpc.Context key CallerTokenInterceptor populates for the
-        // call's duration; empty when no interceptor ran or no token was attached.
-        return Optional.empty();
+        return Optional.ofNullable(CALLER_TOKEN.get());
     }
 }

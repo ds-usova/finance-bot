@@ -43,8 +43,9 @@ public record ExpenseIntent(
                 throw new InvalidValueException("Operation " + operation.name() + " requires a categoryName");
             }
 
-            // TODO: require a non-empty description for a CREATE expense intent (D32) — an entry missing one
-            // is unusable and must be rejected here as amount and categoryName already are.
+            if (description.isEmpty()) {
+                throw new InvalidValueException("Operation " + operation.name() + " requires a description");
+            }
         }
     }
 

@@ -41,9 +41,13 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public List<KnownCategory> findKnownCategories(long userId) {
-        // Reads every category that hangs off a grouping in one statement, and wraps a store failure as its
-        // siblings do.
-        return List.of();
+        try {
+            return categoryEntityRepository.findKnownCategories(userId).stream()
+                    .map(projection -> new KnownCategory(projection.name(), projection.parentName()))
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find known categories for user " + userId, e);
+        }
     }
 
     private StoredCategory toStoredCategory(CategoryEntity entity) {

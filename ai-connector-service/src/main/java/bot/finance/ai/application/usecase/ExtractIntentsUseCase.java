@@ -22,6 +22,7 @@ import bot.finance.ai.domain.value.UnknownIntent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
@@ -43,32 +44,60 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             throw new InvalidValueException("Command must not be null");
         }
 
-        // TODO: render command.knownCategories() as labels (KnownCategory.label()) for the prompt, so the model
-        // sees "Insurance > Travel" beside "Travel".
         List<String> knownCategoryLabels =
                 command.knownCategories().stream().map(KnownCategory::label).toList();
         List<RawIntent> rawIntents = intentInferencePort.infer(command.text(), knownCategoryLabels);
+
+        List<Intent> intents;
         if (rawIntents == null || rawIntents.isEmpty()) {
-            // TODO: nothing usable was extracted; the turn still completes normally (D22).
-            return;
+            intents = List.of(new UnknownIntent("No usable intents were extracted from the message"));
+        } else {
+            List<CategoryOption> availableCategories = availableCategories(rawIntents, command.knownCategories());
+            intents = new ArrayList<>(rawIntents.size());
+            for (RawIntent raw : rawIntents) {
+                intents.add(assemble(raw, command, availableCategories));
+            }
         }
 
-        List<String> availableCategories = availableCategories(rawIntents, knownCategoryLabels);
-        List<Intent> intents = new ArrayList<>(rawIntents.size());
-        for (RawIntent raw : rawIntents) {
-            intents.add(assemble(raw, command, availableCategories));
+        for (Intent intent : intents) {
+            if (intent instanceof ExpenseIntent expenseIntent && expenseIntent.operation() == Operation.CREATE) {
+                expenseProposalPort.propose(toProposedExpense(expenseIntent));
+            } else {
+                logSkipped(intent);
+            }
         }
-
-        // TODO: walk `intents` in order and call expenseProposalPort.propose for every ExpenseIntent whose
-        // operation is CREATE, matching a raw category name against the closed set by label first, then by
-        // bare name (D27), and log every other intent at info by target and operation (D22). Let
-        // ExpenseProposalFailedException propagate on the first failure (D24).
     }
 
-    private List<String> availableCategories(List<RawIntent> rawIntents, List<String> knownCategories) {
-        List<String> categories = new ArrayList<>(knownCategories);
+    private void logSkipped(Intent intent) {
+        switch (intent) {
+            case CategoryIntent category -> log.info(
+                    "Skipping intent: target={} operation={} name={}",
+                    IntentTarget.CATEGORY, category.operation(), category.name());
+            case ExpenseIntent expense -> log.info(
+                    "Skipping intent: target={} operation={}", IntentTarget.EXPENSE, expense.operation());
+            case UnknownIntent unknown -> log.info("Skipping intent: reason={}", unknown.reason());
+        }
+    }
+
+    private ProposedExpense toProposedExpense(ExpenseIntent expenseIntent) {
+        return new ProposedExpense(
+                expenseIntent.categoryName()
+                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry a category")),
+                expenseIntent.parentCategoryName(),
+                expenseIntent.description()
+                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry a description")),
+                expenseIntent.amount()
+                        .orElseThrow(() -> new IllegalStateException("A CREATE ExpenseIntent must carry an amount")));
+    }
+
+    private List<CategoryOption> availableCategories(List<RawIntent> rawIntents, List<KnownCategory> knownCategories) {
+        List<CategoryOption> categories = knownCategories.stream()
+                .map(known -> new CategoryOption(known.name(), Optional.of(known.parentName())))
+                .collect(Collectors.toCollection(ArrayList::new));
         for (RawIntent raw : rawIntents) {
-            usableCategoryName(raw).ifPresent(categories::add);
+            usableCategoryName(raw)
+                    .filter(name -> categories.stream().noneMatch(category -> category.name().equalsIgnoreCase(name)))
+                    .ifPresent(name -> categories.add(new CategoryOption(name, Optional.empty())));
         }
         return categories;
     }
@@ -89,7 +118,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         return Optional.of(raw.categoryName());
     }
 
-    private Intent assemble(RawIntent raw, ExtractIntentsCommand command, List<String> availableCategories) {
+    private Intent assemble(RawIntent raw, ExtractIntentsCommand command, List<CategoryOption> availableCategories) {
         try {
             if (raw == null) {
                 throw new InvalidValueException("Raw intent must not be null");
@@ -110,23 +139,42 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
     }
 
     private ExpenseIntent buildExpenseIntent(
-            RawIntent raw, Operation operation, ExtractIntentsCommand command, List<String> availableCategories) {
-        Optional<String> categoryName = matchCategory(raw.categoryName(), availableCategories);
+            RawIntent raw, Operation operation, ExtractIntentsCommand command, List<CategoryOption> availableCategories) {
+        Optional<CategoryOption> category = matchCategory(raw.categoryName(), availableCategories);
         Optional<Money> amount = resolveAmount(raw, command);
         Optional<String> description = Optional.ofNullable(raw.description());
-        // TODO: carry the matched category's parent name (D27); empty when the category was created by this
-        // same message (D28). Passing Optional.empty() for now.
-        return new ExpenseIntent(operation, categoryName, amount, description, Optional.empty());
+        return new ExpenseIntent(
+                operation,
+                category.map(CategoryOption::name),
+                amount,
+                description,
+                category.flatMap(CategoryOption::parentName));
     }
 
-    private Optional<String> matchCategory(String rawCategoryName, List<String> availableCategories) {
+    private Optional<CategoryOption> matchCategory(String rawCategoryName, List<CategoryOption> availableCategories) {
         if (rawCategoryName == null || rawCategoryName.isBlank()) {
             return Optional.empty();
         }
-        return Optional.of(availableCategories.stream()
-                .filter(category -> category.equalsIgnoreCase(rawCategoryName))
-                .findFirst()
-                .orElseThrow(() -> new InvalidValueException("Unrecognized category: " + rawCategoryName)));
+
+        Optional<CategoryOption> byLabel = availableCategories.stream()
+                .filter(category -> category.label().map(rawCategoryName::equalsIgnoreCase).orElse(false))
+                .findFirst();
+        if (byLabel.isPresent()) {
+            return byLabel;
+        }
+
+        List<CategoryOption> byName = availableCategories.stream()
+                .filter(category -> category.name().equalsIgnoreCase(rawCategoryName))
+                .toList();
+        if (byName.size() == 1) {
+            return Optional.of(byName.get(0));
+        }
+        if (byName.isEmpty()) {
+            throw new InvalidValueException("Unrecognized category: " + rawCategoryName);
+        }
+
+        String matches = byName.stream().map(CategoryOption::describe).collect(Collectors.joining(", "));
+        throw new InvalidValueException("Ambiguous category name: " + rawCategoryName + " (matches " + matches + ")");
     }
 
     private Optional<Money> resolveAmount(RawIntent raw, ExtractIntentsCommand command) {
@@ -140,6 +188,21 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
                         .orElseThrow(() -> new InvalidValueException(
                                 "No currency specified and no default currency configured"));
         return Optional.of(Money.of(raw.amount(), currencyCode));
+    }
+
+    /**
+     * A category available for matching: a known category with its grouping, or a category the same message
+     * asks to create, which carries no grouping (D28).
+     */
+    private record CategoryOption(String name, Optional<String> parentName) {
+
+        private Optional<String> label() {
+            return parentName.map(parent -> parent + " > " + name);
+        }
+
+        private String describe() {
+            return label().orElse(name);
+        }
     }
 
 }

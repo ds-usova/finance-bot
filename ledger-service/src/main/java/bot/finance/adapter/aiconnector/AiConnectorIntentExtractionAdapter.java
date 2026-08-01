@@ -9,7 +9,9 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
+import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.MetadataUtils;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -36,11 +38,15 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
 
         log.debug("Extracting the intent with text {}", request.text());
 
-        // TODO: mint a token for request.userExternalId() through accessTokenMinter and attach it to the stub
-        // call as `authorization: Bearer <jwt>` metadata before invoking extractIntents.
         ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+        Metadata metadata = new Metadata();
+        metadata.put(
+                Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER),
+                "Bearer " + accessTokenMinter.mint(request.userExternalId()));
         try {
-            intentExtractionStub.extractIntents(protoRequest);
+            intentExtractionStub
+                    .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))
+                    .extractIntents(protoRequest);
         } catch (StatusRuntimeException e) {
             log.error("Failed to extract the intent:", e);
             throw new IntentExtractionFailedException(

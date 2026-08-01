@@ -1,14 +1,18 @@
 package bot.finance.ai.adapter.grpc;
 
+import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import io.grpc.Status;
+import org.springframework.grpc.server.GlobalServerInterceptor;
 import org.springframework.stereotype.Component;
 
 @Component
+@GlobalServerInterceptor
 public class CallerTokenInterceptor implements ServerInterceptor {
 
     static final Metadata.Key<String> AUTHORIZATION =
@@ -17,10 +21,18 @@ public class CallerTokenInterceptor implements ServerInterceptor {
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
             ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
-        // TODO: read `authorization` off `headers` into the CallerTokenUtils.CALLER_TOKEN context key for the
-        // call's duration. Scope the UNAUTHENTICATED refusal to IntentExtractionService — grpc.health.v1.Health
-        // stays open, since the ledger's AiConnectorHealthIndicator probes it with no token.
-        Context context = Context.current();
+        String token = headers.get(AUTHORIZATION);
+
+        if (token == null && isIntentExtractionService(call)) {
+            call.close(Status.UNAUTHENTICATED.withDescription("Missing authorization header"), new Metadata());
+            return new ServerCall.Listener<>() {};
+        }
+
+        Context context = Context.current().withValue(CallerTokenUtils.CALLER_TOKEN, token);
         return Contexts.interceptCall(context, call, headers, next);
+    }
+
+    private boolean isIntentExtractionService(ServerCall<?, ?> call) {
+        return IntentExtractionServiceGrpc.SERVICE_NAME.equals(call.getMethodDescriptor().getServiceName());
     }
 }

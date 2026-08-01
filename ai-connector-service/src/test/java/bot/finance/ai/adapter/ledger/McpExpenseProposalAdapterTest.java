@@ -77,7 +77,7 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
 
             CallerTokenTestSupport.withCallerToken(
-                    "caller-token-1", () -> adapter.propose(proposedExpense(Optional.of("Food"))));
+                    "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.of("Food"))));
 
             List<LoggedRequest> requests = capturedRequests();
             assertThat(requests).isNotEmpty();
@@ -100,7 +100,7 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
 
             CallerTokenTestSupport.withCallerToken(
-                    "caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty())));
+                    "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty())));
 
             JsonNode arguments = requestBody(toolCallRequest(capturedRequests())).at("/params/arguments");
             assertThat(arguments.has("parentCategory")).isFalse();
@@ -113,7 +113,7 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalRefused();
 
             assertThatThrownBy(() -> CallerTokenTestSupport.withCallerToken(
-                            "caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
+                            "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
                     .isInstanceOf(ExpenseProposalFailedException.class)
                     .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(
                             ExpenseProposalFailedException.class))
@@ -128,7 +128,7 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalTransportFailure();
 
             assertThatThrownBy(() -> CallerTokenTestSupport.withCallerToken(
-                            "caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
+                            "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty()))))
                     .isInstanceOf(ExpenseProposalFailedException.class)
                     .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(
                             ExpenseProposalFailedException.class))
@@ -160,9 +160,9 @@ class McpExpenseProposalAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
 
             CallerTokenTestSupport.withCallerToken(
-                    "caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty())));
+                    "Bearer caller-token-1", () -> adapter.propose(proposedExpense(Optional.empty())));
             CallerTokenTestSupport.withCallerToken(
-                    "caller-token-2", () -> adapter.propose(proposedExpense(Optional.empty())));
+                    "Bearer caller-token-2", () -> adapter.propose(proposedExpense(Optional.empty())));
 
             List<LoggedRequest> requests = capturedRequests();
             List<LoggedRequest> toolCalls = requests.stream()

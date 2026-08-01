@@ -69,8 +69,14 @@ public class IntentExtractionGrpcService
             return true;
         }
 
-        // TODO: reject an entry whose name or parent_name is blank with INVALID_ARGUMENT (D41), before the
-        // provider is called.
+        boolean hasBlankCategory = request.getKnownCategoriesList().stream()
+                .anyMatch(entry -> entry.getName().isBlank() || entry.getParentName().isBlank());
+        if (hasBlankCategory) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Known category name and parent_name must not be blank")
+                    .asRuntimeException());
+            return true;
+        }
 
         return false;
     }

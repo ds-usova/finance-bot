@@ -1,6 +1,9 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
+import bot.finance.application.dto.InitializeUserCommand;
+import bot.finance.application.dto.IntentExtractionRequest;
+import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.IntentExtractionPort;
@@ -8,6 +11,9 @@ import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.model.User;
+import java.util.List;
+import java.util.Optional;
 
 public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
@@ -32,9 +38,12 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         if (command == null) {
             throw new InvalidIncomingMessageException("incoming message is absent");
         }
-        // TODO: resolve the user via initializeUserPort, read their known categories via categoryRepository,
-        // and call intentExtractionPort.extract with a request built from the command's text, those
-        // categories, an empty default currency and the user's external id, per the design's steps 2-5.
-        log.info("incoming message from conversation {}: {}", command.conversationId(), command.text());
+
+        User user = initializeUserPort.initialize(new InitializeUserCommand(command.conversationId()));
+        List<KnownCategory> knownCategories = categoryRepository.findKnownCategories(user.id().orElseThrow());
+        intentExtractionPort.extract(new IntentExtractionRequest(
+                command.text(), knownCategories, Optional.empty(), user.externalId()));
+
+        log.info("handled message for conversation {}", command.conversationId());
     }
 }
