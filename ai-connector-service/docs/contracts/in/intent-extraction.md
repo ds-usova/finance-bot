@@ -23,6 +23,11 @@ Every extraction call carries the caller's bearer token as call metadata, not as
 every expense the turn records is recorded against, and the only identity this boundary carries. A health check
 carries none.
 
+The token is required but not verified here — it is checked where it is spent, by the
+[ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md). A caller this boundary has not
+authenticated therefore records nothing, but does reach the model
+([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
+
 A successful call answers with nothing at all. There is no count, no per-entry outcome and no text for the
 user — the answer says only that the message was acted on.
 

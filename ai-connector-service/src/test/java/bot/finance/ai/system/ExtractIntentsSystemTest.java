@@ -53,12 +53,12 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             List<LoggedRequest> toolCalls = CapturedRequestUtils.toolCallRequests();
             assertThat(toolCalls).hasSize(1);
-            JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.get(0));
+            JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.getFirst());
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
             assertThat(arguments.get("merchant").asText()).isEqualTo("Deli Co");
             assertThat(arguments.get("amountMinorUnits").asLong()).isEqualTo(1500L);
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
-            assertThat(toolCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
+            assertThat(toolCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
         }
 
     }
