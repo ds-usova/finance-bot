@@ -51,4 +51,6 @@ conventions, the conventions win.
   plans.
 - API reference: the Protocol Buffers schema itself (see
   [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
+
+How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).
 - Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.

@@ -47,3 +47,5 @@ conventions, the conventions win.
   Lifecycle rules: [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` —
   implemented plans.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.
+
+How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).
