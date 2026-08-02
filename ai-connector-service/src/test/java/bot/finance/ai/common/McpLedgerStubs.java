@@ -1,15 +1,15 @@
 package bot.finance.ai.common;
 
-import com.github.tomakehurst.wiremock.client.MappingBuilder;
-import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.http.Fault;
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.http.Fault;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 /**
  * Stubs the ledger's MCP endpoint ({@code /mcp}), registered through {@link WireMockSupport#SERVER}, never the
@@ -29,8 +29,7 @@ public final class McpLedgerStubs {
     private static final String TOOL_CALL_SCENARIO = "create-expense-proposal-tool-call";
     private static final String REFUSED_ONCE = "refused-once";
 
-    private McpLedgerStubs() {
-    }
+    private McpLedgerStubs() {}
 
     /**
      * The ledger accepts every {@code create_expense_proposal} tool call and answers a stored proposal.
@@ -74,8 +73,8 @@ public final class McpLedgerStubs {
      * Registered without a body matcher, so it takes down the handshake as well as the tool call.
      */
     public static void stubCreateExpenseProposalTransportFailure() {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(MCP_PATH))
-                .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(MCP_PATH)).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
     }
 
     /**
@@ -84,10 +83,12 @@ public final class McpLedgerStubs {
      * notification, which carries no id and expects no body.
      */
     private static void stubHandshake() {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(MCP_PATH))
-                .withRequestBody(matchingJsonPath("$.method", equalTo("initialize")))
-                .willReturn(jsonRpc(
-                        """
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(MCP_PATH))
+                        .withRequestBody(matchingJsonPath("$.method", equalTo("initialize")))
+                        .willReturn(
+                                jsonRpc(
+                                        """
                         {
                           "jsonrpc": "2.0",
                           "id": "%s",
@@ -109,10 +110,12 @@ public final class McpLedgerStubs {
      * {@code CreateExpenseProposalMcpTool} declares.
      */
     private static void stubToolsList() {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(MCP_PATH))
-                .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list")))
-                .willReturn(jsonRpc(
-                        """
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(MCP_PATH))
+                        .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list")))
+                        .willReturn(
+                                jsonRpc(
+                                        """
                         {
                           "jsonrpc": "2.0",
                           "id": "%s",

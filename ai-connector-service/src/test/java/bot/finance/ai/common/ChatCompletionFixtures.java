@@ -6,8 +6,7 @@ package bot.finance.ai.common;
  */
 public final class ChatCompletionFixtures {
 
-    private ChatCompletionFixtures() {
-    }
+    private ChatCompletionFixtures() {}
 
     /**
      * One {@code create_expense_proposal} tool-call entry, its arguments a JSON object encoded as a string — the
@@ -23,7 +22,8 @@ public final class ChatCompletionFixtures {
                     "arguments": %s
                   }
                 }
-                """.formatted(id, quote(argumentsJson));
+                """
+                .formatted(id, quote(argumentsJson));
     }
 
     /**
@@ -80,5 +80,4 @@ public final class ChatCompletionFixtures {
     private static String quote(String json) {
         return "\"" + json.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
-
 }

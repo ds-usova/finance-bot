@@ -1,6 +1,7 @@
 plugins {
     id "java"
     id "jacoco"
+    id "com.diffplug.spotless" version "$spotlessVersion"
     id "org.springframework.boot" version "$springBootVersion"
     id "io.spring.dependency-management" version "$springDependencyManagementVersion"
     id "com.google.protobuf" version "$protobufGradlePluginVersion"
@@ -74,4 +75,13 @@ test {
 
 jacoco {
     toolVersion = "${jacocoVersion}"
+}
+
+spotless {
+    java {
+        target "src/main/java/**/*.java", "src/test/java/**/*.java"
+        palantirJavaFormat("${palantirJavaFormatVersion}")
+        removeUnusedImports()
+        importOrder()
+    }
 }

@@ -1,17 +1,16 @@
 package bot.finance.ai.adapter.ledger;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.spec.McpTransportException;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class CallerTokenMcpRequestCustomizerTest {
 
@@ -22,7 +21,8 @@ class CallerTokenMcpRequestCustomizerTest {
     class Customize {
 
         @Test
-        @DisplayName("when the transport context holds the turn's token, scheme included - then the built request carries it as the Authorization header, byte for byte")
+        @DisplayName(
+                "when the transport context holds the turn's token, scheme included - then the built request carries it as the Authorization header, byte for byte")
         void whenContextHoldsToken_thenBuiltRequestCarriesItAsAuthorizationHeader() {
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create("https://ledger.local/mcp"));
             McpTransportContext context = McpTransportContext.create(
@@ -40,7 +40,7 @@ class CallerTokenMcpRequestCustomizerTest {
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create("https://ledger.local/mcp"));
 
             assertThatThrownBy(() -> customizer.customize(
-                    builder, "POST", URI.create("https://ledger.local/mcp"), "{}", McpTransportContext.EMPTY))
+                            builder, "POST", URI.create("https://ledger.local/mcp"), "{}", McpTransportContext.EMPTY))
                     .isInstanceOf(McpTransportException.class);
 
             HttpRequest request = builder.build();

@@ -1,5 +1,8 @@
 package bot.finance.ai.domain.value;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import bot.finance.ai.domain.exception.InvalidValueException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -8,9 +11,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class CurrencyCodeTest {
 
     @Nested
@@ -18,8 +18,8 @@ class CurrencyCodeTest {
     class CurrencyCodeFactory {
 
         @Test
-        @DisplayName("when a valid ISO 4217 alphabetic code is given - then returns a currency code holding "
-                + "that code")
+        @DisplayName(
+                "when a valid ISO 4217 alphabetic code is given - then returns a currency code holding " + "that code")
         void whenValidIsoAlphabeticCodeGiven_thenReturnsCurrencyCodeHoldingThatCode() {
             CurrencyCode currencyCode = CurrencyCode.of("EUR");
 
@@ -35,8 +35,8 @@ class CurrencyCodeTest {
         }
 
         @Test
-        @DisplayName("when a code java.util.Currency does not recognize is given - then throws "
-                + "InvalidValueException")
+        @DisplayName(
+                "when a code java.util.Currency does not recognize is given - then throws " + "InvalidValueException")
         void whenCodeCurrencyDoesNotRecognizeGiven_thenThrowsInvalidValueException() {
             assertThatThrownBy(() -> CurrencyCode.of("ABC")).isInstanceOf(InvalidValueException.class);
         }
@@ -48,7 +48,5 @@ class CurrencyCodeTest {
         void whenNullOrBlankStringGiven_thenThrowsInvalidValueException(String code) {
             assertThatThrownBy(() -> CurrencyCode.of(code)).isInstanceOf(InvalidValueException.class);
         }
-
     }
-
 }

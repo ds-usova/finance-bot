@@ -1,8 +1,8 @@
 package bot.finance.ai.common;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
 
 public final class WireMockSupport {
 
@@ -13,8 +13,7 @@ public final class WireMockSupport {
         SERVER.start();
     }
 
-    private WireMockSupport() {
-    }
+    private WireMockSupport() {}
 
     public static String baseUrl() {
         return "http://localhost:" + SERVER.port();
@@ -27,5 +26,4 @@ public final class WireMockSupport {
     public static String openAiBaseUrl() {
         return baseUrl() + "/v1";
     }
-
 }

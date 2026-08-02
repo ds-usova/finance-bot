@@ -13,10 +13,12 @@ public class GrpcStatusConfiguration {
     GrpcExceptionHandler grpcExceptionHandler() {
         return throwable -> {
             if (throwable instanceof ExpenseRecordingFailedException) {
-                return Status.UNAVAILABLE.withDescription(throwable.getMessage()).withCause(throwable).asException();
+                return Status.UNAVAILABLE
+                        .withDescription(throwable.getMessage())
+                        .withCause(throwable)
+                        .asException();
             }
             return null;
         };
     }
-
 }

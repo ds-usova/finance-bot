@@ -1,5 +1,9 @@
 package bot.finance.ai.adapter.ai;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import bot.finance.ai.adapter.grpc.CallerTokenTestSupport;
 import bot.finance.ai.common.AiAdapterTest;
 import bot.finance.ai.common.CapturedRequestUtils;
@@ -12,18 +16,13 @@ import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @AiAdapterTest
 class AiExpenseRecordingAdapterTest {
@@ -34,9 +33,11 @@ class AiExpenseRecordingAdapterTest {
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
 
-    private static final String LUNCH_ARGUMENTS = """
+    private static final String LUNCH_ARGUMENTS =
+            """
             {"category":"Lunch","description":"lunch","amountMinorUnits":1500,"currencyCode":"EUR"}""";
-    private static final String CAB_ARGUMENTS = """
+    private static final String CAB_ARGUMENTS =
+            """
             {"category":"Travel","description":"cab","amountMinorUnits":2000,"currencyCode":"EUR"}""";
 
     @Autowired
@@ -48,8 +49,8 @@ class AiExpenseRecordingAdapterTest {
     }
 
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
-        CallerTokenTestSupport.withCallerToken(callerToken,
-                () -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, assumedCurrency));
+        CallerTokenTestSupport.withCallerToken(
+                callerToken, () -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, assumedCurrency));
     }
 
     private void recordInEuros(String callerToken) {
@@ -82,8 +83,7 @@ class AiExpenseRecordingAdapterTest {
         void whenOneAcceptedToolCallWithCallerToken_thenLedgerReceivesItEveryRequestCarriesTokenAndNoExceptionThrown() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
@@ -109,7 +109,10 @@ class AiExpenseRecordingAdapterTest {
         void whenToolCallCarriesMerchant_thenMerchantReachesLedgerVerbatim() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", """
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall(
+                                    "call-1",
+                                    """
                             {"category":"Lunch","description":"lunch","amountMinorUnits":1500,\
                             "currencyCode":"EUR","merchant":"Deli Co"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
@@ -118,7 +121,9 @@ class AiExpenseRecordingAdapterTest {
 
             List<LoggedRequest> toolCalls = CapturedRequestUtils.toolCallRequests();
             assertThat(toolCalls).hasSize(1);
-            assertThat(CapturedRequestUtils.toolCallArguments(toolCalls.get(0)).get("merchant").asText())
+            assertThat(CapturedRequestUtils.toolCallArguments(toolCalls.get(0))
+                            .get("merchant")
+                            .asText())
                     .isEqualTo("Deli Co");
         }
 
@@ -151,8 +156,15 @@ class AiExpenseRecordingAdapterTest {
             assertThat(tool.get("type").asText()).isEqualTo("function");
             assertThat(tool.get("function").get("name").asText()).isEqualTo("create_expense_proposal");
             JsonNode properties = tool.get("function").get("parameters").get("properties");
-            assertThat(properties.fieldNames()).toIterable().containsExactlyInAnyOrder(
-                    "category", "parentCategory", "description", "merchant", "amountMinorUnits", "currencyCode");
+            assertThat(properties.fieldNames())
+                    .toIterable()
+                    .containsExactlyInAnyOrder(
+                            "category",
+                            "parentCategory",
+                            "description",
+                            "merchant",
+                            "amountMinorUnits",
+                            "currencyCode");
         }
 
         @Test
@@ -176,14 +188,15 @@ class AiExpenseRecordingAdapterTest {
         @DisplayName("when the ledger answers the first tool call with a tool error result, then accepts the "
                 + "corrected one - then the refusal text reaches the provider as that tool call's result, the "
                 + "second tool call is made, and the call returns without throwing")
-        void whenLedgerRefusesFirstToolCallThenAcceptsCorrected_thenRefusalReachesProviderSecondCallMadeAndNoExceptionThrown() {
+        void
+                whenLedgerRefusesFirstToolCallThenAcceptsCorrected_thenRefusalReachesProviderSecondCallMadeAndNoExceptionThrown() {
             McpLedgerStubs.stubCreateExpenseProposalRefusedThenAccepted();
-            String correctedArguments = """
+            String correctedArguments =
+                    """
                     {"category":"Travel","parentCategory":"Insurance","description":"cab",\
                     "amountMinorUnits":2000,"currencyCode":"EUR"}""";
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
                     ChatCompletionFixtures.toolCallResponse(
                             ChatCompletionFixtures.toolCall("call-2", correctedArguments)),
                     ChatCompletionFixtures.textResponse("recorded"));
@@ -192,8 +205,8 @@ class AiExpenseRecordingAdapterTest {
 
             assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(2);
             assertThat(CapturedRequestUtils.chatCompletionRequests())
-                    .anyMatch(request -> toolResultContent(request, "call-1")
-                            .contains("categories named Travel exist"));
+                    .anyMatch(
+                            request -> toolResultContent(request, "call-1").contains("categories named Travel exist"));
         }
 
         @Test
@@ -202,10 +215,8 @@ class AiExpenseRecordingAdapterTest {
         void whenLedgerRefusesSameExpenseTwice_thenReturnsWithoutThrowing() {
             McpLedgerStubs.stubCreateExpenseProposalRefusedTwice();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-2", CAB_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", CAB_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("could not record"));
 
             assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
@@ -217,10 +228,12 @@ class AiExpenseRecordingAdapterTest {
         void whenTwoTurnsRunWithDifferentCallerTokens_thenEachToolCallCarriesOnlyItsOwnToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"),
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", """
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall(
+                                    "call-2",
+                                    """
                             {"category":"Lunch","description":"dinner","amountMinorUnits":2500,\
                             "currencyCode":"EUR"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
@@ -253,8 +266,7 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionServerError();
 
-            assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1))
-                    .isInstanceOf(ExpenseRecordingFailedException.class);
+            assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1)).isInstanceOf(ExpenseRecordingFailedException.class);
         }
 
         @Test
@@ -265,8 +277,7 @@ class AiExpenseRecordingAdapterTest {
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.toolCallResponse(
                     ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)));
 
-            assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1))
-                    .isInstanceOf(ExpenseRecordingFailedException.class);
+            assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1)).isInstanceOf(ExpenseRecordingFailedException.class);
         }
 
         @Test
@@ -278,7 +289,5 @@ class AiExpenseRecordingAdapterTest {
             assertThatThrownBy(() -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, Optional.of(CurrencyCode.of("EUR"))))
                     .isInstanceOf(ExpenseRecordingFailedException.class);
         }
-
     }
-
 }

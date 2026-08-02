@@ -1,7 +1,6 @@
 package bot.finance.ai.domain.value;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
-
 import java.util.Currency;
 
 public record CurrencyCode(String code) {
@@ -22,5 +21,4 @@ public record CurrencyCode(String code) {
     public static CurrencyCode of(String code) {
         return new CurrencyCode(code);
     }
-
 }

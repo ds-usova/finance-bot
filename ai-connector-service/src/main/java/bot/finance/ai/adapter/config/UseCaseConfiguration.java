@@ -14,5 +14,4 @@ public class UseCaseConfiguration {
     ExtractIntentsPort extractIntentsPort(ExpenseRecordingPort expenseRecordingPort, LoggerFactory loggerFactory) {
         return new ExtractIntentsUseCase(expenseRecordingPort, loggerFactory);
     }
-
 }

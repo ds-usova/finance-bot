@@ -4,11 +4,10 @@ import bot.finance.ai.adapter.grpc.CallerTokenUtils;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.common.McpTransportContext;
+import java.util.Map;
 import org.springframework.ai.mcp.customizer.McpClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Map;
 
 @Configuration
 public class LedgerMcpConfiguration {
@@ -30,11 +29,10 @@ public class LedgerMcpConfiguration {
         return (name, spec) -> {
             if (LEDGER_CONNECTION.equals(name)) {
                 spec.transportContextProvider(() -> CallerTokenUtils.callerToken()
-                        .<McpTransportContext>map(token -> McpTransportContext.create(
-                                Map.of(CallerTokenMcpRequestCustomizer.CALLER_TOKEN, token)))
+                        .<McpTransportContext>map(token ->
+                                McpTransportContext.create(Map.of(CallerTokenMcpRequestCustomizer.CALLER_TOKEN, token)))
                         .orElse(McpTransportContext.EMPTY));
             }
         };
     }
-
 }

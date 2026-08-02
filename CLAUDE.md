@@ -18,6 +18,11 @@ directory, so every path in this repo (`tools/...`, `.claude/scripts/...`, `docs
 A `cd &&` wrapper, like `git -C`, a `for` loop, or an absolute quoted path, changes the literal command string and
 breaks every allowlisted permission rule for the command that follows, forcing a manual approval every time.
 
+## Deleting files
+
+Delete with one `git rm` naming every file, never one `rm` per file. The deletions land in the index where a
+diff can see them, and removing a dozen classes costs one approval rather than a dozen.
+
 ## Writing docs and plans
 
 The [repository-wide conventions](docs/conventions.md) govern every README, conventions file, contract,

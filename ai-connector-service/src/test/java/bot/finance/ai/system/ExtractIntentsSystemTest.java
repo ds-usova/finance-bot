@@ -1,5 +1,8 @@
 package bot.finance.ai.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.common.AbstractSystemTest;
 import bot.finance.ai.common.AuthorizedStubs;
@@ -12,14 +15,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Entered over the real Netty channel {@link AbstractSystemTest} binds, so a passing happy path also proves the
@@ -40,7 +39,10 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesOneToolCallUnderToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", """
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall(
+                                    "call-1",
+                                    """
                             {"category":"Lunch","description":"lunch","amountMinorUnits":1500,\
                             "currencyCode":"EUR","merchant":"Deli Co"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
@@ -60,7 +62,6 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
             assertThat(toolCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
         }
-
     }
 
     @Nested
@@ -75,7 +76,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             WireMockStubs.stubChatCompletionServerError();
 
             assertThatThrownBy(() -> AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
-                    .extractIntents(RequestFixtures.request()))
+                            .extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)
                     .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
                     .isEqualTo(Status.Code.UNAVAILABLE);
@@ -92,7 +93,5 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             assertThat(CapturedRequestUtils.chatCompletionRequests()).isEmpty();
         }
-
     }
-
 }

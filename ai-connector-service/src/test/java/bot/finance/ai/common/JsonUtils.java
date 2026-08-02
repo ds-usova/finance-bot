@@ -2,7 +2,6 @@ package bot.finance.ai.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -12,8 +11,7 @@ public final class JsonUtils {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private JsonUtils() {
-    }
+    private JsonUtils() {}
 
     public static String readJsonResourceAsString(String fileName) {
         try (InputStream is = JsonUtils.class.getClassLoader().getResourceAsStream(fileName)) {
@@ -35,5 +33,4 @@ public final class JsonUtils {
             throw new UncheckedIOException("Failed to parse JSON resource: " + fileName, e);
         }
     }
-
 }

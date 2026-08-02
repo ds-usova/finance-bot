@@ -10,7 +10,7 @@ and testing at once.
 - [Architecture & Layering](conventions/architecture.md) — package structure, dependency rules, diagram format.
 - [Testing Conventions](conventions/testing.md) — test layers, test tooling, naming conventions, testing style.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
-- [Build](conventions/build.md) — build & test commands.
+- [Build](conventions/build.md) — this module's name, package root, architecture test and tasks.
 - [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism, plan-file
   locations, post-implementation actions.
 

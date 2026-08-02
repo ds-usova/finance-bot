@@ -9,5 +9,4 @@ public class AiConnectorServiceApplication {
     static void main(String[] args) {
         SpringApplication.run(AiConnectorServiceApplication.class, args);
     }
-
 }

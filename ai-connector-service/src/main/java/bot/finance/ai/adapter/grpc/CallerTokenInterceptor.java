@@ -33,6 +33,7 @@ public class CallerTokenInterceptor implements ServerInterceptor {
     }
 
     private boolean isIntentExtractionService(ServerCall<?, ?> call) {
-        return IntentExtractionServiceGrpc.SERVICE_NAME.equals(call.getMethodDescriptor().getServiceName());
+        return IntentExtractionServiceGrpc.SERVICE_NAME.equals(
+                call.getMethodDescriptor().getServiceName());
     }
 }

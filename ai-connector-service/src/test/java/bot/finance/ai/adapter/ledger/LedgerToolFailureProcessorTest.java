@@ -1,5 +1,8 @@
 package bot.finance.ai.adapter.ledger;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpTransportException;
@@ -8,9 +11,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.execution.ToolExecutionException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LedgerToolFailureProcessorTest {
 
@@ -80,7 +80,5 @@ class LedgerToolFailureProcessorTest {
 
             assertThatThrownBy(() -> processor.process(exception)).isSameAs(exception);
         }
-
     }
-
 }

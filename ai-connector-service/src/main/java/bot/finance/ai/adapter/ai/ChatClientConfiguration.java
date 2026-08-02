@@ -13,5 +13,4 @@ public class ChatClientConfiguration {
     ChatClient chatClient(ChatClient.Builder chatClientBuilder, ExpenseRecordingProperties properties) {
         return chatClientBuilder.defaultSystem(properties.systemPrompt()).build();
     }
-
 }

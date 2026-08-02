@@ -40,6 +40,11 @@ spawn fall back to the default model.
    commands per layer, the architecture-enforcement test, and file locations. Pass the relevant conventions along in
    every sub-agent prompt — sub-agents must not guess build commands.
 
+   **Point a sub-agent at the rule; do not restate it.** A rule the repository writes down is passed as the file
+   that owns it, named so the agent reads it there — never as a remembered version of what that file says, which
+   is a second copy that can drift and drifts in the one place no review looks. The same applies to counts and
+   inventories drawn from the tree: read them, never recall them.
+
 **Addressing the plan.** Every checklist item carries an ID (`GU07`), and `plan.sh` — which ships with these
 instructions at `scripts/plan/plan.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under
 `.claude/` in a plain checkout — is how this skill reads and writes them. Its README sits beside it.
@@ -315,6 +320,12 @@ Once the guardrail holds, commit per the Version Control policy.
 
 1. Implement the plan's **Post-Implementation Steps** group, in section order (e.g. **Manual Request Files**) —
    small enough to do directly or via one sub-agent.
+
+   **An item an Open Question authorized carries that question's answer verbatim.** The checklist item is a
+   summary written when the answer arrived; the answer is what the user actually asked for, and the two drift in
+   exactly the direction that drops half of it. Quote the `- A:` text into the prompt, and before ticking the
+   item, read what was produced against that text rather than against the item. The same holds for any
+   `- Action:` on a Review Finding that prescribes content.
 2. **Whole-plan guardrail** — run yourself, from the conventions' commands: the module(s) fully compile, the
    architecture-enforcement test passes, and **the entire test suite is green** — not just the classes this plan
    touched.

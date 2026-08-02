@@ -1,11 +1,11 @@
 package bot.finance.ai.common;
 
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 /**
  * Static helpers for stubbing the OpenAI chat-completions endpoint, registered through
@@ -17,21 +17,20 @@ public final class WireMockStubs {
 
     private static final String CHAT_COMPLETIONS_SCENARIO = "chat-completions-sequence";
 
-    private WireMockStubs() {
-    }
+    private WireMockStubs() {}
 
     /**
      * Serves {@code body} — a full chat-completion response, built with {@link ChatCompletionFixtures} — verbatim
      * to every request.
      */
     public static void stubChatCompletion(String body) {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
-                .willReturn(okJson(body)));
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(okJson(body)));
     }
 
     public static void stubChatCompletionServerError() {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
-                .willReturn(serverError()));
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(CHAT_COMPLETIONS_PATH)).willReturn(serverError()));
     }
 
     /**
@@ -51,5 +50,4 @@ public final class WireMockStubs {
             state = nextState;
         }
     }
-
 }

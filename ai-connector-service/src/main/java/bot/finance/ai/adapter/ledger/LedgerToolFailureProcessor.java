@@ -21,5 +21,4 @@ public class LedgerToolFailureProcessor implements ToolExecutionExceptionProcess
         }
         return cause.getMessage();
     }
-
 }

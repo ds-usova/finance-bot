@@ -6,14 +6,13 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @Component
 public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
@@ -29,8 +28,7 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             ChatClient chatClient,
             ExpenseRecordingProperties expenseRecordingProperties,
             SyncMcpToolCallbackProvider ledgerToolCallbackProvider,
-            LoggerFactory loggerFactory
-    ) {
+            LoggerFactory loggerFactory) {
         this.chatClient = chatClient;
         this.expenseRecordingProperties = expenseRecordingProperties;
         this.ledgerToolCallbackProvider = ledgerToolCallbackProvider;
@@ -46,12 +44,13 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
         String userMessage = new PromptTemplate(expenseRecordingProperties.userMessageTemplate())
                 .render(Map.of(
                         "knownCategories", String.join(", ", knownCategoryLabels),
-                        "assumedCurrency", assumedCurrency.map(CurrencyCode::code).orElse(NO_ASSUMED_CURRENCY),
-                        "text", text
-                ));
+                        "assumedCurrency",
+                                assumedCurrency.map(CurrencyCode::code).orElse(NO_ASSUMED_CURRENCY),
+                        "text", text));
 
         try {
-            String answer = chatClient.prompt()
+            String answer = chatClient
+                    .prompt()
                     .user(userMessage)
                     .tools(ledgerToolCallbackProvider)
                     .call()
@@ -61,5 +60,4 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             throw new ExpenseRecordingFailedException("Failed to record expenses via provider", e);
         }
     }
-
 }

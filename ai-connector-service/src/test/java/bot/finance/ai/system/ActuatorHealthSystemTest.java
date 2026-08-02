@@ -1,5 +1,8 @@
 package bot.finance.ai.system;
 
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import bot.finance.ai.common.AbstractSystemTest;
 import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
@@ -8,9 +11,6 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class ActuatorHealthSystemTest extends AbstractSystemTest {
 
@@ -21,10 +21,7 @@ class ActuatorHealthSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when GET /actuator/health is called - then returns UP with the readiness and liveness groups")
         void whenActuatorHealthIsCalled_thenReturnsUpWithReadinessAndLivenessGroups() {
-            Response response = given()
-                    .port(actuatorPort)
-                    .when()
-                    .get("/actuator/health");
+            Response response = given().port(actuatorPort).when().get("/actuator/health");
             log.info("response: {}", response.getBody().asString());
 
             response.then().statusCode(200);
@@ -43,7 +40,5 @@ class ActuatorHealthSystemTest extends AbstractSystemTest {
 
             assertThat(response.getStatus()).isEqualTo(HealthCheckResponse.ServingStatus.SERVING);
         }
-
     }
-
 }

@@ -1,7 +1,14 @@
 package bot.finance.ai.application.dto;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,19 +16,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class ExtractIntentsCommandTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
     private static final List<KnownCategory> KNOWN_CATEGORIES = List.of(
-            new KnownCategory("Food", "Groceries"), new KnownCategory("Travel", "Trips"),
+            new KnownCategory("Food", "Groceries"),
+            new KnownCategory("Travel", "Trips"),
             new KnownCategory("Other", "Other"));
 
     @Nested
@@ -29,8 +29,8 @@ class ExtractIntentsCommandTest {
     class Construction {
 
         @Test
-        @DisplayName("when non-blank text and a category list are given - then the command is created and "
-                + "exposes both")
+        @DisplayName(
+                "when non-blank text and a category list are given - then the command is created and " + "exposes both")
         void whenNonBlankTextAndCategoryList_thenCommandExposesBoth() {
             ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, KNOWN_CATEGORIES, Optional.empty());
 
@@ -102,7 +102,5 @@ class ExtractIntentsCommandTest {
             assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, KNOWN_CATEGORIES, null))
                     .isInstanceOf(InvalidValueException.class);
         }
-
     }
-
 }

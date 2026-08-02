@@ -2,7 +2,6 @@ package bot.finance.ai.application.port;
 
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -13,5 +12,4 @@ public interface ExpenseRecordingPort {
      *                                          answer cannot be read
      */
     void record(String text, List<String> knownCategoryLabels, Optional<CurrencyCode> assumedCurrency);
-
 }

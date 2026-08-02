@@ -27,9 +27,7 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 @ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "spring.grpc.server.port=0")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.grpc.server.port=0")
 public abstract class AbstractSystemTest {
 
     protected static final Logger log = LoggerFactory.getLogger(AbstractSystemTest.class);
@@ -63,7 +61,9 @@ public abstract class AbstractSystemTest {
 
     @BeforeAll
     void openChannel() {
-        channel = ManagedChannelBuilder.forAddress("localhost", grpcPort).usePlaintext().build();
+        channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
+                .usePlaintext()
+                .build();
         intentExtractionStub = IntentExtractionServiceGrpc.newBlockingStub(channel);
     }
 
@@ -76,5 +76,4 @@ public abstract class AbstractSystemTest {
     void resetStubs() {
         WireMockSupport.SERVER.resetAll();
     }
-
 }

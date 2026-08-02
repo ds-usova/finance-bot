@@ -2,15 +2,11 @@ package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
-
 import java.util.List;
 import java.util.Optional;
 
 public record ExtractIntentsCommand(
-        String text,
-        List<KnownCategory> knownCategories,
-        Optional<CurrencyCode> defaultCurrency
-) {
+        String text, List<KnownCategory> knownCategories, Optional<CurrencyCode> defaultCurrency) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
@@ -31,5 +27,4 @@ public record ExtractIntentsCommand(
 
         knownCategories = List.copyOf(knownCategories);
     }
-
 }

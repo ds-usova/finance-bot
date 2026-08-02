@@ -1,7 +1,6 @@
 package bot.finance.ai.adapter.grpc;
 
 import io.grpc.Context;
-
 import java.util.Optional;
 
 public final class CallerTokenUtils {

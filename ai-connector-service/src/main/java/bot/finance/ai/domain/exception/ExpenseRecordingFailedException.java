@@ -9,5 +9,4 @@ public class ExpenseRecordingFailedException extends RuntimeException {
     public ExpenseRecordingFailedException(String message, Throwable cause) {
         super(message, cause);
     }
-
 }

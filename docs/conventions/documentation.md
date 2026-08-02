@@ -20,5 +20,9 @@ and plan files in `docs/`.
   someone tunes it.
 - Diagram labels are a few words. If a label needs a clause, the diagram is carrying prose that belongs in text
   — or nowhere. The format itself is [Diagrams](diagrams.md).
+- **A new rule joins its siblings.** Before adding one, find where the rules of its kind already live and put it
+  there — a rule filed on its own is a rule the next reader, and the next agent, does not find. `CLAUDE.md` is
+  not one of those homes: it carries how an agent works this repository, not what the repository's documents
+  must look like.
 
 An architectural decision record follows [its own lifecycle](adr.md) on top of these.

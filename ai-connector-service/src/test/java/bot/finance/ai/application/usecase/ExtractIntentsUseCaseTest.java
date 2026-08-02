@@ -1,22 +1,5 @@
 package bot.finance.ai.application.usecase;
 
-import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.dto.KnownCategory;
-import bot.finance.ai.application.port.ExpenseRecordingPort;
-import bot.finance.ai.application.port.Logger;
-import bot.finance.ai.application.port.LoggerFactory;
-import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
-import bot.finance.ai.domain.exception.InvalidValueException;
-import bot.finance.ai.domain.value.CurrencyCode;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +10,22 @@ import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.KnownCategory;
+import bot.finance.ai.application.port.ExpenseRecordingPort;
+import bot.finance.ai.application.port.Logger;
+import bot.finance.ai.application.port.LoggerFactory;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.CurrencyCode;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class ExtractIntentsUseCaseTest {
 
@@ -86,10 +85,11 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(
-                    eq(TEXT),
-                    eq(List.of("Food > Lunch", "Travel > Flight", "Other > Misc")),
-                    eq(Optional.empty()));
+            verify(expenseRecordingPort)
+                    .record(
+                            eq(TEXT),
+                            eq(List.of("Food > Lunch", "Travel > Flight", "Other > Misc")),
+                            eq(Optional.empty()));
         }
 
         @Test
@@ -107,29 +107,26 @@ class ExtractIntentsUseCaseTest {
         @DisplayName("when the known categories are two entries sharing a name under different groupings - then "
                 + "both labels reach the port, distinct and in order")
         void whenKnownCategoriesShareNameUnderDifferentGroupings_thenBothLabelsReachPortDistinctAndInOrder() {
-            List<KnownCategory> knownCategories = List.of(
-                    new KnownCategory("Travel", "Insurance"),
-                    new KnownCategory("Travel", "Trips"));
+            List<KnownCategory> knownCategories =
+                    List.of(new KnownCategory("Travel", "Insurance"), new KnownCategory("Travel", "Trips"));
             ExtractIntentsCommand command = command(TEXT, knownCategories);
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(
-                    any(), eq(List.of("Insurance > Travel", "Trips > Travel")), any());
+            verify(expenseRecordingPort).record(any(), eq(List.of("Insurance > Travel", "Trips > Travel")), any());
         }
 
         @Test
         @DisplayName("when the command is null - then throws InvalidValueException and the port is never called")
         void whenCommandIsNull_thenThrowsInvalidValueExceptionAndPortNeverCalled() {
-            assertThatThrownBy(() -> useCase.extractIntents(null))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> useCase.extractIntents(null)).isInstanceOf(InvalidValueException.class);
 
             verifyNoInteractions(expenseRecordingPort);
         }
 
         @Test
-        @DisplayName("when the port throws ExpenseRecordingFailedException - then the exception propagates "
-                + "unchanged")
+        @DisplayName(
+                "when the port throws ExpenseRecordingFailedException - then the exception propagates " + "unchanged")
         void whenPortThrowsExpenseRecordingFailedException_thenExceptionPropagatesUnchanged() {
             List<KnownCategory> knownCategories = List.of(new KnownCategory("Lunch", "Food"));
             ExtractIntentsCommand command = command(TEXT, knownCategories);
@@ -143,8 +140,8 @@ class ExtractIntentsUseCaseTest {
         @DisplayName("when the port returns normally - then one INFO line is logged, naming how many categories "
                 + "were offered and carrying nothing from the message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
-            List<KnownCategory> knownCategories = List.of(
-                    new KnownCategory("Lunch", "Food"), new KnownCategory("Flight", "Travel"));
+            List<KnownCategory> knownCategories =
+                    List.of(new KnownCategory("Lunch", "Food"), new KnownCategory("Flight", "Travel"));
             ExtractIntentsCommand command = command(TEXT, knownCategories);
 
             useCase.extractIntents(command);
@@ -152,7 +149,5 @@ class ExtractIntentsUseCaseTest {
             assertThat(loggedInfoLines()).hasSize(1);
             assertThat(loggedInfoLines().get(0)).contains("2").doesNotContain(TEXT);
         }
-
     }
-
 }

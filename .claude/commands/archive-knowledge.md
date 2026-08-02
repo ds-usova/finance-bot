@@ -36,6 +36,10 @@ Each is new or updated in place. A second file on the same subject is a defect.
    **Parallelism**, **Version Control**, **Diagram Format**, and **how documentation is written** governs this
    run. Read it through to whatever states each of those; the writing rules below are a reminder of what matters
    most, never a substitute for the repository's own. What it does not cover falls back to this file.
+
+   **A sub-agent is pointed at the rule, not told a paraphrase of it.** Name the file that owns a rule and let
+   the agent read it there; a restatement in a prompt is a second copy that can be wrong, in the one place no
+   review looks.
 4. **The existing corpus** — root README, service READMEs, `docs/usecases/`, `docs/contracts/`, `docs/adr/`.
 
 ## Gate

@@ -10,14 +10,12 @@ import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import org.springframework.grpc.server.service.GrpcService;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.grpc.server.service.GrpcService;
 
 @GrpcService
-public class IntentExtractionGrpcService
-        extends IntentExtractionServiceGrpc.IntentExtractionServiceImplBase {
+public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.IntentExtractionServiceImplBase {
 
     private final ExtractIntentsPort extractIntentsPort;
 
@@ -26,8 +24,7 @@ public class IntentExtractionGrpcService
     }
 
     @Override
-    public void extractIntents(
-            ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
+    public void extractIntents(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         if (rejectIfInvalid(request, responseObserver)) {
             return;
         }
@@ -57,8 +54,9 @@ public class IntentExtractionGrpcService
     private boolean rejectIfInvalid(
             ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         if (request.getText().isBlank()) {
-            responseObserver.onError(
-                    Status.INVALID_ARGUMENT.withDescription("Text must not be blank").asRuntimeException());
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Text must not be blank")
+                    .asRuntimeException());
             return true;
         }
 
@@ -70,7 +68,8 @@ public class IntentExtractionGrpcService
         }
 
         boolean hasBlankCategory = request.getKnownCategoriesList().stream()
-                .anyMatch(entry -> entry.getName().isBlank() || entry.getParentName().isBlank());
+                .anyMatch(entry ->
+                        entry.getName().isBlank() || entry.getParentName().isBlank());
         if (hasBlankCategory) {
             responseObserver.onError(Status.INVALID_ARGUMENT
                     .withDescription("Known category name and parent_name must not be blank")
@@ -80,5 +79,4 @@ public class IntentExtractionGrpcService
 
         return false;
     }
-
 }

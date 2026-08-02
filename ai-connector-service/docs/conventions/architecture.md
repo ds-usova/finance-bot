@@ -79,7 +79,7 @@ The first is enforced below; the second by review.
 
 - Tool: ArchUnit (JUnit 5 integration).
 - Test class: `bot.finance.ai.architecture.CleanArchitectureTest` (run command in
-  [Build & Test Commands](build.md#build--test-commands)).
+  [Build](build.md)).
 - Rules:
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..` and `com.google.protobuf..` banned from

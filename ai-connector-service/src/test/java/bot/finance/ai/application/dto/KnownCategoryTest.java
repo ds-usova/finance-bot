@@ -1,5 +1,8 @@
 package bot.finance.ai.application.dto;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import bot.finance.ai.domain.exception.InvalidValueException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -7,9 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class KnownCategoryTest {
 
@@ -31,8 +31,7 @@ class KnownCategoryTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when name is null or blank - then throws InvalidValueException")
         void whenNameIsNullOrBlank_thenThrowsInvalidValueException(String name) {
-            assertThatThrownBy(() -> new KnownCategory(name, "Insurance"))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> new KnownCategory(name, "Insurance")).isInstanceOf(InvalidValueException.class);
         }
 
         @ParameterizedTest
@@ -40,10 +39,8 @@ class KnownCategoryTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when parent name is null or blank - then throws InvalidValueException")
         void whenParentNameIsNullOrBlank_thenThrowsInvalidValueException(String parentName) {
-            assertThatThrownBy(() -> new KnownCategory("Travel", parentName))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> new KnownCategory("Travel", parentName)).isInstanceOf(InvalidValueException.class);
         }
-
     }
 
     @Nested
@@ -58,7 +55,5 @@ class KnownCategoryTest {
 
             assertThat(category.label()).isEqualTo("Insurance > Travel");
         }
-
     }
-
 }

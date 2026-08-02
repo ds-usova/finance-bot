@@ -82,7 +82,7 @@ The first is enforced below; the second by review. How a command is named is enf
 
 - Tool: ArchUnit (JUnit 5 integration).
 - Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
-  [Build & Test Commands](build.md#build--test-commands)).
+  [Build](build.md)).
 - Rules:
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,

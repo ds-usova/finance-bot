@@ -5,5 +5,4 @@ import bot.finance.ai.application.dto.ExtractIntentsCommand;
 public interface ExtractIntentsPort {
 
     void extractIntents(ExtractIntentsCommand command);
-
 }

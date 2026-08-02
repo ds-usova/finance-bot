@@ -611,8 +611,16 @@ How to apply them:
 - Present the generated plan file to the user.
 - **Report what step 6 applied** — the findings' IDs and a clause each, in one short list. An automatic edit the
   user cannot see is an automatic edit the user cannot catch.
-- Put the findings still needing them — the `decision` ones and anything escalated — in front of the user
-  explicitly, alongside the unanswered Open Questions.
+- **Ask what is still open, in one batch, via `AskUserQuestion`** — every unanswered Open Question, every
+  `decision` finding, and anything escalated, each with the options that are actually defensible and a
+  recommendation first. Do not print them and wait for the file to come back edited: the user answering in the
+  conversation is faster, and it puts the answer in your hands as text.
+- **Write each answer into the plan file verbatim**, as the `- A:` under its question or the `- Action:` under
+  its finding, and correct anything elsewhere in the plan that the answer invalidates in the same edit. The
+  conversation is not the record; the file is, and the readiness gate reads the file. An answer that prescribes
+  content is quoted, not summarized — the implementing step is given those words.
+- **A question the user leaves unanswered stays in the file, unanswered.** Do not guess one to fill the gate,
+  and do not ask again in a second round; the file is where an answer can arrive later, in the user's own time.
 - **Stop here. Do not implement anything.** Do not write code, create files, or run commands.
 - Wait for the user to explicitly ask you to start implementation before doing any work.
 - Tell the user that implementation will not start while any Open Question lacks an `A:` or any Review Finding

@@ -1,14 +1,13 @@
 package bot.finance.ai.common;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-
 import java.util.List;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 /**
  * Reads back the requests {@link WireMockSupport#SERVER} recorded, so a test asserts on what actually went to the
@@ -21,8 +20,7 @@ public final class CapturedRequestUtils {
 
     private static final String CREATE_EXPENSE_PROPOSAL = "create_expense_proposal";
 
-    private CapturedRequestUtils() {
-    }
+    private CapturedRequestUtils() {}
 
     public static List<LoggedRequest> chatCompletionRequests() {
         return capturedRequests(WireMockStubs.CHAT_COMPLETIONS_PATH);
@@ -38,7 +36,8 @@ public final class CapturedRequestUtils {
      */
     public static List<LoggedRequest> toolCallRequests() {
         return mcpRequests().stream()
-                .filter(request -> CREATE_EXPENSE_PROPOSAL.equals(body(request).at("/params/name").asText()))
+                .filter(request -> CREATE_EXPENSE_PROPOSAL.equals(
+                        body(request).at("/params/name").asText()))
                 .toList();
     }
 
@@ -69,5 +68,4 @@ public final class CapturedRequestUtils {
     private static List<LoggedRequest> capturedRequests(String path) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(path)));
     }
-
 }
