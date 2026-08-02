@@ -3,9 +3,12 @@ package bot.finance.adapter.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -69,6 +72,80 @@ class AuthenticatedCallerUtilsTest {
             return Jwt.withTokenValue("token-value")
                     .header("alg", "RS256")
                     .subject(subject)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(60))
+                    .build();
+        }
+    }
+
+    @Nested
+    @DisplayName("resolving the message reference from the security context")
+    class MessageReferenceMethod {
+
+        @Test
+        @DisplayName(
+                "when the security context holds a validated token whose mrf claim is a UUID's canonical text"
+                        + " - then returns a MessageReference carrying that UUID")
+        void whenContextHoldsValidatedTokenWithUuidMrfClaim_thenReturnsMessageReferenceCarryingThatUuid() {
+            UUID reference = UUID.randomUUID();
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim(reference.toString())));
+
+            MessageReference messageReference = AuthenticatedCallerUtils.messageReference();
+
+            assertThat(messageReference).isEqualTo(new MessageReference(reference));
+        }
+
+        @Test
+        @DisplayName(
+                "when the security context holds a validated token with no mrf claim"
+                        + " - then throws InvalidIncomingMessageException")
+        void whenContextHoldsValidatedTokenWithNoMrfClaim_thenThrowsInvalidIncomingMessageException() {
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithoutMrfClaim()));
+
+            assertThatThrownBy(AuthenticatedCallerUtils::messageReference)
+                    .isInstanceOf(InvalidIncomingMessageException.class);
+        }
+
+        @Test
+        @DisplayName(
+                "when the security context holds a validated token whose mrf claim is not a UUID"
+                        + " - then throws InvalidIncomingMessageException")
+        void whenContextHoldsValidatedTokenWithNonUuidMrfClaim_thenThrowsInvalidIncomingMessageException() {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim("not-a-uuid")));
+
+            assertThatThrownBy(AuthenticatedCallerUtils::messageReference)
+                    .isInstanceOf(InvalidIncomingMessageException.class);
+        }
+
+        @Test
+        @DisplayName(
+                "when the security context holds no authentication, or one that is not a validated token"
+                        + " - then throws InvalidUserException")
+        void whenContextHoldsNoValidatedToken_thenThrowsInvalidUserException() {
+            assertThatThrownBy(AuthenticatedCallerUtils::messageReference).isInstanceOf(InvalidUserException.class);
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new UsernamePasswordAuthenticationToken("user", "password"));
+
+            assertThatThrownBy(AuthenticatedCallerUtils::messageReference).isInstanceOf(InvalidUserException.class);
+        }
+
+        private static Jwt jwtWithMrfClaim(String mrf) {
+            return Jwt.withTokenValue("token-value")
+                    .header("alg", "RS256")
+                    .subject("ext-123")
+                    .claim("mrf", mrf)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(60))
+                    .build();
+        }
+
+        private static Jwt jwtWithoutMrfClaim() {
+            return Jwt.withTokenValue("token-value")
+                    .header("alg", "RS256")
+                    .subject("ext-123")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(60))
                     .build();

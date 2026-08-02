@@ -129,6 +129,35 @@ class CreateExpenseProposalMcpToolTest {
                     .contains("EUR")
                     .contains("2026-07-30T12:00:00Z");
         }
+
+        @Test
+        @DisplayName(
+                "when create_expense_proposal is called - then the port receives a command carrying the token's mrf claim as its message reference and the token's subject as its identity")
+        void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenMrfClaimAsMessageReferenceAndSubjectAsIdentity() {
+            String externalId = "user-43";
+            MessageReference reference = MessageReference.newReference();
+            String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
+            ExpenseProposal stored = ExpenseProposal.stored(
+                    4343L,
+                    99L,
+                    3L,
+                    "lunch with the team",
+                    Optional.of("Trattoria Roma"),
+                    new Money(1599L, CurrencyCode.of("EUR")),
+                    reference,
+                    CREATED_AT,
+                    CREATED_AT);
+            when(createExpenseProposalPort.create(any())).thenReturn(stored);
+
+            postCreateExpenseProposal(
+                    token, "Restaurants", null, "lunch with the team", "Trattoria Roma", 1599L, "EUR");
+
+            ArgumentCaptor<CreateExpenseProposalCommand> command =
+                    ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
+            verify(createExpenseProposalPort).create(command.capture());
+            assertThat(command.getValue().messageReference()).isEqualTo(reference);
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+        }
     }
 
     @Nested
@@ -272,6 +301,31 @@ class CreateExpenseProposalMcpToolTest {
                 assertThat(logCapture.messages())
                         .noneMatch(message -> message.contains(issuedToken));
             }
+        }
+
+        @Test
+        @DisplayName("when the caller token carries no mrf claim - then the result is a tool error and the port is never called")
+        void whenTokenCarriesNoMrfClaim_thenResultIsToolErrorAndPortNeverCalled() {
+            String token = McpTokens.noReferenceToken("user-10");
+
+            Response response =
+                    postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            verify(createExpenseProposalPort, never()).create(any());
+        }
+
+        @Test
+        @DisplayName(
+                "when the caller token's mrf claim is not a UUID - then the result is a tool error and the port is never called")
+        void whenTokenMrfClaimIsNotUuid_thenResultIsToolErrorAndPortNeverCalled() {
+            String token = McpTokens.malformedReferenceToken("user-11");
+
+            Response response =
+                    postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            verify(createExpenseProposalPort, never()).create(any());
         }
     }
 

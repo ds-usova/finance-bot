@@ -167,5 +167,33 @@ class IntentExtractionRequestTest {
 
             assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
         }
+
+        @Test
+        @DisplayName("when text, categories, currency, external id and a message reference are valid - "
+                + "then messageReference reads back unchanged")
+        void whenTextCategoriesCurrencyExternalIdAndMessageReferenceAreValid_thenMessageReferenceReadsBackUnchanged() {
+            MessageReference messageReference = MessageReference.newReference();
+
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(new KnownCategory("food", "groceries")),
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id",
+                    messageReference);
+
+            assertThat(request.messageReference()).isEqualTo(messageReference);
+        }
+
+        @Test
+        @DisplayName("when the message reference is null - then throws InvalidExtractionRequestException")
+        void whenMessageReferenceIsNull_thenThrowsInvalidExtractionRequestException() {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of(new KnownCategory("food", "groceries")),
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            null))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
     }
 }

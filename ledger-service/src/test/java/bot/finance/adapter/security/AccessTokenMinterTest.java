@@ -70,6 +70,30 @@ class AccessTokenMinterTest {
             assertThat(signedJwt.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.RS256);
             assertThat(signedJwt.verify(new RSASSAVerifier(minter.publicKey()))).isTrue();
         }
+
+        @Test
+        @DisplayName(
+                "when the minted token is parsed - then its mrf claim is that reference's UUID in canonical text form")
+        void whenTheMintedTokenIsParsed_thenItsMrfClaimIsThatReferencesUuidInCanonicalTextForm() throws ParseException {
+            MessageReference reference = MessageReference.newReference();
+
+            String token = minter.mint(USER_EXTERNAL_ID, reference);
+
+            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            assertThat(claims.getStringClaim("mrf")).isEqualTo(reference.value().toString());
+        }
+
+        @Test
+        @DisplayName("when both tokens are parsed - then their mrf claims differ")
+        void whenBothTokensAreParsed_thenTheirMrfClaimsDiffer() throws ParseException {
+            String firstToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String secondToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+
+            String firstMrf = SignedJWT.parse(firstToken).getJWTClaimsSet().getStringClaim("mrf");
+            String secondMrf = SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim("mrf");
+
+            assertThat(firstMrf).isNotEqualTo(secondMrf);
+        }
     }
 
     @Nested

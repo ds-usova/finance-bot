@@ -1,6 +1,8 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.TelegramFixtures.MESSAGE_ID;
 import static bot.finance.common.TelegramFixtures.textMessageUpdate;
+import static bot.finance.common.TelegramFixtures.textMessageUpdateWithoutFrom;
 import static bot.finance.common.TelegramFixtures.updatesResponse;
 import static bot.finance.common.TelegramFixtures.voiceMessageUpdate;
 import static bot.finance.common.TelegramTestBot.LISTENER_TOKEN;
@@ -41,7 +43,10 @@ class TelegramUpdateListenerTest {
     private static final int TEXT_UPDATE_ID = 42;
     private static final int VOICE_UPDATE_ID = 43;
     private static final long CHAT_ID = 555L;
+    private static final long USER_ID = 777L;
     private static final String CONVERSATION_ID = "555";
+    private static final String USER_EXTERNAL_ID = "777";
+    private static final String INBOUND_MESSAGE_ID = String.valueOf(MESSAGE_ID);
     private static final String MESSAGE_TEXT = "lunch 12 euro";
 
     private static final int POLL_LIMIT = 100;
@@ -95,12 +100,14 @@ class TelegramUpdateListenerTest {
                 "when a text-message update is polled - then the port handles the mapped command and the batch is confirmed")
         void whenTextMessageUpdateIsPolled_thenPortHandlesMappedCommandAndBatchIsConfirmed() {
             telegramReturnsOnFirstPoll(
-                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 
             HandleIncomingMessageCommand handled = awaitSingleHandledCommand();
+            assertThat(handled.userExternalId()).isEqualTo(USER_EXTERNAL_ID);
             assertThat(handled.conversationId()).isEqualTo(CONVERSATION_ID);
+            assertThat(handled.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
         }
@@ -149,15 +156,30 @@ class TelegramUpdateListenerTest {
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
                     updatesResponse(
-                            textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT),
+                            textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT),
                             voiceMessageUpdate(VOICE_UPDATE_ID, CHAT_ID)));
 
             startLoop();
 
             awaitFollowUpPollWithOffset("44");
             HandleIncomingMessageCommand handled = awaitSingleHandledCommand();
+            assertThat(handled.userExternalId()).isEqualTo(USER_EXTERNAL_ID);
             assertThat(handled.conversationId()).isEqualTo(CONVERSATION_ID);
+            assertThat(handled.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
+        }
+
+        @Test
+        @DisplayName(
+                "when a text-message update without a from is polled - then the port is never called and the batch is still confirmed")
+        void whenTextMessageUpdateWithoutFromIsPolled_thenPortIsNeverCalledAndBatchIsStillConfirmed() {
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdateWithoutFrom(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+
+            startLoop();
+
+            awaitFollowUpPollWithOffset("43");
+            verifyNoInteractions(handleIncomingMessagePort);
         }
     }
 }

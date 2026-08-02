@@ -54,6 +54,19 @@ class ExpenseProposalToolUtilsTest {
                             MESSAGE_REFERENCE));
         }
 
+        @Test
+        @DisplayName("when the request, an identity and a message reference are valid - then the returned command "
+                + "carries that reference")
+        void whenRequestIdentityAndReferenceAreValid_thenReturnedCommandCarriesThatReference() {
+            CreateExpenseProposalToolRequest request =
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
+            MessageReference reference = MessageReference.newReference();
+
+            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, reference);
+
+            assertThat(command.messageReference()).isEqualTo(reference);
+        }
+
         @ParameterizedTest(name = "{0}")
         @MethodSource("blankParentCategories")
         @DisplayName("when the request's parentCategory is null or blank - then the command's parentCategoryName is Optional.empty()")

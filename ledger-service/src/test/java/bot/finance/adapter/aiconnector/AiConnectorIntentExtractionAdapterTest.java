@@ -96,6 +96,34 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(claims.getSubject()).isEqualTo("user-external-id-77");
         }
 
+        @Test
+        @DisplayName(
+                "when extract is called with a request carrying a known message reference - then the bearer token's mrf claim equals that reference's UUID text, and the request the server received carries no field for it")
+        void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaimAndProtoRequestHasNoFieldForIt()
+                throws ParseException {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            MessageReference reference = MessageReference.newReference();
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of(new KnownCategory("Groceries", "Food")),
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id",
+                    reference);
+
+            adapter.extract(request);
+
+            Metadata metadata = GrpcStubServer.lastExtractionMetadata();
+            assertThat(metadata).isNotNull();
+            String authorizationHeader =
+                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            String token = authorizationHeader.substring("Bearer ".length());
+            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            assertThat(claims.getStringClaim("mrf")).isEqualTo(reference.value().toString());
+
+            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("message_reference"))
+                    .isNull();
+        }
+
         @ParameterizedTest
         @EnumSource(
                 value = Status.Code.class,

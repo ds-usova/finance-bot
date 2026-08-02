@@ -116,6 +116,7 @@ class CreateExpenseProposalUseCaseTest {
             assertThat(stampedProposal.description()).isEqualTo("coffee");
             assertThat(stampedProposal.merchant()).contains("Starbucks");
             assertThat(stampedProposal.money()).isEqualTo(new Money(500, CurrencyCode.of("USD")));
+            assertThat(stampedProposal.messageReference()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(stampedProposal.createdAt()).isEqualTo(FIXED_INSTANT);
             assertThat(stampedProposal.updatedAt()).isEqualTo(FIXED_INSTANT);
             assertThat(result).isSameAs(createdProposal);
@@ -309,6 +310,33 @@ class CreateExpenseProposalUseCaseTest {
                     .isInstanceOf(InvalidCategoryException.class);
 
             verifyNoInteractions(expenseProposalRepository);
+        }
+
+        @Test
+        @DisplayName("when the command carries a message reference - then the proposal handed to the proposal "
+                + "repository carries that same reference")
+        void whenCommandCarriesMessageReference_thenProposalRepositoryReceivesProposalWithThatReference() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food"))));
+            ExpenseProposal createdProposal = ExpenseProposal.stored(
+                    10L,
+                    USER_ID,
+                    CATEGORY_ID,
+                    "coffee",
+                    Optional.of("Starbucks"),
+                    new Money(500, CurrencyCode.of("USD")),
+                    MESSAGE_REFERENCE,
+                    FIXED_INSTANT,
+                    FIXED_INSTANT);
+            when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
+
+            useCase.create(newExpenseProposal());
+
+            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
+            verify(expenseProposalRepository).create(proposalCaptor.capture());
+            assertThat(proposalCaptor.getValue().messageReference()).isEqualTo(MESSAGE_REFERENCE);
         }
 
         @Test

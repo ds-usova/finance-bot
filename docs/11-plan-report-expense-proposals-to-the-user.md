@@ -107,7 +107,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `MessageReference` · test: `MessageReferenceTest` · covers: `newReference()`, `of(String)`, `value()`
+- [x] RU01 · `MessageReference` · test: `MessageReferenceTest` · covers: `newReference()`, `of(String)`, `value()`
   - `newReference()`:
     - given: nothing
       when: `newReference()` is called twice
@@ -128,7 +128,7 @@
       when: the canonical constructor is called with it
       then: `InvalidIncomingMessageException` is thrown
 
-- [ ] RU02 · `ExpenseProposal` · test: `ExpenseProposalTest` · covers: `newExpenseProposal(...)`, `stored(...)`,
+- [x] RU02 · `ExpenseProposal` · test: `ExpenseProposalTest` · covers: `newExpenseProposal(...)`, `stored(...)`,
   `messageReference()`
   - `newExpenseProposal(...)`:
     - given: every field valid and a message reference
@@ -149,7 +149,7 @@
     - update: `whenDatabaseIdAndEveryOtherFieldAreGiven_thenReturnsProposalCarryingAllWithTimestampsUnchanged()` —
       pass a reference and assert `messageReference()` alongside the other fields
 
-- [ ] RU03 · `HandleIncomingMessageCommand` · test: `HandleIncomingMessageCommandTest` · covers: the compact
+- [x] RU03 · `HandleIncomingMessageCommand` · test: `HandleIncomingMessageCommandTest` · covers: the compact
   constructor
   - compact constructor:
     - given: a non-blank user external id, conversation id, inbound message id and text
@@ -161,7 +161,7 @@
     - update: `whenConversationIdAndTextAreNonBlank_thenBothComponentsAreReadableUnchanged()` — drop it, replaced
       by the four-component scenario above
 
-- [ ] RU04 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle(command)`
+- [x] RU04 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle(command)`
   - `handle(command)`:
     - given: a command, a stored user, known categories, an extraction that returns normally, and a repository
       returning two summaries under the minted reference
@@ -211,7 +211,7 @@
       and `whenFindKnownCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched()`
       — add the delivery port to the untouched-port assertions
 
-- [ ] RU05 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers:
+- [x] RU05 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers:
   `toHandleIncomingMessageCommand(Update)`
   - `toHandleIncomingMessageCommand(Update)`:
     - given: an update whose message carries a `from` id, a chat id, a message id and non-blank text
@@ -226,7 +226,7 @@
     - update: `skippableUpdates()` — add the no-`from` case to the matrix and adapt every existing argument to
       `TelegramFixtures`' new signatures
 
-- [ ] RU06 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · covers: `render(ProposalReport)`
+- [x] RU06 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · covers: `render(ProposalReport)`
   - `render(ProposalReport)`:
     - given: a `RECORDED` report carrying two summaries, one with a merchant and one without
       when: `render` is called
@@ -254,7 +254,7 @@
       when: `render` is called
       then: those characters appear literally, with no escaping applied
 
-- [ ] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers:
+- [x] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers:
   `toCommand(request, userId, reference)`
   - `toCommand(request, userId, reference)`:
     - given: a valid request, an identity and a message reference
@@ -265,7 +265,7 @@
     - update: every other scenario in `ToCommand` — pass a reference so the calls compile against the new
       signature; assertions are otherwise unchanged
 
-- [ ] RU08 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
+- [x] RU08 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
   - compact constructor:
     - given: a valid text, categories, currency and external id, and a message reference
       when: the record is constructed
@@ -276,7 +276,7 @@
     - update: every existing scenario — pass a reference so the constructions compile; assertions are otherwise
       unchanged
 
-- [ ] RU09 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers: the compact
+- [x] RU09 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · covers: the compact
   constructor
   - compact constructor:
     - given: every component valid and a message reference
@@ -288,7 +288,7 @@
     - update: every existing scenario — pass a reference so the constructions compile; assertions are otherwise
       unchanged
 
-- [ ] RU10 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create(command)`
+- [x] RU10 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create(command)`
   - `create(command)`:
     - given: a stored user, a stored child category, and a command carrying a message reference
       when: `create` is called
@@ -298,7 +298,7 @@
     - update: the fixed-clock scenario at `CreateExpenseProposalUseCaseTest:85` — assert the created proposal's
       `messageReference()` alongside the fields it already asserts
 
-- [ ] RU11 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · covers: `messageReference()`
+- [x] RU11 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · covers: `messageReference()`
   - `messageReference()`:
     - given: the security context holds a validated token whose `mrf` claim is a UUID's canonical text
       when: `messageReference()` is called
@@ -313,7 +313,7 @@
       when: `messageReference()` is called
       then: `InvalidUserException` is thrown, as `authenticatedUserId()` does for the same context
 
-- [ ] RU12 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint(String, MessageReference)`
+- [x] RU12 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint(String, MessageReference)`
   - `mint(String, MessageReference)`:
     - given: an external id and a message reference
       when: the minted token is parsed
@@ -328,7 +328,7 @@
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
+- [x] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
   `findSummariesByMessageReference(long, MessageReference)`, `create(ExpenseProposal)`
   - `findSummariesByMessageReference(long, MessageReference)`:
     - given: a stored user, a child category under a stored parent, and three proposals written under the same
@@ -359,7 +359,7 @@
     - update: every existing `Create` scenario and both `WithAMockedStore` scenarios — build the proposal with a
       message reference so the calls compile; assertions are otherwise unchanged
 
-- [ ] RI02 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers:
+- [x] RI02 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers:
   `deliver(ProposalReport)`
   - `deliver(ProposalReport)`:
     - given: WireMock accepts `sendMessage` for `DELIVERY_TOKEN`, and a `RECORDED` report with two summaries
@@ -379,7 +379,7 @@
       when: `deliver` is called
       then: `InvalidIncomingMessageException` is thrown and nothing is sent
 
-- [ ] RI03 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI03 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract(IntentExtractionRequest)`
   - `extract(IntentExtractionRequest)`:
     - given: the stub server answers an empty response and a request carrying a known message reference
@@ -391,7 +391,7 @@
       `whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionCarryingStatusRuntimeExceptionAsCauseAndNamingStatus()`
       — build the request with a message reference so the calls compile; assertions are otherwise unchanged
 
-- [ ] RI04 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] RI04 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `tools/call create_expense_proposal` via `POST /mcp` · mocks: `CreateExpenseProposalPort`
   - Happy Path:
     - given: the port returns a stored proposal, and the caller token carries a known `mrf` claim
@@ -410,7 +410,7 @@
     `Validation` — mint through `McpTokens` with a message reference so the calls compile and the tool finds a
     claim; assertions are otherwise unchanged
 
-- [ ] RI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the pengrad `getUpdates` poll
+- [x] RI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the pengrad `getUpdates` poll
   loop · mocks: `HandleIncomingMessagePort`
   - Happy Path:
     - given: the stub server serves one text-message update carrying a `from` id, a chat id and a message id
@@ -429,7 +429,7 @@
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
   - Happy Path:
     - given: `WireMockStubs.telegramAcceptsSendMessage(TOKEN)` is registered alongside the `getUpdates` catch-all in
       the same `@BeforeEach`, the stub Telegram server serves one text-message update whose `from` id and chat id
@@ -446,7 +446,7 @@
     user's external id is now the `from` id rather than `CONVERSATION_ID`, the bearer token's `sub` follows it, and
     the delivered report replaces the log-line assertion as the observable outcome
 
-- [ ] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
   - Unhappy Path:
     - given: `WireMockStubs.telegramAcceptsSendMessage(HANDLE_MESSAGE_FAILURE_TOKEN)` is registered alongside the
       `getUpdates` catch-all in the same `@BeforeEach`, the stub Telegram server serves one text-message update, and
@@ -527,12 +527,19 @@
   `AuthenticatedCallerUtils.messageReference()` would have broken dozens of already-passing tests once the
   mandatory signature changes landed — the stabilization guardrail "existing suite still green" wins over "stub
   everything". All five pieces are trivial, non-branching plumbing and were implemented outright. Consequence:
-  **RU01, RU11 and RU12 will pass on arrival rather than failing red**, and their green steps GU01, GU11 and GU12
-  are verification rather than implementation. This is an expected pass, not a false red, at the Stage 2 exit
+  **RU01, RU07, RU11 and RU12 will pass on arrival rather than failing red**, and their green steps GU01, GU07,
+  GU11 and GU12 are verification rather than implementation. RU07 joins them because ST10's call-site sync had to
+  pass the reference straight through `ExpenseProposalToolUtils.toCommand` for the module to compile, and a
+  pass-through parameter has no behaviour left to stub. This is an expected pass, not a false red, at the Stage 2 exit
   check. Every genuinely new behaviour — `ProposalReportUtils.render`, `TelegramMessageDeliveryAdapter.deliver`,
   `ExpenseProposalRepositoryAdapter.findSummariesByMessageReference`, the use case's new flow, and
   `TelegramUpdateUtils`' `from` handling — is a true stub or `TODO`, so RU02–RU10, RI01–RI05 and RS01–RS02 fail
   red as planned.
+
+- **B4 (Stage 2, 2026-08-03):** RU05 asks for the no-`from` skip both as its own scenario and as a case added to
+  `skippableUpdates()`, so `TelegramUpdateUtilsTest` now covers it twice — which the testing conventions forbid
+  ("Never duplicate a case as both a parameterized entry and a one-off test"). A plan defect, not the step agent's.
+  Stage 4's refactor pass collapses it to the parameterized case alone.
 
 - **B2 (baseline, 2026-08-02):** `spotlessCheck` fails across 48 pre-existing files in `ledger-service`, unrelated
   to this plan. It is not part of `test`, so no guardrail in this run depends on it; running `spotlessApply` would

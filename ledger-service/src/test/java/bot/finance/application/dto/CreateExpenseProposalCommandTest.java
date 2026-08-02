@@ -135,5 +135,23 @@ class CreateExpenseProposalCommandTest {
             assertThat(createExpenseProposalCommand.merchant()).isEqualTo(MERCHANT);
             assertThat(createExpenseProposalCommand.money()).isEqualTo(MONEY);
         }
+
+        @Test
+        @DisplayName(
+                "when every component is valid and a message reference is given - then messageReference() reads back unchanged")
+        void whenEveryComponentIsValidAndAMessageReferenceIsGiven_thenMessageReferenceReadsBackUnchanged() {
+            CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
+                    USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
+
+            assertThat(createExpenseProposalCommand.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+        }
+
+        @Test
+        @DisplayName("when the messageReference is absent - then throws InvalidExpenseProposalException")
+        void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseProposalException() {
+            assertThatThrownBy(() -> new CreateExpenseProposalCommand(
+                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, null))
+                    .isInstanceOf(InvalidExpenseProposalException.class);
+        }
     }
 }

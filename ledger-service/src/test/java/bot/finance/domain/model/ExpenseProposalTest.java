@@ -118,6 +118,16 @@ class ExpenseProposalTest {
                             1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, null))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
+
+        @Test
+        @DisplayName("when the message reference is absent - then throws InvalidExpenseProposalException")
+        void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseProposalException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+                            1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now))
+                    .isInstanceOf(InvalidExpenseProposalException.class);
+        }
     }
 
     @Nested
@@ -195,6 +205,18 @@ class ExpenseProposalTest {
                             MESSAGE_REFERENCE,
                             createdAt,
                             null))
+                    .isInstanceOf(InvalidExpenseProposalException.class);
+        }
+
+        @Test
+        @DisplayName(
+                "when a database id and an absent message reference are given, with every other field valid - then throws InvalidExpenseProposalException")
+        void
+                whenDatabaseIdAndAbsentMessageReferenceAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseProposalException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() ->
+                            ExpenseProposal.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now, now))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
