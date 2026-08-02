@@ -5,8 +5,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import bot.finance.common.containers.WireMockSupport;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.pengrad.telegrambot.TelegramBot;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 /**
@@ -52,6 +56,8 @@ public final class TelegramTestBot {
     public static final String DELIVERY_TOKEN = "delivery-test-token";
 
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TelegramTestBot() {}
 
@@ -104,5 +110,22 @@ public final class TelegramTestBot {
      */
     public static List<LoggedRequest> recordedSendMessages(String token) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token))));
+    }
+
+    /**
+     * The {@code reply_parameters} form param of a recorded {@code sendMessage}, parsed — pengrad sends it as a
+     * JSON document inside a form field, so reading {@code message_id} or {@code allow_sending_without_reply} off
+     * it means parsing rather than a string comparison.
+     */
+    public static JsonNode replyParameters(LoggedRequest sendMessageRequest) {
+        String json = sendMessageRequest
+                .formParameter("reply_parameters")
+                .getValues()
+                .get(0);
+        try {
+            return MAPPER.readTree(json);
+        } catch (IOException e) {
+            throw new UncheckedIOException("failed to parse reply_parameters: " + json, e);
+        }
     }
 }

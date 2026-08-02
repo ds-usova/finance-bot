@@ -20,7 +20,6 @@ class TelegramUpdateUtilsTest {
 
     private static final int UPDATE_ID = 42;
     private static final long CHAT_ID = 555L;
-
     private static final long USER_ID = 777L;
 
     @Nested
@@ -39,17 +38,6 @@ class TelegramUpdateUtilsTest {
             assertThat(command)
                     .contains(new HandleIncomingMessageCommand(
                             "777", "555", String.valueOf(TelegramFixtures.MESSAGE_ID), "lunch 12 euro"));
-        }
-
-        @Test
-        @DisplayName("when the update carries text and a chat but no from - then returns an empty Optional")
-        void whenUpdateCarriesTextAndChatButNoFrom_thenReturnsAnEmptyOptional() {
-            Update update = BotUtils.parseUpdate(
-                    TelegramFixtures.textMessageUpdateWithoutFrom(UPDATE_ID, CHAT_ID, "lunch 12 euro"));
-
-            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
-
-            assertThat(command).isEmpty();
         }
 
         @ParameterizedTest(name = "{0}")

@@ -62,7 +62,12 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         List<ProposalSummary> proposals =
                 expenseProposalRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
         ReportOutcome outcome = outcomeFor(extractionFailed, proposals);
-        deliver(command, reference, user, proposals, outcome, extractionFailed);
+        if (extractionFailed) {
+            log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
+        }
+        messageDeliveryPort.deliver(
+                new ProposalReport(command.conversationId(), command.inboundMessageId(), outcome, proposals));
+        log.info("delivered report for message {} to user {}", reference, user.externalId());
     }
 
     private boolean extract(
@@ -84,20 +89,5 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             return proposals.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
         }
         return proposals.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.RECORDED;
-    }
-
-    private void deliver(
-            HandleIncomingMessageCommand command,
-            MessageReference reference,
-            User user,
-            List<ProposalSummary> proposals,
-            ReportOutcome outcome,
-            boolean extractionFailed) {
-        if (extractionFailed) {
-            log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
-        }
-        messageDeliveryPort.deliver(
-                new ProposalReport(command.conversationId(), command.inboundMessageId(), outcome, proposals));
-        log.info("delivered report for message {} to user {}", reference, user.externalId());
     }
 }

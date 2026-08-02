@@ -3,6 +3,7 @@ package bot.finance.system;
 import static bot.finance.common.TelegramTestBot.HANDLE_MESSAGE_FAILURE_TOKEN;
 import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.TelegramTestBot.replyParameters;
 import static bot.finance.common.WireMockStubs.telegramAcceptsSendMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -14,12 +15,8 @@ import bot.finance.common.TelegramFixtures;
 import bot.finance.common.WireMockStubs;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.model.User;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -47,8 +44,6 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
     private static final String EXPECTED_TEXT = "Something went wrong and nothing was noted — please try again.";
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private UserRepository userRepository;
@@ -99,16 +94,9 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
                         assertThat(sendMessageRequest.formParameter("text").getValues())
                                 .containsExactly(EXPECTED_TEXT);
 
-                        JsonNode replyParameters;
-                        try {
-                            replyParameters = MAPPER.readTree(sendMessageRequest
-                                    .formParameter("reply_parameters")
-                                    .getValues()
-                                    .get(0));
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                        assertThat(replyParameters.get("message_id").asText())
+                        assertThat(replyParameters(sendMessageRequest)
+                                        .get("message_id")
+                                        .asText())
                                 .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
                     });
 

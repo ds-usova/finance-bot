@@ -125,7 +125,7 @@ class TelegramUpdateListenerTest {
                     .when(handleIncomingMessagePort)
                     .handle(any());
             telegramReturnsOnFirstPoll(
-                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 

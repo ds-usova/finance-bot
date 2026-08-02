@@ -12,13 +12,13 @@ import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.common.TelegramTestBot;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.pengrad.telegrambot.TelegramBot;
 import java.io.IOException;
@@ -41,8 +41,6 @@ class TelegramMessageDeliveryAdapterTest {
 
     private static final String CONVERSATION_ID = "777";
     private static final String INBOUND_MESSAGE_ID = "123";
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @AfterEach
     void tearDown() {
@@ -107,15 +105,7 @@ class TelegramMessageDeliveryAdapterTest {
                     .containsExactly(ProposalReportUtils.render(report));
             assertThat(sendMessageRequest.formParameter("parse_mode").isPresent()).isFalse();
 
-            JsonNode replyParameters;
-            try {
-                replyParameters = MAPPER.readTree(sendMessageRequest
-                        .formParameter("reply_parameters")
-                        .getValues()
-                        .get(0));
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+            JsonNode replyParameters = TelegramTestBot.replyParameters(sendMessageRequest);
             assertThat(replyParameters.get("message_id").asText()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(replyParameters.get("allow_sending_without_reply").asBoolean())
                     .isTrue();

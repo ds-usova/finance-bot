@@ -53,12 +53,12 @@ public final class McpTokens {
 
     public static String expiredToken(String externalId) {
         Instant issuedAt = Instant.now().minus(TTL).minusSeconds(60);
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), MessageReference.newReference().value());
+        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), newReferenceText());
     }
 
     public static String wrongAudienceToken(String externalId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, "some-other-audience", issuedAt, issuedAt.plus(TTL), MessageReference.newReference().value());
+        return sign(externalId, "some-other-audience", issuedAt, issuedAt.plus(TTL), newReferenceText());
     }
 
     public static String overTtlToken(String externalId) {
@@ -68,7 +68,7 @@ public final class McpTokens {
                 AUDIENCE,
                 issuedAt,
                 issuedAt.plus(TTL).plus(Duration.ofMinutes(10)),
-                MessageReference.newReference().value());
+                newReferenceText());
     }
 
     /** A token whose {@code mrf} claim is not a parseable UUID. */
@@ -83,7 +83,11 @@ public final class McpTokens {
         return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
     }
 
-    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, Object mrf) {
+    private static String newReferenceText() {
+        return MessageReference.newReference().value().toString();
+    }
+
+    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, String mrf) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .subject(subject)
@@ -93,7 +97,7 @@ public final class McpTokens {
                     .expirationTime(Date.from(expiresAt))
                     .jwtID(UUID.randomUUID().toString());
             if (mrf != null) {
-                claims.claim(MESSAGE_REFERENCE_CLAIM, mrf.toString());
+                claims.claim(MESSAGE_REFERENCE_CLAIM, mrf);
             }
             SignedJWT jwt = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KEY_ALIAS).build(), claims.build());

@@ -146,8 +146,9 @@ public class GrpcStubServer {
 
         private void callBackIntoMcp(String baseUrl) {
             Metadata metadata = LAST_EXTRACTION_METADATA.get();
-            String authorization =
-                    metadata == null ? null : metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            String authorization = metadata == null
+                    ? null
+                    : metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
             try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl + "/mcp"))

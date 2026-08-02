@@ -342,7 +342,8 @@ class ExpenseProposalRepositoryAdapterTest {
             MessageReference reference = MessageReference.newReference();
             Instant base = Instant.now().minusSeconds(60);
 
-            storedProposal(userId, categoryId, "Third", "Merchant Three", 300, "USD", reference.value(), base.plusSeconds(20));
+            storedProposal(
+                    userId, categoryId, "Third", "Merchant Three", 300, "USD", reference.value(), base.plusSeconds(20));
             storedProposal(userId, categoryId, "First", "Merchant One", 100, "USD", reference.value(), base);
             storedProposal(
                     userId, categoryId, "Second", "Merchant Two", 200, "USD", reference.value(), base.plusSeconds(10));
@@ -371,9 +372,23 @@ class ExpenseProposalRepositoryAdapterTest {
             MessageReference firstReference = MessageReference.newReference();
             MessageReference secondReference = MessageReference.newReference();
             storedProposal(
-                    userId, categoryId, "Under first reference", null, 100, "USD", firstReference.value(), Instant.now());
+                    userId,
+                    categoryId,
+                    "Under first reference",
+                    null,
+                    100,
+                    "USD",
+                    firstReference.value(),
+                    Instant.now());
             storedProposal(
-                    userId, categoryId, "Under second reference", null, 200, "USD", secondReference.value(), Instant.now());
+                    userId,
+                    categoryId,
+                    "Under second reference",
+                    null,
+                    200,
+                    "USD",
+                    secondReference.value(),
+                    Instant.now());
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, firstReference);
 
@@ -387,16 +402,29 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with one user's id and a reference value two stored users share - then only that user's proposals come back")
         void whenTwoUsersShareAReferenceValue_thenOnlyRequestedUsersProposalsComeBack() {
             long firstUserId = storedUserId("summary-shared-reference-first-user");
-            long firstCategoryId = storedChildCategoryId(firstUserId, storedCategoryId(firstUserId, "Food"), "Groceries");
+            long firstCategoryId =
+                    storedChildCategoryId(firstUserId, storedCategoryId(firstUserId, "Food"), "Groceries");
             long secondUserId = storedUserId("summary-shared-reference-second-user");
             long secondCategoryId =
                     storedChildCategoryId(secondUserId, storedCategoryId(secondUserId, "Food"), "Groceries");
             MessageReference sharedReference = MessageReference.newReference();
             storedProposal(
-                    firstUserId, firstCategoryId, "First user's proposal", null, 100, "USD", sharedReference.value(),
+                    firstUserId,
+                    firstCategoryId,
+                    "First user's proposal",
+                    null,
+                    100,
+                    "USD",
+                    sharedReference.value(),
                     Instant.now());
             storedProposal(
-                    secondUserId, secondCategoryId, "Second user's proposal", null, 200, "USD", sharedReference.value(),
+                    secondUserId,
+                    secondCategoryId,
+                    "Second user's proposal",
+                    null,
+                    200,
+                    "USD",
+                    sharedReference.value(),
                     Instant.now());
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(firstUserId, sharedReference);

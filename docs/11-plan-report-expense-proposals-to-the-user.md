@@ -539,7 +539,24 @@
 - **B4 (Stage 2, 2026-08-03):** RU05 asks for the no-`from` skip both as its own scenario and as a case added to
   `skippableUpdates()`, so `TelegramUpdateUtilsTest` now covers it twice — which the testing conventions forbid
   ("Never duplicate a case as both a parameterized entry and a one-off test"). A plan defect, not the step agent's.
-  Stage 4's refactor pass collapses it to the parameterized case alone.
+  Resolved: Stage 4's refactor pass dropped the standalone test, leaving the parameterized case — the suite's
+  379 → 378.
+
+- **B6 (Stage 4, 2026-08-03) — open, a real defect the tests miss.** `ProposalReportUtils.renderList` includes the
+  `… and N more.` line in its 4000-character budget for every bullet except the last. If the *final* bullet is
+  rejected, that line is appended without a budget check, so the text can exceed 4000. Reaching it needs a last
+  bullet shorter than the ~14-character omitted line, which RU06's uniform-length fixture never produces. Harmless
+  in production — the overshoot is bounded by that line, so ~4014 against the Bot API's 4096 limit — but it is a
+  spec violation, and fixing it changes observable output, so the refactor pass left it. Needs a scenario and a
+  one-line fix.
+
+- **B7 (Stage 4, 2026-08-03) — open, coverage lost.** RU04's `update:` bullet replaced
+  `whenHandleIsCalled_thenPortsAreCalledInOrderWithExpectedArguments()` with a reference-focused scenario, and in
+  doing so dropped its assertions that the extraction request carries the message text, the known categories, the
+  empty default currency and the user's external id, plus the `verify(categoryRepository).findKnownCategories(...)`
+  call. Nothing pins those at unit level now; `ReceiveTelegramMessageSystemTest` still asserts the connector
+  receives the text and the categories, so the behaviour is not unproven, only proven more expensively. Re-adding
+  the assertions was outside a behaviour-preserving pass.
 
 - **B5 (Stage 3, 2026-08-03):** The green-batch guardrail caught a regression in
   `TelegramPollFailureRecoverySystemTest`, which no step in this plan names. It drives a message end to end and
@@ -549,9 +566,13 @@
   through. Fixed by the orchestrator: `telegramAcceptsSendMessage(POLL_RECOVERY_TOKEN)` registered alongside the
   other stubs in its `@BeforeEach`, no assertion changed. The plan should have carried an `update:` bullet for it.
 
-- **B2 (baseline, 2026-08-02):** `spotlessCheck` fails across 48 pre-existing files in `ledger-service`, unrelated
-  to this plan. It is not part of `test`, so no guardrail in this run depends on it; running `spotlessApply` would
-  sweep 48 unrelated files into this plan's diff, so it was left alone.
+- **B2 (baseline, 2026-08-02; corrected Stage 4) — open, repo-wide.** `spotlessCheck` fails on **73** files in
+  `ledger-service`. The initial reading of this as pre-existing formatting drift was wrong: the reported violation
+  for each file is a *whole-file* replacement, every line including untouched ones, which is a **CRLF/LF
+  line-ending mismatch in this checkout**, not formatting. Every file this plan created inherits it. It is not
+  fixable per-file and `spotlessApply` is the wrong tool — it needs one repo-wide decision about `.gitattributes`
+  or `core.autocrlf`. Out of scope for this plan; `spotlessCheck` is not part of `test`, so no guardrail in this
+  run depended on it.
 
 ## Review Findings
 

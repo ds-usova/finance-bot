@@ -41,7 +41,10 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         }
 
         if (!response.isOk()) {
-            log.error("telegram sendMessage failed with error code {}: {}", response.errorCode(), response.description());
+            log.error(
+                    "telegram sendMessage failed with error code {}: {}",
+                    response.errorCode(),
+                    response.description());
             throw new MessageDeliveryFailedException(
                     "telegram sendMessage failed with error code %d: %s"
                             .formatted(response.errorCode(), response.description()));

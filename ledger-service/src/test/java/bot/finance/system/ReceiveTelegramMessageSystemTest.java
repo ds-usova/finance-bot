@@ -3,6 +3,7 @@ package bot.finance.system;
 import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -21,14 +22,10 @@ import bot.finance.common.WireMockStubs;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.List;
@@ -79,8 +76,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final Metadata.Key<String> AUTHORIZATION_KEY =
             Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     @Autowired
     private UserRepository userRepository;
 
@@ -111,7 +106,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                         PROPOSAL_CURRENCY_CODE));
         WireMockStubs.telegramReturnsOnFirstPoll(
                 TOKEN,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(
+                        TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
     }
 
     @AfterEach
@@ -225,16 +221,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             .startsWith(EXPECTED_REPORT_OPENING)
                             .contains(PROPOSAL_CATEGORY, PROPOSAL_AMOUNT_TEXT));
 
-            JsonNode replyParameters;
-            try {
-                replyParameters = MAPPER.readTree(sendMessageRequest
-                        .formParameter("reply_parameters")
-                        .getValues()
-                        .get(0));
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-            assertThat(replyParameters.get("message_id").asText())
+            assertThat(replyParameters(sendMessageRequest).get("message_id").asText())
                     .as("sendMessage reply_parameters message_id")
                     .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
         }

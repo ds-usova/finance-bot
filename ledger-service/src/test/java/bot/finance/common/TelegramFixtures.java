@@ -178,13 +178,6 @@ public final class TelegramFixtures {
                 .formatted(MESSAGE_DATE);
     }
 
-    /**
-     * A failed {@code sendMessage} envelope — {@code ok:false} with an error code and description.
-     */
-    public static String sendMessageError(int errorCode, String description) {
-        return error(errorCode, description);
-    }
-
     private static String escaped(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
