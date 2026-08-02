@@ -101,7 +101,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents(command)`
+- [x] RU01 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents(command)`
     - `extractIntents(command)`:
         - given: a command carrying a text, three known categories and no assumed currency
           when: the use case runs
@@ -123,7 +123,7 @@
           when: the use case runs
           then: one INFO line is logged, naming how many categories were offered and carrying nothing from the
           message text
-- [ ] RU02 · `LedgerToolFailureProcessor` · test: `LedgerToolFailureProcessorTest` · covers:
+- [x] RU02 · `LedgerToolFailureProcessor` · test: `LedgerToolFailureProcessorTest` · covers:
   `process(ToolExecutionException)`
     - `process(ToolExecutionException)`:
         - given: a failure whose direct cause is an `IllegalStateException` carrying the ledger's refusal text —
@@ -143,7 +143,7 @@
         - given: a failure whose cause is a checked `Exception`
           when: the processor runs
           then: it rethrows, as the framework's own processor does
-- [ ] RU03 · `CallerTokenMcpRequestCustomizer` · test: `CallerTokenMcpRequestCustomizerTest` · covers:
+- [x] RU03 · `CallerTokenMcpRequestCustomizer` · test: `CallerTokenMcpRequestCustomizerTest` · covers:
   `customize(builder, method, uri, body, context)`
     - `customize(builder, method, uri, body, context)`:
         - given: a transport context holding the turn's token, scheme included
@@ -156,7 +156,7 @@
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers:
+- [x] RI01 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers:
   `record(text, knownCategoryLabels, assumedCurrency)`
     - `record(text, knownCategoryLabels, assumedCurrency)`:
         - given: the provider answers one `create_expense_proposal` tool call and the ledger accepts it, with a
@@ -205,7 +205,7 @@
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
+- [x] RS01 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
     - Happy Path:
         - given: the provider answers one `create_expense_proposal` tool call naming a category, a merchant, an
           amount in minor units and a currency, then a plain text answer; the stubbed ledger accepts
