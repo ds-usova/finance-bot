@@ -5,8 +5,11 @@ import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.Money;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +42,27 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
 
     @Override
     public List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference) {
-        // TODO RI01: map each ProposalSummaryProjection row onto a ProposalSummary, translating a runtime
-        // failure into PersistenceFailedException, as findKnownCategories does in CategoryRepositoryAdapter.
-        throw new UnsupportedOperationException("findSummariesByMessageReference is not yet implemented");
+        try {
+            return expenseProposalEntityRepository
+                    .findSummariesByMessageReference(userId, reference.value())
+                    .stream()
+                    .map(ExpenseProposalRepositoryAdapter::toProposalSummary)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find proposal summaries for user " + userId + " and message reference "
+                            + reference.value(),
+                    e);
+        }
+    }
+
+    private static ProposalSummary toProposalSummary(ProposalSummaryProjection projection) {
+        return new ProposalSummary(
+                projection.categoryName(),
+                projection.parentName(),
+                projection.description(),
+                Optional.ofNullable(projection.merchant()),
+                new Money(projection.amountMinorUnits(), CurrencyCode.of(projection.currencyCode())));
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

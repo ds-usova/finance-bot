@@ -37,6 +37,8 @@ public record CreateExpenseProposalCommand(
         if (money == null) {
             throw new InvalidExpenseProposalException("new expense proposal has no money");
         }
-        // TODO RU09: throw InvalidExpenseProposalException when messageReference is null.
+        if (messageReference == null) {
+            throw new InvalidExpenseProposalException("new expense proposal has no messageReference");
+        }
     }
 }

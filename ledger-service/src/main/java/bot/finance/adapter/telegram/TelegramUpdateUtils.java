@@ -4,6 +4,7 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.model.User;
 import java.util.Optional;
 
 public final class TelegramUpdateUtils {
@@ -30,10 +31,14 @@ public final class TelegramUpdateUtils {
         if (chat == null) {
             return Optional.empty();
         }
-        // TODO RU05/D16: read message.from().id() for userExternalId, and return Optional.empty() when from is
-        // absent, exactly as this method already does for a missing chat or text.
+        User from = message.from();
+        if (from == null) {
+            return Optional.empty();
+        }
+        String userExternalId = String.valueOf(from.id());
         String conversationId = String.valueOf(chat.id());
         String inboundMessageId = String.valueOf(message.messageId());
-        return Optional.of(new HandleIncomingMessageCommand(conversationId, conversationId, inboundMessageId, text));
+        return Optional.of(
+                new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text));
     }
 }

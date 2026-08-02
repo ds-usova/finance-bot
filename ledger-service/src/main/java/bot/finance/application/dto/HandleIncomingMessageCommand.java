@@ -11,11 +11,15 @@ public record HandleIncomingMessageCommand(
         String userExternalId, String conversationId, String inboundMessageId, String text) {
 
     public HandleIncomingMessageCommand {
-        // TODO RU03: throw InvalidIncomingMessageException when userExternalId is null or blank.
+        if (userExternalId == null || userExternalId.isBlank()) {
+            throw new InvalidIncomingMessageException("incoming message has no user external id");
+        }
         if (conversationId == null || conversationId.isBlank()) {
             throw new InvalidIncomingMessageException("incoming message has no conversation id");
         }
-        // TODO RU03: throw InvalidIncomingMessageException when inboundMessageId is null or blank.
+        if (inboundMessageId == null || inboundMessageId.isBlank()) {
+            throw new InvalidIncomingMessageException("incoming message has no inbound message id");
+        }
         if (text == null || text.isBlank()) {
             throw new InvalidIncomingMessageException("incoming message has no text");
         }

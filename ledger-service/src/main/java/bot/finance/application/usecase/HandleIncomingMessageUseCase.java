@@ -4,6 +4,9 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.KnownCategory;
+import bot.finance.application.dto.ProposalReport;
+import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
@@ -12,6 +15,7 @@ import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.MessageReference;
@@ -49,16 +53,51 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         }
 
         log.debug("handling message: {}", command.text());
-        User user = initializeUserPort.initialize(new InitializeUserCommand(command.conversationId()));
+        User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
         List<KnownCategory> knownCategories = categoryRepository.findKnownCategories(user.id().orElseThrow());
-        // TODO ST10 (RU04/D3/D5): mint one MessageReference for this message, carry it through the extraction
-        // request, catch IntentExtractionFailedException instead of propagating it, read the summaries written
-        // under that reference via expenseProposalRepository, map (failed?, empty?) onto a ReportOutcome and
-        // deliver a ProposalReport via messageDeliveryPort instead of returning void.
-        MessageReference reference = MessageReference.newReference();
-        intentExtractionPort.extract(new IntentExtractionRequest(
-                command.text(), knownCategories, Optional.empty(), user.externalId(), reference));
 
-        log.debug("handled message for conversation {}", command.conversationId());
+        MessageReference reference = MessageReference.newReference();
+        boolean extractionFailed = extract(command, knownCategories, user, reference);
+
+        List<ProposalSummary> proposals =
+                expenseProposalRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
+        ReportOutcome outcome = outcomeFor(extractionFailed, proposals);
+        deliver(command, reference, user, proposals, outcome, extractionFailed);
+    }
+
+    private boolean extract(
+            HandleIncomingMessageCommand command,
+            List<KnownCategory> knownCategories,
+            User user,
+            MessageReference reference) {
+        try {
+            intentExtractionPort.extract(new IntentExtractionRequest(
+                    command.text(), knownCategories, Optional.empty(), user.externalId(), reference));
+            return false;
+        } catch (IntentExtractionFailedException e) {
+            return true;
+        }
+    }
+
+    private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {
+        if (extractionFailed) {
+            return proposals.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
+        }
+        return proposals.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.RECORDED;
+    }
+
+    private void deliver(
+            HandleIncomingMessageCommand command,
+            MessageReference reference,
+            User user,
+            List<ProposalSummary> proposals,
+            ReportOutcome outcome,
+            boolean extractionFailed) {
+        if (extractionFailed) {
+            log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
+        }
+        messageDeliveryPort.deliver(
+                new ProposalReport(command.conversationId(), command.inboundMessageId(), outcome, proposals));
+        log.info("delivered report for message {} to user {}", reference, user.externalId());
     }
 }

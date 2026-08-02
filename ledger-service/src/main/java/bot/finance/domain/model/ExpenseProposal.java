@@ -43,7 +43,9 @@ public final class ExpenseProposal extends Entity {
         if (categoryId <= 0) {
             throw new InvalidExpenseProposalException("category id must be positive");
         }
-        // TODO RU02: throw InvalidExpenseProposalException when messageReference is null.
+        if (messageReference == null) {
+            throw new InvalidExpenseProposalException("message reference must be present");
+        }
         if (createdAt == null) {
             throw new InvalidExpenseProposalException("created at must be present");
         }

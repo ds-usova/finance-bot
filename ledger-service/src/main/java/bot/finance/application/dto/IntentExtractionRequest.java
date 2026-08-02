@@ -30,7 +30,9 @@ public record IntentExtractionRequest(
         if (userExternalId == null || userExternalId.isBlank()) {
             throw new InvalidExtractionRequestException("User external id must not be null or blank");
         }
-        // TODO RU08: throw InvalidExtractionRequestException when messageReference is null.
+        if (messageReference == null) {
+            throw new InvalidExtractionRequestException("Message reference must not be null");
+        }
 
         knownCategories = List.copyOf(knownCategories);
     }

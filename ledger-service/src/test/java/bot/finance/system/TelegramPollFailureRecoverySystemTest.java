@@ -46,6 +46,7 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
     void attachLogCaptureAndStubTelegram() {
         logCapture = LogCapture.attachedTo(HandleIncomingMessageUseCase.class);
         WireMockStubs.telegramReturnsNoUpdates(POLL_RECOVERY_TOKEN);
+        WireMockStubs.telegramAcceptsSendMessage(POLL_RECOVERY_TOKEN);
         WireMockStubs.telegramFailsOnceThenReturns(
                 POLL_RECOVERY_TOKEN,
                 TOO_MANY_REQUESTS,

@@ -464,32 +464,32 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `MessageReference` · test: `MessageReferenceTest`
-- [ ] GU02 · `ExpenseProposal` · test: `ExpenseProposalTest` · after: GU01
-- [ ] GU03 · `HandleIncomingMessageCommand` · test: `HandleIncomingMessageCommandTest`
-- [ ] GU08 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
-- [ ] GU09 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · after: GU01
-- [ ] GU04 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU03, GU08
-- [ ] GU05 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: GU03
-- [ ] GU06 · `ProposalReportUtils` · test: `ProposalReportUtilsTest`
-- [ ] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01, GU02, GU09
-- [ ] GU10 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU02, GU09
-- [ ] GU11 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · after: GU01
-- [ ] GU12 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · after: GU01
+- [x] GU01 · `MessageReference` · test: `MessageReferenceTest`
+- [x] GU02 · `ExpenseProposal` · test: `ExpenseProposalTest` · after: GU01
+- [x] GU03 · `HandleIncomingMessageCommand` · test: `HandleIncomingMessageCommandTest`
+- [x] GU08 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · after: GU01
+- [x] GU09 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` · after: GU01
+- [x] GU04 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU03, GU08
+- [x] GU05 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: GU03
+- [x] GU06 · `ProposalReportUtils` · test: `ProposalReportUtilsTest`
+- [x] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01, GU02, GU09
+- [x] GU10 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU02, GU09
+- [x] GU11 · `AuthenticatedCallerUtils` · test: `AuthenticatedCallerUtilsTest` · after: GU01
+- [x] GU12 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01, GU02
-- [ ] GI02 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU06
-- [ ] GI03 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU08,
+- [x] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01, GU02
+- [x] GI02 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU06
+- [x] GI03 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU08,
   GU12
-- [ ] GI04 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU07, GU11, GU12
-- [ ] GI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: GU05
+- [x] GI04 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU07, GU11, GU12
+- [x] GI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: GU05
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
 
 ### Post-Implementation Steps
 
@@ -540,6 +540,14 @@
   `skippableUpdates()`, so `TelegramUpdateUtilsTest` now covers it twice — which the testing conventions forbid
   ("Never duplicate a case as both a parameterized entry and a one-off test"). A plan defect, not the step agent's.
   Stage 4's refactor pass collapses it to the parameterized case alone.
+
+- **B5 (Stage 3, 2026-08-03):** The green-batch guardrail caught a regression in
+  `TelegramPollFailureRecoverySystemTest`, which no step in this plan names. It drives a message end to end and
+  asserts the use case logs the conversation id; once GU04 made every handled message end in a delivery, its
+  missing `sendMessage` stub made delivery throw before the log line fired. This is finding F4 in a third system
+  test — the review found the gap in RS01 and RS02, but nobody searched for other classes that drive a message
+  through. Fixed by the orchestrator: `telegramAcceptsSendMessage(POLL_RECOVERY_TOKEN)` registered alongside the
+  other stubs in its `@BeforeEach`, no assertion changed. The plan should have carried an `update:` bullet for it.
 
 - **B2 (baseline, 2026-08-02):** `spotlessCheck` fails across 48 pre-existing files in `ledger-service`, unrelated
   to this plan. It is not part of `test`, so no guardrail in this run depends on it; running `spotlessApply` would

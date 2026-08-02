@@ -4,7 +4,12 @@ import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.exception.MessageDeliveryFailedException;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.request.ReplyParameters;
+import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.response.SendResponse;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,11 +25,26 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
 
     @Override
     public void deliver(ProposalReport report) {
-        // TODO RI02: send a SendMessage(report.conversationId(), ProposalReportUtils.render(report)) through
-        // bot, with replyParameters(new ReplyParameters(Integer.valueOf(report.inboundMessageId()))
-        // .allowSendingWithoutReply(true)) set on the same request, and translate a non-OK response or a client
-        // exception into MessageDeliveryFailedException. A null report throws InvalidIncomingMessageException
-        // and sends nothing.
-        throw new UnsupportedOperationException("deliver is not yet implemented");
+        if (report == null) {
+            throw new InvalidIncomingMessageException("report must not be null");
+        }
+
+        SendMessage request = new SendMessage(report.conversationId(), ProposalReportUtils.render(report))
+                .replyParameters(new ReplyParameters(Integer.valueOf(report.inboundMessageId()))
+                        .allowSendingWithoutReply(true));
+
+        SendResponse response;
+        try {
+            response = bot.execute(request);
+        } catch (RuntimeException e) {
+            throw new MessageDeliveryFailedException("failed to send telegram message: " + e.getMessage(), e);
+        }
+
+        if (!response.isOk()) {
+            log.error("telegram sendMessage failed with error code {}: {}", response.errorCode(), response.description());
+            throw new MessageDeliveryFailedException(
+                    "telegram sendMessage failed with error code %d: %s"
+                            .formatted(response.errorCode(), response.description()));
+        }
     }
 }
