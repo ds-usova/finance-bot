@@ -53,7 +53,7 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
 }
 
 Rel(ledger, grpcService, "ExtractIntents + token", "gRPC")
-Rel_D(grpcService, tokenInterceptor, "Token held by")
+Rel_U(grpcService, tokenInterceptor, "Token held by")
 Rel_R(grpcService, extractIntentsPort, "Invokes")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
 Rel_D(grpcService, currency, "Validates the assumed currency with")
@@ -61,8 +61,8 @@ Rel_D(grpcService, currency, "Validates the assumed currency with")
 Rel_R(useCase, recordingPort, "Uses")
 Rel_L(recordingAdapter, recordingPort, "Implements", $tags="implements")
 Rel_R(recordingAdapter, aiProvider, "Message, categories, tool schema", "HTTPS")
-Rel_D(recordingAdapter, toolClient, "Attaches the ledger's tools from")
-Rel_D(toolClient, tokenInterceptor, "Reads the token from")
+Rel_U(recordingAdapter, toolClient, "Attaches the ledger's tools from")
+Rel(toolClient, tokenInterceptor, "Reads the token from")
 Rel_L(toolClient, ledger, "create_expense_proposal", "MCP over HTTP")
 
 SHOW_LEGEND()

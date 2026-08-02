@@ -36,10 +36,12 @@ What this side adds:
 - The credential is minted per call, names the user as its subject, and is what the connector calls back with
   ([the tool it calls](../in/mcp.md)).
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
-- A call has sixty seconds to answer, which has to cover the whole model-driven loop: listing the tools, a
-  provider call, a callback per expense, a provider call per result, and a further pair per expense retried.
-- Three ceilings nest, outermost first: the token this service mints lives two minutes, the call has sixty
-  seconds, one callback has five — so a single slow callback cannot spend the turn.
+- A call answers within `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover the whole
+  model-driven loop: listing the tools, a provider call, a callback per expense, a provider call per result, and
+  a further pair per expense retried.
+- Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
+  mints, then the call's deadline, then the connector's own per-callback timeout — so a single slow callback
+  cannot spend the turn.
 - A call that runs out of time is abandoned on this side while the connector runs on: a failure here does not
   mean nothing was recorded.
 - The connector's own serving status is polled and reported in this service's health endpoint, so a target

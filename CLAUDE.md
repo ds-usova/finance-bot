@@ -20,7 +20,7 @@ breaks every allowlisted permission rule for the command that follows, forcing a
 
 ## Writing docs and plans
 
-Applies to READMEs, `docs/conventions/**`, and plan files in `docs/`.
+Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/**`, and plan files in `docs/`.
 
 - **Concise and on point.** Every sentence earns its place. Cut preamble, restatement, and hedging.
 - **State a fact once.** Each fact has one owning document; everywhere else links to it. A README does not
@@ -32,5 +32,10 @@ Applies to READMEs, `docs/conventions/**`, and plan files in `docs/`.
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
+- **Name the setting, not its current value.** A configurable value is referred to by the property or
+  environment variable that sets it, never by what it happens to be set to — "for as long as
+  `spring.grpc.client.channel.ai-connector.default.deadline` allows", not "for sixty seconds". The value has one
+  owning document, the module's `docs/configuration.md`, and a page that repeats it is wrong the first time
+  someone tunes it.
 - Diagram labels are a few words. If a label needs a clause, the diagram is carrying prose that belongs in text
   — or nowhere.
