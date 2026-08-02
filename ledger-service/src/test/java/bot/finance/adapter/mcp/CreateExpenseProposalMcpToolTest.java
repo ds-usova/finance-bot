@@ -46,6 +46,8 @@ class CreateExpenseProposalMcpToolTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-07-30T12:00:00Z");
 
+    private static final String RECEIVED_CALL_PREFIX = "Received create_expense_proposal call:";
+
     @LocalServerPort
     private int port;
 
@@ -256,12 +258,17 @@ class CreateExpenseProposalMcpToolTest {
 
                 assertThat(logCapture.messages())
                         .anyMatch(message -> message.contains(InvalidCategoryException.class.getSimpleName()));
+                // The received-call line is the DEBUG trace of the request itself, so it carries the arguments
+                // by design; every other line must not.
                 assertThat(logCapture.messages())
+                        .filteredOn(message -> !message.startsWith(RECEIVED_CALL_PREFIX))
                         .noneMatch(message -> message.contains(secretCategory)
                                 || message.contains(secretDescription)
                                 || message.contains(secretMerchant)
                                 || message.contains(secretExternalId)
                                 || message.contains(issuedToken));
+                assertThat(logCapture.messages())
+                        .noneMatch(message -> message.contains(issuedToken));
             }
         }
     }
