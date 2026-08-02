@@ -1,10 +1,8 @@
 package bot.finance.ai.common;
 
 /**
- * Builders for OpenAI chat-completions response bodies, verbatim — the model-driven tool loop this module now
- * exercises needs the {@code tool_calls} array on {@code choices[0].message}, which a body escaped into
- * {@code message.content} cannot carry. {@link WireMockStubs#stubChatCompletion(String)} serves the body this
- * class builds directly, with no further wrapping.
+ * Builders for whole OpenAI chat-completion response bodies. {@link WireMockStubs} serves what they build
+ * verbatim, with no further wrapping.
  */
 public final class ChatCompletionFixtures {
 
@@ -12,9 +10,8 @@ public final class ChatCompletionFixtures {
     }
 
     /**
-     * One {@code create_expense_proposal} tool-call entry on {@code choices[0].message.tool_calls}, its
-     * arguments a JSON object encoded as a string — the shape the provider sends, and the shape
-     * {@code SyncMcpToolCallback} expects to deserialize.
+     * One {@code create_expense_proposal} tool-call entry, its arguments a JSON object encoded as a string — the
+     * shape the provider sends, and the shape {@code SyncMcpToolCallback} expects to deserialize.
      */
     public static String toolCall(String id, String argumentsJson) {
         return """

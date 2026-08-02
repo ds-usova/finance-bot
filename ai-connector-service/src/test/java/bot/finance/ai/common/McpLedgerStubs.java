@@ -15,15 +15,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
  * Stubs the ledger's MCP endpoint ({@code /mcp}), registered through {@link WireMockSupport#SERVER}, never the
  * static DSL.
  *
- * <p>A tool call is never the first thing on the wire: the MCP lifecycle makes every client send
- * {@code initialize} and then the {@code notifications/initialized} notification before anything else, and the
- * tool-callback list this module now attaches per call is built from a {@code tools/list} response, cached for
- * the life of the context. Every scenario therefore stubs the handshake and {@code tools/list} whether or not it
- * expects them on the wire in that particular test — the one long-lived {@code McpSyncClient} this module now
- * keeps may already have both from an earlier test's context, so a stub that only answers the tool call would be
- * green by accident on a fresh context and fail the moment the suite runs a scenario after it. A response is
- * correlated by its JSON-RPC id, which the client generates, so every stub echoes the id off the request rather
- * than answering with a fixed one.
+ * <p>Every scenario stubs the {@code initialize} / {@code notifications/initialized} handshake and
+ * {@code tools/list} as well as the tool call, whether or not that test expects them on the wire: the long-lived
+ * client may already hold both from an earlier test's context, so a stub answering only the tool call passes or
+ * fails by the order the suite happens to run in. A response is correlated by the JSON-RPC id the client
+ * generates, so every stub echoes the id off the request rather than answering with a fixed one.
  */
 public final class McpLedgerStubs {
 
@@ -33,7 +29,8 @@ public final class McpLedgerStubs {
     private static final String TOOL_CALL_SCENARIO = "create-expense-proposal-tool-call";
     private static final String REFUSED_ONCE = "refused-once";
 
-    private McpLedgerStubs() {}
+    private McpLedgerStubs() {
+    }
 
     /**
      * The ledger accepts every {@code create_expense_proposal} tool call and answers a stored proposal.

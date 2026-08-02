@@ -20,12 +20,10 @@ bot.finance.ai
     ├── JsonUtils              # loads JSON fixtures from src/test/resources
     ├── LogCapture             # Logback appender, for asserting on log output
     ├── ChatCompletionFixtures # provider response bodies
-    ├── IntentFixtures         # domain ExpenseIntent / Money / RawIntent builders
     ├── RequestFixtures        # valid ExtractIntentsRequest builders
     ├── AuthorizedStubs        # attaches an authorization header to a generated stub
     ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
-    ├── LedgerAdapterTest      # composed annotation — McpExpenseProposalAdapter tests
-    └── LedgerAdapterContextTest # boots-itself test for LedgerAdapterTest
+    └── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
 ```
 
 ## Test Layers
@@ -59,16 +57,17 @@ bot.finance.ai
   hold apart.
 - `@GrpcAdapterTest` — `@SpringBootTest` + `@AutoConfigureTestGrpcTransport` + the test profile. Isolation
   comes from `@MockitoBean` on the inbound port, not from a framework slice.
-- `@AiAdapterTest` — boots the adapter under test, its `ChatClient` configuration and Spring AI's OpenAI
-  autoconfiguration, with `base-url` on the stub server. A real client over a stubbed transport is what these
-  tests exist for; a mocked `ChatClient` would exercise none of it.
+- `@AiAdapterTest` — boots the adapter under test, its `ChatClient` configuration, the `adapter/ledger` MCP
+  classes and Spring AI's OpenAI, MCP-client, transport and tool-callback autoconfigurations, with both
+  `base-url` and the ledger connection's `url` on the stub server. A real client over a stubbed transport is what
+  these tests exist for; a mocked `ChatClient` would exercise none of it.
 - **Reach WireMock through `WireMockSupport.SERVER`, never the static DSL.** `WireMock.stubFor(...)`,
   `verify(...)` and `findAll(...)` address `localhost:8080` and fail with a connection error before any
   assertion runs. Only the pure builders — `post`, `urlPathEqualTo`, `okJson`, `postRequestedFor`, `equalTo`,
   `matchingJsonPath` — are safe to static-import.
-- `ChatCompletionFixtures` embeds the extracted JSON **as a string inside `choices[0].message.content`**.
-  Returning the payload directly yields a stub Spring AI cannot parse, and a failure that reads like a mapping
-  bug.
+- `ChatCompletionFixtures` builds a **whole chat-completion body**, served verbatim. A tool-calling turn needs
+  the `tool_calls` array on `choices[0].message`, a shape a payload escaped into `message.content` cannot carry.
+  A turn is also at least two provider round trips, so it is stubbed as a sequence, not a single response.
 - `LogCapture` requires the real `Slf4jLoggerFactory`: it keys on the logger named after the class, a name a
   mocked factory never produces.
 - **Shared test infrastructure that only proves itself at runtime ships with a test that boots it.** A composed

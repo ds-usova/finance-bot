@@ -28,13 +28,11 @@ import java.lang.annotation.Target;
 /**
  * Boots {@link AiExpenseRecordingAdapter}, {@link ChatClientConfiguration}, {@link LedgerMcpConfiguration},
  * {@link CallerTokenMcpRequestCustomizer}, {@link LedgerToolFailureProcessor} and Spring AI's OpenAI, MCP client,
- * streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no other adapter. Each of the
- * three {@code adapter/ledger} classes is listed exactly once: {@link LedgerMcpConfiguration} declares neither of
- * the other two, so the context holds one {@code ToolExecutionExceptionProcessor} definition. {@code
- * spring.ai.openai.base-url} and the ledger connection's {@code url} are redirected to {@link WireMockSupport}'s
- * dynamic port through a {@link DynamicPropertyRegistrar} bean: {@code @DynamicPropertySource} needs a static
- * method inside a class body, which an annotation type cannot declare, so this is the composed-annotation-
- * compatible equivalent.
+ * streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no other adapter.
+ * {@code spring.ai.openai.base-url} and the ledger connection's {@code url} are redirected to
+ * {@link WireMockSupport}'s dynamic port through a {@link DynamicPropertyRegistrar} bean, because
+ * {@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type cannot
+ * declare.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

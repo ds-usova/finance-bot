@@ -8,12 +8,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 /**
- * Static helpers for stubbing the OpenAI chat-completions endpoint.
- *
- * <p>Every helper registers through {@link WireMockSupport#SERVER}, never WireMock's static DSL: that DSL
- * targets {@code localhost:8080}, and this module's server binds a dynamic port, so a static call fails with a
- * connection error before any assertion runs. Only the pure builders — {@code post}, {@code urlPathEqualTo},
- * {@code okJson}, {@code serverError} — are safe to static-import.
+ * Static helpers for stubbing the OpenAI chat-completions endpoint, registered through
+ * {@link WireMockSupport#SERVER}.
  */
 public final class WireMockStubs {
 
@@ -26,8 +22,7 @@ public final class WireMockStubs {
 
     /**
      * Serves {@code body} — a full chat-completion response, built with {@link ChatCompletionFixtures} — verbatim
-     * to every request. A tool-calling turn needs {@code tool_calls} on {@code choices[0].message}, which is a
-     * shape a body escaped into {@code message.content} cannot carry.
+     * to every request.
      */
     public static void stubChatCompletion(String body) {
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(CHAT_COMPLETIONS_PATH))
