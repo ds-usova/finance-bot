@@ -22,7 +22,8 @@ tests read best, system tests especially, being written per outcome.
 **The reader is an analyst or a product owner.** They know the product and will never open the code. Write what
 the service does and what it promises, in the words the domain uses.
 
-The repository's writing rules apply. Load-bearing here:
+The repository's writing rules apply — read them from whichever file the module conventions link for it, and
+follow that file where it says more than this one. Load-bearing here:
 
 - **No code identifiers** — no class, interface, or method names, no packages, no annotations, no wiring, in
   prose or in a diagram label. The single exception is the usecase class, named once at the top of its own

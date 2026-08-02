@@ -13,3 +13,6 @@ and testing at once.
 - [Build](conventions/build.md) — build & test commands.
 - [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism, plan-file
   locations, post-implementation actions.
+
+The [repository-wide conventions](../../docs/conventions.md) — how documentation is written, how diagrams are
+drawn, how an ADR lives — bind this module too, and these sections extend them.

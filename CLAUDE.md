@@ -20,5 +20,5 @@ breaks every allowlisted permission rule for the command that follows, forcing a
 
 ## Writing docs and plans
 
-Read [`docs/conventions/documentation.md`](docs/conventions/documentation.md) before writing or editing any
-README, conventions file, contract, use-case page, design, or plan.
+The [repository-wide conventions](docs/conventions.md) govern every README, conventions file, contract,
+use-case page, domain page, design and plan. Read them before writing or editing one.

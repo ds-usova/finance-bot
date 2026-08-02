@@ -33,7 +33,10 @@ Each is new or updated in place. A second file on the same subject is a defect.
    truth**. Every sentence written must be traceable to code that exists; where the two disagree the code wins
    and the discrepancy goes in the report.
 3. **`<module>/docs/conventions.md`** per affected module — its **Sub-Agent Models**, **Parallelism**,
-   **Version Control**, and **Diagram Format** sections govern this run.
+   **Version Control**, and **Diagram Format** sections govern this run. It is an index: **follow the files it
+   links**, repo-wide ones included. Whichever of them states how documentation is written governs every page
+   this run produces, and is passed to each sub-agent — the writing rules below are a reminder of what matters
+   most, never a substitute for the repository's own.
 4. **The existing corpus** — root README, service READMEs, `docs/usecases/`, `docs/contracts/`, `docs/adr/`.
 
 ## Gate
@@ -86,9 +89,9 @@ it prevents. One decision per ADR; most plans authorize none.
 ## Stage 2 — Service Documentation
 
 One `archive-service-docs-step` sub-agent per affected service, never two in the same `docs/` folder. Pass each:
-its slice of the work list marked new or update, the plan path, its diff scope, the module conventions, and for
-each edge the counterpart, which side this service is on, and the path of the use-case document on the other
-side. The whole work list determines those paths, so an agent can link a file a parallel agent is still
+its slice of the work list marked new or update, the plan path, its diff scope, the module conventions and the
+writing conventions they link, and for each edge the counterpart, which side this service is on, and the path of
+the use-case document on the other side. The whole work list determines those paths, so an agent can link a file a parallel agent is still
 writing.
 
 Model: the one **Sub-Agent Models** names for deciding work. Respect the **Parallelism** cap.
