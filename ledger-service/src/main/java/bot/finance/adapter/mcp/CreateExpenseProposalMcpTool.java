@@ -4,12 +4,7 @@ import bot.finance.adapter.security.AuthenticatedCallerUtils;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
-import bot.finance.domain.exception.InvalidMoneyException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.exception.*;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
@@ -53,12 +48,18 @@ public class CreateExpenseProposalMcpTool {
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
         CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
                 category, parentCategory, description, merchant, amountMinorUnits, currencyCode);
+
+        log.debug("Received create_expense_proposal call: {}", request);
+
         try {
             AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+
             ExpenseProposal stored =
                     createExpenseProposalPort.create(ExpenseProposalToolUtils.toCommand(request, userId));
             CreateExpenseProposalToolResponse response =
                     ExpenseProposalToolUtils.toResponse(stored, request.category());
+
+            log.debug("create_expense_proposal call succeeded: {}", response);
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
@@ -76,7 +77,8 @@ public class CreateExpenseProposalMcpTool {
     }
 
     private CallToolResult rejected(RuntimeException e, String message) {
-        log.warn("rejected create_expense_proposal call: {}", e.getClass().getSimpleName());
+        log.warn("rejected create_expense_proposal call: {} {}", e.getClass().getSimpleName(), e.getMessage());
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
+
 }

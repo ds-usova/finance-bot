@@ -39,11 +39,12 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             throw new InvalidIncomingMessageException("incoming message is absent");
         }
 
+        log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.conversationId()));
         List<KnownCategory> knownCategories = categoryRepository.findKnownCategories(user.id().orElseThrow());
         intentExtractionPort.extract(new IntentExtractionRequest(
                 command.text(), knownCategories, Optional.empty(), user.externalId()));
 
-        log.info("handled message for conversation {}", command.conversationId());
+        log.debug("handled message for conversation {}", command.conversationId());
     }
 }

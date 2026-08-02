@@ -38,6 +38,7 @@ services:
       DB_USER: ${FINANCE_BOT_DB_USER}
       DB_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
       AI_CONNECTOR_GRPC_TARGET: static://ai-connector-service:1001
+      TELEGRAM_BOT_TOKEN: ${FINANCE_BOT_TELEGRAM_BOT_TOKEN}
     depends_on:
       finance-postgres:
         condition: service_healthy
@@ -53,7 +54,7 @@ services:
       - "1001:1001"
       - "1002:1002"
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${FINANCE_BOT_OPENAI_API_KEY}
       LEDGER_MCP_URL: http://ledger-service:1000
     networks:
       - backend
