@@ -17,15 +17,22 @@ spring:
       chat:
         model: ${OPENAI_MODEL:gpt-4o-mini}
         temperature: 0
+    mcp:
+      client:
+        name: ai-connector-service
+        version: 1.0.0
+        initialized: false
+        request-timeout: 5s
+        streamable-http:
+          connections:
+            ledger:
+              url: ${LEDGER_MCP_URL:http://localhost:1000}
+              endpoint: /mcp
 
 ai:
-  intent:
-    system-prompt: classpath:prompts/extract-intents.st
+  expense:
+    system-prompt: classpath:prompts/record-expenses.st
     user-message-template: classpath:prompts/user-message.st
-
-ledger:
-  mcp:
-    url: ${LEDGER_MCP_URL:http://localhost:1000}
 
 management:
   endpoints:

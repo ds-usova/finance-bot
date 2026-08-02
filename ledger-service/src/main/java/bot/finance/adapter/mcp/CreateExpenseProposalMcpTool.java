@@ -46,7 +46,10 @@ public class CreateExpenseProposalMcpTool {
                             required = false,
                             description = "who it was bought from, optional - null or blank is none")
                     String merchant,
-            @McpToolParam(description = "the amount in the currency's minor units, required") Long amountMinorUnits,
+            @McpToolParam(
+                            description = "the amount in the currency's minor units, required - "
+                                    + "12.50 EUR is 1250")
+                    Long amountMinorUnits,
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
         CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
                 category, parentCategory, description, merchant, amountMinorUnits, currencyCode);

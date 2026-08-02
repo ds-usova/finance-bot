@@ -1,7 +1,6 @@
 package bot.finance.ai.adapter.grpc;
 
-import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
-import bot.finance.ai.domain.exception.IntentInferenceException;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import io.grpc.Status;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,14 +12,8 @@ public class GrpcStatusConfiguration {
     @Bean
     GrpcExceptionHandler grpcExceptionHandler() {
         return throwable -> {
-            if (throwable instanceof IntentInferenceException) {
+            if (throwable instanceof ExpenseRecordingFailedException) {
                 return Status.UNAVAILABLE.withDescription(throwable.getMessage()).withCause(throwable).asException();
-            }
-            if (throwable instanceof ExpenseProposalFailedException e) {
-                Status status = e.reason() == ExpenseProposalFailedException.Reason.UNREACHABLE
-                        ? Status.UNAVAILABLE
-                        : Status.FAILED_PRECONDITION;
-                return status.withDescription(throwable.getMessage()).withCause(throwable).asException();
             }
             return null;
         };

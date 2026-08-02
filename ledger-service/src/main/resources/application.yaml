@@ -38,7 +38,7 @@ spring:
         ai-connector:
           target: ${AI_CONNECTOR_GRPC_TARGET:static://localhost:1001}
           default:
-            deadline: 10s
+            deadline: 60s
 
 mcp:
   token:

@@ -6,11 +6,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(IntentExtractionProperties.class)
+@EnableConfigurationProperties(ExpenseRecordingProperties.class)
 public class ChatClientConfiguration {
 
     @Bean
-    ChatClient chatClient(ChatClient.Builder chatClientBuilder, IntentExtractionProperties properties) {
+    ChatClient chatClient(ChatClient.Builder chatClientBuilder, ExpenseRecordingProperties properties) {
         return chatClientBuilder.defaultSystem(properties.systemPrompt()).build();
     }
 

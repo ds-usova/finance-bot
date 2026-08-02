@@ -1,8 +1,14 @@
 package bot.finance.ai.common;
 
-import bot.finance.ai.adapter.ai.AiIntentInferenceAdapter;
+import bot.finance.ai.adapter.ai.AiExpenseRecordingAdapter;
 import bot.finance.ai.adapter.ai.ChatClientConfiguration;
+import bot.finance.ai.adapter.ledger.CallerTokenMcpRequestCustomizer;
+import bot.finance.ai.adapter.ledger.LedgerMcpConfiguration;
+import bot.finance.ai.adapter.ledger.LedgerToolFailureProcessor;
 import bot.finance.ai.adapter.logging.Slf4jLoggerFactory;
+import org.springframework.ai.mcp.client.common.autoconfigure.McpClientAutoConfiguration;
+import org.springframework.ai.mcp.client.common.autoconfigure.McpToolCallbackAutoConfiguration;
+import org.springframework.ai.mcp.client.httpclient.autoconfigure.StreamableHttpHttpClientTransportAutoConfiguration;
 import org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration;
 import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
@@ -20,21 +26,34 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Boots {@link AiIntentInferenceAdapter}, {@link ChatClientConfiguration} and Spring AI's OpenAI
- * autoconfiguration only — no gRPC server, no other adapter. The OpenAI chat autoconfiguration needs a {@code
- * ToolCallingManager}, so its autoconfiguration is listed too. {@code spring.ai.openai.base-url} is redirected to
- * {@link WireMockSupport}'s dynamic port through a {@link DynamicPropertyRegistrar} bean: {@code
- * @DynamicPropertySource} needs a static method inside a class body, which an annotation type cannot declare,
- * so this is the composed-annotation-compatible equivalent.
+ * Boots {@link AiExpenseRecordingAdapter}, {@link ChatClientConfiguration}, {@link LedgerMcpConfiguration},
+ * {@link CallerTokenMcpRequestCustomizer}, {@link LedgerToolFailureProcessor} and Spring AI's OpenAI, MCP client,
+ * streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no other adapter. Each of the
+ * three {@code adapter/ledger} classes is listed exactly once: {@link LedgerMcpConfiguration} declares neither of
+ * the other two, so the context holds one {@code ToolExecutionExceptionProcessor} definition. {@code
+ * spring.ai.openai.base-url} and the ledger connection's {@code url} are redirected to {@link WireMockSupport}'s
+ * dynamic port through a {@link DynamicPropertyRegistrar} bean: {@code @DynamicPropertySource} needs a static
+ * method inside a class body, which an annotation type cannot declare, so this is the composed-annotation-
+ * compatible equivalent.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ActiveProfiles("test")
-@SpringBootTest(classes = {AiIntentInferenceAdapter.class, ChatClientConfiguration.class, Slf4jLoggerFactory.class})
+@SpringBootTest(classes = {
+        AiExpenseRecordingAdapter.class,
+        ChatClientConfiguration.class,
+        LedgerMcpConfiguration.class,
+        CallerTokenMcpRequestCustomizer.class,
+        LedgerToolFailureProcessor.class,
+        Slf4jLoggerFactory.class
+})
 @ImportAutoConfiguration({
         OpenAiChatAutoConfiguration.class,
         ChatClientAutoConfiguration.class,
-        ToolCallingAutoConfiguration.class
+        ToolCallingAutoConfiguration.class,
+        McpClientAutoConfiguration.class,
+        StreamableHttpHttpClientTransportAutoConfiguration.class,
+        McpToolCallbackAutoConfiguration.class
 })
 @Import(AiAdapterTest.WireMockBaseUrlConfiguration.class)
 public @interface AiAdapterTest {
@@ -44,7 +63,11 @@ public @interface AiAdapterTest {
 
         @Bean
         DynamicPropertyRegistrar wireMockBaseUrl() {
-            return registry -> registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
+            return registry -> {
+                registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
+                registry.add(
+                        "spring.ai.mcp.client.streamable-http.connections.ledger.url", WireMockSupport::baseUrl);
+            };
         }
 
     }

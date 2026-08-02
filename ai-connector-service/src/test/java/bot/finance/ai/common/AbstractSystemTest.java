@@ -58,7 +58,7 @@ public abstract class AbstractSystemTest {
      */
     @DynamicPropertySource
     static void ledgerMcpProperties(DynamicPropertyRegistry registry) {
-        registry.add("ledger.mcp.url", WireMockSupport::baseUrl);
+        registry.add("spring.ai.mcp.client.streamable-http.connections.ledger.url", WireMockSupport::baseUrl);
     }
 
     @BeforeAll

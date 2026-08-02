@@ -113,16 +113,15 @@ The domain pages for the deleted values are removed with them (see [Documentatio
 The package keeps its name and holds everything that fronts the ledger; what it no longer holds is a class that
 calls it.
 
-- `LedgerMcpConfiguration` — `@Configuration`, declaring three beans:
+- `LedgerMcpConfiguration` — `@Configuration`, declaring two beans (D28):
   - `McpClientCustomizer<HttpClientStreamableHttpTransport.Builder>`, applying
     `.httpRequestCustomizer(callerTokenMcpRequestCustomizer)` to the `ledger` connection;
   - `McpClientCustomizer<McpClient.SyncSpec>`, applying `.transportContextProvider(...)` to the `ledger`
     connection — a supplier that reads `CallerTokenUtils.callerToken()` and returns
     `McpTransportContext.create(Map.of(CALLER_TOKEN, token))`, or `McpTransportContext.EMPTY` when the turn holds
-    none;
-  - `LedgerToolFailureProcessor` as the module's `ToolExecutionExceptionProcessor` — see below.
-- `LedgerToolFailureProcessor` — implements `ToolExecutionExceptionProcessor`. Walks the failure's cause chain:
-  an `McpTransportException` anywhere in it rethrows and ends the turn; anything else returns its message to the
+    none.
+- `LedgerToolFailureProcessor` — `@Component` implementing `ToolExecutionExceptionProcessor`. Walks the failure's
+  cause chain: an `McpTransportException` anywhere in it rethrows and ends the turn; anything else returns its message to the
   model to correct and retry against; a cause that is not a `RuntimeException` at all rethrows, as the
   framework's own processor does. The chain is walked rather than the direct cause matched, because the MCP
   client wraps an initialization failure in a plain `RuntimeException` (D21), and only `McpTransportException`
@@ -326,14 +325,16 @@ Container_Boundary(outboundAdapter, "adapter (outbound)") {
   Component(recordingProperties, "ExpenseRecordingProperties", "prompt locations")
   Component(chatClientConfiguration, "ChatClientConfiguration", "chat client bean")
   Component(toolCallbacks, "SyncMcpToolCallbackProvider", "the ledger's tools")
-  Component(ledgerConfiguration, "LedgerMcpConfiguration", "client, transport and failure beans")
+  Component(ledgerConfiguration, "LedgerMcpConfiguration", "client and transport customizers")
   Component(requestCustomizer, "CallerTokenMcpRequestCustomizer", "token on every MCP request")
+  Component(failureProcessor, "LedgerToolFailureProcessor", "what ends a turn, what the model reads")
 
   Lay_D(recordingAdapter, recordingProperties)
   Lay_D(recordingProperties, chatClientConfiguration)
   Lay_D(chatClientConfiguration, toolCallbacks)
   Lay_D(toolCallbacks, ledgerConfiguration)
   Lay_D(ledgerConfiguration, requestCustomizer)
+  Lay_D(requestCustomizer, failureProcessor)
 }
 
 Rel_R(tokenInterceptor, grpcService, "passes a tokened call to")
@@ -353,6 +354,7 @@ Rel(recordingAdapter, chatClientConfiguration, "prompts the client of")
 Rel(recordingAdapter, toolCallbacks, "attaches, per call")
 Rel(ledgerConfiguration, toolCallbacks, "configures the clients behind")
 Rel(ledgerConfiguration, requestCustomizer, "puts on the transport")
+Rel(recordingAdapter, failureProcessor, "fails a turn through")
 Rel(requestCustomizer, tokenUtils, "reads the turn's token from")
 Rel(statusConfiguration, recordingFailed, "maps to UNAVAILABLE")
 
@@ -678,6 +680,16 @@ end
   [tool contract](../ledger-service/docs/contracts/in/mcp.md#compatibility) already builds on it: a client reads
   the arguments from the server, which is what makes adding an optional one free. Dropping the tool's name from
   the prompt drops the last thing that called it by name, since the model now chooses it from the list.
+
+- **D28:** Is `LedgerToolFailureProcessor` a `@Bean` method of `LedgerMcpConfiguration` or an annotated component?
+- Answer: A `@Component`, like `CallerTokenMcpRequestCustomizer`. `LedgerMcpConfiguration` declares the two
+  `McpClientCustomizer` beans and nothing else, since those configure third-party builders.
+- Basis: assumed — raised while planning, against this file's own first wording.
+  [`conventions/architecture.md`](../ai-connector-service/docs/conventions/architecture.md) reserves `@Bean`
+  methods for core and third-party classes and requires the module's own adapters to be annotated and
+  component-scanned; the processor is the module's own class in `adapter/ledger`. It also keeps the test context
+  honest: a class both component-scanned and declared as a `@Bean` gives Spring AI two
+  `ToolExecutionExceptionProcessor` candidates to inject.
 
 ## Design Findings
 

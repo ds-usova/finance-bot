@@ -9,9 +9,7 @@ import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.GrpcAdapterTest;
 import bot.finance.ai.common.RequestFixtures;
-import bot.finance.ai.domain.exception.ExpenseProposalFailedException;
-import bot.finance.ai.domain.exception.ExpenseProposalFailedException.Reason;
-import bot.finance.ai.domain.exception.IntentInferenceException;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.assertj.core.groups.Tuple;
@@ -99,9 +97,9 @@ class IntentExtractionGrpcServiceTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName("when the port throws IntentInferenceException - then the RPC fails with status UNAVAILABLE")
-        void whenPortThrowsIntentInferenceException_thenFailsWithUnavailable() {
-            doThrow(new IntentInferenceException("provider unreachable"))
+        @DisplayName("when the port throws ExpenseRecordingFailedException - then the RPC fails with status UNAVAILABLE")
+        void whenPortThrowsExpenseRecordingFailedException_thenFailsWithUnavailable() {
+            doThrow(new ExpenseRecordingFailedException("provider unreachable"))
                     .when(extractIntentsPort).extractIntents(any());
 
             assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
@@ -123,30 +121,6 @@ class IntentExtractionGrpcServiceTest {
                         assertThat(status.getCode()).isEqualTo(Status.Code.UNKNOWN);
                         assertThat(Optional.ofNullable(status.getDescription()).orElse("")).doesNotContain(secretMessage);
                     });
-        }
-
-        @Test
-        @DisplayName("when the port throws ExpenseProposalFailedException for a refused proposal - then the RPC fails with status FAILED_PRECONDITION")
-        void whenPortThrowsExpenseProposalFailedExceptionForRefusedProposal_thenFailsWithFailedPrecondition() {
-            doThrow(new ExpenseProposalFailedException("ledger refused the proposal", Reason.REFUSED))
-                    .when(extractIntentsPort).extractIntents(any());
-
-            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
-                    .isInstanceOf(StatusRuntimeException.class)
-                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.FAILED_PRECONDITION);
-        }
-
-        @Test
-        @DisplayName("when the port throws ExpenseProposalFailedException for an unreachable ledger - then the RPC fails with status UNAVAILABLE")
-        void whenPortThrowsExpenseProposalFailedExceptionForUnreachableLedger_thenFailsWithUnavailable() {
-            doThrow(new ExpenseProposalFailedException("ledger unreachable", Reason.UNREACHABLE))
-                    .when(extractIntentsPort).extractIntents(any());
-
-            assertThatThrownBy(() -> authenticatedStub().extractIntents(RequestFixtures.request()))
-                    .isInstanceOf(StatusRuntimeException.class)
-                    .extracting(ex -> ((StatusRuntimeException) ex).getStatus().getCode())
-                    .isEqualTo(Status.Code.UNAVAILABLE);
         }
 
     }
