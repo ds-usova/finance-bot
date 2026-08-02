@@ -7,6 +7,7 @@ import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -123,6 +124,27 @@ class ProposalReportUtilsTest {
                     - 1; // omitted-count line
             assertThat(bulletCount + omittedCount).isEqualTo(summaryCount);
             assertThat(omittedCount).isGreaterThan(0);
+        }
+
+        @Test
+        @DisplayName(
+                "when a RECORDED report's bullets would exceed 4000 characters and its last bullet is shorter than "
+                        + "the omitted-count line - then the text is still cut at 4000 characters")
+        void whenLastBulletIsShorterThanOmittedCountLineAndBulletsExceed4000Characters_thenTextIsStillCutAt4000Characters() {
+            List<ProposalSummary> summaries = new ArrayList<>(IntStream.range(0, 48)
+                    .mapToObj(i -> new ProposalSummary(
+                            "Groceries",
+                            "Food",
+                            "d".repeat(31),
+                            Optional.of("Rewe supermarket"),
+                            new Money(4230, EUR)))
+                    .toList());
+            summaries.add(new ProposalSummary("A", "B", "c", Optional.empty(), new Money(100, EUR)));
+            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries);
+
+            String text = ProposalReportUtils.render(report);
+
+            assertThat(text.length()).isLessThanOrEqualTo(4000);
         }
 
         @Test

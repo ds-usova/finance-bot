@@ -123,7 +123,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "the command's user external id, the extraction request carries a non-null message reference, "
                 + "and findSummariesByMessageReference is called with the user's id and that same reference")
         void whenHandleIsCalled_thenInitializeAndExtractionAndLookupCarryUserAndReference() {
-            stubKnownUserAndCategories();
+            List<KnownCategory> knownCategories = stubKnownUserAndCategories();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -134,10 +134,17 @@ class HandleIncomingMessageUseCaseTest {
             verify(initializeUserPort).initialize(initializeCaptor.capture());
             assertThat(initializeCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
 
+            verify(categoryRepository).findKnownCategories(USER_ID);
+
             ArgumentCaptor<IntentExtractionRequest> extractCaptor =
                     ArgumentCaptor.forClass(IntentExtractionRequest.class);
             verify(intentExtractionPort).extract(extractCaptor.capture());
-            MessageReference reference = extractCaptor.getValue().messageReference();
+            IntentExtractionRequest request = extractCaptor.getValue();
+            assertThat(request.text()).isEqualTo(TEXT);
+            assertThat(request.knownCategories()).isEqualTo(knownCategories);
+            assertThat(request.defaultCurrency()).isEmpty();
+            assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
+            MessageReference reference = request.messageReference();
             assertThat(reference).isNotNull();
 
             verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, reference);

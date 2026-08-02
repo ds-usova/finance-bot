@@ -493,7 +493,7 @@
 
 ### Post-Implementation Steps
 
-- [ ] P01 · Write ADR: a per-message correlation reference reaches the MCP tool as the `mrf` claim on the caller
+- [x] P01 · Write ADR: a per-message correlation reference reaches the MCP tool as the `mrf` claim on the caller
   token the ledger already mints, rather than as a field on `ExtractIntentsRequest`, so the connector forwards it
   verbatim without reading it and `intent_extraction.proto` is untouched.
 
@@ -542,21 +542,25 @@
   Resolved: Stage 4's refactor pass dropped the standalone test, leaving the parameterized case — the suite's
   379 → 378.
 
-- **B6 (Stage 4, 2026-08-03) — open, a real defect the tests miss.** `ProposalReportUtils.renderList` includes the
-  `… and N more.` line in its 4000-character budget for every bullet except the last. If the *final* bullet is
-  rejected, that line is appended without a budget check, so the text can exceed 4000. Reaching it needs a last
-  bullet shorter than the ~14-character omitted line, which RU06's uniform-length fixture never produces. Harmless
-  in production — the overshoot is bounded by that line, so ~4014 against the Bot API's 4096 limit — but it is a
-  spec violation, and fixing it changes observable output, so the refactor pass left it. Needs a scenario and a
-  one-line fix.
+- **B6 (Stage 4, 2026-08-03) — closed, not a defect.** The refactor pass suspected `ProposalReportUtils.renderList`
+  of exceeding its 4000-character cap when the *last* bullet is rejected, on the grounds that the `… and N more.`
+  line is then appended without a budget check. It does not reproduce, and the algorithm is sound: each acceptance
+  reserves `omittedLine(n - included - 1)`, and if the next bullet is rejected the line appended is
+  `omittedLine(n - (included + 1))` — the identical value, the last bullet included. Confirmed three ways: an
+  induction argument, 500k randomized simulations of the exact algorithm (max length exactly 4000, zero
+  overflows), and an engineered JUnit case landing on the boundary (3995 characters). No production change. The
+  branch RU06's uniform-length fixture never reached now has a permanent regression test in
+  `ProposalReportUtilsTest`.
 
-- **B7 (Stage 4, 2026-08-03) — open, coverage lost.** RU04's `update:` bullet replaced
+- **B7 (Stage 4, 2026-08-03) — closed.** RU04's `update:` bullet replaced
   `whenHandleIsCalled_thenPortsAreCalledInOrderWithExpectedArguments()` with a reference-focused scenario, and in
   doing so dropped its assertions that the extraction request carries the message text, the known categories, the
   empty default currency and the user's external id, plus the `verify(categoryRepository).findKnownCategories(...)`
   call. Nothing pins those at unit level now; `ReceiveTelegramMessageSystemTest` still asserts the connector
-  receives the text and the categories, so the behaviour is not unproven, only proven more expensively. Re-adding
-  the assertions was outside a behaviour-preserving pass.
+  receives the text and the categories, so the behaviour was not unproven, only proven more expensively. Restored
+  after Stage 4 by extending that same scenario rather than adding a near-duplicate test: it now asserts the
+  request's text, known categories, empty default currency and external id, and verifies
+  `categoryRepository.findKnownCategories(userId)`.
 
 - **B5 (Stage 3, 2026-08-03):** The green-batch guardrail caught a regression in
   `TelegramPollFailureRecoverySystemTest`, which no step in this plan names. It drives a message end to end and
