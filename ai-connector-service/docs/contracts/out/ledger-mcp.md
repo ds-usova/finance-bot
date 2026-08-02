@@ -1,65 +1,76 @@
 # Ledger Service — the expense proposal tool (MCP over HTTP)
 
-Every expense a user's message asks to record crosses this boundary as one tool call. It is recorded against the
-person whose token arrived with the extraction request, never against anyone this service names.
+Every expense a user's message says was paid crosses this boundary as one tool call, made by the model reading
+that message. It is recorded against the person whose token arrived with the extraction request, never against
+anyone this service names.
 
 - **Counterpart:** [the Ledger Service's expense proposal tool](../../../../ledger-service/docs/contracts/in/mcp.md)
-- **Transport:** MCP over Streamable HTTP, one session per proposal — the address is
+- **Transport:** MCP over Streamable HTTP, one long-lived client for the whole process — the address is
   [configuration](../../configuration.md)
 - **Schema:** none held in a file — the ledger publishes the tool's argument schema over the protocol itself
 
 ## Operations
 
-| Operation                 | Purpose                                         | Used by                                                                                                                                                                                                        |
-|---------------------------|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `create_expense_proposal` | records one expense the user's message asks for | here, [Act on the actions in a user's message](../../usecases/extract-intents.md) · on the ledger's side, [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md) |
+| Operation                 | Purpose                                         | Used by                                                                                                                                                                                                             |
+|---------------------------|-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| List the tools            | reads what the ledger offers and what it takes  | here, [Record the spending a user's message names](../../usecases/extract-intents.md)                                                                                                                               |
+| `create_expense_proposal` | records one expense the user's message asks for | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md) |
 
 ### What is sent
 
-| Argument           | Filled from                                         | Sent       |
-|--------------------|-----------------------------------------------------|------------|
-| `category`         | the name of the category the expense was matched to | always     |
-| `parentCategory`   | that category's grouping                            | when known |
-| `description`      | what the user said was bought                       | always     |
-| `amountMinorUnits` | the extracted amount, in the currency's minor units | always     |
-| `currencyCode`     | the extracted currency, ISO 4217                    | always     |
+The model fills every argument, from the message and from what the tool says each argument takes. This service
+assembles none of them.
 
-`merchant` is never sent — nothing is extracted for it.
-
-A category the same message asked to create has no grouping, so its proposal carries no `parentCategory`.
+`merchant` is sent when the message names who the expense was paid to. The other arguments, and which are
+required, are [the tool's own declaration](../../../../ledger-service/docs/contracts/in/mcp.md#what-the-tool-takes).
 
 ## Semantics
 
-One session per proposal: the client is opened, the tool is called once, and the client is closed. Nothing is
-pooled and nothing is kept between proposals.
+One client serves the whole process. The tools are listed once, on the first turn that needs them, and that list
+is kept for the life of the process.
 
-Every session carries the token that arrived on the extraction call, verbatim and scheme included. The token is
-never parsed, never logged, never stored.
+Every request carries the token that arrived on the extraction call, verbatim and scheme included, read fresh
+for each turn on the thread running it. Two turns running at once share the client and never the identity. The
+token is never parsed, never logged, never stored.
 
-The proposals of one message are sent in the order the user said them.
+A turn holding no token sends no request at all.
 
-Nothing is read out of the answer. A stored proposal's id, its timestamp, and everything else the ledger returns
-is discarded.
+The expenses of one message are sent in the order the user said them.
 
-A tool result flagged as an error is a refusal — a proposal the ledger will refuse again for the same call.
-A refusal ends the turn: later expenses in the same message are never sent, and earlier ones stand.
+Nothing is read out of the answer here. A stored proposal's id, its timestamp, and everything else the ledger
+returns go back to the model as that call's result.
 
-Nothing is retried and nothing is deduplicated. The same message handled twice records two proposals.
+A tool result flagged as an error is a refusal, and it reaches the model as that call's answer. The model
+corrects the call and tries the same expense once more; refused again, that expense is left unrecorded and the
+rest of the message is still sent. A refusal never ends the turn.
+
+An argument the protocol cannot bind is the same: the failure reaches the model, which corrects the call it just
+made.
+
+A failure of the transport itself ends the turn — no further expense is sent, and what was recorded stands.
+
+Nothing is deduplicated. The same message handled twice records two proposals, and a model that repeats a call
+within one turn records two.
 
 ## Failures
 
-| Condition                                                       | Signal                                                                            |
-|-----------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| The tool answers an error result                                | the proposal failed as a refusal; the caller is told the precondition failed      |
-| The ledger cannot be reached, times out, or refuses the session | the proposal failed as unreachable; the caller is told the service is unavailable |
-| No caller token is held for the turn                            | the same unreachable failure; the ledger is never called                          |
+| Condition                                                     | Signal                                                                  |
+|---------------------------------------------------------------|-------------------------------------------------------------------------|
+| The tool answers an error result                              | none — the model reads the refusal and retries the expense once       |
+| An argument's value cannot be bound to its declared type      | none — the model reads the failure and corrects the call              |
+| The ledger cannot be reached, times out, or refuses the token | the turn fails; the caller is told the service is unavailable           |
+| The tools cannot be listed                                    | the same, before any expense is attempted                               |
+| No caller token is held for the turn                          | the same; nothing is sent to the ledger and the model is never prompted |
 
 ## Compatibility
 
-The tool is called by name, with arguments named as the ledger publishes them. Renaming either breaks every
-proposal at runtime, since nothing here is generated from a schema.
+The tool is chosen by the model from the list the ledger publishes, and its arguments are filled from the same
+list. Renaming either changes what the model is offered rather than breaking a call assembled here.
 
-An optional argument added on the ledger's side costs nothing. Making one required, or removing one this service
-sends, breaks every proposal.
+An optional argument added on the ledger's side costs nothing. Making one required, or removing one, changes
+what the model is told to send.
 
-The ledger can switch this endpoint off, which makes every proposal fail as unreachable.
+An argument description is where the ledger tells the model how to fill it — the minor-units conversion is read
+there, not from this service's instructions.
+
+The ledger can switch this endpoint off, which makes every turn fail as unavailable.

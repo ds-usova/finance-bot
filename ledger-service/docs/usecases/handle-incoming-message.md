@@ -13,7 +13,7 @@
 | in        | [Telegram](../contracts/in/telegram-updates.md)                                                                    | [Incoming messages](../contracts/in/telegram-updates.md)                                                                  | delivering what a user typed to the bot                                    |
 | out       | [Initialize a new user](initialize-a-new-user.md)                                                                  | [Initialize a new user](initialize-a-new-user.md)                                                                         | resolving the person behind the conversation, creating them on first sight |
 | out       | [Database](../contracts/out/database.md)                                                                           | [Users, categories, expenses and expense proposals](../contracts/out/database.md)                                         | reading the categories that person may file spending under                 |
-| out       | [Extract the intents in a user's message](../../../ai-connector-service/docs/usecases/extract-intents.md)           | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)                                              | acting on whatever the message asks for, as that person                    |
+| out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md)           | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)                                              | acting on whatever the message asks for, as that person                    |
 
 ## Rules
 

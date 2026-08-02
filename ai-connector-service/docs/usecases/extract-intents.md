@@ -1,4 +1,4 @@
-# Act on the actions in a user's message
+# Record the spending a user's message names
 
 - **In:** the user's text · the categories they already have, each with its grouping · an assumed currency
   (optional) · the caller's token
@@ -7,60 +7,43 @@
 
 *Implemented by `ExtractIntentsUseCase`.*
 
-## What is read out of the message
-
-Every entry names one thing acted on and one action on it.
-
-| Acted on | Actions                      | Carries                                               | Acted on further        |
-|----------|------------------------------|-------------------------------------------------------|-------------------------|
-| Category | create, read, update, delete | its name · a new name, when renaming                  | no — logged and skipped |
-| Expense  | create                       | a category · its grouping · an amount · a description | proposed to the ledger  |
-| Expense  | read, update, delete         | a category · an amount · a description, each optional | no — logged and skipped |
-
-**Unknown** is the third kind: an entry that could not be read, carrying why. Logged and skipped.
-
-Nothing else. A message about anything but a category or an expense is unknown.
-
 ## Collaborators
 
-| Direction | Collaborator                                                                                 | Through                                                   | For                                         |
-|-----------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------|---------------------------------------------|
-| in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)           | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user   |
-| out       | [AI Provider](../contracts/out/ai-provider.md)                                               | [Intent inference](../contracts/out/ai-provider.md)       | reading the actions out of the text         |
-| out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Expense proposal tool](../contracts/out/ledger-mcp.md)   | recording each expense the message asks for |
+| Direction | Collaborator                                                                                 | Through                                                   | For                                             |
+|-----------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------|-------------------------------------------------|
+| in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)           | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
+| out       | [AI Provider](../contracts/out/ai-provider.md)                                               | [Chat completions](../contracts/out/ai-provider.md)       | reading the message and deciding what to record |
+| out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Expense proposal tool](../contracts/out/ledger-mcp.md)   | recording one expense                           |
 
 ## Rules
 
-- A caller's token is required. Without one nothing happens and the model is never prompted.
-- The token is opaque: held for the call, put on every proposal, never parsed, logged or stored.
-- Categories are a closed set: the caller's, plus the ones the message asks to create.
-- The service never proposes a category. An invented one is refused.
-- A category named anywhere in the message counts for every entry, before it or after it.
-- A category answer that failed to assemble contributes nothing.
-- The closed set reaches the model as `Grouping > Category` labels.
-- An answer naming a category is matched by label first, then by bare name.
-- A bare name matching several categories is unknown, naming the labels to retry with.
-- Matching ignores case; the caller's spelling is what travels on.
-- A matched category carries its grouping onward; a category the message asks to create has none.
-- Only an expense to record is proposed. Every other entry is logged by what it acted on and what it asked for.
-- Expenses are proposed in the order the user said them.
-- The first proposal the ledger refuses or cannot take ends the turn. Earlier proposals stand.
-- A message asking for nothing this service does is not a failure.
-- An amount with no currency and no assumed currency is unknown.
-- What each action requires is the [expense](../domain/expense-intent.md) and
-  [category](../domain/category-intent.md) intents' own rule.
+- A caller's token is required. Without one the model is never prompted.
+- The token is opaque: held for the turn, carried on every tool call, never parsed, logged or stored.
+- Spending is recorded and nothing else — no category is created, renamed or deleted, and nothing is read back
+  for the user.
+- The model calls the tool once per expense, in the order the user said them.
+- The caller's categories are a closed set, offered as `Grouping > Category` labels; a name is never invented.
+- The set carries a catch-all, so every expense has somewhere to be filed.
+- An expense refused by the ledger is corrected against the refusal and tried once more.
+- An expense refused a second time is left unrecorded, and the rest of the message is still recorded.
+- An expense whose amount, currency or category cannot be told from the message is left unrecorded.
+- An amount stated with no currency takes the assumed currency; with none assumed the expense is left
+  unrecorded.
+- The merchant is recorded when the message names one.
+- A message naming no spending is not a failure.
+- The same message handled twice records its expenses twice.
+- What a turn recorded is visible in the ledger, not here.
 
 ## Outcomes
 
-| Outcome               | When                                                  | Result                                                             |
-|-----------------------|-------------------------------------------------------|--------------------------------------------------------------------|
-| Turn acted on         | every expense to record was accepted                  | an empty answer                                                    |
-| Nothing to act on     | the message asks for nothing this service does        | an empty answer; each entry logged                                 |
-| Entry skipped         | one answer is unusable or names no placeable category | that entry logged; the rest of the message still acted on          |
-| Proposal refused      | the ledger will not record an expense                 | the turn stops; the caller is told the precondition failed         |
-| Ledger unreachable    | a proposal cannot be delivered                        | the turn stops; the caller is told the service is unavailable      |
-| Extraction failed     | the provider is unreachable or its answer unreadable  | nothing is proposed; the caller is told the service is unavailable |
-| Caller not identified | the call arrives with no token                        | refused before the provider is called                              |
+| Outcome                 | When                                                      | Result                                                        |
+|-------------------------|-----------------------------------------------------------|---------------------------------------------------------------|
+| Turn acted on           | the model finished the turn                               | an empty answer                                               |
+| Nothing recorded        | the message names no spending                             | an empty answer                                               |
+| Expense left unrecorded | the ledger refused it twice, or the message under-said it | an empty answer; the rest of the message still recorded       |
+| Provider unavailable    | the provider is unreachable or errors                     | the turn stops; the caller is told the service is unavailable |
+| Ledger unreachable      | the tool cannot be reached, or the token is refused there | the turn stops; the caller is told the service is unavailable |
+| Caller not identified   | the call arrives with no token                            | refused before the provider is called                         |
 
 ## Components
 
@@ -81,33 +64,33 @@ System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", 
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Refuses an untokened call, holds the token for the turn", $tags="callerExternal")
-  Component(grpcService, "Intent Extraction gRPC Service", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
+  Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call, validates the request", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Assembles each intent, then acts on it", $tags="core")
-  Component(intent, "Intent / Money", "Domain value objects", "Intent hierarchy, money", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Labels the caller's categories, hands the turn on", $tags="core")
+  Component(currency, "Currency Code", "Domain value object", "An ISO 4217 code", $tags="core")
 
-  Component(inferencePort, "Intent Inference Port", "Interface", "Outbound port", $tags="portOut")
-  Component(proposalPort, "Expense Proposal Port", "Interface", "Outbound port", $tags="portOut")
-  Component(aiAdapter, "AI Intent Inference Adapter", "Spring AI ChatClient", "Prompts the model, returns raw answers", $tags="aiExternal")
-  Component(mcpAdapter, "MCP Expense Proposal Adapter", "Spring AI MCP client", "Calls the tool as the caller", $tags="callerExternal")
+  Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
+  Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the ledger's tools attached", $tags="aiExternal")
+  Component(toolClient, "Ledger Tool Client", "MCP client", "Lists the tools, calls them as the turn's caller", $tags="callerExternal")
+  Component(failurePolicy, "Tool Failure Policy", "Plain Java", "Splits a refusal the model reads from a failure that ends the turn", $tags="callerExternal")
 }
 
 Rel_R(ledger, tokenInterceptor, "ExtractIntents + token", "gRPC")
 Rel_R(tokenInterceptor, grpcService, "Passes the call on")
 Rel_R(grpcService, extractIntentsPort, "Invokes")
+Rel_D(grpcService, currency, "Validates the assumed currency with")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
-Rel_D(useCase, intent, "Assembles")
+Rel_R(useCase, recordingPort, "Uses")
+Rel_L(recordingAdapter, recordingPort, "Implements", $tags="implements")
+Rel_R(recordingAdapter, aiProvider, "Message, categories, tool schema", "HTTPS")
+Rel_D(recordingAdapter, toolClient, "Attaches the ledger's tools from")
+Rel_D(recordingAdapter, failurePolicy, "Ends a turn through")
+Rel_D(toolClient, tokenInterceptor, "Reads the turn's token from")
+Rel_L(toolClient, ledger, "create_expense_proposal", "MCP over HTTP")
 
-Rel_R(useCase, inferencePort, "Uses")
-Rel_R(useCase, proposalPort, "Uses")
-Rel_L(aiAdapter, inferencePort, "Implements", $tags="implements")
-Rel_L(mcpAdapter, proposalPort, "Implements", $tags="implements")
-Rel_R(aiAdapter, aiProvider, "Prompt + JSON schema", "HTTPS")
-Rel_D(mcpAdapter, tokenInterceptor, "Reads the token from")
-Rel_L(mcpAdapter, ledger, "create_expense_proposal", "MCP over HTTP")
-
-Lay_D(inferencePort, proposalPort)
-Lay_D(aiAdapter, mcpAdapter)
+Lay_D(useCase, currency)
+Lay_D(recordingAdapter, toolClient)
+Lay_D(toolClient, failurePolicy)
 
 SHOW_LEGEND()
 @enduml
@@ -126,31 +109,44 @@ Caller -> Service : text, categories with their groupings, assumed currency, tok
 
 alt no token
     Service --> Caller : caller not identified
-else the call carries a token
-    Service -> Provider : the text and the categories as labels
+else the request cannot be used
+    Service --> Caller : invalid argument
+else the request is usable
+    Service -> Tool : list the tools, as the caller
 
-    alt the provider fails
-        Provider --> Service : failure
-        Service --> Caller : extraction unavailable
-    else the provider answered
-        Provider --> Service : one raw answer per action
-        Service -> Service : collect the categories the message names
-        loop each answer, in the user's order
-            alt an expense to record
+    alt the ledger cannot be reached
+        Tool --> Service : transport failure
+        Service --> Caller : unavailable
+    else the tools are known
+        Service -> Provider : the recording instructions, the message, the categories, the tool schema
+
+        alt the provider fails
+            Provider --> Service : failure
+            Service --> Caller : unavailable
+        else the message names no spending
+            Provider --> Service : an answer with no tool call
+            Service --> Caller : acted on
+        else the message names spending
+            loop each expense, in the user's order
+                Provider -> Service : record this expense
                 Service -> Tool : the expense, as the token's subject
+
                 alt refused
-                    Tool --> Service : tool error
-                    Service --> Caller : precondition failed
-                else the ledger is unreachable
+                    Tool --> Service : what to retry with
+                    Service -> Provider : the refusal
+                    Provider -> Service : the corrected call, once
+                    Service -> Tool : the corrected expense
+                else the ledger cannot be reached
+                    Tool --> Service : transport failure
                     Service --> Caller : unavailable
                 else recorded
                     Tool --> Service : the stored proposal
+                    Service -> Provider : the result
                 end
-            else anything else, or unusable
-                Service -> Service : log the entry and move on
             end
+            Provider --> Service : an answer with no further tool call
+            Service --> Caller : acted on
         end
-        Service --> Caller : acted on
     end
 end
 @enduml

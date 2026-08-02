@@ -1,9 +1,8 @@
 # AI Connector Service
 
-The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC,
-reads the **intents** it expresses — what the user is acting on, what they want done, and the details — and acts
-on each expense the message asks to record, by calling the Ledger Service's expense proposal tool as the caller
-whose token arrived with the request.
+The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC
+and puts it to a language model with the Ledger Service's expense proposal tool attached, so the model records
+each expense the message names — one call per expense, as the caller whose token arrived with the request.
 
 It holds no state: a call carries its own text, its own closed set of categories, and its own credential.
 
@@ -13,12 +12,12 @@ Package structure is in the
 
 ### Use Cases
 
-- [Act on the actions in a user's message](docs/usecases/extract-intents.md)
+- [Record the spending a user's message names](docs/usecases/extract-intents.md)
 
 ### Contracts
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
-- [AI provider — intent inference](docs/contracts/out/ai-provider.md) (outbound)
+- [AI provider — recording spending](docs/contracts/out/ai-provider.md) (outbound)
 - [Ledger Service — the expense proposal tool](docs/contracts/out/ledger-mcp.md) (outbound)
 
 ### Running It
@@ -42,31 +41,29 @@ Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service", $
 System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", $tags="aiExternal")
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
-  Component(grpcService, "Intent Extraction gRPC Service", "@GrpcService", "Serves the ExtractIntents RPC", $tags="callerExternal")
-  Component(tokenInterceptor, "Caller Token Interceptor", "ServerInterceptor", "Holds the call's token for its duration", $tags="callerExternal")
+  Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
+  Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Holds the call's token for its duration", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Assembles intents, then acts on each expense", $tags="core")
-  Component(intent, "Intent / Money", "Domain value objects", "Intent hierarchy, money", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Labels the caller's categories, hands the turn on", $tags="core")
+  Component(currency, "Currency Code", "Domain value object", "An ISO 4217 code", $tags="core")
 
-  Component(inferencePort, "Intent Inference Port", "Interface", "Outbound port", $tags="portOut")
-  Component(proposalPort, "Expense Proposal Port", "Interface", "Outbound port", $tags="portOut")
-  Component(aiAdapter, "AI Intent Inference Adapter", "Spring AI ChatClient", "Prompts the model, returns raw answers", $tags="aiExternal")
-  Component(mcpAdapter, "MCP Expense Proposal Adapter", "Spring AI MCP client", "Calls the tool as the caller", $tags="callerExternal")
+  Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
+  Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the ledger's tools attached", $tags="aiExternal")
+  Component(toolClient, "Ledger Tool Client", "MCP client", "Calls the tools as the turn's caller", $tags="callerExternal")
 }
 
 Rel(ledger, grpcService, "ExtractIntents + token", "gRPC")
 Rel_D(grpcService, tokenInterceptor, "Token held by")
 Rel_R(grpcService, extractIntentsPort, "Invokes")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
-Rel_D(useCase, intent, "Assembles")
+Rel_D(grpcService, currency, "Validates the assumed currency with")
 
-Rel_R(useCase, inferencePort, "Uses")
-Rel_R(useCase, proposalPort, "Uses")
-Rel_L(aiAdapter, inferencePort, "Implements", $tags="implements")
-Rel_L(mcpAdapter, proposalPort, "Implements", $tags="implements")
-Rel_R(aiAdapter, aiProvider, "Prompt + JSON schema", "HTTPS")
-Rel_D(mcpAdapter, tokenInterceptor, "Reads the token from")
-Rel_L(mcpAdapter, ledger, "create_expense_proposal", "MCP over HTTP")
+Rel_R(useCase, recordingPort, "Uses")
+Rel_L(recordingAdapter, recordingPort, "Implements", $tags="implements")
+Rel_R(recordingAdapter, aiProvider, "Message, categories, tool schema", "HTTPS")
+Rel_D(recordingAdapter, toolClient, "Attaches the ledger's tools from")
+Rel_D(toolClient, tokenInterceptor, "Reads the token from")
+Rel_L(toolClient, ledger, "create_expense_proposal", "MCP over HTTP")
 
 SHOW_LEGEND()
 @enduml

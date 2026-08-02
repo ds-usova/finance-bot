@@ -11,10 +11,10 @@ turn completed — no action crosses back.
 
 ## Operations
 
-| Operation                      | Purpose                                    | Used by                                                                                                                                                                                          |
-|--------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Extract intents                | act on what a message asks for             | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Extract the intents in a user's message](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
-| Check the connector is serving | whether the connector is answering at all  | this service's health endpoint                                                                                                                                                                   |
+| Operation                      | Purpose                                   | Used by                                                                                                                                                                                        |
+|--------------------------------|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Extract intents                | act on what a message asks for            | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
+| Check the connector is serving | whether the connector is answering at all | this service's health endpoint                                                                                                                                                                 |
 
 ## Semantics
 
@@ -36,7 +36,10 @@ What this side adds:
 - The credential is minted per call, names the user as its subject, and is what the connector calls back with
   ([the tool it calls](../in/mcp.md)).
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
-- A call has ten seconds to answer, which has to cover a model round trip and every callback the turn makes.
+- A call has sixty seconds to answer, which has to cover the whole model-driven loop: listing the tools, a
+  provider call, a callback per expense, a provider call per result, and a further pair per expense retried.
+- Three ceilings nest, outermost first: the token this service mints lives two minutes, the call has sixty
+  seconds, one callback has five — so a single slow callback cannot spend the turn.
 - A call that runs out of time is abandoned on this side while the connector runs on: a failure here does not
   mean nothing was recorded.
 - The connector's own serving status is polled and reported in this service's health endpoint, so a target
@@ -45,14 +48,13 @@ What this side adds:
 
 ## Failures
 
-| Condition                                                  | Signal                                                                    |
-|------------------------------------------------------------|-----------------------------------------------------------------------------|
-| The request is absent                                      | rejected as invalid; the connector is never reached                       |
-| The user has no category spending can be filed under       | rejected as invalid where the request is built                            |
-| The connector refuses an action it cannot complete         | the extraction fails, naming the status it came back with                 |
-| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                                  |
-| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with                 |
-| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back                 |
+| Condition                                                  | Signal                                                    |
+|------------------------------------------------------------|-----------------------------------------------------------|
+| The request is absent                                      | rejected as invalid; the connector is never reached       |
+| The user has no category spending can be filed under       | rejected as invalid where the request is built            |
+| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                  |
+| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with |
+| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back |
 
 ## Compatibility
 

@@ -1,8 +1,8 @@
 # Agent acting for a user — the expense proposal tool (MCP over HTTP)
 
-An agent that has assembled spending from a conversation records it here, as a tool call. This is the boundary
-an AI agent reaches the ledger through; the only thing it can do across it is propose an expense, which a human
-reviews before it becomes one.
+A language model acting for a user records the spending in their message here, one tool call per expense. This
+is the boundary an AI agent reaches the ledger through; the only thing it can do across it is propose an
+expense, which a human reviews before it becomes one.
 
 - **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
   acting for the user whose message it was handed
@@ -14,20 +14,20 @@ reviews before it becomes one.
 
 | Operation                 | Purpose                                                                                                   | Used by                                                                    |
 |---------------------------|-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| List the tools            | tells a client which tools exist and what each takes                                                      | the client, before its first call                                          |
-| `create_expense_proposal` | records spending the agent has assembled for its caller                                                   | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
+| List the tools            | tells a client which tools exist and what each takes                                                      | the client, to put the tools and their arguments in front of its model     |
+| `create_expense_proposal` | records one expense the model read from its caller's message                                              | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 | Fetch the signing keys    | publishes the public half of the key tokens are signed with, so a client can verify and follow a rotation | any holder of a token                                                      |
 
 ### What the tool takes
 
-| Argument           | Meaning                                                                  | Required |
-|--------------------|--------------------------------------------------------------------------|----------|
+| Argument           | Meaning                                                                    | Required |
+|--------------------|----------------------------------------------------------------------------|----------|
 | `category`         | the category's name — one filed under a grouping, never a grouping       | yes      |
 | `parentCategory`   | the grouping's name — only to break a tie between categories sharing one | no       |
-| `description`      | what was bought                                                          | yes      |
+| `description`      | what was bought                                                            | yes      |
 | `merchant`         | who it was bought from — null or blank is none                           | no       |
-| `amountMinorUnits` | the amount in the currency's minor units                                 | yes      |
-| `currencyCode`     | ISO 4217, three letters                                                  | yes      |
+| `amountMinorUnits` | the amount in the currency's minor units — 12.50 EUR is 1250             | yes      |
+| `currencyCode`     | ISO 4217, three letters                                                    | yes      |
 
 **There is no identity argument.** Who the proposal is recorded against is the token's subject and nothing else
 ([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
@@ -48,7 +48,7 @@ A category is named, not identified. Which names resolve, and which are refused,
 An absent `amountMinorUnits` is refused rather than read as zero. A deliberate zero is stored.
 
 The tool is not idempotent: the same call made twice stores two proposals, and nothing tells them apart from two
-intended ones.
+intended ones. A refused call stores nothing, so a corrected retry of it leaves one proposal.
 
 How a caller authenticates:
 
@@ -88,11 +88,12 @@ Every rejection is logged with the kind of failure, and with neither the argumen
 
 ## Compatibility
 
-A client reads the tool's arguments from the server, so adding an optional argument costs it nothing. Renaming
-one, or making an optional one required, changes what the model is told to send and is a new tool rather than an
-edit.
+The caller is a language model: it picks this tool out of the published list by its name and description, and
+fills each argument from the description published beside it. Both are part of the contract — rewording one
+changes what arrives, with no schema to compare against and nothing failing at build time.
 
-The tool name is part of the contract: a client calls it by name.
+Adding an optional argument costs a client nothing. Renaming one, or making an optional one required, is a new
+tool rather than an edit.
 
 Moving to an identity provider outside this service means the tokens are minted and the keys published
 elsewhere. Callers change where they get a token; the tool and its arguments do not change.
