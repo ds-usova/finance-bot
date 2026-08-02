@@ -1,6 +1,7 @@
 # User
 
-A person the service keeps a ledger for, known by the identity of the platform that delivers their messages.
+A person the service keeps a ledger for, known by the identity the delivering platform gives the sender of a
+message.
 
 ## Invariants
 

@@ -52,6 +52,7 @@ entity "expense_proposal" as expense_proposal {
   merchant : VARCHAR(255)
   * amount_minor_units : BIGINT <<check >= 0>>
   * currency_code : VARCHAR(3)
+  * message_reference : UUID
   * created_at : TIMESTAMPTZ
   * updated_at : TIMESTAMPTZ
 }
@@ -70,6 +71,11 @@ Indexes beyond the constraints above:
 - `uq_category_user_parent_name` on `(user_id, parent_id, name)`, **`NULLS NOT DISTINCT`**.
 - `idx_expense_user_created_at` on `(user_id, created_at DESC)`.
 - `idx_expense_proposal_user_created_at` on `(user_id, created_at DESC)`.
+- `idx_expense_proposal_message_reference` on `(user_id, message_reference)`.
+
+`expense_proposal.message_reference` is the [message](../../domain/message-reference.md) that produced the row.
+Rows stored before the column existed each carry a reference of their own, so no two of them are read as one
+message.
 
 `expense.user_id` and `expense_proposal.user_id` cascade on delete: removing a user removes their expenses and
 their proposals. `expense.category_id` and `expense_proposal.category_id` carry no `ON DELETE` clause: a category
@@ -77,15 +83,16 @@ cannot be removed while either references it.
 
 ## Operations
 
-| Operation                                     | Purpose                                                                                       | Used by                                                                                                                                                                                               |
-|-----------------------------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Find a user by identity                       | reads the user stored under an external identity                                              | [Initialize a new user](../../usecases/initialize-a-new-user.md), [Create an expense](../../usecases/create-an-expense.md), [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
-| Create a user                                 | stores a user and their categories together                                                   | [Initialize a new user](../../usecases/initialize-a-new-user.md)                                                                                                                                      |
-| Create an expense                             | stores an expense against a user and category                                                 | [Create an expense](../../usecases/create-an-expense.md)                                                                                                                                              |
-| Find a user's categories by name              | reads every category of one user carrying a name, each with the name of the one it sits under | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                            |
-| Find a category's children                    | reads the names of the categories filed under one category                                    | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                            |
-| Find the categories a user may file spending under | reads every category of one user that sits under a grouping, with its grouping's name, in one statement | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                  |
-| Create an expense proposal                    | stores a proposal against a user and category                                                 | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                            |
+| Operation                                          | Purpose                                                                                                 | Used by                                                                                                                                                                                                |
+|----------------------------------------------------|---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Find a user by identity                            | reads the user stored under an external identity                                                        | [Initialize a new user](../../usecases/initialize-a-new-user.md), [Create an expense](../../usecases/create-an-expense.md), [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
+| Create a user                                      | stores a user and their categories together                                                             | [Initialize a new user](../../usecases/initialize-a-new-user.md)                                                                                                                                       |
+| Create an expense                                  | stores an expense against a user and category                                                           | [Create an expense](../../usecases/create-an-expense.md)                                                                                                                                               |
+| Find a user's categories by name                   | reads every category of one user carrying a name, each with the name of the one it sits under           | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                             |
+| Find a category's children                         | reads the names of the categories filed under one category                                              | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                             |
+| Find the categories a user may file spending under | reads every category of one user that sits under a grouping, with its grouping's name, in one statement | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
+| Create an expense proposal                         | stores a proposal against a user and category                                                           | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                             |
+| Find what a message recorded                       | reads the proposals stored under one message, oldest first, each with its category and grouping         | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
 
 ## Compatibility
 

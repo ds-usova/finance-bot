@@ -20,17 +20,19 @@ expense, which a human reviews before it becomes one.
 
 ### What the tool takes
 
-| Argument           | Meaning                                                                    | Required |
-|--------------------|----------------------------------------------------------------------------|----------|
+| Argument           | Meaning                                                                  | Required |
+|--------------------|--------------------------------------------------------------------------|----------|
 | `category`         | the category's name — one filed under a grouping, never a grouping       | yes      |
 | `parentCategory`   | the grouping's name — only to break a tie between categories sharing one | no       |
-| `description`      | what was bought                                                            | yes      |
+| `description`      | what was bought                                                          | yes      |
 | `merchant`         | who it was bought from — null or blank is none                           | no       |
 | `amountMinorUnits` | the amount in the currency's minor units — 12.50 EUR is 1250             | yes      |
-| `currencyCode`     | ISO 4217, three letters                                                    | yes      |
+| `currencyCode`     | ISO 4217, three letters                                                  | yes      |
 
-**There is no identity argument.** Who the proposal is recorded against is the token's subject and nothing else
-([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
+**There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
+message it belongs to, both come off the token and nothing else
+([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md),
+[ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 
 ### What the tool answers with
 
@@ -41,6 +43,10 @@ knows whose token it sent, and everything returned enters a model's context.
 ## Semantics
 
 Every call carries its own token and the server keeps nothing between calls; two calls never share state.
+
+Each proposal is stored under the message reference its token carries, which is what lets the ledger tell the
+user which message produced what. A call whose token carries no readable reference is refused, and stores
+nothing.
 
 A category is named, not identified. Which names resolve, and which are refused, is
 [the use case's rule](../../usecases/create-an-expense-proposal.md#rules), not the tool's.
@@ -54,7 +60,8 @@ How a caller authenticates:
 
 - A short-lived RS256 JSON Web Token on the request, issued and validated by this service itself.
 - The token names the user as its subject, `ledger-service` as its issuer, `mcp-adapter` as its audience, and
-  carries the instant it was issued, the instant it expires, and a unique id.
+  carries the instant it was issued, the instant it expires, a unique id, and the
+  [message reference](../../domain/message-reference.md) of the message being handled.
 - Validation checks the signature and the algorithm, that the token is neither expired nor future-dated, the
   issuer, the audience, and that the token's own lifetime does not exceed the configured maximum.
 - The signing key comes from a keystore read at startup; its public half is published, unauthenticated, at
@@ -78,13 +85,15 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | An argument is missing or unusable                                                      | a tool error naming the invalid request and the field at fault       |
 | The category name is unknown, names a grouping, or matches several                      | a tool error carrying what to retry with                             |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
+| The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |
 | The proposal cannot be stored                                                           | a tool error saying so, naming no table, constraint or stack frame   |
 | Anything else                                                                           | a tool error saying the proposal could not be created                |
 
 A failure inside the tool is a successful call carrying an error result, never an exception on the transport.
 Authentication is the exception: it never reaches the tool at all, so a model never reads why it was refused.
 
-Every rejection is logged with the kind of failure, and with neither the arguments nor the token.
+Every rejection is logged with the kind of failure, and with neither the arguments nor the token. A call's
+arguments reach the log only at debug level.
 
 ## Compatibility
 
@@ -94,6 +103,11 @@ changes what arrives, with no schema to compare against and nothing failing at b
 
 Adding an optional argument costs a client nothing. Renaming one, or making an optional one required, is a new
 tool rather than an edit.
+
+What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
+token untouched, so a claim added there is neither read nor rewritten on the way
+([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)). A caller
+that mints its own tokens instead would have to carry that claim, which the tool refuses a call without.
 
 Moving to an identity provider outside this service means the tokens are minted and the keys published
 elsewhere. Callers change where they get a token; the tool and its arguments do not change.

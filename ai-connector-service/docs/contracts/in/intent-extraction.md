@@ -23,6 +23,10 @@ Every extraction call carries the caller's bearer token as call metadata, not as
 every expense the turn records is recorded against, and the only identity this boundary carries. A health check
 carries none.
 
+The token carries more than that identity: the caller mints it per message and puts on it a reference to the
+message being handled. Everything on the token is opaque here — the service forwards it and reads nothing out
+of it.
+
 The token is required but not verified here — it is checked where it is spent, by the
 [ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md). A caller this boundary has not
 authenticated therefore records nothing, but does reach the model
@@ -68,6 +72,11 @@ its expenses again and no duplicate is recognized.
 
 Both sides generate from the one schema file, so a field added or renamed there reaches the caller's build
 rather than its runtime.
+
+What the token carries is the caller's alone to change. A claim it adds reaches
+[its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, without a change to this
+schema or a release of this service
+([ADR 0010](../../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 
 Removing a promise breaks every caller: an order that is not the user's, an unrecorded expense arriving as a
 failed call, or an empty answer that stops meaning the turn was acted on would each force the caller to be
