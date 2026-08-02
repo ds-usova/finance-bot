@@ -1,11 +1,14 @@
 package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.InvalidValueException;
+
+import java.util.List;
 
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
@@ -23,10 +26,13 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             throw new InvalidValueException("Command must not be null");
         }
 
-        // TODO: turn command.knownCategories() into "Grouping > Category" labels in the command's order, call
-        // expenseRecordingPort.record(command.text(), labels, command.defaultCurrency()), and log at INFO that
-        // the turn was acted on, naming how many categories were offered and carrying nothing from the message
-        // text.
+        List<String> labels = command.knownCategories().stream()
+                .map(KnownCategory::label)
+                .toList();
+
+        expenseRecordingPort.record(command.text(), labels, command.defaultCurrency());
+
+        log.info("Acted on turn with {} known categories offered", labels.size());
     }
 
 }

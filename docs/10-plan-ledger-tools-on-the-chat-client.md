@@ -224,13 +224,13 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest`
-- [ ] GU02 · `LedgerToolFailureProcessor` · test: `LedgerToolFailureProcessorTest`
-- [ ] GU03 · `CallerTokenMcpRequestCustomizer` · test: `CallerTokenMcpRequestCustomizerTest`
+- [x] GU01 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest`
+- [x] GU02 · `LedgerToolFailureProcessor` · test: `LedgerToolFailureProcessorTest`
+- [x] GU03 · `CallerTokenMcpRequestCustomizer` · test: `CallerTokenMcpRequestCustomizerTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · after: GU02, GU03
+- [x] GI01 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · after: GU02, GU03
 
   Implements the adapter and fills `LedgerMcpConfiguration`'s two beans — the transport customizer wiring, and the
   `transportContextProvider` reading `CallerTokenUtils.callerToken()` on the calling thread. The failure processor
@@ -238,7 +238,7 @@
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
+- [x] GS01 · `ExtractIntentsSystemTest` · covers: `ExtractIntents`
 
 ### Post-Implementation Steps
 
@@ -281,6 +281,13 @@ The use-case page, both contract pages, `ledger-service/docs/contracts/in/mcp.md
   performing it itself*. Approve writing it? A `yes` adds a `Write ADR:` item to Post-Implementation Steps. If
   no, the fact lives on in the use-case page and this design file, and nothing downstream writes one.
 - A: that's an adr. Provide the reasoning why we moved from structured output to the mcp integration. 
+
+- **B1 (recorded, not blocking):** GI01 needed a check the design had proposed to drop.
+  `AiExpenseRecordingAdapter.record` refuses an untokened turn itself, before prompting the model. D8 had made
+  `CallerTokenMcpRequestCustomizer` the only guard, but that one fires only when a request is actually built —
+  and a turn whose tool list is already cached (D4) and whose model answers without calling the tool builds
+  none, so it would have returned successfully having recorded nothing. The design's D8 is amended to record
+  both guards.
 
 ## Review Findings
 

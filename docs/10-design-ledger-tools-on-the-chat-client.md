@@ -486,11 +486,16 @@ end
   `DefaultToolExecutionExceptionProcessor` matches the direct cause's class only (D20, D21).
 
 - **D8:** What happens if a turn somehow reaches the MCP client with no token held?
-- Answer: The request customizer throws `McpTransportException`, which D7 turns into `UNAVAILABLE`. No request
-  is sent unauthenticated.
+- Answer: The turn fails, in two places. `AiExpenseRecordingAdapter.record` refuses an untokened turn before it
+  prompts the model at all; below it, the request customizer throws `McpTransportException`, which D7 turns into
+  `UNAVAILABLE`. No request is sent unauthenticated.
 - Basis: assumed — `CallerTokenInterceptor` already closes an untokened `IntentExtractionService` call with
   `UNAUTHENTICATED`, so this is unreachable from the RPC and exists so that a future entry point cannot make it
-  reachable quietly. It replaces the same check `McpExpenseProposalAdapter` does today.
+  reachable quietly. The adapter's own check is the one `McpExpenseProposalAdapter` performed and this design
+  first proposed to drop: the customizer alone only fires when a request is actually built, and a turn whose
+  tool list is already cached (D4) and whose model answers without calling the tool builds none — so it would
+  have returned successfully having recorded nothing, which is the one outcome an untokened turn must not have.
+  Found while implementing, against `SyncMcpToolCallbackProvider`'s cache.
 
 - **D9:** Does the configuration surface change?
 - Answer: No. `LEDGER_MCP_URL` keeps its name, its default and its meaning; only the property it feeds moves

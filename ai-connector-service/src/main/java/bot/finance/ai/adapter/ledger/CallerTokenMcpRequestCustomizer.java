@@ -2,6 +2,7 @@ package bot.finance.ai.adapter.ledger;
 
 import io.modelcontextprotocol.client.transport.customizer.McpSyncHttpClientRequestCustomizer;
 import io.modelcontextprotocol.common.McpTransportContext;
+import io.modelcontextprotocol.spec.McpTransportException;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -17,8 +18,11 @@ public class CallerTokenMcpRequestCustomizer implements McpSyncHttpClientRequest
 
     @Override
     public void customize(HttpRequest.Builder builder, String method, URI endpoint, String body, McpTransportContext context) {
-        // TODO: read CALLER_TOKEN out of context and set it verbatim, scheme included, as the Authorization
-        // header; throw McpTransportException when the context holds none, so no request leaves unauthenticated.
+        Object token = context.get(CALLER_TOKEN);
+        if (token == null) {
+            throw new McpTransportException("No caller token in the MCP transport context");
+        }
+        builder.header("Authorization", token.toString());
     }
 
 }

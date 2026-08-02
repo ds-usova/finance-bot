@@ -1,10 +1,14 @@
 package bot.finance.ai.adapter.ledger;
 
+import bot.finance.ai.adapter.grpc.CallerTokenUtils;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.common.McpTransportContext;
 import org.springframework.ai.mcp.customizer.McpClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 @Configuration
 public class LedgerMcpConfiguration {
@@ -15,18 +19,21 @@ public class LedgerMcpConfiguration {
     McpClientCustomizer<HttpClientStreamableHttpTransport.Builder> callerTokenTransportCustomizer(
             CallerTokenMcpRequestCustomizer callerTokenMcpRequestCustomizer) {
         return (name, builder) -> {
-            // TODO: when name equals LEDGER_CONNECTION, apply
-            // builder.httpRequestCustomizer(callerTokenMcpRequestCustomizer).
+            if (LEDGER_CONNECTION.equals(name)) {
+                builder.httpRequestCustomizer(callerTokenMcpRequestCustomizer);
+            }
         };
     }
 
     @Bean
     McpClientCustomizer<McpClient.SyncSpec> callerTokenContextCustomizer() {
         return (name, spec) -> {
-            // TODO: when name equals LEDGER_CONNECTION, apply spec.transportContextProvider(...), a supplier
-            // reading CallerTokenUtils.callerToken() and returning
-            // McpTransportContext.create(Map.of(CallerTokenMcpRequestCustomizer.CALLER_TOKEN, token)), or
-            // McpTransportContext.EMPTY when the turn holds none.
+            if (LEDGER_CONNECTION.equals(name)) {
+                spec.transportContextProvider(() -> CallerTokenUtils.callerToken()
+                        .<McpTransportContext>map(token -> McpTransportContext.create(
+                                Map.of(CallerTokenMcpRequestCustomizer.CALLER_TOKEN, token)))
+                        .orElse(McpTransportContext.EMPTY));
+            }
         };
     }
 
