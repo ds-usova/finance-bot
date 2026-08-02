@@ -46,6 +46,11 @@ public final class TelegramTestBot {
      */
     public static final String HANDLE_MESSAGE_FAILURE_TOKEN = "handle-message-failure-test-token";
 
+    /**
+     * Token owned by {@code TelegramMessageDeliveryAdapterTest}.
+     */
+    public static final String DELIVERY_TOKEN = "delivery-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private TelegramTestBot() {}
@@ -56,6 +61,14 @@ public final class TelegramTestBot {
      */
     public static String getUpdatesPath(String token) {
         return "/bot%s/getUpdates".formatted(token);
+    }
+
+    /**
+     * The token-scoped path pengrad posts {@code sendMessage} to: {@code /bot<token>/sendMessage}. Stub
+     * registration and request verification both go through this, never a hand-written path.
+     */
+    public static String sendMessagePath(String token) {
+        return "/bot%s/sendMessage".formatted(token);
     }
 
     /**
@@ -84,5 +97,12 @@ public final class TelegramTestBot {
     public static List<LoggedRequest> recordedPollsWithOffset(String token, String offset) {
         return WireMockSupport.SERVER.findAll(
                 postRequestedFor(urlPathEqualTo(getUpdatesPath(token))).withFormParam("offset", equalTo(offset)));
+    }
+
+    /**
+     * Every {@code sendMessage} the stub server recorded for this token.
+     */
+    public static List<LoggedRequest> recordedSendMessages(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token))));
     }
 }

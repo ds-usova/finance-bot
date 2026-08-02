@@ -9,6 +9,7 @@ import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
@@ -26,9 +27,16 @@ public class UseCaseConfiguration {
             InitializeUserPort initializeUserPort,
             CategoryRepository categoryRepository,
             IntentExtractionPort intentExtractionPort,
+            ExpenseProposalRepository expenseProposalRepository,
+            MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
-                initializeUserPort, categoryRepository, intentExtractionPort, loggerFactory);
+                initializeUserPort,
+                categoryRepository,
+                intentExtractionPort,
+                expenseProposalRepository,
+                messageDeliveryPort,
+                loggerFactory);
     }
 
     @Bean

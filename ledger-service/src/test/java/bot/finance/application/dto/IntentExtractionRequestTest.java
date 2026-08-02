@@ -6,6 +6,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,7 +32,8 @@ class IntentExtractionRequestTest {
                     "lunch 12 euro",
                     List.of(new KnownCategory("food", "groceries")),
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
@@ -46,7 +48,8 @@ class IntentExtractionRequestTest {
                     "lunch 12 euro",
                     List.of(new KnownCategory("food", "groceries")),
                     Optional.empty(),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
@@ -64,7 +67,8 @@ class IntentExtractionRequestTest {
                             text,
                             List.of(new KnownCategory("food", "groceries")),
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id"))
+                            "user-external-id",
+                            MessageReference.newReference()))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -78,7 +82,11 @@ class IntentExtractionRequestTest {
         void whenKnownCategoriesIsNullOrEmpty_thenThrowsInvalidExtractionRequestException(
                 List<KnownCategory> knownCategories) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id"))
+                            "lunch 12 euro",
+                            knownCategories,
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -93,7 +101,11 @@ class IntentExtractionRequestTest {
             List<KnownCategory> knownCategories = Arrays.asList(new KnownCategory("food", "groceries"), null);
 
             assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro", knownCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id"))
+                            "lunch 12 euro",
+                            knownCategories,
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -104,7 +116,8 @@ class IntentExtractionRequestTest {
                             "lunch 12 euro",
                             List.of(new KnownCategory("food", "groceries")),
                             null,
-                            "user-external-id"))
+                            "user-external-id",
+                            MessageReference.newReference()))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -115,7 +128,8 @@ class IntentExtractionRequestTest {
                     "lunch 12 euro",
                     List.of(new KnownCategory("food", "groceries")),
                     Optional.empty(),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             assertThat(request.defaultCurrency()).isEmpty();
         }
@@ -128,7 +142,8 @@ class IntentExtractionRequestTest {
                             "lunch 12 euro",
                             List.of(new KnownCategory("food", "groceries")),
                             Optional.of(CurrencyCode.of("EUR")),
-                            userExternalId))
+                            userExternalId,
+                            MessageReference.newReference()))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -143,7 +158,11 @@ class IntentExtractionRequestTest {
             List<KnownCategory> mutableCategories = new ArrayList<>(List.of(new KnownCategory("food", "groceries")));
 
             IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro", mutableCategories, Optional.of(CurrencyCode.of("EUR")), "user-external-id");
+                    "lunch 12 euro",
+                    mutableCategories,
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id",
+                    MessageReference.newReference());
             mutableCategories.add(new KnownCategory("transport", "travel"));
 
             assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));

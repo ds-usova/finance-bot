@@ -7,6 +7,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.*;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -53,9 +54,10 @@ public class CreateExpenseProposalMcpTool {
 
         try {
             AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+            MessageReference reference = AuthenticatedCallerUtils.messageReference();
 
-            ExpenseProposal stored =
-                    createExpenseProposalPort.create(ExpenseProposalToolUtils.toCommand(request, userId));
+            ExpenseProposal stored = createExpenseProposalPort.create(
+                    ExpenseProposalToolUtils.toCommand(request, userId, reference));
             CreateExpenseProposalToolResponse response =
                     ExpenseProposalToolUtils.toResponse(stored, request.category());
 

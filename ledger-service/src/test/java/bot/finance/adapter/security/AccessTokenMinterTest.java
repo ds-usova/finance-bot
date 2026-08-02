@@ -3,6 +3,7 @@ package bot.finance.adapter.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.McpTokens;
+import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -34,7 +35,7 @@ class AccessTokenMinterTest {
         @Test
         @DisplayName("when mint() is called and the token is parsed - then it carries sub, iss, aud, iat, exp at the configured ttl after iat, and a jti")
         void whenMintIsCalledAndTheTokenIsParsed_thenItCarriesTheExpectedClaims() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
 
@@ -50,8 +51,8 @@ class AccessTokenMinterTest {
         @Test
         @DisplayName("when mint() is called twice for the same external id - then the two tokens carry different jti values")
         void whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
-            String firstToken = minter.mint(USER_EXTERNAL_ID);
-            String secondToken = minter.mint(USER_EXTERNAL_ID);
+            String firstToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String secondToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 
             String firstJti = SignedJWT.parse(firstToken).getJWTClaimsSet().getJWTID();
             String secondJti = SignedJWT.parse(secondToken).getJWTClaimsSet().getJWTID();
@@ -62,7 +63,7 @@ class AccessTokenMinterTest {
         @Test
         @DisplayName("when mint() is called and the token's header is read - then the algorithm is RS256 and the signature verifies against the keystore's public key")
         void whenMintIsCalledAndTheTokenHeaderIsRead_thenTheAlgorithmIsRs256AndTheSignatureVerifies() throws Exception {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 
             SignedJWT signedJwt = SignedJWT.parse(token);
 

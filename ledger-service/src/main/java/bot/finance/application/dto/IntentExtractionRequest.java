@@ -2,6 +2,7 @@ package bot.finance.application.dto;
 
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,7 +10,8 @@ public record IntentExtractionRequest(
         String text,
         List<KnownCategory> knownCategories,
         Optional<CurrencyCode> defaultCurrency,
-        String userExternalId) {
+        String userExternalId,
+        MessageReference messageReference) {
 
     public IntentExtractionRequest {
         if (text == null || text.isBlank()) {
@@ -28,6 +30,7 @@ public record IntentExtractionRequest(
         if (userExternalId == null || userExternalId.isBlank()) {
             throw new InvalidExtractionRequestException("User external id must not be null or blank");
         }
+        // TODO RU08: throw InvalidExtractionRequestException when messageReference is null.
 
         knownCategories = List.copyOf(knownCategories);
     }

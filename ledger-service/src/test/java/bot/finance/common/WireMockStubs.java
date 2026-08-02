@@ -86,6 +86,22 @@ public final class WireMockStubs {
      * WireMock would answer both with the same stub. Safe because the scenario state belongs to one token,
      * hence to one test class's own context and poll loop.
      */
+    /**
+     * Answers every {@code sendMessage} for this token with a successful envelope.
+     */
+    public static void telegramAcceptsSendMessage(String token) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.sendMessagePath(token)))
+                .willReturn(okJson(TelegramFixtures.sendMessageResponse())));
+    }
+
+    /**
+     * Fails every {@code sendMessage} for this token with the given {@code ok:false} body.
+     */
+    public static void telegramFailsSendMessage(String token, int errorCode, String description) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.sendMessagePath(token)))
+                .willReturn(okJson(TelegramFixtures.sendMessageError(errorCode, description))));
+    }
+
     public static void telegramFailsOnceThenReturns(String token, int errorCode, String responseBody) {
         String scenario = "%s-%s".formatted(TELEGRAM_RECOVERY_SCENARIO, token);
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(getUpdatesPath(token)))

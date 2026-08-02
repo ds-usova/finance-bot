@@ -48,7 +48,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         WireMockStubs.telegramReturnsNoUpdates(HANDLE_MESSAGE_FAILURE_TOKEN);
         WireMockStubs.telegramReturnsOnFirstPoll(
                 HANDLE_MESSAGE_FAILURE_TOKEN,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
         GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
     }
 

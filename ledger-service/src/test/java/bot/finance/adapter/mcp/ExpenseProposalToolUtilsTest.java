@@ -10,6 +10,7 @@ import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ExpenseProposalToolUtilsTest {
 
     private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
+    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
 
     @Nested
     @DisplayName("mapping a tool request onto the create-expense-proposal command")
@@ -38,7 +40,8 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID);
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command)
                     .isEqualTo(new CreateExpenseProposalCommand(
@@ -47,7 +50,8 @@ class ExpenseProposalToolUtilsTest {
                             Optional.of("Food"),
                             "Milk",
                             Optional.of("Corner Shop"),
-                            new Money(1500L, CurrencyCode.of("EUR"))));
+                            new Money(1500L, CurrencyCode.of("EUR")),
+                            MESSAGE_REFERENCE));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -58,7 +62,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", parentCategory, "Milk", "Corner Shop", 1500L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID);
+            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.parentCategoryName()).isEmpty();
         }
@@ -74,7 +78,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, 1500L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID);
+            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.merchant()).isEmpty();
         }
@@ -89,7 +93,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "ZZZ");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID))
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
         }
 
@@ -101,7 +105,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", null, "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID))
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -113,7 +117,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 0L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID);
+            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money().minorUnits()).isZero();
         }
@@ -124,14 +128,14 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", -1L, "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID))
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
         }
 
         @Test
         @DisplayName("when the request is absent - then throws InvalidExpenseProposalException")
         void whenRequestIsAbsent_thenThrowsInvalidExpenseProposalException() {
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(null, USER_ID))
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(null, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
@@ -154,6 +158,7 @@ class ExpenseProposalToolUtilsTest {
                     "Milk",
                     Optional.of("Corner Shop"),
                     new Money(1500L, CurrencyCode.of("EUR")),
+                    MESSAGE_REFERENCE,
                     createdAt,
                     createdAt);
 
@@ -169,7 +174,15 @@ class ExpenseProposalToolUtilsTest {
         void whenStoredProposalHasNoMerchant_thenResponseMerchantIsNull() {
             Instant createdAt = Instant.parse("2026-01-01T10:00:00Z");
             ExpenseProposal proposal = ExpenseProposal.stored(
-                    1L, 10L, 20L, "Milk", Optional.empty(), new Money(1500L, CurrencyCode.of("EUR")), createdAt, createdAt);
+                    1L,
+                    10L,
+                    20L,
+                    "Milk",
+                    Optional.empty(),
+                    new Money(1500L, CurrencyCode.of("EUR")),
+                    MESSAGE_REFERENCE,
+                    createdAt,
+                    createdAt);
 
             CreateExpenseProposalToolResponse response = ExpenseProposalToolUtils.toResponse(proposal, "Groceries");
 

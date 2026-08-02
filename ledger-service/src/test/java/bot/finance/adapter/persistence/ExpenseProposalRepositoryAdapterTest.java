@@ -16,6 +16,7 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -60,6 +61,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Weekly shop",
                     Optional.of("Trader Joe's"),
                     new Money(1500, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -87,6 +89,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Electric bill",
                     Optional.empty(),
                     new Money(4200, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -110,6 +113,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Dinner",
                     Optional.empty(),
                     new Money(3000, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     nanosecondInstant);
 
             ExpenseProposal created = adapter.create(proposal);
@@ -137,6 +141,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(proposal);
@@ -160,6 +165,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -180,6 +186,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(proposal);
@@ -203,6 +210,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -222,6 +230,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -242,6 +251,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -265,6 +275,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "First purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
             ExpenseProposal secondProposal = ExpenseProposal.newExpenseProposal(
                     secondUserId,
@@ -272,6 +283,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Second purchase",
                     Optional.empty(),
                     new Money(200, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(firstProposal);
@@ -312,7 +324,13 @@ class ExpenseProposalRepositoryAdapterTest {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.save(any())).thenThrow(frameworkException);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
+                    1L,
+                    1L,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
+                    Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -333,7 +351,13 @@ class ExpenseProposalRepositoryAdapterTest {
                     new DataIntegrityViolationException("constraint violation", sqlException);
             when(mockedExpenseProposalEntityRepository.save(any())).thenThrow(frameworkException);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
+                    1L,
+                    1L,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
+                    Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
                     .isInstanceOf(PersistenceFailedException.class)

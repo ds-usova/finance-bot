@@ -6,6 +6,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.KnownCategory;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +30,8 @@ class IntentProtoUtilsTest {
                             new KnownCategory("Transport", "Travel"),
                             new KnownCategory("Other", "Other")),
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
@@ -49,7 +51,8 @@ class IntentProtoUtilsTest {
                     "lunch 12 euro",
                     List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
                     Optional.empty(),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
@@ -64,7 +67,8 @@ class IntentProtoUtilsTest {
                     "lunch 12 euro",
                     List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Transport", "Travel")),
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 

@@ -2,6 +2,7 @@ package bot.finance.common;
 
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.adapter.security.AccessTokenProperties;
+import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -33,6 +34,7 @@ public final class McpTokens {
     private static final String ISSUER = "ledger-service";
     private static final String AUDIENCE = "mcp-adapter";
     private static final Duration TTL = Duration.ofMinutes(2);
+    private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
 
     private McpTokens() {}
 
@@ -42,36 +44,59 @@ public final class McpTokens {
     }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {
-        return accessTokenMinter.mint(externalId);
+        return tokenFor(accessTokenMinter, externalId, MessageReference.newReference());
+    }
+
+    public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId, MessageReference reference) {
+        return accessTokenMinter.mint(externalId, reference);
     }
 
     public static String expiredToken(String externalId) {
         Instant issuedAt = Instant.now().minus(TTL).minusSeconds(60);
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL));
+        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), MessageReference.newReference().value());
     }
 
     public static String wrongAudienceToken(String externalId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, "some-other-audience", issuedAt, issuedAt.plus(TTL));
+        return sign(externalId, "some-other-audience", issuedAt, issuedAt.plus(TTL), MessageReference.newReference().value());
     }
 
     public static String overTtlToken(String externalId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)));
+        return sign(
+                externalId,
+                AUDIENCE,
+                issuedAt,
+                issuedAt.plus(TTL).plus(Duration.ofMinutes(10)),
+                MessageReference.newReference().value());
     }
 
-    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt) {
+    /** A token whose {@code mrf} claim is not a parseable UUID. */
+    public static String malformedReferenceToken(String externalId) {
+        Instant issuedAt = Instant.now();
+        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), "not-a-uuid");
+    }
+
+    /** A token carrying no {@code mrf} claim at all. */
+    public static String noReferenceToken(String externalId) {
+        Instant issuedAt = Instant.now();
+        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
+    }
+
+    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, Object mrf) {
         try {
-            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+            JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .subject(subject)
                     .issuer(ISSUER)
                     .audience(audience)
                     .issueTime(Date.from(issuedAt))
                     .expirationTime(Date.from(expiresAt))
-                    .jwtID(UUID.randomUUID().toString())
-                    .build();
-            SignedJWT jwt =
-                    new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KEY_ALIAS).build(), claims);
+                    .jwtID(UUID.randomUUID().toString());
+            if (mrf != null) {
+                claims.claim(MESSAGE_REFERENCE_CLAIM, mrf.toString());
+            }
+            SignedJWT jwt = new SignedJWT(
+                    new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KEY_ALIAS).build(), claims.build());
             jwt.sign(new RSASSASigner(loadPrivateKey()));
             return jwt.serialize();
         } catch (GeneralSecurityException | IOException | JOSEException e) {

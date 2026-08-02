@@ -30,6 +30,10 @@ public final class TelegramUpdateUtils {
         if (chat == null) {
             return Optional.empty();
         }
-        return Optional.of(new HandleIncomingMessageCommand(String.valueOf(chat.id()), text));
+        // TODO RU05/D16: read message.from().id() for userExternalId, and return Optional.empty() when from is
+        // absent, exactly as this method already does for a missing chat or text.
+        String conversationId = String.valueOf(chat.id());
+        String inboundMessageId = String.valueOf(message.messageId());
+        return Optional.of(new HandleIncomingMessageCommand(conversationId, conversationId, inboundMessageId, text));
     }
 }

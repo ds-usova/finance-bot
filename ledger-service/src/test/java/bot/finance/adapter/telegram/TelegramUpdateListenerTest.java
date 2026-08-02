@@ -95,7 +95,7 @@ class TelegramUpdateListenerTest {
                 "when a text-message update is polled - then the port handles the mapped command and the batch is confirmed")
         void whenTextMessageUpdateIsPolled_thenPortHandlesMappedCommandAndBatchIsConfirmed() {
             telegramReturnsOnFirstPoll(
-                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 
@@ -118,7 +118,7 @@ class TelegramUpdateListenerTest {
                     .when(handleIncomingMessagePort)
                     .handle(any());
             telegramReturnsOnFirstPoll(
-                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                    LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 
@@ -149,7 +149,7 @@ class TelegramUpdateListenerTest {
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
                     updatesResponse(
-                            textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT),
+                            textMessageUpdate(TEXT_UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT),
                             voiceMessageUpdate(VOICE_UPDATE_ID, CHAT_ID)));
 
             startLoop();

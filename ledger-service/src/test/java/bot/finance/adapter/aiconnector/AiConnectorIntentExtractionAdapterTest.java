@@ -14,6 +14,7 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
@@ -56,7 +57,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "spent 15 on milk",
                     List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
                     Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
 
@@ -79,7 +81,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "spent 15 on milk",
                     List.of(new KnownCategory("Groceries", "Food")),
                     Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id-77");
+                    "user-external-id-77",
+                    MessageReference.newReference());
 
             adapter.extract(request);
 
@@ -107,7 +110,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "connector unavailable",
                     List.of(new KnownCategory("Other", "Other")),
                     Optional.empty(),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             IntentExtractionFailedException thrown =
                     catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);

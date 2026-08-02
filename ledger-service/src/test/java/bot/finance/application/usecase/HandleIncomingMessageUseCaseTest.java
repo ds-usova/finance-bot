@@ -14,10 +14,12 @@ import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.port.CategoryRepository;
+import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -34,12 +36,15 @@ class HandleIncomingMessageUseCaseTest {
     private static final long USER_ID = 1L;
     private static final String EXTERNAL_ID = "555";
     private static final String CONVERSATION_ID = "555";
+    private static final String INBOUND_MESSAGE_ID = "1";
     private static final String TEXT = "spent 12 on coffee";
 
     private Logger log;
     private InitializeUserPort initializeUserPort;
     private CategoryRepository categoryRepository;
     private IntentExtractionPort intentExtractionPort;
+    private ExpenseProposalRepository expenseProposalRepository;
+    private MessageDeliveryPort messageDeliveryPort;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -50,12 +55,19 @@ class HandleIncomingMessageUseCaseTest {
         initializeUserPort = mock(InitializeUserPort.class);
         categoryRepository = mock(CategoryRepository.class);
         intentExtractionPort = mock(IntentExtractionPort.class);
+        expenseProposalRepository = mock(ExpenseProposalRepository.class);
+        messageDeliveryPort = mock(MessageDeliveryPort.class);
         useCase = new HandleIncomingMessageUseCase(
-                initializeUserPort, categoryRepository, intentExtractionPort, loggerFactory);
+                initializeUserPort,
+                categoryRepository,
+                intentExtractionPort,
+                expenseProposalRepository,
+                messageDeliveryPort,
+                loggerFactory);
     }
 
     private HandleIncomingMessageCommand newCommand() {
-        return new HandleIncomingMessageCommand(CONVERSATION_ID, TEXT);
+        return new HandleIncomingMessageCommand(EXTERNAL_ID, CONVERSATION_ID, INBOUND_MESSAGE_ID, TEXT);
     }
 
     private List<KnownCategory> stubKnownUserAndCategories() {

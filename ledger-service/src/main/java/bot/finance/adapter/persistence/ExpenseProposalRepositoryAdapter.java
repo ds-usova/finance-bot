@@ -1,9 +1,12 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.MessageReference;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,13 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
             throw classify(proposal, e);
         }
         return saved.toDomain();
+    }
+
+    @Override
+    public List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference) {
+        // TODO RI01: map each ProposalSummaryProjection row onto a ProposalSummary, translating a runtime
+        // failure into PersistenceFailedException, as findKnownCategories does in CategoryRepositoryAdapter.
+        throw new UnsupportedOperationException("findSummariesByMessageReference is not yet implemented");
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

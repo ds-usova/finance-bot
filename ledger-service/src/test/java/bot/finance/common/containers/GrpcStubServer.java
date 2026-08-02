@@ -19,15 +19,23 @@ import io.grpc.health.v1.HealthGrpc;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GrpcStubServer {
 
     public static final Server SERVER;
 
+    private static final HttpClient CALLBACK_CLIENT = HttpClient.newHttpClient();
+
     private static final AtomicReference<ExtractIntentsRequest> LAST_EXTRACTION_REQUEST = new AtomicReference<>();
     private static final AtomicReference<Metadata> LAST_EXTRACTION_METADATA = new AtomicReference<>();
     private static final AtomicReference<HealthCheckRequest> LAST_HEALTH_CHECK_REQUEST = new AtomicReference<>();
+    private static final AtomicReference<String> CALLBACK_BASE_URL = new AtomicReference<>();
+    private static final AtomicReference<String> CALLBACK_REQUEST_BODY = new AtomicReference<>();
 
     private static volatile ExtractIntentsResponse extractionResponse = ExtractIntentsResponse.getDefaultInstance();
     private static volatile Status extractionFailure;
@@ -91,6 +99,19 @@ public class GrpcStubServer {
         extractionFailure = null;
         servingStatus = HealthCheckResponse.ServingStatus.SERVING;
         healthFailure = null;
+        CALLBACK_BASE_URL.set(null);
+        CALLBACK_REQUEST_BODY.set(null);
+    }
+
+    /**
+     * Arms the callback mode: the next {@code extractIntents} call posts {@code toolCallRequestBody} to
+     * {@code <baseUrl>/mcp} before answering, forwarding the {@code authorization} header it received verbatim.
+     * This is the only way a system test can reach the {@code RECORDED} outcome, since the reference is minted
+     * inside the use case and no test can seed a proposal row under it beforehand.
+     */
+    public static void armMcpCallback(String baseUrl, String toolCallRequestBody) {
+        CALLBACK_BASE_URL.set(baseUrl);
+        CALLBACK_REQUEST_BODY.set(toolCallRequestBody);
     }
 
     private static final class ExtractionMetadataInterceptor implements ServerInterceptor {
@@ -110,6 +131,10 @@ public class GrpcStubServer {
         public void extractIntents(
                 ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
             LAST_EXTRACTION_REQUEST.set(request);
+            String baseUrl = CALLBACK_BASE_URL.get();
+            if (baseUrl != null) {
+                callBackIntoMcp(baseUrl);
+            }
             Status failure = extractionFailure;
             if (failure != null) {
                 responseObserver.onError(failure.asRuntimeException());
@@ -117,6 +142,27 @@ public class GrpcStubServer {
             }
             responseObserver.onNext(extractionResponse);
             responseObserver.onCompleted();
+        }
+
+        private void callBackIntoMcp(String baseUrl) {
+            Metadata metadata = LAST_EXTRACTION_METADATA.get();
+            String authorization =
+                    metadata == null ? null : metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/mcp"))
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json, text/event-stream")
+                        .header("Authorization", authorization == null ? "" : authorization)
+                        .POST(HttpRequest.BodyPublishers.ofString(CALLBACK_REQUEST_BODY.get()))
+                        .build();
+                CALLBACK_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            } catch (IOException e) {
+                throw new UncheckedIOException("failed to call back into /mcp from the stub connector", e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while calling back into /mcp from the stub connector", e);
+            }
         }
     }
 

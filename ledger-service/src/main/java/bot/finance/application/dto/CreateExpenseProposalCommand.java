@@ -3,6 +3,7 @@ package bot.finance.application.dto;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 
@@ -12,7 +13,8 @@ public record CreateExpenseProposalCommand(
         Optional<String> parentCategoryName,
         String description,
         Optional<String> merchant,
-        Money money) {
+        Money money,
+        MessageReference messageReference) {
 
     public CreateExpenseProposalCommand {
         if (userId == null) {
@@ -35,5 +37,6 @@ public record CreateExpenseProposalCommand(
         if (money == null) {
             throw new InvalidExpenseProposalException("new expense proposal has no money");
         }
+        // TODO RU09: throw InvalidExpenseProposalException when messageReference is null.
     }
 }

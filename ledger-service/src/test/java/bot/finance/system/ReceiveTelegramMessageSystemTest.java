@@ -74,7 +74,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
         WireMockStubs.telegramReturnsNoUpdates(TOKEN);
         WireMockStubs.telegramReturnsOnFirstPoll(
                 TOKEN,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
     }
 
     @AfterEach

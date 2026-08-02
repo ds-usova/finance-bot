@@ -49,7 +49,7 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
         WireMockStubs.telegramFailsOnceThenReturns(
                 POLL_RECOVERY_TOKEN,
                 TOO_MANY_REQUESTS,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
     }
 
     @AfterEach

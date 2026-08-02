@@ -21,6 +21,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -105,6 +106,7 @@ class CreateExpenseProposalMcpToolTest {
                     "lunch with the team",
                     Optional.of("Trattoria Roma"),
                     new Money(1599L, CurrencyCode.of("EUR")),
+                    MessageReference.newReference(),
                     CREATED_AT,
                     CREATED_AT);
             when(createExpenseProposalPort.create(any())).thenReturn(stored);

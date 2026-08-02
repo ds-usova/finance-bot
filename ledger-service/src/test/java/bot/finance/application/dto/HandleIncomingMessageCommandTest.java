@@ -21,11 +21,14 @@ class HandleIncomingMessageCommandTest {
 
         @Test
         @DisplayName(
-                "when the conversation id and the text are non-blank - then both components are readable unchanged")
-        void whenConversationIdAndTextAreNonBlank_thenBothComponentsAreReadableUnchanged() {
-            HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("555", "lunch 12 euro");
+                "when the user external id, the conversation id, the inbound message id and the text are non-blank - then all four components are readable unchanged")
+        void whenAllFourComponentsAreNonBlank_thenAllFourComponentsAreReadableUnchanged() {
+            HandleIncomingMessageCommand message =
+                    new HandleIncomingMessageCommand("42", "555", "1", "lunch 12 euro");
 
+            assertThat(message.userExternalId()).isEqualTo("42");
             assertThat(message.conversationId()).isEqualTo("555");
+            assertThat(message.inboundMessageId()).isEqualTo("1");
             assertThat(message.text()).isEqualTo("lunch 12 euro");
         }
 
@@ -35,7 +38,7 @@ class HandleIncomingMessageCommandTest {
                 "when the conversation id or the text is null or blank - then throws InvalidIncomingMessageException")
         void whenConversationIdOrTextIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
                 String conversationId, String text) {
-            assertThatThrownBy(() -> new HandleIncomingMessageCommand(conversationId, text))
+            assertThatThrownBy(() -> new HandleIncomingMessageCommand("42", conversationId, "1", text))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
