@@ -30,11 +30,14 @@ bot.finance.ai
 
 - **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and pure `*Utils`
   mappers in an adapter package. Plain JUnit, outbound ports mocked, no Spring context. A proto mapper is a
-  unit target: building a message needs no server and no channel.
+  unit target: building a message needs no server and no channel. The same goes for an adapter-layer class
+  doing something non-trivial — branching logic with no infrastructure of its own, like
+  `LedgerToolFailureProcessor` or `CallerTokenMcpRequestCustomizer`; a class whose behaviour is trivial is left
+  to its adapter's integration test instead.
 - **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`. Wire only the adapter under test, call its
-  public methods directly, mock nothing. Owns the request Spring AI sends, the schema it derives from the
-  target record, and how a stubbed response, a provider error and a malformed body map onto the port's result
-  or exception.
+  public methods directly, mock nothing. Owns the request Spring AI sends, the tool calls it makes against a
+  stubbed ledger, and how a stubbed response, a tool refusal, a transport failure and a malformed body map onto
+  the port's result or exception.
 - **Integration, inbound** — `adapter/grpc/` via `@GrpcAdapterTest`, entered through a generated blocking stub
   with the inbound port mocked. Owns request binding, delegation, proto mapping, and the RPC's validation
   matrix and status-code contract.

@@ -242,22 +242,22 @@
 
 ### Post-Implementation Steps
 
-- [ ] P01 · `ai-connector-service/docs/conventions/architecture.md` — the package tree's `domain/value` examples
+- [x] P01 · `ai-connector-service/docs/conventions/architecture.md` — the package tree's `domain/value` examples
   and its `adapter/ledger` line, per the design's D26.
-- [ ] P02 · `ai-connector-service/docs/conventions/code-style.md` — the *Adapter — AI* section: the
+- [x] P02 · `ai-connector-service/docs/conventions/code-style.md` — the *Adapter — AI* section: the
   structured-output bullets go, the per-call tool attachment rule (D3) arrives, and the surviving rule is that
   the adapter translates a failure at this boundary and stops.
-- [ ] P03 · `ai-connector-service/docs/conventions/testing.md` — the shared-infrastructure list (three entries
+- [x] P03 · `ai-connector-service/docs/conventions/testing.md` — the shared-infrastructure list (three entries
   deleted, `AiAdapterTest`'s description widened) and the outbound-integration layer mapping, which now covers an
   AI adapter with a stubbed ledger behind it. The unit layer's mapping gains the rule Q1 settles: an adapter-layer
   class doing something non-trivial is a unit target; one whose behaviour is trivial is left to its adapter's
   integration test.
-- [ ] P04 · `ai-connector-service/docs/configuration.md` — the `LEDGER_MCP_URL` note and the `OPENAI_MODEL` note,
+- [x] P04 · `ai-connector-service/docs/configuration.md` — the `LEDGER_MCP_URL` note and the `OPENAI_MODEL` note,
   which must describe a model that calls tools rather than one that follows an answer shape (D22).
-- [ ] P05 · Delete the domain pages for the deleted values: `ai-connector-service/docs/domain/intent.md`,
+- [x] P05 · Delete the domain pages for the deleted values: `ai-connector-service/docs/domain/intent.md`,
   `expense-intent.md`, `category-intent.md`, `unknown-intent.md`, `intent-target.md`, `operation.md`,
   `money.md`. `currency-code.md` stays.
-- [ ] P06 · Write ADR: the connector hands the recording to the model, rather than extracting a structured answer
+- [x] P06 · Write ADR: the connector hands the recording to the model, rather than extracting a structured answer
   and calling the ledger itself. It records why the move was made — the ledger writes every refusal as guidance to
   retry against, which only the caller of the tool can act on, and a program that assembles the call cannot read
   it — and what it costs: the model now owns the minor-units conversion and the category split, and nothing caps

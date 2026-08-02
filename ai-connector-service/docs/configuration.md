@@ -19,12 +19,12 @@ the ledger it records the result in. The defaults suit a developer's machine.
   the provider answer not-found on every call, which reaches the caller as the same unavailable result.
 - `OPENAI_BASE_URL` also exists so the service can be pointed at a stand-in for the provider. A deployment
   leaves it alone.
-- The model must be able to follow a supplied answer shape. One that cannot turns every message into entries
-  that are skipped rather than into a failure, so a wrong model here looks like a service that understands
-  nothing.
+- The model must be able to call tools. One that cannot answers with text instead, so the turn succeeds having
+  recorded nothing — a wrong model here looks like a service that understands nothing.
 - `LEDGER_MCP_URL` is the ledger's base address; the tool path is fixed. Its default reaches a ledger on the
-  same machine and nothing else, so a deployment supplies it. A wrong one makes every expense fail as an
-  [unreachable ledger](contracts/out/ledger-mcp.md#failures) and takes the whole turn down with it.
+  same machine and nothing else, so a deployment supplies it. A wrong one no longer fails the turn per expense:
+  the tool list itself cannot be read, which fails the whole turn as
+  [unavailable](contracts/out/ledger-mcp.md#failures) before any expense is attempted.
 - The ledger can switch its tool endpoint off, which has the same effect as a wrong address here.
 - [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml) supplies the key and the
   ledger's container address, and takes the other two defaults; it also holds the ports the service is reached

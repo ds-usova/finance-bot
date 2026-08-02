@@ -77,15 +77,10 @@ Applies across all layers.
 
 - The chat client is a bean, built once from its injected builder with the prompt and default options applied
   there — never rebuilt per call, never constructed inside the adapter.
-- Structured output targets an **adapter-local record**, because that record drives the JSON schema sent to the
-  provider. Its fields are all `String`: a numeric field in the schema invites a JSON number back, and with it
-  a float.
-- The adapter maps that record onto the outbound port's result type and stops. It does not build domain
-  objects, parse values, or judge whether an answer is usable — that is the core's job, and an adapter doing it
-  would put business rules behind a network call.
+- A tool provider is attached per call, on `chatClient.prompt()...tools(...)`, never as a default on the bean.
 - Model, options and prompt location come from configuration, never hard-coded.
-- A provider failure — transport error, non-2xx, unparseable body — is translated into a module exception at
-  this boundary. A framework or HTTP-client exception never escapes into the core.
+- A provider or tool failure — transport error, non-2xx, unparseable body — is translated into a module
+  exception at this boundary and stops. A framework or HTTP-client exception never escapes into the core.
 
 ## Refactoring Conventions
 

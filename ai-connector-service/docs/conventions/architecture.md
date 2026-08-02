@@ -11,7 +11,7 @@ src/main
 ├── java/bot/finance/ai
 │   ├── domain          # enterprise business rules
 │   │   ├── model       # entities with identity — empty in this module
-│   │   ├── value       # value objects, e.g. Money, CurrencyCode, Intent
+│   │   ├── value       # value objects, e.g. CurrencyCode
 │   │   └── exception
 │   ├── application     # application business rules
 │   │   ├── usecase
@@ -21,7 +21,8 @@ src/main
 │       ├── config      # use-case bean wiring only
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── grpc        # gRPC service implementation, proto mapping, status mapping
-│       └── ai          # everything fronting the AI provider
+│       ├── ai          # everything fronting the AI provider
+│       └── ledger      # everything fronting the ledger's MCP tools
 └── resources
     └── prompts         # prompt templates
 ```
