@@ -250,6 +250,22 @@
   port; D13's answer corrected in the design file. The invariant D13 exists for — *neither path stores a wrong
   amount* — is unaffected, and is what the scenario now pins.
 
+- **B2 (refactor phase, open):** `Money.ofMajorUnits(amount, null)` throws `NullPointerException`, not
+  `InvalidMoneyException` — it reaches `Currency.getInstance(currencyCode.code())` with no null guard, while the
+  canonical constructor rejects the same input with `Currency code must not be null`. `money.md` states "a
+  currency present" as a `Money` invariant, so the new factory is the one entry point that does not enforce it.
+  Unreachable through the tool today: `CurrencyCode.of(null)` throws first, before `ofMajorUnits` is called. A
+  latent defect for the factory's second caller, outside this plan's scope.
+- Resolution: not fixed. Left for the user to schedule — closing it means a guard and a `MoneyTest` case.
+
+- **B3 (refactor phase, open):** `CreateExpenseProposalMcpToolTest`'s two binding tests — the JSON object and the
+  JSON number — most likely fail at the same schema-validation gate B1 uncovered, so one is redundant. What F4
+  set out to preserve was coverage of Jackson's binding step, which B1 showed nothing reaches any more. `mcp.md`'s
+  "an argument's value cannot be read as the type the schema declares" row is still covered — by the validator
+  rather than by the binder. Unverified: confirming costs one assertion on the error text in each test.
+- Resolution: not fixed. Both tests pass and assert a real refusal; whether to drop one is a coverage judgment
+  for the user, not a behaviour change.
+
 ## Review Findings
 
 - **F1:** ST06 missed a fourth caller of `McpRequests.createExpenseProposal`, `ReceiveTelegramMessageSystemTest`.
