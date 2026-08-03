@@ -227,7 +227,7 @@
 
 #### ADRs
 
-- [ ] P01 · Write ADR: the major-to-minor conversion lives in the domain, as a `Money` factory, not in the
+- [x] P01 · Write ADR: the major-to-minor conversion lives in the domain, as a `Money` factory, not in the
   adapter that reads the wire.
 
 ## Open Questions / Blockers
