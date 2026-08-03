@@ -199,8 +199,8 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName(
                 "when the currency code is unusable so mapping throws InvalidMoneyException - then the tool error names an invalid request and the port is untouched")
         void whenCurrencyCodeUnusable_thenToolErrorNamesInvalidRequestAndPortUntouched() {
-            Response response = postCreateExpenseProposal(
-                    token("user-3"), "Restaurants", null, "lunch", "Cafe", 500L, "ZZZ");
+            Response response =
+                    postCreateExpenseProposal(token("user-3"), "Restaurants", null, "lunch", "Cafe", 500L, "ZZZ");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains("ZZZ");
@@ -298,18 +298,17 @@ class CreateExpenseProposalMcpToolTest {
                                 || message.contains(secretMerchant)
                                 || message.contains(secretExternalId)
                                 || message.contains(issuedToken));
-                assertThat(logCapture.messages())
-                        .noneMatch(message -> message.contains(issuedToken));
+                assertThat(logCapture.messages()).noneMatch(message -> message.contains(issuedToken));
             }
         }
 
         @Test
-        @DisplayName("when the caller token carries no mrf claim - then the result is a tool error and the port is never called")
+        @DisplayName(
+                "when the caller token carries no mrf claim - then the result is a tool error and the port is never called")
         void whenTokenCarriesNoMrfClaim_thenResultIsToolErrorAndPortNeverCalled() {
             String token = McpTokens.noReferenceToken("user-10");
 
-            Response response =
-                    postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+            Response response = postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(createExpenseProposalPort, never()).create(any());
@@ -321,8 +320,7 @@ class CreateExpenseProposalMcpToolTest {
         void whenTokenMrfClaimIsNotUuid_thenResultIsToolErrorAndPortNeverCalled() {
             String token = McpTokens.malformedReferenceToken("user-11");
 
-            Response response =
-                    postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+            Response response = postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(createExpenseProposalPort, never()).create(any());

@@ -10,8 +10,8 @@ import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
-import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.InitializeUserPort;
+import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -54,13 +54,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        List<KnownCategory> knownCategories = categoryRepository.findKnownCategories(user.id().orElseThrow());
+        List<KnownCategory> knownCategories =
+                categoryRepository.findKnownCategories(user.id().orElseThrow());
 
         MessageReference reference = MessageReference.newReference();
         boolean extractionFailed = extract(command, knownCategories, user, reference);
 
-        List<ProposalSummary> proposals =
-                expenseProposalRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
+        List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
+                user.id().orElseThrow(), reference);
         ReportOutcome outcome = outcomeFor(extractionFailed, proposals);
         if (extractionFailed) {
             log.error("intent extraction failed for message {}, outcome {}", reference, outcome);

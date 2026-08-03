@@ -63,7 +63,8 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         WireMockStubs.telegramReturnsNoUpdates(HANDLE_MESSAGE_FAILURE_TOKEN);
         WireMockStubs.telegramReturnsOnFirstPoll(
                 HANDLE_MESSAGE_FAILURE_TOKEN,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(
+                        TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
         GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
     }
 
@@ -72,9 +73,8 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName(
-                "when the loop picks the update up - then one sendMessage reports nothing was noted, no "
-                        + "expense_proposal row exists for the user, and the batch is still confirmed")
+        @DisplayName("when the loop picks the update up - then one sendMessage reports nothing was noted, no "
+                + "expense_proposal row exists for the user, and the batch is still confirmed")
         void whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed() {
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedPollsWithOffset(HANDLE_MESSAGE_FAILURE_TOKEN, NEXT_OFFSET))

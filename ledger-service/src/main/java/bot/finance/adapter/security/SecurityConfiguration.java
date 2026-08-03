@@ -28,8 +28,8 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain mcpSecurityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(authorize -> authorize.requestMatchers(
-                                "/actuator/**", "/.well-known/jwks.json")
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/actuator/**", "/.well-known/jwks.json")
                         .permitAll()
                         .requestMatchers("/mcp/**")
                         .authenticated()
@@ -67,7 +67,9 @@ public class SecurityConfiguration {
         return token -> {
             Instant issuedAt = token.getIssuedAt();
             Instant expiresAt = token.getExpiresAt();
-            if (issuedAt == null || expiresAt == null || Duration.between(issuedAt, expiresAt).compareTo(ttl) > 0) {
+            if (issuedAt == null
+                    || expiresAt == null
+                    || Duration.between(issuedAt, expiresAt).compareTo(ttl) > 0) {
                 return OAuth2TokenValidatorResult.failure(
                         new OAuth2Error("invalid_token", "token ttl exceeds the configured maximum", null));
             }

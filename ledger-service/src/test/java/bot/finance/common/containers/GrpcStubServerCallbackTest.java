@@ -38,8 +38,7 @@ class GrpcStubServerCallbackTest {
 
     private static Metadata authorizationHeader() {
         Metadata metadata = new Metadata();
-        metadata.put(
-                Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), "Bearer test-token");
+        metadata.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), "Bearer test-token");
         return metadata;
     }
 
@@ -73,8 +72,9 @@ class GrpcStubServerCallbackTest {
                 IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub stub =
                         IntentExtractionServiceGrpc.newBlockingStub(channel);
                 stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(authorizationHeader()))
-                        .extractIntents(
-                                ExtractIntentsRequest.newBuilder().setText("test").build());
+                        .extractIntents(ExtractIntentsRequest.newBuilder()
+                                .setText("test")
+                                .build());
             } finally {
                 channel.shutdownNow();
             }

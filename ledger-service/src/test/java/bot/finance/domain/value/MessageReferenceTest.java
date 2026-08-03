@@ -52,8 +52,7 @@ class MessageReferenceTest {
         @DisplayName("when of is called with null, empty, blank or a non-UUID string - then "
                 + "InvalidIncomingMessageException is thrown")
         void whenCalledWithInvalidText_thenThrowsInvalidIncomingMessageException(String value) {
-            assertThatThrownBy(() -> MessageReference.of(value))
-                    .isInstanceOf(InvalidIncomingMessageException.class);
+            assertThatThrownBy(() -> MessageReference.of(value)).isInstanceOf(InvalidIncomingMessageException.class);
         }
     }
 
@@ -75,8 +74,7 @@ class MessageReferenceTest {
         @DisplayName("when the canonical constructor is called with a null UUID - then "
                 + "InvalidIncomingMessageException is thrown")
         void whenCanonicalConstructorCalledWithNullUuid_thenThrowsInvalidIncomingMessageException() {
-            assertThatThrownBy(() -> new MessageReference(null))
-                    .isInstanceOf(InvalidIncomingMessageException.class);
+            assertThatThrownBy(() -> new MessageReference(null)).isInstanceOf(InvalidIncomingMessageException.class);
         }
     }
 }

@@ -40,9 +40,7 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
     @Override
     public List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference) {
         try {
-            return expenseProposalEntityRepository
-                    .findSummariesByMessageReference(userId, reference.value())
-                    .stream()
+            return expenseProposalEntityRepository.findSummariesByMessageReference(userId, reference.value()).stream()
                     .map(ProposalSummaryProjection::toSummary)
                     .toList();
         } catch (RuntimeException e) {

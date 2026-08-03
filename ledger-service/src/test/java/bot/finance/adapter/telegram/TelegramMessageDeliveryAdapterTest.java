@@ -60,7 +60,11 @@ class TelegramMessageDeliveryAdapterTest {
                                 Optional.of("Rewe"),
                                 new Money(4230, CurrencyCode.of("EUR"))),
                         new ProposalSummary(
-                                "Fuel", "Auto", "tank refill", Optional.empty(), new Money(6000, CurrencyCode.of("EUR")))));
+                                "Fuel",
+                                "Auto",
+                                "tank refill",
+                                Optional.empty(),
+                                new Money(6000, CurrencyCode.of("EUR")))));
     }
 
     private static TelegramMessageDeliveryAdapter adapterOver(TelegramBot bot) {
@@ -103,7 +107,8 @@ class TelegramMessageDeliveryAdapterTest {
             assertThat(sendMessageRequest.formParameter("chat_id").getValues()).containsExactly(CONVERSATION_ID);
             assertThat(sendMessageRequest.formParameter("text").getValues())
                     .containsExactly(ProposalReportUtils.render(report));
-            assertThat(sendMessageRequest.formParameter("parse_mode").isPresent()).isFalse();
+            assertThat(sendMessageRequest.formParameter("parse_mode").isPresent())
+                    .isFalse();
 
             JsonNode replyParameters = TelegramTestBot.replyParameters(sendMessageRequest);
             assertThat(replyParameters.get("message_id").asText()).isEqualTo(INBOUND_MESSAGE_ID);
@@ -125,7 +130,8 @@ class TelegramMessageDeliveryAdapterTest {
         @Test
         @DisplayName(
                 "when called over a bot pointed at an address that refuses the connection - then throws MessageDeliveryFailedException carrying the client exception as its cause")
-        void whenBotIsPointedAtRefusingAddress_thenThrowsMessageDeliveryFailedExceptionCarryingClientExceptionAsCause() {
+        void
+                whenBotIsPointedAtRefusingAddress_thenThrowsMessageDeliveryFailedExceptionCarryingClientExceptionAsCause() {
             ProposalReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(refusingBot());
 

@@ -46,9 +46,8 @@ public class AccessTokenMinter {
                 .jwtID(UUID.randomUUID().toString())
                 .claim("mrf", reference.value().toString())
                 .build();
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
-                .keyID(keyId())
-                .build();
+        JWSHeader header =
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyId()).build();
         SignedJWT signedJwt = new SignedJWT(header, claims);
         try {
             JWSSigner signer = new RSASSASigner(privateKey);

@@ -174,7 +174,8 @@ class TelegramUpdateListenerTest {
                 "when a text-message update without a from is polled - then the port is never called and the batch is still confirmed")
         void whenTextMessageUpdateWithoutFromIsPolled_thenPortIsNeverCalledAndBatchIsStillConfirmed() {
             telegramReturnsOnFirstPoll(
-                    LISTENER_TOKEN, updatesResponse(textMessageUpdateWithoutFrom(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
+                    LISTENER_TOKEN,
+                    updatesResponse(textMessageUpdateWithoutFrom(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
 

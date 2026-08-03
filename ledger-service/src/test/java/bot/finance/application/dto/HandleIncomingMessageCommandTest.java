@@ -23,8 +23,7 @@ class HandleIncomingMessageCommandTest {
         @DisplayName(
                 "when the user external id, the conversation id, the inbound message id and the text are non-blank - then all four components are readable unchanged")
         void whenAllFourComponentsAreNonBlank_thenAllFourComponentsAreReadableUnchanged() {
-            HandleIncomingMessageCommand message =
-                    new HandleIncomingMessageCommand("42", "555", "1", "lunch 12 euro");
+            HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("42", "555", "1", "lunch 12 euro");
 
             assertThat(message.userExternalId()).isEqualTo("42");
             assertThat(message.conversationId()).isEqualTo("555");
@@ -32,16 +31,14 @@ class HandleIncomingMessageCommandTest {
             assertThat(message.text()).isEqualTo("lunch 12 euro");
         }
 
-        @ParameterizedTest(
-                name = "userExternalId={0}, conversationId={1}, inboundMessageId={2}, text={3}")
+        @ParameterizedTest(name = "userExternalId={0}, conversationId={1}, inboundMessageId={2}, text={3}")
         @MethodSource("invalidComponents")
         @DisplayName(
                 "when the user external id, the conversation id, the inbound message id or the text is null or blank - then throws InvalidIncomingMessageException")
         void whenAnyComponentIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
                 String userExternalId, String conversationId, String inboundMessageId, String text) {
-            assertThatThrownBy(
-                            () -> new HandleIncomingMessageCommand(
-                                    userExternalId, conversationId, inboundMessageId, text))
+            assertThatThrownBy(() ->
+                            new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 

@@ -48,9 +48,8 @@ class AiConnectorIntentExtractionAdapterTest {
     class Extract {
 
         @Test
-        @DisplayName(
-                "when the stub server answers an empty response - then returns without throwing, and the request "
-                        + "the server received carries the text, categories and default currency")
+        @DisplayName("when the stub server answers an empty response - then returns without throwing, and the request "
+                + "the server received carries the text, categories and default currency")
         void whenStubServerAnswersEmptyResponse_thenReturnsAndServerReceivedRequestFields() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
@@ -88,8 +87,8 @@ class AiConnectorIntentExtractionAdapterTest {
 
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
             assertThat(metadata).isNotNull();
-            String authorizationHeader = metadata.get(
-                    Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            String authorizationHeader =
+                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
             assertThat(authorizationHeader).startsWith("Bearer ");
             String token = authorizationHeader.substring("Bearer ".length());
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();

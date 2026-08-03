@@ -64,11 +64,7 @@ public final class McpTokens {
     public static String overTtlToken(String externalId) {
         Instant issuedAt = Instant.now();
         return sign(
-                externalId,
-                AUDIENCE,
-                issuedAt,
-                issuedAt.plus(TTL).plus(Duration.ofMinutes(10)),
-                newReferenceText());
+                externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)), newReferenceText());
     }
 
     /** A token whose {@code mrf} claim is not a parseable UUID. */

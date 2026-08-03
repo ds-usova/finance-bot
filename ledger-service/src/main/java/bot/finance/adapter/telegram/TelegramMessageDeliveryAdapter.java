@@ -30,8 +30,8 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         }
 
         SendMessage request = new SendMessage(report.conversationId(), ProposalReportUtils.render(report))
-                .replyParameters(new ReplyParameters(Integer.valueOf(report.inboundMessageId()))
-                        .allowSendingWithoutReply(true));
+                .replyParameters(
+                        new ReplyParameters(Integer.valueOf(report.inboundMessageId())).allowSendingWithoutReply(true));
 
         SendResponse response;
         try {
@@ -42,12 +42,9 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
 
         if (!response.isOk()) {
             log.error(
-                    "telegram sendMessage failed with error code {}: {}",
-                    response.errorCode(),
-                    response.description());
-            throw new MessageDeliveryFailedException(
-                    "telegram sendMessage failed with error code %d: %s"
-                            .formatted(response.errorCode(), response.description()));
+                    "telegram sendMessage failed with error code {}: {}", response.errorCode(), response.description());
+            throw new MessageDeliveryFailedException("telegram sendMessage failed with error code %d: %s"
+                    .formatted(response.errorCode(), response.description()));
         }
     }
 }

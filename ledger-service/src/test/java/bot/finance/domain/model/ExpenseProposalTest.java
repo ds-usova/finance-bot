@@ -215,8 +215,8 @@ class ExpenseProposalTest {
                 whenDatabaseIdAndAbsentMessageReferenceAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() ->
-                            ExpenseProposal.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now, now))
+            assertThatThrownBy(() -> ExpenseProposal.stored(
+                            42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now, now))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }

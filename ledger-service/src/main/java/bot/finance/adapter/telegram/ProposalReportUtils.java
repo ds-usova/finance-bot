@@ -16,8 +16,8 @@ public final class ProposalReportUtils {
             case NOTHING_IDENTIFIED -> "No expense was identified in that message.";
             case FAILED -> "Something went wrong and nothing was noted — please try again.";
             case RECORDED -> renderList(recordedHeader(report.proposals().size()), report.proposals());
-            case PARTIAL -> renderList(
-                    "Something went wrong, so this may be incomplete. What I could read:", report.proposals());
+            case PARTIAL ->
+                renderList("Something went wrong, so this may be incomplete. What I could read:", report.proposals());
         };
     }
 

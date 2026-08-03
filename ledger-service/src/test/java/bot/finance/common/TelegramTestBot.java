@@ -118,10 +118,8 @@ public final class TelegramTestBot {
      * it means parsing rather than a string comparison.
      */
     public static JsonNode replyParameters(LoggedRequest sendMessageRequest) {
-        String json = sendMessageRequest
-                .formParameter("reply_parameters")
-                .getValues()
-                .get(0);
+        String json =
+                sendMessageRequest.formParameter("reply_parameters").getValues().get(0);
         try {
             return MAPPER.readTree(json);
         } catch (IOException e) {

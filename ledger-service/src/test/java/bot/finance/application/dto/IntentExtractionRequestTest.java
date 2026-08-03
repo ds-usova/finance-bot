@@ -43,7 +43,8 @@ class IntentExtractionRequestTest {
         @Test
         @DisplayName("when text, one category, an empty currency and a non-blank external id are valid - "
                 + "then every component reads back unchanged and known categories is unmodifiable")
-        void whenTextOneCategoryEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndKnownCategoriesIsUnmodifiable() {
+        void
+                whenTextOneCategoryEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndKnownCategoriesIsUnmodifiable() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
                     List.of(new KnownCategory("food", "groceries")),
@@ -95,8 +96,7 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName(
-                "when known categories contains a null entry - then throws InvalidExtractionRequestException")
+        @DisplayName("when known categories contains a null entry - then throws InvalidExtractionRequestException")
         void whenKnownCategoriesContainsNullEntry_thenThrowsInvalidExtractionRequestException() {
             List<KnownCategory> knownCategories = Arrays.asList(new KnownCategory("food", "groceries"), null);
 

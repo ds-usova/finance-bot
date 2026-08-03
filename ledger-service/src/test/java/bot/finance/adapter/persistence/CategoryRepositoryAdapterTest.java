@@ -49,13 +49,11 @@ class CategoryRepositoryAdapterTest {
 
             List<StoredCategory> found = adapter.findByUserIdAndName(userId, "Supermarket");
 
-            assertThat(found)
-                    .singleElement()
-                    .satisfies(category -> {
-                        assertThat(category.id()).isEqualTo(childId);
-                        assertThat(category.name()).isEqualTo("Supermarket");
-                        assertThat(category.parentName()).contains("Groceries");
-                    });
+            assertThat(found).singleElement().satisfies(category -> {
+                assertThat(category.id()).isEqualTo(childId);
+                assertThat(category.name()).isEqualTo("Supermarket");
+                assertThat(category.parentName()).contains("Groceries");
+            });
         }
 
         @Test
@@ -67,13 +65,11 @@ class CategoryRepositoryAdapterTest {
 
             List<StoredCategory> found = adapter.findByUserIdAndName(userId, "Utilities");
 
-            assertThat(found)
-                    .singleElement()
-                    .satisfies(category -> {
-                        assertThat(category.id()).isEqualTo(groupingId);
-                        assertThat(category.name()).isEqualTo("Utilities");
-                        assertThat(category.parentName()).isEmpty();
-                    });
+            assertThat(found).singleElement().satisfies(category -> {
+                assertThat(category.id()).isEqualTo(groupingId);
+                assertThat(category.name()).isEqualTo("Utilities");
+                assertThat(category.parentName()).isEmpty();
+            });
         }
 
         @Test
@@ -111,8 +107,7 @@ class CategoryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a stored user with no category of that name - then returns an empty list")
+        @DisplayName("when called with a stored user with no category of that name - then returns an empty list")
         void whenNoCategoryOfThatNameExists_thenReturnsEmptyList() {
             long userId = storedUserId("no-matching-category-user");
 
@@ -228,9 +223,11 @@ class CategoryRepositoryAdapterTest {
         @Test
         @DisplayName(
                 "when findByUserIdAndName() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenFindByUserIdAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        void
+                whenFindByUserIdAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findByUserIdAndName(any(), any())).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findByUserIdAndName(any(), any()))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findByUserIdAndName(1L, "Groceries"))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -241,7 +238,8 @@ class CategoryRepositoryAdapterTest {
         @Test
         @DisplayName(
                 "when findChildNames() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenFindChildNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        void
+                whenFindChildNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedCategoryEntityRepository.findByParentId(any())).thenThrow(frameworkException);
 
@@ -254,7 +252,8 @@ class CategoryRepositoryAdapterTest {
         @Test
         @DisplayName(
                 "when findKnownCategories() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenFindKnownCategoriesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        void
+                whenFindKnownCategoriesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedCategoryEntityRepository.findKnownCategories(any())).thenThrow(frameworkException);
 

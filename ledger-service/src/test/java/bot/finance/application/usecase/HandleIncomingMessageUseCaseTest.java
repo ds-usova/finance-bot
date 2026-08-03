@@ -19,8 +19,8 @@ import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
-import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.InitializeUserPort;
+import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -91,13 +91,8 @@ class HandleIncomingMessageUseCaseTest {
     private List<ProposalSummary> twoSummaries() {
         return List.of(
                 new ProposalSummary(
-                        "Coffee",
-                        "Food",
-                        "espresso",
-                        Optional.of("Starbucks"),
-                        new Money(500, CurrencyCode.of("USD"))),
-                new ProposalSummary(
-                        "Fuel", "Auto", "gas", Optional.empty(), new Money(4000, CurrencyCode.of("USD"))));
+                        "Coffee", "Food", "espresso", Optional.of("Starbucks"), new Money(500, CurrencyCode.of("USD"))),
+                new ProposalSummary("Fuel", "Auto", "gas", Optional.empty(), new Money(4000, CurrencyCode.of("USD"))));
     }
 
     @Nested
@@ -290,7 +285,8 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when categoryRepository.findKnownCategories throws PersistenceFailedException - then the "
                 + "exception propagates and the extraction port, the expense proposal repository and the "
                 + "delivery port are never called")
-        void whenFindKnownCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
+        void
+                whenFindKnownCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());

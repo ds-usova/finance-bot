@@ -44,10 +44,15 @@ class CreateExpenseProposalCommandTest {
         @ValueSource(strings = {"  "})
         @DisplayName(
                 "when the category name is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(
-                String categoryName) {
+        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String categoryName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, categoryName, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
+                            USER_ID,
+                            categoryName,
+                            PARENT_CATEGORY_NAME,
+                            DESCRIPTION,
+                            MERCHANT,
+                            MONEY,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -84,7 +89,13 @@ class CreateExpenseProposalCommandTest {
                 "when the description is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
         void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String description) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, description, MERCHANT, MONEY, MESSAGE_REFERENCE))
+                            USER_ID,
+                            CATEGORY_NAME,
+                            PARENT_CATEGORY_NAME,
+                            description,
+                            MERCHANT,
+                            MONEY,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -117,7 +128,13 @@ class CreateExpenseProposalCommandTest {
         @DisplayName("when money is absent - then throws InvalidExpenseProposalException")
         void whenMoneyIsAbsent_thenThrowsInvalidExpenseProposalException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, null, MESSAGE_REFERENCE))
+                            USER_ID,
+                            CATEGORY_NAME,
+                            PARENT_CATEGORY_NAME,
+                            DESCRIPTION,
+                            MERCHANT,
+                            null,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 

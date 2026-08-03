@@ -38,7 +38,6 @@ public final class TelegramUpdateUtils {
         String userExternalId = String.valueOf(from.id());
         String conversationId = String.valueOf(chat.id());
         String inboundMessageId = String.valueOf(message.messageId());
-        return Optional.of(
-                new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text));
+        return Optional.of(new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text));
     }
 }

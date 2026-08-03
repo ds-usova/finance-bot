@@ -9,7 +9,8 @@ public final class IntentProtoUtils {
     private IntentProtoUtils() {}
 
     public static ExtractIntentsRequest toProtoRequest(IntentExtractionRequest request) {
-        ExtractIntentsRequest.Builder builder = ExtractIntentsRequest.newBuilder().setText(request.text());
+        ExtractIntentsRequest.Builder builder =
+                ExtractIntentsRequest.newBuilder().setText(request.text());
         request.knownCategories().stream()
                 .map(IntentProtoUtils::toProtoKnownCategory)
                 .forEach(builder::addKnownCategories);

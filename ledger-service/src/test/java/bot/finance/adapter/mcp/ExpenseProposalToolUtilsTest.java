@@ -32,10 +32,9 @@ class ExpenseProposalToolUtilsTest {
     class ToCommand {
 
         @Test
-        @DisplayName(
-                "when the request carries every argument and an identity - then returns a command carrying that "
-                        + "identity, the category names, the description, the merchant, and a Money built from the "
-                        + "minor units and the currency code")
+        @DisplayName("when the request carries every argument and an identity - then returns a command carrying that "
+                + "identity, the category names, the description, the merchant, and a Money built from the "
+                + "minor units and the currency code")
         void whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsCommandCarryingThatIdentityAndFields() {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
@@ -69,13 +68,15 @@ class ExpenseProposalToolUtilsTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("blankParentCategories")
-        @DisplayName("when the request's parentCategory is null or blank - then the command's parentCategoryName is Optional.empty()")
+        @DisplayName(
+                "when the request's parentCategory is null or blank - then the command's parentCategoryName is Optional.empty()")
         void whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty(
                 String description, String parentCategory) {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", parentCategory, "Milk", "Corner Shop", 1500L, "EUR");
+            CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
+                    "Groceries", parentCategory, "Milk", "Corner Shop", 1500L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.parentCategoryName()).isEmpty();
         }
@@ -91,7 +92,8 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, 1500L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.merchant()).isEmpty();
         }
@@ -123,14 +125,14 @@ class ExpenseProposalToolUtilsTest {
         }
 
         @Test
-        @DisplayName(
-                "when the request's amountMinorUnits is zero - then returns a command whose Money carries zero "
-                        + "minor units")
+        @DisplayName("when the request's amountMinorUnits is zero - then returns a command whose Money carries zero "
+                + "minor units")
         void whenAmountMinorUnitsIsZero_thenReturnsCommandWithZeroMinorUnitsMoney() {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 0L, "EUR");
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money().minorUnits()).isZero();
         }

@@ -67,8 +67,10 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String EXPECTED_REPORT_OPENING = "Noted 1 expense, pending your confirmation:";
 
     /** Every category {@link Category#defaults()} gives a new user: the groupings and their children alike. */
-    private static final int EXPECTED_CATEGORY_COUNT =
-            Category.defaults().size() + Category.defaults().stream().mapToInt(group -> group.children().size()).sum();
+    private static final int EXPECTED_CATEGORY_COUNT = Category.defaults().size()
+            + Category.defaults().stream()
+                    .mapToInt(group -> group.children().size())
+                    .sum();
 
     private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
@@ -130,14 +132,14 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when the running poll loop picks up a text message update - then the batch is confirmed, the AI "
-                        + "connector receives the message text, the user's known categories with their parent "
-                        + "names, and a bearer token whose sub is the from id; a user is stored under the from "
-                        + "id rather than the chat id; one expense_proposal row is stored under the reference "
-                        + "the bearer token's mrf claim carries; and one sendMessage reply names the recorded "
-                        + "proposal")
-        void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted() throws ParseException {
+        @DisplayName("when the running poll loop picks up a text message update - then the batch is confirmed, the AI "
+                + "connector receives the message text, the user's known categories with their parent "
+                + "names, and a bearer token whose sub is the from id; a user is stored under the from "
+                + "id rather than the chat id; one expense_proposal row is stored under the reference "
+                + "the bearer token's mrf claim carries; and one sendMessage reply names the recorded "
+                + "proposal")
+        void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
+                throws ParseException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -170,18 +172,19 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(request.getText()).as("extraction request text").isEqualTo(MESSAGE_TEXT);
 
             List<KnownCategory> expectedKnownCategories = Category.defaults().stream()
-                    .flatMap(group -> group.children().stream()
-                            .map(child -> KnownCategory.newBuilder()
-                                    .setName(child.name())
-                                    .setParentName(group.name())
-                                    .build()))
+                    .flatMap(group -> group.children().stream().map(child -> KnownCategory.newBuilder()
+                            .setName(child.name())
+                            .setParentName(group.name())
+                            .build()))
                     .toList();
             assertThat(request.getKnownCategoriesList())
                     .as("extraction request's known categories")
                     .containsExactlyInAnyOrderElementsOf(expectedKnownCategories);
 
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
-            assertThat(metadata).as("metadata received by the stub AI connector").isNotNull();
+            assertThat(metadata)
+                    .as("metadata received by the stub AI connector")
+                    .isNotNull();
             String authorizationHeader = metadata.get(AUTHORIZATION_KEY);
             assertThat(authorizationHeader).as("authorization metadata").startsWith("Bearer ");
             String token = authorizationHeader.substring("Bearer ".length());
@@ -193,7 +196,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             List<ExpenseProposalEntity> proposalRows = ExpenseProposalRowUtils.expenseProposalRowsFor(
                     jdbcAggregateTemplate, storedUser.id().orElseThrow());
             assertThat(proposalRows)
-                    .as("stored expense_proposal rows for user %s", storedUser.id().orElseThrow())
+                    .as(
+                            "stored expense_proposal rows for user %s",
+                            storedUser.id().orElseThrow())
                     .hasSize(1);
             ExpenseProposalEntity proposalRow = proposalRows.get(0);
             assertThat(proposalRow.messageReference())

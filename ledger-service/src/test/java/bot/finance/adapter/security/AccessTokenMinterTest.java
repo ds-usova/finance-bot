@@ -33,7 +33,8 @@ class AccessTokenMinterTest {
     class Mint {
 
         @Test
-        @DisplayName("when mint() is called and the token is parsed - then it carries sub, iss, aud, iat, exp at the configured ttl after iat, and a jti")
+        @DisplayName(
+                "when mint() is called and the token is parsed - then it carries sub, iss, aud, iat, exp at the configured ttl after iat, and a jti")
         void whenMintIsCalledAndTheTokenIsParsed_thenItCarriesTheExpectedClaims() throws ParseException {
             String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 
@@ -49,7 +50,8 @@ class AccessTokenMinterTest {
         }
 
         @Test
-        @DisplayName("when mint() is called twice for the same external id - then the two tokens carry different jti values")
+        @DisplayName(
+                "when mint() is called twice for the same external id - then the two tokens carry different jti values")
         void whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
             String firstToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
             String secondToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
@@ -61,7 +63,8 @@ class AccessTokenMinterTest {
         }
 
         @Test
-        @DisplayName("when mint() is called and the token's header is read - then the algorithm is RS256 and the signature verifies against the keystore's public key")
+        @DisplayName(
+                "when mint() is called and the token's header is read - then the algorithm is RS256 and the signature verifies against the keystore's public key")
         void whenMintIsCalledAndTheTokenHeaderIsRead_thenTheAlgorithmIsRs256AndTheSignatureVerifies() throws Exception {
             String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 
@@ -101,7 +104,8 @@ class AccessTokenMinterTest {
     class PublicKey {
 
         @Test
-        @DisplayName("when publicKey() is called - then it returns the RSA public key matching the private key mint() signs with")
+        @DisplayName(
+                "when publicKey() is called - then it returns the RSA public key matching the private key mint() signs with")
         void whenPublicKeyIsCalled_thenItReturnsTheRsaPublicKeyMatchingThePrivateKeyMintSignsWith() throws Exception {
             RSAPublicKey expectedPublicKey = loadPublicKeyDirectlyFromKeystore(properties, new DefaultResourceLoader());
 

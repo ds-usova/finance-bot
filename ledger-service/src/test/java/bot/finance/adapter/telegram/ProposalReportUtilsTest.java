@@ -28,9 +28,10 @@ class ProposalReportUtilsTest {
         @Test
         @DisplayName(
                 "when a RECORDED report carries two summaries, one with a merchant and one without - then opens with the plural count and lists one bullet per summary in order")
-        void whenRecordedReportCarriesTwoSummariesOneWithMerchantOneWithout_thenOpensWithPluralCountAndListsOneBulletPerSummaryInOrder() {
-            ProposalSummary withMerchant = new ProposalSummary(
-                    "Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
+        void
+                whenRecordedReportCarriesTwoSummariesOneWithMerchantOneWithout_thenOpensWithPluralCountAndListsOneBulletPerSummaryInOrder() {
+            ProposalSummary withMerchant =
+                    new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary withoutMerchant =
                     new ProposalSummary("Auto", "Fuel", "tank refill", Optional.empty(), new Money(6000, EUR));
             ProposalReport report =
@@ -49,8 +50,8 @@ class ProposalReportUtilsTest {
         @Test
         @DisplayName("when a RECORDED report carries exactly one summary - then opens with the singular count")
         void whenRecordedReportCarriesExactlyOneSummary_thenOpensWithSingularCount() {
-            ProposalSummary summary = new ProposalSummary(
-                    "Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
+            ProposalSummary summary =
+                    new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(summary));
 
             String text = ProposalReportUtils.render(report);
@@ -82,8 +83,8 @@ class ProposalReportUtilsTest {
         @DisplayName(
                 "when a PARTIAL report carries one summary - then opens with the may-be-incomplete text and carries that summary's bullet below it")
         void whenPartialReportCarriesOneSummary_thenOpensWithMayBeIncompleteTextAndCarriesBulletBelowIt() {
-            ProposalSummary summary = new ProposalSummary(
-                    "Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
+            ProposalSummary summary =
+                    new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalReport report = new ProposalReport("555", "1", ReportOutcome.PARTIAL, List.of(summary));
 
             String text = ProposalReportUtils.render(report);
@@ -130,14 +131,11 @@ class ProposalReportUtilsTest {
         @DisplayName(
                 "when a RECORDED report's bullets would exceed 4000 characters and its last bullet is shorter than "
                         + "the omitted-count line - then the text is still cut at 4000 characters")
-        void whenLastBulletIsShorterThanOmittedCountLineAndBulletsExceed4000Characters_thenTextIsStillCutAt4000Characters() {
+        void
+                whenLastBulletIsShorterThanOmittedCountLineAndBulletsExceed4000Characters_thenTextIsStillCutAt4000Characters() {
             List<ProposalSummary> summaries = new ArrayList<>(IntStream.range(0, 48)
                     .mapToObj(i -> new ProposalSummary(
-                            "Groceries",
-                            "Food",
-                            "d".repeat(31),
-                            Optional.of("Rewe supermarket"),
-                            new Money(4230, EUR)))
+                            "Groceries", "Food", "d".repeat(31), Optional.of("Rewe supermarket"), new Money(4230, EUR)))
                     .toList());
             summaries.add(new ProposalSummary("A", "B", "c", Optional.empty(), new Money(100, EUR)));
             ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries);

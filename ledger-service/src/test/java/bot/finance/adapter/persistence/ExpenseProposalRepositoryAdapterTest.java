@@ -322,9 +322,8 @@ class ExpenseProposalRepositoryAdapterTest {
             adapter.create(proposal);
 
             List<ExpenseProposalEntity> rows = expenseProposalRowsFor(userId);
-            assertThat(rows)
-                    .singleElement()
-                    .satisfies(row -> assertThat(row.messageReference()).isEqualTo(reference.value()));
+            assertThat(rows).singleElement().satisfies(row -> assertThat(row.messageReference())
+                    .isEqualTo(reference.value()));
         }
     }
 
@@ -392,9 +391,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, firstReference);
 
-            assertThat(summaries)
-                    .singleElement()
-                    .satisfies(summary -> assertThat(summary.description()).isEqualTo("Under first reference"));
+            assertThat(summaries).singleElement().satisfies(summary -> assertThat(summary.description())
+                    .isEqualTo("Under first reference"));
         }
 
         @Test
@@ -429,13 +427,13 @@ class ExpenseProposalRepositoryAdapterTest {
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(firstUserId, sharedReference);
 
-            assertThat(summaries)
-                    .singleElement()
-                    .satisfies(summary -> assertThat(summary.description()).isEqualTo("First user's proposal"));
+            assertThat(summaries).singleElement().satisfies(summary -> assertThat(summary.description())
+                    .isEqualTo("First user's proposal"));
         }
 
         @Test
-        @DisplayName("when called with a stored user and a reference nothing was written under - then returns an empty list")
+        @DisplayName(
+                "when called with a stored user and a reference nothing was written under - then returns an empty list")
         void whenReferenceHasNoStoredProposals_thenReturnsEmptyList() {
             long userId = storedUserId("summary-no-proposals-user");
 
@@ -446,7 +444,8 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when a stored proposal's merchant column is null - then that summary's merchant is Optional.empty()")
+        @DisplayName(
+                "when a stored proposal's merchant column is null - then that summary's merchant is Optional.empty()")
         void whenStoredProposalsMerchantColumnIsNull_thenSummaryMerchantIsEmpty() {
             long userId = storedUserId("summary-no-merchant-user");
             long parentId = storedCategoryId(userId, "Food");
@@ -527,13 +526,13 @@ class ExpenseProposalRepositoryAdapterTest {
         @Test
         @DisplayName(
                 "when findSummariesByMessageReference() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenFindSummariesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        void
+                whenFindSummariesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.findSummariesByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(
-                            () -> mockedAdapter.findSummariesByMessageReference(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.findSummariesByMessageReference(1L, MessageReference.newReference()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
