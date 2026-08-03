@@ -34,7 +34,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
     private static final String DESCRIPTION = "Milk";
     private static final String MERCHANT = "Corner Shop";
-    private static final long AMOUNT_MINOR_UNITS = 1500L;
+    private static final String AMOUNT = "15.00";
     private static final String CURRENCY_CODE = "EUR";
 
     @Autowired
@@ -92,7 +92,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
             String requestBody = McpRequests.createExpenseProposal(
-                    "Supermarkets", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
+                    "Supermarkets", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 
@@ -111,7 +111,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             assertThat(toolResult.getString("merchant")).as("returned merchant").isEqualTo(MERCHANT);
             assertThat(toolResult.getLong("amountMinorUnits"))
                     .as("returned amountMinorUnits")
-                    .isEqualTo(AMOUNT_MINOR_UNITS);
+                    .isEqualTo(AMOUNT);
             assertThat(toolResult.getString("currencyCode"))
                     .as("returned currencyCode")
                     .isEqualTo(CURRENCY_CODE);
@@ -127,7 +127,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             assertThat(row.merchant()).as("stored proposal's merchant").isEqualTo(MERCHANT);
             assertThat(row.amountMinorUnits())
                     .as("stored proposal's minor units")
-                    .isEqualTo(AMOUNT_MINOR_UNITS);
+                    .isEqualTo(AMOUNT);
             assertThat(row.currencyCode()).as("stored proposal's currency code").isEqualTo(CURRENCY_CODE);
         }
     }
@@ -145,8 +145,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
-            String requestBody = McpRequests.createExpenseProposal(
-                    "Groceries", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
+            String requestBody =
+                    McpRequests.createExpenseProposal("Groceries", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 

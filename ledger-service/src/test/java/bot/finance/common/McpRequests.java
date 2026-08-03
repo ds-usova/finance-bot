@@ -37,7 +37,7 @@ public final class McpRequests {
             String parentCategory,
             String description,
             String merchant,
-            Long amountMinorUnits,
+            String amount,
             String currencyCode) {
         return """
                 {
@@ -51,7 +51,7 @@ public final class McpRequests {
                       "parentCategory": %s,
                       "description": %s,
                       "merchant": %s,
-                      "amountMinorUnits": %s,
+                      "amount": %s,
                       "currencyCode": %s
                     }
                   }
@@ -62,7 +62,7 @@ public final class McpRequests {
                         jsonString(parentCategory),
                         jsonString(description),
                         jsonString(merchant),
-                        amountMinorUnits == null ? "null" : amountMinorUnits.toString(),
+                        jsonString(amount),
                         jsonString(currencyCode));
     }
 

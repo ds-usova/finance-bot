@@ -125,8 +125,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                 String scenario, String token, String externalId) {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
 
-            Response response =
-                    postMcp(token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", 1000L, "EUR"));
+            Response response = postMcp(
+                    token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", "10.00", "EUR"));
 
             response.then().statusCode(401);
             assertThat(response.getBody().asString())

@@ -37,7 +37,7 @@ class ExpenseProposalToolUtilsTest {
                 + "minor units and the currency code")
         void whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsCommandCarryingThatIdentityAndFields() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -58,7 +58,7 @@ class ExpenseProposalToolUtilsTest {
                 + "carries that reference")
         void whenRequestIdentityAndReferenceAreValid_thenReturnedCommandCarriesThatReference() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "EUR");
             MessageReference reference = MessageReference.newReference();
 
             CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, reference);
@@ -73,7 +73,7 @@ class ExpenseProposalToolUtilsTest {
         void whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty(
                 String description, String parentCategory) {
             CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-                    "Groceries", parentCategory, "Milk", "Corner Shop", 1500L, "EUR");
+                    "Groceries", parentCategory, "Milk", "Corner Shop", "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -90,7 +90,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName("when the request's merchant is null or blank - then the command's merchant is Optional.empty()")
         void whenMerchantIsNullOrBlank_thenCommandMerchantIsEmpty(String description, String merchant) {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, 1500L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -106,7 +106,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName("when the request's currencyCode is not an ISO 4217 code - then throws InvalidMoneyException")
         void whenCurrencyCodeIsNotAnIso4217Code_thenThrowsInvalidMoneyException() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "ZZZ");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "ZZZ");
 
             assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
@@ -129,7 +129,7 @@ class ExpenseProposalToolUtilsTest {
                 + "minor units")
         void whenAmountMinorUnitsIsZero_thenReturnsCommandWithZeroMinorUnitsMoney() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 0L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "0", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -141,7 +141,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName("when the request's amountMinorUnits is negative - then throws InvalidMoneyException")
         void whenAmountMinorUnitsIsNegative_thenThrowsInvalidMoneyException() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", -1L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "-1", "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
@@ -181,7 +181,7 @@ class ExpenseProposalToolUtilsTest {
 
             assertThat(response)
                     .isEqualTo(new CreateExpenseProposalToolResponse(
-                            1L, "Groceries", "Milk", "Corner Shop", 1500L, "EUR", createdAt));
+                            1L, "Groceries", "Milk", "Corner Shop", "15.00", "EUR", createdAt));
         }
 
         @Test

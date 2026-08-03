@@ -131,10 +131,10 @@ public final class McpLedgerStubs {
                                     "parentCategory": {"type": "string"},
                                     "description": {"type": "string"},
                                     "merchant": {"type": "string"},
-                                    "amountMinorUnits": {"type": "integer"},
+                                    "amount": {"type": "string"},
                                     "currencyCode": {"type": "string"}
                                   },
-                                  "required": ["category", "description", "amountMinorUnits", "currencyCode"]
+                                  "required": ["category", "description", "amount", "currencyCode"]
                                 }
                               }
                             ]

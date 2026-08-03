@@ -61,7 +61,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String PROPOSAL_CATEGORY = "Supermarkets";
     private static final String PROPOSAL_DESCRIPTION = "lunch";
     private static final String PROPOSAL_MERCHANT = "Cafe";
-    private static final long PROPOSAL_AMOUNT_MINOR_UNITS = 1230L;
     private static final String PROPOSAL_CURRENCY_CODE = "EUR";
     private static final String PROPOSAL_AMOUNT_TEXT = "12.30";
     private static final String EXPECTED_REPORT_OPENING = "Noted 1 expense, pending your confirmation:";
@@ -104,7 +103,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                         null,
                         PROPOSAL_DESCRIPTION,
                         PROPOSAL_MERCHANT,
-                        PROPOSAL_AMOUNT_MINOR_UNITS,
+                        PROPOSAL_AMOUNT_TEXT,
                         PROPOSAL_CURRENCY_CODE));
         WireMockStubs.telegramReturnsOnFirstPoll(
                 TOKEN,

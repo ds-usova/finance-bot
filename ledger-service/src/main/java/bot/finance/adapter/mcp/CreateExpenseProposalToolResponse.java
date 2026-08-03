@@ -7,6 +7,6 @@ public record CreateExpenseProposalToolResponse(
         String category,
         String description,
         String merchant,
-        long amountMinorUnits,
+        String amount,
         String currencyCode,
         Instant createdAt) {}

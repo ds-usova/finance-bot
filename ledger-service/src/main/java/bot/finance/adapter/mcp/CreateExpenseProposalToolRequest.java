@@ -5,5 +5,5 @@ public record CreateExpenseProposalToolRequest(
         String parentCategory,
         String description,
         String merchant,
-        Long amountMinorUnits,
+        String amount,
         String currencyCode) {}

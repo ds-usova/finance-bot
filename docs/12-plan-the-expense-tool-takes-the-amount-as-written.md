@@ -11,25 +11,25 @@
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · `ledger-service` — add the new static factory `Money.ofMajorUnits(BigDecimal amount, CurrencyCode
+- [x] ST01 · `ledger-service` — add the new static factory `Money.ofMajorUnits(BigDecimal amount, CurrencyCode
   currencyCode)` beside `amount()` in `domain/value/Money`, as a temporary stub returning
   `new Money(0, currencyCode)`, with an inline comment stating the intent: reject a null amount; read the
   currency's `getDefaultFractionDigits()`; reject a currency whose fraction digits are negative; build the minor
   units as `amount.movePointRight(fractionDigits).setScale(0).longValueExact()`; catch the two
   `ArithmeticException`s and rethrow each as `InvalidMoneyException`. The canonical constructor and `amount()`
   are untouched.
-- [ ] ST02 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalToolRequest`, replace the
+- [x] ST02 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalToolRequest`, replace the
   `Long amountMinorUnits` component with `String amount`.
-- [ ] ST03 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalToolResponse`, replace the
+- [x] ST03 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalToolResponse`, replace the
   `long amountMinorUnits` component with `String amount`.
-- [ ] ST04 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalMcpTool.createExpenseProposal`, the fifth
+- [x] ST04 · `ledger-service` — in `adapter/mcp/CreateExpenseProposalMcpTool.createExpenseProposal`, the fifth
   parameter becomes `String amount`, still `required`, and its `@McpToolParam` description becomes exactly:
   `the amount exactly as the message writes it, in the currency's main unit - 7200 for 7200 HUF, 12.50 for 12.50
   EUR. Digits, and at most one dot for the decimals. Never convert it, never group the digits.` Pass it into
   `CreateExpenseProposalToolRequest` in the same position. No catch clause is added — `InvalidMoneyException` and
   `InvalidExpenseProposalException` are already caught and rendered as `invalid request: <message>`.
   · after: ST02
-- [ ] ST05 · `ledger-service` — in `adapter/mcp/ExpenseProposalToolUtils`, keep all existing logic and get back to
+- [x] ST05 · `ledger-service` — in `adapter/mcp/ExpenseProposalToolUtils`, keep all existing logic and get back to
   build-green:
     - `toCommand` — replace the `amountMinorUnits` null check with the same check on `request.amount()`, and
       build the money as `Money.ofMajorUnits(new BigDecimal(request.amount().strip()),
@@ -42,7 +42,7 @@
 
 **Shared Test Infrastructure**
 
-- [ ] ST06 · `ledger-service` — in `common/McpRequests.createExpenseProposal`, the `Long amountMinorUnits`
+- [x] ST06 · `ledger-service` — in `common/McpRequests.createExpenseProposal`, the `Long amountMinorUnits`
   parameter becomes `String amount`, emitted through `jsonString(...)` under the argument name `amount`. Then get
   the module's test sources compiling again, leaving every assertion to the Red Phase:
     - `CreateExpenseProposalMcpToolTest`, `CreateExpenseProposalMcpToolSystemTest`, `McpAuthenticationSystemTest`
@@ -53,10 +53,10 @@
     - `ExpenseProposalToolUtilsTest` — it constructs `CreateExpenseProposalToolRequest` and
       `CreateExpenseProposalToolResponse` directly rather than through `McpRequests`, so sync it here too:
       `"15.00"` for `1500L`, `"0"` for `0L`, `"-1"` for `-1L`, `null` for `null`. RU02 owns its assertions.
-- [ ] ST07 · `ai-connector-service` — in `common/McpLedgerStubs.stubToolsList`, publish
+- [x] ST07 · `ai-connector-service` — in `common/McpLedgerStubs.stubToolsList`, publish
   `"amount": {"type": "string"}` in place of `"amountMinorUnits": {"type": "integer"}` and name `amount` in the
   schema's `required` array in place of `amountMinorUnits`.
-- [ ] ST08 · confirm `bot.finance.architecture.CleanArchitectureTest` (`ledger-service`) and
+- [x] ST08 · confirm `bot.finance.architecture.CleanArchitectureTest` (`ledger-service`) and
   `bot.finance.ai.architecture.CleanArchitectureTest` (`ai-connector-service`) still pass.
 
 ### Red Phase
