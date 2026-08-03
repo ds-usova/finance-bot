@@ -48,7 +48,7 @@ conventions, the conventions win.
   stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also constrain another
   service or the repository. One number sequence spans both, so each tier carries gaps. Lifecycle rules:
   [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` — one directory
-  per implemented task, holding its design and its plan.
+  per implemented task, holding its `design.md` and `plan.md`.
 - API reference: the Protocol Buffers schema itself (see
   [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
 

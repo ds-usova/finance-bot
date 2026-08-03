@@ -1,7 +1,7 @@
 # Plan: The Ledger's Tools on the Chat Client
 
 **Affected Modules:** `ai-connector-service`, `ledger-service`
-**Design:** [The Ledger's Tools on the Chat Client](10-design-ledger-tools-on-the-chat-client.md)
+**Design:** [The Ledger's Tools on the Chat Client](design.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 

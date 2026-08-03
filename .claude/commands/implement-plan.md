@@ -6,8 +6,7 @@ argument-hint: [ plan file path ] [ optional section name ]
 # Implement Plan
 
 Use this skill when the user asks to implement a plan that was just discussed or is referenced by path — e.g.
-"implement this plan", "implement docs/1-add-widget/1-plan-add-widget.md". The default scope is the **whole
-plan**, from
+"implement this plan", "implement docs/1-add-widget/plan.md". The default scope is the **whole plan**, from
 stabilization through the final system-test implementation. If the user names a single section, run only the stage
 that owns that section (using the same rules for it) and stop there.
 
@@ -335,8 +334,8 @@ Once the guardrail holds, commit per the Version Control policy.
    architecture-enforcement test passes, and **the entire test suite is green** — not just the classes this plan
    touched.
 3. Only when the guardrail holds and **no `- [ ]` remains anywhere in the plan file**, move the plan's **whole
-   task directory** — `docs/<n>-<task-name>/`, holding the plan, the design its `**Design:**` header links, and
-   anything else the task accumulated — into `docs/implemented/`. Moving the directory rather than the files
+   task directory** — `docs/<n>-<task-name>/`, holding `plan.md`, the `design.md` its `**Design:**` header links,
+   and anything else the task accumulated — into `docs/implemented/`. Moving the directory rather than the files
    keeps every link inside it working. If unchecked items or blockers remain, leave the directory in place and
    summarize what is open.
 4. Commit per the Version Control policy — this is where its **squash-before-archiving** setting applies, if the

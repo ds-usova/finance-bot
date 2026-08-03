@@ -24,11 +24,11 @@ This skill produces one file and stops. It writes no checklist items, no test sc
 ## 1. Create the Design File
 
 A task owns a directory under the repository-root `docs/`. Create it as `docs/<number>-<task-name>/` and write
-the design inside it, as `<number>-design-<task-name>.md` — `docs/7-create-expense/7-design-create-expense.md`.
-The plan `plan-task` writes later joins it there, so the pair travels as one directory.
+the design inside it as `design.md` — `docs/7-create-expense/design.md`. The `plan.md` that `plan-task` writes
+later joins it there, so the pair travels as one directory.
 
-The task name is repeated inside the filename rather than left as `design.md`, so a path, an editor tab, or a
-search hit identifies itself without its parent directory.
+The directory carries the number and the task name; the files do not repeat them, the same way
+`docs/conventions/` holds `testing.md` rather than `conventions-testing.md`.
 
 > **Numbering rule:** `<number>` is one more than the highest already in use, scanning the directory names
 > `<number>-*` in **both** `docs/` and `docs/implemented/`. The number and the task name are the change's, not

@@ -11,9 +11,9 @@ with a token to act as them, and the connector turns each expense the message as
 was handled, or a failure — no intent crosses the boundary any more.
 
 This joins the three pieces already built separately: the Telegram entry point, the intent extraction boundary
-(uncalled since [`4-plan-ledger-ai-connector-integration.md`](../4-ledger-ai-connector-integration/4-plan-ledger-ai-connector-integration.md)),
-and the MCP server (with no client since
-[`8-plan-mcp-adapter-create-expense-proposal.md`](../8-mcp-adapter-create-expense-proposal/8-plan-mcp-adapter-create-expense-proposal.md)).
+(uncalled since [ledger–AI connector integration](../4-ledger-ai-connector-integration/plan.md)), and the MCP
+server (with no client since
+[the MCP adapter for create expense proposal](../8-mcp-adapter-create-expense-proposal/plan.md)).
 
 ## Context
 

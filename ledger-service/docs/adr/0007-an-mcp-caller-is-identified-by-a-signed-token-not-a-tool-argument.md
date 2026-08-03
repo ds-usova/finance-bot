@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-31
-- **Source:** [MCP Adapter with a Create Expense Proposal Tool](../../../docs/implemented/8-mcp-adapter-create-expense-proposal/8-plan-mcp-adapter-create-expense-proposal.md)
+- **Source:** [MCP Adapter with a Create Expense Proposal Tool](../../../docs/implemented/8-mcp-adapter-create-expense-proposal/plan.md)
 
 ## Context
 

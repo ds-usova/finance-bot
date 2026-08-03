@@ -1,7 +1,7 @@
 # Plan: The Expense Tool Takes the Amount as the User Wrote It
 
 **Affected Modules:** `ledger-service`, `ai-connector-service`
-**Design:** [the expense tool takes the amount as written](12-design-the-expense-tool-takes-the-amount-as-written.md)
+**Design:** [the expense tool takes the amount as written](design.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 

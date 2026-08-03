@@ -9,7 +9,7 @@ the identity the user is known by, what was spent, what it was for, and optional
 the user, stamps the row's timestamps, and stores it.
 
 Nothing drives the use case yet — this plan adds the inbound port and its implementation, not a caller, following
-the same shape as [Initialize a new user](../3-initialize-a-new-user/3-plan-initialize-a-new-user.md).
+the same shape as [Initialize a new user](../3-initialize-a-new-user/plan.md).
 
 ## Proposed Solution
 
@@ -517,7 +517,7 @@ end
 - A: let's reject the new expense if the user is unknown.
 
 - **Q4:** No caller exists, so this plan has no system-test phase and the port is unreachable at runtime — the
-  same position [plan 3](../3-initialize-a-new-user/3-plan-initialize-a-new-user.md) ended in. Confirm nothing should reach the
+  same position [plan 3](../3-initialize-a-new-user/plan.md) ended in. Confirm nothing should reach the
   port in this plan.
 - A: confirmed.
 

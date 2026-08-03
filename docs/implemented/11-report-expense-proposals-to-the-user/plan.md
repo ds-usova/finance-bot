@@ -1,7 +1,7 @@
 # Plan: Identify the User by Telegram User Id and Report the Proposals Back
 
 **Affected Modules:** `ledger-service`
-**Design:** [Identify the User by Telegram User Id and Report the Proposals Back](11-design-report-expense-proposals-to-the-user.md)
+**Design:** [Identify the User by Telegram User Id and Report the Proposals Back](design.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 

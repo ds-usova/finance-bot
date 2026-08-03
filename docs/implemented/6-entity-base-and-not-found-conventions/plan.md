@@ -4,7 +4,7 @@
 
 ## Objective
 
-Follow-up to [Create an expense](../5-create-expense/5-plan-create-expense.md). Four conventions
+Follow-up to [Create an expense](../5-create-expense/plan.md). Four conventions
 [`code-style.md`](../ledger-service/docs/conventions/code-style.md) now states are unmet by the code that plan
 produced, and two documentation pages hold facts they do not own:
 
@@ -67,7 +67,7 @@ assignable to `Entity`. The rule filters out `package-info` and test classes: `@
 test classes themselves — narrower than `ImportOption.DoNotIncludeTests`, which would silently shrink the scope of
 the three rules already in the file.
 
-`User`'s identity becomes its id, reversing **Q6** of [plan 3](../3-initialize-a-new-user/3-plan-initialize-a-new-user.md). Nothing
+`User`'s identity becomes its id, reversing **Q6** of [plan 3](../3-initialize-a-new-user/plan.md). Nothing
 in production compares users: `InitializeUserUseCase` returns what the repository hands back. The only assertions
 that rest on external-id equality are `UserTest`'s own, which RU03 deletes; `UserRepositoryAdapterConcurrencyTest`
 compares two `User`s as well, but both racing callers resolve to the same row, so the assertion becomes id

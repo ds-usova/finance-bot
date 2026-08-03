@@ -152,7 +152,7 @@ answer costs a re-read every time someone opens the file. A decision needing mor
 
 - **Status:** Accepted
 - **Date:** <YYYY-MM-DD>
-- **Source:** [<plan title>](../implemented/<n>-<task-name>/<n>-plan-<task-name>.md)
+- **Source:** [<plan title>](../implemented/<n>-<task-name>/plan.md)
 
 ## Context
 

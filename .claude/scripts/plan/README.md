@@ -50,9 +50,9 @@ resolves every ID before it writes any, and a name nothing defines ticks none of
 
 Exit codes: **0** done, **1** no such item, or `validate` found problems, **2** bad usage.
 
-`--file <plan>` picks the plan. Without it, the single `docs/<n>-<task>/<n>-plan-<task>.md` is used — a task owns
-a directory holding its design and its plan. An archived plan under `docs/implemented/<n>-<task>/` has to be
-named explicitly.
+`--file <plan>` picks the plan. Without it, the single `docs/<n>-<task>/plan.md` is used — a task owns a
+directory, holding `design.md` and `plan.md`. An archived plan under `docs/implemented/<n>-<task>/plan.md` has to
+be named explicitly.
 
 ### Item IDs
 

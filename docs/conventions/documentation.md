@@ -1,7 +1,7 @@
 # Conventions > Writing Documentation
 
 Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/**`, `docs/domain/**`, and the
-design and plan in each `docs/<n>-<task-name>/`.
+`design.md` and `plan.md` in each `docs/<n>-<task-name>/`.
 
 - **Concise and on point.** Every sentence earns its place. Cut preamble, restatement, and hedging.
 - **State a fact once.** Each fact has one owning document; everywhere else links to it. A README does not

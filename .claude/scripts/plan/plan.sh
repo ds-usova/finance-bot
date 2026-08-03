@@ -45,9 +45,9 @@ Commands:
             given/when/then values, update: bullets naming a test method that is nowhere in the tree,
             and findings missing a Resolution: or an unapplied mechanical Action:.
 
---file defaults to the single docs/<n>-<task>/<n>-plan-<task>.md, the location and naming the
-conventions give plans in flight - a design and its plan share one directory per task. Archived
-plans under docs/implemented/<n>-<task>/ are addressed by passing --file explicitly.
+--file defaults to the single docs/<n>-<task>/plan.md, the location and naming the conventions give
+plans in flight - a task owns a directory, holding design.md and plan.md. Archived plans under
+docs/implemented/<n>-<task>/plan.md are addressed by passing --file explicitly.
 
 Exit codes: 0 done - 1 nothing matched, or validate found problems - 2 bad usage.
 EOF
@@ -79,11 +79,11 @@ resolve_plan() {
     fi
     while IFS= read -r f; do
         candidates+=("$f")
-    done < <(find "$repo_root/docs" -maxdepth 2 -name '[0-9]*-plan-*.md' -type f \
+    done < <(find "$repo_root/docs" -maxdepth 2 -name 'plan.md' -type f \
         -not -path '*/implemented/*' 2>/dev/null | sort)
 
     case "${#candidates[@]}" in
-        0) die "no <n>-<task>/<n>-plan-<task>.md in $repo_root/docs - pass --file <plan>" ;;
+        0) die "no <n>-<task>/plan.md in $repo_root/docs - pass --file <plan>" ;;
         1) plan_file="${candidates[0]}" ;;
         *)
             {
@@ -151,7 +151,7 @@ case "$command" in
         # searching a tree that contains it would confirm every name against the very text under test.
         while IFS="$(printf '\t')" read -r id method; do
             [ -n "${method:-}" ] || continue
-            if ! grep -rqI --exclude='*-plan-*.md' \
+            if ! grep -rqI --exclude='plan.md' \
                     --exclude-dir=build --exclude-dir=.git --exclude-dir=.gradle \
                     --exclude-dir=node_modules --exclude-dir=target --exclude-dir=out \
                     -F -e "$method(" "$repo_root" 2>/dev/null; then

@@ -1,7 +1,7 @@
 # Plan: MCP Adapter with a Create Expense Proposal Tool
 
 **Affected Modules:** `ledger-service`
-**Design:** [MCP Adapter with a Create Expense Proposal Tool](8-design-mcp-adapter-create-expense-proposal.md)
+**Design:** [MCP Adapter with a Create Expense Proposal Tool](design.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 

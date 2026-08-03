@@ -20,8 +20,8 @@ there — never into this plan as a new question.
 
 ## 1. Require a Settled Design
 
-Every plan is written from a design file — `docs/<n>-<task-name>/<n>-design-<task-name>.md`, produced by
-`design-task`. Read it in
+Every plan is written from a design file — `docs/<n>-<task-name>/design.md`, produced by `design-task`. Read it
+in
 full before anything else. It carries the **Objective**, the **Proposed Solution** with the real file names, the
 diagrams, and the **Decisions** this plan's steps have to encode.
 
@@ -43,13 +43,12 @@ file (a new `D` entry, answered against the repository or escalated to the user)
 A task owns a directory under the repository-root `docs/`, and its design and plan are the files in it — one
 directory whatever the task touches, one module or several.
 
-The design already created `docs/<n>-<task-name>/<n>-design-<task-name>.md`. Write the plan beside it, as
-`docs/<n>-<task-name>/<n>-plan-<task-name>.md` — `docs/1-add-auth/1-plan-add-auth.md`.
+The design already created `docs/<n>-<task-name>/design.md`. Write the plan beside it, as
+`docs/<n>-<task-name>/plan.md` — `docs/1-add-auth/plan.md`.
 
-> **Numbering rule:** `<n>` and `<task-name>` are the design's, so the pair shares a directory as well as a name:
-> `docs/7-create-expense/7-design-create-expense.md` yields `docs/7-create-expense/7-plan-create-expense.md`. The
-> name is repeated in the filename rather than left as `plan.md` so a path, a tab, or a search hit identifies
-> itself without its parent directory.
+> **Naming rule:** the directory carries the number and the task name; the files do not repeat them. A task
+> directory holds `design.md` and `plan.md`, the same way `docs/conventions/` holds `testing.md` rather than
+> `conventions-testing.md`.
 
 > **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move **the task's
 > whole directory** from `docs/` into `docs/implemented/`. Active (in-progress) work lives in `docs/`; completed
@@ -82,7 +81,7 @@ Two lines at the very top of the plan, immediately after the title:
 
 ```
 **Affected Modules:** `module-a`, `module-b`
-**Design:** [<task name>](<n>-design-<task-name>.md)
+**Design:** [<task name>](design.md)
 ```
 
 **Affected Modules** lists only the top-level modules whose code, config, or migrations change as part of this plan

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-28
-- **Source:** [Initialize a New User](../../../docs/implemented/3-initialize-a-new-user/3-plan-initialize-a-new-user.md)
+- **Source:** [Initialize a New User](../../../docs/implemented/3-initialize-a-new-user/plan.md)
 
 ## Context
 
