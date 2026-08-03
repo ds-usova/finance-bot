@@ -24,6 +24,9 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
         if (amount == null) {
             throw new InvalidMoneyException("Amount must not be null");
         }
+        if (currencyCode == null) {
+            throw new InvalidMoneyException("Currency code must not be null");
+        }
 
         int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
         if (fractionDigits < 0) {

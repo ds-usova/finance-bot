@@ -93,6 +93,13 @@ class MoneyTest {
         }
 
         @Test
+        @DisplayName("when the currency code is null - then throws InvalidMoneyException")
+        void whenCurrencyCodeIsNull_thenThrowsInvalidMoneyException() {
+            assertThatThrownBy(() -> Money.ofMajorUnits(new BigDecimal("1.00"), null))
+                    .isInstanceOf(InvalidMoneyException.class);
+        }
+
+        @Test
         @DisplayName(
                 "when the currency is XAU, whose default fraction digits is -1 - then throws InvalidMoneyException naming XAU")
         void whenCurrencyHasNegativeFractionDigits_thenThrowsInvalidMoneyExceptionNamingCurrency() {

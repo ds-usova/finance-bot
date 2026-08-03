@@ -256,15 +256,16 @@
   currency present" as a `Money` invariant, so the new factory is the one entry point that does not enforce it.
   Unreachable through the tool today: `CurrencyCode.of(null)` throws first, before `ofMajorUnits` is called. A
   latent defect for the factory's second caller, outside this plan's scope.
-- Resolution: not fixed. Left for the user to schedule — closing it means a guard and a `MoneyTest` case.
+- Resolution: fixed after the plan was archived, on the user's call — `ofMajorUnits` now rejects a null currency
+  with the canonical constructor's own `Currency code must not be null`, covered by a `MoneyTest` case.
 
 - **B3 (refactor phase, open):** `CreateExpenseProposalMcpToolTest`'s two binding tests — the JSON object and the
   JSON number — most likely fail at the same schema-validation gate B1 uncovered, so one is redundant. What F4
   set out to preserve was coverage of Jackson's binding step, which B1 showed nothing reaches any more. `mcp.md`'s
   "an argument's value cannot be read as the type the schema declares" row is still covered — by the validator
   rather than by the binder. Unverified: confirming costs one assertion on the error text in each test.
-- Resolution: not fixed. Both tests pass and assert a real refusal; whether to drop one is a coverage judgment
-  for the user, not a behaviour change.
+- Resolution: not fixed, and closed on the user's call — both tests pass and assert a real refusal, so the
+  redundancy costs nothing worth a change.
 
 ## Review Findings
 
