@@ -63,7 +63,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Money` · test: `MoneyTest` · covers: `ofMajorUnits(BigDecimal, CurrencyCode)`
+- [x] RU01 · `Money` · test: `MoneyTest` · covers: `ofMajorUnits(BigDecimal, CurrencyCode)`
     - `ofMajorUnits(BigDecimal, CurrencyCode)`:
         - given: the amount `7200` and HUF, a currency ISO 4217 gives two fraction digits
           when: `ofMajorUnits` is called
@@ -102,7 +102,7 @@
         - given: the amount `-1.00` and EUR
           when: `ofMajorUnits` is called
           then: it throws `InvalidMoneyException`, since the canonical constructor's non-negative rule still holds
-- [ ] RU02 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`,
+- [x] RU02 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`,
   `toResponse()`
     - `toCommand()`:
         - given: a request whose `amount` is `"7200"` and whose `currencyCode` is `"HUF"`
@@ -141,7 +141,7 @@
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] RI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `POST /mcp — tools/call create_expense_proposal` · mocks: `CreateExpenseProposalPort`
     - Validation: `amount` — the tool error names an invalid request and the port is never called for each of:
       a malformed text form (`"7,200"`), an amount more precise than its currency (`"12.505"` EUR, the message
@@ -157,18 +157,18 @@
       schema declares" row, which the renamed argument would otherwise leave uncovered: the text-block body sends
       an object, `"amount": {"value": 7200}`, a value `String` cannot be read as. Assert the result is an error
       and the port is never called; rename the method and its `@DisplayName` for the renamed argument
-    - Happy Path:
-        - given: a text-block body sending `"amount": 7200` as a JSON **number** where the schema says string,
-          with `"currencyCode": "HUF"`
-          when: the call is posted to `/mcp`
-          then: it binds to its text and the port receives a command whose money is 720000 HUF, so a model
-          answering with a number rather than a string still records the amount it wrote
+    - Validation: a JSON **number** — given a text-block body sending `"amount": 7200` with
+      `"currencyCode": "HUF"`, the result is a tool error and the port is never called: spring-ai-mcp validates
+      the arguments against the published schema before the tool method runs, so a number under a
+      `"type": "string"` field is refused there and never reaches Jackson's coercion (see the blocker under
+      **Open Questions / Blockers**, and D13 as corrected). What the scenario pins is the invariant that
+      survives: a model answering with a number stores no amount at all rather than a wrong one
     - update: every remaining test in the class — `postCreateExpenseProposal`'s amount parameter becomes a
       `String`, and each call site sends the text form of the amount it used to send in minor units (`1599L` →
       `"15.99"`, `500L` → `"5.00"`); in
       `whenCreateExpenseProposalIsCalled_thenPortReceivesTokenSubjectAndResultCarriesStoredProposal()` the
       response-body assertion expects `"15.99"` in place of `"1599"`
-- [ ] RI02 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
+- [x] RI02 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
     - `record()`:
         - update: `LUNCH_ARGUMENTS`, `CAB_ARGUMENTS`, `correctedArguments` and the two inline tool-call argument
           text blocks — send `"amount":"15.00"`, `"amount":"20.00"` and `"amount":"25.00"` in place of the
@@ -180,7 +180,7 @@
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] RS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
     - Happy Path:
         - update: `whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten()` — the class
           constants become `AMOUNT = "7200"` and `CURRENCY_CODE = "HUF"` in place of
@@ -190,7 +190,7 @@
     - Unhappy Path:
         - update: `whenToolCallNamesGrouping_thenResponseIsToolErrorNamingChildrenAndNoRowIsWritten()` — follow
           the renamed constants; its assertions are otherwise unchanged
-- [ ] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
     - Happy Path:
         - update:
           `whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument()`
@@ -200,7 +200,7 @@
     - Unhappy Path:
         - update: `whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten()` —
           send `"10.00"` in place of `1000L`; its assertions are unchanged
-- [ ] RS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
     - Happy Path:
         - update: the stubbed tool-call argument text block sends `"amount":"15.00"` in place of
           `"amountMinorUnits":1500`, and the assertion reads `arguments.get("amount").asText()` as `"15.00"`
@@ -239,6 +239,16 @@
   [money.md](../ledger-service/docs/domain/money.md) as a `Money` invariant and by nothing else — the reason for
   the placement is not recorded anywhere. Write it?
 - A: Write the ADR — P01.
+
+- **B1 (RI01, resolved in place):** D13 and the design's Context both describe argument binding as reaching
+  `AbstractMcpToolMethodCallback.buildTypedArgument` → Jackson coercion, so the plan asked RI01 to pin a JSON
+  number binding to its text as 720000 HUF. It cannot: spring-ai-mcp validates the incoming arguments against the
+  generated JSON Schema first, and the call comes back
+  `input validation failed: … [/amount: integer: string found, {2} expected]` with zero interactions on the port.
+  No production change could turn that scenario green. Verified by running the class directly.
+- Resolution: RI01's scenario moved from Happy Path to Validation and now asserts the rejection and the untouched
+  port; D13's answer corrected in the design file. The invariant D13 exists for — *neither path stores a wrong
+  amount* — is unaffected, and is what the scenario now pins.
 
 ## Review Findings
 

@@ -17,6 +17,7 @@ import io.restassured.specification.RequestSpecification;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -104,12 +105,15 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             assertThat(properties.keySet())
                     .as("create_expense_proposal's argument names")
                     .containsExactlyInAnyOrder(
-                            "category",
-                            "parentCategory",
-                            "description",
-                            "merchant",
-                            "amountMinorUnits",
-                            "currencyCode");
+                            "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> amountSchema = (Map<String, Object>) properties.get("amount");
+            assertThat(amountSchema).as("amount's published type").containsEntry("type", "string");
+            assertThat(inputSchema.get("required"))
+                    .as("inputSchema's required array")
+                    .asInstanceOf(InstanceOfAssertFactories.LIST)
+                    .contains("amount");
         }
     }
 

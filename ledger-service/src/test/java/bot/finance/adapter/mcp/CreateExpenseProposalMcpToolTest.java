@@ -1,6 +1,7 @@
 package bot.finance.adapter.mcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,9 +29,13 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -125,7 +130,7 @@ class CreateExpenseProposalMcpToolTest {
                     .contains("Restaurants")
                     .contains("lunch with the team")
                     .contains("Trattoria Roma")
-                    .contains("1599")
+                    .contains("15.99")
                     .contains("EUR")
                     .contains("2026-07-30T12:00:00Z");
         }
@@ -333,8 +338,8 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName(
-                "when amountMinorUnits is absent - then the tool error names an invalid request and the port is never called")
-        void whenAmountMinorUnitsAbsent_thenToolErrorNamesInvalidRequestAndPortNeverCalled() {
+                "when amount is absent - then the tool error names an invalid request and the port is never called")
+        void whenAmountAbsent_thenToolErrorNamesInvalidRequestAndPortNeverCalled() {
             Response response =
                     postCreateExpenseProposal(token("user-8"), "Restaurants", null, "lunch", "Cafe", null, "EUR");
 
@@ -345,8 +350,8 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName(
-                "when amountMinorUnits cannot be bound at all - then the framework's own binding failure is reported and the port is never called")
-        void whenAmountMinorUnitsCannotBeBound_thenFrameworksOwnBindingFailureReportedAndPortNeverCalled() {
+                "when amount cannot be bound to its String type at all - then the framework's own binding failure is reported and the port is never called")
+        void whenAmountCannotBeBoundToString_thenFrameworksOwnBindingFailureReportedAndPortNeverCalled() {
             String body =
                     """
                     {
@@ -360,7 +365,7 @@ class CreateExpenseProposalMcpToolTest {
                           "parentCategory": null,
                           "description": "lunch",
                           "merchant": "Cafe",
-                          "amountMinorUnits": "twelve",
+                          "amount": { "value": 7200 },
                           "currencyCode": "EUR"
                         }
                       }
@@ -371,6 +376,71 @@ class CreateExpenseProposalMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(createExpenseProposalPort, never()).create(any());
+        }
+
+        @Test
+        @DisplayName(
+                "when the amount is sent as a JSON number rather than the schema's string - then the tool error is refused before the method runs and no amount is recorded")
+        void whenAmountIsSentAsJsonNumber_thenToolErrorIsRefusedAndPortNeverCalled() {
+            String body =
+                    """
+                    {
+                      "jsonrpc": "2.0",
+                      "id": 2,
+                      "method": "tools/call",
+                      "params": {
+                        "name": "create_expense_proposal",
+                        "arguments": {
+                          "category": "Restaurants",
+                          "parentCategory": null,
+                          "description": "lunch with the team",
+                          "merchant": "Trattoria Roma",
+                          "amount": 7200,
+                          "currencyCode": "HUF"
+                        }
+                      }
+                    }
+                    """;
+
+            Response response = postMcp(token("user-44"), body);
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            verify(createExpenseProposalPort, never()).create(any());
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidAmounts")
+        @DisplayName(
+                "when the amount is invalid - then the tool error names an invalid request and the port is never called")
+        void whenAmountIsInvalid_thenToolErrorNamesInvalidRequestAndPortNeverCalled(
+                String description, String amount, String currencyCode, String expectedMessageFragment) {
+            Response response = postCreateExpenseProposal(
+                    token("user-12"), "Restaurants", null, "lunch", "Cafe", amount, currencyCode);
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            String message = response.jsonPath().getString("result.content[0].text");
+            assertThat(message).containsIgnoringCase("invalid request").contains(expectedMessageFragment);
+            verify(createExpenseProposalPort, never()).create(any());
+        }
+
+        static Stream<Arguments> invalidAmounts() {
+            return Stream.of(
+                    arguments("malformed text form", "7,200", "EUR", "amount must be digits with an optional dot"),
+                    arguments(
+                            "more precise than the currency",
+                            "12.505",
+                            "EUR",
+                            "12.505 is more precise than EUR, which has 2 decimal places"),
+                    arguments(
+                            "currency with no minor unit",
+                            "1.00",
+                            "XAU",
+                            "XAU is not a currency an amount can be recorded in"),
+                    arguments(
+                            "too large for long minor units",
+                            "999999999999999999",
+                            "EUR",
+                            "Amount is too large to record"));
         }
     }
 }

@@ -35,10 +35,10 @@ class AiExpenseRecordingAdapterTest {
 
     private static final String LUNCH_ARGUMENTS =
             """
-            {"category":"Lunch","description":"lunch","amountMinorUnits":1500,"currencyCode":"EUR"}""";
+            {"category":"Lunch","description":"lunch","amount":"15.00","currencyCode":"EUR"}""";
     private static final String CAB_ARGUMENTS =
             """
-            {"category":"Travel","description":"cab","amountMinorUnits":2000,"currencyCode":"EUR"}""";
+            {"category":"Travel","description":"cab","amount":"20.00","currencyCode":"EUR"}""";
 
     @Autowired
     private AiExpenseRecordingAdapter adapter;
@@ -93,7 +93,7 @@ class AiExpenseRecordingAdapterTest {
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.get(0));
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
             assertThat(arguments.get("description").asText()).isEqualTo("lunch");
-            assertThat(arguments.get("amountMinorUnits").asLong()).isEqualTo(1500L);
+            assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
 
             List<LoggedRequest> mcpRequests = CapturedRequestUtils.mcpRequests();
@@ -113,7 +113,7 @@ class AiExpenseRecordingAdapterTest {
                             ChatCompletionFixtures.toolCall(
                                     "call-1",
                                     """
-                            {"category":"Lunch","description":"lunch","amountMinorUnits":1500,\
+                            {"category":"Lunch","description":"lunch","amount":"15.00",\
                             "currencyCode":"EUR","merchant":"Deli Co"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
 
@@ -159,12 +159,7 @@ class AiExpenseRecordingAdapterTest {
             assertThat(properties.fieldNames())
                     .toIterable()
                     .containsExactlyInAnyOrder(
-                            "category",
-                            "parentCategory",
-                            "description",
-                            "merchant",
-                            "amountMinorUnits",
-                            "currencyCode");
+                            "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
         }
 
         @Test
@@ -194,7 +189,7 @@ class AiExpenseRecordingAdapterTest {
             String correctedArguments =
                     """
                     {"category":"Travel","parentCategory":"Insurance","description":"cab",\
-                    "amountMinorUnits":2000,"currencyCode":"EUR"}""";
+                    "amount":"20.00","currencyCode":"EUR"}""";
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
                     ChatCompletionFixtures.toolCallResponse(
@@ -234,7 +229,7 @@ class AiExpenseRecordingAdapterTest {
                             ChatCompletionFixtures.toolCall(
                                     "call-2",
                                     """
-                            {"category":"Lunch","description":"dinner","amountMinorUnits":2500,\
+                            {"category":"Lunch","description":"dinner","amount":"25.00",\
                             "currencyCode":"EUR"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
 

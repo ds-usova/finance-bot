@@ -320,11 +320,14 @@ end
   (`AbstractMcpToolMethodCallback.buildMethodArguments` reads each declared parameter by name).
 
 - **D13:** What if the model sends a JSON number where the schema says string?
-- Answer: It binds where Jackson can coerce it, and the value arrives as text either way; where it cannot, the
-  protocol's binding failure reaches the model, which corrects the call. Neither path stores a wrong amount.
-- Basis: assumed — `AbstractMcpToolMethodCallback.buildTypedArgument` converts through
-  `JsonHelper.convertToTypedObject`, and `mcp.md` already covers the binding failure as its own outcome. The design
-  relies on neither: `"7200"` and `7200` both reach `ofMajorUnits` as 7200, or neither reaches it at all.
+- Answer: It is refused before the tool runs, and the model corrects the call. No amount is stored.
+- Basis: verified during implementation (2026-08-04) — spring-ai-mcp validates the arguments against the generated
+  JSON Schema *ahead* of binding, so a number under a `"type": "string"` field comes back as
+  `input validation failed: … [/amount: integer: string found, {2} expected]` and the tool method never runs;
+  Jackson's coercion in `AbstractMcpToolMethodCallback.buildTypedArgument` is never reached. This is `mcp.md`'s
+  "an argument's value cannot be read as the type the schema declares" row. An earlier reading of this design had
+  the number coercing to text and recording 7200 — it does not, and the difference is only ever a refusal the
+  model retries, never a wrong amount.
 
 - **D14:** Do the connector's prompts change?
 - Answer: No. `record-expenses.st` and `user-message.st` are untouched.
