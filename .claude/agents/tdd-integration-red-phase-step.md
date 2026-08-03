@@ -100,6 +100,12 @@ filling it yourself.
   specific returned values or state changes, specific error types, specific response codes and body values — no
   trivial "call succeeded" checks. On the inbound side, verify the calls on the mocked port at the depth the
   conventions define.
+- **Where a scenario rests on how a dependency routes a call, observe the behaviour before asserting it.** This is
+  the variant most exposed to it: an inbound adapter sits behind machinery that may validate, reject or transform
+  a call before the adapter's own code runs. Exercise the path once, read what actually comes back, and write the
+  assertion against that — reporting what you observed. You run the test in the verify phase regardless. A
+  scenario whose expected outcome turns out to be unreachable is a plan defect: report it, and never reshape the
+  assertion to cover every outcome, which asserts nothing.
 - Create every external test data file the tests need (e.g. the request payload files behind a validation matrix),
   in the location and naming scheme the conventions define — a test that references a missing file does not count
   as compiling.

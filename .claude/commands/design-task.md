@@ -149,6 +149,14 @@ question rather than picks from a menu.
 **The `assumed` basis is a claim, not a hedge.** Cite the file, class, or ADR. An assumption with no evidence line
 is a `must-decide` wearing a disguise, and it will be found by the grill or, more expensively, in production.
 
+**Reading code this repository does not own is not evidence of what it does at runtime.** Where a decision turns
+on how a dependency behaves — which of its layers acts first, what it does with a value of the wrong shape — its
+source shows what code exists, not what runs. `assumed` is available only when something in the tree already
+exercises that path and what it was *observed* to produce is cited. Otherwise the entry is `deferred`, naming
+what would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
+expected answer and costs nothing: it tells the plan to assert the invariant rather than the mechanism, and tells
+the step that eventually builds it to look before asserting.
+
 The design is **settled** when no entry carries `Basis: must-decide`.
 
 `design.sh` checks the result: missing or out-of-order sections, duplicate IDs, an entry outside the Decisions
