@@ -7,12 +7,10 @@
 ## Context
 
 The expense tool takes the amount in the currency's main unit, as the user wrote it, while `Money` stores minor
-units. Something has to scale one to the other, and the scale is the currency's own — ISO 4217 gives the forint
-two fraction digits whatever Hungarian practice is.
-
-The adapter that reads the wire is the obvious home: it already knows the argument is text and already checks its
-shape. But `Money.amount()` holds the same rule in the other direction, so putting the inverse in an adapter
-leaves one rule in two layers, and the second adapter to need it copies the rule rather than calls it.
+units, so something has to scale one to the other by the currency's own number of decimal places. The adapter
+reading the wire is the tempting home — it already knows the argument is text and already checks its shape — but
+`Money.amount()` holds that same rule in the other direction, and splitting the pair across two layers means the
+second adapter to need it copies the rule rather than calls it (D2).
 
 ## Decision
 
@@ -25,10 +23,7 @@ the domain a `BigDecimal`. The factory never sees a wire string.
 ## Consequences
 
 - A second inbound adapter taking an amount calls the factory instead of restating the scale rule.
-- Every rejection the scaling can produce — a currency with no minor unit, an amount finer than its currency, an
-  overflow — is an `InvalidMoneyException` raised in the domain, so the tool renders all of them through the one
-  clause it already had.
-- The two layers fail for different reasons and say so differently: a malformed argument is refused before any
-  arithmetic runs, an unscalable amount after.
+- Every rejection the scaling can produce is an `InvalidMoneyException` raised in the domain, so the tool renders
+  all of them through the one clause it already had.
 - Must stay true: the domain factory takes a `BigDecimal` and never a wire string, and no adapter computes minor
   units itself.

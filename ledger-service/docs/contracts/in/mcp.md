@@ -20,14 +20,14 @@ expense, which a human reviews before it becomes one.
 
 ### What the tool takes
 
-| Argument           | Meaning                                                                  | Required |
-|--------------------|--------------------------------------------------------------------------|----------|
-| `category`         | the category's name — one filed under a grouping, never a grouping       | yes      |
-| `parentCategory`   | the grouping's name — only to break a tie between categories sharing one | no       |
-| `description`      | what was bought                                                          | yes      |
-| `merchant`         | who it was bought from — null or blank is none                           | no       |
-| `amountMinorUnits` | the amount in the currency's minor units — 12.50 EUR is 1250             | yes      |
-| `currencyCode`     | ISO 4217, three letters                                                  | yes      |
+| Argument         | Meaning                                                                              | Required |
+|------------------|--------------------------------------------------------------------------------------|----------|
+| `category`       | the category's name — one filed under a grouping, never a grouping                   | yes      |
+| `parentCategory` | the grouping's name — only to break a tie between categories sharing one             | no       |
+| `description`    | what was bought                                                                      | yes      |
+| `merchant`       | who it was bought from — null or blank is none                                       | no       |
+| `amount`         | the amount as the message writes it, in the currency's main unit — 7200 for 7200 HUF | yes      |
+| `currencyCode`   | ISO 4217, three letters                                                              | yes      |
 
 **There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
 message it belongs to, both come off the token and nothing else
@@ -37,8 +37,8 @@ message it belongs to, both come off the token and nothing else
 ### What the tool answers with
 
 The stored proposal: its id, the category name it was filed under, the description, the merchant, the amount in
-minor units, the currency code, and the instant it was created. It carries no identity — the caller already
-knows whose token it sent, and everything returned enters a model's context.
+the currency's main unit, the currency code, and the instant it was created. It carries no identity — the caller
+already knows whose token it sent, and everything returned enters a model's context.
 
 ## Semantics
 
@@ -51,7 +51,17 @@ nothing.
 A category is named, not identified. Which names resolve, and which are refused, is
 [the use case's rule](../../usecases/create-an-expense-proposal.md#rules), not the tool's.
 
-An absent `amountMinorUnits` is refused rather than read as zero. A deliberate zero is stored.
+The amount crosses as written, in the currency's main unit, and is scaled to minor units on this side
+([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)).
+
+- Accepted: digits, at most one dot, at most four decimals; surrounding whitespace is ignored.
+- Nothing is rounded, regrouped or converted.
+- Refused: any other written form — a comma decimal, grouped digits, a sign, an exponent, a currency symbol.
+- Refused: an amount finer than its currency's decimal places.
+- Refused: a currency with no minor unit at all.
+- Refused: an amount too large to record.
+- An absent `amount` is refused rather than read as zero. A deliberate zero is stored.
+- The answer states the amount in the units the call spoke.
 
 The tool is not idempotent: the same call made twice stores two proposals, and nothing tells them apart from two
 intended ones. A refused call stores nothing, so a corrected retry of it leaves one proposal.
@@ -81,8 +91,8 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | Condition                                                                               | Signal                                                               |
 |-----------------------------------------------------------------------------------------|----------------------------------------------------------------------|
 | No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why |
-| An argument's value cannot be read as the type the schema declares                      | the protocol's own binding failure, before the tool runs             |
-| An argument is missing or unusable                                                      | a tool error naming the invalid request and the field at fault       |
+| An argument's value is not the type the published schema declares                       | refused against the schema, before the tool runs                     |
+| An argument is missing, malformed, or an amount its currency cannot record              | a tool error naming the invalid request and the field at fault       |
 | The category name is unknown, names a grouping, or matches several                      | a tool error carrying what to retry with                             |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
 | The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |
@@ -101,8 +111,9 @@ The caller is a language model: it picks this tool out of the published list by 
 fills each argument from the description published beside it. Both are part of the contract — rewording one
 changes what arrives, with no schema to compare against and nothing failing at build time.
 
-Adding an optional argument costs a client nothing. Renaming one, or making an optional one required, is a new
-tool rather than an edit.
+Adding an optional argument costs a client nothing. For a client outside this repository, renaming one, or
+making an optional one required, is a new tool rather than an edit. Inside it, the tool and its one caller ship
+together, so an argument is renamed in place.
 
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way
