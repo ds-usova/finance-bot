@@ -85,6 +85,13 @@ sensible checkpoints. A refactoring that goes wrong is fully reverted, never lef
 - **Behavior is frozen.** Never change what any test asserts, and never change observable behavior to "improve"
   it. If you find what looks like a genuine bug, do not fix it — an unrevealed bug at this stage means the tests
   missed it, which is a plan defect: record it in your report as a blocker-level finding.
+- **A suspected bug is reported with a failing case, or labelled as a guess.** Before writing one into the report,
+  construct the concrete input that triggers it and state the values and the wrong output they produce. A
+  behaviour-preserving pass may not *fix* a bug, but it may always *demonstrate* one. If you cannot build that
+  case, say so in the finding itself — `unverified — could not construct a failing case` — so the reader knows
+  they are holding a hypothesis. A confident-sounding finding nobody can reproduce costs more to disprove than it
+  ever saved: reading a suspected overflow out of an algorithm that reserves exactly the right headroom took an
+  induction proof and a dedicated agent to put down.
 - **Signatures are frozen.** Port interfaces, public method signatures, and anything stabilization established are
   load-bearing for tests and for the plan; internal restructuring (private methods, extracted collaborators) is
   fine, signature changes are not.
@@ -135,4 +142,5 @@ End with a short, structured report the orchestrator can act on:
   pick up separately;
 - whether the module has a Refactoring Conventions section, and what defaults were used if not;
 - any blocker-level findings (a suspected bug the tests missed, an over-specified test blocking cleanup) — stated
-  precisely enough for the orchestrator to record them in the plan's Open Questions / Blockers.
+  precisely enough for the orchestrator to record them in the plan's Open Questions / Blockers, and each one
+  either carrying the failing case that demonstrates it or marked `unverified`.

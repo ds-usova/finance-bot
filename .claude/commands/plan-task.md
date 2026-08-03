@@ -311,6 +311,13 @@ asserts *more* than it should; it does not find the test in some other class tha
 record, a value a message carries — search the test tree for that value and list every hit as an `update:` bullet,
 whatever class it lands in. The search term is the removed thing itself, not the classes the plan happens to touch.
 
+**A new call on a shared path is searched for the same way.** When the change makes an existing flow reach a
+collaborator it did not reach before — an outbound port, a new stub, a new fixture — every test that drives that
+flow needs the new arrangement, not only the tests the plan happens to name. Search the test tree for the *entry
+point*, not for the classes in the step list, and list every hit as an `update:` bullet. A step that adds a
+delivery to the end of a message flow breaks every test that sends a message, including the ones about something
+else entirely; those fail at a stage guardrail, where the cause is furthest from the change.
+
 **Exclusion — simple delegation**: Do NOT add a class to this section if every method under test is a simple
 delegation (e.g., a one-line usecase method that only calls an outbound port with no logic of its own — no
 conditionals, no transformations, no error handling). Such trivial pass-through changes belong in the

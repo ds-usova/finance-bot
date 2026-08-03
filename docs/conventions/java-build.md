@@ -39,6 +39,12 @@ Each run gets a directory of its own, `<module>/build/agent-runs/<label>-<timest
 of the same class never share one. Anything the summary omits — a full stack trace, printed application logs — is
 in that directory's `console.log`. The wrapper prints the path it used.
 
+**Never run `gradlew test` directly.** The wrapper's queue is the only thing keeping two runs out of each other's
+`build/test-results/test/`, and a raw invocation joins no queue. The symptom is not a compile error but a
+`NoSuchFileException` on `build/test-results/test/binary` — someone else's run deleting the directory this one is
+writing into, which reads like a Windows quirk and is not. `gradlew` stays the way to run a task the wrapper does
+not wrap, such as `spotlessApply` or `jacocoTestReport`; running tests is not one of them.
+
 ## Waiting and Queueing
 
 Concurrent runs of the **same module** share one build directory, so the wrapper queues them: a second waits for

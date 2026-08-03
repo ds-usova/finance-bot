@@ -49,13 +49,17 @@ spawn fall back to the default model.
 instructions at `scripts/plan/plan.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under
 `.claude/` in a plain checkout — is how this skill reads and writes them. Its README sits beside it.
 
-| Need                          | Command                                                     |
-|-------------------------------|-------------------------------------------------------------|
-| Where the run stands          | `plan.sh status`                                            |
-| One item's text and scenarios | `plan.sh show GU07`                                         |
-| What is spawnable right now   | `plan.sh next --group <group>` (`--all` also shows waiting) |
-| Mark an item done             | `plan.sh tick GU07`                                         |
-| Leave it open, record why     | `plan.sh block GU07 "<reason>"`                             |
+**The plan file is a positional argument on every call, and it comes last.** There is no `--plan` flag. `tick` and
+`show` take any number of IDs in one call and reject a shell loop around them, so batch the IDs rather than
+iterating:
+
+| Need                          | Command                                                                  |
+|-------------------------------|--------------------------------------------------------------------------|
+| Where the run stands          | `plan.sh status docs/<plan>.md`                                          |
+| One item's text and scenarios | `plan.sh show GU07 GU08 docs/<plan>.md`                                  |
+| What is spawnable right now   | `plan.sh next --group <group> docs/<plan>.md` (`--all` also shows waiting) |
+| Mark an item done             | `plan.sh tick GU07 GU08 docs/<plan>.md`                                  |
+| Leave it open, record why     | `plan.sh block GU07 "<reason>" docs/<plan>.md`                           |
 
 **Always scope `next` to the stage you are running.** Unscoped, it advances to the next group the moment the
 current one is fully ticked — so a run covering only the Red Phase would start handing back Green Phase items

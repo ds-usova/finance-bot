@@ -114,6 +114,11 @@ would inherit the first's advanced state. Give each new class a token constant i
   assertions.
 - Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
+- **Do not assert on a log message** — `info`, `debug` or `error` — when the outcome can be observed any other
+  way. Assert the outcome itself: the port that was called, the row that was written, the message that was sent.
+  A log line is a diagnostic, not a contract; wording drifts with every edit to the class, and a test bound to it
+  fails for a change that broke nothing. Reserve a `LogCapture` assertion for the case where the behaviour leaves
+  no other trace — a failure that is swallowed on purpose, a path whose whole point is that nothing else happens.
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution, which is why
   `TelegramFixtures` stays a set of text-block builders. Move any body past roughly fifteen lines to a file.
