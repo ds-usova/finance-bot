@@ -209,19 +209,19 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Money` · test: `MoneyTest`
-- [ ] GU02 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01
+- [x] GU01 · `Money` · test: `MoneyTest`
+- [x] GU02 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU01, GU02
-- [ ] GI02 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
+- [x] GI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU01, GU02
+- [x] GI02 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
-- [ ] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
-- [ ] GS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS01 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] GS03 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
 
 ### Post-Implementation Steps
 

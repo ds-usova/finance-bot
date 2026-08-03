@@ -20,14 +20,31 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
         return BigDecimal.valueOf(minorUnits, fractionDigits);
     }
 
-    // TODO: reject a null amount; read the currency's getDefaultFractionDigits(); build the minor units as
-    // amount.movePointRight(fractionDigits).setScale(0).longValueExact(). Every rejection is an
-    // InvalidMoneyException, so none of them reaches the tool as the catch-all - the two ArithmeticExceptions
-    // that sequence throws are caught here and rethrown as one:
-    //   fraction digits < 0        -> "XAU is not a currency an amount can be recorded in"
-    //   setScale(0) drops a digit  -> "12.505 is more precise than EUR, which has 2 decimal places"
-    //   longValueExact() overflows -> "Amount is too large to record"
     public static Money ofMajorUnits(BigDecimal amount, CurrencyCode currencyCode) {
-        return new Money(0, currencyCode);
+        if (amount == null) {
+            throw new InvalidMoneyException("Amount must not be null");
+        }
+
+        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
+        if (fractionDigits < 0) {
+            throw new InvalidMoneyException(currencyCode.code() + " is not a currency an amount can be recorded in");
+        }
+
+        BigDecimal scaled;
+        try {
+            scaled = amount.movePointRight(fractionDigits).setScale(0);
+        } catch (ArithmeticException e) {
+            throw new InvalidMoneyException(amount + " is more precise than " + currencyCode.code() + ", which has "
+                    + fractionDigits + " decimal places");
+        }
+
+        long minorUnits;
+        try {
+            minorUnits = scaled.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new InvalidMoneyException("Amount is too large to record");
+        }
+
+        return new Money(minorUnits, currencyCode);
     }
 }
