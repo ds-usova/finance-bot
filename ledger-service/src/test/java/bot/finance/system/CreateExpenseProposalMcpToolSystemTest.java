@@ -60,7 +60,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         return CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId).stream()
                 .filter(row -> row.name().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("no seeded category named " + name + " for user " + userId));
+                .orElseThrow(
+                        () -> new IllegalStateException("no seeded category named " + name + " for user " + userId));
     }
 
     private Response callCreateExpenseProposal(String token, String requestBody) {
@@ -80,11 +81,10 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when tools/call create_expense_proposal is posted to /mcp naming a child category - then the "
-                        + "response carries the stored proposal, and exactly one expense_proposal row exists for "
-                        + "that user carrying that category's id, the description, the merchant, the minor units "
-                        + "and the currency code")
+        @DisplayName("when tools/call create_expense_proposal is posted to /mcp naming a child category - then the "
+                + "response carries the stored proposal, and exactly one expense_proposal row exists for "
+                + "that user carrying that category's id, the description, the merchant, the minor units "
+                + "and the currency code")
         void whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
@@ -105,20 +105,29 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             assertThat(toolResultText).as("tool result text").isNotNull();
             JsonPath toolResult = new JsonPath(toolResultText);
             assertThat(toolResult.getString("category")).as("returned category").isEqualTo("Supermarkets");
-            assertThat(toolResult.getString("description")).as("returned description").isEqualTo(DESCRIPTION);
+            assertThat(toolResult.getString("description"))
+                    .as("returned description")
+                    .isEqualTo(DESCRIPTION);
             assertThat(toolResult.getString("merchant")).as("returned merchant").isEqualTo(MERCHANT);
             assertThat(toolResult.getLong("amountMinorUnits"))
                     .as("returned amountMinorUnits")
                     .isEqualTo(AMOUNT_MINOR_UNITS);
-            assertThat(toolResult.getString("currencyCode")).as("returned currencyCode").isEqualTo(CURRENCY_CODE);
+            assertThat(toolResult.getString("currencyCode"))
+                    .as("returned currencyCode")
+                    .isEqualTo(CURRENCY_CODE);
 
-            List<ExpenseProposalEntity> rows = ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
-            assertThat(rows).as("stored expense_proposal rows for user %s", userId).hasSize(1);
+            List<ExpenseProposalEntity> rows =
+                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            assertThat(rows)
+                    .as("stored expense_proposal rows for user %s", userId)
+                    .hasSize(1);
             ExpenseProposalEntity row = rows.get(0);
             assertThat(row.categoryId()).as("stored proposal's category id").isEqualTo(supermarketsCategoryId);
             assertThat(row.description()).as("stored proposal's description").isEqualTo(DESCRIPTION);
             assertThat(row.merchant()).as("stored proposal's merchant").isEqualTo(MERCHANT);
-            assertThat(row.amountMinorUnits()).as("stored proposal's minor units").isEqualTo(AMOUNT_MINOR_UNITS);
+            assertThat(row.amountMinorUnits())
+                    .as("stored proposal's minor units")
+                    .isEqualTo(AMOUNT_MINOR_UNITS);
             assertThat(row.currencyCode()).as("stored proposal's currency code").isEqualTo(CURRENCY_CODE);
         }
     }
@@ -128,30 +137,34 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName(
-                "when tools/call create_expense_proposal names a grouping - Groceries - then the response is a "
-                        + "tool error naming that grouping's children, and no expense_proposal row exists for that "
-                        + "user")
+        @DisplayName("when tools/call create_expense_proposal names a grouping - Groceries - then the response is a "
+                + "tool error naming that grouping's children, and no expense_proposal row exists for that "
+                + "user")
         void whenToolCallNamesGrouping_thenResponseIsToolErrorNamingChildrenAndNoRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-unhappy-path-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
-            String requestBody =
-                    McpRequests.createExpenseProposal("Groceries", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
+            String requestBody = McpRequests.createExpenseProposal(
+                    "Groceries", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 
             assertThat(response.statusCode()).as("HTTP status").isEqualTo(200);
-            assertThat(response.jsonPath().getBoolean("result.isError")).as("tool result isError").isTrue();
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("tool result isError")
+                    .isTrue();
 
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText)
                     .as("tool error message names the grouping's children")
                     .contains("Supermarkets", "Markets", "Household Supplies");
 
-            List<ExpenseProposalEntity> rows = ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
-            assertThat(rows).as("stored expense_proposal rows for user %s", userId).isEmpty();
+            List<ExpenseProposalEntity> rows =
+                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            assertThat(rows)
+                    .as("stored expense_proposal rows for user %s", userId)
+                    .isEmpty();
         }
     }
 }

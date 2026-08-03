@@ -55,6 +55,11 @@
       "Bash(sed -i:*)"
     ],
     "deny": [
+      "Bash(./gradlew test:*)",
+      "Bash(ledger-service/gradlew test:*)",
+      "Bash(ai-connector-service/gradlew test:*)",
+      "Bash(bash ledger-service/gradlew test:*)",
+      "Bash(bash ai-connector-service/gradlew test:*)",
       "Bash(git push:*)",
       "Bash(git reset --hard:*)",
       "Bash(git rebase:*)",

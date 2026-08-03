@@ -48,7 +48,8 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         User user = userRepository
                 .findByExternalId(command.userId().externalId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "user", "no user stored under external id " + command.userId().externalId()));
+                        "user",
+                        "no user stored under external id " + command.userId().externalId()));
         long categoryId = resolveCategoryId(user, command);
         Instant now = Instant.now(clock);
         ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -57,9 +58,12 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
                 command.description(),
                 command.merchant(),
                 command.money(),
+                command.messageReference(),
                 now);
         ExpenseProposal created = expenseProposalRepository.create(proposal);
-        log.info("created expense proposal for user with external id {}", command.userId().externalId());
+        log.info(
+                "created expense proposal for user with external id {}",
+                command.userId().externalId());
         return created;
     }
 
@@ -72,9 +76,8 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         }
         candidates = narrowByParentName(candidates, command.parentCategoryName());
         if (candidates.isEmpty()) {
-            throw new InvalidCategoryException(
-                    "no category named " + categoryName + " under parent "
-                            + command.parentCategoryName().orElseThrow() + " is stored for this user");
+            throw new InvalidCategoryException("no category named " + categoryName + " under parent "
+                    + command.parentCategoryName().orElseThrow() + " is stored for this user");
         }
         if (candidates.size() > 1) {
             throw new InvalidCategoryException("several categories named " + categoryName

@@ -20,6 +20,7 @@ class TelegramUpdateUtilsTest {
 
     private static final int UPDATE_ID = 42;
     private static final long CHAT_ID = 555L;
+    private static final long USER_ID = 777L;
 
     @Nested
     @DisplayName("mapping a Telegram update onto the inbound command")
@@ -27,14 +28,16 @@ class TelegramUpdateUtilsTest {
 
         @Test
         @DisplayName(
-                "when the update carries a chat id and non-blank text - then returns a command with the chat id as conversation id and that text")
-        void whenUpdateCarriesChatIdAndNonBlankText_thenReturnsCommandWithChatIdAsConversationIdAndThatText() {
-            Update update =
-                    BotUtils.parseUpdate(TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, "lunch 12 euro"));
+                "when the update carries a from id, a chat id, a message id and non-blank text - then returns a command built from those four components")
+        void whenUpdateCarriesFromIdChatIdMessageIdAndNonBlankText_thenReturnsCommandBuiltFromThoseFourComponents() {
+            Update update = BotUtils.parseUpdate(
+                    TelegramFixtures.textMessageUpdate(UPDATE_ID, USER_ID, CHAT_ID, "lunch 12 euro"));
 
             Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
 
-            assertThat(command).contains(new HandleIncomingMessageCommand("555", "lunch 12 euro"));
+            assertThat(command)
+                    .contains(new HandleIncomingMessageCommand(
+                            "777", "555", String.valueOf(TelegramFixtures.MESSAGE_ID), "lunch 12 euro"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -53,10 +56,15 @@ class TelegramUpdateUtilsTest {
             return Stream.of(
                     arguments("a voice payload and no text", TelegramFixtures.voiceMessageUpdate(UPDATE_ID, CHAT_ID)),
                     arguments("no message at all", TelegramFixtures.callbackQueryUpdate(UPDATE_ID)),
-                    arguments("blank message text", TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, "   ")),
+                    arguments(
+                            "blank message text",
+                            TelegramFixtures.textMessageUpdate(UPDATE_ID, USER_ID, CHAT_ID, "   ")),
                     arguments(
                             "text but no chat",
-                            TelegramFixtures.textMessageUpdateWithoutChat(UPDATE_ID, "lunch 12 euro")));
+                            TelegramFixtures.textMessageUpdateWithoutChat(UPDATE_ID, "lunch 12 euro")),
+                    arguments(
+                            "text and a chat but no from",
+                            TelegramFixtures.textMessageUpdateWithoutFrom(UPDATE_ID, CHAT_ID, "lunch 12 euro")));
         }
 
         @Test

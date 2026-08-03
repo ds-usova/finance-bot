@@ -7,6 +7,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.*;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -37,13 +38,9 @@ public class CreateExpenseProposalMcpTool {
                                     + "sharing the same name")
                     String parentCategory,
             @McpToolParam(description = "what was bought") String description,
-            @McpToolParam(
-                            required = false,
-                            description = "who it was bought from, optional - null or blank is none")
+            @McpToolParam(required = false, description = "who it was bought from, optional - null or blank is none")
                     String merchant,
-            @McpToolParam(
-                            description = "the amount in the currency's minor units, required - "
-                                    + "12.50 EUR is 1250")
+            @McpToolParam(description = "the amount in the currency's minor units, required - " + "12.50 EUR is 1250")
                     Long amountMinorUnits,
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
         CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
@@ -53,9 +50,10 @@ public class CreateExpenseProposalMcpTool {
 
         try {
             AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+            MessageReference reference = AuthenticatedCallerUtils.messageReference();
 
             ExpenseProposal stored =
-                    createExpenseProposalPort.create(ExpenseProposalToolUtils.toCommand(request, userId));
+                    createExpenseProposalPort.create(ExpenseProposalToolUtils.toCommand(request, userId, reference));
             CreateExpenseProposalToolResponse response =
                     ExpenseProposalToolUtils.toResponse(stored, request.category());
 
@@ -80,5 +78,4 @@ public class CreateExpenseProposalMcpTool {
         log.warn("rejected create_expense_proposal call: {} {}", e.getClass().getSimpleName(), e.getMessage());
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
-
 }

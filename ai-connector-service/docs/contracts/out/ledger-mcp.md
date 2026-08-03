@@ -33,6 +33,9 @@ Every request carries the token that arrived on the extraction call, verbatim an
 for each turn on the thread running it. Two turns running at once share the client and never the identity. The
 token is never parsed, never logged, never stored.
 
+Forwarding it untouched is what carries the ledger's own claims across: the reference tying a turn's proposals
+to the message that produced them rides the token, and this service neither sends it nor knows it.
+
 A turn holding no token sends no request at all.
 
 The expenses of one message are sent in the order the user said them.

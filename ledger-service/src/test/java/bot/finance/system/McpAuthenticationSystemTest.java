@@ -81,7 +81,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName(
                 "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and no identity argument")
-        void whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument() {
+        void
+                whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument() {
             String externalId = "mcp-auth-tools-list-user";
             UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);
@@ -124,8 +125,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                 String scenario, String token, String externalId) {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
 
-            Response response = postMcp(
-                    token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", 1000L, "EUR"));
+            Response response =
+                    postMcp(token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", 1000L, "EUR"));
 
             response.then().statusCode(401);
             assertThat(response.getBody().asString())

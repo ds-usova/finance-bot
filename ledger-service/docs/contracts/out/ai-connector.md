@@ -11,10 +11,10 @@ turn completed — no action crosses back.
 
 ## Operations
 
-| Operation                      | Purpose                                   | Used by                                                                                                                                                                                        |
-|--------------------------------|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Operation                      | Purpose                                   | Used by                                                                                                                                                                                           |
+|--------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Extract intents                | act on what a message asks for            | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
-| Check the connector is serving | whether the connector is answering at all | this service's health endpoint                                                                                                                                                                 |
+| Check the connector is serving | whether the connector is answering at all | this service's health endpoint                                                                                                                                                                    |
 
 ## Semantics
 
@@ -22,7 +22,8 @@ turn completed — no action crosses back.
 assume (optional) · a credential naming the user, carried on the call rather than in the payload.
 
 **Answered:** an acknowledgement carrying nothing. Success means the turn was acted on — no count, no per-action
-outcome, no text for the user.
+outcome, no text for the user. What the turn actually recorded is read back out of this service's own store,
+under the message the credential named.
 
 What the connector promises is [its side of this boundary](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md#semantics).
 What this side adds:
@@ -35,6 +36,11 @@ What this side adds:
 - An absent request is refused before the connector is reached.
 - The credential is minted per call, names the user as its subject, and is what the connector calls back with
   ([the tool it calls](../in/mcp.md)).
+- The credential also names the [message](../../domain/message-reference.md) the turn is about, so everything
+  recorded during it can be found again afterwards
+  ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+- The connector forwards the credential untouched, so nothing carried on it is part of what the two sides agreed
+  in the schema.
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
 - A call answers within `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover the whole
   model-driven loop: listing the tools, a provider call, a callback per expense, a provider call per result, and
@@ -43,7 +49,7 @@ What this side adds:
   mints, then the call's deadline, then the connector's own per-callback timeout — so a single slow callback
   cannot spend the turn.
 - A call that runs out of time is abandoned on this side while the connector runs on: a failure here does not
-  mean nothing was recorded.
+  mean nothing was recorded, and what was recorded by then is still reported to the user.
 - The connector's own serving status is polled and reported in this service's health endpoint, so a target
   pointing nowhere shows there rather than at the first message.
 - The check asks about the connector's server as a whole, not one service on it, and carries no credential.

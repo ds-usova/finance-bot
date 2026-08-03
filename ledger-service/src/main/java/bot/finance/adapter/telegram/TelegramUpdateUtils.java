@@ -4,6 +4,7 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.model.User;
 import java.util.Optional;
 
 public final class TelegramUpdateUtils {
@@ -30,6 +31,13 @@ public final class TelegramUpdateUtils {
         if (chat == null) {
             return Optional.empty();
         }
-        return Optional.of(new HandleIncomingMessageCommand(String.valueOf(chat.id()), text));
+        User from = message.from();
+        if (from == null) {
+            return Optional.empty();
+        }
+        String userExternalId = String.valueOf(from.id());
+        String conversationId = String.valueOf(chat.id());
+        String inboundMessageId = String.valueOf(message.messageId());
+        return Optional.of(new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text));
     }
 }

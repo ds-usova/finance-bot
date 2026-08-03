@@ -1,6 +1,7 @@
 package bot.finance.domain.model;
 
 import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -12,6 +13,7 @@ public final class ExpenseProposal extends Entity {
     private final String description;
     private final String merchant;
     private final Money money;
+    private final MessageReference messageReference;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -22,6 +24,7 @@ public final class ExpenseProposal extends Entity {
             String description,
             Optional<String> merchant,
             Money money,
+            MessageReference messageReference,
             Instant createdAt,
             Instant updatedAt) {
         super(id);
@@ -40,6 +43,9 @@ public final class ExpenseProposal extends Entity {
         if (categoryId <= 0) {
             throw new InvalidExpenseProposalException("category id must be positive");
         }
+        if (messageReference == null) {
+            throw new InvalidExpenseProposalException("message reference must be present");
+        }
         if (createdAt == null) {
             throw new InvalidExpenseProposalException("created at must be present");
         }
@@ -51,13 +57,20 @@ public final class ExpenseProposal extends Entity {
         this.description = description;
         this.merchant = merchant.orElse(null);
         this.money = money;
+        this.messageReference = messageReference;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static ExpenseProposal newExpenseProposal(
-            long userId, long categoryId, String description, Optional<String> merchant, Money money, Instant now) {
-        return new ExpenseProposal(null, userId, categoryId, description, merchant, money, now, now);
+            long userId,
+            long categoryId,
+            String description,
+            Optional<String> merchant,
+            Money money,
+            MessageReference messageReference,
+            Instant now) {
+        return new ExpenseProposal(null, userId, categoryId, description, merchant, money, messageReference, now, now);
     }
 
     public static ExpenseProposal stored(
@@ -67,9 +80,11 @@ public final class ExpenseProposal extends Entity {
             String description,
             Optional<String> merchant,
             Money money,
+            MessageReference messageReference,
             Instant createdAt,
             Instant updatedAt) {
-        return new ExpenseProposal(id, userId, categoryId, description, merchant, money, createdAt, updatedAt);
+        return new ExpenseProposal(
+                id, userId, categoryId, description, merchant, money, messageReference, createdAt, updatedAt);
     }
 
     public long userId() {
@@ -90,6 +105,10 @@ public final class ExpenseProposal extends Entity {
 
     public Money money() {
         return money;
+    }
+
+    public MessageReference messageReference() {
+        return messageReference;
     }
 
     public Instant createdAt() {

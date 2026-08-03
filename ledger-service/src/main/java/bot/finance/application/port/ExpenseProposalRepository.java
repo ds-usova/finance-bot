@@ -1,9 +1,12 @@
 package bot.finance.application.port;
 
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.MessageReference;
+import java.util.List;
 
 public interface ExpenseProposalRepository {
 
@@ -13,4 +16,9 @@ public interface ExpenseProposalRepository {
      * @throws PersistenceFailedException if the write fails
      */
     ExpenseProposal create(ExpenseProposal proposal);
+
+    /**
+     * @throws PersistenceFailedException if the read fails
+     */
+    List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference);
 }

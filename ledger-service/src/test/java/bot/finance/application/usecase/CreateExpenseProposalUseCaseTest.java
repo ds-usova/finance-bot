@@ -25,6 +25,7 @@ import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
 import java.time.Instant;
@@ -43,6 +44,7 @@ class CreateExpenseProposalUseCaseTest {
     private static final long USER_ID = 1L;
     private static final long CATEGORY_ID = 2L;
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
+    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
 
     private UserRepository userRepository;
     private CategoryRepository categoryRepository;
@@ -74,7 +76,8 @@ class CreateExpenseProposalUseCaseTest {
                 parentCategoryName,
                 "coffee",
                 Optional.of("Starbucks"),
-                new Money(500, CurrencyCode.of("USD")));
+                new Money(500, CurrencyCode.of("USD")),
+                MESSAGE_REFERENCE);
     }
 
     @Nested
@@ -98,6 +101,7 @@ class CreateExpenseProposalUseCaseTest {
                     "coffee",
                     Optional.of("Starbucks"),
                     new Money(500, CurrencyCode.of("USD")),
+                    MESSAGE_REFERENCE,
                     FIXED_INSTANT,
                     FIXED_INSTANT);
             when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
@@ -112,6 +116,7 @@ class CreateExpenseProposalUseCaseTest {
             assertThat(stampedProposal.description()).isEqualTo("coffee");
             assertThat(stampedProposal.merchant()).contains("Starbucks");
             assertThat(stampedProposal.money()).isEqualTo(new Money(500, CurrencyCode.of("USD")));
+            assertThat(stampedProposal.messageReference()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(stampedProposal.createdAt()).isEqualTo(FIXED_INSTANT);
             assertThat(stampedProposal.updatedAt()).isEqualTo(FIXED_INSTANT);
             assertThat(result).isSameAs(createdProposal);
@@ -179,7 +184,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when a stored category with the command's name carries a parent - then the proposal "
                 + "repository is asked to store a proposal carrying that category's id, and the stored proposal "
                 + "is returned")
-        void whenExactlyOneStoredCategoryMatchesNameWithParent_thenProposalRepositoryStoresProposalWithThatCategoryId() {
+        void
+                whenExactlyOneStoredCategoryMatchesNameWithParent_thenProposalRepositoryStoresProposalWithThatCategoryId() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
@@ -191,6 +197,7 @@ class CreateExpenseProposalUseCaseTest {
                     "coffee",
                     Optional.of("Starbucks"),
                     new Money(500, CurrencyCode.of("USD")),
+                    MESSAGE_REFERENCE,
                     FIXED_INSTANT,
                     FIXED_INSTANT);
             when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
@@ -206,7 +213,8 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when no stored category of the user's carries the command's name - then throws "
                 + "InvalidCategoryException naming the unknown name, and the proposal repository is untouched")
-        void whenNoStoredCategoryMatchesName_thenThrowsInvalidCategoryExceptionNamingUnknownNameAndProposalRepositoryUntouched() {
+        void
+                whenNoStoredCategoryMatchesName_thenThrowsInvalidCategoryExceptionNamingUnknownNameAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(List.of());
@@ -222,7 +230,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when the only stored category matching the command's name carries no parent - then throws "
                 + "InvalidCategoryException whose message names that grouping's children, and the proposal "
                 + "repository is untouched")
-        void whenOnlyMatchingCategoryIsAGrouping_thenThrowsInvalidCategoryExceptionNamingGroupingsChildrenAndProposalRepositoryUntouched() {
+        void
+                whenOnlyMatchingCategoryIsAGrouping_thenThrowsInvalidCategoryExceptionNamingGroupingsChildrenAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
@@ -241,7 +250,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when several stored categories carry the command's name and the command carries no "
                 + "parentCategoryName - then throws InvalidCategoryException whose message names the candidates' "
                 + "groupings, and the proposal repository is untouched")
-        void whenSeveralCategoriesMatchNameAndCommandCarriesNoParentCategoryName_thenThrowsInvalidCategoryExceptionNamingCandidatesGroupingsAndProposalRepositoryUntouched() {
+        void
+                whenSeveralCategoriesMatchNameAndCommandCarriesNoParentCategoryName_thenThrowsInvalidCategoryExceptionNamingCandidatesGroupingsAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
@@ -261,7 +271,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when several stored categories carry the command's name and the command's parentCategoryName "
                 + "matches exactly one of them - then the proposal repository is asked to store a proposal "
                 + "carrying that candidate's id")
-        void whenParentCategoryNameMatchesExactlyOneCandidate_thenProposalRepositoryStoresProposalWithThatCandidatesId() {
+        void
+                whenParentCategoryNameMatchesExactlyOneCandidate_thenProposalRepositoryStoresProposalWithThatCandidatesId() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             long matchingCandidateId = 3L;
@@ -276,6 +287,7 @@ class CreateExpenseProposalUseCaseTest {
                     "coffee",
                     Optional.of("Starbucks"),
                     new Money(500, CurrencyCode.of("USD")),
+                    MESSAGE_REFERENCE,
                     FIXED_INSTANT,
                     FIXED_INSTANT);
             when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
@@ -291,7 +303,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when several stored categories carry the command's name and the command's parentCategoryName "
                 + "matches none of them - then throws InvalidCategoryException, and the proposal repository is "
                 + "untouched")
-        void whenParentCategoryNameMatchesNoCandidate_thenThrowsInvalidCategoryExceptionAndProposalRepositoryUntouched() {
+        void
+                whenParentCategoryNameMatchesNoCandidate_thenThrowsInvalidCategoryExceptionAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
@@ -306,9 +319,37 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
+        @DisplayName("when the command carries a message reference - then the proposal handed to the proposal "
+                + "repository carries that same reference")
+        void whenCommandCarriesMessageReference_thenProposalRepositoryReceivesProposalWithThatReference() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food"))));
+            ExpenseProposal createdProposal = ExpenseProposal.stored(
+                    10L,
+                    USER_ID,
+                    CATEGORY_ID,
+                    "coffee",
+                    Optional.of("Starbucks"),
+                    new Money(500, CurrencyCode.of("USD")),
+                    MESSAGE_REFERENCE,
+                    FIXED_INSTANT,
+                    FIXED_INSTANT);
+            when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
+
+            useCase.create(newExpenseProposal());
+
+            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
+            verify(expenseProposalRepository).create(proposalCaptor.capture());
+            assertThat(proposalCaptor.getValue().messageReference()).isEqualTo(MESSAGE_REFERENCE);
+        }
+
+        @Test
         @DisplayName("when the category repository raises PersistenceFailedException while resolving the name - "
                 + "then the exception reaches the caller unchanged and the proposal repository is untouched")
-        void whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
+        void
+                whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             PersistenceFailedException failure =

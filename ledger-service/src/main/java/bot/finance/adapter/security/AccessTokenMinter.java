@@ -1,5 +1,6 @@
 package bot.finance.adapter.security;
 
+import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -33,7 +34,7 @@ public class AccessTokenMinter {
         this.publicKey = (RSAPublicKey) entry.getCertificate().getPublicKey();
     }
 
-    public String mint(String userExternalId) {
+    public String mint(String userExternalId, MessageReference reference) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -43,10 +44,10 @@ public class AccessTokenMinter {
                 .issueTime(issuedAt)
                 .expirationTime(expiresAt)
                 .jwtID(UUID.randomUUID().toString())
+                .claim("mrf", reference.value().toString())
                 .build();
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
-                .keyID(keyId())
-                .build();
+        JWSHeader header =
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyId()).build();
         SignedJWT signedJwt = new SignedJWT(header, claims);
         try {
             JWSSigner signer = new RSASSASigner(privateKey);

@@ -14,6 +14,7 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
@@ -47,16 +48,16 @@ class AiConnectorIntentExtractionAdapterTest {
     class Extract {
 
         @Test
-        @DisplayName(
-                "when the stub server answers an empty response - then returns without throwing, and the request "
-                        + "the server received carries the text, categories and default currency")
+        @DisplayName("when the stub server answers an empty response - then returns without throwing, and the request "
+                + "the server received carries the text, categories and default currency")
         void whenStubServerAnswersEmptyResponse_thenReturnsAndServerReceivedRequestFields() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
                     List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
                     Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
 
@@ -79,18 +80,47 @@ class AiConnectorIntentExtractionAdapterTest {
                     "spent 15 on milk",
                     List.of(new KnownCategory("Groceries", "Food")),
                     Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id-77");
+                    "user-external-id-77",
+                    MessageReference.newReference());
 
             adapter.extract(request);
 
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
             assertThat(metadata).isNotNull();
-            String authorizationHeader = metadata.get(
-                    Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            String authorizationHeader =
+                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
             assertThat(authorizationHeader).startsWith("Bearer ");
             String token = authorizationHeader.substring("Bearer ".length());
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
             assertThat(claims.getSubject()).isEqualTo("user-external-id-77");
+        }
+
+        @Test
+        @DisplayName(
+                "when extract is called with a request carrying a known message reference - then the bearer token's mrf claim equals that reference's UUID text, and the request the server received carries no field for it")
+        void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaimAndProtoRequestHasNoFieldForIt()
+                throws ParseException {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            MessageReference reference = MessageReference.newReference();
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of(new KnownCategory("Groceries", "Food")),
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id",
+                    reference);
+
+            adapter.extract(request);
+
+            Metadata metadata = GrpcStubServer.lastExtractionMetadata();
+            assertThat(metadata).isNotNull();
+            String authorizationHeader =
+                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+            String token = authorizationHeader.substring("Bearer ".length());
+            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            assertThat(claims.getStringClaim("mrf")).isEqualTo(reference.value().toString());
+
+            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("message_reference"))
+                    .isNull();
         }
 
         @ParameterizedTest
@@ -107,7 +137,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "connector unavailable",
                     List.of(new KnownCategory("Other", "Other")),
                     Optional.empty(),
-                    "user-external-id");
+                    "user-external-id",
+                    MessageReference.newReference());
 
             IntentExtractionFailedException thrown =
                     catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);

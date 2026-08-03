@@ -103,4 +103,20 @@ public final class WireMockStubs {
                 .withFormParam("offset", absent())
                 .willReturn(okJson(responseBody)));
     }
+
+    /**
+     * Answers every {@code sendMessage} for this token with a successful envelope.
+     */
+    public static void telegramAcceptsSendMessage(String token) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.sendMessagePath(token)))
+                .willReturn(okJson(TelegramFixtures.sendMessageResponse())));
+    }
+
+    /**
+     * Fails every {@code sendMessage} for this token with the given {@code ok:false} body.
+     */
+    public static void telegramFailsSendMessage(String token, int errorCode, String description) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.sendMessagePath(token)))
+                .willReturn(okJson(TelegramFixtures.error(errorCode, description))));
+    }
 }

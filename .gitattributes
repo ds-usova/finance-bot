@@ -4,5 +4,9 @@
 *.awk   text eol=lf
 gradlew text eol=lf
 
+# Spotless derives the endings it enforces from git, so a Windows checkout otherwise demands CRLF
+# for the sources that the Linux build demands LF for. Pinning them settles it for both.
+*.java  text eol=lf
+
 # cmd.exe needs the opposite.
 *.bat   text eol=crlf

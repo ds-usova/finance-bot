@@ -6,9 +6,9 @@ package bot.finance.common;
  *
  * <ul>
  *   <li><b>bare {@code Update} objects</b> ({@link #textMessageUpdate}, {@link #voiceMessageUpdate},
- *       {@link #textMessageUpdateWithoutChat}, {@link #callbackQueryUpdate}) — what
- *       {@code BotUtils.parseUpdate(String)} deserializes, so these are the inputs for tests that call the
- *       mapper directly;</li>
+ *       {@link #textMessageUpdateWithoutChat}, {@link #textMessageUpdateWithoutFrom},
+ *       {@link #callbackQueryUpdate}) — what {@code BotUtils.parseUpdate(String)} deserializes, so these are the
+ *       inputs for tests that call the mapper directly;</li>
  *   <li><b>{@code getUpdates} envelopes</b> ({@link #updatesResponse}, {@link #noUpdates}, {@link #error}) —
  *       {@code {"ok":…,"result":[…]}}, what the stub server serves. {@link #updatesResponse} wraps any number of
  *       the bare bodies above, which is what makes a multi-update batch expressible.</li>
@@ -19,31 +19,34 @@ package bot.finance.common;
  *
  * <p>These are Java text blocks rather than {@code src/test/resources} files loaded through {@link JsonUtils} —
  * a deliberate exception to that convention, because every body is parameterized by {@code updateId},
- * {@code chatId} or {@code text} and {@link JsonUtils#readJsonResourceAsString} performs no substitution. Move
- * a body to a resource file if it outgrows roughly fifteen lines.
+ * {@code userId}, {@code chatId} or {@code text} and {@link JsonUtils#readJsonResourceAsString} performs no
+ * substitution. Move a body to a resource file if it outgrows roughly fifteen lines.
  */
 public final class TelegramFixtures {
 
-    private static final int MESSAGE_ID = 1;
+    /** The {@code message_id} every bare update fixture carries, so a test can assert the reply target. */
+    public static final int MESSAGE_ID = 1;
+
     private static final int MESSAGE_DATE = 1700000000;
 
     private TelegramFixtures() {}
 
     /**
-     * A bare {@code Update} carrying a text message in a private chat.
+     * A bare {@code Update} carrying a text message in a private chat, sent by {@code userId}.
      */
-    public static String textMessageUpdate(int updateId, long chatId, String text) {
+    public static String textMessageUpdate(int updateId, long userId, long chatId, String text) {
         return """
                 {
                   "update_id": %d,
                   "message": {
                     "message_id": %d,
                     "date": %d,
+                    "from": { "id": %d, "is_bot": false, "first_name": "Tester" },
                     "chat": { "id": %d, "type": "private" },
                     "text": "%s"
                   }
                 }"""
-                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId, escaped(text));
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, userId, chatId, escaped(text));
     }
 
     /**
@@ -83,6 +86,24 @@ public final class TelegramFixtures {
                   }
                 }"""
                 .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, escaped(text));
+    }
+
+    /**
+     * A bare {@code Update} whose message carries text and a {@code chat} but no {@code from}, as a channel post
+     * does.
+     */
+    public static String textMessageUpdateWithoutFrom(int updateId, long chatId, String text) {
+        return """
+                {
+                  "update_id": %d,
+                  "message": {
+                    "message_id": %d,
+                    "date": %d,
+                    "chat": { "id": %d, "type": "channel" },
+                    "text": "%s"
+                  }
+                }"""
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId, escaped(text));
     }
 
     /**
@@ -139,6 +160,22 @@ public final class TelegramFixtures {
                   "description": "%s"
                 }"""
                 .formatted(errorCode, escaped(description));
+    }
+
+    /**
+     * A successful {@code sendMessage} envelope.
+     */
+    public static String sendMessageResponse() {
+        return """
+                {
+                  "ok": true,
+                  "result": {
+                    "message_id": 9999,
+                    "date": %d,
+                    "chat": { "id": 0, "type": "private" }
+                  }
+                }"""
+                .formatted(MESSAGE_DATE);
     }
 
     private static String escaped(String value) {

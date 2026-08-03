@@ -1,9 +1,12 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.MessageReference;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,20 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
             throw classify(proposal, e);
         }
         return saved.toDomain();
+    }
+
+    @Override
+    public List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference) {
+        try {
+            return expenseProposalEntityRepository.findSummariesByMessageReference(userId, reference.value()).stream()
+                    .map(ProposalSummaryProjection::toSummary)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find proposal summaries for user " + userId + " and message reference "
+                            + reference.value(),
+                    e);
+        }
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

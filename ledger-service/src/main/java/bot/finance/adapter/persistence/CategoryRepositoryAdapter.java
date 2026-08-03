@@ -43,7 +43,7 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     public List<KnownCategory> findKnownCategories(long userId) {
         try {
             return categoryEntityRepository.findKnownCategories(userId).stream()
-                    .map(projection -> new KnownCategory(projection.name(), projection.parentName()))
+                    .map(KnownCategoryProjection::toKnownCategory)
                     .toList();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find known categories for user " + userId, e);

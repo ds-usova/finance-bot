@@ -5,8 +5,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import bot.finance.common.containers.WireMockSupport;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.pengrad.telegrambot.TelegramBot;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 /**
@@ -46,7 +50,14 @@ public final class TelegramTestBot {
      */
     public static final String HANDLE_MESSAGE_FAILURE_TOKEN = "handle-message-failure-test-token";
 
+    /**
+     * Token owned by {@code TelegramMessageDeliveryAdapterTest}.
+     */
+    public static final String DELIVERY_TOKEN = "delivery-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TelegramTestBot() {}
 
@@ -56,6 +67,14 @@ public final class TelegramTestBot {
      */
     public static String getUpdatesPath(String token) {
         return "/bot%s/getUpdates".formatted(token);
+    }
+
+    /**
+     * The token-scoped path pengrad posts {@code sendMessage} to: {@code /bot<token>/sendMessage}. Stub
+     * registration and request verification both go through this, never a hand-written path.
+     */
+    public static String sendMessagePath(String token) {
+        return "/bot%s/sendMessage".formatted(token);
     }
 
     /**
@@ -84,5 +103,27 @@ public final class TelegramTestBot {
     public static List<LoggedRequest> recordedPollsWithOffset(String token, String offset) {
         return WireMockSupport.SERVER.findAll(
                 postRequestedFor(urlPathEqualTo(getUpdatesPath(token))).withFormParam("offset", equalTo(offset)));
+    }
+
+    /**
+     * Every {@code sendMessage} the stub server recorded for this token.
+     */
+    public static List<LoggedRequest> recordedSendMessages(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token))));
+    }
+
+    /**
+     * The {@code reply_parameters} form param of a recorded {@code sendMessage}, parsed — pengrad sends it as a
+     * JSON document inside a form field, so reading {@code message_id} or {@code allow_sending_without_reply} off
+     * it means parsing rather than a string comparison.
+     */
+    public static JsonNode replyParameters(LoggedRequest sendMessageRequest) {
+        String json =
+                sendMessageRequest.formParameter("reply_parameters").getValues().get(0);
+        try {
+            return MAPPER.readTree(json);
+        } catch (IOException e) {
+            throw new UncheckedIOException("failed to parse reply_parameters: " + json, e);
+        }
     }
 }

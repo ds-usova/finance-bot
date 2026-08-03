@@ -21,32 +21,41 @@ class HandleIncomingMessageCommandTest {
 
         @Test
         @DisplayName(
-                "when the conversation id and the text are non-blank - then both components are readable unchanged")
-        void whenConversationIdAndTextAreNonBlank_thenBothComponentsAreReadableUnchanged() {
-            HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("555", "lunch 12 euro");
+                "when the user external id, the conversation id, the inbound message id and the text are non-blank - then all four components are readable unchanged")
+        void whenAllFourComponentsAreNonBlank_thenAllFourComponentsAreReadableUnchanged() {
+            HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("42", "555", "1", "lunch 12 euro");
 
+            assertThat(message.userExternalId()).isEqualTo("42");
             assertThat(message.conversationId()).isEqualTo("555");
+            assertThat(message.inboundMessageId()).isEqualTo("1");
             assertThat(message.text()).isEqualTo("lunch 12 euro");
         }
 
-        @ParameterizedTest(name = "conversationId={0}, text={1}")
+        @ParameterizedTest(name = "userExternalId={0}, conversationId={1}, inboundMessageId={2}, text={3}")
         @MethodSource("invalidComponents")
         @DisplayName(
-                "when the conversation id or the text is null or blank - then throws InvalidIncomingMessageException")
-        void whenConversationIdOrTextIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
-                String conversationId, String text) {
-            assertThatThrownBy(() -> new HandleIncomingMessageCommand(conversationId, text))
+                "when the user external id, the conversation id, the inbound message id or the text is null or blank - then throws InvalidIncomingMessageException")
+        void whenAnyComponentIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
+                String userExternalId, String conversationId, String inboundMessageId, String text) {
+            assertThatThrownBy(() ->
+                            new HandleIncomingMessageCommand(userExternalId, conversationId, inboundMessageId, text))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
         static Stream<Arguments> invalidComponents() {
             return Stream.of(
-                    arguments(null, "text"),
-                    arguments("", "text"),
-                    arguments("  ", "text"),
-                    arguments("555", null),
-                    arguments("555", ""),
-                    arguments("555", "  "));
+                    arguments(null, "555", "1", "text"),
+                    arguments("", "555", "1", "text"),
+                    arguments("  ", "555", "1", "text"),
+                    arguments("42", null, "1", "text"),
+                    arguments("42", "", "1", "text"),
+                    arguments("42", "  ", "1", "text"),
+                    arguments("42", "555", null, "text"),
+                    arguments("42", "555", "", "text"),
+                    arguments("42", "555", "  ", "text"),
+                    arguments("42", "555", "1", null),
+                    arguments("42", "555", "1", ""),
+                    arguments("42", "555", "1", "  "));
         }
     }
 }

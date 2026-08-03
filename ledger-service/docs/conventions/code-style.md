@@ -78,6 +78,9 @@ Applies across all layers.
   (enforced).
 - Domain ↔ entity mapping lives on the persistence entity: a `toDomain()` instance method and a static
   `fromDomain(...)` factory — never private mapping helpers scattered through the adapter.
+- **A read-model projection owns its mapping the same way**: a `to<ReadModel>()` instance method on the projection
+  record. An adapter's query method reads as
+  `repository.find….stream().map(Projection::toSummary).toList()` and holds no mapping of its own.
 - Persistence entities are types of their own, distinct from domain types. Repositories are Spring Data JDBC
   interfaces with derived or `@Query` methods.
 - An outbound adapter translates every runtime exception its infrastructure raises into a domain exception; no

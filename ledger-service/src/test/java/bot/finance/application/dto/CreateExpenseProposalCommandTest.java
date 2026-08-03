@@ -7,6 +7,7 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +25,7 @@ class CreateExpenseProposalCommandTest {
     private static final String DESCRIPTION = "groceries";
     private static final Optional<String> MERCHANT = Optional.of("Trader Joe's");
     private static final Money MONEY = new Money(1000, new CurrencyCode("USD"));
+    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
 
     @Nested
     @DisplayName("constructing a new expense proposal")
@@ -33,7 +35,7 @@ class CreateExpenseProposalCommandTest {
         @DisplayName("when the userId is absent - then throws InvalidUserException")
         void whenUserIdIsAbsent_thenThrowsInvalidUserException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            null, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY))
+                            null, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidUserException.class);
         }
 
@@ -42,10 +44,15 @@ class CreateExpenseProposalCommandTest {
         @ValueSource(strings = {"  "})
         @DisplayName(
                 "when the category name is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(
-                String categoryName) {
+        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String categoryName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, categoryName, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY))
+                            USER_ID,
+                            categoryName,
+                            PARENT_CATEGORY_NAME,
+                            DESCRIPTION,
+                            MERCHANT,
+                            MONEY,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -53,7 +60,7 @@ class CreateExpenseProposalCommandTest {
         @DisplayName("when the parentCategoryName Optional is absent - then throws InvalidExpenseProposalException")
         void whenParentCategoryNameOptionalIsAbsent_thenThrowsInvalidExpenseProposalException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, null, DESCRIPTION, MERCHANT, MONEY))
+                            USER_ID, CATEGORY_NAME, null, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -69,7 +76,8 @@ class CreateExpenseProposalCommandTest {
                     Optional.of(parentCategoryName),
                     DESCRIPTION,
                     MERCHANT,
-                    MONEY);
+                    MONEY,
+                    MESSAGE_REFERENCE);
 
             assertThat(createExpenseProposalCommand.parentCategoryName()).isEmpty();
         }
@@ -81,7 +89,13 @@ class CreateExpenseProposalCommandTest {
                 "when the description is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
         void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String description) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, description, MERCHANT, MONEY))
+                            USER_ID,
+                            CATEGORY_NAME,
+                            PARENT_CATEGORY_NAME,
+                            description,
+                            MERCHANT,
+                            MONEY,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -89,7 +103,7 @@ class CreateExpenseProposalCommandTest {
         @DisplayName("when the merchant Optional is absent - then throws InvalidExpenseProposalException")
         void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseProposalException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, null, MONEY))
+                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, null, MONEY, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -99,7 +113,13 @@ class CreateExpenseProposalCommandTest {
                 "when the merchant is present but empty or only whitespace - then the record's merchant is Optional.empty()")
         void whenMerchantIsPresentButBlank_thenTheRecordsMerchantIsEmpty(String merchant) {
             CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
-                    USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, Optional.of(merchant), MONEY);
+                    USER_ID,
+                    CATEGORY_NAME,
+                    PARENT_CATEGORY_NAME,
+                    DESCRIPTION,
+                    Optional.of(merchant),
+                    MONEY,
+                    MESSAGE_REFERENCE);
 
             assertThat(createExpenseProposalCommand.merchant()).isEmpty();
         }
@@ -108,7 +128,13 @@ class CreateExpenseProposalCommandTest {
         @DisplayName("when money is absent - then throws InvalidExpenseProposalException")
         void whenMoneyIsAbsent_thenThrowsInvalidExpenseProposalException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
-                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, null))
+                            USER_ID,
+                            CATEGORY_NAME,
+                            PARENT_CATEGORY_NAME,
+                            DESCRIPTION,
+                            MERCHANT,
+                            null,
+                            MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
@@ -117,7 +143,7 @@ class CreateExpenseProposalCommandTest {
                 "when every field is present and the merchant is a non-blank name - then the record carries them unchanged")
         void whenEveryFieldIsPresentAndMerchantIsNonBlank_thenTheRecordCarriesThemUnchanged() {
             CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
-                    USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY);
+                    USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
 
             assertThat(createExpenseProposalCommand.userId()).isEqualTo(USER_ID);
             assertThat(createExpenseProposalCommand.categoryName()).isEqualTo(CATEGORY_NAME);
@@ -125,6 +151,24 @@ class CreateExpenseProposalCommandTest {
             assertThat(createExpenseProposalCommand.description()).isEqualTo(DESCRIPTION);
             assertThat(createExpenseProposalCommand.merchant()).isEqualTo(MERCHANT);
             assertThat(createExpenseProposalCommand.money()).isEqualTo(MONEY);
+        }
+
+        @Test
+        @DisplayName(
+                "when every component is valid and a message reference is given - then messageReference() reads back unchanged")
+        void whenEveryComponentIsValidAndAMessageReferenceIsGiven_thenMessageReferenceReadsBackUnchanged() {
+            CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
+                    USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
+
+            assertThat(createExpenseProposalCommand.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+        }
+
+        @Test
+        @DisplayName("when the messageReference is absent - then throws InvalidExpenseProposalException")
+        void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseProposalException() {
+            assertThatThrownBy(() -> new CreateExpenseProposalCommand(
+                            USER_ID, CATEGORY_NAME, PARENT_CATEGORY_NAME, DESCRIPTION, MERCHANT, MONEY, null))
+                    .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
 }

@@ -21,8 +21,7 @@ class AuthenticatedUserIdTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when the external id is absent, empty or whitespace-only - then InvalidUserException is thrown")
         void whenExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String externalId) {
-            assertThatThrownBy(() -> new AuthenticatedUserId(externalId))
-                    .isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(() -> new AuthenticatedUserId(externalId)).isInstanceOf(InvalidUserException.class);
         }
 
         @ParameterizedTest

@@ -1,7 +1,8 @@
 # Create an expense proposal
 
-- **In:** the identity of the authenticated caller · a category, by name · the grouping that category sits under
-  (optional) · a description · a merchant (optional) · a money amount
+- **In:** the identity of the authenticated caller · the reference of the message being handled · a category, by
+  name · the grouping that category sits under (optional) · a description · a merchant (optional) · a money
+  amount
 - **Out:** the stored expense proposal
 - **Why:** spending that has been assembled but not yet accepted is kept apart from the user's own ledger
   ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md))
@@ -20,6 +21,10 @@
 - The identity is the one the service has already authenticated
   ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose proposal it is
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
+- The [message reference](../domain/message-reference.md) is read from the same credential as the identity, and
+  the request never names it either
+  ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+- A stored proposal records which message produced it, so the report answering that message can name it.
 - A category is named, never identified by a stored id.
 - A name is resolved among the caller's own categories only.
 - Spending is filed under a category that sits under a grouping; the first level only groups.

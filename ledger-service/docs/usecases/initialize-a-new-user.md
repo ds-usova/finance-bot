@@ -37,7 +37,7 @@ A new user is given 97 categories: 20 groups holding 77 children.
 
 | Direction | Collaborator                                                                     | Through                                                                           | For                                                       |
 |-----------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
-| in        | [Act on a user's message](handle-incoming-message.md)                            | [Act on a user's message](handle-incoming-message.md)                             | resolving the person behind a conversation, on every message |
+| in        | [Act on a user's message](handle-incoming-message.md)                            | [Act on a user's message](handle-incoming-message.md)                             | resolving the person who sent a message, on every message   |
 | out       | [Database](../contracts/out/database.md)                                         | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their 97 categories                     |
 
 ## Rules

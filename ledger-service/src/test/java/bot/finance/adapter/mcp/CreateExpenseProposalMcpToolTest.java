@@ -21,6 +21,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -45,6 +46,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class CreateExpenseProposalMcpToolTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-07-30T12:00:00Z");
+
+    private static final String RECEIVED_CALL_PREFIX = "Received create_expense_proposal call:";
 
     @LocalServerPort
     private int port;
@@ -103,6 +106,7 @@ class CreateExpenseProposalMcpToolTest {
                     "lunch with the team",
                     Optional.of("Trattoria Roma"),
                     new Money(1599L, CurrencyCode.of("EUR")),
+                    MessageReference.newReference(),
                     CREATED_AT,
                     CREATED_AT);
             when(createExpenseProposalPort.create(any())).thenReturn(stored);
@@ -124,6 +128,35 @@ class CreateExpenseProposalMcpToolTest {
                     .contains("1599")
                     .contains("EUR")
                     .contains("2026-07-30T12:00:00Z");
+        }
+
+        @Test
+        @DisplayName(
+                "when create_expense_proposal is called - then the port receives a command carrying the token's mrf claim as its message reference and the token's subject as its identity")
+        void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenMrfClaimAsMessageReferenceAndSubjectAsIdentity() {
+            String externalId = "user-43";
+            MessageReference reference = MessageReference.newReference();
+            String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
+            ExpenseProposal stored = ExpenseProposal.stored(
+                    4343L,
+                    99L,
+                    3L,
+                    "lunch with the team",
+                    Optional.of("Trattoria Roma"),
+                    new Money(1599L, CurrencyCode.of("EUR")),
+                    reference,
+                    CREATED_AT,
+                    CREATED_AT);
+            when(createExpenseProposalPort.create(any())).thenReturn(stored);
+
+            postCreateExpenseProposal(
+                    token, "Restaurants", null, "lunch with the team", "Trattoria Roma", 1599L, "EUR");
+
+            ArgumentCaptor<CreateExpenseProposalCommand> command =
+                    ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
+            verify(createExpenseProposalPort).create(command.capture());
+            assertThat(command.getValue().messageReference()).isEqualTo(reference);
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
         }
     }
 
@@ -166,8 +199,8 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName(
                 "when the currency code is unusable so mapping throws InvalidMoneyException - then the tool error names an invalid request and the port is untouched")
         void whenCurrencyCodeUnusable_thenToolErrorNamesInvalidRequestAndPortUntouched() {
-            Response response = postCreateExpenseProposal(
-                    token("user-3"), "Restaurants", null, "lunch", "Cafe", 500L, "ZZZ");
+            Response response =
+                    postCreateExpenseProposal(token("user-3"), "Restaurants", null, "lunch", "Cafe", 500L, "ZZZ");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains("ZZZ");
@@ -256,13 +289,41 @@ class CreateExpenseProposalMcpToolTest {
 
                 assertThat(logCapture.messages())
                         .anyMatch(message -> message.contains(InvalidCategoryException.class.getSimpleName()));
+                // The received-call line is the DEBUG trace of the request itself, so it carries the arguments
+                // by design; every other line must not.
                 assertThat(logCapture.messages())
+                        .filteredOn(message -> !message.startsWith(RECEIVED_CALL_PREFIX))
                         .noneMatch(message -> message.contains(secretCategory)
                                 || message.contains(secretDescription)
                                 || message.contains(secretMerchant)
                                 || message.contains(secretExternalId)
                                 || message.contains(issuedToken));
+                assertThat(logCapture.messages()).noneMatch(message -> message.contains(issuedToken));
             }
+        }
+
+        @Test
+        @DisplayName(
+                "when the caller token carries no mrf claim - then the result is a tool error and the port is never called")
+        void whenTokenCarriesNoMrfClaim_thenResultIsToolErrorAndPortNeverCalled() {
+            String token = McpTokens.noReferenceToken("user-10");
+
+            Response response = postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            verify(createExpenseProposalPort, never()).create(any());
+        }
+
+        @Test
+        @DisplayName(
+                "when the caller token's mrf claim is not a UUID - then the result is a tool error and the port is never called")
+        void whenTokenMrfClaimIsNotUuid_thenResultIsToolErrorAndPortNeverCalled() {
+            String token = McpTokens.malformedReferenceToken("user-11");
+
+            Response response = postCreateExpenseProposal(token, "Restaurants", null, "lunch", "Cafe", 500L, "EUR");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            verify(createExpenseProposalPort, never()).create(any());
         }
     }
 

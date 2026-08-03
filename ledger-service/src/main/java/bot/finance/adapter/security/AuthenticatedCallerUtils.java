@@ -2,11 +2,14 @@ package bot.finance.adapter.security;
 
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 public final class AuthenticatedCallerUtils {
+
+    private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
 
     private AuthenticatedCallerUtils() {}
 
@@ -16,5 +19,14 @@ public final class AuthenticatedCallerUtils {
             throw new InvalidUserException("security context does not hold a validated token");
         }
         return new AuthenticatedUserId(jwtAuthenticationToken.getToken().getSubject());
+    }
+
+    public static MessageReference messageReference() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthenticationToken)) {
+            throw new InvalidUserException("security context does not hold a validated token");
+        }
+        String reference = jwtAuthenticationToken.getToken().getClaimAsString(MESSAGE_REFERENCE_CLAIM);
+        return MessageReference.of(reference);
     }
 }

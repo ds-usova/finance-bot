@@ -19,6 +19,7 @@ C3 is below. Package structure is in the
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
 - [Agent acting for a user — the expense proposal tool](docs/contracts/in/mcp.md) (inbound)
+- [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
 
@@ -60,13 +61,13 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(transcriptionPort, "Transcription Port", "Interface", "Outbound port", $tags="portOut")
   Component(extractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(repositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(notificationPort, "Notification Port", "Interface", "Outbound port", $tags="portOut")
+  Component(deliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
 
   Component(telegramFileAdapter, "Telegram File Adapter", "Spring Component", "Downloads audio", $tags="telegramExternal")
   Component(transcriptionAdapter, "Transcription Adapter", "Spring REST Client", "Calls the transcriber", $tags="transcriberExternal")
   Component(aiConnectorAdapter, "AI Connector Intent Extraction Adapter", "gRPC Client", "Calls the AI connector", $tags="aiConnectorExternal")
   Component(repositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Persists expenses", $tags="dbExternal")
-  Component(telegramNotifierAdapter, "Telegram Notifier Adapter", "Spring Component", "Sends the confirmation", $tags="telegramExternal")
+  Component(telegramDeliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report", $tags="telegramExternal")
 }
 
 Rel(telegram, telegramListener, "Update (message)", "Telegram Bot API, long polling")
@@ -91,9 +92,9 @@ Rel_R(expenseService, repositoryPort, "Uses")
 Rel_L(repositoryAdapter, repositoryPort, "Implements", $tags="implements")
 Rel_R(repositoryAdapter, db, "SQL", "JDBC")
 
-Rel_D(expenseService, notificationPort, "Uses")
-Rel_R(telegramNotifierAdapter, notificationPort, "Implements", $tags="implements")
-Rel_R(telegramNotifierAdapter, telegram, "Sends message", "Telegram Bot API")
+Rel_D(expenseService, deliveryPort, "Uses")
+Rel_R(telegramDeliveryAdapter, deliveryPort, "Implements", $tags="implements")
+Rel_R(telegramDeliveryAdapter, telegram, "Sends the report", "Telegram Bot API")
 
 SHOW_LEGEND()
 @enduml

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.ExpenseProposalRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
@@ -16,12 +17,14 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -60,6 +63,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Weekly shop",
                     Optional.of("Trader Joe's"),
                     new Money(1500, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -87,6 +91,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Electric bill",
                     Optional.empty(),
                     new Money(4200, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -110,6 +115,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Dinner",
                     Optional.empty(),
                     new Money(3000, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     nanosecondInstant);
 
             ExpenseProposal created = adapter.create(proposal);
@@ -137,6 +143,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(proposal);
@@ -160,6 +167,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -180,6 +188,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(proposal);
@@ -203,6 +212,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -222,6 +232,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -242,6 +253,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -265,6 +277,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "First purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
             ExpenseProposal secondProposal = ExpenseProposal.newExpenseProposal(
                     secondUserId,
@@ -272,6 +285,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Second purchase",
                     Optional.empty(),
                     new Money(200, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
                     Instant.now());
 
             adapter.create(firstProposal);
@@ -287,6 +301,162 @@ class ExpenseProposalRepositoryAdapterTest {
                 assertThat(row.userId()).isEqualTo(secondUserId);
                 assertThat(row.categoryId()).isEqualTo(secondCategoryId);
             });
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a stored user, a stored category and a proposal carrying a message reference - then the written row's message_reference column equals that reference's UUID")
+        void whenCalledWithMessageReference_thenRowMessageReferenceColumnEqualsGivenReferenceUuid() {
+            long userId = storedUserId("message-reference-proposal-user");
+            long categoryId = storedCategoryId(userId, "Category");
+            MessageReference reference = MessageReference.newReference();
+            ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
+                    userId,
+                    categoryId,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    reference,
+                    Instant.now());
+
+            adapter.create(proposal);
+
+            List<ExpenseProposalEntity> rows = expenseProposalRowsFor(userId);
+            assertThat(rows).singleElement().satisfies(row -> assertThat(row.messageReference())
+                    .isEqualTo(reference.value()));
+        }
+    }
+
+    @Nested
+    @DisplayName("finding proposal summaries by message reference")
+    class FindSummariesByMessageReference {
+
+        @Test
+        @DisplayName(
+                "when called with a user id and reference under which three proposals were stored at increasing created_at - then returns three summaries oldest first, each carrying the category name, the parent's name, the description, the merchant and a Money built from the row's minor units and currency code")
+        void whenThreeProposalsStoredUnderSameReference_thenReturnsThreeSummariesOldestFirstWithFullMapping() {
+            long userId = storedUserId("summary-ordering-user");
+            long parentId = storedCategoryId(userId, "Food");
+            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            MessageReference reference = MessageReference.newReference();
+            Instant base = Instant.now().minusSeconds(60);
+
+            storedProposal(
+                    userId, categoryId, "Third", "Merchant Three", 300, "USD", reference.value(), base.plusSeconds(20));
+            storedProposal(userId, categoryId, "First", "Merchant One", 100, "USD", reference.value(), base);
+            storedProposal(
+                    userId, categoryId, "Second", "Merchant Two", 200, "USD", reference.value(), base.plusSeconds(10));
+
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, reference);
+
+            assertThat(summaries).hasSize(3);
+            assertThat(summaries.get(0)).satisfies(summary -> {
+                assertThat(summary.categoryName()).isEqualTo("Groceries");
+                assertThat(summary.parentCategoryName()).isEqualTo("Food");
+                assertThat(summary.description()).isEqualTo("First");
+                assertThat(summary.merchant()).contains("Merchant One");
+                assertThat(summary.money()).isEqualTo(new Money(100, CurrencyCode.of("USD")));
+            });
+            assertThat(summaries.get(1).description()).isEqualTo("Second");
+            assertThat(summaries.get(2).description()).isEqualTo("Third");
+        }
+
+        @Test
+        @DisplayName(
+                "when called with one of two references a user's proposals were stored under - then only that reference's proposals come back")
+        void whenUserHasProposalsUnderTwoReferences_thenOnlyRequestedReferencesProposalsComeBack() {
+            long userId = storedUserId("summary-two-references-user");
+            long parentId = storedCategoryId(userId, "Food");
+            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            MessageReference firstReference = MessageReference.newReference();
+            MessageReference secondReference = MessageReference.newReference();
+            storedProposal(
+                    userId,
+                    categoryId,
+                    "Under first reference",
+                    null,
+                    100,
+                    "USD",
+                    firstReference.value(),
+                    Instant.now());
+            storedProposal(
+                    userId,
+                    categoryId,
+                    "Under second reference",
+                    null,
+                    200,
+                    "USD",
+                    secondReference.value(),
+                    Instant.now());
+
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, firstReference);
+
+            assertThat(summaries).singleElement().satisfies(summary -> assertThat(summary.description())
+                    .isEqualTo("Under first reference"));
+        }
+
+        @Test
+        @DisplayName(
+                "when called with one user's id and a reference value two stored users share - then only that user's proposals come back")
+        void whenTwoUsersShareAReferenceValue_thenOnlyRequestedUsersProposalsComeBack() {
+            long firstUserId = storedUserId("summary-shared-reference-first-user");
+            long firstCategoryId =
+                    storedChildCategoryId(firstUserId, storedCategoryId(firstUserId, "Food"), "Groceries");
+            long secondUserId = storedUserId("summary-shared-reference-second-user");
+            long secondCategoryId =
+                    storedChildCategoryId(secondUserId, storedCategoryId(secondUserId, "Food"), "Groceries");
+            MessageReference sharedReference = MessageReference.newReference();
+            storedProposal(
+                    firstUserId,
+                    firstCategoryId,
+                    "First user's proposal",
+                    null,
+                    100,
+                    "USD",
+                    sharedReference.value(),
+                    Instant.now());
+            storedProposal(
+                    secondUserId,
+                    secondCategoryId,
+                    "Second user's proposal",
+                    null,
+                    200,
+                    "USD",
+                    sharedReference.value(),
+                    Instant.now());
+
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(firstUserId, sharedReference);
+
+            assertThat(summaries).singleElement().satisfies(summary -> assertThat(summary.description())
+                    .isEqualTo("First user's proposal"));
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a stored user and a reference nothing was written under - then returns an empty list")
+        void whenReferenceHasNoStoredProposals_thenReturnsEmptyList() {
+            long userId = storedUserId("summary-no-proposals-user");
+
+            List<ProposalSummary> summaries =
+                    adapter.findSummariesByMessageReference(userId, MessageReference.newReference());
+
+            assertThat(summaries).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when a stored proposal's merchant column is null - then that summary's merchant is Optional.empty()")
+        void whenStoredProposalsMerchantColumnIsNull_thenSummaryMerchantIsEmpty() {
+            long userId = storedUserId("summary-no-merchant-user");
+            long parentId = storedCategoryId(userId, "Food");
+            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            MessageReference reference = MessageReference.newReference();
+            storedProposal(userId, categoryId, "No merchant", null, 100, "USD", reference.value(), Instant.now());
+
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, reference);
+
+            assertThat(summaries).singleElement().satisfies(summary -> assertThat(summary.merchant())
+                    .isEmpty());
         }
     }
 
@@ -312,7 +482,13 @@ class ExpenseProposalRepositoryAdapterTest {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.save(any())).thenThrow(frameworkException);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
+                    1L,
+                    1L,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
+                    Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -333,9 +509,30 @@ class ExpenseProposalRepositoryAdapterTest {
                     new DataIntegrityViolationException("constraint violation", sqlException);
             when(mockedExpenseProposalEntityRepository.save(any())).thenThrow(frameworkException);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 1L, "Purchase", Optional.empty(), new Money(100, CurrencyCode.of("USD")), Instant.now());
+                    1L,
+                    1L,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    MessageReference.newReference(),
+                    Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when findSummariesByMessageReference() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenFindSummariesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseProposalEntityRepository.findSummariesByMessageReference(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findSummariesByMessageReference(1L, MessageReference.newReference()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -350,7 +547,33 @@ class ExpenseProposalRepositoryAdapterTest {
         return CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, name);
     }
 
+    private long storedChildCategoryId(long userId, long parentId, String name) {
+        return CategoryRowUtils.storedChildCategoryId(jdbcAggregateTemplate, userId, parentId, name);
+    }
+
     private List<ExpenseProposalEntity> expenseProposalRowsFor(long userId) {
         return ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+    }
+
+    private ExpenseProposalEntity storedProposal(
+            long userId,
+            long categoryId,
+            String description,
+            String merchant,
+            long amountMinorUnits,
+            String currencyCode,
+            UUID messageReference,
+            Instant createdAt) {
+        return jdbcAggregateTemplate.insert(new ExpenseProposalEntity(
+                null,
+                userId,
+                categoryId,
+                description,
+                merchant,
+                amountMinorUnits,
+                currencyCode,
+                messageReference,
+                createdAt,
+                createdAt));
     }
 }

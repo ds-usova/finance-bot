@@ -45,8 +45,9 @@ class JwksControllerTest {
             when(accessTokenMinter.publicKey()).thenReturn(publicKey);
             when(accessTokenMinter.keyId()).thenReturn(KEY_ID);
 
-            MvcResult result =
-                    mockMvc.perform(get("/.well-known/jwks.json")).andExpect(status().isOk()).andReturn();
+            MvcResult result = mockMvc.perform(get("/.well-known/jwks.json"))
+                    .andExpect(status().isOk())
+                    .andReturn();
 
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getList("keys")).hasSize(1);
@@ -54,8 +55,10 @@ class JwksControllerTest {
             assertThat(json.getString("keys[0].alg")).isEqualTo("RS256");
             assertThat(json.getString("keys[0].use")).isEqualTo("sig");
             assertThat(json.getString("keys[0].kid")).isEqualTo(KEY_ID);
-            assertThat(json.getString("keys[0].n")).isEqualTo(expectedJwk.getModulus().toString());
-            assertThat(json.getString("keys[0].e")).isEqualTo(expectedJwk.getPublicExponent().toString());
+            assertThat(json.getString("keys[0].n"))
+                    .isEqualTo(expectedJwk.getModulus().toString());
+            assertThat(json.getString("keys[0].e"))
+                    .isEqualTo(expectedJwk.getPublicExponent().toString());
             Map<String, Object> jwk = json.getMap("keys[0]");
             assertThat(jwk).doesNotContainKey("d");
         }
