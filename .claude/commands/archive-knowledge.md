@@ -44,7 +44,8 @@ Each is new or updated in place. A second file on the same subject is a defect.
 
 ## Gate
 
-The plan is in `docs/implemented/`, has no `- [ ]`, and every blocker has a resolution. Otherwise write nothing
+The plan is in its task directory under `docs/implemented/`, has no `- [ ]`, and every blocker has a resolution.
+Otherwise write nothing
 and report why.
 
 ## Stage 1 — Survey
@@ -151,7 +152,7 @@ answer costs a re-read every time someone opens the file. A decision needing mor
 
 - **Status:** Accepted
 - **Date:** <YYYY-MM-DD>
-- **Source:** [<plan title>](../implemented/<plan-file>.md)
+- **Source:** [<plan title>](../implemented/<n>-<task-name>/<n>-plan-<task-name>.md)
 
 ## Context
 

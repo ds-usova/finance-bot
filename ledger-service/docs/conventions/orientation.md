@@ -45,7 +45,7 @@ conventions, the conventions win.
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.
   Lifecycle rules: [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` —
-  implemented plans.
+  one directory per implemented task, holding its design and its plan.
 - Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.
 
 How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).

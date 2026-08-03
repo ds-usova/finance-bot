@@ -20,7 +20,8 @@ there — never into this plan as a new question.
 
 ## 1. Require a Settled Design
 
-Every plan is written from a design file — `docs/<n>-design-<task-name>.md`, produced by `design-task`. Read it in
+Every plan is written from a design file — `docs/<n>-<task-name>/<n>-design-<task-name>.md`, produced by
+`design-task`. Read it in
 full before anything else. It carries the **Objective**, the **Proposed Solution** with the real file names, the
 diagrams, and the **Decisions** this plan's steps have to encode.
 
@@ -39,18 +40,21 @@ file (a new `D` entry, answered against the repository or escalated to the user)
 
 ## 2. Create a Plan File
 
-All plans live in the repository-root `docs/` folder, regardless of whether the task touches one module or several.
+A task owns a directory under the repository-root `docs/`, and its design and plan are the files in it — one
+directory whatever the task touches, one module or several.
 
-Create a Markdown file in the repository-root `docs/` folder named `<plan-number>-plan-<task-name>.md`. For example,
-`1-plan-add-auth.md`.
+The design already created `docs/<n>-<task-name>/<n>-design-<task-name>.md`. Write the plan beside it, as
+`docs/<n>-<task-name>/<n>-plan-<task-name>.md` — `docs/1-add-auth/1-plan-add-auth.md`.
 
-> **Numbering rule:** `<plan-number>` is the number of the design file this plan is written from, and the task name
-> matches it — `7-design-create-expense.md` yields `7-plan-create-expense.md`. The shared number is how the pair is
-> known to belong together.
+> **Numbering rule:** `<n>` and `<task-name>` are the design's, so the pair shares a directory as well as a name:
+> `docs/7-create-expense/7-design-create-expense.md` yields `docs/7-create-expense/7-plan-create-expense.md`. The
+> name is repeated in the filename rather than left as `plan.md` so a path, a tab, or a search hit identifies
+> itself without its parent directory.
 
-> **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move **both the plan
-> and its design file** from `docs/` into `docs/implemented/`. Active (in-progress) work lives in `docs/`; completed
-> work lives in `docs/implemented/`.
+> **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move **the task's
+> whole directory** from `docs/` into `docs/implemented/`. Active (in-progress) work lives in `docs/`; completed
+> work lives in `docs/implemented/<n>-<task-name>/`. Moving the directory keeps the pair together and keeps every
+> link between them working, since neither file's position relative to the other changes.
 > Never archive a plan just because one section is complete; archive it only when there are no unchecked `- [ ]` items
 > anywhere in the file.
 
@@ -88,7 +92,8 @@ list that single module; do not omit the property.
 **Design** links the design file this plan translates. The objective, the solution, the file names and the diagrams
 live there and are **not** repeated here: one fact, one owner. The plan's own content starts at the step map.
 
-The link is relative and survives archiving, since `implement-plan` moves both files together.
+The link is a bare sibling filename and survives archiving: the two share a directory, and `implement-plan`
+moves that directory whole.
 
 ### Step-by-Step Implementation Map (To-Do List)
 

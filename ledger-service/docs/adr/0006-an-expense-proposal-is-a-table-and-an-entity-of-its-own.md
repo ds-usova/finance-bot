@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-30
-- **Source:** [Create an Expense Proposal](../../../docs/implemented/7-plan-create-expense-proposal.md)
+- **Source:** [Create an Expense Proposal](../../../docs/implemented/7-create-expense-proposal/7-plan-create-expense-proposal.md)
 
 ## Context
 

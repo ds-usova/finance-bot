@@ -11,9 +11,9 @@ with a token to act as them, and the connector turns each expense the message as
 was handled, or a failure — no intent crosses the boundary any more.
 
 This joins the three pieces already built separately: the Telegram entry point, the intent extraction boundary
-(uncalled since [`4-plan-ledger-ai-connector-integration.md`](implemented/4-plan-ledger-ai-connector-integration.md)),
+(uncalled since [`4-plan-ledger-ai-connector-integration.md`](../4-ledger-ai-connector-integration/4-plan-ledger-ai-connector-integration.md)),
 and the MCP server (with no client since
-[`8-plan-mcp-adapter-create-expense-proposal.md`](implemented/8-plan-mcp-adapter-create-expense-proposal.md)).
+[`8-plan-mcp-adapter-create-expense-proposal.md`](../8-mcp-adapter-create-expense-proposal/8-plan-mcp-adapter-create-expense-proposal.md)).
 
 ## Context
 
@@ -41,7 +41,7 @@ and the MCP server (with no client since
   — assembles a validated `Intent` per raw answer and matches each category against the closed set. Its
   assembly is kept; only what happens to the finished list changes.
 - [`proto/intent_extraction.proto`](../proto/intent_extraction.proto) — the shared schema, and
-  [ADR 0005](adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md), which had each service
+  [ADR 0005](../../adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md), which had each service
   mirror the intent vocabulary in its own domain.
 
 ## Proposed Solution
@@ -622,7 +622,7 @@ L --> TG : acknowledge the whole batch
 - Answer: it is deleted — `Intent`, `CategoryIntent`, `ExpenseIntent`, `UnknownIntent`, `Operation`,
   `InvalidIntentException`, and the response half of `IntentProtoUtils`. `Money` and `CurrencyCode` stay.
 - Basis: assumed — no intent crosses into the ledger any more, and
-  [ADR 0005](adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md) had the ledger mirror the
+  [ADR 0005](../../adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md) had the ledger mirror the
   vocabulary only because the wire carried it. The ADR's decision still holds for the connector, which keeps its
   own; whether the change is worth recording as a superseding ADR is the plan's question to ask.
 

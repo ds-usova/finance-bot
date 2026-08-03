@@ -1,7 +1,8 @@
 # Example Design — Worked Example
 
 This is a complete worked example of a design file produced by the `design-task` skill — in a real repo this file
-would live at `docs/1-design-add-widget.md`, beside the plan written from it. It is illustrated with a
+would live at `docs/1-add-widget/1-design-add-widget.md`, beside the plan written from it. It is illustrated
+with a
 `Widget` feature purely for concreteness; the classes, the schema format and the failure vocabulary are whatever
 the module's `docs/conventions.md` records (see `.claude/templates/conventions-template.md`). What transfers is the
 structure: the sections, their order, and the decision format.

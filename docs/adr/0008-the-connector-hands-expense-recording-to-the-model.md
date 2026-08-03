@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-02
-- **Source:** [The Ledger's Tools on the Chat Client](../implemented/10-plan-ledger-tools-on-the-chat-client.md)
+- **Source:** [The Ledger's Tools on the Chat Client](../implemented/10-ledger-tools-on-the-chat-client/10-plan-ledger-tools-on-the-chat-client.md)
 
 ## Context
 

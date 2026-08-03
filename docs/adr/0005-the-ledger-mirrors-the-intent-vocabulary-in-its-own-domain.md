@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-28
-- **Source:** [Call the AI Connector from the Ledger Service](../implemented/4-plan-ledger-ai-connector-integration.md)
+- **Source:** [Call the AI Connector from the Ledger Service](../implemented/4-ledger-ai-connector-integration/4-plan-ledger-ai-connector-integration.md)
 
 ## Context
 
@@ -23,6 +23,6 @@ that speaks the wire, and a mapper there translates in both directions. The dupl
 - The schema stays the only shared artifact, so a shared module never becomes a place for behaviour to hide.
 - Five simple names collide between the generated and domain types; the mapper imports the domain ones and
   qualifies the generated ones in full.
-- 2026-07-31: since [plan 9](../implemented/9-plan-handle-incoming-message-extracts-intents.md) no intent
+- 2026-07-31: since [plan 9](../implemented/9-handle-incoming-message-extracts-intents/9-plan-handle-incoming-message-extracts-intents.md) no intent
   crosses into the ledger, so only the connector holds a mirror; this decision no longer applies to the ledger,
   which held the boundary this title names as it stood in July 2026.

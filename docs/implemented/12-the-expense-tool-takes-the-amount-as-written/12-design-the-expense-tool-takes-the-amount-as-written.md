@@ -24,7 +24,7 @@ What exists, and what this change builds on.
   onto `CreateExpenseProposalCommand`, and answers with
   [`CreateExpenseProposalToolResponse`](../ledger-service/src/main/java/bot/finance/adapter/mcp/CreateExpenseProposalToolResponse.java),
   which carries `long amountMinorUnits` back into the model's context. Designed in
-  [8-design-mcp-adapter-create-expense-proposal](implemented/8-design-mcp-adapter-create-expense-proposal.md).
+  [8-design-mcp-adapter-create-expense-proposal](../8-mcp-adapter-create-expense-proposal/8-design-mcp-adapter-create-expense-proposal.md).
 - **The money type** — [`Money`](../ledger-service/src/main/java/bot/finance/domain/value/Money.java) is
   `(long minorUnits, CurrencyCode currencyCode)`, and `amount()` already holds the scale rule in one direction:
   `BigDecimal.valueOf(minorUnits, Currency.getInstance(code).getDefaultFractionDigits())`. Its invariants are
@@ -360,7 +360,7 @@ end
 - Basis: assumed — nothing in the tool's history distinguishes a row the model under-scaled from one a user really
   spent, so a corrective migration would have to guess. The rows are proposals awaiting a human, and the deployment
   is one operator's own (D2 of
-  [11-design-report-expense-proposals-to-the-user](implemented/11-design-report-expense-proposals-to-the-user.md)).
+  [11-design-report-expense-proposals-to-the-user](../11-report-expense-proposals-to-the-user/11-design-report-expense-proposals-to-the-user.md)).
 
 - **D19:** Is `7200.50 HUF` really refused, as D6 says?
 - Answer: No — it is accepted and stored as 720050 minor units. The refusal rule is ISO 4217's fraction digits, and

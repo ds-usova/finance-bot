@@ -23,14 +23,19 @@ This skill produces one file and stops. It writes no checklist items, no test sc
 
 ## 1. Create the Design File
 
-All design files live in the repository-root `docs/` folder, named `<number>-design-<task-name>.md`.
+A task owns a directory under the repository-root `docs/`. Create it as `docs/<number>-<task-name>/` and write
+the design inside it, as `<number>-design-<task-name>.md` — `docs/7-create-expense/7-design-create-expense.md`.
+The plan `plan-task` writes later joins it there, so the pair travels as one directory.
 
-> **Numbering rule:** `<number>` is one more than the highest already in use, scanning filenames matching
-> `<number>-design-*.md` and `<number>-plan-*.md` in **both** `docs/` and `docs/implemented/`. The number and the
-> task name are the change's, not this file's: `7-design-x.md` and `7-plan-x.md` are the same piece of work.
+The task name is repeated inside the filename rather than left as `design.md`, so a path, an editor tab, or a
+search hit identifies itself without its parent directory.
 
-> **Archiving rule:** active work lives in `docs/`, completed work in `docs/implemented/`. A design is complete when
-> the work it describes is, so it is never archived here — this skill leaves the file in `docs/`.
+> **Numbering rule:** `<number>` is one more than the highest already in use, scanning the directory names
+> `<number>-*` in **both** `docs/` and `docs/implemented/`. The number and the task name are the change's, not
+> this file's.
+
+> **Archiving rule:** active work lives in `docs/`, completed work in `docs/implemented/`. A design is complete
+> when the work it describes is, so it is never archived here — this skill leaves the directory in `docs/`.
 
 ## 2. Read Module Conventions
 

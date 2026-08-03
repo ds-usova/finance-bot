@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-04
-- **Source:** [The Expense Tool Takes the Amount as the User Wrote It](../../../docs/implemented/12-plan-the-expense-tool-takes-the-amount-as-written.md)
+- **Source:** [The Expense Tool Takes the Amount as the User Wrote It](../../../docs/implemented/12-the-expense-tool-takes-the-amount-as-written/12-plan-the-expense-tool-takes-the-amount-as-written.md)
 
 ## Context
 

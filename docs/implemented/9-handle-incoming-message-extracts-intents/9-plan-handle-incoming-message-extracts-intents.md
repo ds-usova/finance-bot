@@ -64,9 +64,9 @@
   decision stands (status unchanged, one dated line appended to Consequences). Link it from the ADR bullet in
   both modules' `docs/conventions/orientation.md`, as `architecture.md` already links
   `docs/conventions/diagrams.md`.
-- [x] ST27 · repo-root — mark [ADR 0005](adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md)
+- [x] ST27 · repo-root — mark [ADR 0005](../../adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md)
   outdated under ST26's third ending: `Status:` stays `Accepted`, and one dated line joins its Consequences —
-  since [plan 9](implemented/9-plan-handle-incoming-message-extracts-intents.md) no intent crosses into the
+  since [plan 9](9-plan-handle-incoming-message-extracts-intents.md) no intent crosses into the
   ledger, so only the connector holds a mirror, and the title names the ledger for the boundary as it stood in
   July 2026. Context and Decision are not touched.
 - [x] ST10 · `ai-connector-service` — add `application/dto/KnownCategory.java`: `record KnownCategory(String

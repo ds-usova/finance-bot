@@ -21,7 +21,7 @@ What exists, and what this change mirrors.
   into `HandleIncomingMessageCommand`, and
   [`HandleIncomingMessageUseCase`](../ledger-service/src/main/java/bot/finance/application/usecase/HandleIncomingMessageUseCase.java)
   initializes the user, loads the known categories and calls `IntentExtractionPort`. It returns `void` and tells
-  the user nothing. Designed in [9-design-handle-incoming-message-extracts-intents](implemented/9-design-handle-incoming-message-extracts-intents.md).
+  the user nothing. Designed in [9-design-handle-incoming-message-extracts-intents](../9-handle-incoming-message-extracts-intents/9-design-handle-incoming-message-extracts-intents.md).
 - **Identity today** — the use case passes `command.conversationId()` straight into `InitializeUserCommand`, so the
   Telegram chat id is the user's `external_id`.
 - **Where proposals come from** — the connector does not return them. `ExtractIntentsResponse` is empty
@@ -301,7 +301,7 @@ end
   every existing row keeps matching its owner. A row created from a group message would be orphaned, and its
   proposals become unreachable.
 - Basis: assumed — every stored row today comes from the private-chat flow that
-  [9-design-handle-incoming-message-extracts-intents](implemented/9-design-handle-incoming-message-extracts-intents.md)
+  [9-design-handle-incoming-message-extracts-intents](../9-handle-incoming-message-extracts-intents/9-design-handle-incoming-message-extracts-intents.md)
   designed, and the deployment has one operator's own chats in it.
 
 - **D3:** How does the ledger know which proposals came from *this* message?
@@ -375,7 +375,7 @@ end
 - **D14:** In what order are proposals listed?
 - Answer: Oldest first — `ORDER BY ep.created_at, ep.id` — so the report follows the order the user wrote them in.
 - Basis: assumed — the model calls the tool once per expense as it reads the message
-  ([ADR 0008](adr/0008-the-connector-hands-expense-recording-to-the-model.md)), and `id` breaks a tie between two
+  ([ADR 0008](../../adr/0008-the-connector-hands-expense-recording-to-the-model.md)), and `id` breaks a tie between two
   rows stamped in the same microsecond.
 
 - **D15:** Are proposals the model tried and failed to record shown to the user?

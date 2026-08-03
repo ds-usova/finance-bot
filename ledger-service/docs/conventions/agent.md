@@ -62,7 +62,8 @@ their work in progress, not a finding. Reconciling across steps is the orchestra
 
 ## Plan Files
 
-- Location: repo-root `docs/`; completed plans are archived to `docs/implemented/` (see
+- Location: a task directory under repo-root `docs/` — `docs/<n>-<task-name>/`, holding the design and the plan
+  written from it. A completed task's whole directory is archived to `docs/implemented/` (see
   [Documentation References](orientation.md#documentation-references)).
 
 ## Post-Implementation Actions
