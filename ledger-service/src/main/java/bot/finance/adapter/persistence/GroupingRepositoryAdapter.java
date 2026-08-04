@@ -21,7 +21,7 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
         try {
             return categoryEntityRepository
                     .findByUserIdAndNameAndParentIdIsNull(userId, name)
-                    .map(entity -> new StoredGrouping(entity.id(), entity.name()));
+                    .map(CategoryEntity::toStoredGrouping);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find grouping for user " + userId, e);
         }

@@ -23,7 +23,7 @@ class ListCategoriesCommandTest {
 
         @Test
         @DisplayName("when the userId and groupingName are valid - then both components read back unchanged")
-        void whenUserIdAndParentCategoryNameAreValid_thenBothComponentsReadBackUnchanged() {
+        void whenUserIdAndGroupingNameAreValid_thenBothComponentsReadBackUnchanged() {
             ListCategoriesCommand listCategoriesCommand = new ListCategoriesCommand(USER_ID, GROUPING_NAME);
 
             assertThat(listCategoriesCommand.userId()).isEqualTo(USER_ID);

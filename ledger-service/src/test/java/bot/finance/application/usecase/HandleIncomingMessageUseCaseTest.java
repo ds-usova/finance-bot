@@ -81,7 +81,7 @@ class HandleIncomingMessageUseCaseTest {
         return new HandleIncomingMessageCommand(EXTERNAL_ID, CONVERSATION_ID, INBOUND_MESSAGE_ID, TEXT);
     }
 
-    private List<String> stubKnownUserAndCategories() {
+    private List<String> stubKnownUserAndGroupings() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
         List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
         when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
@@ -118,7 +118,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "the command's user external id, the extraction request carries a non-null message reference, "
                 + "and findSummariesByMessageReference is called with the user's id and that same reference")
         void whenHandleIsCalled_thenInitializeAndExtractionAndLookupCarryUserAndReference() {
-            List<String> categoryGroupings = stubKnownUserAndCategories();
+            List<String> categoryGroupings = stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -199,7 +199,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "RECORDED report carrying the command's conversation and inbound message ids and those "
                 + "summaries in order")
         void whenExtractionSucceedsWithSummaries_thenDeliverReceivesRecordedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             List<ProposalSummary> summaries = twoSummaries();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(summaries);
@@ -219,7 +219,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction returns normally and the repository returns an empty list - then deliver "
                 + "receives a NOTHING_IDENTIFIED report with no proposals")
         void whenExtractionSucceedsWithNoSummaries_thenDeliverReceivesNothingIdentifiedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
@@ -237,7 +237,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "summaries - then no exception escapes and deliver receives a PARTIAL report carrying those "
                 + "summaries")
         void whenExtractionFailsWithSummaries_thenDeliverReceivesPartialReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -258,7 +258,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws IntentExtractionFailedException and the repository returns an "
                 + "empty list - then no exception escapes and deliver receives a FAILED report")
         void whenExtractionFailsWithNoSummaries_thenDeliverReceivesFailedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -276,7 +276,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws IntentExtractionFailedException - then an error line is logged "
                 + "carrying the message reference and the outcome, and not the message text")
         void whenExtractionFails_thenErrorLineNamesReferenceAndOutcomeAndOmitsText() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -298,7 +298,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when a turn succeeds - then an info line names the message reference and the user's "
                 + "external id, and does not carry the message text")
         void whenTurnSucceeds_thenInfoLineNamesReferenceAndExternalIdAndOmitsText() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -352,7 +352,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when findSummariesByMessageReference throws PersistenceFailedException - then that "
                 + "exception propagates and deliver is never called")
         void whenFindSummariesThrowsPersistenceFailedException_thenExceptionPropagatesAndDeliverUntouched() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
@@ -366,7 +366,7 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when deliver throws MessageDeliveryFailedException - then that exception propagates")
         void whenDeliverThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
             MessageDeliveryFailedException failure =
@@ -380,7 +380,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws InvalidExtractionRequestException - then that exception propagates "
                 + "past the catch and deliver is never called")
         void whenExtractionThrowsInvalidExtractionRequestException_thenExceptionPropagatesAndDeliverUntouched() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             InvalidExtractionRequestException failure = new InvalidExtractionRequestException("bad request");
             doThrow(failure).when(intentExtractionPort).extract(any());
 

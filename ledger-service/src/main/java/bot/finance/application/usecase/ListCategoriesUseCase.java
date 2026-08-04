@@ -10,7 +10,6 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.model.User;
 import java.util.List;
-import java.util.Optional;
 
 public class ListCategoriesUseCase implements ListCategoriesPort {
 
@@ -38,20 +37,20 @@ public class ListCategoriesUseCase implements ListCategoriesPort {
                         "user",
                         "no user stored under external id " + command.userId().externalId()));
         long userId = user.id().orElseThrow();
-        // TODO(GU07): rework grouping resolution and its two refusals against
-        // GroupingRepository/CategoryRepository per ListCategoriesUseCaseTest.
         StoredGrouping grouping = resolveGrouping(userId, command.groupingName());
         return groupingRepository.findCategoryNames(userId, grouping);
     }
 
     private StoredGrouping resolveGrouping(long userId, String groupingName) {
-        Optional<StoredGrouping> grouping = groupingRepository.findByUserIdAndName(userId, groupingName);
-        if (grouping.isPresent()) {
-            return grouping.get();
-        }
+        return groupingRepository
+                .findByUserIdAndName(userId, groupingName)
+                .orElseThrow(() -> unresolvedGrouping(userId, groupingName));
+    }
+
+    private InvalidGroupingException unresolvedGrouping(long userId, String groupingName) {
         if (categoryRepository.existsByUserIdAndName(userId, groupingName)) {
-            throw new InvalidGroupingException(groupingName + " is a category, not a grouping");
+            return new InvalidGroupingException(groupingName + " is a category, not a grouping");
         }
-        throw new InvalidGroupingException("no grouping named " + groupingName + " is stored for this user");
+        return new InvalidGroupingException("no grouping named " + groupingName + " is stored for this user");
     }
 }

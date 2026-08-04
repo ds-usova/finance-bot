@@ -50,9 +50,7 @@ public class ListCategoriesMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidCategoryException e) {
-            return rejected(e, e.getMessage());
-        } catch (InvalidGroupingException e) {
+        } catch (InvalidCategoryException | InvalidGroupingException e) {
             return rejected(e, e.getMessage());
         } catch (InvalidUserException e) {
             return rejected(e, "invalid request: " + e.getMessage());

@@ -60,9 +60,9 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when tools/call list_categories is posted naming Groceries - then the response is a "
-                + "non-error result whose text names Groceries and carries exactly its three seeded children, "
+                + "non-error result whose text names Groceries and carries exactly its three seeded categories, "
                 + "sorted by name")
-        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsChildrenSortedByName() {
+        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsCategoriesSortedByName() {
             User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 

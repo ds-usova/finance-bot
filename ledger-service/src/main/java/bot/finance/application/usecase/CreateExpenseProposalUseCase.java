@@ -69,8 +69,6 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         return created;
     }
 
-    // TODO(GU08): rework category resolution against GroupingRepository.findByUserIdAndName then
-    // CategoryRepository.findByGroupingAndName, per CreateExpenseProposalUseCaseTest.
     private long resolveCategoryId(User user, CreateExpenseProposalCommand command) {
         long userId = user.id().orElseThrow();
         String groupingName = command.groupingName();

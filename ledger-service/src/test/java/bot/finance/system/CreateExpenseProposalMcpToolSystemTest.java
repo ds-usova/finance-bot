@@ -81,11 +81,11 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when tools/call create_expense_proposal is posted to /mcp naming a child category - then the "
+        @DisplayName("when tools/call create_expense_proposal names a category under its own grouping - then the "
                 + "response carries the stored proposal with the amount as written, and exactly one "
                 + "expense_proposal row exists for that user carrying that category's id, the description, "
                 + "the merchant, the amount scaled to the currency's own minor units and the currency code")
-        void whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten() {
+        void whenToolCallNamesCategoryUnderItsGrouping_thenResponseCarriesStoredProposalAndRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
             long supermarketsCategoryId = storedCategory(userId, "Supermarkets").id();
@@ -138,7 +138,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         @DisplayName("when tools/call create_expense_proposal names Supermarkets under grouping Dining - then "
                 + "the response is a tool error naming the grouping mismatch, and no expense_proposal row exists "
                 + "for that user")
-        void whenToolCallNamesGrouping_thenResponseIsToolErrorNamingChildrenAndNoRowIsWritten() {
+        void whenToolCallNamesCategoryUnderTheWrongGrouping_thenResponseIsToolErrorAndNoRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-unhappy-path-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
@@ -170,7 +170,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
                 + "is a tool error naming the missing grouping, and no expense_proposal row exists for "
                 + "that user")
         void whenToolCallHasNoGrouping_thenResponseIsToolErrorAndNoRowIsWritten() {
-            User user = seedUserWithDefaultCategories("create-expense-proposal-no-parent-category-user");
+            User user = seedUserWithDefaultCategories("create-expense-proposal-no-grouping-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 

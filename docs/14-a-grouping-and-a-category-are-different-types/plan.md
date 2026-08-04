@@ -692,6 +692,20 @@
   agent extended with a `contains("sending that grouping as its grouping")` check — so the coverage the bullet was
   reaching for exists, in the test that actually reads the user message.
 
+- **B4 (follow-up, raised by the Stage 4 refactor):** the vocabulary migration stops short of the proposal read
+  model. `ProposalSummary.parentCategoryName`, `ProposalSummaryProjection.parentName` and `ProposalReportUtils`'s
+  read of it still name what this change calls a grouping — `ExpenseProposalRepositoryAdapterTest` asserts
+  `summary.parentCategoryName()` equals `"Food"`, which is a grouping. No design decision covers these files and
+  the plan never listed them, so the refactor stage correctly left them alone.
+- Resolution: out of scope for this plan — renaming that component to `groupingName` is a clean follow-up change
+  of its own. Recorded so the next reader finds it rather than rediscovering it.
+
+- **B5 (wording, raised by the Stage 4 refactor):** `user-message.st` now reads "sending that grouping as its
+  grouping" (ST20, per D11). It is accurate but reads oddly to a model; "sending that grouping as the `grouping`
+  argument" would be plainer.
+- Resolution: left as designed — the line is settled by D11 and is asserted text. Worth revisiting only if the
+  model's grouping selection degrades in practice.
+
 ## Review Findings
 
 - **F1:** ST21's helper rename reuses a surviving name at a different arity and named only two of the four reading

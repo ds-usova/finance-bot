@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.StoredCategory;
+import bot.finance.application.dto.StoredGrouping;
 import bot.finance.domain.value.Category;
 import bot.finance.domain.value.Grouping;
 import org.springframework.data.annotation.Id;
@@ -19,5 +20,9 @@ public record CategoryEntity(@Id Long id, Long userId, Long parentId, String nam
 
     public StoredCategory toStoredCategory() {
         return new StoredCategory(id, name);
+    }
+
+    public StoredGrouping toStoredGrouping() {
+        return new StoredGrouping(id, name);
     }
 }

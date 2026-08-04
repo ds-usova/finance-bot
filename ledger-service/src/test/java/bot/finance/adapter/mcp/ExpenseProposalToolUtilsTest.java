@@ -74,8 +74,7 @@ class ExpenseProposalToolUtilsTest {
         @MethodSource("blankGroupings")
         @DisplayName("when the request's grouping is null, empty, or whitespace only - then throws "
                 + "InvalidExpenseProposalException with the message \"expense proposal request has no grouping\"")
-        void whenParentCategoryIsNullOrBlank_thenThrowsInvalidExpenseProposalException(
-                String description, String grouping) {
+        void whenGroupingIsNullOrBlank_thenThrowsInvalidExpenseProposalException(String description, String grouping) {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
 
@@ -94,7 +93,7 @@ class ExpenseProposalToolUtilsTest {
         @Test
         @DisplayName("when the request's grouping is absent and its amount is also malformed - then the "
                 + "amount's own failure is raised")
-        void whenParentCategoryIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
+        void whenGroupingIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", null, "Milk", "Corner Shop", "twelve", "EUR");
 
@@ -105,7 +104,7 @@ class ExpenseProposalToolUtilsTest {
 
         @Test
         @DisplayName("when the request carries a non-blank grouping - then the command's groupingName is that name")
-        void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatName() {
+        void whenGroupingIsNonBlank_thenCommandGroupingNameIsThatName() {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
 
             CreateExpenseProposalCommand command =

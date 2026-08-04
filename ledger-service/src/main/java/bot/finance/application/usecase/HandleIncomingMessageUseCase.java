@@ -55,8 +55,6 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        // TODO(GU09): confirm findNamesWithCategories reads through GroupingRepository per
-        // HandleIncomingMessageUseCaseTest.
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 

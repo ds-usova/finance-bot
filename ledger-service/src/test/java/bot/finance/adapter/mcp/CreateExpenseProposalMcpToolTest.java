@@ -71,15 +71,14 @@ class CreateExpenseProposalMcpToolTest {
     private Response postCreateExpenseProposal(
             String token,
             String category,
-            String parentCategory,
+            String grouping,
             String description,
             String merchant,
             String amount,
             String currencyCode) {
         return postMcp(
                 token,
-                McpRequests.createExpenseProposal(
-                        category, parentCategory, description, merchant, amount, currencyCode));
+                McpRequests.createExpenseProposal(category, grouping, description, merchant, amount, currencyCode));
     }
 
     private Response postMcp(String token, String body) {
