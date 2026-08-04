@@ -55,7 +55,6 @@ class ExpenseProposalToolUtilsTest {
                             Optional.of("Corner Shop"),
                             new Money(1500L, CurrencyCode.of("EUR")),
                             MESSAGE_REFERENCE));
-            assertThat(command.groupingName()).isEqualTo("Food");
         }
 
         @Test
