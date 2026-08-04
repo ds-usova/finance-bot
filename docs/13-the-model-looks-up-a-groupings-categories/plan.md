@@ -552,33 +552,33 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Category` · test: `CategoryTest`
-- [ ] GU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
-- [ ] GU03 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest`
-- [ ] GU04 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU03
-- [ ] GU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU02
-- [ ] GU06 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: GU02
-- [ ] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest`
-- [ ] GU08 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest`
-- [ ] GU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU08
+- [x] GU01 · `Category` · test: `CategoryTest`
+- [x] GU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
+- [x] GU03 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest`
+- [x] GU04 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU03
+- [x] GU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU02
+- [x] GU06 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · after: GU02
+- [x] GU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest`
+- [x] GU08 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest`
+- [x] GU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU08
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
-- [ ] GI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · after: GU03
-- [ ] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU07
-- [ ] GI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU02,
+- [x] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
+- [x] GI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · after: GU03
+- [x] GI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU07
+- [x] GI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU02,
   GU06
-- [ ] GI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU08
-- [ ] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
+- [x] GI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU08
+- [x] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp`
-- [ ] GS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
-- [ ] GS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
-- [ ] GS04 · `ReceiveTelegramMessageSystemTest` · covers: the running Telegram poll loop
-- [ ] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp`
+- [x] GS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] GS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] GS04 · `ReceiveTelegramMessageSystemTest` · covers: the running Telegram poll loop
+- [x] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
 
 ### Post-Implementation Steps
 

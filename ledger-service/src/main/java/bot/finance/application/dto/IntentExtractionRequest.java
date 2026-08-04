@@ -18,8 +18,18 @@ public record IntentExtractionRequest(
         if (text == null || text.isBlank()) {
             throw new InvalidExtractionRequestException("Text must not be null or blank");
         }
-        // TODO RU02: validate categoryGroupings (non-null, non-empty, no null/blank element) and
-        // catchAllGrouping (non-blank, one of categoryGroupings)
+        if (categoryGroupings == null || categoryGroupings.isEmpty()) {
+            throw new InvalidExtractionRequestException("Category groupings must not be null or empty");
+        }
+        if (categoryGroupings.stream().anyMatch(grouping -> grouping == null || grouping.isBlank())) {
+            throw new InvalidExtractionRequestException("Category groupings must not contain null or blank elements");
+        }
+        if (catchAllGrouping == null || catchAllGrouping.isBlank()) {
+            throw new InvalidExtractionRequestException("Catch-all grouping must not be null or blank");
+        }
+        if (!categoryGroupings.contains(catchAllGrouping)) {
+            throw new InvalidExtractionRequestException("Catch-all grouping must be one of the category groupings");
+        }
         if (defaultCurrency == null) {
             throw new InvalidExtractionRequestException(
                     "Default currency must not be null; use Optional.empty() when absent");

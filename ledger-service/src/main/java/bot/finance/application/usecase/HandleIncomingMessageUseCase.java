@@ -17,6 +17,7 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
 import bot.finance.domain.value.MessageReference;
 import java.util.List;
 import java.util.Optional;
@@ -76,9 +77,9 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             User user,
             MessageReference reference) {
         try {
-            // TODO GU05: resolve the catch-all as Category.catchAllGroupingName() when categoryGroupings
-            // carries it, and as the first grouping read otherwise
-            String catchAllGrouping = categoryGroupings.isEmpty() ? "" : categoryGroupings.get(0);
+            String catchAllGrouping = categoryGroupings.contains(Category.catchAllGroupingName())
+                    ? Category.catchAllGroupingName()
+                    : categoryGroupings.stream().findFirst().orElse(Category.catchAllGroupingName());
             intentExtractionPort.extract(new IntentExtractionRequest(
                     command.text(),
                     categoryGroupings,

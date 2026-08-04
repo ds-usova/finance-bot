@@ -56,8 +56,33 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return true;
         }
 
-        // TODO RI05: reject empty category_groupings, a blank entry in category_groupings, a blank
-        // catch_all_grouping, and a catch_all_grouping not among category_groupings — each INVALID_ARGUMENT
+        if (request.getCategoryGroupingsList().isEmpty()) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Category groupings must not be empty")
+                    .asRuntimeException());
+            return true;
+        }
+
+        if (request.getCategoryGroupingsList().stream().anyMatch(String::isBlank)) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Category groupings must not contain a blank name")
+                    .asRuntimeException());
+            return true;
+        }
+
+        if (request.getCatchAllGrouping().isBlank()) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Catch-all grouping must not be blank")
+                    .asRuntimeException());
+            return true;
+        }
+
+        if (!request.getCategoryGroupingsList().contains(request.getCatchAllGrouping())) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Catch-all grouping must be one of the category groupings")
+                    .asRuntimeException());
+            return true;
+        }
 
         return false;
     }

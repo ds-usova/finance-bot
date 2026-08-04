@@ -29,11 +29,19 @@ public final class ExpenseProposalToolUtils {
         if (!AMOUNT_PATTERN.matcher(strippedAmount).matches()) {
             throw new InvalidExpenseProposalException("amount must be digits with an optional dot, like 7200 or 12.50");
         }
-        Optional<String> parentCategory = blankToEmpty(request.parentCategory());
+        if (request.parentCategory() == null || request.parentCategory().isBlank()) {
+            throw new InvalidExpenseProposalException("expense proposal request has no parent category");
+        }
         Optional<String> merchant = blankToEmpty(request.merchant());
         Money money = Money.ofMajorUnits(new BigDecimal(strippedAmount), CurrencyCode.of(request.currencyCode()));
         return new CreateExpenseProposalCommand(
-                userId, request.category(), parentCategory, request.description(), merchant, money, reference);
+                userId,
+                request.category(),
+                Optional.of(request.parentCategory()),
+                request.description(),
+                merchant,
+                money,
+                reference);
     }
 
     private static Optional<String> blankToEmpty(String value) {

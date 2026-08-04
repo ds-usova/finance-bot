@@ -1,9 +1,17 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.security.AuthenticatedCallerUtils;
+import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import java.util.List;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Component;
@@ -29,8 +37,33 @@ public class ListCategoriesMcpTool {
                     + "under one of these, never under the grouping itself.")
     public CallToolResult listCategories(
             @McpToolParam(description = "the grouping's name, exactly as it was offered") String parentCategory) {
-        // logs the call at debug, reads the caller off the token, invokes ListCategoriesPort, serializes
-        // ListCategoriesToolResponse, and renders every failure as an isError result logged at warn
-        return null;
+        log.debug("Received list_categories call: {}", parentCategory);
+
+        try {
+            AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+
+            List<String> categories = listCategoriesPort.list(new ListCategoriesCommand(userId, parentCategory));
+            ListCategoriesToolResponse response = new ListCategoriesToolResponse(parentCategory, categories);
+
+            log.debug("list_categories call succeeded: {}", response);
+            return CallToolResult.builder()
+                    .addTextContent(jsonMapper.writeValueAsString(response))
+                    .build();
+        } catch (InvalidCategoryException e) {
+            return rejected(e, e.getMessage());
+        } catch (InvalidUserException e) {
+            return rejected(e, "invalid request: " + e.getMessage());
+        } catch (EntityNotFoundException e) {
+            return rejected(e, "the user is unknown");
+        } catch (PersistenceFailedException e) {
+            return rejected(e, "the categories could not be read");
+        } catch (RuntimeException e) {
+            return rejected(e, "the categories could not be listed");
+        }
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message) {
+        log.warn("rejected list_categories call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

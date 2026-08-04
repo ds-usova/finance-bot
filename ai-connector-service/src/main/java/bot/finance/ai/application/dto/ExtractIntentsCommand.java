@@ -13,8 +13,18 @@ public record ExtractIntentsCommand(
             throw new InvalidValueException("Text must not be null or blank");
         }
 
-        // TODO RU08: validate categoryGroupings (non-null, non-empty, no null/blank element) and
-        // catchAllGrouping (non-blank, one of categoryGroupings)
+        if (categoryGroupings == null || categoryGroupings.isEmpty()) {
+            throw new InvalidValueException("Category groupings must not be null or empty");
+        }
+        if (categoryGroupings.stream().anyMatch(grouping -> grouping == null || grouping.isBlank())) {
+            throw new InvalidValueException("Category groupings must not contain a null or blank element");
+        }
+        if (catchAllGrouping == null || catchAllGrouping.isBlank()) {
+            throw new InvalidValueException("Catch-all grouping must not be null or blank");
+        }
+        if (!categoryGroupings.contains(catchAllGrouping)) {
+            throw new InvalidValueException("Catch-all grouping must be one of the category groupings");
+        }
 
         if (defaultCurrency == null) {
             throw new InvalidValueException("Default currency Optional must not be null");
