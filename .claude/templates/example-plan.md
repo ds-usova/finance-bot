@@ -12,6 +12,9 @@ What the feature *is* — the objective, the solution, the file names, the diagr
 lives in `.claude/templates/example-design.md`, the design this plan is written from. The plan links it rather than
 restating it, and starts at the step map.
 
+Every item below is in one of the formats specified in [`step-formats.md`](step-formats.md); read that for the
+rules, and this for what they look like when written out.
+
 ---
 
 # Plan: Add Widget Creation
@@ -143,6 +146,9 @@ public Settings loadSettings(long userId) {
         - given: a domain object with a null optional field
           when: toRest() is called
           then: null is preserved in the response
+        - update: `whenGadgetIsMapped_thenResponseCarriesItsFields()` — the response record gained `value`, so
+          assert it alongside the fields the test already checks; without this the test compiles and passes while
+          asserting nothing about the new field
 
 #### TDD Integration Red Phase
 

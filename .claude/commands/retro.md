@@ -46,6 +46,27 @@ Every finding **names the artifact to change** and what to put in it:
 A proposal that resolves to "be more careful" belongs to none of these layers and is not a finding — it is the
 class of suggestion that never takes effect. Rewrite it as a change to one of the five, or drop it.
 
+**Every skill the session used is in scope, not only the ones in this repository.** A skill invoked from a
+plugin, a marketplace, or anywhere else gets the same treatment: if it cost time, say so and say what would fix
+it. A skill whose file cannot be edited here still earns a finding — write what should change and where it would
+have to be raised, so the cost is visible rather than absorbed silently every session.
+
+**Apply the placement test before naming the file.** Findings default to "add a sentence to the skill", which is
+how a skill reaches six hundred lines: every retro adds, none removes, and a rule added to a long file competes
+with hundreds of others for attention.
+
+- Does it change the **sequence** of work, or a guardrail between stages? → the skill.
+- Does it change what **one agent** does with the context handed to it? → that agent's file.
+- Is it a fact about **this repository** — its stack, its tests, its build? → module conventions.
+- Is it a **habit of the agent** that no repository file should carry? → memory.
+
+Take the lowest row that fits. Conventions are read selectively per module and memory is one index line until
+recalled, so both cost far less standing context than a skill does. A skill edit is the last resort.
+
+**Additions to a long skill are paid for with extractions.** Past roughly 250 lines, a skill takes no new rule
+until something is extracted or merged. Reference material — format specifications, glossaries, worked examples —
+extracts cleanly to a file the skill points at; what must stay is the sequence, the guardrails, and the handoffs.
+
 Two more rules:
 
 - **Include the agent's own mistakes**, not only tooling friction. A misread instruction propagated into three
