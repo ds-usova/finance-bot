@@ -113,11 +113,15 @@ What each diagram must **show**:
   each pair, pointing the way the dependency really runs. A design whose arrows leave the domain, or reach the
   application from an adapter by any route other than an inbound port, has drawn a contract violation — rework the
   placement now, while it is a line in a diagram.
-- **Sequence diagram** — always. The flow from the entry point, through the usecase, to the outbound port(s), with
-  `alt`/`else`/`end` fragments for the alternative branches: a validation failure, a not-found case, an outbound
-  call erroring. Every branch a **Decisions** entry settles appears as a fragment, and those fragments are what the
-  red phase turns into unhappy-path test scenarios. A straight-line happy path means the failure modes were never
-  designed, and the tests for them will not exist either.
+- **Flow diagram** — always. The flow from the entry point, through the usecase, to the outbound port(s), showing
+  every alternative branch: a validation failure, a not-found case, an outbound call erroring. Every branch a
+  **Decisions** entry settles appears, and those branches are what the red phase turns into unhappy-path test
+  scenarios. A straight-line happy path means the failure modes were never designed, and the tests for them will
+  not exist either.
+
+  Whether that is a sequence diagram (`alt`/`else`/`end` fragments) or an activity diagram is decided by the
+  repository's own diagram conventions — read them and pick, rather than defaulting to one form. A flow carrying
+  both several participants and real branching is two diagrams, not one overloaded one.
 - **Container diagram (C4 level 2)** — only when **Affected Modules** lists more than one. Each module as a
   `Container(...)`, and what crosses between them: the call, the message, the shared table. A cross-module design
   carrying only a C3 shows two sets of classes and not the thing that joins them, which is exactly where the
