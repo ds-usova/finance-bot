@@ -12,18 +12,16 @@ service IntentExtractionService {
 
 message ExtractIntentsRequest {
   string text = 1;
-  reserved 2;
-  reserved "known_categories";
-  // ISO 4217 code applied when the user states an amount but no currency. Absent means
-  // an amount without a currency is not acted on.
-  optional string default_currency = 3;
   // The groupings the caller's categories are filed under; must be non-empty. An expense is
   // filed under a category the `list_categories` tool answers for one of these, never under
   // the grouping itself.
-  repeated string category_groupings = 4;
+  repeated string category_groupings = 2;
   // The grouping to fall back on when no other fits; must be non-blank and one of
   // `category_groupings`, so a fit always exists.
-  string catch_all_grouping = 5;
+  string catch_all_grouping = 3;
+  // ISO 4217 code applied when the user states an amount but no currency. Absent means
+  // an amount without a currency is not acted on.
+  optional string default_currency = 4;
 }
 
 // Empty: a call that returns has been acted on. A failure is a gRPC status.

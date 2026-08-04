@@ -50,7 +50,7 @@ class ExpenseProposalToolUtilsTest {
                     .isEqualTo(new CreateExpenseProposalCommand(
                             USER_ID,
                             "Groceries",
-                            Optional.of("Food"),
+                            "Food",
                             "Milk",
                             Optional.of("Corner Shop"),
                             new Money(1500L, CurrencyCode.of("EUR")),
@@ -105,14 +105,14 @@ class ExpenseProposalToolUtilsTest {
 
         @Test
         @DisplayName("when the request carries a non-blank parentCategory - then the command's parentCategoryName "
-                + "is that name, present")
-        void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatNamePresent() {
+                + "is that name")
+        void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatName() {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
-            assertThat(command.parentCategoryName()).contains("Food");
+            assertThat(command.parentCategoryName()).isEqualTo("Food");
         }
 
         @ParameterizedTest(name = "{0}")

@@ -65,18 +65,16 @@ grouping's categories; the prompts stop composing and splitting labels.
 ```proto
 message ExtractIntentsRequest {
   string text = 1;
-  reserved 2;
-  reserved "known_categories";
-  // ISO 4217 code applied when the user states an amount but no currency. Absent means
-  // an amount without a currency is not acted on.
-  optional string default_currency = 3;
   // The groupings the caller's categories are filed under; must be non-empty. An expense is
   // filed under a category the `list_categories` tool answers for one of these, never under
   // the grouping itself.
-  repeated string category_groupings = 4;
+  repeated string category_groupings = 2;
   // The grouping to fall back on when no other fits; must be non-blank and one of
   // `category_groupings`, so a fit always exists.
-  string catch_all_grouping = 5;
+  string catch_all_grouping = 3;
+  // ISO 4217 code applied when the user states an amount but no currency. Absent means
+  // an amount without a currency is not acted on.
+  optional string default_currency = 4;
 }
 ```
 
@@ -117,11 +115,9 @@ The `KnownCategory` message is deleted.
   At most one candidate can be a grouping: the unique index makes a name unique per user *and parent*, and the
   grouping's parent is null.
 - **`application/usecase/HandleIncomingMessageUseCase`** — calls `findGroupingNames`, resolves the catch-all as
-  `Category.catchAllGroupingName()` when the groupings read carry it and as the first grouping otherwise, and
-  passes both into `IntentExtractionRequest`. The existing "no category to file under" refusal becomes "no
-  grouping", unchanged in shape: an empty list makes the request constructor throw before the connector is
-  reached, and the fallback keeps the catch-all invariant satisfiable for a user whose catalogue does not carry
-  the designated name.
+  `Category.catchAllGroupingName()` and passes both into `IntentExtractionRequest`. Groupings that do not carry
+  that name raise `CatchAllGroupingMissingException`, which nothing catches (D23), so the connector is never
+  reached and no report is sent.
 
 **Adapters**
 
@@ -130,7 +126,9 @@ The `KnownCategory` message is deleted.
   ```sql
   SELECT c.name
   FROM category c
-  WHERE c.user_id = :userId AND c.parent_id IS NULL
+  WHERE c.user_id = :userId
+    AND c.parent_id IS NULL
+    AND EXISTS (SELECT 1 FROM category child WHERE child.parent_id = c.id)
   ORDER BY c.name
   ```
 
@@ -169,8 +167,9 @@ The `KnownCategory` message is deleted.
   description drops "never a grouping", which the tool pair now says structurally.
 - **`adapter/mcp/ExpenseProposalToolUtils.toCommand`** — an absent or blank `parentCategory` becomes
   `InvalidExpenseProposalException("expense proposal request has no parent category")`, checked beside the amount
-  and before any lookup; the command still carries `Optional<String>`, now always present.
-  `CreateExpenseProposalUseCase.resolveCategoryId` is untouched and keeps its ambiguity branch as a guard.
+  and before any lookup. `CreateExpenseProposalCommand.parentCategoryName` is a plain `String`, and
+  `CreateExpenseProposalUseCase.resolveCategoryId` loses its ambiguity and is-a-grouping branches, both
+  unreachable once the parent name is always present (D10).
 - **`adapter/aiconnector/IntentProtoUtils`** — `toProtoRequest` calls `builder.addAllCategoryGroupings(...)` and
   `setCatchAllGrouping(...)`; the private `toProtoKnownCategory` is deleted.
 - **`adapter/config/UseCaseConfiguration`** — a `@Bean` for `ListCategoriesUseCase`.
@@ -407,12 +406,12 @@ stop
   the rest (2026-08-04).
 
 - **D2:** Does the grouping list keep field number 2, or take a new one?
-- Answer: A new one — `category_groupings = 4`, with `reserved 2` and `reserved "known_categories"`.
-- Basis: assumed — the two services deploy from one `infrastructure/docker-compose.yaml` but can be recreated
-  singly, and a stale counterpart outlives a partial deploy (D21 of
-  [12-the-expense-tool-takes-the-amount-as-written](../implemented/12-the-expense-tool-takes-the-amount-as-written/design.md)).
-  Reusing the number would put a length-delimited message and a string on the same tag; reserving it makes an old
-  connector see an empty list and answer `INVALID_ARGUMENT`, which the caller already reports as a failed turn.
+- Answer: It takes number 2, and no tag is reserved. The message reads `text = 1`, `category_groupings = 2`,
+  `catch_all_grouping = 3`, `default_currency = 4`.
+- Basis: decided — this review (2026-08-04) overturned the earlier `category_groupings = 4` with `reserved 2` and
+  `reserved "known_categories"`. Neither service is in production, so there is no deployed counterpart of the
+  other vintage for a reused tag to confuse, and wire compatibility across a partial deploy buys nothing. A
+  reservation with nothing to protect is one more thing every reader has to account for.
 
 - **D3:** Does the ledger still refuse the turn when the user has nothing to file under?
 - Answer: Yes, unchanged in shape — an empty grouping list makes `IntentExtractionRequest` throw before the
@@ -463,13 +462,18 @@ stop
 
 - **D10:** Is a category name still resolvable by name alone on `create_expense_proposal`, or is `parentCategory`
   made required now that the model always knows the grouping?
-- Answer: Required. `parentCategory` loses `required = false`, and `ExpenseProposalToolUtils` refuses an absent or
-  blank one as an invalid request before any lookup runs. The model reaches a category through `list_categories`,
-  so it always holds the grouping to send.
-- Basis: decided — the user chose making it required over leaving it optional (2026-08-04). It puts the ambiguity
-  refusal, and the malformed message D30 found, out of reach; `resolveCategoryId` keeps both branches as guards.
-  [mcp.md](../../ledger-service/docs/contracts/in/mcp.md) permits the change in place because the tool and its one
-  caller ship together.
+- Answer: Required, all the way down. `parentCategory` loses `required = false`; `ExpenseProposalToolUtils`
+  refuses an absent or blank one as an invalid request before any lookup runs; and
+  `CreateExpenseProposalCommand.parentCategoryName` is a plain `String`, non-blank by its own compact
+  constructor, rather than an `Optional<String>` that is always present. `resolveCategoryId` therefore always
+  narrows by parent, and its *ambiguity* and *is-a-grouping* branches are **removed** rather than kept as guards.
+- Basis: decided — the user chose making it required over leaving it optional (2026-08-04); this review
+  (2026-08-04) followed the consequence through the command and the use case. With a parent name always present,
+  a grouping row (whose parent name is empty) can never survive the filter, and the unique index on
+  `(user_id, parent_id, name)` admits at most one row per name-and-parent — so neither branch is reachable, and
+  an unreachable branch is dead code rather than a guard. A name that resolves only to a grouping now takes the
+  parent-mismatch refusal. [mcp.md](../../ledger-service/docs/contracts/in/mcp.md) permits the change in place
+  because the tool and its one caller ship together.
 
 - **D11:** Does the connector need wiring for the new tool?
 - Answer: No. `AiExpenseRecordingAdapter` attaches `SyncMcpToolCallbackProvider` wholesale, so a tool the ledger
@@ -480,19 +484,20 @@ stop
 
 - **D12:** What does a connector process holding the old tool list do after this ships?
 - Answer: It offers only `create_expense_proposal` while holding grouping names, so the model sends a grouping as
-  the `category`. That is the existing "is a grouping, retry with one of its children" refusal, which answers with
-  the children — so the model recovers on its one retry and the expense is still recorded, one call later.
-- Basis: assumed — `CreateExpenseProposalUseCase.resolveCategoryId` builds exactly that message from
-  `findChildNames`, and `ledger-mcp.md` has the model correct a refused call and try that expense once more. The
-  stale list lasts until the connector process restarts.
+  the `category` and no `parentCategory`. The tool refuses that as an invalid request, and nothing the model
+  holds lets it correct the call, so those expenses go unrecorded until the connector process restarts.
+- Basis: decided — this review (2026-08-04). The earlier answer had the model recover on its one retry through
+  the "is a grouping, retry with one of its children" refusal, which D10 removed as unreachable. Neither service
+  is in production (D2), so a window in which one side holds a stale tool list is a restart away from closing and
+  is not worth a branch kept alive for it.
 
 - **D13:** Given D12, is a tool needed at all — the refusal already answers a grouping's children?
-- Answer: Yes, the tool stays. The refusal path spends the model's one retry per expense on discovery, so a second
-  mistake in the same call leaves the expense unrecorded; the tool makes the lookup a call of its own that costs no
-  retry.
+- Answer: Yes, the tool stays, and it is now the only way a grouping's children are ever answered: this review
+  (2026-08-04) removed the refusal that used to name them (D10).
 - Basis: assumed — the one-retry policy is stated in `ledger-mcp.md` and
   [extract-intents.md](../../ai-connector-service/docs/usecases/extract-intents.md) ("refused a second time is left
-  unrecorded"). The refusal message also names only the children, not which grouping is worth asking about.
+  unrecorded"). Discovery through a refusal spent the model's one retry per expense on it, and the refusal named
+  only the children, not which grouping was worth asking about.
 
 - **D14:** Does the catch-all survive when only groupings travel?
 - Answer: Yes, at the grouping level: the ledger names it on the request and the prompt renders that name, so
@@ -574,13 +579,21 @@ stop
 
 - **D23:** With the positional rule gone, how does the model learn which grouping is the catch-all?
 - Answer: The ledger designates it on the request. `catch_all_grouping` is a field of `ExtractIntentsRequest`,
-  filled by `HandleIncomingMessageUseCase` from `Category.catchAllGroupingName()` when the user's groupings carry
-  that name and from the first grouping read otherwise, and the connector renders it into the prompt as
-  `{catchAllGrouping}`. Both sides refuse a request whose catch-all is blank or absent from the grouping list, so
-  "a fit always exists" is an invariant rather than a hope.
+  filled by `HandleIncomingMessageUseCase` from `Category.catchAllGroupingName()`, and the connector renders it
+  into the prompt as `{catchAllGrouping}`. Both sides refuse a request whose catch-all is blank or absent from
+  the grouping list, so "a fit always exists" is an invariant rather than a hope. **Groupings that do not carry
+  that name are a broken invariant, not a case to paper over:** `HandleIncomingMessageUseCase` throws
+  `CatchAllGroupingMissingException`, a domain exception nothing catches, so the turn ends with no report rather
+  than with a catch-all the catalogue never designated.
 - Basis: decided — the user chose a ledger-designated field over hard-coding `Miscellaneous` in the connector's
-  prompt and over dropping the guarantee (2026-08-04). It keeps a fact about a user's catalogue on the side that
-  owns the catalogue, and survives a rename that a literal in a prompt would not.
+  prompt and over dropping the guarantee (2026-08-04); this review (2026-08-04) replaced the earlier "the first
+  grouping read otherwise" fallback with the throw. The catch-all grouping may not be deleted — nothing in the
+  ledger edits a category at all — so its absence is a state the code should not be able to reach, and falling
+  back would file every unmatched expense under whatever grouping sorts first. It propagates as
+  `PersistenceFailedException` already does, since a broken invariant is not a failed turn to be reported.
+  Consequence for **D3**: a user with no groupings at all reaches this throw before the request constructor, so
+  the empty-list refusal is `CatchAllGroupingMissingException` rather than `InvalidExtractionRequestException`.
+  The outcome is unchanged — the connector is never reached and no report is sent.
 
 - **D24:** What does doubling the calls per expense cost against the deadline the turn runs under?
 - Answer: A turn now needs at least two provider round trips and two ledger calls per expense instead of one of
@@ -628,12 +641,13 @@ stop
 
 - **D29:** What happens in the other deploy order — a new connector against a ledger still sending
   `known_categories`?
-- Answer: The old ledger fills field 2, the new connector reads `getCategoryGroupingsList()` as empty and answers
-  `INVALID_ARGUMENT`, which the ledger reports as a failed turn. Both orders fail loudly for the length of the
-  window; neither files an expense under a grouping the caller did not send.
-- Basis: assumed — the symmetric case to D2. `IntentExtractionGrpcService.rejectIfInvalid` rejects before the
-  port is reached, and `HandleIncomingMessageUseCase.extract` turns the failure into `FAILED`/`PARTIAL`. Field 2
-  is reserved on both sides, so no old value is ever read as a new one.
+- Answer: Nothing has to. With no reservation (D2) the old `known_categories` and the new `category_groupings`
+  share tag 2, so a mixed pair would read a length-delimited message as a string rather than failing cleanly —
+  which is why the two are only ever released together. Neither service is deployed anywhere for the window to
+  open in.
+- Basis: decided — this review (2026-08-04) replaced the earlier answer, which relied on the reservation to make
+  both deploy orders fail loudly. Wire compatibility across a partial deploy is a property nothing in this
+  repository is paying for today.
 
 - **D30:** What does the model see when it files under `Travel` after listing `Insurance`, without sending
   `parentCategory`?
@@ -643,8 +657,10 @@ stop
 - Basis: assumed — `CreateExpenseProposalUseCase.groupingsOf` maps `parentName()` through `orElse("")`, and
   `Category.defaults()` makes `Travel` the one default name that is both a grouping and a leaf. The old flow
   reached that refusal rarely because the label already carried the grouping; the new flow reaches it whenever
-  the model omits the argument. D10 makes the argument required, so the refusal is unreachable through the tool
-  and the malformed message is left as it stands.
+  the model omits the argument. D10 makes the argument required, so the refusal is unreachable through the tool.
+  This review (2026-08-04) removed that branch and `groupingsOf` with it, so the malformed message no longer
+  exists to leave as it stands; `Travel` under a grouping that does not hold it now takes the parent-mismatch
+  refusal, which names both the category and the grouping asked for.
 
 - **D31:** Does a `list_categories` refusal end the turn?
 - Answer: No. It is an `isError` `CallToolResult`, a successful call carrying an error, so it reaches the model
@@ -679,6 +695,24 @@ stop
   something that is not stored raises a not-found domain exception, in the use case that looks it up" without
   distinguishing an id from a caller-supplied name — the convention line wants the id/name split spelled out, and
   the plan's post-implementation step should carry that edit.
+
+- **D34:** Is a grouping that holds no categories offered to the model?
+- Answer: No. `CategoryEntityRepository.findGroupingNames` keeps only groupings with at least one child, through
+  an `EXISTS` clause on the child rows, still `ORDER BY c.name`.
+- Basis: decided — this review (2026-08-04). Offering a grouping the model can pick and then find empty spends a
+  provider round trip and a ledger call to learn nothing, and the prompt has no rule for what to do next.
+  Filtering at the read is the only place that knows; `list_categories` keeps answering an empty list for such a
+  grouping (D8), now as a guard on a path the normal flow no longer reaches.
+
+- **D35:** Should a grouping and a category be separate domain types, rather than one `Category` whose children
+  list happens to be empty?
+- Answer: Not here. The distinction is currently carried by an empty `parentName` on a read and an empty
+  `children` list on `Category`, and every rule about it — which resolves, which is refused, which travels — is
+  written in the use cases rather than in the type.
+- Basis: deferred — the reviewer raised it (2026-08-04) and it is going to its own `design-task` rather than
+  being folded in. It reaches the domain type, both persistence reads, the two use cases that resolve a name and
+  every test that builds a `StoredCategory`, so it is a change of its own size with its own trade-offs, and
+  nothing in this change is blocked on it.
 
 ## Design Findings
 

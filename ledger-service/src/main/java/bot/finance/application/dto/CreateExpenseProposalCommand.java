@@ -10,7 +10,7 @@ import java.util.Optional;
 public record CreateExpenseProposalCommand(
         AuthenticatedUserId userId,
         String categoryName,
-        Optional<String> parentCategoryName,
+        String parentCategoryName,
         String description,
         Optional<String> merchant,
         Money money,
@@ -23,10 +23,9 @@ public record CreateExpenseProposalCommand(
         if (categoryName == null || categoryName.isBlank()) {
             throw new InvalidExpenseProposalException("new expense proposal has no category name");
         }
-        if (parentCategoryName == null) {
-            throw new InvalidExpenseProposalException("new expense proposal has no parentCategoryName");
+        if (parentCategoryName == null || parentCategoryName.isBlank()) {
+            throw new InvalidExpenseProposalException("new expense proposal has no parent category name");
         }
-        parentCategoryName = parentCategoryName.filter(p -> !p.isBlank());
         if (description == null || description.isBlank()) {
             throw new InvalidExpenseProposalException("new expense proposal has no description");
         }

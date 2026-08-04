@@ -75,6 +75,13 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final List<String> EXPECTED_GROUPING_NAMES =
             Category.defaults().stream().map(Category::name).sorted().toList();
 
+    /** The categories {@link Category#defaults()} files under {@link #PROPOSAL_GROUPING}. */
+    private static final List<String> EXPECTED_GROUPING_CATEGORIES = Category.defaults().stream()
+            .filter(group -> PROPOSAL_GROUPING.equals(group.name()))
+            .flatMap(group -> group.children().stream())
+            .map(Category::name)
+            .toList();
+
     private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
 
@@ -100,8 +107,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
         logCapture = LogCapture.attachedTo(HandleIncomingMessageUseCase.class);
         WireMockStubs.telegramReturnsNoUpdates(TOKEN);
         WireMockStubs.telegramAcceptsSendMessage(TOKEN);
-        GrpcStubServer.armMcpCallback(
+        GrpcStubServer.armMcpCallbacks(
                 "http://localhost:" + port,
+                McpRequests.listCategories(PROPOSAL_GROUPING),
                 McpRequests.createExpenseProposal(
                         PROPOSAL_CATEGORY,
                         PROPOSAL_GROUPING,
@@ -136,11 +144,11 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when the running poll loop picks up a text message update - then the batch is confirmed, the AI "
-                + "connector receives the message text, the user's known categories with their parent "
-                + "names, and a bearer token whose sub is the from id; a user is stored under the from "
-                + "id rather than the chat id; one expense_proposal row is stored under the reference "
-                + "the bearer token's mrf claim carries; and one sendMessage reply names the recorded "
-                + "proposal")
+                + "connector receives the message text, the user's grouping names and catch-all, and a "
+                + "bearer token whose sub is the from id; a user is stored under the from id rather than "
+                + "the chat id; list_categories answers that grouping's categories before one "
+                + "expense_proposal row is stored under the reference the bearer token's mrf claim "
+                + "carries; and one sendMessage reply names the recorded proposal")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
@@ -204,6 +212,18 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(proposalRow.messageReference())
                     .as("stored proposal's message reference matches the bearer token's mrf claim")
                     .isEqualTo(UUID.fromString(messageReferenceClaim));
+
+            List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
+            assertThat(mcpAnswers)
+                    .as("what /mcp answered the stub connector, call by call")
+                    .hasSize(2);
+            assertThat(mcpAnswers.get(0))
+                    .as("the list_categories answer, given before the proposal was recorded")
+                    .contains(PROPOSAL_GROUPING)
+                    .contains(EXPECTED_GROUPING_CATEGORIES.toArray(String[]::new));
+            assertThat(mcpAnswers.get(1))
+                    .as("the create_expense_proposal answer")
+                    .contains(PROPOSAL_CATEGORY);
 
             await("a sendMessage reply is recorded for the confirmed batch")
                     .atMost(POLL_TIMEOUT)

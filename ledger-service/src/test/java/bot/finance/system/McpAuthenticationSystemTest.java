@@ -79,12 +79,13 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
     @DisplayName("happy path")
     class HappyPath {
 
-        @Test
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.system.McpAuthenticationSystemTest#publishedTools")
         @DisplayName(
-                "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and list_categories with its one argument, neither carrying an identity argument")
-        void
-                whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalAndListCategoriesToolsAreListedWithTheirArgumentsAndNoIdentityArgument() {
-            String externalId = "mcp-auth-tools-list-user";
+                "when tools/list is posted with a valid token - then 200 lists the tool with exactly its own arguments and required arguments, and no identity argument among them")
+        void whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument(
+                String toolName, List<String> expectedArguments, List<String> expectedRequiredArguments) {
+            String externalId = "mcp-auth-tools-list-user-" + toolName;
             UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);
 
@@ -93,40 +94,40 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             response.then().statusCode(200);
 
             List<Map<String, Object>> tools = response.jsonPath().getList("result.tools");
-            Map<String, Object> createExpenseProposalTool = tools.stream()
-                    .filter(tool -> "create_expense_proposal".equals(tool.get("name")))
+            Map<String, Object> tool = tools.stream()
+                    .filter(listed -> toolName.equals(listed.get("name")))
                     .findFirst()
-                    .orElseThrow(() -> new AssertionError("create_expense_proposal was not listed: " + tools));
+                    .orElseThrow(() -> new AssertionError(toolName + " was not listed: " + tools));
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> createInputSchema = (Map<String, Object>) createExpenseProposalTool.get("inputSchema");
+            Map<String, Object> inputSchema = (Map<String, Object>) tool.get("inputSchema");
             @SuppressWarnings("unchecked")
-            Map<String, Object> createProperties = (Map<String, Object>) createInputSchema.get("properties");
-            assertThat(createProperties.keySet())
-                    .as("create_expense_proposal's argument names")
-                    .containsExactlyInAnyOrder(
-                            "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> amountSchema = (Map<String, Object>) createProperties.get("amount");
-            assertThat(amountSchema).as("amount's published type").containsEntry("type", "string");
-            assertThat(createInputSchema.get("required"))
-                    .as("create_expense_proposal's required array")
+            Map<String, Object> properties = (Map<String, Object>) inputSchema.get("properties");
+            assertThat(properties.keySet())
+                    .as("%s's argument names", toolName)
+                    .containsExactlyInAnyOrderElementsOf(expectedArguments);
+            assertThat(inputSchema.get("required"))
+                    .as("%s's required array", toolName)
                     .asInstanceOf(InstanceOfAssertFactories.LIST)
-                    .contains("amount", "parentCategory");
+                    .containsAll(expectedRequiredArguments);
+        }
 
-            Map<String, Object> listCategoriesTool = tools.stream()
-                    .filter(tool -> "list_categories".equals(tool.get("name")))
-                    .findFirst()
-                    .orElseThrow(() -> new AssertionError("list_categories was not listed: " + tools));
+        @Test
+        @DisplayName(
+                "when tools/list is posted with a valid token - then create_expense_proposal publishes amount as a string, so a number is never accepted for it")
+        void whenToolsListIsPostedWithValidToken_thenAmountIsPublishedAsAString() {
+            String externalId = "mcp-auth-amount-type-user";
+            UserRowUtils.storedUserId(userEntityRepository, externalId);
+            String token = McpTokens.tokenFor(accessTokenMinter, externalId);
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> listInputSchema = (Map<String, Object>) listCategoriesTool.get("inputSchema");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> listProperties = (Map<String, Object>) listInputSchema.get("properties");
-            assertThat(listProperties.keySet())
-                    .as("list_categories's argument names")
-                    .containsExactlyInAnyOrder("parentCategory");
+            Response response = postMcp(token, McpRequests.toolsList());
+
+            response.then().statusCode(200);
+            assertThat(response.jsonPath()
+                            .getMap("result.tools.find { it.name == 'create_expense_proposal' }"
+                                    + ".inputSchema.properties.amount"))
+                    .as("amount's published type")
+                    .containsEntry("type", "string");
         }
     }
 
@@ -163,6 +164,15 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
 
             response.then().statusCode(200);
         }
+    }
+
+    static Stream<Arguments> publishedTools() {
+        return Stream.of(
+                Arguments.of(
+                        "create_expense_proposal",
+                        List.of("category", "parentCategory", "description", "merchant", "amount", "currencyCode"),
+                        List.of("amount", "parentCategory")),
+                Arguments.of("list_categories", List.of("parentCategory"), List.of("parentCategory")));
     }
 
     static Stream<Arguments> rejectedTokens() {

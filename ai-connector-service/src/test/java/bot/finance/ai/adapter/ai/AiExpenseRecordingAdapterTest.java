@@ -35,6 +35,9 @@ class AiExpenseRecordingAdapterTest {
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
 
+    /** The grouping the lookup scenarios ask about — one of the fixture's own, so no literal is repeated. */
+    private static final String LOOKUP_GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
+
     private static final String LUNCH_ARGUMENTS =
             """
             {"category":"Lunch","description":"lunch","amount":"15.00","currencyCode":"EUR"}""";
@@ -71,6 +74,11 @@ class AiExpenseRecordingAdapterTest {
             }
         }
         return "";
+    }
+
+    /** The {@code list_categories} arguments asking about {@link #LOOKUP_GROUPING}. */
+    private static String lookupArguments() {
+        return "{\"parentCategory\":\"" + LOOKUP_GROUPING + "\"}";
     }
 
     /**
@@ -197,13 +205,10 @@ class AiExpenseRecordingAdapterTest {
                 + "the lookup's answer reaches the provider as that call's result")
         void whenProviderListsCategoriesThenCreatesProposal_thenBothCallsReachLedgerAndLookupAnswerReachesProvider() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesAnswering("Food", List.of("Lunch"));
+            McpLedgerStubs.stubListCategoriesAnswering(LOOKUP_GROUPING, List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-1",
-                            "list_categories",
-                            """
-                            {"parentCategory":"Food"}""")),
+                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 
@@ -232,10 +237,7 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubListCategoriesRefused();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-1",
-                            "list_categories",
-                            """
-                            {"parentCategory":"Groceries"}""")),
+                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 

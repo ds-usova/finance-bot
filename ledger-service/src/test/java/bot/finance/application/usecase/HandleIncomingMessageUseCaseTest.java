@@ -23,6 +23,7 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
@@ -82,7 +83,7 @@ class HandleIncomingMessageUseCaseTest {
 
     private List<String> stubKnownUserAndCategories() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-        List<String> categoryGroupings = List.of("Food", "Auto");
+        List<String> categoryGroupings = List.of("Food", "Auto", Category.catchAllGroupingName());
         when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(categoryGroupings);
         return categoryGroupings;
     }
@@ -136,7 +137,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionRequest request = extractCaptor.getValue();
             assertThat(request.text()).isEqualTo(TEXT);
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
-            assertThat(request.catchAllGrouping()).isEqualTo(categoryGroupings.get(0));
+            assertThat(request.catchAllGrouping()).isEqualTo(Category.catchAllGroupingName());
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
             MessageReference reference = request.messageReference();
@@ -168,30 +169,27 @@ class HandleIncomingMessageUseCaseTest {
 
         @Test
         @DisplayName("when the stored user's grouping names do not include Category.catchAllGroupingName() - then "
-                + "the extraction request's catch-all is the first grouping read")
-        void whenGroupingNamesExcludeCatchAllGroupingName_thenExtractionRequestsCatchAllIsFirstGroupingRead() {
-            List<String> categoryGroupings = stubKnownUserAndCategories();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
-                    .thenReturn(List.of());
+                + "CatchAllGroupingMissingException propagates and the extraction port is never called")
+        void whenGroupingNamesExcludeCatchAllGroupingName_thenCatchAllGroupingMissingExceptionPropagates() {
+            when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(List.of("Food", "Auto"));
 
-            useCase.handle(newCommand());
+            assertThatThrownBy(() -> useCase.handle(newCommand()))
+                    .isInstanceOf(CatchAllGroupingMissingException.class)
+                    .hasMessageContaining(Category.catchAllGroupingName());
 
-            ArgumentCaptor<IntentExtractionRequest> extractCaptor =
-                    ArgumentCaptor.forClass(IntentExtractionRequest.class);
-            verify(intentExtractionPort).extract(extractCaptor.capture());
-            assertThat(extractCaptor.getValue().catchAllGrouping()).isEqualTo(categoryGroupings.get(0));
+            verifyNoInteractions(intentExtractionPort);
+            verifyNoInteractions(messageDeliveryPort);
         }
 
         @Test
-        @DisplayName("when findGroupingNames answers an empty list - then InvalidExtractionRequestException "
-                + "propagates from the request's own constructor and the extraction port is never called")
-        void
-                whenFindGroupingNamesReturnsEmptyList_thenInvalidExtractionRequestExceptionPropagatesAndExtractionPortUntouched() {
+        @DisplayName("when findGroupingNames answers an empty list - then CatchAllGroupingMissingException "
+                + "propagates and the extraction port is never called")
+        void whenFindGroupingNamesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(List.of());
 
-            assertThatThrownBy(() -> useCase.handle(newCommand()))
-                    .isInstanceOf(InvalidExtractionRequestException.class);
+            assertThatThrownBy(() -> useCase.handle(newCommand())).isInstanceOf(CatchAllGroupingMissingException.class);
 
             verifyNoInteractions(intentExtractionPort);
         }

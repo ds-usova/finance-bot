@@ -14,6 +14,7 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.model.User;
@@ -92,10 +93,10 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     private String catchAllGrouping(List<String> categoryGroupings) {
         String designated = Category.catchAllGroupingName();
-        if (categoryGroupings.contains(designated) || categoryGroupings.isEmpty()) {
-            return designated;
+        if (!categoryGroupings.contains(designated)) {
+            throw new CatchAllGroupingMissingException("no grouping named " + designated + " is stored for this user");
         }
-        return categoryGroupings.getFirst();
+        return designated;
     }
 
     private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {

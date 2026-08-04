@@ -13,6 +13,8 @@ import io.grpc.stub.MetadataUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,9 +22,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Boots the {@code /mcp} callback mode {@link GrpcStubServer#armMcpCallback} arms: compiling proves nothing about
+ * Boots the {@code /mcp} callback mode {@link GrpcStubServer#armMcpCallbacks} arms: compiling proves nothing about
  * whether the callback actually reaches an HTTP endpoint, so this drives a real {@code extractIntents} call
- * against a throwaway HTTP server and asserts the callback landed there.
+ * against a throwaway HTTP server and asserts the callbacks landed there, in the order they were armed.
  */
 class GrpcStubServerCallbackTest {
 
@@ -44,26 +46,27 @@ class GrpcStubServerCallbackTest {
 
     @Nested
     @DisplayName("calling back into /mcp with the callback mode armed")
-    class ArmMcpCallback {
+    class ArmMcpCallbacks {
 
         @Test
-        @DisplayName("when extractIntents is called with the callback armed - then it posts the armed body to "
-                + "<baseUrl>/mcp, forwarding the authorization header it received")
-        void whenExtractIntentsIsCalledWithCallbackArmed_thenPostsArmedBodyForwardingAuthorizationHeader()
+        @DisplayName("when extractIntents is called with two callbacks armed - then it posts both armed bodies to "
+                + "<baseUrl>/mcp in the order they were armed, forwarding the authorization header it received")
+        void whenExtractIntentsIsCalledWithCallbacksArmed_thenPostsArmedBodiesInOrderForwardingAuthorizationHeader()
                 throws IOException {
             AtomicReference<String> receivedAuthorization = new AtomicReference<>();
-            AtomicReference<String> receivedBody = new AtomicReference<>();
+            List<String> receivedBodies = new CopyOnWriteArrayList<>();
             callbackServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             callbackServer.createContext("/mcp", exchange -> {
                 receivedAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-                receivedBody.set(new String(exchange.getRequestBody().readAllBytes()));
+                receivedBodies.add(new String(exchange.getRequestBody().readAllBytes()));
                 exchange.sendResponseHeaders(200, 0);
                 exchange.getResponseBody().close();
             });
             callbackServer.start();
             String baseUrl = "http://localhost:" + callbackServer.getAddress().getPort();
-            String requestBody = "{\"jsonrpc\":\"2.0\"}";
-            GrpcStubServer.armMcpCallback(baseUrl, requestBody);
+            String firstBody = "{\"jsonrpc\":\"2.0\",\"id\":1}";
+            String secondBody = "{\"jsonrpc\":\"2.0\",\"id\":2}";
+            GrpcStubServer.armMcpCallbacks(baseUrl, firstBody, secondBody);
 
             ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", GrpcStubServer.SERVER.getPort())
                     .usePlaintext()
@@ -80,8 +83,9 @@ class GrpcStubServerCallbackTest {
             }
 
             await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(() -> assertThat(receivedBody.get()).isEqualTo(requestBody));
+                    .untilAsserted(() -> assertThat(receivedBodies).containsExactly(firstBody, secondBody));
             assertThat(receivedAuthorization.get()).isEqualTo("Bearer test-token");
+            assertThat(GrpcStubServer.mcpCallbackResponses()).hasSize(2);
         }
     }
 }

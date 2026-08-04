@@ -6,6 +6,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
+import com.google.protobuf.Descriptors;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -58,8 +59,8 @@ class IntentProtoUtilsTest {
 
         @Test
         @DisplayName("when the generated request's descriptor is inspected - then it declares no "
-                + "known_categories field, so the reserved tag is never filled")
-        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesField() {
+                + "known_categories field, and field 2 is category_groupings")
+        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesFieldAndFieldTwoIsGroupings() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
                     List.of("Groceries", "Other"),
@@ -72,7 +73,10 @@ class IntentProtoUtilsTest {
 
             assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
                     .isNull();
-            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2)).isNull();
+            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2))
+                    .isNotNull()
+                    .extracting(Descriptors.FieldDescriptor::getName)
+                    .isEqualTo("category_groupings");
         }
     }
 }

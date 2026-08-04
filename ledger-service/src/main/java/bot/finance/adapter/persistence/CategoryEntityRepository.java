@@ -15,7 +15,9 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
             """
             SELECT c.name
             FROM category c
-            WHERE c.user_id = :userId AND c.parent_id IS NULL
+            WHERE c.user_id = :userId
+              AND c.parent_id IS NULL
+              AND EXISTS (SELECT 1 FROM category child WHERE child.parent_id = c.id)
             ORDER BY c.name
             """)
     List<String> findGroupingNames(@Param("userId") Long userId);

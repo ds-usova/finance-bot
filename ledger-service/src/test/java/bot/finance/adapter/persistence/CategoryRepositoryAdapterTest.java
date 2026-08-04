@@ -169,14 +169,16 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called for a stored user with a grouping that has no children - then that grouping is present")
-        void whenCalledForAStoredUserWithAChildlessGrouping_thenThatGroupingIsPresent() {
+                "when called for a stored user with a grouping that has no children - then that grouping is absent")
+        void whenCalledForAStoredUserWithAChildlessGrouping_thenThatGroupingIsAbsent() {
             long userId = storedUserId("childless-grouping-user");
+            long populatedId = storedCategoryId(userId, "Populated Grouping");
+            storedChildCategoryId(userId, populatedId, "A Child");
             storedCategoryId(userId, "Childless Grouping");
 
             List<String> names = adapter.findGroupingNames(userId);
 
-            assertThat(names).containsExactly("Childless Grouping");
+            assertThat(names).containsExactly("Populated Grouping");
         }
 
         @Test
@@ -185,8 +187,10 @@ class CategoryRepositoryAdapterTest {
         void whenCalledForOneOfTwoUsersEachOwningAGrouping_thenReturnsOnlyThatUsersGroupingName() {
             long firstUserId = storedUserId("first-grouping-owner");
             long secondUserId = storedUserId("second-grouping-owner");
-            storedCategoryId(firstUserId, "First User Grouping");
-            storedCategoryId(secondUserId, "Second User Grouping");
+            long firstGroupingId = storedCategoryId(firstUserId, "First User Grouping");
+            long secondGroupingId = storedCategoryId(secondUserId, "Second User Grouping");
+            storedChildCategoryId(firstUserId, firstGroupingId, "First User Child");
+            storedChildCategoryId(secondUserId, secondGroupingId, "Second User Child");
 
             List<String> names = adapter.findGroupingNames(firstUserId);
 

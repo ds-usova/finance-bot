@@ -11,25 +11,25 @@
 
 Every message that reaches the turn is answered with exactly one of these.
 
-| Report             | What it tells the user                                                                                                                                   |
-|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Report             | What it tells the user                                                                                                                                     |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Recorded           | how many expenses were noted, each with its category and grouping, description, merchant when there is one, and amount — all awaiting their confirmation |
-| Nothing identified | the message named no expense                                                                                                                             |
+| Nothing identified | the message named no expense                                                                                                                               |
 | Partial            | something went wrong, so the list that follows may be incomplete — then the same list                                                                    |
-| Failed             | something went wrong and nothing was noted                                                                                                               |
+| Failed             | something went wrong and nothing was noted                                                                                                                 |
 
 Nothing is worded as accepted or final: what a report lists is proposals, not the user's ledger
 ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md)).
 
 ## Collaborators
 
-| Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                        |
-|-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                    |
-| out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                    |
+| Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                      |
+|-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                  |
+| out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                  |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, and what this message recorded |
-| out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)      | acting on whatever the message asks for, as that person                                    |
-| out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                    |
+| out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                  |
+| out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                  |
 
 ## Rules
 
@@ -44,11 +44,12 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 - What travels to the connector is the names of the groupings that person's categories sit under, in
   alphabetical order. No category name travels; the connector
   [asks for a grouping's categories](list-categories.md) when it needs them.
+- A grouping holding no categories does not travel: there is nothing in it to file spending under.
 - One of those groupings travels designated as the catch-all, so spending that fits none of the others still has
   somewhere to go.
-- The designated catch-all is the [catch-all every catalogue starts with](../domain/category.md) when the person
-  still has it, and the first grouping read otherwise.
-- A person with no grouping has nothing to send, and the turn is refused before the connector is reached.
+- The designated catch-all is the [catch-all every catalogue starts with](../domain/category.md), and nothing
+  else. A person whose groupings do not carry that name has a catalogue that cannot exist, so the turn ends
+  there rather than falling back to another grouping.
 - No currency is assumed: an amount stated without one is not acted on.
 - The connector acts as that person for the length of the turn, on a credential minted per call
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
@@ -65,14 +66,14 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 
 ## Outcomes
 
-| Outcome          | When                                                                             | Result                                                                                   |
-|------------------|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| Message answered | the person resolves and what the message recorded can be read back               | one report goes into the conversation, and an info line names the message and the person |
-| Message skipped  | the message names no sender or no conversation, or carries no text               | nothing happens and the message is not seen again                                        |
-| Message rejected | the message is absent                                                            | invalid incoming message — nothing is looked up                                          |
-| Request refused  | the person has no grouping to file spending under                                | invalid extraction request — the connector is never reached and no report is sent        |
-| Storage failed   | the person cannot be resolved, their categories not read, or the read-back fails | the failure reaches the caller and no report is sent                                     |
-| Delivery failed  | the report cannot be put in front of the user                                    | the failure reaches the caller; what was recorded stays recorded                         |
+| Outcome           | When                                                                             | Result                                                                                   |
+|-------------------|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| Message answered  | the person resolves and what the message recorded can be read back               | one report goes into the conversation, and an info line names the message and the person |
+| Message skipped   | the message names no sender or no conversation, or carries no text               | nothing happens and the message is not seen again                                        |
+| Message rejected  | the message is absent                                                            | invalid incoming message — nothing is looked up                                        |
+| Catch-all missing | the person's groupings do not carry the designated catch-all, or they have none  | the connector is never reached, no report is sent, and the failure reaches the caller    |
+| Storage failed    | the person cannot be resolved, their categories not read, or the read-back fails | the failure reaches the caller and no report is sent                                     |
+| Delivery failed   | the report cannot be put in front of the user                                    | the failure reaches the caller; what was recorded stays recorded                         |
 
 A failure of any kind is logged where the message was delivered, and its batch is acknowledged with the rest. A
 connector that refuses the turn or cannot be reached is not a failure here — it is what the partial and failed
@@ -171,11 +172,11 @@ loop each message in the batch
     IU -> DB : find or create the person
     DB --> IU : the person, with their categories on a first message
     IU --> UC : the person
-    UC -> DB : read the groupings their categories sit under
+    UC -> DB : read the groupings holding at least one category
     alt the store fails
       DB --> UC : storage failed, no report
-    else they have no grouping
-      DB --> UC : nothing to send, request refused, no report
+    else the groupings do not carry the designated catch-all
+      DB --> UC : the catch-all is missing, no report
     else the groupings are read
       UC -> UC : mint a reference for this message
       UC -> UC : designate the catch-all grouping

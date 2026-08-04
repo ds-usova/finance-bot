@@ -19,6 +19,7 @@ import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +49,7 @@ class ListCategoriesUseCaseTest {
 
     @Nested
     @DisplayName("listing a grouping's categories")
-    class List {
+    class Listing {
 
         @Test
         @DisplayName("when the command is absent - then throws InvalidCategoryException and neither repository is "
@@ -79,7 +80,7 @@ class ListCategoriesUseCaseTest {
         void whenFindByUserIdAndNameAnswersEmptyList_thenThrowsInvalidCategoryExceptionNamingGroupingAsUnstored() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(java.util.List.of());
+            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(List.of());
 
             assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
                     .isInstanceOf(InvalidCategoryException.class)
@@ -95,7 +96,7 @@ class ListCategoriesUseCaseTest {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Coffee"))
-                    .thenReturn(java.util.List.of(new StoredCategory(CATEGORY_ID, "Coffee", Optional.of("Groceries"))));
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Coffee", Optional.of("Groceries"))));
 
             assertThatThrownBy(() -> useCase.list(newListCategories("Coffee")))
                     .isInstanceOf(InvalidCategoryException.class)
@@ -115,13 +116,13 @@ class ListCategoriesUseCaseTest {
             long groupingId = CATEGORY_ID;
             long leafId = 3L;
             when(categoryRepository.findByUserIdAndName(USER_ID, "Travel"))
-                    .thenReturn(java.util.List.of(
+                    .thenReturn(List.of(
                             new StoredCategory(leafId, "Travel", Optional.of("Shopping")),
                             new StoredCategory(groupingId, "Travel", Optional.empty())));
-            java.util.List<String> children = java.util.List.of("Flights", "Hotels");
+            List<String> children = List.of("Flights", "Hotels");
             when(categoryRepository.findChildNames(groupingId)).thenReturn(children);
 
-            java.util.List<String> result = useCase.list(newListCategories("Travel"));
+            List<String> result = useCase.list(newListCategories("Travel"));
 
             verify(categoryRepository).findChildNames(groupingId);
             assertThat(result).isEqualTo(children);
@@ -134,11 +135,11 @@ class ListCategoriesUseCaseTest {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(java.util.List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            java.util.List<String> children = java.util.List.of("Coffee", "Restaurant");
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+            List<String> children = List.of("Coffee", "Restaurant");
             when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(children);
 
-            java.util.List<String> result = useCase.list(newListCategories("Groceries"));
+            List<String> result = useCase.list(newListCategories("Groceries"));
 
             assertThat(result).isEqualTo(children);
         }
@@ -152,8 +153,8 @@ class ListCategoriesUseCaseTest {
             User storedUser = User.stored(differentUserId, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(differentUserId, "Groceries"))
-                    .thenReturn(java.util.List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(java.util.List.of("Coffee"));
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of("Coffee"));
 
             useCase.list(newListCategories("Groceries"));
 
@@ -168,10 +169,10 @@ class ListCategoriesUseCaseTest {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(java.util.List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(java.util.List.of());
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of());
 
-            java.util.List<String> result = useCase.list(newListCategories("Groceries"));
+            List<String> result = useCase.list(newListCategories("Groceries"));
 
             assertThat(result).isEmpty();
         }
@@ -199,7 +200,7 @@ class ListCategoriesUseCaseTest {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(java.util.List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(categoryRepository.findChildNames(CATEGORY_ID)).thenThrow(failure);

@@ -16,8 +16,6 @@ import bot.finance.domain.model.User;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
 
@@ -77,34 +75,17 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         candidates = narrowByParentName(candidates, command.parentCategoryName());
         if (candidates.isEmpty()) {
             throw new InvalidCategoryException("no category named " + categoryName + " under parent "
-                    + command.parentCategoryName().orElseThrow() + " is stored for this user");
+                    + command.parentCategoryName() + " is stored for this user");
         }
-        if (candidates.size() > 1) {
-            throw new InvalidCategoryException("several categories named " + categoryName
-                    + " exist, retry with parentCategory naming one of: " + groupingsOf(candidates));
-        }
-        StoredCategory candidate = candidates.get(0);
-        if (candidate.parentName().isEmpty()) {
-            List<String> childNames = categoryRepository.findChildNames(candidate.id());
-            throw new InvalidCategoryException(
-                    categoryName + " is a grouping, retry with one of its children: " + String.join(", ", childNames));
-        }
-        return candidate.id();
+        return candidates.get(0).id();
     }
 
-    private List<StoredCategory> narrowByParentName(
-            List<StoredCategory> candidates, Optional<String> parentCategoryName) {
-        if (parentCategoryName.isEmpty()) {
-            return candidates;
-        }
+    private List<StoredCategory> narrowByParentName(List<StoredCategory> candidates, String parentCategoryName) {
         return candidates.stream()
-                .filter(candidate -> candidate.parentName().equals(parentCategoryName))
+                .filter(candidate -> candidate
+                        .parentName()
+                        .filter(parentCategoryName::equals)
+                        .isPresent())
                 .toList();
-    }
-
-    private String groupingsOf(List<StoredCategory> candidates) {
-        return candidates.stream()
-                .map(candidate -> candidate.parentName().orElse(""))
-                .collect(Collectors.joining(", "));
     }
 }

@@ -11,10 +11,10 @@ token arrived with the extraction request, never against anyone this service nam
 
 ## Operations
 
-| Operation                 | Purpose                                                          | Used by                                                                                                                                                                                                       |
-|---------------------------|------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| List the tools            | reads what the ledger offers and what each of them takes         | here, [Record the spending a user's message names](../../usecases/extract-intents.md)                                                                                                                         |
-| `list_categories`         | answers the categories filed under one of the caller's groupings | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [List a grouping's categories](../../../../ledger-service/docs/usecases/list-categories.md)      |
+| Operation                 | Purpose                                                          | Used by                                                                                                                                                                                                             |
+|---------------------------|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| List the tools            | reads what the ledger offers and what each of them takes         | here, [Record the spending a user's message names](../../usecases/extract-intents.md)                                                                                                                               |
+| `list_categories`         | answers the categories filed under one of the caller's groupings | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [List a grouping's categories](../../../../ledger-service/docs/usecases/list-categories.md)          |
 | `create_expense_proposal` | records one expense the user's message asks for                  | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md) |
 
 ### What is sent
@@ -65,14 +65,14 @@ handled twice records two proposals, and a model that repeats a recording call w
 
 ## Failures
 
-| Condition                                                     | Signal                                                                    |
-|---------------------------------------------------------------|---------------------------------------------------------------------------|
-| A recording call answers an error result                      | none — the model reads the refusal and retries that expense once          |
-| A lookup call answers an error result                         | none — the model corrects the grouping's name and asks again              |
-| An argument is not the type the published schema declares     | none — refused before the tool runs; the model corrects the call          |
-| The ledger cannot be reached, times out, or refuses the token | the turn fails; the caller is told the service is unavailable             |
-| The tools cannot be listed                                    | the same, before any expense is attempted                                 |
-| No caller token is held for the turn                          | the same; nothing is sent to the ledger and the model is never prompted   |
+| Condition                                                     | Signal                                                                  |
+|---------------------------------------------------------------|-------------------------------------------------------------------------|
+| A recording call answers an error result                      | none — the model reads the refusal and retries that expense once      |
+| A lookup call answers an error result                         | none — the model corrects the grouping's name and asks again          |
+| An argument is not the type the published schema declares     | none — refused before the tool runs; the model corrects the call      |
+| The ledger cannot be reached, times out, or refuses the token | the turn fails; the caller is told the service is unavailable           |
+| The tools cannot be listed                                    | the same, before any expense is attempted                               |
+| No caller token is held for the turn                          | the same; nothing is sent to the ledger and the model is never prompted |
 
 ## Compatibility
 
@@ -88,7 +88,8 @@ instructions. The amount's description is what asks for it as the message writes
 unit; the grouping's is what ties a recording call to the lookup that answered its category.
 
 A change to the published list reaches this service only when it restarts. A process still holding a list
-without the lookup files a grouping as the category, which the ledger refuses with that grouping's children —
-so the expense is recorded on its one retry, one call later.
+without the lookup holds only grouping names, so it sends a grouping as the category and no grouping alongside
+it; the ledger refuses that as an invalid request, and nothing the model holds lets it correct the call. Those
+expenses go unrecorded until the process restarts.
 
 The ledger can switch this endpoint off, which makes every turn fail as unavailable.

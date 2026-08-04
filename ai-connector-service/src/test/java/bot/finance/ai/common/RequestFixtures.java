@@ -10,7 +10,7 @@ import java.util.List;
  */
 public final class RequestFixtures {
 
-    public static final List<String> DEFAULT_CATEGORY_GROUPINGS = List.of("Food", "Insurance", "Other");
+    public static final List<String> DEFAULT_CATEGORY_GROUPINGS = List.of("Groceries", "Insurance", "Other");
     public static final String DEFAULT_CATCH_ALL = "Other";
     private static final String DEFAULT_TEXT = "spent 15 euros on lunch";
 

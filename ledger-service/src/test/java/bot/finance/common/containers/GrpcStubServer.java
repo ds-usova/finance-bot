@@ -23,6 +23,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GrpcStubServer {
@@ -35,7 +37,8 @@ public class GrpcStubServer {
     private static final AtomicReference<Metadata> LAST_EXTRACTION_METADATA = new AtomicReference<>();
     private static final AtomicReference<HealthCheckRequest> LAST_HEALTH_CHECK_REQUEST = new AtomicReference<>();
     private static final AtomicReference<String> CALLBACK_BASE_URL = new AtomicReference<>();
-    private static final AtomicReference<String> CALLBACK_REQUEST_BODY = new AtomicReference<>();
+    private static final AtomicReference<List<String>> CALLBACK_REQUEST_BODIES = new AtomicReference<>(List.of());
+    private static final List<String> CALLBACK_RESPONSE_BODIES = new CopyOnWriteArrayList<>();
 
     private static volatile ExtractIntentsResponse extractionResponse = ExtractIntentsResponse.getDefaultInstance();
     private static volatile Status extractionFailure;
@@ -100,18 +103,26 @@ public class GrpcStubServer {
         servingStatus = HealthCheckResponse.ServingStatus.SERVING;
         healthFailure = null;
         CALLBACK_BASE_URL.set(null);
-        CALLBACK_REQUEST_BODY.set(null);
+        CALLBACK_REQUEST_BODIES.set(List.of());
+        CALLBACK_RESPONSE_BODIES.clear();
     }
 
     /**
-     * Arms the callback mode: the next {@code extractIntents} call posts {@code toolCallRequestBody} to
-     * {@code <baseUrl>/mcp} before answering, forwarding the {@code authorization} header it received verbatim.
-     * This is the only way a system test can reach the {@code RECORDED} outcome, since the reference is minted
-     * inside the use case and no test can seed a proposal row under it beforehand.
+     * Arms the callback mode: the next {@code extractIntents} call posts each of {@code toolCallRequestBodies} to
+     * {@code <baseUrl>/mcp} in turn before answering, forwarding the {@code authorization} header it received
+     * verbatim. This is the only way a system test can reach the {@code RECORDED} outcome, since the reference is
+     * minted inside the use case and no test can seed a proposal row under it beforehand. A turn that makes several
+     * tool calls is armed by naming them in the order the model would make them.
      */
-    public static void armMcpCallback(String baseUrl, String toolCallRequestBody) {
+    public static void armMcpCallbacks(String baseUrl, String... toolCallRequestBodies) {
         CALLBACK_BASE_URL.set(baseUrl);
-        CALLBACK_REQUEST_BODY.set(toolCallRequestBody);
+        CALLBACK_REQUEST_BODIES.set(List.of(toolCallRequestBodies));
+        CALLBACK_RESPONSE_BODIES.clear();
+    }
+
+    /** What {@code /mcp} answered each armed call, in the order the calls were made. */
+    public static List<String> mcpCallbackResponses() {
+        return List.copyOf(CALLBACK_RESPONSE_BODIES);
     }
 
     private static final class ExtractionMetadataInterceptor implements ServerInterceptor {
@@ -150,14 +161,17 @@ public class GrpcStubServer {
                     ? null
                     : metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
             try {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(baseUrl + "/mcp"))
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "application/json, text/event-stream")
-                        .header("Authorization", authorization == null ? "" : authorization)
-                        .POST(HttpRequest.BodyPublishers.ofString(CALLBACK_REQUEST_BODY.get()))
-                        .build();
-                CALLBACK_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+                for (String body : CALLBACK_REQUEST_BODIES.get()) {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(baseUrl + "/mcp"))
+                            .header("Content-Type", "application/json")
+                            .header("Accept", "application/json, text/event-stream")
+                            .header("Authorization", authorization == null ? "" : authorization)
+                            .POST(HttpRequest.BodyPublishers.ofString(body))
+                            .build();
+                    HttpResponse<String> response = CALLBACK_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+                    CALLBACK_RESPONSE_BODIES.add(response.body());
+                }
             } catch (IOException e) {
                 throw new UncheckedIOException("failed to call back into /mcp from the stub connector", e);
             } catch (InterruptedException e) {

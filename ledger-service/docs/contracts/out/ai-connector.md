@@ -32,9 +32,11 @@ What this side adds:
 - A request is fixed once made: blank text, no groupings, or a blank name among them is refused where the
   request is built, so it never crosses.
 - Only grouping names are sent; no category name crosses.
+- Only groupings holding at least one category are sent; there is nothing to file under an empty one.
 - A category is reached from the other side, through [the tool the connector calls back on](../in/mcp.md).
 - One grouping is designated the catch-all, so a fit always exists. It is never blank, and always one of the
-  groupings sent.
+  groupings sent. It is the [catch-all every catalogue starts with](../../domain/category.md) and nothing else,
+  so a catalogue that does not carry it produces no call at all rather than a substitute.
 - The groupings travel in alphabetical order, and nothing depends on the position of one in the list.
 - The assumed currency is stated as present or absent; it is never left unsaid.
 - An absent request is refused before the connector is reached.
@@ -60,13 +62,13 @@ What this side adds:
 
 ## Failures
 
-| Condition                                                  | Signal                                                    |
-|------------------------------------------------------------|-----------------------------------------------------------|
-| The request is absent                                      | rejected as invalid; the connector is never reached       |
-| The user has no grouping spending can be filed under       | rejected as invalid where the request is built            |
-| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                  |
-| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with |
-| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back |
+| Condition                                                  | Signal                                                     |
+|------------------------------------------------------------|------------------------------------------------------------|
+| The request is absent                                      | rejected as invalid; the connector is never reached        |
+| The user's groupings do not carry the designated catch-all | the turn ends before the request is built; nothing is sent |
+| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                   |
+| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with  |
+| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back  |
 
 ## Compatibility
 

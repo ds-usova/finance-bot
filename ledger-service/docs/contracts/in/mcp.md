@@ -21,14 +21,14 @@ caller's own groupings holds, and a proposed expense, which a human reviews befo
 
 ### What `create_expense_proposal` takes
 
-| Argument         | Meaning                                                                              | Required |
-|------------------|--------------------------------------------------------------------------------------|----------|
+| Argument         | Meaning                                                                                | Required |
+|------------------|----------------------------------------------------------------------------------------|----------|
 | `category`       | the category's name — one filed under a grouping                                     | yes      |
-| `parentCategory` | the grouping it is filed under, as `list_categories` was asked for it                | yes      |
-| `description`    | what was bought                                                                      | yes      |
+| `parentCategory` | the grouping it is filed under, as `list_categories` was asked for it                  | yes      |
+| `description`    | what was bought                                                                        | yes      |
 | `merchant`       | who it was bought from — null or blank is none                                       | no       |
 | `amount`         | the amount as the message writes it, in the currency's main unit — 7200 for 7200 HUF | yes      |
-| `currencyCode`   | ISO 4217, three letters                                                              | yes      |
+| `currencyCode`   | ISO 4217, three letters                                                                | yes      |
 
 **There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
 message it belongs to, both come off the token and nothing else
@@ -112,7 +112,7 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why |
 | An argument's value is not the type the published schema declares                       | refused against the schema, before the tool runs                     |
 | An argument is missing, malformed, or an amount its currency cannot record              | a tool error naming the invalid request and the field at fault       |
-| The category name is unknown, names a grouping, or matches several                      | a tool error carrying what to retry with                             |
+| The category name is unknown, or names nothing filed under the grouping sent            | a tool error naming both, so it can be corrected                     |
 | The grouping name is unknown, or names a category rather than a grouping                | a tool error naming what was asked for, so it can be corrected       |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
 | The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |

@@ -12,6 +12,8 @@ A label a user files spending under. A category is either a group or one of a gr
 - One grouping name is designated the catch-all — the grouping spending falls to when no other fits.
 - The catalogue every new user starts with builds that grouping under the designated name, so the two cannot
   drift apart.
+- Nothing else stands in for the catch-all: a user's groupings that do not carry the designated name are a
+  catalogue that cannot exist, and the turn reading them ends there.
 
 ## Made of / held by
 

@@ -60,7 +60,7 @@ its expenses again and no duplicate is recognized.
 ## Failures
 
 | Condition                                                   | Signal                                                               |
-|-------------------------------------------------------------|------------------------------------------------------------------------|
+|-------------------------------------------------------------|----------------------------------------------------------------------|
 | No token is sent                                            | the call is refused as unauthenticated; the provider is never called |
 | The text is absent or only whitespace                       | rejected as an invalid argument; no call to the provider is made     |
 | No groupings are sent                                       | rejected as an invalid argument; no call to the provider is made     |
@@ -68,11 +68,11 @@ its expenses again and no duplicate is recognized.
 | The catch-all grouping is blank or not sent                 | rejected as an invalid argument; no call to the provider is made     |
 | The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
 | An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
-| The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry                 |
-| The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry                 |
-| The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded         |
-| The ledger refuses a category lookup                        | none — the model corrects the grouping's name and asks again         |
-| The message under-says an expense                           | none — the call succeeds and that expense is left unrecorded         |
+| The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
+| The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
+| The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded       |
+| The ledger refuses a category lookup                        | none — the model corrects the grouping's name and asks again       |
+| The message under-says an expense                           | none — the call succeeds and that expense is left unrecorded       |
 | Anything else fails inside the service                      | the call fails as unknown, with no internal detail in the failure    |
 
 ## Compatibility
@@ -80,9 +80,9 @@ its expenses again and no duplicate is recognized.
 Both sides generate from the one schema file, so a field added or renamed there reaches the caller's build
 rather than its runtime.
 
-The field the categories used to travel on is reserved and never reused, so a counterpart of the other vintage
-sends no groupings at all rather than something read as groupings: the call is refused as an invalid argument
-for the length of a partial deploy, and no expense is filed under a grouping the caller did not send.
+No field number is reserved: neither service is deployed anywhere, so the two are released together and there is
+no counterpart of an older vintage for a reused number to confuse. A partial deploy is a rebuild away from
+being whole, not a window the schema has to survive.
 
 What the token carries is the caller's alone to change. A claim it adds reaches
 [its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, without a change to this

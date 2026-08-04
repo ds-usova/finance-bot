@@ -28,6 +28,16 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
     private static final String CALLER_TOKEN = "Bearer opaque-caller-token";
 
+    /** The grouping the scenarios file under — one of the fixture's own, so no literal is repeated. */
+    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
+
+    private static String proposalArguments() {
+        return """
+                {"category":"Lunch","parentCategory":"%s","description":"lunch","amount":"15.00",\
+                "currencyCode":"EUR","merchant":"Deli Co"}"""
+                .formatted(GROUPING);
+    }
+
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -40,11 +50,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall(
-                                    "call-1",
-                                    """
-                            {"category":"Lunch","parentCategory":"Food","description":"lunch","amount":"15.00",\
-                            "currencyCode":"EUR","merchant":"Deli Co"}""")),
+                            ChatCompletionFixtures.toolCall("call-1", proposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
@@ -57,7 +63,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(toolCalls).hasSize(1);
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.getFirst());
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
-            assertThat(arguments.get("parentCategory").asText()).isEqualTo("Food");
+            assertThat(arguments.get("parentCategory").asText()).isEqualTo(GROUPING);
             assertThat(arguments.get("merchant").asText()).isEqualTo("Deli Co");
             assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
@@ -70,19 +76,14 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                 + "the lookup carried the grouping name the provider asked for")
         void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesBothToolCallsUnderToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesAnswering("Food", List.of("Lunch"));
+            McpLedgerStubs.stubListCategoriesAnswering(GROUPING, List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
                             "call-list-1",
-                            "list_categories",
-                            """
-                            {"parentCategory":"Food"}""")),
+                            ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
+                            "{\"parentCategory\":\"" + GROUPING + "\"}")),
                     ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall(
-                                    "call-2",
-                                    """
-                            {"category":"Lunch","parentCategory":"Food","description":"lunch","amount":"15.00",\
-                            "currencyCode":"EUR","merchant":"Deli Co"}""")),
+                            ChatCompletionFixtures.toolCall("call-2", proposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
 
             ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
@@ -101,7 +102,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                     .isEqualTo(CALLER_TOKEN);
 
             JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
-            assertThat(lookupArguments.get("parentCategory").asText()).isEqualTo("Food");
+            assertThat(lookupArguments.get("parentCategory").asText()).isEqualTo(GROUPING);
         }
     }
 

@@ -28,6 +28,8 @@
     string catch_all_grouping = 5;
   }
   ```
+    - Note (review, 2026-08-04): the reservation is gone and the fields are renumbered —
+      `category_groupings = 2`, `catch_all_grouping = 3`, `default_currency = 4` (D2).
 
 #### Interface-First / Build Stabilization
 
@@ -78,6 +80,8 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
   ```
   declared as `List<String> findGroupingNames(@Param("userId") Long userId)`, and rename `findByParentId` to
   `findByParentIdOrderByName`
+    - Note (review, 2026-08-04): the query gained an `EXISTS` clause on the child rows, so a grouping holding no
+      categories is never offered to the model (D34).
 - [x] ST10 · `ledger-service` — in `adapter/persistence/CategoryRepositoryAdapter`, replace
   `findKnownCategories` with `findGroupingNames` delegating to the new query inside the existing
   `PersistenceFailedException` wrapper, and point `findChildNames` at `findByParentIdOrderByName`
@@ -85,6 +89,8 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
   add a `TODO` where the catch-all is resolved (`Category.catchAllGroupingName()` when the groupings read carry
   it, the first grouping otherwise — GU05 implements it), and pass both new components into
   `IntentExtractionRequest` so the module compiles
+    - Note (review, 2026-08-04): the fallback is gone. Groupings that do not carry the designated name raise
+      `CatchAllGroupingMissingException`, which nothing catches (D23).
 - [x] ST12 · `ledger-service` — in `adapter/aiconnector/IntentProtoUtils.toProtoRequest`, call
   `addAllCategoryGroupings(...)` and `setCatchAllGrouping(...)`, and delete the private `toProtoKnownCategory`
 - [x] ST13 · `ledger-service` — add `adapter/mcp/ListCategoriesToolResponse`, the record
@@ -158,6 +164,9 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
   overloads setting `category_groupings` and `catch_all_grouping`. Drop `knownCategory(...)` and
   `DEFAULT_KNOWN_CATEGORIES`. Keep every default grouping name clear of an all-caps three-letter word, which
   `AiExpenseRecordingAdapterTest`'s no-currency assertion would read as a currency code
+    - Note (review, 2026-08-04): the first default grouping is `Groceries`, not `Food`, and both the adapter and
+      system tests reference the constant in their lookup scenarios rather than repeating the literal.
+      `ChatCompletionFixtures.toolCall` takes an enum of the ledger's published tools in place of a `String`
 - [x] ST27 · `ai-connector-service` — in `bot.finance.ai.common.McpLedgerStubs`: publish `list_categories`
   alongside `create_expense_proposal` in the stubbed `tools/list` result, with `parentCategory` in
   `create_expense_proposal`'s `required` array, and add a `stubListCategoriesAnswering(...)` scenario that
@@ -283,6 +292,9 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: handle() is called
           then: the extraction request's catch-all is the first grouping read, so the request's own invariant
           holds for a catalogue that never carried the designated name
+        - Note (review, 2026-08-04): that scenario now asserts a `CatchAllGroupingMissingException` instead, and
+          the empty-grouping-list scenario below reaches the same throw rather than the request constructor's
+          `InvalidExtractionRequestException` (D23).
         - given: a stored user whose findGroupingNames answers an empty list
           when: handle() is called
           then: InvalidExtractionRequestException propagates from the request's own constructor and the
@@ -302,6 +314,8 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: any request
           when: the generated request's descriptor is inspected
           then: it declares no `known_categories` field, so the reserved tag is never filled
+        - Note (review, 2026-08-04): with the reservation gone, that scenario asserts field 2 is
+          `category_groupings` rather than absent (D2).
         - update: `whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll()`
           — assert grouping names and the catch-all beside the text and `default_currency`
         - update: `whenRequestCarriesTwoKnownCategories_thenGeneratedRequestHoldsTwoKnownCategoryMessagesInOrder()`
@@ -321,6 +335,9 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a request carrying a non-blank parentCategory
           when: toCommand() is called
           then: the command's parentCategoryName is that name, present
+        - Note (review, 2026-08-04): `CreateExpenseProposalCommand.parentCategoryName` is a plain `String`, not
+          an always-present `Optional<String>`, and `resolveCategoryId` loses its ambiguity and is-a-grouping
+          branches as unreachable (D10).
         - update: `whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty()` — replace with the
           refusal scenario above; its `blankParentCategories()` source becomes the refusal's parameter source
 - [x] RU08 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor
@@ -372,6 +389,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a stored user with a grouping that has no children
           when: findGroupingNames() is called
           then: that grouping is present — a childless grouping is still a grouping
+        - Note (review, 2026-08-04): inverted — a childless grouping is now **absent** from the answer (D34).
         - given: two stored users each owning a grouping
           when: findGroupingNames() is called for one of them
           then: only that user's grouping name is returned
@@ -529,6 +547,8 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
     - update: `whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument()`
       — assert `parentCategory` is in `create_expense_proposal`'s `required` array beside `amount`, and that
       `list_categories` is listed with `parentCategory` as its only argument and no identity argument
+    - Note (review, 2026-08-04): that scenario is a `@ParameterizedTest` over the two published tools; the
+      `amount`-is-a-string assertion stayed behind as a scenario of its own
     - update: `whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten()` — its
       body sends `null` for `parentCategory`; give it a grouping name so the 401 is proved by the filter chain
       rather than by a malformed body
@@ -538,6 +558,9 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
       `Category.catchAllGroupingName()` as its catch-all, in place of the child-and-parent `KnownCategory` list
     - update: `stubTelegram()` — the armed MCP callback posts a `create_expense_proposal` body with `null` for
       `parentCategory`; send `Groceries` so the callback still records a proposal
+    - Note (review, 2026-08-04): `GrpcStubServer` now arms a **sequence** of MCP calls and keeps what `/mcp`
+      answered each, and this scenario arms `list_categories` before `create_expense_proposal` so the ledger's
+      own end-to-end path exercises the lookup
 - [x] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
     - Happy Path:
         - given: the ledger stub answers a `list_categories` call and then a `create_expense_proposal` call, and
@@ -610,6 +633,8 @@ None. The one ADR candidate was raised as Q1 and declined; its rule lands in `co
 - Resolution: decision
 - Action: applied — re-aimed the scenario at the parent-mismatch refusal (`Supermarkets` under `Dining`), the
   user's choice: it still originates below the inbound adapter, which the missing-parentCategory case does not.
+- Note (review, 2026-08-04): that parent-mismatch refusal is now the only one `resolveCategoryId` raises for a
+  name that does not resolve under its grouping — the is-a-grouping branch it replaced is gone (D10).
 
 - **F2:** RI06 and RS05 both read back `list_categories` calls, but `CapturedRequestUtils.toolCallRequests()`
   filters on a hard-coded `create_expense_proposal` and no step owned widening it.

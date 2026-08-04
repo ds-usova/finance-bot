@@ -37,7 +37,7 @@ public final class ExpenseProposalToolUtils {
         return new CreateExpenseProposalCommand(
                 userId,
                 request.category(),
-                Optional.of(request.parentCategory()),
+                request.parentCategory(),
                 request.description(),
                 merchant,
                 money,

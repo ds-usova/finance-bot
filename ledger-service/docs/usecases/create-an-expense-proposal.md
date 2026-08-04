@@ -1,8 +1,7 @@
 # Create an expense proposal
 
 - **In:** the identity of the authenticated caller · the reference of the message being handled · a category, by
-  name · the grouping that category sits under (optional) · a description · a merchant (optional) · a money
-  amount
+  name · the grouping that category sits under · a description · a merchant (optional) · a money amount
 - **Out:** the stored expense proposal
 - **Why:** spending that has been assembled but not yet accepted is kept apart from the user's own ledger
   ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md))
@@ -13,7 +12,7 @@
 
 | Direction | Collaborator                                         | Through                                                                           | For                                                                       |
 |-----------|------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| in        | [An agent acting for a user](../contracts/in/mcp.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                  | recording spending it has assembled from a conversation                   |
+| in        | [An agent acting for a user](../contracts/in/mcp.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                | recording spending it has assembled from a conversation                   |
 | out       | [Database](../contracts/out/database.md)             | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the category name, storing the proposal |
 
 ## Rules
@@ -29,12 +28,12 @@
 - A name is resolved among the caller's own categories only.
 - Spending is filed under a category that sits under a grouping; the first level only groups.
 - A name no category of theirs carries is rejected, and the message repeats the name.
-- A name matching a grouping is rejected, and the message names that grouping's children to retry with.
-- A name matching several of their categories is rejected, and the message names those categories' groupings to
-  retry with.
-- A grouping given alongside the name narrows the match, and a name that sits under no such grouping is rejected.
-- The grouping is optional here, and required by [the tool this is reached through](../contracts/in/mcp.md), so
-  every request that arrives names it.
+- The grouping is required, and it is not blank.
+- The grouping narrows the match: a name that sits under no such grouping of theirs is rejected, and the message
+  names both. A grouping itself sits under nothing, so its own name is rejected the same way.
+- The grouping narrowing to at most one category is a property of the store, not a check here: a name is unique
+  per user and parent
+  ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
 - A description is present, and it is not blank.
 - A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
   absent rather than rejected.
@@ -48,18 +47,13 @@
 
 ## Outcomes
 
-| Outcome                | When                                                                                                      | Result                                                                               |
-|------------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| Proposal created       | the identity names a stored user, the name resolves to exactly one of their categories under a grouping   | the proposal is stored, stamped with the current instant, and the creation is logged |
-| Request rejected       | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                           |
-| Identity unknown       | nothing is stored under the identity                                                                      | the request is rejected and nothing is written                                       |
-| Category unknown       | no category of theirs carries that name, or none of them sits under the grouping given                    | the request is rejected, naming what was asked for, and nothing is written           |
-| Category is a grouping | the name resolves to a first-level grouping                                                               | the request is rejected, naming that grouping's children, and nothing is written     |
-| Category ambiguous     | the name resolves to several of their categories                                                          | the request is rejected, naming the groupings to choose from, and nothing is written |
-| Storage failed         | the store cannot be reached, or a value is too long for its column                                        | the failure reaches the caller                                                       |
-
-A request naming its grouping resolves to at most one category, so the grouping and ambiguity rejections stand
-as guards rather than answers the tool's caller can reach.
+| Outcome          | When                                                                                                      | Result                                                                               |
+|------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Proposal created | the identity names a stored user, the name resolves to exactly one of their categories under a grouping   | the proposal is stored, stamped with the current instant, and the creation is logged |
+| Request rejected | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                         |
+| Identity unknown | nothing is stored under the identity                                                                      | the request is rejected and nothing is written                                       |
+| Category unknown | no category of theirs carries that name, or none of them sits under the grouping given                    | the request is rejected, naming what was asked for, and nothing is written           |
+| Storage failed   | the store cannot be reached, or a value is too long for its column                                        | the failure reaches the caller                                                       |
 
 ## Components
 
@@ -133,16 +127,10 @@ else no category carries the name
   LS -> DB : find their categories by name
   DB --> LS : nothing
   LS --> Agent : category unknown
-else the name is a grouping
+else none of them sits under the grouping given
   LS -> DB : find their categories by name
-  DB --> LS : one, under no grouping
-  LS -> DB : find that grouping's children
-  DB --> LS : the child names
-  LS --> Agent : a grouping, with its categories to choose from
-else the name matches several
-  LS -> DB : find their categories by name
-  DB --> LS : several
-  LS --> Agent : ambiguous, with the groupings to choose from
+  DB --> LS : some, under other groupings
+  LS --> Agent : category unknown, naming the name and the grouping
 else the store fails
   LS -> DB : store the proposal
   DB --> LS : the write fails
