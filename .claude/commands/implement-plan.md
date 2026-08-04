@@ -165,7 +165,12 @@ still reports — **disabled**, by whatever mechanism the module's test framewor
 
 Either way the reason names the red-phase step that owns the rework (`RU08`), so the skip list is the list of what
 is owed. The red agent then adapts a real scenario instead of writing one from nothing, and the plan's `update:`
-bullets still name methods that exist. Deleting a test class or method is done only where a checklist item says so.
+bullets still name methods that exist.
+
+**Stabilization disables; the Red Phase deletes.** A test that is obsolete rather than owed a rework is removed by
+the step that owns it — a red step's `update: … — delete` bullet — not here. Stabilization removes only what a
+checklist item names by path, as a file to `git rm`. Between them those two are the *only* authority for a test
+leaving the tree; a stage that deletes on its own initiative is a defect wherever it happens.
 
 This is what makes the guardrails below cheap. A commented-out method is an invisible subtraction, and a total
 that balances hides it — one removal paying for another. A skipped one is loud, self-clearing, and cannot be
@@ -242,7 +247,11 @@ The suite must fail in **exactly the expected places**:
   the step named in its reason. A test still skipped here is a step that silently skipped its own `update:`
   bullets, and it will never fail loudly enough to be noticed later. Compare against the baseline's number
   rather than against zero: a module whose infrastructure skips on its own (no container runtime, say) starts
-  above zero and must return there, not below it.
+  above zero and must return there, not below it;
+- **nothing left the tree that no bullet authorized** — the total is the baseline, plus what the red steps added,
+  less exactly the methods an `update: … — delete` bullet named. This is the stage where a deletion can still
+  hide: stabilization no longer removes anything silently, so a total that does not reconcile here is a red agent
+  that dropped a test instead of reworking it.
 
 Green agents build directly on this stage's output — a false red report caught here costs one re-delegated step; the
 same defect caught during Stage 3 costs a confused green agent and a plan-level untangling. Do not start Stage 3
