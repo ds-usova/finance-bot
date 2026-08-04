@@ -9,10 +9,9 @@ indistinguishable from a measured one, so do not edit it.
 | Field        | Value |
 |--------------|-------|
 | Plan         | `docs/implemented/14-a-grouping-and-a-category-are-different-types/plan.md` |
-| Commit       | `fda7f61` on `configuration/coverage` |
+| Commit       | `61c0b74` on `configuration/coverage` |
 | Working tree | clean |
-| Generated    | 2026-08-04T20:19:23Z |
-| Reproduce    | `tools/plan-evidence/plan-evidence.sh --plan docs/implemented/14-a-grouping-and-a-category-are-different-types/plan.md` |
+| Generated    | 2026-08-04T20:44:14Z |
 
 ## Modules
 
@@ -36,7 +35,16 @@ Fully covered classes are omitted; an empty section above means there were none 
 | ledger-service | `bot.finance.adapter.persistence.ForeignKeyViolations` | 93.5% | 3 |
 | ledger-service | `bot.finance.adapter.persistence.UserRepositoryAdapter` | 95.0% | 8 |
 
-## Runs
+## Check this evidence
 
-- `ai-connector-service` — `ai-connector-service/build/agent-runs/coverage-20260804-221658-676` (console log, JUnit XML, HTML report; under `build/`, so it is not committed)
-- `ledger-service` — `ledger-service/build/agent-runs/coverage-20260804-221812-746` (console log, JUnit XML, HTML report; under `build/`, so it is not committed)
+Does it still describe the current code?
+
+```shell
+bash tools/plan-evidence/plan-evidence.sh --plan docs/implemented/14-a-grouping-and-a-category-are-different-types/plan.md --verify
+```
+
+Measure it again from scratch, rewriting this file:
+
+```shell
+bash tools/plan-evidence/plan-evidence.sh --plan docs/implemented/14-a-grouping-and-a-category-are-different-types/plan.md
+```

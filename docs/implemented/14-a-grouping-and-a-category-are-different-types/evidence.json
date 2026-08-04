@@ -1,9 +1,9 @@
 {
   "plan": "docs/implemented/14-a-grouping-and-a-category-are-different-types/plan.md",
-  "commit": "fda7f61",
+  "commit": "61c0b74",
   "branch": "configuration/coverage",
   "workingTree": "clean",
-  "generated": "2026-08-04T20:19:23Z",
+  "generated": "2026-08-04T20:44:14Z",
   "verdict": "VERIFIED",
   "modules": [
     {"module": "ai-connector-service", "verdict": "PASS", "tests": 74, "passed": 74, "failed": 0, "skipped": 0, "instructions": "97.1%", "branches": "96.8%", "minimum": "85%"},
