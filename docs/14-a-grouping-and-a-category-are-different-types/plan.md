@@ -145,7 +145,7 @@
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Category` · test: `CategoryTest` · covers: `Category(String)`
+- [x] RU01 · `Category` · test: `CategoryTest` · covers: `Category(String)`
     - `Category(String)`:
         - given: a non-blank name
           when: the record is constructed
@@ -176,7 +176,7 @@
         - update: `whenDefaultsIsCalled_thenTravelIsPresentAsGroupAndAsChildOfInsurance()` — delete; moves to
           `GroupingTest`
         - update: `whenDefaultsIsCalled_thenTreeIsExactlyTwoLevels()` — delete; the types carry it now (D4)
-- [ ] RU02 · `Grouping` · test: `GroupingTest` · covers: `Grouping(String, List<Category>)`, `of()`,
+- [x] RU02 · `Grouping` · test: `GroupingTest` · covers: `Grouping(String, List<Category>)`, `of()`,
   `catchAllName()`, `defaults()`
     - `Grouping(String, List<Category>)`:
         - given: a name that is absent, empty or only whitespace
@@ -225,7 +225,7 @@
         - given: nothing
           when: `defaults()` is called
           then: `Travel` is present both as a grouping and as a category under `Insurance`
-- [ ] RU03 · `StoredCategory` · test: `StoredCategoryTest` · covers: `StoredCategory(long, String)`
+- [x] RU03 · `StoredCategory` · test: `StoredCategoryTest` · covers: `StoredCategory(long, String)`
     - `StoredCategory(long, String)`:
         - given: a positive id and a non-blank name
           when: the record is constructed
@@ -237,7 +237,7 @@
           gone
         - update: `whenIdNameAndEmptyParentNameAreValid_thenTheRecordCarriesThemUnchanged()` — delete; replaced by
           the scenario above
-- [ ] RU04 · `StoredGrouping` · test: `StoredGroupingTest` · covers: `StoredGrouping(long, String)`
+- [x] RU04 · `StoredGrouping` · test: `StoredGroupingTest` · covers: `StoredGrouping(long, String)`
     - `StoredGrouping(long, String)`:
         - given: an id that is zero or negative
           when: the record is constructed
@@ -248,7 +248,7 @@
         - given: a positive id and a non-blank name
           when: the record is constructed
           then: both components read back unchanged
-- [ ] RU05 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest` ·
+- [x] RU05 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest` ·
   covers: `ListCategoriesCommand(AuthenticatedUserId, String)`
     - `ListCategoriesCommand(AuthenticatedUserId, String)`:
         - update: `whenUserIdAndParentCategoryNameAreValid_thenBothComponentsReadBackUnchanged()` — read back the
@@ -258,14 +258,14 @@
         - update: `whenParentCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidCategoryException()` — expect
           `InvalidGroupingException` for an absent, empty or whitespace-only `groupingName`, and rename the method
           and its `@DisplayName` for both the argument and the exception
-- [ ] RU06 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` ·
+- [x] RU06 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest` ·
   covers: `CreateExpenseProposalCommand(...)`
     - `CreateExpenseProposalCommand(...)`:
         - update: `whenParentCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException()` —
           the component is `groupingName`; the exception type is unchanged (D23)
         - update: `whenEveryFieldIsPresentAndMerchantIsNonBlank_thenTheRecordCarriesThemUnchanged()` — read back
           the renamed `groupingName` component
-- [ ] RU07 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
+- [x] RU07 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
     - `list()`:
         - given: a stored user, and `groupingRepository.findByUserIdAndName` answering a grouping
           when: `list()` is called
@@ -312,7 +312,7 @@
           raise it from `groupingRepository.findByUserIdAndName`, assert `findCategoryNames` is never called
         - update: `whenFindChildNamesRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged()` — raise
           it from `groupingRepository.findCategoryNames`
-- [ ] RU08 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
+- [x] RU08 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
     - `create()`:
         - given: a stored user, a grouping answered for the command's grouping name, and a category answered under
           it
@@ -356,7 +356,7 @@
           stub both reads through the two ports
         - update: `whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched()`
           — raise it from `categoryRepository.findByGroupingAndName` after the grouping resolves
-- [ ] RU09 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] RU09 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
     - `handle()`:
         - update: `stubKnownUserAndCategories()` — the shared fixture and `setUp()` mock `GroupingRepository` in
           place of `CategoryRepository`, stub `findNamesWithCategories`, and read `Grouping.catchAllName()`; the
@@ -376,11 +376,11 @@
           `findNamesWithCategories` answering an empty list
         - update: `whenFindGroupingNamesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched()`
           — raise it from `findNamesWithCategories`
-- [ ] RU10 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
+- [x] RU10 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · covers: `initialize()`
     - `initialize()`:
         - update: `whenNoUserExistsForExternalId_thenRepositoryCreatesUserWithDefaultsAndReturnsIt()` — the
           captured second argument is `Grouping.defaults()`
-- [ ] RU11 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`
+- [x] RU11 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`
     - `toCommand()`:
         - update: `whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsCommandCarryingThatIdentityAndFields()` —
           build the request with `grouping` and read back the command's `groupingName` component
@@ -394,7 +394,7 @@
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findByUserIdAndName()`,
+- [x] RI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findByUserIdAndName()`,
   `findCategoryNames()`, `findNamesWithCategories()`
     - `findByUserIdAndName()`:
         - given: a stored user with a parentless row named `Utilities`
@@ -440,7 +440,7 @@
         - given: the entity repository raising `QueryTimeoutException`
           when: each of the three methods is called
           then: each throws `PersistenceFailedException` carrying that exception as its cause
-- [ ] RI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
+- [x] RI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
   `findByGroupingAndName()`, `existsByUserIdAndName()`
     - `findByGroupingAndName()`:
         - given: a stored user with a category named `Supermarkets` under the grouping `Groceries`
@@ -492,7 +492,7 @@
       — cover `existsByUserIdAndName()` instead
     - update: `whenFindGroupingNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause()`
       — delete; moves to RI01
-- [ ] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `create()`
+- [x] RI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `create()`
     - `create()`:
         - given: an unstored user and a catalogue whose grouping name is exactly 100 characters
           when: `create()` is called
@@ -521,7 +521,7 @@
           `UserRepositoryAdapterConcurrencyTest`; pass `Grouping.defaults()`
         - update: `whenTwoThreadsRaceOnDifferentExternalIds_thenBothUsersAreStoredEachOwningItsOwnCategoryRows()` —
           in `UserRepositoryAdapterConcurrencyTest`; pass `Grouping.defaults()`
-- [ ] RI04 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories` via
+- [x] RI04 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories` via
   `POST /mcp` · mocks: `ListCategoriesPort`
     - Error Mapping:
         - given: the mocked port throws `InvalidGroupingException`
@@ -535,7 +535,7 @@
       `grouping`; its `@MethodSource` provider is renamed with it
     - update: `whenPortThrowsAnyFailure_thenWarnLineLogsFailureKindWithoutGroupingNameOrToken()` — unchanged in
       substance; confirm it still reads the renamed request builder
-- [ ] RI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] RI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `create_expense_proposal` via `POST /mcp` · mocks: `CreateExpenseProposalPort`
     - Error Mapping:
         - given: the mocked port throws `InvalidGroupingException`
@@ -550,7 +550,7 @@
     - update: `whenAmountCannotBeBoundToString_thenFrameworksOwnBindingFailureReportedAndPortNeverCalled()` — the
       inline JSON body names `grouping`
     - update: `whenAmountIsSentAsJsonNumber_thenToolErrorIsRefusedAndPortNeverCalled()` — same inline JSON body
-- [ ] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()` against the
+- [x] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()` against the
   stubbed provider and ledger
     - update: `whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema()` — the
       published tool schemas name `grouping`, and the user message says "sending that grouping as its grouping"
@@ -560,19 +560,21 @@
       reads it
     - update: `whenLedgerRefusesFirstToolCallThenAcceptsCorrected_thenRefusalReachesProviderSecondCallMadeAndNoExceptionThrown()`
       — its hard-coded corrected `create_expense_proposal` arguments send `grouping`
-    - update: `whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode()` — the asserted user
-      message carries the reworded grouping line
+    - ~~update: `whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode()`~~ — withdrawn as a
+      plan defect (B3): that test asserts only the currency-substitution wording and never referenced the grouping
+      line. The reworded line is asserted by
+      `whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema()` instead.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp` — `tools/call list_categories`
+- [x] RS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp` — `tools/call list_categories`
     - Happy Path:
         - update: `whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsChildrenSortedByName()` — the call
           sends `grouping`, the tool result's key is `grouping`, and the seed is `Grouping.defaults()`
     - Unhappy Path:
         - update: `whenToolCallNamesCategory_thenResponseIsToolErrorSayingItIsACategoryNotAGrouping()` — the call
           sends `grouping`; the refusal wording is unchanged (D8)
-- [ ] RS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp` —
+- [x] RS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp` —
   `tools/call create_expense_proposal`
     - Happy Path:
         - update: `whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten()` — the call
@@ -583,16 +585,16 @@
           Dining is stored for this user` (D9)
         - update: `whenToolCallHasNoParentCategory_thenResponseIsToolErrorAndNoRowIsWritten()` — the absent
           argument is `grouping` and the assertion names it
-- [ ] RS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp` — `tools/list`
+- [x] RS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp` — `tools/list`
     - update: `whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument()`
       — its `@MethodSource` argument lists carry `grouping` in place of `parentCategory`, for both tools and for
       the required sets
-- [ ] RS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] RS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
     - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — the
       expected row count, grouping names and grouping categories are derived from `Grouping.defaults()` and
       `Grouping.categories()`, and the catch-all asserted is `Grouping.catchAllName()`
-- [ ] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.extractIntents()` over the real gRPC
+- [x] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.extractIntents()` over the real gRPC
   channel
     - update: `whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesOneToolCallUnderToken()` — the
       stubbed tool-call arguments and the assertion read `grouping`
@@ -662,6 +664,31 @@
 - Resolution: both are `@Disabled("GI01: …")` and clear when `GroupingRepositoryAdapter` goes green in GI01. The
   Red-phase exit check therefore expects the skipped count back at the Stage 0 baseline **plus these two**; the
   Green-phase check expects it back at the baseline exactly.
+
+- **B2 (stage violation, found in RU08):** stabilization was scoped to keep each reshaped use-case body intact
+  behind a `TODO`, but it wrote the **finished** post-split logic into `ListCategoriesUseCase.resolveGrouping` and
+  `CreateExpenseProposalUseCase.resolveCategoryId`. Verified against the source: both match the design's outcome
+  tables exactly, including both refusal messages, and both still carry a stale `TODO(GU07)`/`TODO(GU08)`
+  describing work already done. Consequence: RU07 and RU08 are not true RED steps — their tests pass on first
+  write, so nothing has yet shown those tests are capable of failing.
+- Resolution: the code is correct and reverting it only to have GU07/GU08 retype it is churn, so it stays. The
+  proof was not skipped — at the Red-phase exit check both method bodies were temporarily reduced to stubs and the
+  two classes re-run: `ListCategoriesUseCaseTest` **7 of 10 failed** (the 3 passing are the command-absent,
+  unknown-user and empty-answer guards, which never reach `resolveGrouping`) and
+  `CreateExpenseProposalUseCaseTest` **5 of 10 failed** (the 5 passing never reach `resolveCategoryId`). Both
+  bodies were then restored and verified byte-identical to commit `94a81ab` by an empty `git diff`. The tests are
+  therefore shown capable of failing. GU07 and GU08 are verification steps, and the stale `TODO` lines go in
+  Stage 4.
+
+- **B3 (plan defect, found in RI06):** RI06's `update:` bullet for
+  `whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode()` claimed that test asserts the
+  prompt's grouping line. Verified against the source: it asserts only `"unrecorded"` and the absence of a
+  three-letter currency code, and never referenced that line before or after the rename. The bullet named a test
+  needing no update.
+- Resolution: bullet withdrawn from RI06 and struck through in place. The reworded prompt line is asserted by
+  `whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema()`, which the step
+  agent extended with a `contains("sending that grouping as its grouping")` check — so the coverage the bullet was
+  reaching for exists, in the test that actually reads the user message.
 
 ## Review Findings
 

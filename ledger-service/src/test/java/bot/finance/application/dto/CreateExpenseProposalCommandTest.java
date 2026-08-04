@@ -10,7 +10,6 @@ import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,8 +55,7 @@ class CreateExpenseProposalCommandTest {
         @ValueSource(strings = {"  "})
         @DisplayName(
                 "when the groupingName is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenParentCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(
-                String groupingName) {
+        void whenGroupingNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String groupingName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, groupingName, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
@@ -110,17 +108,16 @@ class CreateExpenseProposalCommandTest {
         @Test
         @DisplayName(
                 "when every field is present and the merchant is a non-blank name - then the record carries them unchanged")
-        @Disabled("RU06: read back the renamed groupingName component")
         void whenEveryFieldIsPresentAndMerchantIsNonBlank_thenTheRecordCarriesThemUnchanged() {
-            // CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
-            //         USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
-            //
-            // assertThat(createExpenseProposalCommand.userId()).isEqualTo(USER_ID);
-            // assertThat(createExpenseProposalCommand.categoryName()).isEqualTo(CATEGORY_NAME);
-            // assertThat(createExpenseProposalCommand.groupingName()).isEqualTo(GROUPING_NAME);
-            // assertThat(createExpenseProposalCommand.description()).isEqualTo(DESCRIPTION);
-            // assertThat(createExpenseProposalCommand.merchant()).isEqualTo(MERCHANT);
-            // assertThat(createExpenseProposalCommand.money()).isEqualTo(MONEY);
+            CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
+                    USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
+
+            assertThat(createExpenseProposalCommand.userId()).isEqualTo(USER_ID);
+            assertThat(createExpenseProposalCommand.categoryName()).isEqualTo(CATEGORY_NAME);
+            assertThat(createExpenseProposalCommand.groupingName()).isEqualTo(GROUPING_NAME);
+            assertThat(createExpenseProposalCommand.description()).isEqualTo(DESCRIPTION);
+            assertThat(createExpenseProposalCommand.merchant()).isEqualTo(MERCHANT);
+            assertThat(createExpenseProposalCommand.money()).isEqualTo(MONEY);
         }
 
         @Test

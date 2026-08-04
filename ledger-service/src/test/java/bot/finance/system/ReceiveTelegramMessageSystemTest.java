@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -150,9 +149,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 + "the chat id; list_categories answers that grouping's categories before one "
                 + "expense_proposal row is stored under the reference the bearer token's mrf claim "
                 + "carries; and one sendMessage reply names the recorded proposal")
-        @Disabled(
-                "RS04: the expected row count, grouping names and grouping categories are derived from "
-                        + "Grouping.defaults() and Grouping.categories(), and the catch-all asserted is Grouping.catchAllName()")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)

@@ -15,7 +15,6 @@ import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,6 +55,7 @@ class ExpenseProposalToolUtilsTest {
                             Optional.of("Corner Shop"),
                             new Money(1500L, CurrencyCode.of("EUR")),
                             MESSAGE_REFERENCE));
+            assertThat(command.groupingName()).isEqualTo("Food");
         }
 
         @Test
@@ -71,30 +71,28 @@ class ExpenseProposalToolUtilsTest {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("blankParentCategories")
+        @MethodSource("blankGroupings")
         @DisplayName("when the request's grouping is null, empty, or whitespace only - then throws "
                 + "InvalidExpenseProposalException with the message \"expense proposal request has no grouping\"")
-        @Disabled("RU11: the argument under test is grouping, the refusal message reads "
-                + "\"expense proposal request has no grouping\", and its @MethodSource provider is renamed with it")
         void whenParentCategoryIsNullOrBlank_thenThrowsInvalidExpenseProposalException(
                 String description, String grouping) {
-            // CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-            //         "Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
-            //
-            // assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-            //         .isInstanceOf(InvalidExpenseProposalException.class)
-            //         .hasMessage("expense proposal request has no grouping");
+            CreateExpenseProposalToolRequest request =
+                    new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
+
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .hasMessage("expense proposal request has no grouping");
         }
 
-        static Stream<Arguments> blankParentCategories() {
+        static Stream<Arguments> blankGroupings() {
             return Stream.of(
-                    arguments("null parentCategory", null),
-                    arguments("empty parentCategory", ""),
-                    arguments("blank parentCategory", "   "));
+                    arguments("null grouping", null),
+                    arguments("empty grouping", ""),
+                    arguments("blank grouping", "   "));
         }
 
         @Test
-        @DisplayName("when the request's parentCategory is absent and its amount is also malformed - then the "
+        @DisplayName("when the request's grouping is absent and its amount is also malformed - then the "
                 + "amount's own failure is raised")
         void whenParentCategoryIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
             CreateExpenseProposalToolRequest request =
@@ -107,14 +105,13 @@ class ExpenseProposalToolUtilsTest {
 
         @Test
         @DisplayName("when the request carries a non-blank grouping - then the command's groupingName is that name")
-        @Disabled("RU11: a non-blank grouping becomes the command's groupingName")
         void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatName() {
-            // CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
-            //
-            // CreateExpenseProposalCommand command =
-            //         ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
-            //
-            // assertThat(command.groupingName()).isEqualTo("Food");
+            CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
+
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+
+            assertThat(command.groupingName()).isEqualTo("Food");
         }
 
         @ParameterizedTest(name = "{0}")

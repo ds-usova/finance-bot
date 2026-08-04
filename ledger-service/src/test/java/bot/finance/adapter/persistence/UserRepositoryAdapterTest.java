@@ -138,6 +138,23 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
+                "when called with a catalogue whose grouping name is exactly 100 characters long - then the tree is written and that grouping's row carries the whole name")
+        void whenGroupingNameIsExactly100Characters_thenTreeIsWrittenAndGroupingRowCarriesWholeName() {
+            String groupingName = "a".repeat(100);
+            Grouping tree = Grouping.of(groupingName, "Boundary Child");
+            User user = User.newUser("boundary-grouping-external-id");
+
+            User createdUser = adapter.create(user, List.of(tree));
+
+            List<CategoryEntity> rows = categoryRowsFor(createdUser.id().orElseThrow());
+            assertThat(rows)
+                    .filteredOn(row -> row.name().equals(groupingName))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.name()).hasSize(100));
+        }
+
+        @Test
+        @DisplayName(
                 "when called with a category tree whose child name is exactly 100 characters long - then the tree is written and that child's row carries the whole name")
         void whenChildNameIsExactly100Characters_thenTreeIsWrittenAndChildRowCarriesWholeName() {
             String childName = "a".repeat(100);

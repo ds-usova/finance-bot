@@ -185,7 +185,7 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when findNamesWithCategories answers an empty list - then CatchAllGroupingMissingException "
                 + "propagates and the extraction port is never called")
-        void whenFindGroupingNamesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
+        void whenFindNamesWithCategoriesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of());
 
@@ -334,7 +334,8 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when groupingRepository.findNamesWithCategories throws PersistenceFailedException - then the "
                 + "exception propagates and the extraction port, the expense proposal repository and the "
                 + "delivery port are never called")
-        void whenFindGroupingNamesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
+        void
+                whenFindNamesWithCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());

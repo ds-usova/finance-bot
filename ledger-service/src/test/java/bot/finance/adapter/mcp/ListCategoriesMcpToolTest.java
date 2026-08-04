@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.common.LogCapture;
 import bot.finance.common.McpAdapterTest;
@@ -15,20 +16,22 @@ import bot.finance.common.McpRequests;
 import bot.finance.common.McpTokens;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -57,8 +60,8 @@ class ListCategoriesMcpToolTest {
         return McpTokens.tokenFor(accessTokenMinter, externalId);
     }
 
-    private Response postListCategories(String token, String parentCategory) {
-        return postMcp(token, McpRequests.listCategories(parentCategory));
+    private Response postListCategories(String token, String grouping) {
+        return postMcp(token, McpRequests.listCategories(grouping));
     }
 
     private Response postMcp(String token, String body) {
@@ -82,41 +85,37 @@ class ListCategoriesMcpToolTest {
         @Test
         @DisplayName(
                 "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the grouping and its categories")
-        @Disabled("RI04: the command's groupingName component is asserted, and the result text carries "
-                + "\"grouping\":\"Groceries\"")
         void whenListCategoriesIsCalled_thenPortReceivesTokenSubjectAndGroupingNameAndResultCarriesBoth() {
-            // String externalId = "user-42";
-            // when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household
-            // Supplies"));
-            //
-            // Response response = postListCategories(token(externalId), "Groceries");
-            //
-            // ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
-            // verify(listCategoriesPort).list(command.capture());
-            // assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
-            // assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
-            //
-            // assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
-            // String text = response.jsonPath().getString("result.content[0].text");
-            // assertThat(text)
-            //         .contains("\"grouping\":\"Groceries\"")
-            //         .contains("Supermarkets")
-            //         .contains("Markets")
-            //         .contains("Household Supplies");
+            String externalId = "user-42";
+            when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household Supplies"));
+
+            Response response = postListCategories(token(externalId), "Groceries");
+
+            ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
+            verify(listCategoriesPort).list(command.capture());
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
+            String text = response.jsonPath().getString("result.content[0].text");
+            assertThat(text)
+                    .contains("\"grouping\":\"Groceries\"")
+                    .contains("Supermarkets")
+                    .contains("Markets")
+                    .contains("Household Supplies");
         }
 
         @Test
         @DisplayName(
                 "when the port answers an empty list - then the result is a non-error carrying an empty categories array")
-        @Disabled("RI04: the result text carries \"grouping\":\"Miscellaneous\"")
         void whenPortAnswersEmptyList_thenResultIsNonErrorCarryingEmptyCategoriesArray() {
-            // when(listCategoriesPort.list(any())).thenReturn(List.of());
-            //
-            // Response response = postListCategories(token("user-43"), "Miscellaneous");
-            //
-            // assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
-            // String text = response.jsonPath().getString("result.content[0].text");
-            // assertThat(text).contains("\"grouping\":\"Miscellaneous\"").contains("\"categories\":[]");
+            when(listCategoriesPort.list(any())).thenReturn(List.of());
+
+            Response response = postListCategories(token("user-43"), "Miscellaneous");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
+            String text = response.jsonPath().getString("result.content[0].text");
+            assertThat(text).contains("\"grouping\":\"Miscellaneous\"").contains("\"categories\":[]");
         }
 
         @Test
@@ -146,6 +145,19 @@ class ListCategoriesMcpToolTest {
             when(listCategoriesPort.list(any())).thenThrow(new InvalidCategoryException(exceptionMessage));
 
             Response response = postListCategories(token("user-1"), "Fictional");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+        }
+
+        @Test
+        @DisplayName(
+                "when the port throws InvalidGroupingException - then the tool error carries that exception's message bare, as InvalidCategoryException's is")
+        void whenPortThrowsInvalidGroupingException_thenToolErrorCarriesThatExceptionsMessageBare() {
+            String exceptionMessage = "no grouping named Fictional is stored for this user";
+            when(listCategoriesPort.list(any())).thenThrow(new InvalidGroupingException(exceptionMessage));
+
+            Response response = postListCategories(token("user-9"), "Fictional");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -240,18 +252,17 @@ class ListCategoriesMcpToolTest {
     class Validation {
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("bot.finance.adapter.mcp.ListCategoriesMcpToolTest#invalidParentCategories")
-        @DisplayName("when parentCategory is invalid - then the tool error is returned and the port is never called")
-        void whenParentCategoryIsInvalid_thenToolErrorReturnedAndPortNeverCalled(
-                String description, String parentCategory) {
-            Response response = postListCategories(token("user-8"), parentCategory);
+        @MethodSource("bot.finance.adapter.mcp.ListCategoriesMcpToolTest#invalidGroupings")
+        @DisplayName("when grouping is invalid - then the tool error is returned and the port is never called")
+        void whenGroupingIsInvalid_thenToolErrorReturnedAndPortNeverCalled(String description, String grouping) {
+            Response response = postListCategories(token("user-8"), grouping);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(listCategoriesPort, never()).list(any());
         }
     }
 
-    static Stream<Arguments> invalidParentCategories() {
+    static Stream<Arguments> invalidGroupings() {
         return Stream.of(arguments("absent", null), arguments("blank", ""));
     }
 }

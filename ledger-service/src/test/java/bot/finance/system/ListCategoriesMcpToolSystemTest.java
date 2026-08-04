@@ -14,7 +14,6 @@ import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,8 +62,6 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
         @DisplayName("when tools/call list_categories is posted naming Groceries - then the response is a "
                 + "non-error result whose text names Groceries and carries exactly its three seeded children, "
                 + "sorted by name")
-        @Disabled(
-                "RS01: the call sends grouping, the tool result's key is grouping, and the seed is Grouping.defaults()")
         void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsChildrenSortedByName() {
             User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
@@ -81,9 +78,7 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText).as("tool result text").isNotNull();
             JsonPath toolResult = new JsonPath(toolResultText);
-            assertThat(toolResult.getString("parentCategory"))
-                    .as("returned parentCategory")
-                    .isEqualTo("Groceries");
+            assertThat(toolResult.getString("grouping")).as("returned grouping").isEqualTo("Groceries");
             assertThat(toolResult.getList("categories", String.class))
                     .as("returned categories, sorted by name")
                     .containsExactly("Household Supplies", "Markets", "Supermarkets");
@@ -97,7 +92,6 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when tools/call list_categories names a category rather than a grouping - Supermarkets - "
                 + "then the response is a tool error saying it is a category, not a grouping")
-        @Disabled("RS01: the call sends grouping; the refusal wording is unchanged (D8)")
         void whenToolCallNamesCategory_thenResponseIsToolErrorSayingItIsACategoryNotAGrouping() {
             User user = seedUserWithDefaultCategories("list-categories-unhappy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());

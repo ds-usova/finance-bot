@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -84,8 +83,6 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         @MethodSource("bot.finance.system.McpAuthenticationSystemTest#publishedTools")
         @DisplayName(
                 "when tools/list is posted with a valid token - then 200 lists the tool with exactly its own arguments and required arguments, and no identity argument among them")
-        @Disabled("RS03: its @MethodSource argument lists carry grouping in place of parentCategory, for both tools "
-                + "and for the required sets")
         void whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument(
                 String toolName, List<String> expectedArguments, List<String> expectedRequiredArguments) {
             String externalId = "mcp-auth-tools-list-user-" + toolName;
@@ -173,9 +170,9 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         return Stream.of(
                 Arguments.of(
                         "create_expense_proposal",
-                        List.of("category", "parentCategory", "description", "merchant", "amount", "currencyCode"),
-                        List.of("amount", "parentCategory")),
-                Arguments.of("list_categories", List.of("parentCategory"), List.of("parentCategory")));
+                        List.of("category", "grouping", "description", "merchant", "amount", "currencyCode"),
+                        List.of("amount", "grouping")),
+                Arguments.of("list_categories", List.of("grouping"), List.of("grouping")));
     }
 
     static Stream<Arguments> rejectedTokens() {
