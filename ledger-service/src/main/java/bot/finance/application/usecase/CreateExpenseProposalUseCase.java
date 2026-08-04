@@ -1,25 +1,27 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.CreateExpenseProposalCommand;
-import bot.finance.application.dto.StoredCategory;
+import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.model.User;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 
 public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
 
     private final UserRepository userRepository;
+    private final GroupingRepository groupingRepository;
     private final CategoryRepository categoryRepository;
     private final ExpenseProposalRepository expenseProposalRepository;
     private final Clock clock;
@@ -27,11 +29,13 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
 
     public CreateExpenseProposalUseCase(
             UserRepository userRepository,
+            GroupingRepository groupingRepository,
             CategoryRepository categoryRepository,
             ExpenseProposalRepository expenseProposalRepository,
             Clock clock,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;
+        this.groupingRepository = groupingRepository;
         this.categoryRepository = categoryRepository;
         this.expenseProposalRepository = expenseProposalRepository;
         this.clock = clock;
@@ -65,27 +69,20 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         return created;
     }
 
+    // TODO(GU08): rework category resolution against GroupingRepository.findByUserIdAndName then
+    // CategoryRepository.findByGroupingAndName, per CreateExpenseProposalUseCaseTest.
     private long resolveCategoryId(User user, CreateExpenseProposalCommand command) {
+        long userId = user.id().orElseThrow();
+        String groupingName = command.groupingName();
+        StoredGrouping grouping = groupingRepository
+                .findByUserIdAndName(userId, groupingName)
+                .orElseThrow(() ->
+                        new InvalidGroupingException("no grouping named " + groupingName + " is stored for this user"));
         String categoryName = command.categoryName();
-        List<StoredCategory> candidates =
-                categoryRepository.findByUserIdAndName(user.id().orElseThrow(), categoryName);
-        if (candidates.isEmpty()) {
-            throw new InvalidCategoryException("no category named " + categoryName + " is stored for this user");
-        }
-        candidates = narrowByParentName(candidates, command.parentCategoryName());
-        if (candidates.isEmpty()) {
-            throw new InvalidCategoryException("no category named " + categoryName + " under parent "
-                    + command.parentCategoryName() + " is stored for this user");
-        }
-        return candidates.get(0).id();
-    }
-
-    private List<StoredCategory> narrowByParentName(List<StoredCategory> candidates, String parentCategoryName) {
-        return candidates.stream()
-                .filter(candidate -> candidate
-                        .parentName()
-                        .filter(parentCategoryName::equals)
-                        .isPresent())
-                .toList();
+        return categoryRepository
+                .findByGroupingAndName(userId, grouping, categoryName)
+                .orElseThrow(() -> new InvalidCategoryException("no category named " + categoryName + " under grouping "
+                        + groupingName + " is stored for this user"))
+                .id();
     }
 }

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -67,8 +67,8 @@ class UserRepositoryAdapterConcurrencyTest {
         void whenTwoThreadsRaceOnTheSameExternalId_thenBothReturnTheSameUserAndOnlyOneRowSetIsWritten()
                 throws Exception {
             List<Future<User>> results = runConcurrently(
-                    () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Category.defaults()),
-                    () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Category.defaults()));
+                    () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Grouping.defaults()),
+                    () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Grouping.defaults()));
 
             User firstResult = results.get(0).get();
             User secondResult = results.get(1).get();
@@ -88,8 +88,8 @@ class UserRepositoryAdapterConcurrencyTest {
         void whenTwoThreadsRaceOnDifferentExternalIds_thenBothUsersAreStoredEachOwningItsOwnCategoryRows()
                 throws Exception {
             List<Future<User>> results = runConcurrently(
-                    () -> adapter.create(User.newUser(EXTERNAL_ID_A), Category.defaults()),
-                    () -> adapter.create(User.newUser(EXTERNAL_ID_B), Category.defaults()));
+                    () -> adapter.create(User.newUser(EXTERNAL_ID_A), Grouping.defaults()),
+                    () -> adapter.create(User.newUser(EXTERNAL_ID_B), Grouping.defaults()));
 
             User firstResult = results.get(0).get();
             User secondResult = results.get(1).get();

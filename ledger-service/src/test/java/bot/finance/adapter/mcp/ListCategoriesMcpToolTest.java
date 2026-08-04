@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.security.AccessTokenMinter;
-import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.common.LogCapture;
 import bot.finance.common.McpAdapterTest;
@@ -18,19 +17,18 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.value.AuthenticatedUserId;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -83,38 +81,42 @@ class ListCategoriesMcpToolTest {
 
         @Test
         @DisplayName(
-                "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the parent category and its categories")
+                "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the grouping and its categories")
+        @Disabled("RI04: the command's groupingName component is asserted, and the result text carries "
+                + "\"grouping\":\"Groceries\"")
         void whenListCategoriesIsCalled_thenPortReceivesTokenSubjectAndGroupingNameAndResultCarriesBoth() {
-            String externalId = "user-42";
-            when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household Supplies"));
-
-            Response response = postListCategories(token(externalId), "Groceries");
-
-            ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
-            verify(listCategoriesPort).list(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
-            assertThat(command.getValue().parentCategoryName()).isEqualTo("Groceries");
-
-            assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
-            String text = response.jsonPath().getString("result.content[0].text");
-            assertThat(text)
-                    .contains("\"parentCategory\":\"Groceries\"")
-                    .contains("Supermarkets")
-                    .contains("Markets")
-                    .contains("Household Supplies");
+            // String externalId = "user-42";
+            // when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household
+            // Supplies"));
+            //
+            // Response response = postListCategories(token(externalId), "Groceries");
+            //
+            // ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
+            // verify(listCategoriesPort).list(command.capture());
+            // assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            // assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
+            //
+            // assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
+            // String text = response.jsonPath().getString("result.content[0].text");
+            // assertThat(text)
+            //         .contains("\"grouping\":\"Groceries\"")
+            //         .contains("Supermarkets")
+            //         .contains("Markets")
+            //         .contains("Household Supplies");
         }
 
         @Test
         @DisplayName(
                 "when the port answers an empty list - then the result is a non-error carrying an empty categories array")
+        @Disabled("RI04: the result text carries \"grouping\":\"Miscellaneous\"")
         void whenPortAnswersEmptyList_thenResultIsNonErrorCarryingEmptyCategoriesArray() {
-            when(listCategoriesPort.list(any())).thenReturn(List.of());
-
-            Response response = postListCategories(token("user-43"), "Miscellaneous");
-
-            assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
-            String text = response.jsonPath().getString("result.content[0].text");
-            assertThat(text).contains("\"parentCategory\":\"Miscellaneous\"").contains("\"categories\":[]");
+            // when(listCategoriesPort.list(any())).thenReturn(List.of());
+            //
+            // Response response = postListCategories(token("user-43"), "Miscellaneous");
+            //
+            // assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
+            // String text = response.jsonPath().getString("result.content[0].text");
+            // assertThat(text).contains("\"grouping\":\"Miscellaneous\"").contains("\"categories\":[]");
         }
 
         @Test

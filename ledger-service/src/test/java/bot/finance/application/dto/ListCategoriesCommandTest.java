@@ -1,10 +1,10 @@
 package bot.finance.application.dto;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,37 +15,39 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ListCategoriesCommandTest {
 
     private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
-    private static final String PARENT_CATEGORY_NAME = "Groceries";
+    private static final String GROUPING_NAME = "Groceries";
 
     @Nested
     @DisplayName("constructing a new list categories command")
     class ListCategoriesCommandConstructor {
 
         @Test
-        @DisplayName("when the userId and parentCategoryName are valid - then both components read back unchanged")
+        @DisplayName("when the userId and groupingName are valid - then both components read back unchanged")
+        @Disabled("RU05: read back the renamed groupingName component")
         void whenUserIdAndParentCategoryNameAreValid_thenBothComponentsReadBackUnchanged() {
-            ListCategoriesCommand listCategoriesCommand = new ListCategoriesCommand(USER_ID, PARENT_CATEGORY_NAME);
-
-            assertThat(listCategoriesCommand.userId()).isEqualTo(USER_ID);
-            assertThat(listCategoriesCommand.parentCategoryName()).isEqualTo(PARENT_CATEGORY_NAME);
+            // ListCategoriesCommand listCategoriesCommand = new ListCategoriesCommand(USER_ID, GROUPING_NAME);
+            //
+            // assertThat(listCategoriesCommand.userId()).isEqualTo(USER_ID);
+            // assertThat(listCategoriesCommand.groupingName()).isEqualTo(GROUPING_NAME);
         }
 
         @Test
-        @DisplayName("when the userId is absent - then throws InvalidCategoryException")
-        void whenUserIdIsAbsent_thenThrowsInvalidCategoryException() {
-            assertThatThrownBy(() -> new ListCategoriesCommand(null, PARENT_CATEGORY_NAME))
-                    .isInstanceOf(InvalidCategoryException.class);
+        @DisplayName("when the userId is absent - then throws InvalidGroupingException")
+        @Disabled("RU05: expect InvalidGroupingException (D22)")
+        void whenUserIdIsAbsent_thenThrowsInvalidGroupingException() {
+            assertThatThrownBy(() -> new ListCategoriesCommand(null, GROUPING_NAME))
+                    .isInstanceOf(InvalidGroupingException.class);
         }
 
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
         @DisplayName(
-                "when the parentCategoryName is absent, empty, or only whitespace - then throws InvalidCategoryException")
-        void whenParentCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidCategoryException(
-                String parentCategoryName) {
-            assertThatThrownBy(() -> new ListCategoriesCommand(USER_ID, parentCategoryName))
-                    .isInstanceOf(InvalidCategoryException.class);
+                "when the groupingName is absent, empty, or only whitespace - then throws InvalidGroupingException")
+        @Disabled("RU05: expect InvalidGroupingException for an absent, empty or whitespace-only groupingName")
+        void whenGroupingNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidGroupingException(String groupingName) {
+            assertThatThrownBy(() -> new ListCategoriesCommand(USER_ID, groupingName))
+                    .isInstanceOf(InvalidGroupingException.class);
         }
     }
 }

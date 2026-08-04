@@ -1,10 +1,11 @@
 package bot.finance.application.port;
 
 import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,8 +18,9 @@ public interface UserRepository {
 
     /**
      * @throws InvalidUserException if the user's external id violates a column constraint
+     * @throws InvalidGroupingException if a grouping name violates a column constraint
      * @throws InvalidCategoryException if a category name violates a column constraint
      * @throws PersistenceFailedException if the write fails
      */
-    User create(User user, List<Category> categories);
+    User create(User user, List<Grouping> groupings);
 }

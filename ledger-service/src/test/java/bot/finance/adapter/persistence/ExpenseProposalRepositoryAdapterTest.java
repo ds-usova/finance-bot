@@ -56,7 +56,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a stored user, a stored category, and an unstored proposal carrying a merchant - then one proposal row exists for that user carrying the category id, description, merchant, minor units and currency code given, and the returned proposal carries its generated database id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedProposalCarriesGeneratedId() {
             long userId = storedUserId("merchant-proposal-user");
-            long categoryId = storedCategoryId(userId, "Groceries");
+            long categoryId = storedGroupingId(userId, "Groceries");
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
                     categoryId,
@@ -84,7 +84,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a stored user, a stored category, and an unstored proposal with no merchant - then the row's merchant column is null and the returned proposal's merchant is empty")
         void whenCalledWithNoMerchant_thenRowMerchantColumnIsNullAndReturnedProposalMerchantIsEmpty() {
             long userId = storedUserId("no-merchant-proposal-user");
-            long categoryId = storedCategoryId(userId, "Utilities");
+            long categoryId = storedGroupingId(userId, "Utilities");
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
                     categoryId,
@@ -107,7 +107,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a proposal stamped with an instant carrying nanosecond precision and the row is read back - then both timestamps equal that instant truncated to microseconds")
         void whenInstantCarriesNanosecondPrecision_thenReadBackTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("nanosecond-proposal-user");
-            long categoryId = storedCategoryId(userId, "Dining");
+            long categoryId = storedGroupingId(userId, "Dining");
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -135,7 +135,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a description exactly 500 characters long - then the row is written and carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-proposal-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(500);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -159,7 +159,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a description 501 characters long - then throws InvalidExpenseProposalException before anything is written, so no proposal row exists afterwards")
         void whenDescriptionIs501Characters_thenThrowsInvalidExpenseProposalExceptionBeforeWritingAnything() {
             long userId = storedUserId("overlong-description-proposal-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(501);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -180,7 +180,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a merchant exactly 255 characters long - then the row is written and carries the whole merchant")
         void whenMerchantIsExactly255Characters_thenRowIsWrittenAndCarriesWholeMerchant() {
             long userId = storedUserId("boundary-merchant-proposal-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(255);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -204,7 +204,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a merchant 256 characters long - then throws InvalidExpenseProposalException before anything is written")
         void whenMerchantIs256Characters_thenThrowsInvalidExpenseProposalExceptionBeforeWritingAnything() {
             long userId = storedUserId("overlong-merchant-proposal-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(256);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -246,7 +246,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a proposal whose user id is positive and names no stored user - then throws EntityNotFoundException whose entityType() is \"user\"")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
-            long categoryId = storedCategoryId(storedUserId("category-owner-for-unknown-proposal-user"), "Category");
+            long categoryId = storedGroupingId(storedUserId("category-owner-for-unknown-proposal-user"), "Category");
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     unknownUserId,
                     categoryId,
@@ -267,9 +267,9 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called for two proposals of two different stored users, each with its own stored category - then each user owns exactly its own row, and neither references the other's")
         void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRowWithNoCrossReference() {
             long firstUserId = storedUserId("first-proposal-user");
-            long firstCategoryId = storedCategoryId(firstUserId, "First Category");
+            long firstCategoryId = storedGroupingId(firstUserId, "First Category");
             long secondUserId = storedUserId("second-proposal-user");
-            long secondCategoryId = storedCategoryId(secondUserId, "Second Category");
+            long secondCategoryId = storedGroupingId(secondUserId, "Second Category");
 
             ExpenseProposal firstProposal = ExpenseProposal.newExpenseProposal(
                     firstUserId,
@@ -308,7 +308,7 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a stored user, a stored category and a proposal carrying a message reference - then the written row's message_reference column equals that reference's UUID")
         void whenCalledWithMessageReference_thenRowMessageReferenceColumnEqualsGivenReferenceUuid() {
             long userId = storedUserId("message-reference-proposal-user");
-            long categoryId = storedCategoryId(userId, "Category");
+            long categoryId = storedGroupingId(userId, "Category");
             MessageReference reference = MessageReference.newReference();
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
@@ -336,8 +336,8 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with a user id and reference under which three proposals were stored at increasing created_at - then returns three summaries oldest first, each carrying the category name, the parent's name, the description, the merchant and a Money built from the row's minor units and currency code")
         void whenThreeProposalsStoredUnderSameReference_thenReturnsThreeSummariesOldestFirstWithFullMapping() {
             long userId = storedUserId("summary-ordering-user");
-            long parentId = storedCategoryId(userId, "Food");
-            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            long parentId = storedGroupingId(userId, "Food");
+            long categoryId = storedCategoryId(userId, parentId, "Groceries");
             MessageReference reference = MessageReference.newReference();
             Instant base = Instant.now().minusSeconds(60);
 
@@ -366,8 +366,8 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with one of two references a user's proposals were stored under - then only that reference's proposals come back")
         void whenUserHasProposalsUnderTwoReferences_thenOnlyRequestedReferencesProposalsComeBack() {
             long userId = storedUserId("summary-two-references-user");
-            long parentId = storedCategoryId(userId, "Food");
-            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            long parentId = storedGroupingId(userId, "Food");
+            long categoryId = storedCategoryId(userId, parentId, "Groceries");
             MessageReference firstReference = MessageReference.newReference();
             MessageReference secondReference = MessageReference.newReference();
             storedProposal(
@@ -400,11 +400,9 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when called with one user's id and a reference value two stored users share - then only that user's proposals come back")
         void whenTwoUsersShareAReferenceValue_thenOnlyRequestedUsersProposalsComeBack() {
             long firstUserId = storedUserId("summary-shared-reference-first-user");
-            long firstCategoryId =
-                    storedChildCategoryId(firstUserId, storedCategoryId(firstUserId, "Food"), "Groceries");
+            long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");
             long secondUserId = storedUserId("summary-shared-reference-second-user");
-            long secondCategoryId =
-                    storedChildCategoryId(secondUserId, storedCategoryId(secondUserId, "Food"), "Groceries");
+            long secondCategoryId = storedCategoryId(secondUserId, storedGroupingId(secondUserId, "Food"), "Groceries");
             MessageReference sharedReference = MessageReference.newReference();
             storedProposal(
                     firstUserId,
@@ -448,8 +446,8 @@ class ExpenseProposalRepositoryAdapterTest {
                 "when a stored proposal's merchant column is null - then that summary's merchant is Optional.empty()")
         void whenStoredProposalsMerchantColumnIsNull_thenSummaryMerchantIsEmpty() {
             long userId = storedUserId("summary-no-merchant-user");
-            long parentId = storedCategoryId(userId, "Food");
-            long categoryId = storedChildCategoryId(userId, parentId, "Groceries");
+            long parentId = storedGroupingId(userId, "Food");
+            long categoryId = storedCategoryId(userId, parentId, "Groceries");
             MessageReference reference = MessageReference.newReference();
             storedProposal(userId, categoryId, "No merchant", null, 100, "USD", reference.value(), Instant.now());
 
@@ -543,12 +541,12 @@ class ExpenseProposalRepositoryAdapterTest {
         return UserRowUtils.storedUserId(userEntityRepository, externalId);
     }
 
-    private long storedCategoryId(long userId, String name) {
-        return CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, name);
+    private long storedGroupingId(long userId, String name) {
+        return CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, name);
     }
 
-    private long storedChildCategoryId(long userId, long parentId, String name) {
-        return CategoryRowUtils.storedChildCategoryId(jdbcAggregateTemplate, userId, parentId, name);
+    private long storedCategoryId(long userId, long parentId, String name) {
+        return CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, parentId, name);
     }
 
     private List<ExpenseProposalEntity> expenseProposalRowsFor(long userId) {

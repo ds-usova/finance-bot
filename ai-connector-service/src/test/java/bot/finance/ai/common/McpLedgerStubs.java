@@ -73,9 +73,9 @@ public final class McpLedgerStubs {
     /**
      * The ledger answers a {@code list_categories} call with the given category names.
      */
-    public static void stubListCategoriesAnswering(String parentCategory, List<String> categories) {
+    public static void stubListCategoriesAnswering(String grouping, List<String> categories) {
         WireMockSupport.SERVER.stubFor(
-                listCategoriesRequest().willReturn(jsonRpc(listCategoriesResult(parentCategory, categories))));
+                listCategoriesRequest().willReturn(jsonRpc(listCategoriesResult(grouping, categories))));
     }
 
     /**
@@ -145,13 +145,13 @@ public final class McpLedgerStubs {
                                   "type": "object",
                                   "properties": {
                                     "category": {"type": "string"},
-                                    "parentCategory": {"type": "string"},
+                                    "grouping": {"type": "string"},
                                     "description": {"type": "string"},
                                     "merchant": {"type": "string"},
                                     "amount": {"type": "string"},
                                     "currencyCode": {"type": "string"}
                                   },
-                                  "required": ["category", "parentCategory", "description", "amount", "currencyCode"]
+                                  "required": ["category", "grouping", "description", "amount", "currencyCode"]
                                 }
                               },
                               {
@@ -160,9 +160,9 @@ public final class McpLedgerStubs {
                                 "inputSchema": {
                                   "type": "object",
                                   "properties": {
-                                    "parentCategory": {"type": "string"}
+                                    "grouping": {"type": "string"}
                                   },
-                                  "required": ["parentCategory"]
+                                  "required": ["grouping"]
                                 }
                               }
                             ]
@@ -185,7 +185,7 @@ public final class McpLedgerStubs {
                 .withRequestBody(matchingJsonPath("$.params.name", equalTo("list_categories")));
     }
 
-    private static String listCategoriesResult(String parentCategory, List<String> categories) {
+    private static String listCategoriesResult(String grouping, List<String> categories) {
         // The names sit inside "text", itself a JSON string carrying JSON, so their quotes are escaped twice.
         String categoriesJson =
                 categories.stream().map(name -> "\\\"" + name + "\\\"").collect(Collectors.joining(","));
@@ -194,11 +194,11 @@ public final class McpLedgerStubs {
                   "jsonrpc": "2.0",
                   "id": "%%s",
                   "result": {
-                    "content": [{"type": "text", "text": "{\\"parentCategory\\":\\"%s\\",\\"categories\\":[%s]}"}]
+                    "content": [{"type": "text", "text": "{\\"grouping\\":\\"%s\\",\\"categories\\":[%s]}"}]
                   }
                 }
                 """
-                .formatted(parentCategory, categoriesJson);
+                .formatted(grouping, categoriesJson);
     }
 
     private static String accepted() {

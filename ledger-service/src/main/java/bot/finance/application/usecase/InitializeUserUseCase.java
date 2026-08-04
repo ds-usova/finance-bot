@@ -7,7 +7,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 
 public class InitializeUserUseCase implements InitializeUserPort {
 
@@ -28,7 +28,7 @@ public class InitializeUserUseCase implements InitializeUserPort {
     }
 
     private User createUser(String externalId) {
-        User created = userRepository.create(User.newUser(externalId), Category.defaults());
+        User created = userRepository.create(User.newUser(externalId), Grouping.defaults());
         log.info("created user with external id {}", externalId);
         return created;
     }

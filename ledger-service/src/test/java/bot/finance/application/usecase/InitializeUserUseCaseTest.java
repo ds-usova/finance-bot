@@ -17,7 +17,7 @@ import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +49,7 @@ class InitializeUserUseCaseTest {
 
         @Test
         @DisplayName("when no user is stored for the external id - then the repository creates a user carrying that "
-                + "external id and Category.defaults(), and the created user is returned")
+                + "external id and Grouping.defaults(), and the created user is returned")
         void whenNoUserExistsForExternalId_thenRepositoryCreatesUserWithDefaultsAndReturnsIt() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
             User createdUser = User.stored(1L, EXTERNAL_ID);
@@ -58,10 +58,10 @@ class InitializeUserUseCaseTest {
             User result = useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            ArgumentCaptor<List<Category>> categoriesCaptor = ArgumentCaptor.forClass(List.class);
-            verify(userRepository).create(userCaptor.capture(), categoriesCaptor.capture());
+            ArgumentCaptor<List<Grouping>> groupingsCaptor = ArgumentCaptor.forClass(List.class);
+            verify(userRepository).create(userCaptor.capture(), groupingsCaptor.capture());
             assertThat(userCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
-            assertThat(categoriesCaptor.getValue()).isEqualTo(Category.defaults());
+            assertThat(groupingsCaptor.getValue()).isEqualTo(Grouping.defaults());
             assertThat(result).isSameAs(createdUser);
         }
 

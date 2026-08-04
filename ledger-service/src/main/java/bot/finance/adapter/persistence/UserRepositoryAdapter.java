@@ -4,6 +4,7 @@ import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,18 +37,18 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     @Transactional
-    public User create(User user, List<Category> categories) {
+    public User create(User user, List<Grouping> groupings) {
         ColumnLimits.validateExternalId(user.externalId());
-        ColumnLimits.validateCategoryNames(categories);
+        ColumnLimits.validateCatalogueNames(groupings);
 
         try {
-            return insertOrFindExisting(user, categories);
+            return insertOrFindExisting(user, groupings);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to store user " + user.externalId(), e);
         }
     }
 
-    private User insertOrFindExisting(User user, List<Category> categories) {
+    private User insertOrFindExisting(User user, List<Grouping> groupings) {
         // A concurrent uncommitted insert for the same external id makes this statement wait
         // rather than conflict, so the follow-up read below runs only after that insert commits.
         Optional<Long> insertedId = userEntityRepository.insertIfAbsent(user.externalId());
@@ -62,27 +63,27 @@ public class UserRepositoryAdapter implements UserRepository {
         }
 
         long userId = insertedId.get();
-        writeCategoryTree(userId, categories);
+        writeCategoryTree(userId, groupings);
         return User.stored(userId, user.externalId());
     }
 
-    private void writeCategoryTree(long userId, List<Category> categories) {
-        List<CategoryEntity> groupEntities = categories.stream()
-                .map(group -> CategoryEntity.root(userId, group))
+    private void writeCategoryTree(long userId, List<Grouping> groupings) {
+        List<CategoryEntity> groupingEntities = groupings.stream()
+                .map(grouping -> CategoryEntity.grouping(userId, grouping))
                 .toList();
-        List<CategoryEntity> storedGroups = jdbcAggregateTemplate.insertAll(groupEntities);
-        Map<String, Long> groupIdByName =
-                storedGroups.stream().collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
+        List<CategoryEntity> storedGroupings = jdbcAggregateTemplate.insertAll(groupingEntities);
+        Map<String, Long> groupingIdByName =
+                storedGroupings.stream().collect(Collectors.toMap(CategoryEntity::name, CategoryEntity::id));
 
-        List<CategoryEntity> childEntities = new ArrayList<>();
-        for (Category group : categories) {
-            long groupId = groupIdByName.get(group.name());
-            for (Category child : group.children()) {
-                childEntities.add(CategoryEntity.child(userId, groupId, child));
+        List<CategoryEntity> categoryEntities = new ArrayList<>();
+        for (Grouping grouping : groupings) {
+            long groupingId = groupingIdByName.get(grouping.name());
+            for (Category category : grouping.categories()) {
+                categoryEntities.add(CategoryEntity.category(userId, groupingId, category));
             }
         }
-        if (!childEntities.isEmpty()) {
-            jdbcAggregateTemplate.insertAll(childEntities);
+        if (!categoryEntities.isEmpty()) {
+            jdbcAggregateTemplate.insertAll(categoryEntities);
         }
     }
 }

@@ -1,16 +1,16 @@
 package bot.finance.application.dto;
 
-import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.value.AuthenticatedUserId;
 
-public record ListCategoriesCommand(AuthenticatedUserId userId, String parentCategoryName) {
+public record ListCategoriesCommand(AuthenticatedUserId userId, String groupingName) {
 
     public ListCategoriesCommand {
         if (userId == null) {
-            throw new InvalidCategoryException("list categories command has no userId");
+            throw new InvalidGroupingException("list categories command has no userId");
         }
-        if (parentCategoryName == null || parentCategoryName.isBlank()) {
-            throw new InvalidCategoryException("list categories command has no parent category");
+        if (groupingName == null || groupingName.isBlank()) {
+            throw new InvalidGroupingException("list categories command has no grouping name");
         }
     }
 }

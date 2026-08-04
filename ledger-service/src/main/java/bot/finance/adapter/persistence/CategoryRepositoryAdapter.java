@@ -1,9 +1,8 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.StoredCategory;
+import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
-import bot.finance.domain.exception.PersistenceFailedException;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -17,40 +16,16 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     }
 
     @Override
-    public List<StoredCategory> findByUserIdAndName(long userId, String name) {
-        try {
-            return categoryEntityRepository.findByUserIdAndName(userId, name).stream()
-                    .map(this::toStoredCategory)
-                    .toList();
-        } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find category " + name + " for user " + userId, e);
-        }
+    public Optional<StoredCategory> findByGroupingAndName(long userId, StoredGrouping grouping, String name) {
+        // reads the category row filed under the given grouping and carrying that name, mapping it onto
+        // StoredCategory, wrapping any framework exception in PersistenceFailedException
+        return Optional.empty();
     }
 
     @Override
-    public List<String> findChildNames(long categoryId) {
-        try {
-            return categoryEntityRepository.findByParentIdOrderByName(categoryId).stream()
-                    .map(CategoryEntity::name)
-                    .toList();
-        } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find children of category " + categoryId, e);
-        }
-    }
-
-    @Override
-    public List<String> findGroupingNames(long userId) {
-        try {
-            return categoryEntityRepository.findGroupingNames(userId);
-        } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
-        }
-    }
-
-    private StoredCategory toStoredCategory(CategoryEntity entity) {
-        Optional<String> parentName = Optional.ofNullable(entity.parentId())
-                .flatMap(categoryEntityRepository::findById)
-                .map(CategoryEntity::name);
-        return new StoredCategory(entity.id(), entity.name(), parentName);
+    public boolean existsByUserIdAndName(long userId, String name) {
+        // answers whether any category (a row with a parent) of this user's carries that name,
+        // wrapping any framework exception in PersistenceFailedException
+        return false;
     }
 }

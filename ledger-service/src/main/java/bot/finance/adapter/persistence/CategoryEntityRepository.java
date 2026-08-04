@@ -1,15 +1,20 @@
 package bot.finance.adapter.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
 public interface CategoryEntityRepository extends CrudRepository<CategoryEntity, Long> {
 
-    List<CategoryEntity> findByUserIdAndName(Long userId, String name);
+    Optional<CategoryEntity> findByUserIdAndNameAndParentIdIsNull(Long userId, String name);
 
-    List<CategoryEntity> findByParentIdOrderByName(Long parentId);
+    Optional<CategoryEntity> findByUserIdAndParentIdAndName(Long userId, Long parentId, String name);
+
+    List<CategoryEntity> findByUserIdAndParentIdOrderByName(Long userId, Long parentId);
+
+    boolean existsByUserIdAndNameAndParentIdIsNotNull(Long userId, String name);
 
     @Query(
             """
@@ -20,5 +25,5 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
               AND EXISTS (SELECT 1 FROM category child WHERE child.parent_id = c.id)
             ORDER BY c.name
             """)
-    List<String> findGroupingNames(@Param("userId") Long userId);
+    List<String> findNonEmptyGroupingNames(@Param("userId") Long userId);
 }

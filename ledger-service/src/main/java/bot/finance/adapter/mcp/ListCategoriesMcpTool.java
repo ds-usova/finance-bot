@@ -7,6 +7,7 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -36,20 +37,22 @@ public class ListCategoriesMcpTool {
             description = "Lists the categories filed under one of the caller's groupings. An expense is filed "
                     + "under one of these, never under the grouping itself.")
     public CallToolResult listCategories(
-            @McpToolParam(description = "the grouping's name, exactly as it was offered") String parentCategory) {
-        log.debug("Received list_categories call: {}", parentCategory);
+            @McpToolParam(description = "the grouping's name, exactly as it was offered") String grouping) {
+        log.debug("Received list_categories call: {}", grouping);
 
         try {
             AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
 
-            List<String> categories = listCategoriesPort.list(new ListCategoriesCommand(userId, parentCategory));
-            ListCategoriesToolResponse response = new ListCategoriesToolResponse(parentCategory, categories);
+            List<String> categories = listCategoriesPort.list(new ListCategoriesCommand(userId, grouping));
+            ListCategoriesToolResponse response = new ListCategoriesToolResponse(grouping, categories);
 
             log.debug("list_categories call succeeded: {}", response);
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
         } catch (InvalidCategoryException e) {
+            return rejected(e, e.getMessage());
+        } catch (InvalidGroupingException e) {
             return rejected(e, e.getMessage());
         } catch (InvalidUserException e) {
             return rejected(e, "invalid request: " + e.getMessage());

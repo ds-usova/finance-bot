@@ -14,13 +14,13 @@ public class CategoryRowUtils {
                 .toList();
     }
 
-    public static long storedCategoryId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String name) {
+    public static long storedGroupingId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String name) {
         return jdbcAggregateTemplate
                 .insert(new CategoryEntity(null, userId, null, name))
                 .id();
     }
 
-    public static long storedChildCategoryId(
+    public static long storedCategoryId(
             JdbcAggregateTemplate jdbcAggregateTemplate, long userId, long parentId, String name) {
         return jdbcAggregateTemplate
                 .insert(new CategoryEntity(null, userId, parentId, name))

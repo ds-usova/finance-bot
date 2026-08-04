@@ -1,9 +1,8 @@
 package bot.finance.application.dto;
 
 import bot.finance.domain.exception.InvalidCategoryException;
-import java.util.Optional;
 
-public record StoredCategory(long id, String name, Optional<String> parentName) {
+public record StoredCategory(long id, String name) {
 
     public StoredCategory {
         if (id <= 0) {
@@ -11,9 +10,6 @@ public record StoredCategory(long id, String name, Optional<String> parentName) 
         }
         if (name == null || name.isBlank()) {
             throw new InvalidCategoryException("stored category has no name");
-        }
-        if (parentName == null) {
-            throw new InvalidCategoryException("stored category has no parentName");
         }
     }
 }
