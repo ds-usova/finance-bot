@@ -6,6 +6,7 @@ import static bot.finance.common.TelegramTestBot.recordedAnswerCallbackQueries;
 import static bot.finance.common.TelegramTestBot.recordedBotApiMethods;
 import static bot.finance.common.TelegramTestBot.recordedEditMessageReplyMarkups;
 import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.TelegramTestBot.replyMarkup;
 import static bot.finance.common.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
 import static bot.finance.common.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
 import static bot.finance.common.WireMockStubs.telegramAcceptsSendMessage;
@@ -30,7 +31,6 @@ import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.pengrad.telegrambot.TelegramBot;
 import java.io.IOException;
@@ -97,21 +97,6 @@ class TelegramMessageDeliveryAdapterTest {
 
     private static TelegramMessageDeliveryAdapter adapterOver(TelegramBot bot) {
         return new TelegramMessageDeliveryAdapter(bot, new Slf4jLoggerFactory());
-    }
-
-    /**
-     * The {@code reply_markup} form param of a recorded {@code sendMessage}, parsed — like
-     * {@link TelegramTestBot#replyParameters(LoggedRequest)}, pengrad sends it as a JSON document inside a form
-     * field.
-     */
-    private static JsonNode replyMarkup(LoggedRequest sendMessageRequest) {
-        String json =
-                sendMessageRequest.formParameter("reply_markup").getValues().get(0);
-        try {
-            return new ObjectMapper().readTree(json);
-        } catch (IOException e) {
-            throw new UncheckedIOException("failed to parse reply_markup: " + json, e);
-        }
     }
 
     /**

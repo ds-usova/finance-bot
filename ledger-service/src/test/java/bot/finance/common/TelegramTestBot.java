@@ -156,8 +156,7 @@ public final class TelegramTestBot {
 
     /**
      * The Bot API method names the stub server received for this token, in arrival order — the last path segment
-     * of every {@code /bot<token>/<method>} request. RI03 asserts {@code answerCallbackQuery} precedes
-     * {@code editMessageReplyMarkup} (D8).
+     * of every {@code /bot<token>/<method>} request.
      */
     public static List<String> recordedBotApiMethods(String token) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathMatching("/bot%s/.*".formatted(token)))).stream()
@@ -171,12 +170,23 @@ public final class TelegramTestBot {
      * it means parsing rather than a string comparison.
      */
     public static JsonNode replyParameters(LoggedRequest sendMessageRequest) {
-        String json =
-                sendMessageRequest.formParameter("reply_parameters").getValues().get(0);
+        return formParameterAsJson(sendMessageRequest, "reply_parameters");
+    }
+
+    /**
+     * The {@code reply_markup} form param of a recorded {@code sendMessage}, parsed — pengrad sends it as a JSON
+     * document inside a form field, the way it sends {@code reply_parameters}.
+     */
+    public static JsonNode replyMarkup(LoggedRequest sendMessageRequest) {
+        return formParameterAsJson(sendMessageRequest, "reply_markup");
+    }
+
+    private static JsonNode formParameterAsJson(LoggedRequest request, String name) {
+        String json = request.formParameter(name).getValues().get(0);
         try {
             return MAPPER.readTree(json);
         } catch (IOException e) {
-            throw new UncheckedIOException("failed to parse reply_parameters: " + json, e);
+            throw new UncheckedIOException("failed to parse %s: %s".formatted(name, json), e);
         }
     }
 }

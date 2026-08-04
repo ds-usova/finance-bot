@@ -533,6 +533,24 @@ New-method stubs carry a short inline comment describing the implementation inte
 - A: No ADR. Only the D5 candidate is recorded; D34 in the design, `MessageDeliveryPort`'s javadoc and RI03's
   scenarios hold this one.
 
+- **Q3:** Raised by the refactor pass, not fixed there (no test may change during refactor).
+  `ResolveProposalsUseCaseTest.whenAcceptResolvesTwo_thenInfoLineCarriesReferenceResolutionOutcomeAndCount`
+  captures `log.info`'s varargs and asserts the reference, resolution, outcome and count. All four are already
+  asserted off the `ResolutionAcknowledgement` that `acknowledge` receives in the sibling tests, so the test pins a
+  diagnostic rather than an outcome — which is what
+  [testing.md](../../ledger-service/docs/conventions/testing.md) reserves a log assertion against. It fails on any
+  rewording of that line and says nothing about whether the product broke. Delete it, or keep it as the one guard
+  on D37's "the outcome is what separates `ACCEPTED` from `ALREADY_ACCEPTED` in the log"?
+- A:
+
+- **Q4:** Raised by the refactor pass, unverified — it could not construct a failing input.
+  `TelegramMessageDeliveryAdapter.acknowledge` calls `Integer.parseInt(ack.reportMessageId())`, and
+  `ResolveProposalsCommand` validates only that the id is non-blank, so a non-numeric id would leave the adapter as
+  a raw `NumberFormatException` rather than a domain exception, against the outbound-adapter translation rule. Not
+  reachable today: the only producer is `TelegramUpdateUtils`, which sets it from `String.valueOf(message.messageId())`.
+  `deliver` carries the same pattern and predates this plan. Worth closing, or left as it is?
+- A:
+
 ## Review Findings
 
 - **F1:** ST11's constructor list and ST24's `@Bean` omitted `MessageDeliveryPort`, which the use case's own stub

@@ -12,11 +12,9 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.model.User;
 import bot.finance.domain.value.MessageReference;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Optional;
 
 public class ResolveProposalsUseCase implements ResolveProposalsPort {
 
@@ -47,40 +45,49 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
         if (command == null) {
             throw new InvalidIncomingMessageException("resolve-proposals command is absent");
         }
-        Optional<User> user = userRepository.findByExternalId(command.userExternalId());
-        ResolutionOutcome outcome = ResolutionOutcome.NOTHING_TO_RESOLVE;
-        int count = 0;
-        if (user.isPresent()) {
-            long userId = user.get().id().orElseThrow();
-            int resolvedCount = resolve(userId, command);
-            if (resolvedCount > 0) {
-                outcome = command.resolution() == ProposalResolution.ACCEPT
-                        ? ResolutionOutcome.ACCEPTED
-                        : ResolutionOutcome.DISCARDED;
-                count = resolvedCount;
-            } else {
-                int alreadyResolvedCount = expenseRepository.countByMessageReference(userId, command.reference());
-                if (alreadyResolvedCount > 0) {
-                    outcome = ResolutionOutcome.ALREADY_ACCEPTED;
-                    count = alreadyResolvedCount;
-                }
-            }
-        }
+        ResolutionAcknowledgement acknowledgement = userRepository
+                .findByExternalId(command.userExternalId())
+                .map(user -> acknowledgementFor(user.id().orElseThrow(), command))
+                .orElseGet(() -> acknowledgement(command, ResolutionOutcome.NOTHING_TO_RESOLVE, 0));
         log.info(
                 "resolved proposals under reference {} as {} with outcome {} and count {}",
                 command.reference(),
                 command.resolution(),
-                outcome,
-                count);
-        messageDeliveryPort.acknowledge(new ResolutionAcknowledgement(
-                command.conversationId(), command.reportMessageId(), command.interactionId(), outcome, count));
+                acknowledgement.outcome(),
+                acknowledgement.count());
+        messageDeliveryPort.acknowledge(acknowledgement);
     }
 
-    private int resolve(long userId, ResolveProposalsCommand command) {
+    private ResolutionAcknowledgement acknowledgementFor(long userId, ResolveProposalsCommand command) {
+        int resolvedCount = applyResolution(userId, command);
+        if (resolvedCount > 0) {
+            return acknowledgement(command, resolvedOutcome(command.resolution()), resolvedCount);
+        }
+        int alreadyAcceptedCount = expenseRepository.countByMessageReference(userId, command.reference());
+        if (alreadyAcceptedCount > 0) {
+            return acknowledgement(command, ResolutionOutcome.ALREADY_ACCEPTED, alreadyAcceptedCount);
+        }
+        return acknowledgement(command, ResolutionOutcome.NOTHING_TO_RESOLVE, 0);
+    }
+
+    private int applyResolution(long userId, ResolveProposalsCommand command) {
         MessageReference reference = command.reference();
         return switch (command.resolution()) {
             case ACCEPT -> expenseProposalRepository.accept(userId, reference, Instant.now(clock));
             case DISCARD -> expenseProposalRepository.discard(userId, reference);
         };
+    }
+
+    private static ResolutionOutcome resolvedOutcome(ProposalResolution resolution) {
+        return switch (resolution) {
+            case ACCEPT -> ResolutionOutcome.ACCEPTED;
+            case DISCARD -> ResolutionOutcome.DISCARDED;
+        };
+    }
+
+    private static ResolutionAcknowledgement acknowledgement(
+            ResolveProposalsCommand command, ResolutionOutcome outcome, int count) {
+        return new ResolutionAcknowledgement(
+                command.conversationId(), command.reportMessageId(), command.interactionId(), outcome, count);
     }
 }

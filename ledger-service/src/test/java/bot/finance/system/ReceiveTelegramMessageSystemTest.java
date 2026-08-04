@@ -3,6 +3,7 @@ package bot.finance.system;
 import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.TelegramTestBot.replyMarkup;
 import static bot.finance.common.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -22,12 +23,10 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
-import java.io.IOException;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.List;
@@ -153,7 +152,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 + "expense_proposal row is stored under the reference the bearer token's mrf claim "
                 + "carries; and one sendMessage reply names the recorded proposal")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
-                throws ParseException, IOException {
+                throws ParseException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -256,12 +255,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(sendMessageRequest.formParameter("reply_markup").isPresent())
                     .as("sendMessage reply_markup form param is present")
                     .isTrue();
-            JsonNode replyMarkup = new ObjectMapper()
-                    .readTree(sendMessageRequest
-                            .formParameter("reply_markup")
-                            .getValues()
-                            .get(0));
-            JsonNode buttonRow = replyMarkup.get("inline_keyboard").get(0);
+            JsonNode buttonRow =
+                    replyMarkup(sendMessageRequest).get("inline_keyboard").get(0);
             assertThat(buttonRow)
                     .as("one row of buttons in the report's keyboard")
                     .hasSize(2);
