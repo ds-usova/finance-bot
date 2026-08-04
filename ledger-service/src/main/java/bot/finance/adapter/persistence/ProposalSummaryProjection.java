@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public record ProposalSummaryProjection(
         String categoryName,
-        String parentName,
+        String groupingName,
         String description,
         String merchant,
         long amountMinorUnits,
@@ -16,7 +16,7 @@ public record ProposalSummaryProjection(
     public ProposalSummary toSummary() {
         return new ProposalSummary(
                 categoryName,
-                parentName,
+                groupingName,
                 description,
                 Optional.ofNullable(merchant),
                 new Money(amountMinorUnits, CurrencyCode.of(currencyCode)));

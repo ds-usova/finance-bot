@@ -352,7 +352,7 @@ class ExpenseProposalRepositoryAdapterTest {
             assertThat(summaries).hasSize(3);
             assertThat(summaries.get(0)).satisfies(summary -> {
                 assertThat(summary.categoryName()).isEqualTo("Groceries");
-                assertThat(summary.parentCategoryName()).isEqualTo("Food");
+                assertThat(summary.groupingName()).isEqualTo("Food");
                 assertThat(summary.description()).isEqualTo("First");
                 assertThat(summary.merchant()).contains("Merchant One");
                 assertThat(summary.money()).isEqualTo(new Money(100, CurrencyCode.of("USD")));

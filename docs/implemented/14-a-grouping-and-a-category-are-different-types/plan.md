@@ -697,8 +697,12 @@
   read of it still name what this change calls a grouping — `ExpenseProposalRepositoryAdapterTest` asserts
   `summary.parentCategoryName()` equals `"Food"`, which is a grouping. No design decision covers these files and
   the plan never listed them, so the refactor stage correctly left them alone.
-- Resolution: out of scope for this plan — renaming that component to `groupingName` is a clean follow-up change
-  of its own. Recorded so the next reader finds it rather than rediscovering it.
+- Resolution: **done after archiving**, by the developer, as its own follow-up. `ProposalSummary.groupingName`,
+  `ProposalSummaryProjection.groupingName` and the `grouping_name` SQL alias replace the parent-category
+  vocabulary end to end, through `ProposalReportUtils` and the adapter test. The component is named
+  `groupingName` rather than `grouping` to match its sibling `categoryName` and the two commands; `grouping` bare
+  stays the *wire* name, on the MCP argument and `ListCategoriesToolResponse`. `database.md` and
+  `handle-incoming-message.md` needed no edit — both describe the read's behaviour, not its column names.
 
 - **B5 (wording, raised by the Stage 4 refactor):** `user-message.st` now reads "sending that grouping as its
   grouping" (ST20, per D11). It is accurate but reads oddly to a model; "sending that grouping as the `grouping`
