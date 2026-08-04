@@ -4,8 +4,6 @@ import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ListCategoriesPort;
-import bot.finance.application.port.Logger;
-import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
@@ -16,13 +14,10 @@ public class ListCategoriesUseCase implements ListCategoriesPort {
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final Logger log;
 
-    public ListCategoriesUseCase(
-            UserRepository userRepository, CategoryRepository categoryRepository, LoggerFactory loggerFactory) {
+    public ListCategoriesUseCase(UserRepository userRepository, CategoryRepository categoryRepository) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
-        this.log = loggerFactory.getLogger(ListCategoriesUseCase.class);
     }
 
     @Override

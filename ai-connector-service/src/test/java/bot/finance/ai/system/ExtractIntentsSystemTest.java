@@ -72,7 +72,11 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             McpLedgerStubs.stubListCategoriesAnswering("Food", List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(listCategoriesToolCall("call-list-1", "Food")),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-1",
+                            "list_categories",
+                            """
+                            {"parentCategory":"Food"}""")),
                     ChatCompletionFixtures.toolCallResponse(
                             ChatCompletionFixtures.toolCall(
                                     "call-2",
@@ -99,24 +103,6 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
             assertThat(lookupArguments.get("parentCategory").asText()).isEqualTo("Food");
         }
-    }
-
-    /**
-     * A {@code list_categories} tool-call entry the provider might send, its argument the sole
-     * {@code parentCategory} the tool declares.
-     */
-    private static String listCategoriesToolCall(String id, String parentCategory) {
-        return """
-                {
-                  "id": "%s",
-                  "type": "function",
-                  "function": {
-                    "name": "list_categories",
-                    "arguments": "{\\"parentCategory\\":\\"%s\\"}"
-                  }
-                }
-                """
-                .formatted(id, parentCategory);
     }
 
     @Nested

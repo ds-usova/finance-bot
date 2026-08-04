@@ -6,6 +6,8 @@ package bot.finance.ai.common;
  */
 public final class ChatCompletionFixtures {
 
+    private static final String CREATE_EXPENSE_PROPOSAL = "create_expense_proposal";
+
     private ChatCompletionFixtures() {}
 
     /**
@@ -13,17 +15,24 @@ public final class ChatCompletionFixtures {
      * shape the provider sends, and the shape {@code SyncMcpToolCallback} expects to deserialize.
      */
     public static String toolCall(String id, String argumentsJson) {
+        return toolCall(id, CREATE_EXPENSE_PROPOSAL, argumentsJson);
+    }
+
+    /**
+     * One tool-call entry naming {@code functionName}, its arguments a JSON object encoded as a string.
+     */
+    public static String toolCall(String id, String functionName, String argumentsJson) {
         return """
                 {
                   "id": "%s",
                   "type": "function",
                   "function": {
-                    "name": "create_expense_proposal",
+                    "name": "%s",
                     "arguments": %s
                   }
                 }
                 """
-                .formatted(id, quote(argumentsJson));
+                .formatted(id, functionName, quote(argumentsJson));
     }
 
     /**

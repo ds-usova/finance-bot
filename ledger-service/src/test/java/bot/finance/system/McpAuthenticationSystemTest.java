@@ -83,7 +83,7 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         @DisplayName(
                 "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and list_categories with its one argument, neither carrying an identity argument")
         void
-                whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument() {
+                whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalAndListCategoriesToolsAreListedWithTheirArgumentsAndNoIdentityArgument() {
             String externalId = "mcp-auth-tools-list-user";
             UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);

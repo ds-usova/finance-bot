@@ -34,10 +34,7 @@ public final class RequestFixtures {
 
     public static ExtractIntentsRequest request(
             String text, List<String> categoryGroupings, String catchAllGrouping, String defaultCurrency) {
-        return ExtractIntentsRequest.newBuilder()
-                .setText(text)
-                .addAllCategoryGroupings(categoryGroupings)
-                .setCatchAllGrouping(catchAllGrouping)
+        return request(text, categoryGroupings, catchAllGrouping).toBuilder()
                 .setDefaultCurrency(defaultCurrency)
                 .build();
     }

@@ -202,7 +202,7 @@ class IntentExtractionRequestTest {
         @Test
         @DisplayName("when the mutable grouping list handed to the constructor is modified afterwards - "
                 + "then category groupings is unchanged")
-        void whenKnownCategoriesListIsModifiedAfterConstruction_thenKnownCategoriesIsUnchanged() {
+        void whenGroupingListIsModifiedAfterConstruction_thenCategoryGroupingsIsUnchanged() {
             List<String> mutableGroupings = new ArrayList<>(List.of("groceries"));
 
             IntentExtractionRequest request = new IntentExtractionRequest(

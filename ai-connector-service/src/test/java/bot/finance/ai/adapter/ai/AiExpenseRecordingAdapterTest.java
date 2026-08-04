@@ -86,24 +86,6 @@ class AiExpenseRecordingAdapterTest {
         throw new AssertionError("no tool named " + functionName + " in " + tools);
     }
 
-    /**
-     * A {@code list_categories} tool-call entry the provider might send, its argument the sole
-     * {@code parentCategory} the tool declares.
-     */
-    private static String listCategoriesToolCall(String id, String parentCategory) {
-        return """
-                {
-                  "id": "%s",
-                  "type": "function",
-                  "function": {
-                    "name": "list_categories",
-                    "arguments": "{\\"parentCategory\\":\\"%s\\"}"
-                  }
-                }
-                """
-                .formatted(id, parentCategory);
-    }
-
     @Nested
     @DisplayName("record()")
     class Record {
@@ -217,7 +199,11 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             McpLedgerStubs.stubListCategoriesAnswering("Food", List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(listCategoriesToolCall("call-list-1", "Food")),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-1",
+                            "list_categories",
+                            """
+                            {"parentCategory":"Food"}""")),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 
@@ -245,7 +231,11 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             McpLedgerStubs.stubListCategoriesRefused();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(listCategoriesToolCall("call-list-1", "Groceries")),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-1",
+                            "list_categories",
+                            """
+                            {"parentCategory":"Groceries"}""")),
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
 

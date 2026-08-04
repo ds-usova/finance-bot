@@ -77,13 +77,10 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             User user,
             MessageReference reference) {
         try {
-            String catchAllGrouping = categoryGroupings.contains(Category.catchAllGroupingName())
-                    ? Category.catchAllGroupingName()
-                    : categoryGroupings.stream().findFirst().orElse(Category.catchAllGroupingName());
             intentExtractionPort.extract(new IntentExtractionRequest(
                     command.text(),
                     categoryGroupings,
-                    catchAllGrouping,
+                    catchAllGrouping(categoryGroupings),
                     Optional.empty(),
                     user.externalId(),
                     reference));
@@ -91,6 +88,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         } catch (IntentExtractionFailedException e) {
             return true;
         }
+    }
+
+    private String catchAllGrouping(List<String> categoryGroupings) {
+        String designated = Category.catchAllGroupingName();
+        if (categoryGroupings.contains(designated) || categoryGroupings.isEmpty()) {
+            return designated;
+        }
+        return categoryGroupings.getFirst();
     }
 
     private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {

@@ -63,8 +63,7 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    ListCategoriesPort listCategoriesPort(
-            UserRepository userRepository, CategoryRepository categoryRepository, LoggerFactory loggerFactory) {
-        return new ListCategoriesUseCase(userRepository, categoryRepository, loggerFactory);
+    ListCategoriesPort listCategoriesPort(UserRepository userRepository, CategoryRepository categoryRepository) {
+        return new ListCategoriesUseCase(userRepository, categoryRepository);
     }
 }

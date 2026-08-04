@@ -13,8 +13,6 @@ import static org.mockito.Mockito.when;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.port.CategoryRepository;
-import bot.finance.application.port.Logger;
-import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
@@ -41,10 +39,7 @@ class ListCategoriesUseCaseTest {
     void setUp() {
         userRepository = mock(UserRepository.class);
         categoryRepository = mock(CategoryRepository.class);
-        Logger log = mock(Logger.class);
-        LoggerFactory loggerFactory = mock(LoggerFactory.class);
-        when(loggerFactory.getLogger(ListCategoriesUseCase.class)).thenReturn(log);
-        useCase = new ListCategoriesUseCase(userRepository, categoryRepository, loggerFactory);
+        useCase = new ListCategoriesUseCase(userRepository, categoryRepository);
     }
 
     private ListCategoriesCommand newListCategories(String groupingName) {
