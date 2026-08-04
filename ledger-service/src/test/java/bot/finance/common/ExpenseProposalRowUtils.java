@@ -1,7 +1,9 @@
 package bot.finance.common;
 
 import bot.finance.adapter.persistence.ExpenseProposalEntity;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 public class ExpenseProposalRowUtils {
@@ -13,5 +15,28 @@ public class ExpenseProposalRowUtils {
         return jdbcAggregateTemplate.findAll(ExpenseProposalEntity.class).stream()
                 .filter(row -> row.userId() == userId)
                 .toList();
+    }
+
+    public static ExpenseProposalEntity storedProposal(
+            JdbcAggregateTemplate jdbcAggregateTemplate,
+            long userId,
+            long categoryId,
+            String description,
+            String merchant,
+            long amountMinorUnits,
+            String currencyCode,
+            UUID messageReference,
+            Instant createdAt) {
+        return jdbcAggregateTemplate.insert(new ExpenseProposalEntity(
+                null,
+                userId,
+                categoryId,
+                description,
+                merchant,
+                amountMinorUnits,
+                currencyCode,
+                messageReference,
+                createdAt,
+                createdAt));
     }
 }

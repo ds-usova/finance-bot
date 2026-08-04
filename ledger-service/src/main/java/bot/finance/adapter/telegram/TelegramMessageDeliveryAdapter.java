@@ -1,6 +1,7 @@
 package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.ProposalReport;
+import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -32,6 +33,7 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         SendMessage request = new SendMessage(report.conversationId(), ProposalReportUtils.render(report))
                 .replyParameters(
                         new ReplyParameters(Integer.valueOf(report.inboundMessageId())).allowSendingWithoutReply(true));
+        // TODO: attach the keyboard ProposalReportUtils.renderKeyboard(report) gives, when present
 
         SendResponse response;
         try {
@@ -47,4 +49,9 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
                     .formatted(response.errorCode(), response.description()));
         }
     }
+
+    // sends AnswerCallbackQuery with the wording, then EditMessageReplyMarkup with no markup, attempting the
+    // second even when the first failed and throwing the first failure
+    @Override
+    public void acknowledge(ResolutionAcknowledgement ack) {}
 }

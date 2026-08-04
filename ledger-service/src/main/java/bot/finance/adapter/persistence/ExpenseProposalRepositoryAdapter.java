@@ -6,6 +6,7 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.MessageReference;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,21 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
                             + reference.value(),
                     e);
         }
+    }
+
+    @Override
+    @Transactional
+    public int accept(long userId, MessageReference reference, Instant now) {
+        // moves every proposal under the reference into expense in one statement, stamping both timestamps with
+        // now truncated to microseconds, and classifies a RuntimeException as PersistenceFailedException
+        return 0;
+    }
+
+    @Override
+    @Transactional
+    public int discard(long userId, MessageReference reference) {
+        // removes every proposal under the reference, classifying a RuntimeException as PersistenceFailedException
+        return 0;
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

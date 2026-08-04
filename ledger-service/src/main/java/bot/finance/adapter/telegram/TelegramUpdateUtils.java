@@ -1,6 +1,7 @@
 package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
+import bot.finance.application.dto.ResolveProposalsCommand;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
@@ -10,6 +11,11 @@ import java.util.Optional;
 public final class TelegramUpdateUtils {
 
     private TelegramUpdateUtils() {}
+
+    // reads the callback query's from, chat, message id, id and data, and skips an update missing any of them
+    public static Optional<ResolveProposalsCommand> toResolveProposalsCommand(Update update) {
+        return Optional.empty();
+    }
 
     /**
      * @param update the update to map, possibly {@code null}

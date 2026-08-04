@@ -19,7 +19,7 @@ bot.finance
     ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     ├── ExpenseRowUtils       # reads back a user's stored expense rows
-    ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows
+    ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
     ├── UserRowUtils          # stores a user row and returns its generated id
     ├── WireMockStubs         # stub registration, one static method per endpoint
     ├── JsonUtils             # loads JSON fixtures from src/test/resources
@@ -27,7 +27,7 @@ bot.finance
     ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
     ├── TelegramFixtures      # Bot API JSON bodies
-    └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification
+    └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
 ```
 
 ## Test Layers

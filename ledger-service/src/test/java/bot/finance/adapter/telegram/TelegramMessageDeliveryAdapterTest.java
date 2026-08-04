@@ -17,6 +17,7 @@ import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -64,7 +65,8 @@ class TelegramMessageDeliveryAdapterTest {
                                 "Auto",
                                 "tank refill",
                                 Optional.empty(),
-                                new Money(6000, CurrencyCode.of("EUR")))));
+                                new Money(6000, CurrencyCode.of("EUR")))),
+                MessageReference.newReference());
     }
 
     private static TelegramMessageDeliveryAdapter adapterOver(TelegramBot bot) {

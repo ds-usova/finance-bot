@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
+import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import com.pengrad.telegrambot.TelegramBot;
@@ -60,7 +61,8 @@ class TelegramUpdateListenerTest {
     @BeforeEach
     void setUp() {
         handleIncomingMessagePort = mock(HandleIncomingMessagePort.class);
-        listener = new TelegramUpdateListener(handleIncomingMessagePort, new Slf4jLoggerFactory());
+        listener = new TelegramUpdateListener(
+                handleIncomingMessagePort, mock(ResolveProposalsPort.class), new Slf4jLoggerFactory());
         bot = forToken(LISTENER_TOKEN);
         telegramReturnsNoUpdates(LISTENER_TOKEN);
     }

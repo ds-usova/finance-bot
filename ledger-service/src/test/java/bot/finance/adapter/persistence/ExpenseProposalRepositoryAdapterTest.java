@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -341,11 +340,36 @@ class ExpenseProposalRepositoryAdapterTest {
             MessageReference reference = MessageReference.newReference();
             Instant base = Instant.now().minusSeconds(60);
 
-            storedProposal(
-                    userId, categoryId, "Third", "Merchant Three", 300, "USD", reference.value(), base.plusSeconds(20));
-            storedProposal(userId, categoryId, "First", "Merchant One", 100, "USD", reference.value(), base);
-            storedProposal(
-                    userId, categoryId, "Second", "Merchant Two", 200, "USD", reference.value(), base.plusSeconds(10));
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Third",
+                    "Merchant Three",
+                    300,
+                    "USD",
+                    reference.value(),
+                    base.plusSeconds(20));
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    "Merchant One",
+                    100,
+                    "USD",
+                    reference.value(),
+                    base);
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    "Merchant Two",
+                    200,
+                    "USD",
+                    reference.value(),
+                    base.plusSeconds(10));
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, reference);
 
@@ -370,7 +394,8 @@ class ExpenseProposalRepositoryAdapterTest {
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
             MessageReference firstReference = MessageReference.newReference();
             MessageReference secondReference = MessageReference.newReference();
-            storedProposal(
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
                     userId,
                     categoryId,
                     "Under first reference",
@@ -379,7 +404,8 @@ class ExpenseProposalRepositoryAdapterTest {
                     "USD",
                     firstReference.value(),
                     Instant.now());
-            storedProposal(
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
                     userId,
                     categoryId,
                     "Under second reference",
@@ -404,7 +430,8 @@ class ExpenseProposalRepositoryAdapterTest {
             long secondUserId = storedUserId("summary-shared-reference-second-user");
             long secondCategoryId = storedCategoryId(secondUserId, storedGroupingId(secondUserId, "Food"), "Groceries");
             MessageReference sharedReference = MessageReference.newReference();
-            storedProposal(
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
                     firstUserId,
                     firstCategoryId,
                     "First user's proposal",
@@ -413,7 +440,8 @@ class ExpenseProposalRepositoryAdapterTest {
                     "USD",
                     sharedReference.value(),
                     Instant.now());
-            storedProposal(
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
                     secondUserId,
                     secondCategoryId,
                     "Second user's proposal",
@@ -449,7 +477,16 @@ class ExpenseProposalRepositoryAdapterTest {
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
             MessageReference reference = MessageReference.newReference();
-            storedProposal(userId, categoryId, "No merchant", null, 100, "USD", reference.value(), Instant.now());
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "No merchant",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now());
 
             List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, reference);
 
@@ -551,27 +588,5 @@ class ExpenseProposalRepositoryAdapterTest {
 
     private List<ExpenseProposalEntity> expenseProposalRowsFor(long userId) {
         return ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
-    }
-
-    private ExpenseProposalEntity storedProposal(
-            long userId,
-            long categoryId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            UUID messageReference,
-            Instant createdAt) {
-        return jdbcAggregateTemplate.insert(new ExpenseProposalEntity(
-                null,
-                userId,
-                categoryId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                messageReference,
-                createdAt,
-                createdAt));
     }
 }

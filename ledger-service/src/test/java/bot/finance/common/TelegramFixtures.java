@@ -124,6 +124,66 @@ public final class TelegramFixtures {
     }
 
     /**
+     * A bare {@code Update} carrying a callback query with a {@code from}, a {@code message} and {@code data}.
+     */
+    public static String callbackQueryUpdate(int updateId, long userId, long chatId, int messageId, String data) {
+        return """
+                {
+                  "update_id": %d,
+                  "callback_query": {
+                    "id": "callback-query-id",
+                    "from": { "id": %d, "is_bot": false, "first_name": "Tester" },
+                    "message": {
+                      "message_id": %d,
+                      "date": %d,
+                      "chat": { "id": %d, "type": "private" }
+                    },
+                    "chat_instance": "callback-chat-instance",
+                    "data": "%s"
+                  }
+                }"""
+                .formatted(updateId, userId, messageId, MESSAGE_DATE, chatId, escaped(data));
+    }
+
+    /**
+     * A bare {@code Update} carrying a callback query with a {@code message} and {@code data} but no {@code from}.
+     */
+    public static String callbackQueryUpdateWithoutFrom(int updateId, long chatId, String data) {
+        return """
+                {
+                  "update_id": %d,
+                  "callback_query": {
+                    "id": "callback-query-id",
+                    "message": {
+                      "message_id": %d,
+                      "date": %d,
+                      "chat": { "id": %d, "type": "private" }
+                    },
+                    "chat_instance": "callback-chat-instance",
+                    "data": "%s"
+                  }
+                }"""
+                .formatted(updateId, MESSAGE_ID, MESSAGE_DATE, chatId, escaped(data));
+    }
+
+    /**
+     * A bare {@code Update} carrying a callback query with a {@code from} and {@code data} but no {@code message}.
+     */
+    public static String callbackQueryUpdateWithoutMessage(int updateId, long userId, String data) {
+        return """
+                {
+                  "update_id": %d,
+                  "callback_query": {
+                    "id": "callback-query-id",
+                    "from": { "id": %d, "is_bot": false, "first_name": "Tester" },
+                    "chat_instance": "callback-chat-instance",
+                    "data": "%s"
+                  }
+                }"""
+                .formatted(updateId, userId, escaped(data));
+    }
+
+    /**
      * A successful {@code getUpdates} envelope wrapping the given bare {@code Update} bodies, in order.
      */
     public static String updatesResponse(String... bareUpdateJson) {
@@ -166,6 +226,36 @@ public final class TelegramFixtures {
      * A successful {@code sendMessage} envelope.
      */
     public static String sendMessageResponse() {
+        return """
+                {
+                  "ok": true,
+                  "result": {
+                    "message_id": 9999,
+                    "date": %d,
+                    "chat": { "id": 0, "type": "private" }
+                  }
+                }"""
+                .formatted(MESSAGE_DATE);
+    }
+
+    /**
+     * A successful {@code answerCallbackQuery} envelope — {@code AnswerCallbackQuery} registers
+     * {@code BaseResponse}, whose only field is {@code result}, a bare boolean.
+     */
+    public static String answerCallbackQueryResponse() {
+        return """
+                {
+                  "ok": true,
+                  "result": true
+                }""";
+    }
+
+    /**
+     * A successful {@code editMessageReplyMarkup} envelope, {@code Message}-shaped like
+     * {@link #sendMessageResponse()} — {@code EditMessageReplyMarkup(Object, int)} registers {@code SendResponse},
+     * so a bare {@code "result": true} body fails to deserialize before any assertion runs.
+     */
+    public static String editMessageReplyMarkupResponse() {
         return """
                 {
                   "ok": true,

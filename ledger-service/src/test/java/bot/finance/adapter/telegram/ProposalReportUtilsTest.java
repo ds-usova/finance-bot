@@ -6,6 +6,7 @@ import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +35,12 @@ class ProposalReportUtilsTest {
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary withoutMerchant =
                     new ProposalSummary("Auto", "Fuel", "tank refill", Optional.empty(), new Money(6000, EUR));
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(withMerchant, withoutMerchant));
+            ProposalReport report = new ProposalReport(
+                    "555",
+                    "1",
+                    ReportOutcome.RECORDED,
+                    List.of(withMerchant, withoutMerchant),
+                    MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -52,7 +57,8 @@ class ProposalReportUtilsTest {
         void whenRecordedReportCarriesExactlyOneSummary_thenOpensWithSingularCount() {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(summary));
+            ProposalReport report = new ProposalReport(
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -62,7 +68,8 @@ class ProposalReportUtilsTest {
         @Test
         @DisplayName("when a NOTHING_IDENTIFIED report has no summaries - then renders the no-expense-identified text")
         void whenNothingIdentifiedReportHasNoSummaries_thenRendersNoExpenseIdentifiedText() {
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of());
+            ProposalReport report = new ProposalReport(
+                    "555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of(), MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -72,7 +79,8 @@ class ProposalReportUtilsTest {
         @Test
         @DisplayName("when a FAILED report has no summaries - then renders the went-wrong text")
         void whenFailedReportHasNoSummaries_thenRendersWentWrongText() {
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.FAILED, List.of());
+            ProposalReport report =
+                    new ProposalReport("555", "1", ReportOutcome.FAILED, List.of(), MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -85,7 +93,8 @@ class ProposalReportUtilsTest {
         void whenPartialReportCarriesOneSummary_thenOpensWithMayBeIncompleteTextAndCarriesBulletBelowIt() {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.PARTIAL, List.of(summary));
+            ProposalReport report = new ProposalReport(
+                    "555", "1", ReportOutcome.PARTIAL, List.of(summary), MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -109,7 +118,8 @@ class ProposalReportUtilsTest {
                             Optional.of("Rewe supermarket"),
                             new Money(4230, EUR)))
                     .toList();
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries);
+            ProposalReport report =
+                    new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -138,7 +148,8 @@ class ProposalReportUtilsTest {
                             "Groceries", "Food", "d".repeat(31), Optional.of("Rewe supermarket"), new Money(4230, EUR)))
                     .toList());
             summaries.add(new ProposalSummary("A", "B", "c", Optional.empty(), new Money(100, EUR)));
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries);
+            ProposalReport report =
+                    new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 
@@ -151,7 +162,8 @@ class ProposalReportUtilsTest {
         void whenSummaryDescriptionContainsAsteriskAndUnderscore_thenThoseCharactersAppearLiterallyWithNoEscaping() {
             ProposalSummary summary = new ProposalSummary(
                     "Groceries", "Food", "weekly *shop_ trip", Optional.empty(), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(summary));
+            ProposalReport report = new ProposalReport(
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
 
             String text = ProposalReportUtils.render(report);
 

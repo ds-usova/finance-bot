@@ -2,13 +2,21 @@ package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import java.util.List;
+import java.util.Optional;
 
 public final class ProposalReportUtils {
 
     private static final int MAX_LENGTH = 4000;
 
     private ProposalReportUtils() {}
+
+    // one row of a Confirm and a Delete button carrying the payloads ProposalCallbackData renders, and empty for
+    // a report with no proposals
+    public static Optional<InlineKeyboardMarkup> renderKeyboard(ProposalReport report) {
+        return Optional.empty();
+    }
 
     /** No character is escaped, since {@link TelegramMessageDeliveryAdapter} sets no {@code parse_mode}. */
     public static String render(ProposalReport report) {

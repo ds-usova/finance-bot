@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class TelegramLongPollingSubscriber implements SmartLifecycle {
 
     private static final String MESSAGE_UPDATES = "message";
+    private static final String CALLBACK_QUERY_UPDATES = "callback_query";
 
     private final TelegramBot bot;
     private final UpdatesListener listener;
@@ -38,7 +39,7 @@ public class TelegramLongPollingSubscriber implements SmartLifecycle {
         GetUpdates request = new GetUpdates()
                 .limit(polling.limit())
                 .timeout(polling.timeoutSeconds())
-                .allowedUpdates(MESSAGE_UPDATES);
+                .allowedUpdates(MESSAGE_UPDATES, CALLBACK_QUERY_UPDATES);
 
         bot.setUpdatesListener(listener, this::logPollFailure, request);
         running = true;

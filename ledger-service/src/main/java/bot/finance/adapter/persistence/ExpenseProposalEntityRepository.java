@@ -1,7 +1,9 @@
 package bot.finance.adapter.persistence;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +23,30 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
             """)
     List<ProposalSummaryProjection> findSummariesByMessageReference(
             @Param("userId") Long userId, @Param("messageReference") UUID messageReference);
+
+    @Modifying
+    @Query(
+            """
+            WITH accepted AS (
+                DELETE FROM expense_proposal
+                WHERE user_id = :userId AND message_reference = :messageReference
+                RETURNING user_id, category_id, description, merchant,
+                          amount_minor_units, currency_code, message_reference
+            )
+            INSERT INTO expense (user_id, category_id, description, merchant,
+                                 amount_minor_units, currency_code, message_reference, created_at, updated_at)
+            SELECT user_id, category_id, description, merchant,
+                   amount_minor_units, currency_code, message_reference, :now, :now
+            FROM accepted
+            """)
+    int accept(
+            @Param("userId") Long userId, @Param("messageReference") UUID messageReference, @Param("now") Instant now);
+
+    @Modifying
+    @Query(
+            """
+            DELETE FROM expense_proposal
+            WHERE user_id = :userId AND message_reference = :messageReference
+            """)
+    int discard(@Param("userId") Long userId, @Param("messageReference") UUID messageReference);
 }
