@@ -13,7 +13,8 @@ message.
 
 An external identity, plus the store's id once there is one.
 
-- [Category](category.md) — what a user files spending under; a set is stored with them at creation.
+- [Grouping](grouping.md) — a catalogue of them, holding the [categories](category.md) a user files spending
+  under, is stored with them at creation.
 - [Initialize a new user](../usecases/initialize-a-new-user.md) — creates one, or hands back the one already
   stored under an identity.
 - How long an identity may be is checked where it is stored

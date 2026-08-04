@@ -32,8 +32,8 @@ The standing instructions never change and never mention a user. The groupings, 
 per turn and travel together in the same message, so one user's groupings can never reach another's turn.
 
 No category is sent. The groupings travel as bare names, and the model is told to pick a grouping, ask the
-ledger which categories it holds, and file the expense under one of those — sending that grouping as the
-category's parent. The grouping to use when none fits is named in the same message.
+ledger which categories it holds, and file the expense under one of those — sending that grouping alongside
+the category it chose. The grouping to use when none fits is named in the same message.
 
 The model sends a stated amount exactly as the message writes it, in the currency's main unit, and never
 converts it. The rule it reads that from is the tool's own argument schema, not these instructions.

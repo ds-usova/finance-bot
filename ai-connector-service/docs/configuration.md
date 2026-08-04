@@ -5,16 +5,15 @@ the ledger it records the result in. The defaults suit a developer's machine.
 
 | Variable          | Sets                                          | Default                     | Required |
 |-------------------|-----------------------------------------------|-----------------------------|----------|
-| `OPENAI_API_KEY`  | the credential the AI provider is called with | *(empty)*                   | yes      |
+| `OPENAI_API_KEY`  | the credential the AI provider is called with | *(none)*                    | yes      |
 | `OPENAI_BASE_URL` | where that provider is reached                | `https://api.openai.com/v1` | no       |
 | `OPENAI_MODEL`    | which model reads the message                 | `gpt-4o-mini`               | no       |
 | `LEDGER_MCP_URL`  | where the ledger's tools are reached          | `http://localhost:1000`     | yes      |
 
 ## Notes
 
-- The key's default is empty so the service can boot without one; every turn then fails at the provider and the
-  caller is told the service is [unavailable](contracts/in/intent-extraction.md#failures). The key is a secret
-  and belongs in the deployment's secret store, never in a committed file or a log line.
+- The key has no default and the service does not start without one. It is a secret and belongs in the
+  deployment's secret store, never in a committed file or a log line.
 - The address is the base the chat-completions path hangs off, version segment included. One without it makes
   the provider answer not-found on every call, which reaches the caller as the same unavailable result.
 - `OPENAI_BASE_URL` also exists so the service can be pointed at a stand-in for the provider. A deployment
