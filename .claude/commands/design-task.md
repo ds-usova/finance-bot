@@ -43,8 +43,8 @@ After determining the **Affected Modules**, read `<module>/docs/conventions.md` 
 repo-root `docs/conventions.md` if it exists. The conventions give the stack, the layer mapping, and the file
 locations the **Proposed Solution** has to be written in terms of.
 
-If a module has no conventions file, record a `must-decide` decision asking the user to create one from
-`.claude/templates/conventions-template.md`. Never silently guess a module's conventions.
+If a module has no conventions file, record a `must-decide` decision asking the user to run `init-conventions`,
+which writes one from what the repository already does. Never silently guess a module's conventions.
 
 ## 3. Read What Already Exists
 

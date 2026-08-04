@@ -34,6 +34,7 @@
       "Bash(git show:*)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
+      "Bash(git restore --source=:*)",
       "Bash(git check-ignore:*)",
       "Bash(docker info:*)",
       "Bash(bash -n:*)",
@@ -69,6 +70,8 @@
     "deny": [
       "Bash(echo:*)",
       "Bash(xargs:*)",
+      "Bash(cd:*)",
+      "Bash(gradlew:*)",
       "Bash(git -C:*)",
       "Bash(./gradlew test:*)",
       "Bash(ledger-service/gradlew test:*)",
@@ -104,6 +107,11 @@
             "if": "Bash(for *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-loop-around-script.ps1')\""
+          },
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-chained-command.ps1')\""
           },
           {
             "type": "command",

@@ -12,7 +12,7 @@ import bot.finance.common.ExpenseProposalRowUtils;
 import bot.finance.common.McpRequests;
 import bot.finance.common.McpTokens;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -28,7 +28,7 @@ import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 /**
  * Drives {@code POST /mcp} - the {@code tools/call create_expense_proposal} JSON-RPC method - end to end against
  * the fully wired application. The user and their category tree are seeded through the wired {@link UserRepository}
- * with {@link Category#defaults()}, the tree's only writer, never through a {@code bot.finance.common} row helper.
+ * with {@link Grouping#defaults()}, the tree's only writer, never through a {@code bot.finance.common} row helper.
  */
 class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
@@ -53,7 +53,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     }
 
     private User seedUserWithDefaultCategories(String externalId) {
-        return userRepository.create(User.newUser(externalId), Category.defaults());
+        return userRepository.create(User.newUser(externalId), Grouping.defaults());
     }
 
     private CategoryEntity storedCategory(long userId, String name) {
@@ -81,11 +81,11 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when tools/call create_expense_proposal is posted to /mcp naming a child category - then the "
+        @DisplayName("when tools/call create_expense_proposal names a category under its own grouping - then the "
                 + "response carries the stored proposal with the amount as written, and exactly one "
                 + "expense_proposal row exists for that user carrying that category's id, the description, "
                 + "the merchant, the amount scaled to the currency's own minor units and the currency code")
-        void whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten() {
+        void whenToolCallNamesCategoryUnderItsGrouping_thenResponseCarriesStoredProposalAndRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
             long supermarketsCategoryId = storedCategory(userId, "Supermarkets").id();
@@ -135,10 +135,10 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when tools/call create_expense_proposal names Supermarkets under parentCategory Dining - then "
-                + "the response is a tool error naming the parent mismatch, and no expense_proposal row exists "
+        @DisplayName("when tools/call create_expense_proposal names Supermarkets under grouping Dining - then "
+                + "the response is a tool error naming the grouping mismatch, and no expense_proposal row exists "
                 + "for that user")
-        void whenToolCallNamesGrouping_thenResponseIsToolErrorNamingChildrenAndNoRowIsWritten() {
+        void whenToolCallNamesCategoryUnderTheWrongGrouping_thenResponseIsToolErrorAndNoRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-unhappy-path-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
@@ -155,8 +155,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText)
-                    .as("tool error message names the parent-category mismatch")
-                    .contains("no category named Supermarkets under parent Dining is stored for this user");
+                    .as("tool error message names the grouping mismatch")
+                    .contains("no category named Supermarkets under grouping Dining is stored for this user");
 
             List<ExpenseProposalEntity> rows =
                     ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
@@ -166,11 +166,11 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when tools/call create_expense_proposal is posted with no parentCategory - then the response "
-                + "is a tool error naming the missing parent category, and no expense_proposal row exists for "
+        @DisplayName("when tools/call create_expense_proposal is posted with no grouping - then the response "
+                + "is a tool error naming the missing grouping, and no expense_proposal row exists for "
                 + "that user")
-        void whenToolCallHasNoParentCategory_thenResponseIsToolErrorAndNoRowIsWritten() {
-            User user = seedUserWithDefaultCategories("create-expense-proposal-no-parent-category-user");
+        void whenToolCallHasNoGrouping_thenResponseIsToolErrorAndNoRowIsWritten() {
+            User user = seedUserWithDefaultCategories("create-expense-proposal-no-grouping-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
@@ -203,8 +203,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText)
-                    .as("tool error message names the missing parent category")
-                    .containsIgnoringCase("parentCategory");
+                    .as("tool error message names the missing grouping")
+                    .containsIgnoringCase("grouping");
 
             List<ExpenseProposalEntity> rows =
                     ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);

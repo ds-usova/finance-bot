@@ -5,6 +5,7 @@ import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
+import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
@@ -27,14 +28,14 @@ public class UseCaseConfiguration {
     @Bean
     HandleIncomingMessagePort handleIncomingMessagePort(
             InitializeUserPort initializeUserPort,
-            CategoryRepository categoryRepository,
+            GroupingRepository groupingRepository,
             IntentExtractionPort intentExtractionPort,
             ExpenseProposalRepository expenseProposalRepository,
             MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
                 initializeUserPort,
-                categoryRepository,
+                groupingRepository,
                 intentExtractionPort,
                 expenseProposalRepository,
                 messageDeliveryPort,
@@ -55,15 +56,24 @@ public class UseCaseConfiguration {
     @Bean
     CreateExpenseProposalPort createExpenseProposalPort(
             UserRepository userRepository,
+            GroupingRepository groupingRepository,
             CategoryRepository categoryRepository,
             ExpenseProposalRepository expenseProposalRepository,
             LoggerFactory loggerFactory) {
         return new CreateExpenseProposalUseCase(
-                userRepository, categoryRepository, expenseProposalRepository, Clock.systemUTC(), loggerFactory);
+                userRepository,
+                groupingRepository,
+                categoryRepository,
+                expenseProposalRepository,
+                Clock.systemUTC(),
+                loggerFactory);
     }
 
     @Bean
-    ListCategoriesPort listCategoriesPort(UserRepository userRepository, CategoryRepository categoryRepository) {
-        return new ListCategoriesUseCase(userRepository, categoryRepository);
+    ListCategoriesPort listCategoriesPort(
+            UserRepository userRepository,
+            GroupingRepository groupingRepository,
+            CategoryRepository categoryRepository) {
+        return new ListCategoriesUseCase(userRepository, groupingRepository, categoryRepository);
     }
 }

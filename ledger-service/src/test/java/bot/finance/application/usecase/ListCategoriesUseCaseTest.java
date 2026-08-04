@@ -1,8 +1,8 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -11,11 +11,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.ListCategoriesCommand;
-import bot.finance.application.dto.StoredCategory;
+import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
+import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -30,17 +31,19 @@ class ListCategoriesUseCaseTest {
 
     private static final String EXTERNAL_ID = "555";
     private static final long USER_ID = 1L;
-    private static final long CATEGORY_ID = 2L;
+    private static final long GROUPING_ID = 2L;
 
     private UserRepository userRepository;
+    private GroupingRepository groupingRepository;
     private CategoryRepository categoryRepository;
     private ListCategoriesUseCase useCase;
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
+        groupingRepository = mock(GroupingRepository.class);
         categoryRepository = mock(CategoryRepository.class);
-        useCase = new ListCategoriesUseCase(userRepository, categoryRepository);
+        useCase = new ListCategoriesUseCase(userRepository, groupingRepository, categoryRepository);
     }
 
     private ListCategoriesCommand newListCategories(String groupingName) {
@@ -52,125 +55,131 @@ class ListCategoriesUseCaseTest {
     class Listing {
 
         @Test
-        @DisplayName("when the command is absent - then throws InvalidCategoryException and neither repository is "
+        @DisplayName("when the command is absent - then throws InvalidGroupingException and neither repository is "
                 + "touched")
-        void whenCommandIsAbsent_thenThrowsInvalidCategoryExceptionAndRepositoriesAreUntouched() {
-            assertThatThrownBy(() -> useCase.list(null)).isInstanceOf(InvalidCategoryException.class);
+        void whenCommandIsAbsent_thenThrowsInvalidGroupingExceptionAndRepositoriesAreUntouched() {
+            assertThatThrownBy(() -> useCase.list(null)).isInstanceOf(InvalidGroupingException.class);
 
             verifyNoInteractions(userRepository);
+            verifyNoInteractions(groupingRepository);
             verifyNoInteractions(categoryRepository);
         }
 
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws "
-                + "EntityNotFoundException and the category repository is never called")
-        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndCategoryRepositoryUntouched() {
+                + "EntityNotFoundException and the grouping and category repositories are never called")
+        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndBothRepositoriesUntouched() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
-            assertThatExceptionOfType(EntityNotFoundException.class)
-                    .isThrownBy(() -> useCase.list(newListCategories("Groceries")));
+            assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
+                    .isInstanceOf(EntityNotFoundException.class);
 
+            verifyNoInteractions(groupingRepository);
             verifyNoInteractions(categoryRepository);
         }
 
         @Test
-        @DisplayName("when findByUserIdAndName answers an empty list for the name - then throws "
-                + "InvalidCategoryException whose message names the grouping asked for and says none is stored "
-                + "for this user")
-        void whenFindByUserIdAndNameAnswersEmptyList_thenThrowsInvalidCategoryExceptionNamingGroupingAsUnstored() {
+        @DisplayName("when findByUserIdAndName answers a grouping - then findCategoryNames is called with that "
+                + "user's stored id and that grouping, its answer is returned unchanged, and categoryRepository is "
+                + "never touched")
+        void whenAGroupingIsAnswered_thenReturnsCategoryNamesExactlyAsRepositoryAnswered() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(List.of());
-
-            assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
-                    .isInstanceOf(InvalidCategoryException.class)
-                    .hasMessageContaining("Groceries")
-                    .hasMessageContaining("stored");
-        }
-
-        @Test
-        @DisplayName("when findByUserIdAndName answers only candidates carrying a parent name - then throws "
-                + "InvalidCategoryException saying that name is a category, not a grouping, and findChildNames is "
-                + "never called")
-        void whenAllCandidatesCarryAParentName_thenThrowsInvalidCategoryExceptionSayingCategoryNotGrouping() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Coffee"))
-                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Coffee", Optional.of("Groceries"))));
-
-            assertThatThrownBy(() -> useCase.list(newListCategories("Coffee")))
-                    .isInstanceOf(InvalidCategoryException.class)
-                    .hasMessageContaining("Coffee")
-                    .hasMessageContaining("category, not a grouping");
-
-            verify(categoryRepository, never()).findChildNames(anyLong());
-        }
-
-        @Test
-        @DisplayName("when findByUserIdAndName answers two candidates for the name - one with a parent name and "
-                + "one without, as Travel resolves in the default catalogue - then findChildNames is called with "
-                + "the parentless candidate's id and its answer is returned")
-        void whenCandidatesIncludeOneParentlessAndOneWithParent_thenFindChildNamesReceivesParentlessCandidatesId() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            long groupingId = CATEGORY_ID;
-            long leafId = 3L;
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Travel"))
-                    .thenReturn(List.of(
-                            new StoredCategory(leafId, "Travel", Optional.of("Shopping")),
-                            new StoredCategory(groupingId, "Travel", Optional.empty())));
-            List<String> children = List.of("Flights", "Hotels");
-            when(categoryRepository.findChildNames(groupingId)).thenReturn(children);
-
-            List<String> result = useCase.list(newListCategories("Travel"));
-
-            verify(categoryRepository).findChildNames(groupingId);
-            assertThat(result).isEqualTo(children);
-        }
-
-        @Test
-        @DisplayName("when the stored user's grouping has children - then returns those child names, ordered by "
-                + "name, exactly as the repository answered them")
-        void whenGroupingHasChildren_thenReturnsChildNamesExactlyAsRepositoryAnswered() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            List<String> children = List.of("Coffee", "Restaurant");
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(children);
+            StoredGrouping grouping = new StoredGrouping(GROUPING_ID, "Groceries");
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(Optional.of(grouping));
+            List<String> categoryNames = List.of("Coffee", "Restaurant");
+            when(groupingRepository.findCategoryNames(USER_ID, grouping)).thenReturn(categoryNames);
 
             List<String> result = useCase.list(newListCategories("Groceries"));
 
-            assertThat(result).isEqualTo(children);
+            assertThat(result).isEqualTo(categoryNames);
+            verify(groupingRepository).findCategoryNames(USER_ID, grouping);
+            verifyNoInteractions(categoryRepository);
         }
 
         @Test
-        @DisplayName("when the stored user's id differs from the external id on the command - then "
-                + "findByUserIdAndName receives that stored user's id and the command's name, and findChildNames "
-                + "receives the id of the candidate that read answered")
-        void whenStoredUsersIdDiffersFromExternalId_thenRepositoriesReceiveStoredUsersIdNotExternalId() {
+        @DisplayName("when findByUserIdAndName answers nothing and existsByUserIdAndName answers true - then throws "
+                + "InvalidGroupingException whose message names the name asked for and says it is a category, not "
+                + "a grouping, existsByUserIdAndName received the stored user's id, and findCategoryNames is never "
+                + "called")
+        void
+                whenFindByUserIdAndNameAnswersEmptyAndCategoryExists_thenThrowsInvalidGroupingExceptionSayingCategoryNotGrouping() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Coffee")).thenReturn(Optional.empty());
+            when(categoryRepository.existsByUserIdAndName(USER_ID, "Coffee")).thenReturn(true);
+
+            assertThatThrownBy(() -> useCase.list(newListCategories("Coffee")))
+                    .isInstanceOf(InvalidGroupingException.class)
+                    .hasMessageContaining("Coffee")
+                    .hasMessageContaining("category, not a grouping");
+
+            verify(categoryRepository).existsByUserIdAndName(USER_ID, "Coffee");
+            verify(groupingRepository, never()).findCategoryNames(anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("when findByUserIdAndName answers nothing and existsByUserIdAndName answers false - then "
+                + "throws InvalidGroupingException whose message names the name asked for and says no grouping of "
+                + "that name is stored for this user, and existsByUserIdAndName received the stored user's id")
+        void
+                whenFindByUserIdAndNameAnswersEmptyAndCategoryDoesNotExist_thenThrowsInvalidGroupingExceptionNamingGroupingAsUnstored() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(Optional.empty());
+            when(categoryRepository.existsByUserIdAndName(USER_ID, "Groceries")).thenReturn(false);
+
+            assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
+                    .isInstanceOf(InvalidGroupingException.class)
+                    .hasMessageContaining("Groceries")
+                    .hasMessageContaining("stored");
+
+            verify(categoryRepository).existsByUserIdAndName(USER_ID, "Groceries");
+        }
+
+        @Test
+        @DisplayName("when findByUserIdAndName answers nothing and existsByUserIdAndName raises "
+                + "PersistenceFailedException - then the exception reaches the caller unchanged")
+        void whenExistsByUserIdAndNameRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
+            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
+            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(Optional.empty());
+            PersistenceFailedException failure =
+                    new PersistenceFailedException("lookup failed", new RuntimeException());
+            when(categoryRepository.existsByUserIdAndName(USER_ID, "Groceries")).thenThrow(failure);
+
+            assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
+                    .isSameAs(failure);
+        }
+
+        @Test
+        @DisplayName("when a stored user's database id differs from the command's external id, and a grouping is "
+                + "answered for it - then both reads receive that stored user's id, not the external id")
+        void whenStoredUsersIdDiffersFromCommandsExternalId_thenBothReadsReceiveStoredUsersIdNotExternalId() {
             long differentUserId = 42L;
             User storedUser = User.stored(differentUserId, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(differentUserId, "Groceries"))
-                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of("Coffee"));
+            StoredGrouping grouping = new StoredGrouping(GROUPING_ID, "Groceries");
+            when(groupingRepository.findByUserIdAndName(differentUserId, "Groceries"))
+                    .thenReturn(Optional.of(grouping));
+            when(groupingRepository.findCategoryNames(differentUserId, grouping))
+                    .thenReturn(List.of("Coffee"));
 
             useCase.list(newListCategories("Groceries"));
 
-            verify(categoryRepository).findByUserIdAndName(differentUserId, "Groceries");
-            verify(categoryRepository).findChildNames(CATEGORY_ID);
+            verify(groupingRepository).findByUserIdAndName(differentUserId, "Groceries");
+            verify(groupingRepository).findCategoryNames(differentUserId, grouping);
         }
 
         @Test
-        @DisplayName("when the stored user's grouping has no children - then returns an empty list rather than "
+        @DisplayName("when the stored user's grouping has no categories - then returns an empty list rather than "
                 + "throwing")
-        void whenGroupingHasNoChildren_thenReturnsEmptyListRatherThanThrowing() {
+        void whenGroupingHasNoCategories_thenReturnsEmptyListRatherThanThrowing() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of());
+            StoredGrouping grouping = new StoredGrouping(GROUPING_ID, "Groceries");
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(Optional.of(grouping));
+            when(groupingRepository.findCategoryNames(USER_ID, grouping)).thenReturn(List.of());
 
             List<String> result = useCase.list(newListCategories("Groceries"));
 
@@ -179,31 +188,31 @@ class ListCategoriesUseCaseTest {
 
         @Test
         @DisplayName("when findByUserIdAndName raises PersistenceFailedException - then the exception reaches the "
-                + "caller unchanged and findChildNames is never called")
+                + "caller unchanged and findCategoryNames is never called")
         void whenFindByUserIdAndNameRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries")).thenThrow(failure);
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
                     .isSameAs(failure);
 
-            verify(categoryRepository, never()).findChildNames(anyLong());
+            verify(groupingRepository, never()).findCategoryNames(anyLong(), any());
         }
 
         @Test
-        @DisplayName("when findChildNames raises PersistenceFailedException - then the exception reaches the "
+        @DisplayName("when findCategoryNames raises PersistenceFailedException - then the exception reaches the "
                 + "caller unchanged")
-        void whenFindChildNamesRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
+        void whenFindCategoryNamesRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
+            StoredGrouping grouping = new StoredGrouping(GROUPING_ID, "Groceries");
+            when(groupingRepository.findByUserIdAndName(USER_ID, "Groceries")).thenReturn(Optional.of(grouping));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenThrow(failure);
+            when(groupingRepository.findCategoryNames(USER_ID, grouping)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
                     .isSameAs(failure);

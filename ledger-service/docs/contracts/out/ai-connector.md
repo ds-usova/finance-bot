@@ -35,7 +35,7 @@ What this side adds:
 - Only groupings holding at least one category are sent; there is nothing to file under an empty one.
 - A category is reached from the other side, through [the tool the connector calls back on](../in/mcp.md).
 - One grouping is designated the catch-all, so a fit always exists. It is never blank, and always one of the
-  groupings sent. It is the [catch-all every catalogue starts with](../../domain/category.md) and nothing else,
+  groupings sent. It is the [catch-all every catalogue starts with](../../domain/grouping.md) and nothing else,
   so a catalogue that does not carry it produces no call at all rather than a substitute.
 - The groupings travel in alphabetical order, and nothing depends on the position of one in the list.
 - The assumed currency is stated as present or absent; it is never left unsaid.

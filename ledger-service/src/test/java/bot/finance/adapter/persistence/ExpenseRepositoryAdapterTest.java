@@ -56,7 +56,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a stored user, a stored category, and an unstored expense carrying a merchant - then one expense row exists for that user carrying the category id, description, merchant, minor units and currency code given, and the returned expense carries its generated database id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedExpenseCarriesGeneratedId() {
             long userId = storedUserId("merchant-expense-user");
-            long categoryId = storedCategoryId(userId, "Groceries");
+            long categoryId = storedGroupingId(userId, "Groceries");
             Expense expense = Expense.newExpense(
                     userId,
                     categoryId,
@@ -83,7 +83,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a stored user, a stored category, and an unstored expense with no merchant - then the row's merchant column is null and the returned expense's merchant is empty")
         void whenCalledWithNoMerchant_thenRowMerchantColumnIsNullAndReturnedExpenseMerchantIsEmpty() {
             long userId = storedUserId("no-merchant-expense-user");
-            long categoryId = storedCategoryId(userId, "Utilities");
+            long categoryId = storedGroupingId(userId, "Utilities");
             Expense expense = Expense.newExpense(
                     userId,
                     categoryId,
@@ -105,7 +105,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with an expense stamped with an instant carrying nanosecond precision and the row is read back - then both timestamps equal that instant truncated to microseconds")
         void whenInstantCarriesNanosecondPrecision_thenReadBackTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("nanosecond-expense-user");
-            long categoryId = storedCategoryId(userId, "Dining");
+            long categoryId = storedGroupingId(userId, "Dining");
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
             Expense expense = Expense.newExpense(
                     userId,
@@ -132,7 +132,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a description exactly 500 characters long - then the row is written and carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(500);
             Expense expense = Expense.newExpense(
                     userId,
@@ -155,7 +155,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a description 501 characters long - then throws InvalidExpenseException before anything is written, so no expense row exists afterwards")
         void whenDescriptionIs501Characters_thenThrowsInvalidExpenseExceptionBeforeWritingAnything() {
             long userId = storedUserId("overlong-description-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(501);
             Expense expense = Expense.newExpense(
                     userId,
@@ -175,7 +175,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a merchant exactly 255 characters long - then the row is written and carries the whole merchant")
         void whenMerchantIsExactly255Characters_thenRowIsWrittenAndCarriesWholeMerchant() {
             long userId = storedUserId("boundary-merchant-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(255);
             Expense expense = Expense.newExpense(
                     userId,
@@ -198,7 +198,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a merchant 256 characters long - then throws InvalidExpenseException before anything is written")
         void whenMerchantIs256Characters_thenThrowsInvalidExpenseExceptionBeforeWritingAnything() {
             long userId = storedUserId("overlong-merchant-user");
-            long categoryId = storedCategoryId(userId, "Boundary");
+            long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(256);
             Expense expense = Expense.newExpense(
                     userId,
@@ -238,7 +238,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with an expense whose user id is positive and names no stored user - then throws EntityNotFoundException whose entityType() is \"user\"")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
-            long categoryId = storedCategoryId(storedUserId("category-owner-for-unknown-user"), "Category");
+            long categoryId = storedGroupingId(storedUserId("category-owner-for-unknown-user"), "Category");
             Expense expense = Expense.newExpense(
                     unknownUserId,
                     categoryId,
@@ -258,9 +258,9 @@ class ExpenseRepositoryAdapterTest {
                 "when called for two expenses of two different stored users, each with its own stored category - then each user owns exactly its own row, and neither references the other's")
         void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRowWithNoCrossReference() {
             long firstUserId = storedUserId("first-expense-user");
-            long firstCategoryId = storedCategoryId(firstUserId, "First Category");
+            long firstCategoryId = storedGroupingId(firstUserId, "First Category");
             long secondUserId = storedUserId("second-expense-user");
-            long secondCategoryId = storedCategoryId(secondUserId, "Second Category");
+            long secondCategoryId = storedGroupingId(secondUserId, "Second Category");
 
             Expense firstExpense = Expense.newExpense(
                     firstUserId,
@@ -347,8 +347,8 @@ class ExpenseRepositoryAdapterTest {
         return UserRowUtils.storedUserId(userEntityRepository, externalId);
     }
 
-    private long storedCategoryId(long userId, String name) {
-        return CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, name);
+    private long storedGroupingId(long userId, String name) {
+        return CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, name);
     }
 
     private List<ExpenseEntity> expenseRowsFor(long userId) {

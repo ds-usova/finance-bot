@@ -33,7 +33,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
     private static String proposalArguments() {
         return """
-                {"category":"Lunch","parentCategory":"%s","description":"lunch","amount":"15.00",\
+                {"category":"Lunch","grouping":"%s","description":"lunch","amount":"15.00",\
                 "currencyCode":"EUR","merchant":"Deli Co"}"""
                 .formatted(GROUPING);
     }
@@ -63,7 +63,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(toolCalls).hasSize(1);
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.getFirst());
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
-            assertThat(arguments.get("parentCategory").asText()).isEqualTo(GROUPING);
+            assertThat(arguments.get("grouping").asText()).isEqualTo(GROUPING);
             assertThat(arguments.get("merchant").asText()).isEqualTo("Deli Co");
             assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
@@ -81,7 +81,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
                             "call-list-1",
                             ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES,
-                            "{\"parentCategory\":\"" + GROUPING + "\"}")),
+                            "{\"grouping\":\"" + GROUPING + "\"}")),
                     ChatCompletionFixtures.toolCallResponse(
                             ChatCompletionFixtures.toolCall("call-2", proposalArguments())),
                     ChatCompletionFixtures.textResponse("recorded"));
@@ -102,7 +102,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                     .isEqualTo(CALLER_TOKEN);
 
             JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
-            assertThat(lookupArguments.get("parentCategory").asText()).isEqualTo(GROUPING);
+            assertThat(lookupArguments.get("grouping").asText()).isEqualTo(GROUPING);
         }
     }
 

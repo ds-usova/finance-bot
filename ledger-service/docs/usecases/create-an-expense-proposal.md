@@ -1,7 +1,7 @@
 # Create an expense proposal
 
 - **In:** the identity of the authenticated caller · the reference of the message being handled · a category, by
-  name · the grouping that category sits under · a description · a merchant (optional) · a money amount
+  name · the grouping that category is filed under · a description · a merchant (optional) · a money amount
 - **Out:** the stored expense proposal
 - **Why:** spending that has been assembled but not yet accepted is kept apart from the user's own ledger
   ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md))
@@ -10,10 +10,10 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                         | Through                                                                           | For                                                                       |
-|-----------|------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| in        | [An agent acting for a user](../contracts/in/mcp.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                | recording spending it has assembled from a conversation                   |
-| out       | [Database](../contracts/out/database.md)             | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the category name, storing the proposal |
+| Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                        |
+|-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                  | recording spending it has assembled from a conversation                                    |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the grouping and the category under it, storing the proposal |
 
 ## Rules
 
@@ -24,15 +24,15 @@
   the request never names it either
   ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 - A stored proposal records which message produced it, so the report answering that message can name it.
-- A category is named, never identified by a stored id.
-- A name is resolved among the caller's own categories only.
-- Spending is filed under a category that sits under a grouping; the first level only groups.
-- A name no category of theirs carries is rejected, and the message repeats the name.
+- Spending is filed under a [category](../domain/category.md), never under the
+  [grouping](../domain/grouping.md) holding it.
+- Both names are resolved among the caller's own rows only, and neither is ever a stored id.
 - The grouping is required, and it is not blank.
-- The grouping narrows the match: a name that sits under no such grouping of theirs is rejected, and the message
-  names both. A grouping itself sits under nothing, so its own name is rejected the same way.
-- The grouping narrowing to at most one category is a property of the store, not a check here: a name is unique
-  per user and parent
+- The grouping is resolved first: a name no grouping of theirs carries is rejected, and the message repeats it.
+- The category is resolved under that grouping: a name it holds no category of is rejected, and the message
+  names both.
+- A grouping's own name is not one of its categories, so sending it as the category is rejected the same way.
+- A grouping holds at most one category of a given name
   ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
 - A description is present, and it is not blank.
 - A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
@@ -49,10 +49,11 @@
 
 | Outcome          | When                                                                                                      | Result                                                                               |
 |------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| Proposal created | the identity names a stored user, the name resolves to exactly one of their categories under a grouping   | the proposal is stored, stamped with the current instant, and the creation is logged |
-| Request rejected | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                         |
+| Proposal created | the identity names a stored user, the grouping resolves, and it holds a category of the name given        | the proposal is stored, stamped with the current instant, and the creation is logged |
+| Request rejected | the command is absent, or a field violates [expense proposal](../domain/expense-proposal.md)'s invariants | invalid expense proposal — nothing is looked up or written                           |
 | Identity unknown | nothing is stored under the identity                                                                      | the request is rejected and nothing is written                                       |
-| Category unknown | no category of theirs carries that name, or none of them sits under the grouping given                    | the request is rejected, naming what was asked for, and nothing is written           |
+| Grouping unknown | no grouping of theirs carries the grouping name                                                           | the request is rejected, repeating that name, and nothing is written                 |
+| Category unknown | that grouping holds no category of the category name                                                      | the request is rejected, naming both, and nothing is written                         |
 | Storage failed   | the store cannot be reached, or a value is too long for its column                                        | the failure reaches the caller                                                       |
 
 ## Components
@@ -75,13 +76,15 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid token", $tags="mcpExternal")
   Component(mcpTool, "Create Expense Proposal Tool", "Spring AI MCP Server", "Takes the tool's arguments and the caller's identity", $tags="mcpExternal")
   Component(createProposalPort, "Create Expense Proposal Port", "Interface", "Inbound port", $tags="portIn")
-  Component(createProposalService, "Create an Expense Proposal Use Case", "Plain Java", "Resolves the user and the category, and stores the proposal", $tags="core")
+  Component(createProposalService, "Create an Expense Proposal Use Case", "Plain Java", "Resolves the user, the grouping and the category, and stores the proposal", $tags="core")
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(groupingRepositoryPort, "Grouping Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(categoryRepositoryPort, "Category Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads categories by name", $tags="dbExternal")
-  Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Persists expense proposals", $tags="dbExternal")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Checks if user exists", $tags="dbExternal")
+  Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a grouping by name", $tags="dbExternal")
+  Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads a category by name under a grouping", $tags="dbExternal")
+  Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Persists expense proposals", $tags="dbExternal")
 }
 
 Rel(agent, accessControl, "Tool call", "MCP over HTTP")
@@ -89,16 +92,20 @@ Rel_D(accessControl, mcpTool, "Admits the call, with the caller's identity")
 Rel_D(mcpTool, createProposalPort, "Invokes")
 Rel_L(createProposalService, createProposalPort, "Implements", $tags="implements")
 Rel_R(createProposalService, userRepositoryPort, "Resolves the identity through")
-Rel_R(createProposalService, categoryRepositoryPort, "Resolves the category name through")
+Rel_R(createProposalService, groupingRepositoryPort, "Resolves the grouping through")
+Rel_R(createProposalService, categoryRepositoryPort, "Resolves the category under it through")
 Rel_R(createProposalService, proposalRepositoryPort, "Stores through")
+Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
+Rel_L(groupingRepositoryAdapter, groupingRepositoryPort, "Implements", $tags="implements")
 Rel_L(categoryRepositoryAdapter, categoryRepositoryPort, "Implements", $tags="implements")
 Rel_L(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
-Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
 Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
+Rel_R(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(categoryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
 
-Lay_D(userRepositoryPort, categoryRepositoryPort)
+Lay_D(userRepositoryPort, groupingRepositoryPort)
+Lay_D(groupingRepositoryPort, categoryRepositoryPort)
 Lay_D(categoryRepositoryPort, proposalRepositoryPort)
 
 SHOW_LEGEND()
@@ -108,43 +115,44 @@ SHOW_LEGEND()
 ## Flow
 
 ```plantuml
-@startuml CreateExpenseProposal-Sequence
-participant "Agent acting for a user" as Agent
-participant "Ledger Service" as LS
-database "Database" as DB
-
-Agent -> LS : a new expense proposal
-
-alt command is invalid
-  LS --> Agent : invalid expense proposal
-else identity is unknown
-  LS -> DB : look the identity up
-  DB --> LS : nothing
-  LS --> Agent : identity unknown
-else no category carries the name
-  LS -> DB : look the identity up
-  DB --> LS : the user
-  LS -> DB : find their categories by name
-  DB --> LS : nothing
-  LS --> Agent : category unknown
-else none of them sits under the grouping given
-  LS -> DB : find their categories by name
-  DB --> LS : some, under other groupings
-  LS --> Agent : category unknown, naming the name and the grouping
-else the store fails
-  LS -> DB : store the proposal
-  DB --> LS : the write fails
-  LS --> Agent : storage failed
-else the name resolves
-  LS -> DB : look the identity up
-  DB --> LS : the user
-  LS -> DB : find their categories by name
-  DB --> LS : one, under a grouping
-  LS -> LS : stamp both timestamps
-  LS -> DB : store the proposal
-  DB --> LS : the stored proposal
-  LS -> LS : log the creation
-  LS --> Agent : the stored proposal
-end
+@startuml CreateExpenseProposal-Activity
+start
+:an agent acting for a user sends a new expense proposal;
+if (the command is absent, or a field is invalid?) then (yes)
+  :invalid expense proposal — nothing is looked up or written;
+  stop
+endif
+:look the identity up in the database;
+if (the identity names a stored user?) then (no)
+  :identity unknown, nothing is written;
+  stop
+endif
+:read their grouping carrying the grouping name from the database;
+if (the read fails?) then (yes)
+  :storage failed;
+  stop
+endif
+if (a grouping carries the name?) then (no)
+  :grouping unknown, repeating the name;
+  stop
+endif
+:read the category of that name under that grouping from the database;
+if (the read fails?) then (yes)
+  :storage failed;
+  stop
+endif
+if (the grouping holds a category of that name?) then (no)
+  :category unknown, naming the category and the grouping;
+  stop
+endif
+:stamp both timestamps;
+:store the proposal in the database under that category;
+if (the write fails?) then (yes)
+  :storage failed;
+  stop
+endif
+:log the creation;
+:answer the stored proposal;
+stop
 @enduml
 ```

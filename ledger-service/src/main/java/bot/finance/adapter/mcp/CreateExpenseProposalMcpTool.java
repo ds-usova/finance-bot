@@ -34,7 +34,7 @@ public class CreateExpenseProposalMcpTool {
             @McpToolParam(
                             description = "the grouping the category is filed under, exactly as "
                                     + "`list_categories` was asked for it")
-                    String parentCategory,
+                    String grouping,
             @McpToolParam(description = "what was bought") String description,
             @McpToolParam(required = false, description = "who it was bought from, optional - null or blank is none")
                     String merchant,
@@ -45,8 +45,8 @@ public class CreateExpenseProposalMcpTool {
                                             + "the decimals. Never convert it, never group the digits.")
                     String amount,
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
-        CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-                category, parentCategory, description, merchant, amount, currencyCode);
+        CreateExpenseProposalToolRequest request =
+                new CreateExpenseProposalToolRequest(category, grouping, description, merchant, amount, currencyCode);
 
         log.debug("Received create_expense_proposal call: {}", request);
 
@@ -65,7 +65,7 @@ public class CreateExpenseProposalMcpTool {
                     .build();
         } catch (InvalidExpenseProposalException | InvalidUserException | InvalidMoneyException e) {
             return rejected(e, "invalid request: " + e.getMessage());
-        } catch (InvalidCategoryException e) {
+        } catch (InvalidCategoryException | InvalidGroupingException e) {
             return rejected(e, e.getMessage());
         } catch (EntityNotFoundException e) {
             return rejected(e, "the user is unknown");

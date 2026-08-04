@@ -47,7 +47,7 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 - A grouping holding no categories does not travel: there is nothing in it to file spending under.
 - One of those groupings travels designated as the catch-all, so spending that fits none of the others still has
   somewhere to go.
-- The designated catch-all is the [catch-all every catalogue starts with](../domain/category.md), and nothing
+- The designated catch-all is the [catch-all every catalogue starts with](../domain/grouping.md), and nothing
   else. A person whose groupings do not carry that name has a catalogue that cannot exist, so the turn ends
   there rather than falling back to another grouping.
 - No currency is assumed: an amount stated without one is not acted on.
@@ -102,12 +102,12 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(initializeUserPort, "Initialize User Port", "Interface", "Inbound port", $tags="portIn")
   Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Finds or creates the person", $tags="core")
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(categoryRepositoryPort, "Category Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(groupingRepositoryPort, "Grouping Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(intentExtractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(messageDeliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
-  Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
+  Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
   Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Reads what a message recorded", $tags="dbExternal")
   Component(intentExtractionAdapter, "Intent Extraction Adapter", "gRPC client", "Mints a credential and calls the connector", $tags="aiExternal")
   Component(tokenMinter, "Access Token Minter", "Nimbus JOSE", "Signs a credential naming the person and the message", $tags="aiExternal")
@@ -124,29 +124,28 @@ Rel_L(handleMessageService, handleMessagePort, "Implements", $tags="implements")
 Rel_R(handleMessageService, initializeUserPort, "Uses")
 Rel_L(initializeUserService, initializeUserPort, "Implements", $tags="implements")
 Rel_R(initializeUserService, userRepositoryPort, "Uses")
-Rel_R(handleMessageService, categoryRepositoryPort, "Uses")
+Rel_R(handleMessageService, groupingRepositoryPort, "Uses")
 Rel_R(handleMessageService, intentExtractionPort, "Uses")
 Rel_R(handleMessageService, proposalRepositoryPort, "Uses")
-Rel_R(handleMessageService, messageDeliveryPort, "Uses")
+Rel_L(handleMessageService, messageDeliveryPort, "Uses")
 Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
-Rel_L(categoryRepositoryAdapter, categoryRepositoryPort, "Implements", $tags="implements")
+Rel_L(groupingRepositoryAdapter, groupingRepositoryPort, "Implements", $tags="implements")
 Rel_L(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
 Rel_L(intentExtractionAdapter, intentExtractionPort, "Implements", $tags="implements")
-Rel_L(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
+Rel_R(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
 Rel_D(intentExtractionAdapter, tokenMinter, "Mints with")
 Rel_D(deliveryAdapter, reportRenderer, "Writes the text with")
 Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
-Rel_R(categoryRepositoryAdapter, db, "SQL", "JDBC")
+Rel_R(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(intentExtractionAdapter, connector, "Text, groupings and a credential", "gRPC")
 Rel_U(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
 Lay_D(handleMessagePort, initializeUserPort)
 Lay_D(initializeUserPort, userRepositoryPort)
-Lay_D(userRepositoryPort, categoryRepositoryPort)
-Lay_D(categoryRepositoryPort, intentExtractionPort)
+Lay_D(userRepositoryPort, groupingRepositoryPort)
+Lay_D(groupingRepositoryPort, intentExtractionPort)
 Lay_D(intentExtractionPort, proposalRepositoryPort)
-Lay_D(proposalRepositoryPort, messageDeliveryPort)
 
 SHOW_LEGEND()
 @enduml

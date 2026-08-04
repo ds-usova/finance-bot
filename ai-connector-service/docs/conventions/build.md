@@ -11,11 +11,12 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 
 ## Module Tasks
 
-- Coverage report (JaCoCo): `ai-connector-service/gradlew test jacocoTestReport`
-- Reformat to style (Spotless): `ai-connector-service/gradlew spotlessApply`
-- Check formatting (Spotless): `ai-connector-service/gradlew spotlessCheck` — runs as part of `check`
-- Contract codegen: `ai-connector-service/gradlew generateProto` — rarely needed on its own, since `compileJava`
-  depends on it and a `.proto` edit regenerates on the next compile.
+- Coverage report (JaCoCo): `ai-connector-service/gradlew -p ai-connector-service test jacocoTestReport`
+- Reformat to style (Spotless): `ai-connector-service/gradlew -p ai-connector-service spotlessApply`
+- Check formatting (Spotless): `ai-connector-service/gradlew -p ai-connector-service spotlessCheck` — runs as
+  part of `check`
+- Contract codegen: `ai-connector-service/gradlew -p ai-connector-service generateProto` — rarely needed on its
+  own, since `compileJava` depends on it and a `.proto` edit regenerates on the next compile.
 
 The first build after a clean checkout downloads the `protoc` toolchain and needs network access.
 

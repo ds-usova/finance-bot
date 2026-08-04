@@ -10,7 +10,7 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
 
     @Query(
             """
-            SELECT c.name AS category_name, p.name AS parent_name, ep.description AS description,
+            SELECT c.name AS category_name, p.name AS grouping_name, ep.description AS description,
                    ep.merchant AS merchant, ep.amount_minor_units AS amount_minor_units,
                    ep.currency_code AS currency_code
             FROM expense_proposal ep

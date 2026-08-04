@@ -16,6 +16,7 @@ import bot.finance.common.McpRequests;
 import bot.finance.common.McpTokens;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -59,8 +60,8 @@ class ListCategoriesMcpToolTest {
         return McpTokens.tokenFor(accessTokenMinter, externalId);
     }
 
-    private Response postListCategories(String token, String parentCategory) {
-        return postMcp(token, McpRequests.listCategories(parentCategory));
+    private Response postListCategories(String token, String grouping) {
+        return postMcp(token, McpRequests.listCategories(grouping));
     }
 
     private Response postMcp(String token, String body) {
@@ -83,7 +84,7 @@ class ListCategoriesMcpToolTest {
 
         @Test
         @DisplayName(
-                "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the parent category and its categories")
+                "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the grouping and its categories")
         void whenListCategoriesIsCalled_thenPortReceivesTokenSubjectAndGroupingNameAndResultCarriesBoth() {
             String externalId = "user-42";
             when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household Supplies"));
@@ -93,12 +94,12 @@ class ListCategoriesMcpToolTest {
             ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
             verify(listCategoriesPort).list(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
-            assertThat(command.getValue().parentCategoryName()).isEqualTo("Groceries");
+            assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
             assertThat(text)
-                    .contains("\"parentCategory\":\"Groceries\"")
+                    .contains("\"grouping\":\"Groceries\"")
                     .contains("Supermarkets")
                     .contains("Markets")
                     .contains("Household Supplies");
@@ -114,7 +115,7 @@ class ListCategoriesMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
-            assertThat(text).contains("\"parentCategory\":\"Miscellaneous\"").contains("\"categories\":[]");
+            assertThat(text).contains("\"grouping\":\"Miscellaneous\"").contains("\"categories\":[]");
         }
 
         @Test
@@ -144,6 +145,19 @@ class ListCategoriesMcpToolTest {
             when(listCategoriesPort.list(any())).thenThrow(new InvalidCategoryException(exceptionMessage));
 
             Response response = postListCategories(token("user-1"), "Fictional");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+        }
+
+        @Test
+        @DisplayName(
+                "when the port throws InvalidGroupingException - then the tool error carries that exception's message bare, as InvalidCategoryException's is")
+        void whenPortThrowsInvalidGroupingException_thenToolErrorCarriesThatExceptionsMessageBare() {
+            String exceptionMessage = "no grouping named Fictional is stored for this user";
+            when(listCategoriesPort.list(any())).thenThrow(new InvalidGroupingException(exceptionMessage));
+
+            Response response = postListCategories(token("user-9"), "Fictional");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -238,18 +252,17 @@ class ListCategoriesMcpToolTest {
     class Validation {
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("bot.finance.adapter.mcp.ListCategoriesMcpToolTest#invalidParentCategories")
-        @DisplayName("when parentCategory is invalid - then the tool error is returned and the port is never called")
-        void whenParentCategoryIsInvalid_thenToolErrorReturnedAndPortNeverCalled(
-                String description, String parentCategory) {
-            Response response = postListCategories(token("user-8"), parentCategory);
+        @MethodSource("bot.finance.adapter.mcp.ListCategoriesMcpToolTest#invalidGroupings")
+        @DisplayName("when grouping is invalid - then the tool error is returned and the port is never called")
+        void whenGroupingIsInvalid_thenToolErrorReturnedAndPortNeverCalled(String description, String grouping) {
+            Response response = postListCategories(token("user-8"), grouping);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(listCategoriesPort, never()).list(any());
         }
     }
 
-    static Stream<Arguments> invalidParentCategories() {
+    static Stream<Arguments> invalidGroupings() {
         return Stream.of(arguments("absent", null), arguments("blank", ""));
     }
 }

@@ -8,7 +8,7 @@ import bot.finance.common.AbstractSystemTest;
 import bot.finance.common.McpRequests;
 import bot.finance.common.McpTokens;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Drives {@code POST /mcp} - the {@code tools/call list_categories} JSON-RPC method - end to end against the fully
  * wired application. The user and their category tree are seeded through the wired {@link UserRepository} with
- * {@link Category#defaults()}, the tree's only writer, never through a {@code bot.finance.common} row helper.
+ * {@link Grouping#defaults()}, the tree's only writer, never through a {@code bot.finance.common} row helper.
  */
 class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
 
@@ -39,7 +39,7 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
     }
 
     private User seedUserWithDefaultCategories(String externalId) {
-        return userRepository.create(User.newUser(externalId), Category.defaults());
+        return userRepository.create(User.newUser(externalId), Grouping.defaults());
     }
 
     private Response callListCategories(String token, String requestBody) {
@@ -60,9 +60,9 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when tools/call list_categories is posted naming Groceries - then the response is a "
-                + "non-error result whose text names Groceries and carries exactly its three seeded children, "
+                + "non-error result whose text names Groceries and carries exactly its three seeded categories, "
                 + "sorted by name")
-        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsChildrenSortedByName() {
+        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsCategoriesSortedByName() {
             User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
@@ -78,9 +78,7 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText).as("tool result text").isNotNull();
             JsonPath toolResult = new JsonPath(toolResultText);
-            assertThat(toolResult.getString("parentCategory"))
-                    .as("returned parentCategory")
-                    .isEqualTo("Groceries");
+            assertThat(toolResult.getString("grouping")).as("returned grouping").isEqualTo("Groceries");
             assertThat(toolResult.getList("categories", String.class))
                     .as("returned categories, sorted by name")
                     .containsExactly("Household Supplies", "Markets", "Supermarkets");

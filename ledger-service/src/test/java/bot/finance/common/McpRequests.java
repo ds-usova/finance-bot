@@ -33,12 +33,7 @@ public final class McpRequests {
     }
 
     public static String createExpenseProposal(
-            String category,
-            String parentCategory,
-            String description,
-            String merchant,
-            String amount,
-            String currencyCode) {
+            String category, String grouping, String description, String merchant, String amount, String currencyCode) {
         return """
                 {
                   "jsonrpc": "2.0",
@@ -48,7 +43,7 @@ public final class McpRequests {
                     "name": "create_expense_proposal",
                     "arguments": {
                       "category": %s,
-                      "parentCategory": %s,
+                      "grouping": %s,
                       "description": %s,
                       "merchant": %s,
                       "amount": %s,
@@ -59,14 +54,14 @@ public final class McpRequests {
                 """
                 .formatted(
                         jsonString(category),
-                        jsonString(parentCategory),
+                        jsonString(grouping),
                         jsonString(description),
                         jsonString(merchant),
                         jsonString(amount),
                         jsonString(currencyCode));
     }
 
-    public static String listCategories(String parentCategory) {
+    public static String listCategories(String grouping) {
         return """
                 {
                   "jsonrpc": "2.0",
@@ -75,12 +70,12 @@ public final class McpRequests {
                   "params": {
                     "name": "list_categories",
                     "arguments": {
-                      "parentCategory": %s
+                      "grouping": %s
                     }
                   }
                 }
                 """
-                .formatted(jsonString(parentCategory));
+                .formatted(jsonString(grouping));
     }
 
     private static String jsonString(String value) {

@@ -21,14 +21,14 @@ caller's own groupings holds, and a proposed expense, which a human reviews befo
 
 ### What `create_expense_proposal` takes
 
-| Argument         | Meaning                                                                                | Required |
-|------------------|----------------------------------------------------------------------------------------|----------|
-| `category`       | the category's name — one filed under a grouping                                     | yes      |
-| `parentCategory` | the grouping it is filed under, as `list_categories` was asked for it                  | yes      |
-| `description`    | what was bought                                                                        | yes      |
-| `merchant`       | who it was bought from — null or blank is none                                       | no       |
-| `amount`         | the amount as the message writes it, in the currency's main unit — 7200 for 7200 HUF | yes      |
-| `currencyCode`   | ISO 4217, three letters                                                                | yes      |
+| Argument       | Meaning                                                                                | Required |
+|----------------|------------------------------------------------------------------------------------------|----------|
+| `category`     | the category's name — one filed under a grouping                                       | yes      |
+| `grouping`     | the grouping it is filed under, as `list_categories` was asked for it                  | yes      |
+| `description`  | what was bought                                                                        | yes      |
+| `merchant`     | who it was bought from — null or blank is none                                         | no       |
+| `amount`       | the amount as the message writes it, in the currency's main unit — 7200 for 7200 HUF   | yes      |
+| `currencyCode` | ISO 4217, three letters                                                                | yes      |
 
 **There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
 message it belongs to, both come off the token and nothing else
@@ -43,14 +43,14 @@ already knows whose token it sent, and everything returned enters a model's cont
 
 ### What `list_categories` takes
 
-| Argument         | Meaning                                        | Required |
-|------------------|------------------------------------------------|----------|
-| `parentCategory` | the grouping's name, exactly as it was offered | yes      |
+| Argument   | Meaning                                        | Required |
+|------------|------------------------------------------------|----------|
+| `grouping` | the grouping's name, exactly as it was offered | yes      |
 
 ### What `list_categories` answers with
 
-The grouping the call named, and the names of the categories filed under it, ordered by name. It carries no
-identity and no stored id.
+Under `grouping`, the grouping the call named; under `categories`, the names of the categories filed under it,
+ordered by name. It carries no identity and no stored id.
 
 ## Semantics
 
@@ -63,9 +63,12 @@ stores nothing. Listing categories never reads the reference, so a token carryin
 A caller reaches only their own categories: neither tool takes an identity argument, and every read is scoped to
 the token's subject.
 
-A category is named, not identified. Which names resolve, and which are refused, is the use case's rule, not the
-tool's — [for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
+A grouping and a category are both named, never identified. Which names resolve, and which are refused, is the
+use case's rule, not the tool's — [for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
 [for a listing](../../usecases/list-categories.md#rules).
+
+A proposal names both: the grouping is resolved first, and the category only under it. Nothing is filed under a
+grouping itself.
 
 The amount crosses as written, in the currency's main unit, and is scaled to minor units on this side
 ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)).
@@ -112,8 +115,9 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why |
 | An argument's value is not the type the published schema declares                       | refused against the schema, before the tool runs                     |
 | An argument is missing, malformed, or an amount its currency cannot record              | a tool error naming the invalid request and the field at fault       |
-| The category name is unknown, or names nothing filed under the grouping sent            | a tool error naming both, so it can be corrected                     |
-| The grouping name is unknown, or names a category rather than a grouping                | a tool error naming what was asked for, so it can be corrected       |
+| The grouping sent holds no category of the category name sent                           | a tool error naming both, so it can be corrected                     |
+| The grouping name is unknown                                                            | a tool error repeating it, so it can be corrected                    |
+| A listing's grouping name names a category rather than a grouping                       | a tool error saying so, so it can be corrected                       |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
 | The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |
 | The proposal cannot be stored, or the categories cannot be read                         | a tool error saying so, naming no table, constraint or stack frame   |
@@ -137,6 +141,10 @@ goes on offering only what it read.
 Adding an optional argument costs a client nothing. For a client outside this repository, renaming one, or
 making an optional one required, is a new tool rather than an edit. Inside it, the tools and their one caller
 ship together, so an argument is renamed or made required in place.
+
+A rename in place is only safe while the two ship together. A client that read the list before the rename goes
+on sending the old argument name, and every call of that tool fails until it restarts and reads the list again.
+Deploying the two independently makes a rename a new tool instead.
 
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way

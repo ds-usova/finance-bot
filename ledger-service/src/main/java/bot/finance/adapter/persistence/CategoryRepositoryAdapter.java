@@ -1,9 +1,9 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.StoredCategory;
+import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -17,40 +17,26 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     }
 
     @Override
-    public List<StoredCategory> findByUserIdAndName(long userId, String name) {
+    public Optional<StoredCategory> findByGroupingAndName(long userId, StoredGrouping grouping, String name) {
         try {
-            return categoryEntityRepository.findByUserIdAndName(userId, name).stream()
-                    .map(this::toStoredCategory)
-                    .toList();
+            return categoryEntityRepository
+                    .findByUserIdAndParentIdAndName(userId, grouping.id(), name)
+                    .map(CategoryEntity::toStoredCategory);
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find category " + name + " for user " + userId, e);
+            throw new PersistenceFailedException(
+                    "failed to find category for user " + userId + " under grouping " + grouping.name() + " and name "
+                            + name,
+                    e);
         }
     }
 
     @Override
-    public List<String> findChildNames(long categoryId) {
+    public boolean existsByUserIdAndName(long userId, String name) {
         try {
-            return categoryEntityRepository.findByParentIdOrderByName(categoryId).stream()
-                    .map(CategoryEntity::name)
-                    .toList();
+            return categoryEntityRepository.existsByUserIdAndNameAndParentIdIsNotNull(userId, name);
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find children of category " + categoryId, e);
+            throw new PersistenceFailedException(
+                    "failed to check existence of category for user " + userId + " and name " + name, e);
         }
-    }
-
-    @Override
-    public List<String> findGroupingNames(long userId) {
-        try {
-            return categoryEntityRepository.findGroupingNames(userId);
-        } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
-        }
-    }
-
-    private StoredCategory toStoredCategory(CategoryEntity entity) {
-        Optional<String> parentName = Optional.ofNullable(entity.parentId())
-                .flatMap(categoryEntityRepository::findById)
-                .map(CategoryEntity::name);
-        return new StoredCategory(entity.id(), entity.name(), parentName);
     }
 }

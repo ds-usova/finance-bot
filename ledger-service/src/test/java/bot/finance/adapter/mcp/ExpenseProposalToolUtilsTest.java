@@ -70,31 +70,29 @@ class ExpenseProposalToolUtilsTest {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("blankParentCategories")
-        @DisplayName("when the request's parentCategory is null, empty, or whitespace only - then throws "
-                + "InvalidExpenseProposalException with the message \"expense proposal request has no parent "
-                + "category\"")
-        void whenParentCategoryIsNullOrBlank_thenThrowsInvalidExpenseProposalException(
-                String description, String parentCategory) {
-            CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-                    "Groceries", parentCategory, "Milk", "Corner Shop", "15.00", "EUR");
+        @MethodSource("blankGroupings")
+        @DisplayName("when the request's grouping is null, empty, or whitespace only - then throws "
+                + "InvalidExpenseProposalException with the message \"expense proposal request has no grouping\"")
+        void whenGroupingIsNullOrBlank_thenThrowsInvalidExpenseProposalException(String description, String grouping) {
+            CreateExpenseProposalToolRequest request =
+                    new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class)
-                    .hasMessage("expense proposal request has no parent category");
+                    .hasMessage("expense proposal request has no grouping");
         }
 
-        static Stream<Arguments> blankParentCategories() {
+        static Stream<Arguments> blankGroupings() {
             return Stream.of(
-                    arguments("null parentCategory", null),
-                    arguments("empty parentCategory", ""),
-                    arguments("blank parentCategory", "   "));
+                    arguments("null grouping", null),
+                    arguments("empty grouping", ""),
+                    arguments("blank grouping", "   "));
         }
 
         @Test
-        @DisplayName("when the request's parentCategory is absent and its amount is also malformed - then the "
+        @DisplayName("when the request's grouping is absent and its amount is also malformed - then the "
                 + "amount's own failure is raised")
-        void whenParentCategoryIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
+        void whenGroupingIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", null, "Milk", "Corner Shop", "twelve", "EUR");
 
@@ -104,15 +102,14 @@ class ExpenseProposalToolUtilsTest {
         }
 
         @Test
-        @DisplayName("when the request carries a non-blank parentCategory - then the command's parentCategoryName "
-                + "is that name")
-        void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatName() {
+        @DisplayName("when the request carries a non-blank grouping - then the command's groupingName is that name")
+        void whenGroupingIsNonBlank_thenCommandGroupingNameIsThatName() {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
-            assertThat(command.parentCategoryName()).isEqualTo("Food");
+            assertThat(command.groupingName()).isEqualTo("Food");
         }
 
         @ParameterizedTest(name = "{0}")

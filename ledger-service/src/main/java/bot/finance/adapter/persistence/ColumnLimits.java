@@ -3,8 +3,10 @@ package bot.finance.adapter.persistence;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.Category;
+import bot.finance.domain.value.Grouping;
 import java.util.List;
 import java.util.function.Function;
 
@@ -24,11 +26,11 @@ final class ColumnLimits {
         }
     }
 
-    static void validateCategoryNames(List<Category> categories) {
-        for (Category group : categories) {
-            validateCategoryName(group);
-            for (Category child : group.children()) {
-                validateCategoryName(child);
+    static void validateCatalogueNames(List<Grouping> groupings) {
+        for (Grouping grouping : groupings) {
+            validateGroupingName(grouping);
+            for (Category category : grouping.categories()) {
+                validateCategoryName(category);
             }
         }
     }
@@ -55,6 +57,13 @@ final class ColumnLimits {
         if (category.name().length() > CATEGORY_NAME) {
             throw new InvalidCategoryException(
                     "category name exceeds " + CATEGORY_NAME + " characters: " + category.name());
+        }
+    }
+
+    private static void validateGroupingName(Grouping grouping) {
+        if (grouping.name().length() > CATEGORY_NAME) {
+            throw new InvalidGroupingException(
+                    "grouping name exceeds " + CATEGORY_NAME + " characters: " + grouping.name());
         }
     }
 }

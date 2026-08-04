@@ -92,4 +92,9 @@ without the lookup holds only grouping names, so it sends a grouping as the cate
 it; the ledger refuses that as an invalid request, and nothing the model holds lets it correct the call. Those
 expenses go unrecorded until the process restarts.
 
+An argument renamed on the ledger's side lands the same way. A process that started against the older ledger
+keeps filling the name it was offered, for its lifetime. Every call carrying the old name is refused as an
+invalid request, and the model cannot correct to a name it was never told about. The recovery is a restart of
+this service, after which the renamed argument is picked up and the calls work again.
+
 The ledger can switch this endpoint off, which makes every turn fail as unavailable.

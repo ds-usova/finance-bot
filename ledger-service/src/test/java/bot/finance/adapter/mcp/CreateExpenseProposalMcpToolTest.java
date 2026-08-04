@@ -17,6 +17,7 @@ import bot.finance.common.McpTokens;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
@@ -70,15 +71,14 @@ class CreateExpenseProposalMcpToolTest {
     private Response postCreateExpenseProposal(
             String token,
             String category,
-            String parentCategory,
+            String grouping,
             String description,
             String merchant,
             String amount,
             String currencyCode) {
         return postMcp(
                 token,
-                McpRequests.createExpenseProposal(
-                        category, parentCategory, description, merchant, amount, currencyCode));
+                McpRequests.createExpenseProposal(category, grouping, description, merchant, amount, currencyCode));
     }
 
     private Response postMcp(String token, String body) {
@@ -129,6 +129,7 @@ class CreateExpenseProposalMcpToolTest {
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
             verify(createExpenseProposalPort).create(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            assertThat(command.getValue().groupingName()).isEqualTo("Dining");
 
             String body = response.getBody().asString();
             assertThat(body)
@@ -227,6 +228,20 @@ class CreateExpenseProposalMcpToolTest {
 
             Response response = postCreateExpenseProposal(
                     token("user-4"), "Utilities", "Utilities", "lunch", "Cafe", "5.00", "EUR");
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+        }
+
+        @Test
+        @DisplayName(
+                "when the port throws InvalidGroupingException - then the tool error carries that exception's message bare")
+        void whenPortThrowsInvalidGroupingException_thenToolErrorCarriesThatExceptionsMessage() {
+            String exceptionMessage = "no grouping named Utilities is stored for this user";
+            when(createExpenseProposalPort.create(any())).thenThrow(new InvalidGroupingException(exceptionMessage));
+
+            Response response = postCreateExpenseProposal(
+                    token("user-45"), "Electricity", "Utilities", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -376,7 +391,7 @@ class CreateExpenseProposalMcpToolTest {
                         "name": "create_expense_proposal",
                         "arguments": {
                           "category": "Restaurants",
-                          "parentCategory": "Dining",
+                          "grouping": "Dining",
                           "description": "lunch",
                           "merchant": "Cafe",
                           "amount": { "value": 7200 },
@@ -406,7 +421,7 @@ class CreateExpenseProposalMcpToolTest {
                         "name": "create_expense_proposal",
                         "arguments": {
                           "category": "Restaurants",
-                          "parentCategory": "Dining",
+                          "grouping": "Dining",
                           "description": "lunch with the team",
                           "merchant": "Trattoria Roma",
                           "amount": 7200,
@@ -459,8 +474,8 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName(
-                "when parentCategory is absent from the call - then the framework's own JSON-schema rejection names the missing parent category and the port is never called")
-        void whenParentCategoryAbsent_thenFrameworkSchemaRejectionNamesMissingParentCategoryAndPortNeverCalled() {
+                "when grouping is absent from the call - then the framework's own JSON-schema rejection names the missing grouping and the port is never called")
+        void whenGroupingAbsent_thenFrameworkSchemaRejectionNamesMissingGroupingAndPortNeverCalled() {
             String body =
                     """
                     {
@@ -483,21 +498,21 @@ class CreateExpenseProposalMcpToolTest {
             Response response = postMcp(token("user-13"), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
-            assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("parentCategory");
+            assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("grouping");
             verify(createExpenseProposalPort, never()).create(any());
         }
 
         @Test
         @DisplayName(
-                "when parentCategory is blank - then the tool error names an invalid request with no parent category and the port is never called")
-        void whenParentCategoryBlank_thenToolErrorNamesInvalidRequestWithNoParentCategoryAndPortNeverCalled() {
+                "when grouping is blank - then the tool error names an invalid request with no grouping and the port is never called")
+        void whenGroupingBlank_thenToolErrorNamesInvalidRequestWithNoGroupingAndPortNeverCalled() {
             Response response =
                     postCreateExpenseProposal(token("user-14"), "Restaurants", "   ", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text"))
                     .containsIgnoringCase("invalid request")
-                    .contains("expense proposal request has no parent category");
+                    .contains("expense proposal request has no grouping");
             verify(createExpenseProposalPort, never()).create(any());
         }
     }

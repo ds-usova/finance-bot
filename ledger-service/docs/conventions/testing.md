@@ -17,7 +17,7 @@ bot.finance
     ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
-    ├── CategoryRowUtils      # reads back a user's stored category rows, and stores one or one under a parent
+    ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     ├── ExpenseRowUtils       # reads back a user's stored expense rows
     ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows
     ├── UserRowUtils          # stores a user row and returns its generated id

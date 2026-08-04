@@ -6,11 +6,11 @@
 
 *Implemented by `InitializeUserUseCase`.*
 
-## The categories
+## The catalogue
 
-A new user is given 97 categories: 20 groups holding 77 children.
+A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories](../domain/category.md).
 
-| Group             | Children                                                                    |
+| Grouping          | Categories                                                                  |
 |-------------------|-----------------------------------------------------------------------------|
 | Housing           | Rent, Mortgage, HOA, Property Tax, Home Insurance, Repairs, Furniture       |
 | Groceries         | Supermarkets, Markets, Household Supplies                                   |
@@ -38,15 +38,14 @@ A new user is given 97 categories: 20 groups holding 77 children.
 | Direction | Collaborator                                                                     | Through                                                                           | For                                                       |
 |-----------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
 | in        | [Act on a user's message](handle-incoming-message.md)                            | [Act on a user's message](handle-incoming-message.md)                             | resolving the person who sent a message, on every message   |
-| out       | [Database](../contracts/out/database.md)                                         | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their 97 categories                     |
+| out       | [Database](../contracts/out/database.md)                                         | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their catalogue                        |
 
 ## Rules
 
 - The external identity is opaque text, whatever the caller identifies a person by, present and not blank.
-- What a [user](../domain/user.md) is, and the shape a [category](../domain/category.md) tree must keep, are
-  their own rules.
-- A category name is unique among its siblings, which is why Travel is both a group and a child of Insurance
-  ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
+- What a [user](../domain/user.md) is, and what a [grouping](../domain/grouping.md) holds, are their own rules.
+- A category name is unique under one grouping, which is why Travel is both a grouping and a category under
+  Insurance ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
 - The catalogue is fixed at release. Each user gets a copy of it at creation, and it is never re-applied: a
   user who edits their categories diverges from it, and a changed catalogue reaches only users created
   afterwards.
@@ -60,7 +59,7 @@ A new user is given 97 categories: 20 groups holding 77 children.
 
 | Outcome                | When                                             | Result                                                                         |
 |------------------------|--------------------------------------------------|--------------------------------------------------------------------------------|
-| User created           | nothing is stored under the identity             | the user and the 97 categories are stored together, and the creation is logged |
+| User created           | nothing is stored under the identity             | the user and the catalogue are stored together, and the creation is logged     |
 | Existing user returned | a user is already stored under the identity      | that user is returned and nothing is written                                   |
 | Request rejected       | the request is absent or carries no identity     | invalid user — nothing is looked up                                            |
 | Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                               |

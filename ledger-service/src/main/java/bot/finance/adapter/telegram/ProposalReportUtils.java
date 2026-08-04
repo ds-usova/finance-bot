@@ -53,7 +53,7 @@ public final class ProposalReportUtils {
         return "• %s (%s) — %s%s: %s %s"
                 .formatted(
                         proposal.categoryName(),
-                        proposal.parentCategoryName(),
+                        proposal.groupingName(),
                         proposal.description(),
                         merchant,
                         proposal.money().amount(),

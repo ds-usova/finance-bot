@@ -170,9 +170,9 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         return Stream.of(
                 Arguments.of(
                         "create_expense_proposal",
-                        List.of("category", "parentCategory", "description", "merchant", "amount", "currencyCode"),
-                        List.of("amount", "parentCategory")),
-                Arguments.of("list_categories", List.of("parentCategory"), List.of("parentCategory")));
+                        List.of("category", "grouping", "description", "merchant", "amount", "currencyCode"),
+                        List.of("amount", "grouping")),
+                Arguments.of("list_categories", List.of("grouping"), List.of("grouping")));
     }
 
     static Stream<Arguments> rejectedTokens() {

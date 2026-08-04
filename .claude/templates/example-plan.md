@@ -6,7 +6,7 @@ is ticked. It is
 illustrated with a Java/Spring-Boot-flavored `Widget` feature purely for concreteness — other stacks adapt the same
 structure (plan sections, section order, step formats, RED/GREEN choreography) using their own tech stack, tools,
 and file formats as recorded in the module's `docs/conventions.md`
-(see `.claude/templates/conventions-template.md`).
+(see `.claude/templates/conventions/`).
 
 What the feature *is* — the objective, the solution, the file names, the diagrams and the decisions behind them —
 lives in `.claude/templates/example-design.md`, the design this plan is written from. The plan links it rather than

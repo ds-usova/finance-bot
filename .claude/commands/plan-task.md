@@ -67,7 +67,8 @@ The conventions file tells the skill the module's tech stack and test tooling, i
 naming conventions, file locations, and inbound adapter types.
 
 If a module has no conventions file: use generic defaults, and add an entry under **Open Questions / Blockers** in
-the generated plan asking the user to create one from the template at `.claude/templates/conventions-template.md`.
+the generated plan asking the user to run `init-conventions`, or to fill in the templates at
+`.claude/templates/conventions/` by hand.
 Never fail and never silently guess module conventions.
 
 ## 4. Plan Structure

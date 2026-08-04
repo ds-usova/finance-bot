@@ -24,3 +24,5 @@ are constructed rather than by the schema.
 - Requires PostgreSQL 15 or newer, so the version is load-bearing rather than incidental.
 - Must stay true: two levels. A third would need a new pairing strategy on the write path and would make the
   parent column ambiguous as a key.
+- 2026-08-04: the two-level rule is now carried by the domain types rather than by a constructor check — a
+  `Grouping` holds categories and a `Category` holds nothing, so a third level cannot be constructed.

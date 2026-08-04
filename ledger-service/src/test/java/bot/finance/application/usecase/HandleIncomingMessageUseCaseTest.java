@@ -16,8 +16,8 @@ import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
-import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
@@ -30,8 +30,8 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.Category;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.util.List;
@@ -52,7 +52,7 @@ class HandleIncomingMessageUseCaseTest {
 
     private Logger log;
     private InitializeUserPort initializeUserPort;
-    private CategoryRepository categoryRepository;
+    private GroupingRepository groupingRepository;
     private IntentExtractionPort intentExtractionPort;
     private ExpenseProposalRepository expenseProposalRepository;
     private MessageDeliveryPort messageDeliveryPort;
@@ -64,13 +64,13 @@ class HandleIncomingMessageUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(HandleIncomingMessageUseCase.class)).thenReturn(log);
         initializeUserPort = mock(InitializeUserPort.class);
-        categoryRepository = mock(CategoryRepository.class);
+        groupingRepository = mock(GroupingRepository.class);
         intentExtractionPort = mock(IntentExtractionPort.class);
         expenseProposalRepository = mock(ExpenseProposalRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
         useCase = new HandleIncomingMessageUseCase(
                 initializeUserPort,
-                categoryRepository,
+                groupingRepository,
                 intentExtractionPort,
                 expenseProposalRepository,
                 messageDeliveryPort,
@@ -81,10 +81,10 @@ class HandleIncomingMessageUseCaseTest {
         return new HandleIncomingMessageCommand(EXTERNAL_ID, CONVERSATION_ID, INBOUND_MESSAGE_ID, TEXT);
     }
 
-    private List<String> stubKnownUserAndCategories() {
+    private List<String> stubKnownUserAndGroupings() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-        List<String> categoryGroupings = List.of("Food", "Auto", Category.catchAllGroupingName());
-        when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(categoryGroupings);
+        List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
+        when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
         return categoryGroupings;
     }
 
@@ -107,7 +107,7 @@ class HandleIncomingMessageUseCaseTest {
 
             verifyNoInteractions(log);
             verifyNoInteractions(initializeUserPort);
-            verifyNoInteractions(categoryRepository);
+            verifyNoInteractions(groupingRepository);
             verifyNoInteractions(intentExtractionPort);
             verifyNoInteractions(expenseProposalRepository);
             verifyNoInteractions(messageDeliveryPort);
@@ -118,7 +118,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "the command's user external id, the extraction request carries a non-null message reference, "
                 + "and findSummariesByMessageReference is called with the user's id and that same reference")
         void whenHandleIsCalled_thenInitializeAndExtractionAndLookupCarryUserAndReference() {
-            List<String> categoryGroupings = stubKnownUserAndCategories();
+            List<String> categoryGroupings = stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -129,7 +129,7 @@ class HandleIncomingMessageUseCaseTest {
             verify(initializeUserPort).initialize(initializeCaptor.capture());
             assertThat(initializeCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
 
-            verify(categoryRepository).findGroupingNames(USER_ID);
+            verify(groupingRepository).findNamesWithCategories(USER_ID);
 
             ArgumentCaptor<IntentExtractionRequest> extractCaptor =
                     ArgumentCaptor.forClass(IntentExtractionRequest.class);
@@ -137,7 +137,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionRequest request = extractCaptor.getValue();
             assertThat(request.text()).isEqualTo(TEXT);
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
-            assertThat(request.catchAllGrouping()).isEqualTo(Category.catchAllGroupingName());
+            assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
             MessageReference reference = request.messageReference();
@@ -147,13 +147,13 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the stored user's grouping names include Category.catchAllGroupingName() - then the "
+        @DisplayName("when the stored user's grouping names include Grouping.catchAllName() - then the "
                 + "extraction request carries exactly those grouping names and that name as its catch-all")
         void
                 whenGroupingNamesIncludeCatchAllGroupingName_thenExtractionRequestCarriesThoseNamesAndThatNameAsCatchAll() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-            List<String> categoryGroupings = List.of("Food", Category.catchAllGroupingName(), "Auto");
-            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(categoryGroupings);
+            List<String> categoryGroupings = List.of("Food", Grouping.catchAllName(), "Auto");
+            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
@@ -164,30 +164,30 @@ class HandleIncomingMessageUseCaseTest {
             verify(intentExtractionPort).extract(extractCaptor.capture());
             IntentExtractionRequest request = extractCaptor.getValue();
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
-            assertThat(request.catchAllGrouping()).isEqualTo(Category.catchAllGroupingName());
+            assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
         }
 
         @Test
-        @DisplayName("when the stored user's grouping names do not include Category.catchAllGroupingName() - then "
+        @DisplayName("when the stored user's grouping names do not include Grouping.catchAllName() - then "
                 + "CatchAllGroupingMissingException propagates and the extraction port is never called")
         void whenGroupingNamesExcludeCatchAllGroupingName_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(List.of("Food", "Auto"));
+            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of("Food", "Auto"));
 
             assertThatThrownBy(() -> useCase.handle(newCommand()))
                     .isInstanceOf(CatchAllGroupingMissingException.class)
-                    .hasMessageContaining(Category.catchAllGroupingName());
+                    .hasMessageContaining(Grouping.catchAllName());
 
             verifyNoInteractions(intentExtractionPort);
             verifyNoInteractions(messageDeliveryPort);
         }
 
         @Test
-        @DisplayName("when findGroupingNames answers an empty list - then CatchAllGroupingMissingException "
+        @DisplayName("when findNamesWithCategories answers an empty list - then CatchAllGroupingMissingException "
                 + "propagates and the extraction port is never called")
-        void whenFindGroupingNamesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
+        void whenFindNamesWithCategoriesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(List.of());
+            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of());
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isInstanceOf(CatchAllGroupingMissingException.class);
 
@@ -199,7 +199,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "RECORDED report carrying the command's conversation and inbound message ids and those "
                 + "summaries in order")
         void whenExtractionSucceedsWithSummaries_thenDeliverReceivesRecordedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             List<ProposalSummary> summaries = twoSummaries();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(summaries);
@@ -219,7 +219,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction returns normally and the repository returns an empty list - then deliver "
                 + "receives a NOTHING_IDENTIFIED report with no proposals")
         void whenExtractionSucceedsWithNoSummaries_thenDeliverReceivesNothingIdentifiedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
@@ -237,7 +237,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "summaries - then no exception escapes and deliver receives a PARTIAL report carrying those "
                 + "summaries")
         void whenExtractionFailsWithSummaries_thenDeliverReceivesPartialReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -258,7 +258,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws IntentExtractionFailedException and the repository returns an "
                 + "empty list - then no exception escapes and deliver receives a FAILED report")
         void whenExtractionFailsWithNoSummaries_thenDeliverReceivesFailedReport() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -276,7 +276,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws IntentExtractionFailedException - then an error line is logged "
                 + "carrying the message reference and the outcome, and not the message text")
         void whenExtractionFails_thenErrorLineNamesReferenceAndOutcomeAndOmitsText() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
@@ -298,7 +298,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when a turn succeeds - then an info line names the message reference and the user's "
                 + "external id, and does not carry the message text")
         void whenTurnSucceeds_thenInfoLineNamesReferenceAndExternalIdAndOmitsText() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -324,21 +324,22 @@ class HandleIncomingMessageUseCaseTest {
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
-            verifyNoInteractions(categoryRepository);
+            verifyNoInteractions(groupingRepository);
             verifyNoInteractions(intentExtractionPort);
             verifyNoInteractions(expenseProposalRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
 
         @Test
-        @DisplayName("when categoryRepository.findGroupingNames throws PersistenceFailedException - then the "
+        @DisplayName("when groupingRepository.findNamesWithCategories throws PersistenceFailedException - then the "
                 + "exception propagates and the extraction port, the expense proposal repository and the "
                 + "delivery port are never called")
-        void whenFindGroupingNamesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
+        void
+                whenFindNamesWithCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(categoryRepository.findGroupingNames(USER_ID)).thenThrow(failure);
+            when(groupingRepository.findNamesWithCategories(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
@@ -351,7 +352,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when findSummariesByMessageReference throws PersistenceFailedException - then that "
                 + "exception propagates and deliver is never called")
         void whenFindSummariesThrowsPersistenceFailedException_thenExceptionPropagatesAndDeliverUntouched() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
@@ -365,7 +366,7 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when deliver throws MessageDeliveryFailedException - then that exception propagates")
         void whenDeliverThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
             MessageDeliveryFailedException failure =
@@ -379,7 +380,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when extraction throws InvalidExtractionRequestException - then that exception propagates "
                 + "past the catch and deliver is never called")
         void whenExtractionThrowsInvalidExtractionRequestException_thenExceptionPropagatesAndDeliverUntouched() {
-            stubKnownUserAndCategories();
+            stubKnownUserAndGroupings();
             InvalidExtractionRequestException failure = new InvalidExtractionRequestException("bad request");
             doThrow(failure).when(intentExtractionPort).extract(any());
 

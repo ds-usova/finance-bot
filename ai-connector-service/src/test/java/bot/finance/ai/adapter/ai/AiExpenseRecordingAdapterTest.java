@@ -78,7 +78,7 @@ class AiExpenseRecordingAdapterTest {
 
     /** The {@code list_categories} arguments asking about {@link #LOOKUP_GROUPING}. */
     private static String lookupArguments() {
-        return "{\"parentCategory\":\"" + LOOKUP_GROUPING + "\"}";
+        return "{\"grouping\":\"" + LOOKUP_GROUPING + "\"}";
     }
 
     /**
@@ -176,6 +176,7 @@ class AiExpenseRecordingAdapterTest {
                     .contains(CATCH_ALL_GROUPING)
                     .contains("EUR")
                     .contains(TEXT)
+                    .contains("sending that same grouping with it")
                     .doesNotContain(">");
 
             JsonNode tools = body.get("tools");
@@ -190,13 +191,13 @@ class AiExpenseRecordingAdapterTest {
             assertThat(createExpenseProposalProperties.fieldNames())
                     .toIterable()
                     .containsExactlyInAnyOrder(
-                            "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
+                            "category", "grouping", "description", "merchant", "amount", "currencyCode");
 
             JsonNode listCategoriesTool = toolNamed(tools, "list_categories");
             assertThat(listCategoriesTool.get("type").asText()).isEqualTo("function");
             JsonNode listCategoriesProperties =
                     listCategoriesTool.get("function").get("parameters").get("properties");
-            assertThat(listCategoriesProperties.fieldNames()).toIterable().containsExactly("parentCategory");
+            assertThat(listCategoriesProperties.fieldNames()).toIterable().containsExactly("grouping");
         }
 
         @Test
@@ -272,7 +273,7 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalRefusedThenAccepted();
             String correctedArguments =
                     """
-                    {"category":"Travel","parentCategory":"Insurance","description":"cab",\
+                    {"category":"Travel","grouping":"Insurance","description":"cab",\
                     "amount":"20.00","currencyCode":"EUR"}""";
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
