@@ -58,6 +58,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
 
     private static final String PROPOSAL_CATEGORY = "Supermarkets";
+    private static final String PROPOSAL_GROUPING = "Groceries";
     private static final String PROPOSAL_DESCRIPTION = "lunch";
     private static final String PROPOSAL_MERCHANT = "Cafe";
     private static final String PROPOSAL_CURRENCY_CODE = "EUR";
@@ -69,6 +70,10 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             + Category.defaults().stream()
                     .mapToInt(group -> group.children().size())
                     .sum();
+
+    /** The grouping names {@link Category#defaults()} seeds, sorted the way the groupings travel (D15). */
+    private static final List<String> EXPECTED_GROUPING_NAMES =
+            Category.defaults().stream().map(Category::name).sorted().toList();
 
     private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
@@ -99,7 +104,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 "http://localhost:" + port,
                 McpRequests.createExpenseProposal(
                         PROPOSAL_CATEGORY,
-                        null,
+                        PROPOSAL_GROUPING,
                         PROPOSAL_DESCRIPTION,
                         PROPOSAL_MERCHANT,
                         PROPOSAL_AMOUNT_TEXT,
@@ -169,8 +174,12 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
             assertThat(request.getText()).as("extraction request text").isEqualTo(MESSAGE_TEXT);
 
-            // TODO RS04: assert the extraction request carries the twenty grouping names Category.defaults()
-            // seeds, sorted by name, and Category.catchAllGroupingName() as its catch-all.
+            assertThat(request.getCategoryGroupingsList())
+                    .as("extraction request category groupings")
+                    .containsExactlyElementsOf(EXPECTED_GROUPING_NAMES);
+            assertThat(request.getCatchAllGrouping())
+                    .as("extraction request catch-all grouping")
+                    .isEqualTo(Category.catchAllGroupingName());
 
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
             assertThat(metadata)

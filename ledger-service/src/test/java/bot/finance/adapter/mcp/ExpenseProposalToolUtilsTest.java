@@ -71,21 +71,48 @@ class ExpenseProposalToolUtilsTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("blankParentCategories")
-        @DisplayName(
-                "when the request's parentCategory is null or blank - then the command's parentCategoryName is Optional.empty()")
-        void whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty(
+        @DisplayName("when the request's parentCategory is null, empty, or whitespace only - then throws "
+                + "InvalidExpenseProposalException with the message \"expense proposal request has no parent "
+                + "category\"")
+        void whenParentCategoryIsNullOrBlank_thenThrowsInvalidExpenseProposalException(
                 String description, String parentCategory) {
             CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
                     "Groceries", parentCategory, "Milk", "Corner Shop", "15.00", "EUR");
 
-            CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
-
-            assertThat(command.parentCategoryName()).isEmpty();
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .hasMessage("expense proposal request has no parent category");
         }
 
         static Stream<Arguments> blankParentCategories() {
-            return Stream.of(arguments("null parentCategory", null), arguments("blank parentCategory", "   "));
+            return Stream.of(
+                    arguments("null parentCategory", null),
+                    arguments("empty parentCategory", ""),
+                    arguments("blank parentCategory", "   "));
+        }
+
+        @Test
+        @DisplayName("when the request's parentCategory is absent and its amount is also malformed - then the "
+                + "amount's own failure is raised")
+        void whenParentCategoryIsAbsentAndAmountIsMalformed_thenThrowsForTheAmount() {
+            CreateExpenseProposalToolRequest request =
+                    new CreateExpenseProposalToolRequest("Groceries", null, "Milk", "Corner Shop", "twelve", "EUR");
+
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
+        }
+
+        @Test
+        @DisplayName("when the request carries a non-blank parentCategory - then the command's parentCategoryName "
+                + "is that name, present")
+        void whenParentCategoryIsNonBlank_thenCommandParentCategoryNameIsThatNamePresent() {
+            CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
+
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+
+            assertThat(command.parentCategoryName()).contains("Food");
         }
 
         @ParameterizedTest(name = "{0}")

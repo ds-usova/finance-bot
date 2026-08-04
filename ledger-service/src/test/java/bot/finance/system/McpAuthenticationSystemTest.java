@@ -81,7 +81,7 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName(
-                "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and no identity argument")
+                "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and list_categories with its one argument, neither carrying an identity argument")
         void
                 whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument() {
             String externalId = "mcp-auth-tools-list-user";
@@ -99,21 +99,34 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                     .orElseThrow(() -> new AssertionError("create_expense_proposal was not listed: " + tools));
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> inputSchema = (Map<String, Object>) createExpenseProposalTool.get("inputSchema");
+            Map<String, Object> createInputSchema = (Map<String, Object>) createExpenseProposalTool.get("inputSchema");
             @SuppressWarnings("unchecked")
-            Map<String, Object> properties = (Map<String, Object>) inputSchema.get("properties");
-            assertThat(properties.keySet())
+            Map<String, Object> createProperties = (Map<String, Object>) createInputSchema.get("properties");
+            assertThat(createProperties.keySet())
                     .as("create_expense_proposal's argument names")
                     .containsExactlyInAnyOrder(
                             "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> amountSchema = (Map<String, Object>) properties.get("amount");
+            Map<String, Object> amountSchema = (Map<String, Object>) createProperties.get("amount");
             assertThat(amountSchema).as("amount's published type").containsEntry("type", "string");
-            assertThat(inputSchema.get("required"))
-                    .as("inputSchema's required array")
+            assertThat(createInputSchema.get("required"))
+                    .as("create_expense_proposal's required array")
                     .asInstanceOf(InstanceOfAssertFactories.LIST)
-                    .contains("amount");
+                    .contains("amount", "parentCategory");
+
+            Map<String, Object> listCategoriesTool = tools.stream()
+                    .filter(tool -> "list_categories".equals(tool.get("name")))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("list_categories was not listed: " + tools));
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> listInputSchema = (Map<String, Object>) listCategoriesTool.get("inputSchema");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> listProperties = (Map<String, Object>) listInputSchema.get("properties");
+            assertThat(listProperties.keySet())
+                    .as("list_categories's argument names")
+                    .containsExactlyInAnyOrder("parentCategory");
         }
     }
 
@@ -130,7 +143,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
 
             Response response = postMcp(
-                    token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", "10.00", "EUR"));
+                    token,
+                    McpRequests.createExpenseProposal("Groceries", "Groceries", "lunch", "Cafe", "10.00", "EUR"));
 
             response.then().statusCode(401);
             assertThat(response.getBody().asString())

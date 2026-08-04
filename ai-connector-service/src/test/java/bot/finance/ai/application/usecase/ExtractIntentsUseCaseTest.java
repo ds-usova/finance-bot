@@ -43,8 +43,6 @@ class ExtractIntentsUseCaseTest {
         useCase = new ExtractIntentsUseCase(expenseRecordingPort, loggerFactory);
     }
 
-    // TODO RU09: the two private command(...) helpers take grouping names and a catch-all, and the
-    // expenseRecordingPort record(...) stubs/verifications below take four arguments.
     private static ExtractIntentsCommand command(String text, List<String> categoryGroupings, String catchAllGrouping) {
         return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty());
     }
@@ -77,7 +75,6 @@ class ExtractIntentsUseCaseTest {
         @DisplayName("when a command carries three grouping names and a catch-all - then the port receives that "
                 + "text, those names in the command's order, that catch-all, and the command's currency")
         void whenCommandCarriesThreeGroupingNamesAndACatchAll_thenPortReceivesThemPassedThrough() {
-            // TODO RU09: replace with the pass-through scenario per plan.md RU09.
             List<String> categoryGroupings = List.of("Food", "Travel", "Other");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other");
 
@@ -96,9 +93,6 @@ class ExtractIntentsUseCaseTest {
 
             verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))));
         }
-
-        // TODO RU09: delete — groupings are unique per user, so a name collision no longer reaches this class.
-        // void whenKnownCategoriesShareNameUnderDifferentGroupings_thenBothLabelsReachPortDistinctAndInOrder() {}
 
         @Test
         @DisplayName("when the command is null - then throws InvalidValueException and the port is never called")
@@ -124,7 +118,6 @@ class ExtractIntentsUseCaseTest {
         @DisplayName("when the port returns normally - then one INFO line is logged, naming how many groupings "
                 + "were offered and carrying nothing from the message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
-            // TODO RU09: assert the count of groupings offered.
             List<String> categoryGroupings = List.of("Food", "Travel");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
 

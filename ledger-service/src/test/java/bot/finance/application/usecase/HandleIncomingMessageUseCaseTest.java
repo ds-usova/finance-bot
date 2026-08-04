@@ -29,6 +29,7 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
@@ -79,8 +80,6 @@ class HandleIncomingMessageUseCaseTest {
         return new HandleIncomingMessageCommand(EXTERNAL_ID, CONVERSATION_ID, INBOUND_MESSAGE_ID, TEXT);
     }
 
-    // TODO RU05: stub findGroupingNames with grouping names rather than findKnownCategories with KnownCategory
-    // values, and return that list.
     private List<String> stubKnownUserAndCategories() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
         List<String> categoryGroupings = List.of("Food", "Auto");
@@ -118,8 +117,6 @@ class HandleIncomingMessageUseCaseTest {
                 + "the command's user external id, the extraction request carries a non-null message reference, "
                 + "and findSummariesByMessageReference is called with the user's id and that same reference")
         void whenHandleIsCalled_thenInitializeAndExtractionAndLookupCarryUserAndReference() {
-            // TODO RU05: verify findGroupingNames and assert the request's categoryGroupings and
-            // catchAllGrouping components.
             List<String> categoryGroupings = stubKnownUserAndCategories();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
@@ -139,12 +136,64 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionRequest request = extractCaptor.getValue();
             assertThat(request.text()).isEqualTo(TEXT);
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
+            assertThat(request.catchAllGrouping()).isEqualTo(categoryGroupings.get(0));
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
             MessageReference reference = request.messageReference();
             assertThat(reference).isNotNull();
 
             verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, reference);
+        }
+
+        @Test
+        @DisplayName("when the stored user's grouping names include Category.catchAllGroupingName() - then the "
+                + "extraction request carries exactly those grouping names and that name as its catch-all")
+        void
+                whenGroupingNamesIncludeCatchAllGroupingName_thenExtractionRequestCarriesThoseNamesAndThatNameAsCatchAll() {
+            when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            List<String> categoryGroupings = List.of("Food", Category.catchAllGroupingName(), "Auto");
+            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(categoryGroupings);
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+
+            useCase.handle(newCommand());
+
+            ArgumentCaptor<IntentExtractionRequest> extractCaptor =
+                    ArgumentCaptor.forClass(IntentExtractionRequest.class);
+            verify(intentExtractionPort).extract(extractCaptor.capture());
+            IntentExtractionRequest request = extractCaptor.getValue();
+            assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
+            assertThat(request.catchAllGrouping()).isEqualTo(Category.catchAllGroupingName());
+        }
+
+        @Test
+        @DisplayName("when the stored user's grouping names do not include Category.catchAllGroupingName() - then "
+                + "the extraction request's catch-all is the first grouping read")
+        void whenGroupingNamesExcludeCatchAllGroupingName_thenExtractionRequestsCatchAllIsFirstGroupingRead() {
+            List<String> categoryGroupings = stubKnownUserAndCategories();
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+
+            useCase.handle(newCommand());
+
+            ArgumentCaptor<IntentExtractionRequest> extractCaptor =
+                    ArgumentCaptor.forClass(IntentExtractionRequest.class);
+            verify(intentExtractionPort).extract(extractCaptor.capture());
+            assertThat(extractCaptor.getValue().catchAllGrouping()).isEqualTo(categoryGroupings.get(0));
+        }
+
+        @Test
+        @DisplayName("when findGroupingNames answers an empty list - then InvalidExtractionRequestException "
+                + "propagates from the request's own constructor and the extraction port is never called")
+        void
+                whenFindGroupingNamesReturnsEmptyList_thenInvalidExtractionRequestExceptionPropagatesAndExtractionPortUntouched() {
+            when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(List.of());
+
+            assertThatThrownBy(() -> useCase.handle(newCommand()))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+
+            verifyNoInteractions(intentExtractionPort);
         }
 
         @Test
@@ -283,13 +332,11 @@ class HandleIncomingMessageUseCaseTest {
             verifyNoInteractions(messageDeliveryPort);
         }
 
-        // TODO RU05: stub the failure on findGroupingNames, renaming the method for the port it now names.
         @Test
         @DisplayName("when categoryRepository.findGroupingNames throws PersistenceFailedException - then the "
                 + "exception propagates and the extraction port, the expense proposal repository and the "
                 + "delivery port are never called")
-        void
-                whenFindKnownCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
+        void whenFindGroupingNamesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());

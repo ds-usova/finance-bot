@@ -92,7 +92,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
             String requestBody = McpRequests.createExpenseProposal(
-                    "Supermarkets", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
+                    "Supermarkets", "Groceries", DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 
@@ -135,16 +135,16 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when tools/call create_expense_proposal names a grouping - Groceries - then the response is a "
-                + "tool error naming that grouping's children, and no expense_proposal row exists for that "
-                + "user")
+        @DisplayName("when tools/call create_expense_proposal names Supermarkets under parentCategory Dining - then "
+                + "the response is a tool error naming the parent mismatch, and no expense_proposal row exists "
+                + "for that user")
         void whenToolCallNamesGrouping_thenResponseIsToolErrorNamingChildrenAndNoRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-unhappy-path-user");
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
-            String requestBody =
-                    McpRequests.createExpenseProposal("Groceries", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
+            String requestBody = McpRequests.createExpenseProposal(
+                    "Supermarkets", "Dining", DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 
@@ -155,8 +155,56 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
             String toolResultText = response.jsonPath().getString("result.content[0].text");
             assertThat(toolResultText)
-                    .as("tool error message names the grouping's children")
-                    .contains("Supermarkets", "Markets", "Household Supplies");
+                    .as("tool error message names the parent-category mismatch")
+                    .contains("no category named Supermarkets under parent Dining is stored for this user");
+
+            List<ExpenseProposalEntity> rows =
+                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            assertThat(rows)
+                    .as("stored expense_proposal rows for user %s", userId)
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("when tools/call create_expense_proposal is posted with no parentCategory - then the response "
+                + "is a tool error naming the missing parent category, and no expense_proposal row exists for "
+                + "that user")
+        void whenToolCallHasNoParentCategory_thenResponseIsToolErrorAndNoRowIsWritten() {
+            User user = seedUserWithDefaultCategories("create-expense-proposal-no-parent-category-user");
+            long userId = user.id().orElseThrow();
+            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+
+            String requestBody =
+                    """
+                    {
+                      "jsonrpc": "2.0",
+                      "id": 2,
+                      "method": "tools/call",
+                      "params": {
+                        "name": "create_expense_proposal",
+                        "arguments": {
+                          "category": "Supermarkets",
+                          "description": "%s",
+                          "merchant": "%s",
+                          "amount": "%s",
+                          "currencyCode": "%s"
+                        }
+                      }
+                    }
+                    """
+                            .formatted(DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
+
+            Response response = callCreateExpenseProposal(token, requestBody);
+
+            assertThat(response.statusCode()).as("HTTP status").isEqualTo(200);
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("tool result isError")
+                    .isTrue();
+
+            String toolResultText = response.jsonPath().getString("result.content[0].text");
+            assertThat(toolResultText)
+                    .as("tool error message names the missing parent category")
+                    .containsIgnoringCase("parentCategory");
 
             List<ExpenseProposalEntity> rows =
                     ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);

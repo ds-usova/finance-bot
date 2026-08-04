@@ -18,9 +18,6 @@ class IntentProtoUtilsTest {
     @DisplayName("mapping an intent-extraction request to the generated proto request")
     class ToProtoRequest {
 
-        // TODO RU06: replace with the grouping-ordering and catch-all assertions, and the known_categories-is-
-        // reserved descriptor assertion. See plan.md RU06 for the scenarios and update: bullets.
-
         @Test
         @DisplayName("when the request carries text, three groupings, and default currency EUR - then the "
                 + "generated request carries the text, the groupings in order, and default_currency EUR")
@@ -57,6 +54,25 @@ class IntentProtoUtilsTest {
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
             assertThat(protoRequest.hasDefaultCurrency()).isFalse();
+        }
+
+        @Test
+        @DisplayName("when the generated request's descriptor is inspected - then it declares no "
+                + "known_categories field, so the reserved tag is never filled")
+        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesField() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of("Groceries", "Other"),
+                    "Other",
+                    Optional.empty(),
+                    "user-external-id",
+                    MessageReference.newReference());
+
+            ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+
+            assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
+                    .isNull();
+            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2)).isNull();
         }
     }
 }

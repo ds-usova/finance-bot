@@ -125,13 +125,13 @@ class CategoryRepositoryAdapterTest {
         void whenCalledForAGroupingWithThreeChildren_thenReturnsTheThreeNames() {
             long userId = storedUserId("three-children-user");
             long groupingId = storedCategoryId(userId, "Entertainment");
+            storedChildCategoryId(userId, groupingId, "Streaming");
             storedChildCategoryId(userId, groupingId, "Movies");
             storedChildCategoryId(userId, groupingId, "Concerts");
-            storedChildCategoryId(userId, groupingId, "Streaming");
 
             List<String> names = adapter.findChildNames(groupingId);
 
-            assertThat(names).containsExactlyInAnyOrder("Movies", "Concerts", "Streaming");
+            assertThat(names).containsExactly("Concerts", "Movies", "Streaming");
         }
 
         @Test
@@ -146,9 +146,63 @@ class CategoryRepositoryAdapterTest {
         }
     }
 
-    // TODO RI01: this whole nested class is replaced by findGroupingNames()'s own nested class — see plan.md
-    // RI01 for its scenarios (stored groupings sorted by name, a childless grouping present, scoped per user, an
-    // empty catalogue).
+    @Nested
+    @DisplayName("finding a user's grouping names")
+    class FindGroupingNames {
+
+        @Test
+        @DisplayName(
+                "when called for a stored user with three groupings stored out of alphabetical order, each holding a child - then returns exactly the three grouping names, sorted by name, with no child name among them")
+        void whenCalledForAStoredUserWithThreeGroupingsEachHoldingAChild_thenReturnsTheThreeGroupingNamesSorted() {
+            long userId = storedUserId("three-groupings-user");
+            long workId = storedCategoryId(userId, "Work");
+            long homeId = storedCategoryId(userId, "Home");
+            long autoId = storedCategoryId(userId, "Automotive");
+            storedChildCategoryId(userId, workId, "Supplies");
+            storedChildCategoryId(userId, homeId, "Furniture");
+            storedChildCategoryId(userId, autoId, "Fuel");
+
+            List<String> names = adapter.findGroupingNames(userId);
+
+            assertThat(names).containsExactly("Automotive", "Home", "Work");
+        }
+
+        @Test
+        @DisplayName(
+                "when called for a stored user with a grouping that has no children - then that grouping is present")
+        void whenCalledForAStoredUserWithAChildlessGrouping_thenThatGroupingIsPresent() {
+            long userId = storedUserId("childless-grouping-user");
+            storedCategoryId(userId, "Childless Grouping");
+
+            List<String> names = adapter.findGroupingNames(userId);
+
+            assertThat(names).containsExactly("Childless Grouping");
+        }
+
+        @Test
+        @DisplayName(
+                "when called for one of two stored users each owning a grouping - then only that user's grouping name is returned")
+        void whenCalledForOneOfTwoUsersEachOwningAGrouping_thenReturnsOnlyThatUsersGroupingName() {
+            long firstUserId = storedUserId("first-grouping-owner");
+            long secondUserId = storedUserId("second-grouping-owner");
+            storedCategoryId(firstUserId, "First User Grouping");
+            storedCategoryId(secondUserId, "Second User Grouping");
+
+            List<String> names = adapter.findGroupingNames(firstUserId);
+
+            assertThat(names).containsExactly("First User Grouping");
+        }
+
+        @Test
+        @DisplayName("when called for a stored user with no categories at all - then returns an empty list")
+        void whenCalledForAStoredUserWithNoCategories_thenReturnsEmptyList() {
+            long userId = storedUserId("no-categories-user");
+
+            List<String> names = adapter.findGroupingNames(userId);
+
+            assertThat(names).isEmpty();
+        }
+    }
 
     // These scenarios need a store that misbehaves in a way the healthy containerized Postgres
     // cannot be made to: an outright database failure. They construct their own adapter over a
@@ -192,8 +246,6 @@ class CategoryRepositoryAdapterTest {
                     .isEqualTo(frameworkException);
         }
 
-        // TODO RI01: replace with the mocked-store scenario for findGroupingNames(), stubbing the new query
-        // method.
         @Test
         @DisplayName(
                 "when findGroupingNames() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")

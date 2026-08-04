@@ -8,6 +8,7 @@ import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -40,27 +41,26 @@ class IntentExtractionRequestTest {
             assertThat(request.defaultCurrency()).contains(CurrencyCode.of("EUR"));
         }
 
-        // TODO RU02: assert the unmodifiability of the categoryGroupings component and read back the
-        // catchAllGrouping one.
         @Test
-        @DisplayName("when text, one grouping, an empty currency, a catch-all and a non-blank external id are "
-                + "valid - then every component reads back unchanged and category groupings is unmodifiable")
+        @DisplayName("when text, two groupings, a catch-all among them, an empty currency and a non-blank "
+                + "external id are valid - then every component reads back unchanged and category groupings is "
+                + "unmodifiable")
         void
-                whenTextOneCategoryEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndKnownCategoriesIsUnmodifiable() {
+                whenTextTwoGroupingsCatchAllEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndCategoryGroupingsIsUnmodifiable() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("groceries"),
-                    "groceries",
+                    List.of("groceries", "transport"),
+                    "transport",
                     Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
-            assertThat(request.categoryGroupings()).containsExactly("groceries");
-            assertThat(request.catchAllGrouping()).isEqualTo("groceries");
+            assertThat(request.categoryGroupings()).containsExactly("groceries", "transport");
+            assertThat(request.catchAllGrouping()).isEqualTo("transport");
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo("user-external-id");
-            assertThatThrownBy(() -> request.categoryGroupings().add("transport"))
+            assertThatThrownBy(() -> request.categoryGroupings().add("utilities"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
 
@@ -82,8 +82,77 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments("   "));
         }
 
-        // TODO RU02: replace with the grouping-list scenarios (null, empty, null element, blank element) and
-        // the catch-all scenarios (null, blank, not one of the groupings). See plan.md RU02.
+        @ParameterizedTest(name = "categoryGroupings={0}")
+        @MethodSource("nullOrEmptyCategoryGroupings")
+        @DisplayName("when category groupings is null or empty - then throws InvalidExtractionRequestException")
+        void whenCategoryGroupingsIsNullOrEmpty_thenThrowsInvalidExtractionRequestException(
+                List<String> categoryGroupings) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            categoryGroupings,
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> nullOrEmptyCategoryGroupings() {
+            return Stream.of(arguments((Object) null), arguments(List.of()));
+        }
+
+        @ParameterizedTest(name = "categoryGroupings={0}")
+        @MethodSource("categoryGroupingsWithNullOrBlankElement")
+        @DisplayName("when category groupings carries a null or blank element - then throws "
+                + "InvalidExtractionRequestException")
+        void whenCategoryGroupingsContainsNullOrBlankElement_thenThrowsInvalidExtractionRequestException(
+                List<String> categoryGroupings) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            categoryGroupings,
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> categoryGroupingsWithNullOrBlankElement() {
+            return Stream.of(arguments((Object) Arrays.asList("groceries", null)), arguments((Object)
+                    List.of("groceries", "   ")));
+        }
+
+        @ParameterizedTest(name = "catchAllGrouping={0}")
+        @MethodSource("nullOrBlankCatchAllGrouping")
+        @DisplayName("when the catch-all grouping is null or blank - then throws InvalidExtractionRequestException")
+        void whenCatchAllGroupingIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String catchAllGrouping) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of("groceries"),
+                            catchAllGrouping,
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> nullOrBlankCatchAllGrouping() {
+            return Stream.of(arguments((Object) null), arguments("   "));
+        }
+
+        @Test
+        @DisplayName("when the catch-all grouping is not one of the category groupings - then throws "
+                + "InvalidExtractionRequestException")
+        void whenCatchAllGroupingIsNotOneOfCategoryGroupings_thenThrowsInvalidExtractionRequestException() {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of("groceries", "transport"),
+                            "utilities",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference()))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
 
         @Test
         @DisplayName("when the default currency optional is null - then throws InvalidExtractionRequestException")
@@ -130,7 +199,6 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments("   "));
         }
 
-        // TODO RU02: assert the copy on the categoryGroupings component.
         @Test
         @DisplayName("when the mutable grouping list handed to the constructor is modified afterwards - "
                 + "then category groupings is unchanged")

@@ -8,7 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.GrpcAdapterTest;
@@ -25,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -47,11 +51,42 @@ class IntentExtractionGrpcServiceTest {
     @DisplayName("Happy path")
     class HappyPath {
 
-        // TODO RI05: replace with the happy-path scenario — a tokened request carrying a text, two grouping
-        // names and a catch-all that is one of them; the port receives a command holding those names in order
-        // and that catch-all, and the RPC answers an empty response. Also covers
-        // whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode() with
-        // the fixture swap to DEFAULT_CATEGORY_GROUPINGS / DEFAULT_CATCH_ALL.
+        @ParameterizedTest
+        @ValueSource(strings = {"EUR", "eur"})
+        @DisplayName(
+                "when the request carries a default currency in any casing - then the command holds it as a present, upper-cased currency code")
+        void whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode(
+                String defaultCurrency) {
+            authenticatedStub()
+                    .extractIntents(RequestFixtures.request(
+                            TEXT,
+                            RequestFixtures.DEFAULT_CATEGORY_GROUPINGS,
+                            RequestFixtures.DEFAULT_CATCH_ALL,
+                            defaultCurrency));
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().defaultCurrency()).isPresent();
+            assertThat(commandCaptor.getValue().defaultCurrency().get().code()).isEqualTo("EUR");
+        }
+
+        @Test
+        @DisplayName(
+                "when a request carrying a text, two category groupings and a catch-all among them arrives - then the port is called with a command whose category groupings hold both names in order and that catch-all, and the RPC answers an empty response")
+        void
+                whenRequestCarriesTextAndTwoCategoryGroupings_thenPortReceivesOrderedGroupingsAndCatchAllAndResponseIsEmpty() {
+            List<String> categoryGroupings = List.of("Food", "Insurance");
+            String catchAllGrouping = "Insurance";
+
+            ExtractIntentsResponse response = authenticatedStub()
+                    .extractIntents(RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping));
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().categoryGroupings()).containsExactly("Food", "Insurance");
+            assertThat(commandCaptor.getValue().catchAllGrouping()).isEqualTo(catchAllGrouping);
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+        }
     }
 
     @Nested
@@ -109,17 +144,29 @@ class IntentExtractionGrpcServiceTest {
             verify(extractIntentsPort, never()).extractIntents(any());
         }
 
-        // TODO RI05: replace the two known_categories entries with the four grouping and catch-all cases (empty
-        // category_groupings, a blank entry, a blank catch_all_grouping, and a catch_all_grouping not among
-        // category_groupings); the text and currency cases stay, reading DEFAULT_CATEGORY_GROUPINGS and
-        // DEFAULT_CATCH_ALL in place of the dropped DEFAULT_KNOWN_CATEGORIES.
         private static Stream<Arguments> invalidRequests() {
             return Stream.of(
                     Arguments.of("text absent", RequestFixtures.request("")),
                     Arguments.of("text whitespace-only", RequestFixtures.request("   ")),
                     Arguments.of(
                             "category_groupings empty",
-                            RequestFixtures.request(TEXT, List.of(), RequestFixtures.DEFAULT_CATCH_ALL)));
+                            RequestFixtures.request(TEXT, List.of(), RequestFixtures.DEFAULT_CATCH_ALL)),
+                    Arguments.of(
+                            "default_currency not a known ISO 4217 code",
+                            RequestFixtures.request(
+                                    TEXT,
+                                    RequestFixtures.DEFAULT_CATEGORY_GROUPINGS,
+                                    RequestFixtures.DEFAULT_CATCH_ALL,
+                                    "ZZZ")),
+                    Arguments.of(
+                            "category_groupings entry blank",
+                            RequestFixtures.request(TEXT, List.of("Food", ""), "Food")),
+                    Arguments.of(
+                            "catch_all_grouping blank",
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "")),
+                    Arguments.of(
+                            "catch_all_grouping not among category_groupings",
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "NotInList")));
         }
     }
 }

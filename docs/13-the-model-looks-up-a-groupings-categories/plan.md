@@ -182,7 +182,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Category` · test: `CategoryTest` · covers: `catchAllGroupingName()`, `defaults()`
+- [x] RU01 · `Category` · test: `CategoryTest` · covers: `catchAllGroupingName()`, `defaults()`
     - `catchAllGroupingName()`:
         - given: nothing
           when: catchAllGroupingName() is called
@@ -195,7 +195,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - update: `whenDefaultsIsCalled_thenReturnsThe20PredefinedGroupsByNameAndInOrder()` — leave the twenty
           names as they are; the grouping formerly written as the literal `"Miscellaneous"` is now built from
           `catchAllGroupingName()`, and the assertion must keep proving the rendered name is unchanged
-- [ ] RU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
+- [x] RU02 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
     - `IntentExtractionRequest`:
         - given: a text, two grouping names, a catch-all that is one of them, an empty currency, an external id
           and a reference
@@ -227,7 +227,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           one
         - every remaining scenario in the class changes only its constructor arguments — grouping names and a
           catch-all in place of `KnownCategory` values — and keeps the assertion it already makes
-- [ ] RU03 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest` · covers: the compact constructor
+- [x] RU03 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest` · covers: the compact constructor
     - `ListCategoriesCommand`:
         - given: an authenticated user id and a non-blank parent category name
           when: the record is constructed
@@ -238,7 +238,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a parent category name that is null, empty, or whitespace only
           when: the record is constructed
           then: throws InvalidCategoryException
-- [ ] RU04 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
+- [x] RU04 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
     - `list()`:
         - given: nothing stubbed
           when: list(null) is called
@@ -274,7 +274,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: findChildNames throws PersistenceFailedException
           when: list() is called
           then: the exception propagates unchanged
-- [ ] RU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] RU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
     - `handle()`:
         - given: a stored user whose grouping names include `Category.catchAllGroupingName()`
           when: handle() is called
@@ -293,7 +293,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `findGroupingNames` and assert the request's `categoryGroupings` and `catchAllGrouping` components
         - update: `whenFindKnownCategoriesThrowsPersistenceFailedException_thenExceptionPropagatesAndExtractionPortUntouched()`
           — stub the failure on `findGroupingNames`, renaming the method for the port it now names
-- [ ] RU06 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers: `toProtoRequest()`
+- [x] RU06 · `IntentProtoUtils` · test: `IntentProtoUtilsTest` · covers: `toProtoRequest()`
     - `toProtoRequest()`:
         - given: a request carrying three grouping names and a catch-all
           when: toProtoRequest() is called
@@ -308,7 +308,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           — replace with the ordering assertion on `category_groupings` above
         - update: `whenRequestDefaultCurrencyIsEmpty_thenGeneratedRequestReportsHasDefaultCurrencyAsFalse()` —
           build the request from grouping names; the currency assertion is unchanged
-- [ ] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`
+- [x] RU07 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · covers: `toCommand()`
     - `toCommand()`:
         - given: a request whose parentCategory is null, empty, or whitespace only
           when: toCommand() is called
@@ -323,7 +323,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           then: the command's parentCategoryName is that name, present
         - update: `whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty()` — replace with the
           refusal scenario above; its `blankParentCategories()` source becomes the refusal's parameter source
-- [ ] RU08 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor
+- [x] RU08 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor
     - `ExtractIntentsCommand`:
         - given: a text, grouping names, a catch-all that is one of them and an empty currency
           when: the record is constructed
@@ -345,7 +345,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - every remaining scenario in the class changes only its constructor arguments — grouping names and a
           catch-all in place of `KnownCategory` values, with the class's `KNOWN_CATEGORIES` constant becoming a
           grouping-name list and a catch-all — and keeps the assertion it already makes
-- [ ] RU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
+- [x] RU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
     - `extractIntents()`:
         - given: a command carrying three grouping names and a catch-all
           when: extractIntents() is called
@@ -363,7 +363,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers: `findGroupingNames()`,
+- [x] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers: `findGroupingNames()`,
   `findChildNames()`
     - `findGroupingNames()`:
         - given: a stored user with three groupings stored out of alphabetical order, each holding a child
@@ -395,7 +395,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - update: `whenCalledForAGroupingWithThreeChildren_thenReturnsTheThreeNames()` — assert
           `containsExactly` in name order rather than `containsExactlyInAnyOrder`, and store the three children
           out of alphabetical order so the ordering is proved
-- [ ] RI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `tools/call list_categories`
+- [x] RI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `tools/call list_categories`
   posted to `POST /mcp` · mocks: `ListCategoriesPort`
     - Happy Path:
         - given: the mocked port answers three category names
@@ -431,7 +431,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           then: a WARN line names the failure's class and message, and no line other than the debug
           received-call trace carries the grouping name or the token
     - Validation: `parentCategory` — absent, blank; each is a tool error and the port is never called
-- [ ] RI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] RI03 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `tools/call create_expense_proposal` posted to `POST /mcp` · mocks: `CreateExpenseProposalPort`
     - Validation: `parentCategory` — absent and blank are each a tool error naming the missing parent category,
       with the port never called
@@ -441,7 +441,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
     - update: `whenAmountCannotBeBoundToString_thenFrameworksOwnBindingFailureReportedAndPortNeverCalled()` —
       its inline JSON body sends `"parentCategory": null`; give it a grouping name
     - update: `whenAmountIsSentAsJsonNumber_thenToolErrorIsRefusedAndPortNeverCalled()` — same inline body fix
-- [ ] RI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()`
     - `extract()`:
         - given: the stub server answers an empty response and a request carrying two grouping names and a
@@ -456,7 +456,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - every remaining scenario in the class changes only how it builds its `IntentExtractionRequest` —
           grouping names and a catch-all in place of `KnownCategory` values — and keeps the assertion it already
           makes
-- [ ] RI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort`
     - Happy Path:
         - given: a tokened request carrying a text, two grouping names and a catch-all that is one of them
@@ -473,7 +473,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
       `DEFAULT_CATCH_ALL` in place of the dropped `DEFAULT_KNOWN_CATEGORIES`
     - update: `whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode()`
       — same fixture swap; the currency assertion is unchanged
-- [ ] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
+- [x] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
     - `record()`:
         - given: a turn where the provider first calls `list_categories`, then `create_expense_proposal`, and the
           ledger answers both
@@ -500,7 +500,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp`
+- [x] RS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp`
     - Happy Path:
         - given: a user seeded through the wired `UserRepository` with `Category.defaults()`, and a valid token
           for them
@@ -512,7 +512,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: `tools/call list_categories` is posted naming a category rather than a grouping —
           `Supermarkets`
           then: 200 with a tool error saying it is a category, not a grouping
-- [ ] RS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
+- [x] RS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp`
     - Unhappy Path:
         - given: a user seeded with `Category.defaults()`
           when: `tools/call create_expense_proposal` is posted with no `parentCategory`
@@ -525,20 +525,20 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
       parent-mismatch refusal: post `Supermarkets` under `parentCategory` `Dining` and assert the tool error reads
       "no category named Supermarkets under parent Dining is stored for this user", with no `expense_proposal` row
       for that user
-- [ ] RS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] RS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
     - update: `whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument()`
       — assert `parentCategory` is in `create_expense_proposal`'s `required` array beside `amount`, and that
       `list_categories` is listed with `parentCategory` as its only argument and no identity argument
     - update: `whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten()` — its
       body sends `null` for `parentCategory`; give it a grouping name so the 401 is proved by the filter chain
       rather than by a malformed body
-- [ ] RS04 · `ReceiveTelegramMessageSystemTest` · covers: the running Telegram poll loop
+- [x] RS04 · `ReceiveTelegramMessageSystemTest` · covers: the running Telegram poll loop
     - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — assert
       the extraction request carries the twenty grouping names `Category.defaults()` seeds, sorted by name, and
       `Category.catchAllGroupingName()` as its catch-all, in place of the child-and-parent `KnownCategory` list
     - update: `stubTelegram()` — the armed MCP callback posts a `create_expense_proposal` body with `null` for
       `parentCategory`; send `Groceries` so the callback still records a proposal
-- [ ] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
     - Happy Path:
         - given: the ledger stub answers a `list_categories` call and then a `create_expense_proposal` call, and
           the provider is stubbed to make both in that order

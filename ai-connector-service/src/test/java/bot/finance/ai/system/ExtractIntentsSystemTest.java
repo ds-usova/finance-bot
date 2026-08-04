@@ -43,7 +43,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                             ChatCompletionFixtures.toolCall(
                                     "call-1",
                                     """
-                            {"category":"Lunch","description":"lunch","amount":"15.00",\
+                            {"category":"Lunch","parentCategory":"Food","description":"lunch","amount":"15.00",\
                             "currencyCode":"EUR","merchant":"Deli Co"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
 
@@ -57,11 +57,66 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             assertThat(toolCalls).hasSize(1);
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.getFirst());
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
+            assertThat(arguments.get("parentCategory").asText()).isEqualTo("Food");
             assertThat(arguments.get("merchant").asText()).isEqualTo("Deli Co");
             assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
             assertThat(toolCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
         }
+
+        @Test
+        @DisplayName("when a tokened request carrying grouping names and a catch-all arrives - then the RPC "
+                + "answers an empty response, the ledger received both calls under the request's own token, and "
+                + "the lookup carried the grouping name the provider asked for")
+        void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesBothToolCallsUnderToken() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            McpLedgerStubs.stubListCategoriesAnswering("Food", List.of("Lunch"));
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(listCategoriesToolCall("call-list-1", "Food")),
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall(
+                                    "call-2",
+                                    """
+                            {"category":"Lunch","parentCategory":"Food","description":"lunch","amount":"15.00",\
+                            "currencyCode":"EUR","merchant":"Deli Co"}""")),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+            log.info("response: {}", response);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+
+            List<LoggedRequest> listCategoriesCalls = CapturedRequestUtils.toolCallRequests("list_categories");
+            List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
+            assertThat(listCategoriesCalls).hasSize(1);
+            assertThat(createExpenseProposalCalls).hasSize(1);
+            assertThat(listCategoriesCalls.getFirst().getHeader("Authorization"))
+                    .isEqualTo(CALLER_TOKEN);
+            assertThat(createExpenseProposalCalls.getFirst().getHeader("Authorization"))
+                    .isEqualTo(CALLER_TOKEN);
+
+            JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
+            assertThat(lookupArguments.get("parentCategory").asText()).isEqualTo("Food");
+        }
+    }
+
+    /**
+     * A {@code list_categories} tool-call entry the provider might send, its argument the sole
+     * {@code parentCategory} the tool declares.
+     */
+    private static String listCategoriesToolCall(String id, String parentCategory) {
+        return """
+                {
+                  "id": "%s",
+                  "type": "function",
+                  "function": {
+                    "name": "list_categories",
+                    "arguments": "{\\"parentCategory\\":\\"%s\\"}"
+                  }
+                }
+                """
+                .formatted(id, parentCategory);
     }
 
     @Nested

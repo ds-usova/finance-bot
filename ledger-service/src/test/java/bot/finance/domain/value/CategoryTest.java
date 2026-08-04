@@ -100,6 +100,29 @@ class CategoryTest {
     }
 
     @Nested
+    @DisplayName("naming the catch-all grouping")
+    class CatchAllGroupingName {
+
+        @Test
+        @DisplayName("when catchAllGroupingName() is called - then returns Miscellaneous")
+        void whenCatchAllGroupingNameIsCalled_thenReturnsMiscellaneous() {
+            assertThat(Category.catchAllGroupingName()).isEqualTo("Miscellaneous");
+        }
+
+        @Test
+        @DisplayName(
+                "when catchAllGroupingName() is compared against the names defaults() returns - then exactly one grouping carries that name")
+        void whenCatchAllGroupingNameIsComparedAgainstDefaultsNames_thenExactlyOneGroupingCarriesThatName() {
+            List<String> groupNames =
+                    Category.defaults().stream().map(Category::name).toList();
+
+            assertThat(groupNames)
+                    .filteredOn(name -> name.equals(Category.catchAllGroupingName()))
+                    .hasSize(1);
+        }
+    }
+
+    @Nested
     @DisplayName("building the predefined category tree")
     class Defaults {
 

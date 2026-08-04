@@ -186,8 +186,9 @@ public final class McpLedgerStubs {
     }
 
     private static String listCategoriesResult(String parentCategory, List<String> categories) {
+        // The names sit inside "text", itself a JSON string carrying JSON, so their quotes are escaped twice.
         String categoriesJson =
-                categories.stream().map(name -> "\"" + name + "\"").collect(Collectors.joining(","));
+                categories.stream().map(name -> "\\\"" + name + "\\\"").collect(Collectors.joining(","));
         return """
                 {
                   "jsonrpc": "2.0",

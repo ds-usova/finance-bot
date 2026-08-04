@@ -62,8 +62,10 @@ class AiConnectorIntentExtractionAdapterTest {
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
-            // TODO RI04: replace with the grouping-name and catch-all assertions — category_groupings in order
-            // and catch_all_grouping — and the known_categories-does-not-exist descriptor assertion.
+            assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
+            assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
+            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("known_categories"))
+                    .isNull();
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
         }
 
