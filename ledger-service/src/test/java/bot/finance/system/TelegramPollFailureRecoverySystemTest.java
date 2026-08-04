@@ -14,7 +14,6 @@ import bot.finance.common.WireMockStubs;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,10 +66,6 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
         @Test
         @DisplayName(
                 "when the first poll fails with error code 429 - then the loop recovers and the message is still handled")
-        @Disabled("GI01: fails until GroupingRepositoryAdapter.findNamesWithCategories is implemented for real - "
-                + "the stabilization stub answers an empty list, so the catch-all grouping check always throws "
-                + "CatchAllGroupingMissingException before the use case logs its handling line (plan gap: this "
-                + "class names no owning red-phase step)")
         void whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageIsStillHandled() {
             await("the message is handled after the failed poll")
                     .atMost(TIMEOUT)

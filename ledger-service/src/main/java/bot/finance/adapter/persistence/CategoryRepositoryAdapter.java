@@ -3,6 +3,7 @@ package bot.finance.adapter.persistence;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
+import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -17,15 +18,25 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public Optional<StoredCategory> findByGroupingAndName(long userId, StoredGrouping grouping, String name) {
-        // reads the category row filed under the given grouping and carrying that name, mapping it onto
-        // StoredCategory, wrapping any framework exception in PersistenceFailedException
-        return Optional.empty();
+        try {
+            return categoryEntityRepository
+                    .findByUserIdAndParentIdAndName(userId, grouping.id(), name)
+                    .map(CategoryEntity::toStoredCategory);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find category for user " + userId + " under grouping " + grouping.name() + " and name "
+                            + name,
+                    e);
+        }
     }
 
     @Override
     public boolean existsByUserIdAndName(long userId, String name) {
-        // answers whether any category (a row with a parent) of this user's carries that name,
-        // wrapping any framework exception in PersistenceFailedException
-        return false;
+        try {
+            return categoryEntityRepository.existsByUserIdAndNameAndParentIdIsNotNull(userId, name);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to check existence of category for user " + userId + " and name " + name, e);
+        }
     }
 }

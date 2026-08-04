@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.GroupingRepository;
+import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -17,22 +18,32 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
 
     @Override
     public Optional<StoredGrouping> findByUserIdAndName(long userId, String name) {
-        // reads the caller's parentless row carrying that name and maps it onto StoredGrouping,
-        // wrapping any framework exception in PersistenceFailedException
-        return Optional.empty();
+        try {
+            return categoryEntityRepository
+                    .findByUserIdAndNameAndParentIdIsNull(userId, name)
+                    .map(entity -> new StoredGrouping(entity.id(), entity.name()));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find grouping for user " + userId, e);
+        }
     }
 
     @Override
     public List<String> findCategoryNames(long userId, StoredGrouping grouping) {
-        // reads the grouping's categories, ordered by name, wrapping any framework exception in
-        // PersistenceFailedException
-        return List.of();
+        try {
+            return categoryEntityRepository.findByUserIdAndParentIdOrderByName(userId, grouping.id()).stream()
+                    .map(CategoryEntity::name)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find category names for user " + userId, e);
+        }
     }
 
     @Override
     public List<String> findNamesWithCategories(long userId) {
-        // delegates to CategoryEntityRepository.findNonEmptyGroupingNames, wrapping any framework
-        // exception in PersistenceFailedException
-        return List.of();
+        try {
+            return categoryEntityRepository.findNonEmptyGroupingNames(userId);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
+        }
     }
 }

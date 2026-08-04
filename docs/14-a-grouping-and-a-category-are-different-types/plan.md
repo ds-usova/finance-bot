@@ -605,36 +605,36 @@
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Category` · test: `CategoryTest`
-- [ ] GU02 · `Grouping` · test: `GroupingTest` · after: GU01
-- [ ] GU03 · `StoredCategory` · test: `StoredCategoryTest`
-- [ ] GU04 · `StoredGrouping` · test: `StoredGroupingTest`
-- [ ] GU05 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest`
-- [ ] GU06 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest`
-- [ ] GU07 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU04, GU05
-- [ ] GU08 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU03, GU04, GU06
-- [ ] GU09 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU02
-- [ ] GU10 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU02
-- [ ] GU11 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU06
+- [x] GU01 · `Category` · test: `CategoryTest`
+- [x] GU02 · `Grouping` · test: `GroupingTest` · after: GU01
+- [x] GU03 · `StoredCategory` · test: `StoredCategoryTest`
+- [x] GU04 · `StoredGrouping` · test: `StoredGroupingTest`
+- [x] GU05 · `ListCategoriesCommand` · test: `ListCategoriesCommandTest`
+- [x] GU06 · `CreateExpenseProposalCommand` · test: `CreateExpenseProposalCommandTest`
+- [x] GU07 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU04, GU05
+- [x] GU08 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU03, GU04, GU06
+- [x] GU09 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU02
+- [x] GU10 · `InitializeUserUseCase` · test: `InitializeUserUseCaseTest` · after: GU02
+- [x] GU11 · `ExpenseProposalToolUtils` · test: `ExpenseProposalToolUtilsTest` · after: GU06
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · after: GU04
-- [ ] GI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU03, GU04
-- [ ] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU01, GU02
-- [ ] GI04 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · after: GU05
-- [ ] GI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU06, GU11
-- [ ] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
+- [x] GI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · after: GU04
+- [x] GI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · after: GU03, GU04
+- [x] GI03 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · after: GU01, GU02
+- [x] GI04 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · after: GU05
+- [x] GI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · after: GU06, GU11
+- [x] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp` — `tools/call list_categories`
-- [ ] GS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp` —
+- [x] GS01 · `ListCategoriesMcpToolSystemTest` · covers: `POST /mcp` — `tools/call list_categories`
+- [x] GS02 · `CreateExpenseProposalMcpToolSystemTest` · covers: `POST /mcp` —
   `tools/call create_expense_proposal`
-- [ ] GS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp` — `tools/list`
-- [ ] GS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] GS03 · `McpAuthenticationSystemTest` · covers: `POST /mcp` — `tools/list`
+- [x] GS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
-- [ ] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.extractIntents()` over the real gRPC
+- [x] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.extractIntents()` over the real gRPC
   channel
 
 ### Post-Implementation Steps
@@ -661,9 +661,11 @@
   empty list, `HandleIncomingMessageUseCase`'s catch-all check throws `CatchAllGroupingMissingException` before
   extraction runs, so both fail for a reason unrelated to their own scenario. Neither needs reworking — the
   grouping/category split changes nothing they assert.
-- Resolution: both are `@Disabled("GI01: …")` and clear when `GroupingRepositoryAdapter` goes green in GI01. The
-  Red-phase exit check therefore expects the skipped count back at the Stage 0 baseline **plus these two**; the
-  Green-phase check expects it back at the baseline exactly.
+- Resolution: **cleared.** Both were `@Disabled("GI01: …")` through the red phase, and the Red-phase exit check
+  accordingly expected the baseline skip count plus these two. Once GI01 implemented
+  `GroupingRepositoryAdapter.findNamesWithCategories` for real, both were re-enabled and pass unchanged — neither
+  needed any rework, confirming the split changes nothing they assert. The ledger suite is back at **0 skipped**,
+  the Stage 0 baseline.
 
 - **B2 (stage violation, found in RU08):** stabilization was scoped to keep each reshaped use-case body intact
   behind a `TODO`, but it wrote the **finished** post-split logic into `ListCategoriesUseCase.resolveGrouping` and
