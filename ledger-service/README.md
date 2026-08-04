@@ -14,11 +14,12 @@ C3 is below. Package structure is in the
 - [Initialize a new user](docs/usecases/initialize-a-new-user.md)
 - [Create an expense](docs/usecases/create-an-expense.md)
 - [Create an expense proposal](docs/usecases/create-an-expense-proposal.md)
+- [List a grouping's categories](docs/usecases/list-categories.md)
 
 ### Contracts
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
-- [Agent acting for a user — the expense proposal tool](docs/contracts/in/mcp.md) (inbound)
+- [Agent acting for a user — the ledger's tools](docs/contracts/in/mcp.md) (inbound)
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)

@@ -8,6 +8,7 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
+import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.UserRepository;
@@ -15,6 +16,7 @@ import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.application.usecase.InitializeUserUseCase;
+import bot.finance.application.usecase.ListCategoriesUseCase;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,5 +60,10 @@ public class UseCaseConfiguration {
             LoggerFactory loggerFactory) {
         return new CreateExpenseProposalUseCase(
                 userRepository, categoryRepository, expenseProposalRepository, Clock.systemUTC(), loggerFactory);
+    }
+
+    @Bean
+    ListCategoriesPort listCategoriesPort(UserRepository userRepository, CategoryRepository categoryRepository) {
+        return new ListCategoriesUseCase(userRepository, categoryRepository);
     }
 }

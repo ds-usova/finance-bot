@@ -10,6 +10,8 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Stubs the ledger's MCP endpoint ({@code /mcp}), registered through {@link WireMockSupport#SERVER}, never the
@@ -66,6 +68,21 @@ public final class McpLedgerStubs {
         stubHandshake();
         stubToolsList();
         stubToolCallResult(refused());
+    }
+
+    /**
+     * The ledger answers a {@code list_categories} call with the given category names.
+     */
+    public static void stubListCategoriesAnswering(String parentCategory, List<String> categories) {
+        WireMockSupport.SERVER.stubFor(
+                listCategoriesRequest().willReturn(jsonRpc(listCategoriesResult(parentCategory, categories))));
+    }
+
+    /**
+     * The ledger refuses a {@code list_categories} call with a tool error result.
+     */
+    public static void stubListCategoriesRefused() {
+        WireMockSupport.SERVER.stubFor(listCategoriesRequest().willReturn(jsonRpc(refused())));
     }
 
     /**
@@ -134,7 +151,18 @@ public final class McpLedgerStubs {
                                     "amount": {"type": "string"},
                                     "currencyCode": {"type": "string"}
                                   },
-                                  "required": ["category", "description", "amount", "currencyCode"]
+                                  "required": ["category", "parentCategory", "description", "amount", "currencyCode"]
+                                }
+                              },
+                              {
+                                "name": "list_categories",
+                                "description": "Lists the categories filed under one of the caller's groupings.",
+                                "inputSchema": {
+                                  "type": "object",
+                                  "properties": {
+                                    "parentCategory": {"type": "string"}
+                                  },
+                                  "required": ["parentCategory"]
                                 }
                               }
                             ]
@@ -150,6 +178,27 @@ public final class McpLedgerStubs {
     private static MappingBuilder toolCallRequest() {
         return post(urlPathEqualTo(MCP_PATH))
                 .withRequestBody(matchingJsonPath("$.params.name", equalTo("create_expense_proposal")));
+    }
+
+    private static MappingBuilder listCategoriesRequest() {
+        return post(urlPathEqualTo(MCP_PATH))
+                .withRequestBody(matchingJsonPath("$.params.name", equalTo("list_categories")));
+    }
+
+    private static String listCategoriesResult(String parentCategory, List<String> categories) {
+        // The names sit inside "text", itself a JSON string carrying JSON, so their quotes are escaped twice.
+        String categoriesJson =
+                categories.stream().map(name -> "\\\"" + name + "\\\"").collect(Collectors.joining(","));
+        return """
+                {
+                  "jsonrpc": "2.0",
+                  "id": "%%s",
+                  "result": {
+                    "content": [{"type": "text", "text": "{\\"parentCategory\\":\\"%s\\",\\"categories\\":[%s]}"}]
+                  }
+                }
+                """
+                .formatted(parentCategory, categoriesJson);
     }
 
     private static String accepted() {

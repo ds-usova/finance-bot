@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
@@ -126,13 +125,13 @@ class CategoryRepositoryAdapterTest {
         void whenCalledForAGroupingWithThreeChildren_thenReturnsTheThreeNames() {
             long userId = storedUserId("three-children-user");
             long groupingId = storedCategoryId(userId, "Entertainment");
+            storedChildCategoryId(userId, groupingId, "Streaming");
             storedChildCategoryId(userId, groupingId, "Movies");
             storedChildCategoryId(userId, groupingId, "Concerts");
-            storedChildCategoryId(userId, groupingId, "Streaming");
 
             List<String> names = adapter.findChildNames(groupingId);
 
-            assertThat(names).containsExactlyInAnyOrder("Movies", "Concerts", "Streaming");
+            assertThat(names).containsExactly("Concerts", "Movies", "Streaming");
         }
 
         @Test
@@ -148,63 +147,64 @@ class CategoryRepositoryAdapterTest {
     }
 
     @Nested
-    @DisplayName("finding known categories for a user")
-    class FindKnownCategories {
+    @DisplayName("finding a user's grouping names")
+    class FindGroupingNames {
 
         @Test
         @DisplayName(
-                "when called with a stored user with one grouping and two categories under it - then returns exactly the two children, each carrying its own name and its grouping's name")
-        void whenCalledForAStoredUserWithOneGroupingAndTwoChildren_thenReturnsBothChildrenWithTheirGroupingsName() {
-            long userId = storedUserId("known-categories-user");
-            long groupingId = storedCategoryId(userId, "Groceries");
-            storedChildCategoryId(userId, groupingId, "Supermarket");
-            storedChildCategoryId(userId, groupingId, "Bakery");
+                "when called for a stored user with three groupings stored out of alphabetical order, each holding a child - then returns exactly the three grouping names, sorted by name, with no child name among them")
+        void whenCalledForAStoredUserWithThreeGroupingsEachHoldingAChild_thenReturnsTheThreeGroupingNamesSorted() {
+            long userId = storedUserId("three-groupings-user");
+            long workId = storedCategoryId(userId, "Work");
+            long homeId = storedCategoryId(userId, "Home");
+            long autoId = storedCategoryId(userId, "Automotive");
+            storedChildCategoryId(userId, workId, "Supplies");
+            storedChildCategoryId(userId, homeId, "Furniture");
+            storedChildCategoryId(userId, autoId, "Fuel");
 
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
+            List<String> names = adapter.findGroupingNames(userId);
 
-            assertThat(found)
-                    .containsExactlyInAnyOrder(
-                            new KnownCategory("Supermarket", "Groceries"), new KnownCategory("Bakery", "Groceries"));
+            assertThat(names).containsExactly("Automotive", "Home", "Work");
         }
 
         @Test
         @DisplayName(
-                "when called with a stored user with a grouping that has no children - then the grouping itself is absent from the answer, only its sibling's child is present")
-        void whenCalledForAStoredUserWithAChildlessGrouping_thenTheGroupingItselfIsAbsent() {
+                "when called for a stored user with a grouping that has no children - then that grouping is absent")
+        void whenCalledForAStoredUserWithAChildlessGrouping_thenThatGroupingIsAbsent() {
             long userId = storedUserId("childless-grouping-user");
-            storedCategoryId(userId, "Utilities");
-            long groupingWithChildId = storedCategoryId(userId, "Groceries");
-            storedChildCategoryId(userId, groupingWithChildId, "Supermarket");
+            long populatedId = storedCategoryId(userId, "Populated Grouping");
+            storedChildCategoryId(userId, populatedId, "A Child");
+            storedCategoryId(userId, "Childless Grouping");
 
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
+            List<String> names = adapter.findGroupingNames(userId);
 
-            assertThat(found).containsExactly(new KnownCategory("Supermarket", "Groceries"));
+            assertThat(names).containsExactly("Populated Grouping");
         }
 
         @Test
         @DisplayName(
-                "when called for one of two stored users each owning a category under a grouping - then returns only that user's category")
-        void whenCalledForOneOfTwoUsersEachOwningACategory_thenReturnsOnlyThatUsersCategory() {
-            long firstUserId = storedUserId("first-known-categories-user");
-            long secondUserId = storedUserId("second-known-categories-user");
-            long firstGroupingId = storedCategoryId(firstUserId, "Home");
-            long secondGroupingId = storedCategoryId(secondUserId, "Work");
-            storedChildCategoryId(firstUserId, firstGroupingId, "Rent");
-            storedChildCategoryId(secondUserId, secondGroupingId, "Office Supplies");
+                "when called for one of two stored users each owning a grouping - then only that user's grouping name is returned")
+        void whenCalledForOneOfTwoUsersEachOwningAGrouping_thenReturnsOnlyThatUsersGroupingName() {
+            long firstUserId = storedUserId("first-grouping-owner");
+            long secondUserId = storedUserId("second-grouping-owner");
+            long firstGroupingId = storedCategoryId(firstUserId, "First User Grouping");
+            long secondGroupingId = storedCategoryId(secondUserId, "Second User Grouping");
+            storedChildCategoryId(firstUserId, firstGroupingId, "First User Child");
+            storedChildCategoryId(secondUserId, secondGroupingId, "Second User Child");
 
-            List<KnownCategory> found = adapter.findKnownCategories(firstUserId);
+            List<String> names = adapter.findGroupingNames(firstUserId);
 
-            assertThat(found).containsExactly(new KnownCategory("Rent", "Home"));
+            assertThat(names).containsExactly("First User Grouping");
         }
 
         @Test
-        @DisplayName("when called with a stored user with no categories at all - then returns an empty list")
+        @DisplayName("when called for a stored user with no categories at all - then returns an empty list")
         void whenCalledForAStoredUserWithNoCategories_thenReturnsEmptyList() {
             long userId = storedUserId("no-categories-user");
 
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
+            List<String> names = adapter.findGroupingNames(userId);
 
-            assertThat(found).isEmpty();
+            assertThat(names).isEmpty();
         }
     }
 
@@ -241,7 +241,8 @@ class CategoryRepositoryAdapterTest {
         void
                 whenFindChildNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findByParentId(any())).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findByParentIdOrderByName(any()))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findChildNames(1L))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -251,13 +252,13 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when findKnownCategories() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+                "when findGroupingNames() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
         void
-                whenFindKnownCategoriesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                whenFindGroupingNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findKnownCategories(any())).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findGroupingNames(any())).thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.findKnownCategories(1L))
+            assertThatThrownBy(() -> mockedAdapter.findGroupingNames(1L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

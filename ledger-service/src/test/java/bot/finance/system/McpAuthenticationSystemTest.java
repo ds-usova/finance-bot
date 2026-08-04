@@ -79,12 +79,13 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
     @DisplayName("happy path")
     class HappyPath {
 
-        @Test
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.system.McpAuthenticationSystemTest#publishedTools")
         @DisplayName(
-                "when tools/list is posted with a valid token - then 200 lists create_expense_proposal with its six arguments and no identity argument")
-        void
-                whenToolsListIsPostedWithValidToken_thenCreateExpenseProposalToolIsListedWithSixArgumentsAndNoIdentityArgument() {
-            String externalId = "mcp-auth-tools-list-user";
+                "when tools/list is posted with a valid token - then 200 lists the tool with exactly its own arguments and required arguments, and no identity argument among them")
+        void whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument(
+                String toolName, List<String> expectedArguments, List<String> expectedRequiredArguments) {
+            String externalId = "mcp-auth-tools-list-user-" + toolName;
             UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);
 
@@ -93,27 +94,40 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             response.then().statusCode(200);
 
             List<Map<String, Object>> tools = response.jsonPath().getList("result.tools");
-            Map<String, Object> createExpenseProposalTool = tools.stream()
-                    .filter(tool -> "create_expense_proposal".equals(tool.get("name")))
+            Map<String, Object> tool = tools.stream()
+                    .filter(listed -> toolName.equals(listed.get("name")))
                     .findFirst()
-                    .orElseThrow(() -> new AssertionError("create_expense_proposal was not listed: " + tools));
+                    .orElseThrow(() -> new AssertionError(toolName + " was not listed: " + tools));
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> inputSchema = (Map<String, Object>) createExpenseProposalTool.get("inputSchema");
+            Map<String, Object> inputSchema = (Map<String, Object>) tool.get("inputSchema");
             @SuppressWarnings("unchecked")
             Map<String, Object> properties = (Map<String, Object>) inputSchema.get("properties");
             assertThat(properties.keySet())
-                    .as("create_expense_proposal's argument names")
-                    .containsExactlyInAnyOrder(
-                            "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> amountSchema = (Map<String, Object>) properties.get("amount");
-            assertThat(amountSchema).as("amount's published type").containsEntry("type", "string");
+                    .as("%s's argument names", toolName)
+                    .containsExactlyInAnyOrderElementsOf(expectedArguments);
             assertThat(inputSchema.get("required"))
-                    .as("inputSchema's required array")
+                    .as("%s's required array", toolName)
                     .asInstanceOf(InstanceOfAssertFactories.LIST)
-                    .contains("amount");
+                    .containsAll(expectedRequiredArguments);
+        }
+
+        @Test
+        @DisplayName(
+                "when tools/list is posted with a valid token - then create_expense_proposal publishes amount as a string, so a number is never accepted for it")
+        void whenToolsListIsPostedWithValidToken_thenAmountIsPublishedAsAString() {
+            String externalId = "mcp-auth-amount-type-user";
+            UserRowUtils.storedUserId(userEntityRepository, externalId);
+            String token = McpTokens.tokenFor(accessTokenMinter, externalId);
+
+            Response response = postMcp(token, McpRequests.toolsList());
+
+            response.then().statusCode(200);
+            assertThat(response.jsonPath()
+                            .getMap("result.tools.find { it.name == 'create_expense_proposal' }"
+                                    + ".inputSchema.properties.amount"))
+                    .as("amount's published type")
+                    .containsEntry("type", "string");
         }
     }
 
@@ -130,7 +144,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
 
             Response response = postMcp(
-                    token, McpRequests.createExpenseProposal("Groceries", null, "lunch", "Cafe", "10.00", "EUR"));
+                    token,
+                    McpRequests.createExpenseProposal("Groceries", "Groceries", "lunch", "Cafe", "10.00", "EUR"));
 
             response.then().statusCode(401);
             assertThat(response.getBody().asString())
@@ -149,6 +164,15 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
 
             response.then().statusCode(200);
         }
+    }
+
+    static Stream<Arguments> publishedTools() {
+        return Stream.of(
+                Arguments.of(
+                        "create_expense_proposal",
+                        List.of("category", "parentCategory", "description", "merchant", "amount", "currencyCode"),
+                        List.of("amount", "parentCategory")),
+                Arguments.of("list_categories", List.of("parentCategory"), List.of("parentCategory")));
     }
 
     static Stream<Arguments> rejectedTokens() {

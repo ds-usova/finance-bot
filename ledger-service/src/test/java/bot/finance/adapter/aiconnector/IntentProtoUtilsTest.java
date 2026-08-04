@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
+import com.google.protobuf.Descriptors;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -20,15 +20,13 @@ class IntentProtoUtilsTest {
     class ToProtoRequest {
 
         @Test
-        @DisplayName("when the request carries text, three categories, and default currency EUR - then the "
-                + "generated request carries the text, the categories in order, and default_currency EUR")
+        @DisplayName("when the request carries text, three groupings, and default currency EUR - then the "
+                + "generated request carries the text, the groupings in order, and default_currency EUR")
         void whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(
-                            new KnownCategory("Groceries", "Food"),
-                            new KnownCategory("Transport", "Travel"),
-                            new KnownCategory("Other", "Other")),
+                    List.of("Groceries", "Transport", "Other"),
+                    "Other",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
                     MessageReference.newReference());
@@ -36,9 +34,8 @@ class IntentProtoUtilsTest {
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
             assertThat(protoRequest.getText()).isEqualTo("lunch 12 euro");
-            assertThat(protoRequest.getKnownCategoriesList()).hasSize(3);
-            assertThat(protoRequest.getKnownCategories(0).getName()).isEqualTo("Groceries");
-            assertThat(protoRequest.getKnownCategories(0).getParentName()).isEqualTo("Food");
+            assertThat(protoRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Transport", "Other");
+            assertThat(protoRequest.getCatchAllGrouping()).isEqualTo("Other");
             assertThat(protoRequest.hasDefaultCurrency()).isTrue();
             assertThat(protoRequest.getDefaultCurrency()).isEqualTo("EUR");
         }
@@ -49,7 +46,8 @@ class IntentProtoUtilsTest {
         void whenRequestDefaultCurrencyIsEmpty_thenGeneratedRequestReportsHasDefaultCurrencyAsFalse() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
+                    List.of("Groceries", "Other"),
+                    "Other",
                     Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());
@@ -60,23 +58,25 @@ class IntentProtoUtilsTest {
         }
 
         @Test
-        @DisplayName("when the request carries two known categories - then the generated request holds two "
-                + "KnownCategory messages, each with its name and parent name, in order")
-        void whenRequestCarriesTwoKnownCategories_thenGeneratedRequestHoldsTwoKnownCategoryMessagesInOrder() {
+        @DisplayName("when the generated request's descriptor is inspected - then it declares no "
+                + "known_categories field, and field 2 is category_groupings")
+        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesFieldAndFieldTwoIsGroupings() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Transport", "Travel")),
-                    Optional.of(CurrencyCode.of("EUR")),
+                    List.of("Groceries", "Other"),
+                    "Other",
+                    Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());
 
             ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
 
-            assertThat(protoRequest.getKnownCategoriesList()).hasSize(2);
-            assertThat(protoRequest.getKnownCategories(0).getName()).isEqualTo("Groceries");
-            assertThat(protoRequest.getKnownCategories(0).getParentName()).isEqualTo("Food");
-            assertThat(protoRequest.getKnownCategories(1).getName()).isEqualTo("Transport");
-            assertThat(protoRequest.getKnownCategories(1).getParentName()).isEqualTo("Travel");
+            assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
+                    .isNull();
+            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2))
+                    .isNotNull()
+                    .extracting(Descriptors.FieldDescriptor::getName)
+                    .isEqualTo("category_groupings");
         }
     }
 }

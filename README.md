@@ -66,7 +66,7 @@ Rel_R(ledger, telegram, "Sends confirmation reply", "Telegram Bot API")
 
 Rel_D(ledger, transcriber, "Sends audio", "REST/HTTPS")
 Rel_L(transcriber, ledger, "Returns transcript", "REST/HTTPS")
-Rel_R(ledger, aiConnector, "Sends text and the user's categories, with a token", "gRPC")
+Rel_R(ledger, aiConnector, "Sends text and the user's category groupings, with a token", "gRPC")
 Rel_L(aiConnector, ledger, "Records expense proposals, as the token's subject", "MCP over HTTP")
 Rel_R(aiConnector, aiProvider, "Requests structured extraction", "HTTPS")
 Rel_D(ledger, db, "Reads/writes users and expenses", "JDBC")

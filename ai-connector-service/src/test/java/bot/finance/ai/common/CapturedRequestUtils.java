@@ -35,9 +35,17 @@ public final class CapturedRequestUtils {
      * handshake and {@code tools/list} requests a session also performs.
      */
     public static List<LoggedRequest> toolCallRequests() {
+        return toolCallRequests(CREATE_EXPENSE_PROPOSAL);
+    }
+
+    /**
+     * Among the MCP requests recorded, those invoking the named tool — as opposed to the handshake and
+     * {@code tools/list} requests a session also performs.
+     */
+    public static List<LoggedRequest> toolCallRequests(String toolName) {
         return mcpRequests().stream()
-                .filter(request -> CREATE_EXPENSE_PROPOSAL.equals(
-                        body(request).at("/params/name").asText()))
+                .filter(request ->
+                        toolName.equals(body(request).at("/params/name").asText()))
                 .toList();
     }
 

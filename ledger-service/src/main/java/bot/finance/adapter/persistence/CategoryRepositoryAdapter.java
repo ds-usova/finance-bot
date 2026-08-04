@@ -1,6 +1,5 @@
 package bot.finance.adapter.persistence;
 
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -31,7 +30,7 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     @Override
     public List<String> findChildNames(long categoryId) {
         try {
-            return categoryEntityRepository.findByParentId(categoryId).stream()
+            return categoryEntityRepository.findByParentIdOrderByName(categoryId).stream()
                     .map(CategoryEntity::name)
                     .toList();
         } catch (RuntimeException e) {
@@ -40,13 +39,11 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     }
 
     @Override
-    public List<KnownCategory> findKnownCategories(long userId) {
+    public List<String> findGroupingNames(long userId) {
         try {
-            return categoryEntityRepository.findKnownCategories(userId).stream()
-                    .map(KnownCategoryProjection::toKnownCategory)
-                    .toList();
+            return categoryEntityRepository.findGroupingNames(userId);
         } catch (RuntimeException e) {
-            throw new PersistenceFailedException("failed to find known categories for user " + userId, e);
+            throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
         }
     }
 

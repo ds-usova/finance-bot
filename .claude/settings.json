@@ -22,6 +22,10 @@
       "Bash(./gradlew:*)",
       "Bash(ledger-service/gradlew:*)",
       "Bash(ai-connector-service/gradlew:*)",
+      "Bash(./ledger-service/gradlew:*)",
+      "Bash(./ai-connector-service/gradlew:*)",
+      "Bash(bash ledger-service/gradlew:*)",
+      "Bash(bash ai-connector-service/gradlew:*)",
       "Bash(git add:*)",
       "Bash(git diff:*)",
       "Bash(git commit:*)",
@@ -44,7 +48,15 @@
       "Bash(unzip -l:*)",
       "Bash(unzip -p:*)",
       "Edit(docs/**)",
-      "Read(//c/Users/rieic/.gradle/**)"
+      "Read(//c/Users/rieic/.gradle/**)",
+      "PowerShell(Get-Command *)",
+      "WebSearch",
+      "WebFetch(domain:search.maven.org)",
+      "WebFetch(domain:repo1.maven.org)",
+      "WebFetch(domain:plugins.gradle.org)",
+      "WebFetch(domain:spring.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "ask": [
       "Bash(python:*)",
@@ -55,6 +67,9 @@
       "Bash(sed -i:*)"
     ],
     "deny": [
+      "Bash(echo:*)",
+      "Bash(xargs:*)",
+      "Bash(git -C:*)",
       "Bash(./gradlew test:*)",
       "Bash(ledger-service/gradlew test:*)",
       "Bash(ai-connector-service/gradlew test:*)",

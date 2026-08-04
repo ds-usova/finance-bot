@@ -9,14 +9,16 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
 
     List<CategoryEntity> findByUserIdAndName(Long userId, String name);
 
-    List<CategoryEntity> findByParentId(Long parentId);
+    List<CategoryEntity> findByParentIdOrderByName(Long parentId);
 
     @Query(
             """
-            SELECT c.name AS name, p.name AS parent_name
+            SELECT c.name
             FROM category c
-            JOIN category p ON c.parent_id = p.id
             WHERE c.user_id = :userId
+              AND c.parent_id IS NULL
+              AND EXISTS (SELECT 1 FROM category child WHERE child.parent_id = c.id)
+            ORDER BY c.name
             """)
-    List<KnownCategoryProjection> findKnownCategories(@Param("userId") Long userId);
+    List<String> findGroupingNames(@Param("userId") Long userId);
 }

@@ -1,8 +1,8 @@
 # AI Connector Service — intent extraction (gRPC)
 
-The service hands a user's turn to the AI Connector: the text, the categories that user may file spending under,
-and a credential to act as them. The connector acts on whatever the message asks for and answers only that the
-turn completed — no action crosses back.
+The service hands a user's turn to the AI Connector: the text, the groupings that user's categories are filed
+under, and a credential to act as them. The connector acts on whatever the message asks for and answers only
+that the turn completed — no action crosses back.
 
 - **Counterpart:** the AI Connector Service — its address is [configuration](../../configuration.md)
 - **Transport:** gRPC, one call per message
@@ -18,8 +18,9 @@ turn completed — no action crosses back.
 
 ## Semantics
 
-**Sent:** the user's text · every category they may file spending under, each with its grouping · the currency to
-assume (optional) · a credential naming the user, carried on the call rather than in the payload.
+**Sent:** the user's text · the names of the groupings their categories are filed under · which of those
+groupings is the catch-all · the currency to assume (optional) · a credential naming the user, carried on the
+call rather than in the payload.
 
 **Answered:** an acknowledgement carrying nothing. Success means the turn was acted on — no count, no per-action
 outcome, no text for the user. What the turn actually recorded is read back out of this service's own store,
@@ -28,10 +29,15 @@ under the message the credential named.
 What the connector promises is [its side of this boundary](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md#semantics).
 What this side adds:
 
-- A request is fixed once made: blank text, no categories, or a blank name or grouping among them is refused
-  where the request is built, so it never crosses.
-- A category and its grouping always travel as a pair; neither is ever left unsaid.
-- Only categories spending can be filed under are sent — a grouping is not one of them.
+- A request is fixed once made: blank text, no groupings, or a blank name among them is refused where the
+  request is built, so it never crosses.
+- Only grouping names are sent; no category name crosses.
+- Only groupings holding at least one category are sent; there is nothing to file under an empty one.
+- A category is reached from the other side, through [the tool the connector calls back on](../in/mcp.md).
+- One grouping is designated the catch-all, so a fit always exists. It is never blank, and always one of the
+  groupings sent. It is the [catch-all every catalogue starts with](../../domain/category.md) and nothing else,
+  so a catalogue that does not carry it produces no call at all rather than a substitute.
+- The groupings travel in alphabetical order, and nothing depends on the position of one in the list.
 - The assumed currency is stated as present or absent; it is never left unsaid.
 - An absent request is refused before the connector is reached.
 - The credential is minted per call, names the user as its subject, and is what the connector calls back with
@@ -43,8 +49,8 @@ What this side adds:
   in the schema.
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
 - A call answers within `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover the whole
-  model-driven loop: listing the tools, a provider call, a callback per expense, a provider call per result, and
-  a further pair per expense retried.
+  model-driven loop: listing the tools, a provider call, a category lookup and a recording callback per expense,
+  a provider call per result, and a further pair per expense retried.
 - Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
   mints, then the call's deadline, then the connector's own per-callback timeout — so a single slow callback
   cannot spend the turn.
@@ -56,13 +62,13 @@ What this side adds:
 
 ## Failures
 
-| Condition                                                  | Signal                                                    |
-|------------------------------------------------------------|-----------------------------------------------------------|
-| The request is absent                                      | rejected as invalid; the connector is never reached       |
-| The user has no category spending can be filed under       | rejected as invalid where the request is built            |
-| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                  |
-| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with |
-| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back |
+| Condition                                                  | Signal                                                     |
+|------------------------------------------------------------|------------------------------------------------------------|
+| The request is absent                                      | rejected as invalid; the connector is never reached        |
+| The user's groupings do not carry the designated catch-all | the turn ends before the request is built; nothing is sent |
+| The connector refuses the call as unauthenticated          | the extraction fails, naming that status                   |
+| The call fails, times out, or the connector is unreachable | the extraction fails, naming the status it came back with  |
+| The health check fails, or reports anything but serving    | the health endpoint reports down, carrying what came back  |
 
 ## Compatibility
 

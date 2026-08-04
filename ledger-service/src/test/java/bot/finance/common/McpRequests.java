@@ -66,6 +66,23 @@ public final class McpRequests {
                         jsonString(currencyCode));
     }
 
+    public static String listCategories(String parentCategory) {
+        return """
+                {
+                  "jsonrpc": "2.0",
+                  "id": 2,
+                  "method": "tools/call",
+                  "params": {
+                    "name": "list_categories",
+                    "arguments": {
+                      "parentCategory": %s
+                    }
+                  }
+                }
+                """
+                .formatted(jsonString(parentCategory));
+    }
+
     private static String jsonString(String value) {
         return value == null ? "null" : "\"" + value + "\"";
     }

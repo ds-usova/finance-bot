@@ -13,6 +13,9 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
+- **Prefer a table or a diagram to a paragraph.** A rule with conditions and outcomes is a table. A flow whose
+  shape carries meaning is a diagram. Prose is for what neither can hold — why a rule exists, and what a reader
+  would otherwise get wrong. A page that is mostly paragraphs is a page whose structure was not found.
 - **Name the setting, not its current value.** A configurable value is referred to by the property or
   environment variable that sets it, never by what it happens to be set to — "for as long as
   `spring.grpc.client.channel.ai-connector.default.deadline` allows", not "for sixty seconds". The value has one

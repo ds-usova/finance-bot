@@ -10,6 +10,7 @@ import bot.finance.ai.common.CapturedRequestUtils;
 import bot.finance.ai.common.ChatCompletionFixtures;
 import bot.finance.ai.common.JsonUtils;
 import bot.finance.ai.common.McpLedgerStubs;
+import bot.finance.ai.common.RequestFixtures;
 import bot.finance.ai.common.WireMockStubs;
 import bot.finance.ai.common.WireMockSupport;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
@@ -29,9 +30,13 @@ class AiExpenseRecordingAdapterTest {
 
     private static final String SYSTEM_PROMPT_RESOURCE = "prompts/record-expenses.st";
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final List<String> KNOWN_CATEGORY_LABELS = List.of("Food > Lunch", "Insurance > Travel");
+    private static final List<String> CATEGORY_GROUPINGS = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS;
+    private static final String CATCH_ALL_GROUPING = RequestFixtures.DEFAULT_CATCH_ALL;
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
+
+    /** The grouping the lookup scenarios ask about — one of the fixture's own, so no literal is repeated. */
+    private static final String LOOKUP_GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
 
     private static final String LUNCH_ARGUMENTS =
             """
@@ -50,7 +55,7 @@ class AiExpenseRecordingAdapterTest {
 
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
         CallerTokenTestSupport.withCallerToken(
-                callerToken, () -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, assumedCurrency));
+                callerToken, () -> adapter.record(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency));
     }
 
     private void recordInEuros(String callerToken) {
@@ -69,6 +74,24 @@ class AiExpenseRecordingAdapterTest {
             }
         }
         return "";
+    }
+
+    /** The {@code list_categories} arguments asking about {@link #LOOKUP_GROUPING}. */
+    private static String lookupArguments() {
+        return "{\"parentCategory\":\"" + LOOKUP_GROUPING + "\"}";
+    }
+
+    /**
+     * The tool schema entry naming {@code functionName} among the {@code tools} array on a chat-completion
+     * request body.
+     */
+    private static JsonNode toolNamed(JsonNode tools, String functionName) {
+        for (JsonNode tool : tools) {
+            if (functionName.equals(tool.path("function").path("name").asText())) {
+                return tool;
+            }
+        }
+        throw new AssertionError("no tool named " + functionName + " in " + tools);
     }
 
     @Nested
@@ -147,19 +170,80 @@ class AiExpenseRecordingAdapterTest {
 
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
             assertThat(userMessage)
-                    .contains(KNOWN_CATEGORY_LABELS.get(0))
-                    .contains(KNOWN_CATEGORY_LABELS.get(1))
+                    .contains(CATEGORY_GROUPINGS.get(0))
+                    .contains(CATEGORY_GROUPINGS.get(1))
+                    .contains(CATEGORY_GROUPINGS.get(2))
+                    .contains(CATCH_ALL_GROUPING)
                     .contains("EUR")
-                    .contains(TEXT);
+                    .contains(TEXT)
+                    .doesNotContain(">");
 
-            JsonNode tool = body.get("tools").get(0);
-            assertThat(tool.get("type").asText()).isEqualTo("function");
-            assertThat(tool.get("function").get("name").asText()).isEqualTo("create_expense_proposal");
-            JsonNode properties = tool.get("function").get("parameters").get("properties");
-            assertThat(properties.fieldNames())
+            JsonNode tools = body.get("tools");
+            assertThat(tools)
+                    .extracting(tool -> tool.path("function").path("name").asText())
+                    .containsExactlyInAnyOrder("create_expense_proposal", "list_categories");
+
+            JsonNode createExpenseProposalTool = toolNamed(tools, "create_expense_proposal");
+            assertThat(createExpenseProposalTool.get("type").asText()).isEqualTo("function");
+            JsonNode createExpenseProposalProperties =
+                    createExpenseProposalTool.get("function").get("parameters").get("properties");
+            assertThat(createExpenseProposalProperties.fieldNames())
                     .toIterable()
                     .containsExactlyInAnyOrder(
                             "category", "parentCategory", "description", "merchant", "amount", "currencyCode");
+
+            JsonNode listCategoriesTool = toolNamed(tools, "list_categories");
+            assertThat(listCategoriesTool.get("type").asText()).isEqualTo("function");
+            JsonNode listCategoriesProperties =
+                    listCategoriesTool.get("function").get("parameters").get("properties");
+            assertThat(listCategoriesProperties.fieldNames()).toIterable().containsExactly("parentCategory");
+        }
+
+        @Test
+        @DisplayName("when the provider first calls list_categories, then create_expense_proposal, and the "
+                + "ledger answers both - then both tool calls reach the ledger under the turn's caller token, and "
+                + "the lookup's answer reaches the provider as that call's result")
+        void whenProviderListsCategoriesThenCreatesProposal_thenBothCallsReachLedgerAndLookupAnswerReachesProvider() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            McpLedgerStubs.stubListCategoriesAnswering(LOOKUP_GROUPING, List.of("Lunch"));
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+
+            List<LoggedRequest> listCategoriesCalls = CapturedRequestUtils.toolCallRequests("list_categories");
+            List<LoggedRequest> createExpenseProposalCalls = CapturedRequestUtils.toolCallRequests();
+            assertThat(listCategoriesCalls).hasSize(1);
+            assertThat(createExpenseProposalCalls).hasSize(1);
+            assertThat(listCategoriesCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN_1);
+            assertThat(createExpenseProposalCalls.get(0).getHeader("Authorization"))
+                    .isEqualTo(CALLER_TOKEN_1);
+
+            assertThat(CapturedRequestUtils.chatCompletionRequests())
+                    .anyMatch(
+                            request -> toolResultContent(request, "call-list-1").contains("Lunch"));
+        }
+
+        @Test
+        @DisplayName("when the ledger answers a list_categories call with an isError result, and the provider "
+                + "then corrects the grouping and records the expense - then the call returns without throwing "
+                + "and the create call still reaches the ledger")
+        void
+                whenLedgerRefusesListCategoriesThenProviderCorrectsAndRecords_thenReturnsWithoutThrowingAndCreateCallReachesLedger() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            McpLedgerStubs.stubListCategoriesRefused();
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+
+            assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(1);
         }
 
         @Test
@@ -281,7 +365,8 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("irrelevant"));
 
-            assertThatThrownBy(() -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, Optional.of(CurrencyCode.of("EUR"))))
+            assertThatThrownBy(() -> adapter.record(
+                            TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.of(CurrencyCode.of("EUR"))))
                     .isInstanceOf(ExpenseRecordingFailedException.class);
         }
     }

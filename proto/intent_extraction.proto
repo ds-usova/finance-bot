@@ -12,20 +12,16 @@ service IntentExtractionService {
 
 message ExtractIntentsRequest {
   string text = 1;
-  // The closed set an expense may be filed under; must be non-empty. The caller
-  // includes a catch-all, so a fitting entry always exists.
-  repeated KnownCategory known_categories = 2;
+  // The groupings the caller's categories are filed under; must be non-empty. An expense is
+  // filed under a category the `list_categories` tool answers for one of these, never under
+  // the grouping itself.
+  repeated string category_groupings = 2;
+  // The grouping to fall back on when no other fits; must be non-blank and one of
+  // `category_groupings`, so a fit always exists.
+  string catch_all_grouping = 3;
   // ISO 4217 code applied when the user states an amount but no currency. Absent means
   // an amount without a currency is not acted on.
-  optional string default_currency = 3;
-}
-
-// A category an expense may be filed under, and the grouping it sits in. Both are
-// always set: a category that can hold an expense always hangs off a grouping, and
-// "Auto" says little without "Insurance" above it.
-message KnownCategory {
-  string name = 1;
-  string parent_name = 2;
+  optional string default_currency = 4;
 }
 
 // Empty: a call that returns has been acted on. A failure is a gRPC status.

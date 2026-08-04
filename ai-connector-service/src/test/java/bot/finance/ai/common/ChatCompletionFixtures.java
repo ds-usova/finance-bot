@@ -8,22 +8,49 @@ public final class ChatCompletionFixtures {
 
     private ChatCompletionFixtures() {}
 
+    /** The tools the ledger publishes, by the name the provider calls them under. */
+    public enum LedgerTool {
+        CREATE_EXPENSE_PROPOSAL("create_expense_proposal"),
+        LIST_CATEGORIES("list_categories");
+
+        private final String toolName;
+
+        LedgerTool(String toolName) {
+            this.toolName = toolName;
+        }
+
+        public String toolName() {
+            return toolName;
+        }
+    }
+
     /**
      * One {@code create_expense_proposal} tool-call entry, its arguments a JSON object encoded as a string — the
      * shape the provider sends, and the shape {@code SyncMcpToolCallback} expects to deserialize.
      */
     public static String toolCall(String id, String argumentsJson) {
+        return toolCall(id, LedgerTool.CREATE_EXPENSE_PROPOSAL, argumentsJson);
+    }
+
+    /**
+     * One tool-call entry naming {@code tool}, its arguments a JSON object encoded as a string.
+     */
+    public static String toolCall(String id, LedgerTool tool, String argumentsJson) {
+        return toolCall(id, tool.toolName(), argumentsJson);
+    }
+
+    private static String toolCall(String id, String functionName, String argumentsJson) {
         return """
                 {
                   "id": "%s",
                   "type": "function",
                   "function": {
-                    "name": "create_expense_proposal",
+                    "name": "%s",
                     "arguments": %s
                   }
                 }
                 """
-                .formatted(id, quote(argumentsJson));
+                .formatted(id, functionName, quote(argumentsJson));
     }
 
     /**

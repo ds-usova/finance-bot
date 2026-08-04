@@ -4,13 +4,11 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
@@ -41,10 +39,8 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return;
         }
 
-        List<KnownCategory> knownCategories = request.getKnownCategoriesList().stream()
-                .map(entry -> new KnownCategory(entry.getName(), entry.getParentName()))
-                .toList();
-        ExtractIntentsCommand command = new ExtractIntentsCommand(request.getText(), knownCategories, defaultCurrency);
+        ExtractIntentsCommand command = new ExtractIntentsCommand(
+                request.getText(), request.getCategoryGroupingsList(), request.getCatchAllGrouping(), defaultCurrency);
         extractIntentsPort.extractIntents(command);
 
         responseObserver.onNext(ExtractIntentsResponse.getDefaultInstance());
@@ -60,19 +56,30 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return true;
         }
 
-        if (request.getKnownCategoriesList().isEmpty()) {
+        if (request.getCategoryGroupingsList().isEmpty()) {
             responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Known categories must not be empty")
+                    .withDescription("Category groupings must not be empty")
                     .asRuntimeException());
             return true;
         }
 
-        boolean hasBlankCategory = request.getKnownCategoriesList().stream()
-                .anyMatch(entry ->
-                        entry.getName().isBlank() || entry.getParentName().isBlank());
-        if (hasBlankCategory) {
+        if (request.getCategoryGroupingsList().stream().anyMatch(String::isBlank)) {
             responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Known category name and parent_name must not be blank")
+                    .withDescription("Category groupings must not contain a blank name")
+                    .asRuntimeException());
+            return true;
+        }
+
+        if (request.getCatchAllGrouping().isBlank()) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Catch-all grouping must not be blank")
+                    .asRuntimeException());
+            return true;
+        }
+
+        if (!request.getCategoryGroupingsList().contains(request.getCatchAllGrouping())) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Catch-all grouping must be one of the category groupings")
                     .asRuntimeException());
             return true;
         }

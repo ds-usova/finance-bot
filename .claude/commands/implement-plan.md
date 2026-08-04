@@ -154,12 +154,27 @@ Covers the plan's **Stabilization** group — its **API Contract**, **Database**
 Stabilization** sections, in that order. Delegate them as one sub-agent task (they are small, sequential, and share
 context), passing the plan's checklist items verbatim plus the module conventions.
 
-**A test is never deleted to make the tree compile.** Stabilization changes signatures, and an existing test
-written against the old one often cannot compile against the new. Comment out only the lines that cannot compile,
-leave the rest of the test standing, and put a comment above them naming the red-phase step that owns the rework
-(`// TODO RU08: …`). The red agent then adapts a real scenario instead of writing one from nothing, and the plan's
-`update:` bullets still name methods that exist. Deleting a test class or method is done only where a checklist
-item says so.
+**A test method never disappears from the run.** Stabilization changes signatures, and an existing test written
+against the old one often cannot compile against the new. Whatever is done to it, it stays something the runner
+still reports — **disabled**, by whatever mechanism the module's test framework provides, so it counts as
+*skipped* rather than vanishing:
+
+- **It compiles but would now fail** — disable it where it stands, body intact.
+- **It cannot compile** — keep the method, disable it, and comment out only the lines inside it. The husk stays
+  *within* the method rather than the method being commented out whole.
+
+Either way the reason names the red-phase step that owns the rework (`RU08`), so the skip list is the list of what
+is owed. The red agent then adapts a real scenario instead of writing one from nothing, and the plan's `update:`
+bullets still name methods that exist.
+
+**Stabilization disables; the Red Phase deletes.** A test that is obsolete rather than owed a rework is removed by
+the step that owns it — a red step's `update: … — delete` bullet — not here. Stabilization removes only what a
+checklist item names by path, as a file to `git rm`. Between them those two are the *only* authority for a test
+leaving the tree; a stage that deletes on its own initiative is a defect wherever it happens.
+
+This is what makes the guardrails below cheap. A commented-out method is an invisible subtraction, and a total
+that balances hides it — one removal paying for another. A skipped one is loud, self-clearing, and cannot be
+lost track of.
 
 **Stabilization guardrail** — verify yourself before ticking the sections and moving on:
 
@@ -168,9 +183,11 @@ item says so.
    it passes — this catches new or moved files that break the layer rules before any test is written against them.
 3. **Existing suite still green**: run the module's pre-existing test suite. Unless the plan explicitly calls for a
    breaking change, it must still pass.
-4. **No test was lost**: compare each module's test count against the Stage 0 baseline. A drop is a defect unless
-   the plan names the deletion — a green suite proves nothing when the tests that would have failed are gone. The
-   subtraction is the whole check, and both numbers are already in hand.
+4. **No test was lost**: against the Stage 0 baseline, the module's **total** may fall only where a checklist item
+   names a deletion, and its **skipped** count names exactly the tests owed to a red-phase step. A green suite
+   proves nothing when the tests that would have failed are gone; disabling rather than removing them is what
+   keeps the two numbers readable. Read the skip list itself, not just its size — every entry must name a step
+   in the plan.
 5. **Intent comments present and consistent**: the intent comments inside the stubs are load-bearing — red agents
    derive their assertions from them and green agents implement against them, so a vague or wrong one poisons every
    downstream step and surfaces late, as confusing blockers or wrong-behavior implementations. For every stub
@@ -225,7 +242,16 @@ The suite must fail in **exactly the expected places**:
 - the **failing tests are exactly the new ones** the reports claim fail — a reported-red test that actually passes
   (and is not listed as a negative-assertion or inbound early-pass expected pass) asserts nothing real; re-delegate
   it to its step's agent as a defect;
-- the reported **expected passes** pass, and nothing else about the new tests deviates from the reports.
+- the reported **expected passes** pass, and nothing else about the new tests deviates from the reports;
+- **the skipped count is back to the Stage 0 baseline** — every test stabilization disabled has been reworked by
+  the step named in its reason. A test still skipped here is a step that silently skipped its own `update:`
+  bullets, and it will never fail loudly enough to be noticed later. Compare against the baseline's number
+  rather than against zero: a module whose infrastructure skips on its own (no container runtime, say) starts
+  above zero and must return there, not below it;
+- **nothing left the tree that no bullet authorized** — the total is the baseline, plus what the red steps added,
+  less exactly the methods an `update: … — delete` bullet named. This is the stage where a deletion can still
+  hide: stabilization no longer removes anything silently, so a total that does not reconcile here is a red agent
+  that dropped a test instead of reworking it.
 
 Green agents build directly on this stage's output — a false red report caught here costs one re-delegated step; the
 same defect caught during Stage 3 costs a confused green agent and a plan-level untangling. Do not start Stage 3

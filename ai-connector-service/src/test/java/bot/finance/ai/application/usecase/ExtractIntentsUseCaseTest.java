@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
@@ -44,13 +43,13 @@ class ExtractIntentsUseCaseTest {
         useCase = new ExtractIntentsUseCase(expenseRecordingPort, loggerFactory);
     }
 
-    private static ExtractIntentsCommand command(String text, List<KnownCategory> knownCategories) {
-        return new ExtractIntentsCommand(text, knownCategories, Optional.empty());
+    private static ExtractIntentsCommand command(String text, List<String> categoryGroupings, String catchAllGrouping) {
+        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty());
     }
 
     private static ExtractIntentsCommand command(
-            String text, List<KnownCategory> knownCategories, CurrencyCode defaultCurrency) {
-        return new ExtractIntentsCommand(text, knownCategories, Optional.of(defaultCurrency));
+            String text, List<String> categoryGroupings, String catchAllGrouping, CurrencyCode defaultCurrency) {
+        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency));
     }
 
     /**
@@ -73,47 +72,26 @@ class ExtractIntentsUseCaseTest {
     class ExtractIntents {
 
         @Test
-        @DisplayName("when a command carries a text, three known categories and no assumed currency - then the "
-                + "port is called once with that text, the three categories rendered as labels in the command's "
-                + "order, and an empty assumed currency")
-        void whenTextThreeKnownCategoriesAndNoAssumedCurrency_thenPortCalledOnceWithTextLabelsAndEmptyCurrency() {
-            List<KnownCategory> knownCategories = List.of(
-                    new KnownCategory("Lunch", "Food"),
-                    new KnownCategory("Flight", "Travel"),
-                    new KnownCategory("Misc", "Other"));
-            ExtractIntentsCommand command = command(TEXT, knownCategories);
+        @DisplayName("when a command carries three grouping names and a catch-all - then the port receives that "
+                + "text, those names in the command's order, that catch-all, and the command's currency")
+        void whenCommandCarriesThreeGroupingNamesAndACatchAll_thenPortReceivesThemPassedThrough() {
+            List<String> categoryGroupings = List.of("Food", "Travel", "Other");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other");
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort)
-                    .record(
-                            eq(TEXT),
-                            eq(List.of("Food > Lunch", "Travel > Flight", "Other > Misc")),
-                            eq(Optional.empty()));
+            verify(expenseRecordingPort).record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()));
         }
 
         @Test
         @DisplayName("when a command carries an assumed currency - then the port receives that currency code")
         void whenCommandCarriesAssumedCurrency_thenPortReceivesThatCurrencyCode() {
-            List<KnownCategory> knownCategories = List.of(new KnownCategory("Lunch", "Food"));
-            ExtractIntentsCommand command = command(TEXT, knownCategories, CurrencyCode.of("EUR"));
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CurrencyCode.of("EUR"));
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))));
-        }
-
-        @Test
-        @DisplayName("when the known categories are two entries sharing a name under different groupings - then "
-                + "both labels reach the port, distinct and in order")
-        void whenKnownCategoriesShareNameUnderDifferentGroupings_thenBothLabelsReachPortDistinctAndInOrder() {
-            List<KnownCategory> knownCategories =
-                    List.of(new KnownCategory("Travel", "Insurance"), new KnownCategory("Travel", "Trips"));
-            ExtractIntentsCommand command = command(TEXT, knownCategories);
-
-            useCase.extractIntents(command);
-
-            verify(expenseRecordingPort).record(any(), eq(List.of("Insurance > Travel", "Trips > Travel")), any());
+            verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))));
         }
 
         @Test
@@ -128,21 +106,20 @@ class ExtractIntentsUseCaseTest {
         @DisplayName(
                 "when the port throws ExpenseRecordingFailedException - then the exception propagates " + "unchanged")
         void whenPortThrowsExpenseRecordingFailedException_thenExceptionPropagatesUnchanged() {
-            List<KnownCategory> knownCategories = List.of(new KnownCategory("Lunch", "Food"));
-            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
-            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any());
+            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any());
 
             assertThatThrownBy(() -> useCase.extractIntents(command)).isSameAs(failure);
         }
 
         @Test
-        @DisplayName("when the port returns normally - then one INFO line is logged, naming how many categories "
+        @DisplayName("when the port returns normally - then one INFO line is logged, naming how many groupings "
                 + "were offered and carrying nothing from the message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
-            List<KnownCategory> knownCategories =
-                    List.of(new KnownCategory("Lunch", "Food"), new KnownCategory("Flight", "Travel"));
-            ExtractIntentsCommand command = command(TEXT, knownCategories);
+            List<String> categoryGroupings = List.of("Food", "Travel");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
 
             useCase.extractIntents(command);
 

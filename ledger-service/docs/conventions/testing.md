@@ -77,6 +77,14 @@ bot.finance
   throwaway class carrying the annotation, autowiring one bean and asserting nothing is enough. Without it the
   first real test to use the infrastructure is where a missing autoconfiguration surfaces, and it surfaces as
   that test's failure rather than as its own.
+- **A test owed a rework is `@Disabled`, never commented out.** `@Disabled("RU08: …")` names the step that owns
+  it, and the runner reports it as *skipped* — so what is owed is visible in every summary and clears itself when
+  the step lands. A method commented out disappears from the count instead, and a total that still balances hides
+  it. When the method cannot compile against a changed signature, keep the method and comment out the lines
+  inside it rather than the method itself.
+- **A skipped test is otherwise a Docker-shaped answer, not a choice.** `@Testcontainers(disabledWithoutDocker
+  = true)` skips the container-backed classes when Docker is down, so a run's skipped count is only meaningful
+  against the count the same machine produced before the change.
 
 ### Isolating the long-polling listener
 

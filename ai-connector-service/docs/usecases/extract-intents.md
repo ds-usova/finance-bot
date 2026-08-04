@@ -1,7 +1,7 @@
 # Record the spending a user's message names
 
-- **In:** the user's text · the categories they already have, each with its grouping · an assumed currency
-  (optional) · the caller's token
+- **In:** the user's text · the groupings their categories are filed under · the grouping to fall back on ·
+  an assumed currency (optional) · the caller's token
 - **Out:** nothing — a call that returns has been acted on
 - **Why:** a user records spending by writing a sentence instead of filling a form
 
@@ -13,7 +13,8 @@
 |-----------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------|-------------------------------------------------|
 | in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)           | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
 | out       | [AI Provider](../contracts/out/ai-provider.md)                                               | [Chat completions](../contracts/out/ai-provider.md)       | reading the message and deciding what to record |
-| out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Expense proposal tool](../contracts/out/ledger-mcp.md)   | recording one expense                           |
+| out       | [Category Lookup Tool](../../../ledger-service/docs/usecases/list-categories.md)             | [Ledger tools](../contracts/out/ledger-mcp.md)            | learning which categories a grouping holds      |
+| out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Ledger tools](../contracts/out/ledger-mcp.md)            | recording one expense                           |
 
 ## Rules
 
@@ -21,11 +22,15 @@
 - The token is opaque: held for the turn, carried on every tool call, never parsed, logged or stored.
 - Spending is recorded and nothing else — no category is created, renamed or deleted, and nothing is read back
   for the user.
-- The model calls the tool once per expense, in the order the user said them.
-- The caller's categories are a closed set, offered as `Grouping > Category` labels; a name is never invented.
-- The set carries a catch-all, so every expense has somewhere to be filed.
-- An expense refused by the ledger is corrected against the refusal and tried once more.
+- The model calls the recording tool once per expense, in the order the user said them.
+- The caller's groupings are a closed set; a grouping name is never invented.
+- An expense is filed under a category the ledger answers for one of those groupings, never under a grouping
+  itself.
+- A grouping's categories are asked for before an expense is filed under it.
+- The caller designates one of the groupings as the catch-all, so every expense has somewhere to be filed.
+- An expense the ledger refuses to record is corrected against the refusal and recorded once more.
 - An expense refused a second time is left unrecorded, and the rest of the message is still recorded.
+- A refused category lookup costs the expense nothing — the grouping's name is corrected and asked again.
 - An expense whose amount, currency or category cannot be told from the message is left unrecorded.
 - An amount stated with no currency takes the assumed currency; with none assumed the expense is left
   unrecorded.
@@ -36,14 +41,14 @@
 
 ## Outcomes
 
-| Outcome                 | When                                                      | Result                                                        |
-|-------------------------|-----------------------------------------------------------|---------------------------------------------------------------|
-| Turn acted on           | the model finished the turn                               | an empty answer                                               |
-| Nothing recorded        | the message names no spending                             | an empty answer                                               |
-| Expense left unrecorded | the ledger refused it twice, or the message under-said it | an empty answer; the rest of the message still recorded       |
-| Provider unavailable    | the provider is unreachable or errors                     | the turn stops; the caller is told the service is unavailable |
-| Ledger unreachable      | the tool cannot be reached, or the token is refused there | the turn stops; the caller is told the service is unavailable |
-| Caller not identified   | the call arrives with no token                            | refused before the provider is called                         |
+| Outcome                 | When                                                                | Result                                                        |
+|-------------------------|---------------------------------------------------------------------|---------------------------------------------------------------|
+| Turn acted on           | the model finished the turn                                         | an empty answer                                               |
+| Nothing recorded        | the message names no spending                                       | an empty answer                                               |
+| Expense left unrecorded | the ledger refused to record it twice, or the message under-said it | an empty answer; the rest of the message still recorded       |
+| Provider unavailable    | the provider is unreachable or errors                               | the turn stops; the caller is told the service is unavailable |
+| Ledger unreachable      | a tool cannot be reached, or the token is refused there              | the turn stops; the caller is told the service is unavailable |
+| Caller not identified   | the call arrives with no token                                      | refused before the provider is called                         |
 
 ## Components
 
@@ -66,7 +71,7 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Refuses an untokened call, holds the token for the turn", $tags="callerExternal")
   Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call, validates the request", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Labels the caller's categories, hands the turn on", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Hands the groupings and the turn on", $tags="core")
   Component(currency, "Currency Code", "Domain value object", "An ISO 4217 code", $tags="core")
 
   Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
@@ -82,11 +87,11 @@ Rel_D(grpcService, currency, "Validates the assumed currency with")
 Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
 Rel_R(useCase, recordingPort, "Uses")
 Rel_R(recordingAdapter, recordingPort, "Implements", $tags="implements")
-Rel_R(recordingAdapter, aiProvider, "Message, categories, tool schema", "HTTPS")
+Rel_R(recordingAdapter, aiProvider, "Message, groupings, tool schemas", "HTTPS")
 Rel_L(recordingAdapter, toolClient, "Attaches the ledger's tools from")
 Rel_L(recordingAdapter, failurePolicy, "Ends a turn through")
 Rel_D(toolClient, tokenInterceptor, "Reads the turn's token from")
-Rel_L(toolClient, ledger, "create_expense_proposal", "MCP over HTTP")
+Rel_L(toolClient, ledger, "list_categories, create_expense_proposal", "MCP over HTTP")
 
 Lay_D(useCase, currency)
 Lay_D(recordingAdapter, toolClient)
@@ -102,22 +107,23 @@ SHOW_LEGEND()
 participant "Ledger Service" as Caller
 participant "AI Connector Service" as Service
 participant "AI Provider" as Provider
+participant "Category Lookup Tool" as Lookup
 participant "Expense Proposal Tool" as Tool
 
-Caller -> Service : text, categories with their groupings, assumed currency, token
+Caller -> Service : text, groupings, catch-all grouping, assumed currency, token
 
 alt no token
     Service --> Caller : caller not identified
 else the request cannot be used
     Service --> Caller : invalid argument
 else the request is usable
-    Service -> Tool : list the tools, as the caller
+    Service -> Lookup : list the tools, as the caller
 
     alt the ledger cannot be reached
-        Tool --> Service : transport failure
+        Lookup --> Service : transport failure
         Service --> Caller : unavailable
     else the tools are known
-        Service -> Provider : the recording instructions, the message, the categories, the tool schema
+        Service -> Provider : the recording instructions, the message, the groupings, the catch-all, the tool schemas
 
         alt the provider fails
             Provider --> Service : failure
@@ -127,6 +133,13 @@ else the request is usable
             Service --> Caller : acted on
         else the message names spending
             loop each expense, in the user's order
+                loop until a grouping answers its categories
+                    Provider -> Service : list this grouping's categories
+                    Service -> Lookup : the grouping, as the token's subject
+                    Lookup --> Service : the grouping's categories, or a refusal
+                    Service -> Provider : the result
+                end
+
                 Provider -> Service : record this expense
                 Service -> Tool : the expense, as the token's subject
 

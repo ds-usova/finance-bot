@@ -66,10 +66,10 @@ class CreateExpenseProposalUseCaseTest {
     }
 
     private CreateExpenseProposalCommand newExpenseProposal() {
-        return newExpenseProposal("Groceries", Optional.empty());
+        return newExpenseProposal("Groceries", "Food");
     }
 
-    private CreateExpenseProposalCommand newExpenseProposal(String categoryName, Optional<String> parentCategoryName) {
+    private CreateExpenseProposalCommand newExpenseProposal(String categoryName, String parentCategoryName) {
         return new CreateExpenseProposalCommand(
                 new AuthenticatedUserId(EXTERNAL_ID),
                 categoryName,
@@ -227,42 +227,19 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the only stored category matching the command's name carries no parent - then throws "
-                + "InvalidCategoryException whose message names that grouping's children, and the proposal "
-                + "repository is untouched")
-        void
-                whenOnlyMatchingCategoryIsAGrouping_thenThrowsInvalidCategoryExceptionNamingGroupingsChildrenAndProposalRepositoryUntouched() {
+        @DisplayName("when the only stored category carrying the command's name is a grouping - then throws "
+                + "InvalidCategoryException naming the parent it was asked for, and the proposal repository is "
+                + "untouched")
+        void whenOnlyMatchingCategoryIsAGrouping_thenThrowsInvalidCategoryExceptionAndProposalRepositoryUntouched() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
                     .thenReturn(List.of(new StoredCategory(CATEGORY_ID, "Groceries", Optional.empty())));
-            when(categoryRepository.findChildNames(CATEGORY_ID)).thenReturn(List.of("Coffee", "Restaurant"));
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
                     .isInstanceOf(InvalidCategoryException.class)
-                    .hasMessageContaining("Coffee")
-                    .hasMessageContaining("Restaurant");
-
-            verifyNoInteractions(expenseProposalRepository);
-        }
-
-        @Test
-        @DisplayName("when several stored categories carry the command's name and the command carries no "
-                + "parentCategoryName - then throws InvalidCategoryException whose message names the candidates' "
-                + "groupings, and the proposal repository is untouched")
-        void
-                whenSeveralCategoriesMatchNameAndCommandCarriesNoParentCategoryName_thenThrowsInvalidCategoryExceptionNamingCandidatesGroupingsAndProposalRepositoryUntouched() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            when(categoryRepository.findByUserIdAndName(USER_ID, "Groceries"))
-                    .thenReturn(List.of(
-                            new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food")),
-                            new StoredCategory(3L, "Groceries", Optional.of("Shopping"))));
-
-            assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
-                    .isInstanceOf(InvalidCategoryException.class)
-                    .hasMessageContaining("Food")
-                    .hasMessageContaining("Shopping");
+                    .hasMessageContaining("Groceries")
+                    .hasMessageContaining("Food");
 
             verifyNoInteractions(expenseProposalRepository);
         }
@@ -292,7 +269,7 @@ class CreateExpenseProposalUseCaseTest {
                     FIXED_INSTANT);
             when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
 
-            useCase.create(newExpenseProposal("Groceries", Optional.of("Shopping")));
+            useCase.create(newExpenseProposal("Groceries", "Shopping"));
 
             ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
             verify(expenseProposalRepository).create(proposalCaptor.capture());
@@ -312,7 +289,7 @@ class CreateExpenseProposalUseCaseTest {
                             new StoredCategory(CATEGORY_ID, "Groceries", Optional.of("Food")),
                             new StoredCategory(3L, "Groceries", Optional.of("Shopping"))));
 
-            assertThatThrownBy(() -> useCase.create(newExpenseProposal("Groceries", Optional.of("Travel"))))
+            assertThatThrownBy(() -> useCase.create(newExpenseProposal("Groceries", "Travel")))
                     .isInstanceOf(InvalidCategoryException.class);
 
             verifyNoInteractions(expenseProposalRepository);

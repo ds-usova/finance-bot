@@ -11,7 +11,6 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.AuthorizedStubs;
 import bot.finance.ai.common.GrpcAdapterTest;
@@ -22,7 +21,6 @@ import io.grpc.StatusRuntimeException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -60,8 +58,11 @@ class IntentExtractionGrpcServiceTest {
         void whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode(
                 String defaultCurrency) {
             authenticatedStub()
-                    .extractIntents(
-                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, defaultCurrency));
+                    .extractIntents(RequestFixtures.request(
+                            TEXT,
+                            RequestFixtures.DEFAULT_CATEGORY_GROUPINGS,
+                            RequestFixtures.DEFAULT_CATCH_ALL,
+                            defaultCurrency));
 
             ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
@@ -71,20 +72,19 @@ class IntentExtractionGrpcServiceTest {
 
         @Test
         @DisplayName(
-                "when a request carrying a text and two known categories arrives - then the port is called with a command whose known categories hold both names and parent names in order, and the RPC answers an empty response")
-        void whenRequestCarriesTextAndTwoKnownCategories_thenPortReceivesOrderedCategoriesAndResponseIsEmpty() {
-            List<bot.finance.ai.adapter.grpc.v1.KnownCategory> knownCategories = List.of(
-                    RequestFixtures.knownCategory("Lunch", "Food"),
-                    RequestFixtures.knownCategory("Travel", "Insurance"));
+                "when a request carrying a text, two category groupings and a catch-all among them arrives - then the port is called with a command whose category groupings hold both names in order and that catch-all, and the RPC answers an empty response")
+        void
+                whenRequestCarriesTextAndTwoCategoryGroupings_thenPortReceivesOrderedGroupingsAndCatchAllAndResponseIsEmpty() {
+            List<String> categoryGroupings = List.of("Food", "Insurance");
+            String catchAllGrouping = "Insurance";
 
-            ExtractIntentsResponse response =
-                    authenticatedStub().extractIntents(RequestFixtures.request(TEXT, knownCategories));
+            ExtractIntentsResponse response = authenticatedStub()
+                    .extractIntents(RequestFixtures.request(TEXT, categoryGroupings, catchAllGrouping));
 
             ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
-            assertThat(commandCaptor.getValue().knownCategories())
-                    .extracting(KnownCategory::name, KnownCategory::parentName)
-                    .containsExactly(Tuple.tuple("Lunch", "Food"), Tuple.tuple("Travel", "Insurance"));
+            assertThat(commandCaptor.getValue().categoryGroupings()).containsExactly("Food", "Insurance");
+            assertThat(commandCaptor.getValue().catchAllGrouping()).isEqualTo(catchAllGrouping);
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
     }
@@ -148,16 +148,25 @@ class IntentExtractionGrpcServiceTest {
             return Stream.of(
                     Arguments.of("text absent", RequestFixtures.request("")),
                     Arguments.of("text whitespace-only", RequestFixtures.request("   ")),
-                    Arguments.of("known_categories empty", RequestFixtures.request(TEXT, List.of())),
+                    Arguments.of(
+                            "category_groupings empty",
+                            RequestFixtures.request(TEXT, List.of(), RequestFixtures.DEFAULT_CATCH_ALL)),
                     Arguments.of(
                             "default_currency not a known ISO 4217 code",
-                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_KNOWN_CATEGORIES, "ZZZ")),
+                            RequestFixtures.request(
+                                    TEXT,
+                                    RequestFixtures.DEFAULT_CATEGORY_GROUPINGS,
+                                    RequestFixtures.DEFAULT_CATCH_ALL,
+                                    "ZZZ")),
                     Arguments.of(
-                            "known_categories entry with a blank name",
-                            RequestFixtures.request(TEXT, List.of(RequestFixtures.knownCategory("", "Food")))),
+                            "category_groupings entry blank",
+                            RequestFixtures.request(TEXT, List.of("Food", ""), "Food")),
                     Arguments.of(
-                            "known_categories entry with a blank parent_name",
-                            RequestFixtures.request(TEXT, List.of(RequestFixtures.knownCategory("Lunch", "")))));
+                            "catch_all_grouping blank",
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "")),
+                    Arguments.of(
+                            "catch_all_grouping not among category_groupings",
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "NotInList")));
         }
     }
 }

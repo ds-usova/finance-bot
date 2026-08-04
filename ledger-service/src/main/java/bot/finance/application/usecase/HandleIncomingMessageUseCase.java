@@ -3,7 +3,6 @@ package bot.finance.application.usecase;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
@@ -15,9 +14,11 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
 import bot.finance.domain.value.MessageReference;
 import java.util.List;
 import java.util.Optional;
@@ -54,11 +55,11 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        List<KnownCategory> knownCategories =
-                categoryRepository.findKnownCategories(user.id().orElseThrow());
+        List<String> categoryGroupings =
+                categoryRepository.findGroupingNames(user.id().orElseThrow());
 
         MessageReference reference = MessageReference.newReference();
-        boolean extractionFailed = extract(command, knownCategories, user, reference);
+        boolean extractionFailed = extract(command, categoryGroupings, user, reference);
 
         List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
                 user.id().orElseThrow(), reference);
@@ -73,16 +74,29 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     private boolean extract(
             HandleIncomingMessageCommand command,
-            List<KnownCategory> knownCategories,
+            List<String> categoryGroupings,
             User user,
             MessageReference reference) {
         try {
             intentExtractionPort.extract(new IntentExtractionRequest(
-                    command.text(), knownCategories, Optional.empty(), user.externalId(), reference));
+                    command.text(),
+                    categoryGroupings,
+                    catchAllGrouping(categoryGroupings),
+                    Optional.empty(),
+                    user.externalId(),
+                    reference));
             return false;
         } catch (IntentExtractionFailedException e) {
             return true;
         }
+    }
+
+    private String catchAllGrouping(List<String> categoryGroupings) {
+        String designated = Category.catchAllGroupingName();
+        if (!categoryGroupings.contains(designated)) {
+            throw new CatchAllGroupingMissingException("no grouping named " + designated + " is stored for this user");
+        }
+        return designated;
     }
 
     private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {

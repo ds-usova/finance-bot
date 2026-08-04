@@ -8,7 +8,6 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.common.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
@@ -23,7 +22,6 @@ import io.grpc.StatusRuntimeException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
-import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,7 +52,8 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
-                    List.of(new KnownCategory("Groceries", "Food"), new KnownCategory("Other", "Other")),
+                    List.of("Groceries", "Other"),
+                    "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
                     MessageReference.newReference());
@@ -63,11 +62,10 @@ class AiConnectorIntentExtractionAdapterTest {
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
-            assertThat(receivedRequest.getKnownCategoriesList())
-                    .extracting(
-                            bot.finance.ai.adapter.grpc.v1.KnownCategory::getName,
-                            bot.finance.ai.adapter.grpc.v1.KnownCategory::getParentName)
-                    .containsExactly(Tuple.tuple("Groceries", "Food"), Tuple.tuple("Other", "Other"));
+            assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
+            assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
+            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("known_categories"))
+                    .isNull();
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
         }
 
@@ -78,7 +76,8 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
-                    List.of(new KnownCategory("Groceries", "Food")),
+                    List.of("Groceries"),
+                    "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id-77",
                     MessageReference.newReference());
@@ -104,7 +103,8 @@ class AiConnectorIntentExtractionAdapterTest {
             MessageReference reference = MessageReference.newReference();
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
-                    List.of(new KnownCategory("Groceries", "Food")),
+                    List.of("Groceries"),
+                    "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
                     reference);
@@ -135,7 +135,8 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "connector unavailable",
-                    List.of(new KnownCategory("Other", "Other")),
+                    List.of("Other"),
+                    "Other",
                     Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());

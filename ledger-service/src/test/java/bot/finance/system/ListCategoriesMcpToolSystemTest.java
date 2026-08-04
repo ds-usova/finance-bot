@@ -1,0 +1,116 @@
+package bot.finance.system;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.application.port.UserRepository;
+import bot.finance.common.AbstractSystemTest;
+import bot.finance.common.McpRequests;
+import bot.finance.common.McpTokens;
+import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * Drives {@code POST /mcp} - the {@code tools/call list_categories} JSON-RPC method - end to end against the fully
+ * wired application. The user and their category tree are seeded through the wired {@link UserRepository} with
+ * {@link Category#defaults()}, the tree's only writer, never through a {@code bot.finance.common} row helper.
+ */
+class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AccessTokenMinter accessTokenMinter;
+
+    @BeforeEach
+    void configureRestAssured() {
+        RestAssured.baseURI = "http://localhost";
+        RestAssured.port = port;
+    }
+
+    private User seedUserWithDefaultCategories(String externalId) {
+        return userRepository.create(User.newUser(externalId), Category.defaults());
+    }
+
+    private Response callListCategories(String token, String requestBody) {
+        Response response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .accept(McpRequests.ACCEPT_HEADER)
+                .header("Authorization", "Bearer " + token)
+                .body(requestBody)
+                .when()
+                .post("/mcp");
+        logResponse(response);
+        return response;
+    }
+
+    @Nested
+    @DisplayName("happy path")
+    class HappyPath {
+
+        @Test
+        @DisplayName("when tools/call list_categories is posted naming Groceries - then the response is a "
+                + "non-error result whose text names Groceries and carries exactly its three seeded children, "
+                + "sorted by name")
+        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsChildrenSortedByName() {
+            User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
+            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+
+            String requestBody = McpRequests.listCategories("Groceries");
+
+            Response response = callListCategories(token, requestBody);
+
+            assertThat(response.statusCode()).as("HTTP status").isEqualTo(200);
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("tool result isError")
+                    .isNotEqualTo(Boolean.TRUE);
+
+            String toolResultText = response.jsonPath().getString("result.content[0].text");
+            assertThat(toolResultText).as("tool result text").isNotNull();
+            JsonPath toolResult = new JsonPath(toolResultText);
+            assertThat(toolResult.getString("parentCategory"))
+                    .as("returned parentCategory")
+                    .isEqualTo("Groceries");
+            assertThat(toolResult.getList("categories", String.class))
+                    .as("returned categories, sorted by name")
+                    .containsExactly("Household Supplies", "Markets", "Supermarkets");
+        }
+    }
+
+    @Nested
+    @DisplayName("unhappy path")
+    class UnhappyPath {
+
+        @Test
+        @DisplayName("when tools/call list_categories names a category rather than a grouping - Supermarkets - "
+                + "then the response is a tool error saying it is a category, not a grouping")
+        void whenToolCallNamesCategory_thenResponseIsToolErrorSayingItIsACategoryNotAGrouping() {
+            User user = seedUserWithDefaultCategories("list-categories-unhappy-path-user");
+            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+
+            String requestBody = McpRequests.listCategories("Supermarkets");
+
+            Response response = callListCategories(token, requestBody);
+
+            assertThat(response.statusCode()).as("HTTP status").isEqualTo(200);
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("tool result isError")
+                    .isTrue();
+
+            String toolResultText = response.jsonPath().getString("result.content[0].text");
+            assertThat(toolResultText)
+                    .as("tool error message says the name is a category, not a grouping")
+                    .isEqualTo("Supermarkets is a category, not a grouping");
+        }
+    }
+}
