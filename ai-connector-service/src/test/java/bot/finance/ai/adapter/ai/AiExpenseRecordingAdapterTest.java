@@ -29,7 +29,9 @@ class AiExpenseRecordingAdapterTest {
 
     private static final String SYSTEM_PROMPT_RESOURCE = "prompts/record-expenses.st";
     private static final String TEXT = "spent 15 euros on lunch";
-    private static final List<String> KNOWN_CATEGORY_LABELS = List.of("Food > Lunch", "Insurance > Travel");
+    // TODO RI06: rename to a grouping-name list with no ">" in it, e.g. List.of("Food", "Insurance").
+    private static final List<String> KNOWN_CATEGORY_LABELS = List.of("Food", "Insurance");
+    private static final String CATCH_ALL_GROUPING = "Food";
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
 
@@ -48,9 +50,10 @@ class AiExpenseRecordingAdapterTest {
         WireMockSupport.SERVER.resetAll();
     }
 
+    // TODO RI06: the private helper now passes grouping names and a catch-all through the changed port signature.
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
         CallerTokenTestSupport.withCallerToken(
-                callerToken, () -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, assumedCurrency));
+                callerToken, () -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, CATCH_ALL_GROUPING, assumedCurrency));
     }
 
     private void recordInEuros(String callerToken) {
@@ -281,7 +284,8 @@ class AiExpenseRecordingAdapterTest {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("irrelevant"));
 
-            assertThatThrownBy(() -> adapter.record(TEXT, KNOWN_CATEGORY_LABELS, Optional.of(CurrencyCode.of("EUR"))))
+            assertThatThrownBy(() -> adapter.record(
+                            TEXT, KNOWN_CATEGORY_LABELS, CATCH_ALL_GROUPING, Optional.of(CurrencyCode.of("EUR"))))
                     .isInstanceOf(ExpenseRecordingFailedException.class);
         }
     }

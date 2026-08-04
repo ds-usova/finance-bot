@@ -30,12 +30,10 @@ public class CreateExpenseProposalMcpTool {
 
     @McpTool(name = "create_expense_proposal", description = "Records a new expense proposal for the caller")
     public CallToolResult createExpenseProposal(
-            @McpToolParam(description = "the category's name - one filed under a grouping, never a grouping")
-                    String category,
+            @McpToolParam(description = "the category's name - one filed under a grouping") String category,
             @McpToolParam(
-                            required = false,
-                            description = "the grouping's name, optional - only to break a tie between categories "
-                                    + "sharing the same name")
+                            description = "the grouping the category is filed under, exactly as "
+                                    + "`list_categories` was asked for it")
                     String parentCategory,
             @McpToolParam(description = "what was bought") String description,
             @McpToolParam(required = false, description = "who it was bought from, optional - null or blank is none")

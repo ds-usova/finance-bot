@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.common.CategoryRowUtils;
 import bot.finance.common.PersistenceAdapterTest;
@@ -147,66 +146,9 @@ class CategoryRepositoryAdapterTest {
         }
     }
 
-    @Nested
-    @DisplayName("finding known categories for a user")
-    class FindKnownCategories {
-
-        @Test
-        @DisplayName(
-                "when called with a stored user with one grouping and two categories under it - then returns exactly the two children, each carrying its own name and its grouping's name")
-        void whenCalledForAStoredUserWithOneGroupingAndTwoChildren_thenReturnsBothChildrenWithTheirGroupingsName() {
-            long userId = storedUserId("known-categories-user");
-            long groupingId = storedCategoryId(userId, "Groceries");
-            storedChildCategoryId(userId, groupingId, "Supermarket");
-            storedChildCategoryId(userId, groupingId, "Bakery");
-
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
-
-            assertThat(found)
-                    .containsExactlyInAnyOrder(
-                            new KnownCategory("Supermarket", "Groceries"), new KnownCategory("Bakery", "Groceries"));
-        }
-
-        @Test
-        @DisplayName(
-                "when called with a stored user with a grouping that has no children - then the grouping itself is absent from the answer, only its sibling's child is present")
-        void whenCalledForAStoredUserWithAChildlessGrouping_thenTheGroupingItselfIsAbsent() {
-            long userId = storedUserId("childless-grouping-user");
-            storedCategoryId(userId, "Utilities");
-            long groupingWithChildId = storedCategoryId(userId, "Groceries");
-            storedChildCategoryId(userId, groupingWithChildId, "Supermarket");
-
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
-
-            assertThat(found).containsExactly(new KnownCategory("Supermarket", "Groceries"));
-        }
-
-        @Test
-        @DisplayName(
-                "when called for one of two stored users each owning a category under a grouping - then returns only that user's category")
-        void whenCalledForOneOfTwoUsersEachOwningACategory_thenReturnsOnlyThatUsersCategory() {
-            long firstUserId = storedUserId("first-known-categories-user");
-            long secondUserId = storedUserId("second-known-categories-user");
-            long firstGroupingId = storedCategoryId(firstUserId, "Home");
-            long secondGroupingId = storedCategoryId(secondUserId, "Work");
-            storedChildCategoryId(firstUserId, firstGroupingId, "Rent");
-            storedChildCategoryId(secondUserId, secondGroupingId, "Office Supplies");
-
-            List<KnownCategory> found = adapter.findKnownCategories(firstUserId);
-
-            assertThat(found).containsExactly(new KnownCategory("Rent", "Home"));
-        }
-
-        @Test
-        @DisplayName("when called with a stored user with no categories at all - then returns an empty list")
-        void whenCalledForAStoredUserWithNoCategories_thenReturnsEmptyList() {
-            long userId = storedUserId("no-categories-user");
-
-            List<KnownCategory> found = adapter.findKnownCategories(userId);
-
-            assertThat(found).isEmpty();
-        }
-    }
+    // TODO RI01: this whole nested class is replaced by findGroupingNames()'s own nested class — see plan.md
+    // RI01 for its scenarios (stored groupings sorted by name, a childless grouping present, scoped per user, an
+    // empty catalogue).
 
     // These scenarios need a store that misbehaves in a way the healthy containerized Postgres
     // cannot be made to: an outright database failure. They construct their own adapter over a
@@ -241,7 +183,8 @@ class CategoryRepositoryAdapterTest {
         void
                 whenFindChildNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findByParentId(any())).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findByParentIdOrderByName(any()))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findChildNames(1L))
                     .isInstanceOf(PersistenceFailedException.class)
@@ -249,15 +192,17 @@ class CategoryRepositoryAdapterTest {
                     .isEqualTo(frameworkException);
         }
 
+        // TODO RI01: replace with the mocked-store scenario for findGroupingNames(), stubbing the new query
+        // method.
         @Test
         @DisplayName(
-                "when findKnownCategories() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+                "when findGroupingNames() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
         void
-                whenFindKnownCategoriesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                whenFindGroupingNamesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedCategoryEntityRepository.findKnownCategories(any())).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findGroupingNames(any())).thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.findKnownCategories(1L))
+            assertThatThrownBy(() -> mockedAdapter.findGroupingNames(1L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

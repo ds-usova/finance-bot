@@ -44,8 +44,10 @@ Applies across all layers.
   implements `equals`/`hashCode` as `final`: same concrete class and same id means the same entity, and an entity
   whose id is absent equals only itself. A business key that is not the id is a named method, never `equals`.
 - **A reference to something that is not stored raises a not-found domain exception**, in the use case that looks
-  it up and in the adapter whose constraint rejects it alike. The storage-failure exception means the store
-  failed, and nothing else — a caller acts differently on the two.
+  it up and in the adapter whose constraint rejects it alike. The split is by what the caller supplied: a
+  not-found exception is raised for an **id**, while a **name the caller chose** that resolves to nothing raises
+  that concept's own invalid-argument exception instead. The storage-failure exception means the store failed,
+  and nothing else — a caller acts differently on the two.
 - `domain/model` holds classes; `domain/value` and `application/dto` hold records. An entity cannot use a record's
   generated `equals`, which covers every component rather than the identity.
 

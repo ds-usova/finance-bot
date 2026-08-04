@@ -3,7 +3,6 @@ package bot.finance.application.usecase;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
@@ -54,11 +53,11 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        List<KnownCategory> knownCategories =
-                categoryRepository.findKnownCategories(user.id().orElseThrow());
+        List<String> categoryGroupings =
+                categoryRepository.findGroupingNames(user.id().orElseThrow());
 
         MessageReference reference = MessageReference.newReference();
-        boolean extractionFailed = extract(command, knownCategories, user, reference);
+        boolean extractionFailed = extract(command, categoryGroupings, user, reference);
 
         List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
                 user.id().orElseThrow(), reference);
@@ -73,12 +72,20 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     private boolean extract(
             HandleIncomingMessageCommand command,
-            List<KnownCategory> knownCategories,
+            List<String> categoryGroupings,
             User user,
             MessageReference reference) {
         try {
+            // TODO GU05: resolve the catch-all as Category.catchAllGroupingName() when categoryGroupings
+            // carries it, and as the first grouping read otherwise
+            String catchAllGrouping = categoryGroupings.isEmpty() ? "" : categoryGroupings.get(0);
             intentExtractionPort.extract(new IntentExtractionRequest(
-                    command.text(), knownCategories, Optional.empty(), user.externalId(), reference));
+                    command.text(),
+                    categoryGroupings,
+                    catchAllGrouping,
+                    Optional.empty(),
+                    user.externalId(),
+                    reference));
             return false;
         } catch (IntentExtractionFailedException e) {
             return true;

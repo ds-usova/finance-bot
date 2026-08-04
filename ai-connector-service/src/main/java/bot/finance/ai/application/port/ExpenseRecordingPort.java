@@ -11,5 +11,9 @@ public interface ExpenseRecordingPort {
      * @throws ExpenseRecordingFailedException if the provider or the ledger cannot be reached, or the provider's
      *                                          answer cannot be read
      */
-    void record(String text, List<String> knownCategoryLabels, Optional<CurrencyCode> assumedCurrency);
+    void record(
+            String text,
+            List<String> categoryGroupings,
+            String catchAllGrouping,
+            Optional<CurrencyCode> assumedCurrency);
 }

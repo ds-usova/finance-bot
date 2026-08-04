@@ -4,13 +4,11 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
-import bot.finance.ai.application.dto.KnownCategory;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
@@ -41,10 +39,8 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return;
         }
 
-        List<KnownCategory> knownCategories = request.getKnownCategoriesList().stream()
-                .map(entry -> new KnownCategory(entry.getName(), entry.getParentName()))
-                .toList();
-        ExtractIntentsCommand command = new ExtractIntentsCommand(request.getText(), knownCategories, defaultCurrency);
+        ExtractIntentsCommand command = new ExtractIntentsCommand(
+                request.getText(), request.getCategoryGroupingsList(), request.getCatchAllGrouping(), defaultCurrency);
         extractIntentsPort.extractIntents(command);
 
         responseObserver.onNext(ExtractIntentsResponse.getDefaultInstance());
@@ -60,22 +56,8 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return true;
         }
 
-        if (request.getKnownCategoriesList().isEmpty()) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Known categories must not be empty")
-                    .asRuntimeException());
-            return true;
-        }
-
-        boolean hasBlankCategory = request.getKnownCategoriesList().stream()
-                .anyMatch(entry ->
-                        entry.getName().isBlank() || entry.getParentName().isBlank());
-        if (hasBlankCategory) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Known category name and parent_name must not be blank")
-                    .asRuntimeException());
-            return true;
-        }
+        // TODO RI05: reject empty category_groupings, a blank entry in category_groupings, a blank
+        // catch_all_grouping, and a catch_all_grouping not among category_groupings — each INVALID_ARGUMENT
 
         return false;
     }

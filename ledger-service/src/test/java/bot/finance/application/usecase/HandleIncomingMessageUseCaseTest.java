@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.KnownCategory;
 import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
@@ -80,12 +79,13 @@ class HandleIncomingMessageUseCaseTest {
         return new HandleIncomingMessageCommand(EXTERNAL_ID, CONVERSATION_ID, INBOUND_MESSAGE_ID, TEXT);
     }
 
-    private List<KnownCategory> stubKnownUserAndCategories() {
+    // TODO RU05: stub findGroupingNames with grouping names rather than findKnownCategories with KnownCategory
+    // values, and return that list.
+    private List<String> stubKnownUserAndCategories() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-        List<KnownCategory> knownCategories =
-                List.of(new KnownCategory("Coffee", "Food"), new KnownCategory("Fuel", "Auto"));
-        when(categoryRepository.findKnownCategories(USER_ID)).thenReturn(knownCategories);
-        return knownCategories;
+        List<String> categoryGroupings = List.of("Food", "Auto");
+        when(categoryRepository.findGroupingNames(USER_ID)).thenReturn(categoryGroupings);
+        return categoryGroupings;
     }
 
     private List<ProposalSummary> twoSummaries() {
@@ -118,7 +118,9 @@ class HandleIncomingMessageUseCaseTest {
                 + "the command's user external id, the extraction request carries a non-null message reference, "
                 + "and findSummariesByMessageReference is called with the user's id and that same reference")
         void whenHandleIsCalled_thenInitializeAndExtractionAndLookupCarryUserAndReference() {
-            List<KnownCategory> knownCategories = stubKnownUserAndCategories();
+            // TODO RU05: verify findGroupingNames and assert the request's categoryGroupings and
+            // catchAllGrouping components.
+            List<String> categoryGroupings = stubKnownUserAndCategories();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
@@ -129,14 +131,14 @@ class HandleIncomingMessageUseCaseTest {
             verify(initializeUserPort).initialize(initializeCaptor.capture());
             assertThat(initializeCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
 
-            verify(categoryRepository).findKnownCategories(USER_ID);
+            verify(categoryRepository).findGroupingNames(USER_ID);
 
             ArgumentCaptor<IntentExtractionRequest> extractCaptor =
                     ArgumentCaptor.forClass(IntentExtractionRequest.class);
             verify(intentExtractionPort).extract(extractCaptor.capture());
             IntentExtractionRequest request = extractCaptor.getValue();
             assertThat(request.text()).isEqualTo(TEXT);
-            assertThat(request.knownCategories()).isEqualTo(knownCategories);
+            assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
             MessageReference reference = request.messageReference();
@@ -281,8 +283,9 @@ class HandleIncomingMessageUseCaseTest {
             verifyNoInteractions(messageDeliveryPort);
         }
 
+        // TODO RU05: stub the failure on findGroupingNames, renaming the method for the port it now names.
         @Test
-        @DisplayName("when categoryRepository.findKnownCategories throws PersistenceFailedException - then the "
+        @DisplayName("when categoryRepository.findGroupingNames throws PersistenceFailedException - then the "
                 + "exception propagates and the extraction port, the expense proposal repository and the "
                 + "delivery port are never called")
         void
@@ -290,7 +293,7 @@ class HandleIncomingMessageUseCaseTest {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(categoryRepository.findKnownCategories(USER_ID)).thenThrow(failure);
+            when(categoryRepository.findGroupingNames(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 

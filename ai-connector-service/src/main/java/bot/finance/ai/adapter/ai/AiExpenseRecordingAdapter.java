@@ -36,17 +36,25 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
     }
 
     @Override
-    public void record(String text, List<String> knownCategoryLabels, Optional<CurrencyCode> assumedCurrency) {
+    public void record(
+            String text,
+            List<String> categoryGroupings,
+            String catchAllGrouping,
+            Optional<CurrencyCode> assumedCurrency) {
         if (CallerTokenUtils.callerToken().isEmpty()) {
             throw new ExpenseRecordingFailedException("No caller token held for this turn");
         }
 
         String userMessage = new PromptTemplate(expenseRecordingProperties.userMessageTemplate())
                 .render(Map.of(
-                        "knownCategories", String.join(", ", knownCategoryLabels),
+                        "categoryGroupings",
+                        String.join(", ", categoryGroupings),
+                        "catchAllGrouping",
+                        catchAllGrouping,
                         "assumedCurrency",
-                                assumedCurrency.map(CurrencyCode::code).orElse(NO_ASSUMED_CURRENCY),
-                        "text", text));
+                        assumedCurrency.map(CurrencyCode::code).orElse(NO_ASSUMED_CURRENCY),
+                        "text",
+                        text));
 
         try {
             String answer = chatClient

@@ -1,8 +1,9 @@
-Known categories, each written as "Grouping > Category": {knownCategories}
+Category groupings the user has: {categoryGroupings}
 
-File every expense under exactly one of them. If none fits, use the caller's catch-all category. Never invent a
-category name. The two halves go in separate arguments: what follows the ">" is the category, what precedes it
-is the parent category.
+Every expense is filed under a category inside one of these, never under a grouping itself. Pick the grouping
+first, then call the list_categories tool for it and file the expense under one of the categories it answers,
+sending that grouping as the parent category. If no grouping fits the expense, use {catchAllGrouping}. Never
+invent a name.
 
 Currency to assume when the user states an amount without one: {assumedCurrency}
 

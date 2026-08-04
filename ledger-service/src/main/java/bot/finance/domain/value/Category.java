@@ -35,6 +35,10 @@ public record Category(String name, List<Category> children) {
         return new Category(name, Arrays.stream(childNames).map(Category::leaf).toList());
     }
 
+    public static String catchAllGroupingName() {
+        return "Miscellaneous";
+    }
+
     public static List<Category> defaults() {
         return List.of(
                 group("Housing", "Rent", "Mortgage", "HOA", "Property Tax", "Home Insurance", "Repairs", "Furniture"),
@@ -63,6 +67,6 @@ public record Category(String name, List<Category> children) {
                 group("Insurance", "Life", "Home", "Vehicle", "Travel"),
                 group("Personal Care", "Haircuts", "Cosmetics", "Gym", "Spa"),
                 group("Subscriptions", "Streaming", "Music", "Cloud Storage", "Apps & Software"),
-                group("Miscellaneous", "Uncategorized Expenses"));
+                group(catchAllGroupingName(), "Uncategorized Expenses"));
     }
 }

@@ -8,7 +8,8 @@ import java.util.Optional;
 
 public record IntentExtractionRequest(
         String text,
-        List<KnownCategory> knownCategories,
+        List<String> categoryGroupings,
+        String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
         String userExternalId,
         MessageReference messageReference) {
@@ -17,12 +18,8 @@ public record IntentExtractionRequest(
         if (text == null || text.isBlank()) {
             throw new InvalidExtractionRequestException("Text must not be null or blank");
         }
-        if (knownCategories == null || knownCategories.isEmpty()) {
-            throw new InvalidExtractionRequestException("Known categories must not be null or empty");
-        }
-        if (knownCategories.stream().anyMatch(category -> category == null)) {
-            throw new InvalidExtractionRequestException("Known categories must not contain a null element");
-        }
+        // TODO RU02: validate categoryGroupings (non-null, non-empty, no null/blank element) and
+        // catchAllGrouping (non-blank, one of categoryGroupings)
         if (defaultCurrency == null) {
             throw new InvalidExtractionRequestException(
                     "Default currency must not be null; use Optional.empty() when absent");
@@ -34,6 +31,6 @@ public record IntentExtractionRequest(
             throw new InvalidExtractionRequestException("Message reference must not be null");
         }
 
-        knownCategories = List.copyOf(knownCategories);
+        categoryGroupings = List.copyOf(categoryGroupings);
     }
 }

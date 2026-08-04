@@ -8,7 +8,6 @@ import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -26,37 +25,42 @@ class IntentExtractionRequestTest {
     class IntentExtractionRequestConstructor {
 
         @Test
-        @DisplayName("when text, one category, and a default currency are valid - then it holds all three")
+        @DisplayName("when text, one grouping, and a default currency are valid - then it holds all three")
         void whenTextOneCategoryAndDefaultCurrencyAreValid_thenItHoldsAllThree() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("food", "groceries")),
+                    List.of("groceries"),
+                    "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
                     MessageReference.newReference());
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
-            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
+            assertThat(request.categoryGroupings()).containsExactly("groceries");
             assertThat(request.defaultCurrency()).contains(CurrencyCode.of("EUR"));
         }
 
+        // TODO RU02: assert the unmodifiability of the categoryGroupings component and read back the
+        // catchAllGrouping one.
         @Test
-        @DisplayName("when text, one category, an empty currency and a non-blank external id are valid - "
-                + "then every component reads back unchanged and known categories is unmodifiable")
+        @DisplayName("when text, one grouping, an empty currency, a catch-all and a non-blank external id are "
+                + "valid - then every component reads back unchanged and category groupings is unmodifiable")
         void
                 whenTextOneCategoryEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndKnownCategoriesIsUnmodifiable() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("food", "groceries")),
+                    List.of("groceries"),
+                    "groceries",
                     Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
-            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
+            assertThat(request.categoryGroupings()).containsExactly("groceries");
+            assertThat(request.catchAllGrouping()).isEqualTo("groceries");
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo("user-external-id");
-            assertThatThrownBy(() -> request.knownCategories().add(new KnownCategory("transport", "travel")))
+            assertThatThrownBy(() -> request.categoryGroupings().add("transport"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
 
@@ -66,7 +70,8 @@ class IntentExtractionRequestTest {
         void whenTextIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String text) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             text,
-                            List.of(new KnownCategory("food", "groceries")),
+                            List.of("groceries"),
+                            "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
                             MessageReference.newReference()))
@@ -77,44 +82,16 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments("   "));
         }
 
-        @ParameterizedTest
-        @MethodSource("nullOrEmptyCategories")
-        @DisplayName("when known categories is null or empty - then throws InvalidExtractionRequestException")
-        void whenKnownCategoriesIsNullOrEmpty_thenThrowsInvalidExtractionRequestException(
-                List<KnownCategory> knownCategories) {
-            assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro",
-                            knownCategories,
-                            Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
-                            MessageReference.newReference()))
-                    .isInstanceOf(InvalidExtractionRequestException.class);
-        }
-
-        static Stream<Arguments> nullOrEmptyCategories() {
-            return Stream.of(arguments((Object) null), arguments(List.of()));
-        }
-
-        @Test
-        @DisplayName("when known categories contains a null entry - then throws InvalidExtractionRequestException")
-        void whenKnownCategoriesContainsNullEntry_thenThrowsInvalidExtractionRequestException() {
-            List<KnownCategory> knownCategories = Arrays.asList(new KnownCategory("food", "groceries"), null);
-
-            assertThatThrownBy(() -> new IntentExtractionRequest(
-                            "lunch 12 euro",
-                            knownCategories,
-                            Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
-                            MessageReference.newReference()))
-                    .isInstanceOf(InvalidExtractionRequestException.class);
-        }
+        // TODO RU02: replace with the grouping-list scenarios (null, empty, null element, blank element) and
+        // the catch-all scenarios (null, blank, not one of the groupings). See plan.md RU02.
 
         @Test
         @DisplayName("when the default currency optional is null - then throws InvalidExtractionRequestException")
         void whenDefaultCurrencyIsNull_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of(new KnownCategory("food", "groceries")),
+                            List.of("groceries"),
+                            "groceries",
                             null,
                             "user-external-id",
                             MessageReference.newReference()))
@@ -126,7 +103,8 @@ class IntentExtractionRequestTest {
         void whenDefaultCurrencyIsEmpty_thenDefaultCurrencyComesBackEmpty() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("food", "groceries")),
+                    List.of("groceries"),
+                    "groceries",
                     Optional.empty(),
                     "user-external-id",
                     MessageReference.newReference());
@@ -140,7 +118,8 @@ class IntentExtractionRequestTest {
         void whenUserExternalIdIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String userExternalId) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of(new KnownCategory("food", "groceries")),
+                            List.of("groceries"),
+                            "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             userExternalId,
                             MessageReference.newReference()))
@@ -151,32 +130,35 @@ class IntentExtractionRequestTest {
             return Stream.of(arguments((Object) null), arguments("   "));
         }
 
+        // TODO RU02: assert the copy on the categoryGroupings component.
         @Test
-        @DisplayName("when the mutable category list handed to the constructor is modified afterwards - "
-                + "then known categories is unchanged")
+        @DisplayName("when the mutable grouping list handed to the constructor is modified afterwards - "
+                + "then category groupings is unchanged")
         void whenKnownCategoriesListIsModifiedAfterConstruction_thenKnownCategoriesIsUnchanged() {
-            List<KnownCategory> mutableCategories = new ArrayList<>(List.of(new KnownCategory("food", "groceries")));
+            List<String> mutableGroupings = new ArrayList<>(List.of("groceries"));
 
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    mutableCategories,
+                    mutableGroupings,
+                    "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
                     MessageReference.newReference());
-            mutableCategories.add(new KnownCategory("transport", "travel"));
+            mutableGroupings.add("transport");
 
-            assertThat(request.knownCategories()).containsExactly(new KnownCategory("food", "groceries"));
+            assertThat(request.categoryGroupings()).containsExactly("groceries");
         }
 
         @Test
-        @DisplayName("when text, categories, currency, external id and a message reference are valid - "
+        @DisplayName("when text, groupings, currency, external id and a message reference are valid - "
                 + "then messageReference reads back unchanged")
         void whenTextCategoriesCurrencyExternalIdAndMessageReferenceAreValid_thenMessageReferenceReadsBackUnchanged() {
             MessageReference messageReference = MessageReference.newReference();
 
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of(new KnownCategory("food", "groceries")),
+                    List.of("groceries"),
+                    "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
                     messageReference);
@@ -189,7 +171,8 @@ class IntentExtractionRequestTest {
         void whenMessageReferenceIsNull_thenThrowsInvalidExtractionRequestException() {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
-                            List.of(new KnownCategory("food", "groceries")),
+                            List.of("groceries"),
+                            "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
                             null))

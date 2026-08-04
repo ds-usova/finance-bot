@@ -6,25 +6,20 @@ import java.util.List;
 import java.util.Optional;
 
 public record ExtractIntentsCommand(
-        String text, List<KnownCategory> knownCategories, Optional<CurrencyCode> defaultCurrency) {
+        String text, List<String> categoryGroupings, String catchAllGrouping, Optional<CurrencyCode> defaultCurrency) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
             throw new InvalidValueException("Text must not be null or blank");
         }
 
-        if (knownCategories == null || knownCategories.isEmpty()) {
-            throw new InvalidValueException("Known categories must not be null or empty");
-        }
-
-        if (knownCategories.stream().anyMatch(category -> category == null)) {
-            throw new InvalidValueException("Known categories must not contain a null element");
-        }
+        // TODO RU08: validate categoryGroupings (non-null, non-empty, no null/blank element) and
+        // catchAllGrouping (non-blank, one of categoryGroupings)
 
         if (defaultCurrency == null) {
             throw new InvalidValueException("Default currency Optional must not be null");
         }
 
-        knownCategories = List.copyOf(knownCategories);
+        categoryGroupings = List.copyOf(categoryGroupings);
     }
 }
