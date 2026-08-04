@@ -70,6 +70,26 @@ to be short of the threshold and are never failed for it. The verdict for a gree
 
 Where it is worth running: at the end of a change, once every step of it is implemented.
 
+## Evidence for a Finished Plan
+
+A finished plan carries `evidence.md` and `evidence.json` beside it, written by
+[`tools/plan-evidence/plan-evidence.sh`](../../tools/plan-evidence/README.md) — the verdict, the commit it was
+measured on, and a row per module with its test counts and its coverage against the minimum:
+
+```
+tools/plan-evidence/plan-evidence.sh --plan docs/implemented/<n>-<task>/plan.md
+```
+
+It runs **after the plan directory is archived and committed**, so the commit it names is the one that finished
+the work and the tree it measures is clean. It measures every module, not only the ones the plan touched. Its own
+output is then committed with `Documentation: <task> implementation evidence`.
+
+An exit code other than 0 means the plan is not finished after all: the evidence says which module, and whether
+it was a failing test, coverage below the minimum, or a suite that skipped.
+
+`--verify` re-checks an existing evidence file against the current `HEAD` without measuring anything, which is
+how a reader asks whether an archived plan's numbers still describe the code.
+
 ## Formatting
 
 Every Java module formats with Spotless and `palantirJavaFormat`, on one version across the repository, over
