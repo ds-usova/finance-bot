@@ -1,7 +1,9 @@
 package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.ProposalReport;
+import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import java.util.List;
 import java.util.Optional;
@@ -12,10 +14,15 @@ public final class ProposalReportUtils {
 
     private ProposalReportUtils() {}
 
-    // one row of a Confirm and a Delete button carrying the payloads ProposalCallbackData renders, and empty for
-    // a report with no proposals
     public static Optional<InlineKeyboardMarkup> renderKeyboard(ProposalReport report) {
-        return Optional.empty();
+        if (report.proposals().isEmpty()) {
+            return Optional.empty();
+        }
+        InlineKeyboardButton confirm = new InlineKeyboardButton("Confirm")
+                .callbackData(ProposalCallbackData.render(ProposalResolution.ACCEPT, report.reference()));
+        InlineKeyboardButton delete = new InlineKeyboardButton("Delete")
+                .callbackData(ProposalCallbackData.render(ProposalResolution.DISCARD, report.reference()));
+        return Optional.of(new InlineKeyboardMarkup(new InlineKeyboardButton[] {confirm, delete}));
     }
 
     /** No character is escaped, since {@link TelegramMessageDeliveryAdapter} sets no {@code parse_mode}. */

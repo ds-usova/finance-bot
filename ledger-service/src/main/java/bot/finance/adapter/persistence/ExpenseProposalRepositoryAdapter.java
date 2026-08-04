@@ -7,6 +7,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.MessageReference;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,16 +56,25 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
     @Override
     @Transactional
     public int accept(long userId, MessageReference reference, Instant now) {
-        // moves every proposal under the reference into expense in one statement, stamping both timestamps with
-        // now truncated to microseconds, and classifies a RuntimeException as PersistenceFailedException
-        return 0;
+        try {
+            return expenseProposalEntityRepository.accept(
+                    userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to accept proposals for user " + userId + " and message reference " + reference.value(), e);
+        }
     }
 
     @Override
     @Transactional
     public int discard(long userId, MessageReference reference) {
-        // removes every proposal under the reference, classifying a RuntimeException as PersistenceFailedException
-        return 0;
+        try {
+            return expenseProposalEntityRepository.discard(userId, reference.value());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to discard proposals for user " + userId + " and message reference " + reference.value(),
+                    e);
+        }
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

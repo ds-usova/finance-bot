@@ -488,28 +488,28 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ResolveProposalsCommand` · test: `ResolveProposalsCommandTest`
-- [ ] GU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · after: GU01
-- [ ] GU03 · `ProposalCallbackData` · test: `ProposalCallbackDataTest`
-- [ ] GU04 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · after: GU03
-- [ ] GU05 · `ResolutionAcknowledgementUtils` · test: `ResolutionAcknowledgementUtilsTest`
-- [ ] GU06 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: GU01, GU03
-- [ ] GU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
+- [x] GU01 · `ResolveProposalsCommand` · test: `ResolveProposalsCommandTest`
+- [x] GU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · after: GU01
+- [x] GU03 · `ProposalCallbackData` · test: `ProposalCallbackDataTest`
+- [x] GU04 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · after: GU03
+- [x] GU05 · `ResolutionAcknowledgementUtils` · test: `ResolutionAcknowledgementUtilsTest`
+- [x] GU06 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · after: GU01, GU03
+- [x] GU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest`
-- [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
-- [ ] GI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU04, GU05
-- [ ] GI04 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: GU06
-- [ ] GI05 · `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest`
+- [x] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest`
+- [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
+- [x] GI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU04, GU05
+- [x] GI04 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · after: GU06
+- [x] GI05 · `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ResolveProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
-- [ ] GS02 · `ResolveUnknownProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
-- [ ] GS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS04 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS01 · `ResolveProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
+- [x] GS02 · `ResolveUnknownProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
+- [x] GS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS04 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
 
 ### Post-Implementation Steps
 

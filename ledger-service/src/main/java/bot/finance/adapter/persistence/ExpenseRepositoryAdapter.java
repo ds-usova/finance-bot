@@ -38,8 +38,12 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public int countByMessageReference(long userId, MessageReference reference) {
-        // counts the user's expenses under the reference, wrapping a RuntimeException in PersistenceFailedException
-        return 0;
+        try {
+            return expenseEntityRepository.countByMessageReference(userId, reference.value());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to count expenses for user " + userId + " and message reference " + reference.value(), e);
+        }
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

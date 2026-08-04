@@ -68,12 +68,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
         }
         messageDeliveryPort.deliver(new ProposalReport(
-                command.conversationId(),
-                command.inboundMessageId(),
-                outcome,
-                proposals,
-                // TODO GU07: pass the reference minted above
-                null));
+                command.conversationId(), command.inboundMessageId(), outcome, proposals, reference));
         log.info("delivered report for message {} to user {}", reference, user.externalId());
     }
 

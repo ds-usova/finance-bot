@@ -2,19 +2,52 @@ package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.ResolveProposalsCommand;
+import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
+import com.pengrad.telegrambot.model.message.MaybeInaccessibleMessage;
 import java.util.Optional;
 
 public final class TelegramUpdateUtils {
 
     private TelegramUpdateUtils() {}
 
-    // reads the callback query's from, chat, message id, id and data, and skips an update missing any of them
     public static Optional<ResolveProposalsCommand> toResolveProposalsCommand(Update update) {
-        return Optional.empty();
+        if (update == null) {
+            return Optional.empty();
+        }
+        CallbackQuery callbackQuery = update.callbackQuery();
+        if (callbackQuery == null) {
+            return Optional.empty();
+        }
+        User from = callbackQuery.from();
+        if (from == null) {
+            return Optional.empty();
+        }
+        MaybeInaccessibleMessage message = callbackQuery.maybeInaccessibleMessage();
+        if (message == null) {
+            return Optional.empty();
+        }
+        Chat chat = message.chat();
+        if (chat == null) {
+            return Optional.empty();
+        }
+        Optional<ProposalCallbackData.ParsedCallback> parsed = ProposalCallbackData.parse(callbackQuery.data());
+        if (parsed.isEmpty()) {
+            return Optional.empty();
+        }
+        String userExternalId = String.valueOf(from.id());
+        String conversationId = String.valueOf(chat.id());
+        String reportMessageId = String.valueOf(message.messageId());
+        return Optional.of(new ResolveProposalsCommand(
+                userExternalId,
+                conversationId,
+                reportMessageId,
+                callbackQuery.id(),
+                parsed.get().reference(),
+                parsed.get().resolution()));
     }
 
     /**

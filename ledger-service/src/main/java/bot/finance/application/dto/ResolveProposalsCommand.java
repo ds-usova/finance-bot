@@ -1,5 +1,6 @@
 package bot.finance.application.dto;
 
+import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.value.MessageReference;
 
 public record ResolveProposalsCommand(
@@ -11,7 +12,23 @@ public record ResolveProposalsCommand(
         ProposalResolution resolution) {
 
     public ResolveProposalsCommand {
-        // TODO RU01: reject a blank string, an absent reference and an absent resolution with
-        // InvalidIncomingMessageException
+        if (userExternalId == null || userExternalId.isBlank()) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no user external id");
+        }
+        if (conversationId == null || conversationId.isBlank()) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no conversation id");
+        }
+        if (reportMessageId == null || reportMessageId.isBlank()) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no report message id");
+        }
+        if (interactionId == null || interactionId.isBlank()) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no interaction id");
+        }
+        if (reference == null) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no reference");
+        }
+        if (resolution == null) {
+            throw new InvalidIncomingMessageException("resolve-proposals command has no resolution");
+        }
     }
 }
