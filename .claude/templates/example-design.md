@@ -3,7 +3,7 @@
 This is a complete worked example of a design file produced by the `design-task` skill — in a real repo this file
 would live at `docs/1-add-widget/design.md`, beside the `plan.md` written from it. It is illustrated with a
 `Widget` feature purely for concreteness; the classes, the schema format and the failure vocabulary are whatever
-the module's `docs/conventions.md` records (see `.claude/templates/conventions-template.md`). What transfers is the
+the module's `docs/conventions.md` records (see `.claude/templates/conventions/`). What transfers is the
 structure: the sections, their order, and the decision format.
 
 `.claude/templates/example-plan.md` is the plan written from this design — the same feature, one stage later.

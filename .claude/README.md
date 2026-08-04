@@ -1,6 +1,6 @@
 # The workflow framework
 
-`commands/` holds the skills — design, plan, implement, archive, retro. `agents/` holds the sub-agents they
+`commands/` holds the skills — init-conventions, design, plan, implement, archive, retro. `agents/` holds the sub-agents they
 spawn, `scripts/` the mechanics they share, `templates/` the examples they point at.
 
 These files are pulled into other repositories as a plugin. What follows is what keeps them portable.
