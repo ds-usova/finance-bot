@@ -27,6 +27,12 @@ sub-agents via the **`Agent` tool**. The orchestrator's own jobs are:
 work, and the refactor agent on the one it names for deciding work. Only if the module has no such section does a
 spawn fall back to the default model.
 
+**Point a sub-agent at the rule; do not restate it.** A rule the repository writes down is passed as the file
+that owns it, named so the agent reads it there — never as a remembered version of what that file says, which is
+a second copy that can drift and drifts in the one place no review looks. The same applies to counts and
+inventories drawn from the tree: read them, never recall them. A prompt carries the step's own context — its
+target class, its scenarios, what it may not touch — and pointers for everything else.
+
 ## Input Resolution
 
 1. Identify the plan file: use the provided path, else the plan referenced/attached in the conversation, else ask.
@@ -39,11 +45,6 @@ spawn fall back to the default model.
    `docs/conventions.md` if present). The conventions file is the source of truth for the build command, the test
    commands per layer, the architecture-enforcement test, and file locations. Pass the relevant conventions along in
    every sub-agent prompt — sub-agents must not guess build commands.
-
-   **Point a sub-agent at the rule; do not restate it.** A rule the repository writes down is passed as the file
-   that owns it, named so the agent reads it there — never as a remembered version of what that file says, which
-   is a second copy that can drift and drifts in the one place no review looks. The same applies to counts and
-   inventories drawn from the tree: read them, never recall them.
 
 **Addressing the plan.** Every checklist item carries an ID (`GU07`), and `plan.sh` — which ships with these
 instructions at `scripts/plan/plan.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under
@@ -83,17 +84,12 @@ directly. Everything below still applies; only the mechanics change.
 
 ## Version Control
 
-Whether this run commits its own progress is a **module convention, not a skill default.** Read the module's
-**Version Control** section (if present) once, alongside the other conventions in step 3 above:
+Whether this run commits at all, and how, is the module's **Version Control** section — read it with the other
+conventions in step 3 above. Where a stage below says "commit per the Version Control policy," that section is
+what it means. Stage 0 is the exception: nothing has changed yet, so it needs no commit.
 
-- If it says to commit at stage boundaries, commit after each stage guardrail below passes (Stage 0 baseline does
-  not need its own commit — nothing has changed yet), using the granularity, message format, squash, and branch
-  policy it specifies.
-- If it is silent, missing, or says not to commit: **make no commits.** The orchestrator never invents a commit
-  policy — an uninvited commit is exactly the kind of change a user managing their own history does not want.
-
-Where a stage below says "commit per the Version Control policy," this section is what that means; no further
-instruction is repeated at each stage.
+**A missing or silent section means no commits.** The orchestrator never invents a commit policy — an uninvited
+commit is exactly the kind of change a user managing their own history does not want.
 
 ## Plan-Readiness Gate (before Stage 0)
 
