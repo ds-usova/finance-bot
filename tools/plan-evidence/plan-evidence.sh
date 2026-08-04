@@ -241,7 +241,6 @@ module_list="$(printf '%s ' "${modules[@]}")"
     echo "| Commit       | \`$head_sha\` on \`$branch\` |"
     echo "| Working tree | $tree_state |"
     echo "| Generated    | $generated |"
-    echo "| Reproduce    | \`tools/plan-evidence/plan-evidence.sh --plan $plan_rel\` |"
     echo ""
     echo "## Modules"
     echo ""
@@ -271,6 +270,23 @@ module_list="$(printf '%s ' "${modules[@]}")"
                 echo "| $module | \`$class\` | $percent | $missed |"
             done
     fi
+
+    # Fenced as shell rather than left in the table above: an IDE puts a run action on a fenced
+    # command, which is the difference between evidence a reader can check and one they can only read.
+    echo ""
+    echo "## Check this evidence"
+    echo ""
+    echo "Does it still describe the current code?"
+    echo ""
+    echo '```shell'
+    echo "bash tools/plan-evidence/plan-evidence.sh --plan $plan_rel --verify"
+    echo '```'
+    echo ""
+    echo "Measure it again from scratch, rewriting this file:"
+    echo ""
+    echo '```shell'
+    echo "bash tools/plan-evidence/plan-evidence.sh --plan $plan_rel"
+    echo '```'
 } > "$evidence_md"
 
 {

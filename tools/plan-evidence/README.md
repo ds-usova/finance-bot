@@ -54,6 +54,10 @@ is still current — anything outside `docs/` is stale.
 The run directories are **not** in the file. They are `build/` paths: gone by the time anyone pulls the commit,
 and pruned locally after twenty runs. The script prints them as it measures, which is when they are worth having.
 
+It ends with a **Check this evidence** section holding the `--verify` and the re-measure command, each in its own
+`shell` fence — IntelliJ IDEA puts a run action in the gutter of a fenced command, so checking the file is a click
+from reading it. Both are spelled `bash tools/…`, which runs the same way on Windows as it does elsewhere.
+
 ### Skipped tests are called out, not hidden
 
 A suite where Docker is not running skips its container-based classes and still reports every remaining test
