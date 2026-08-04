@@ -703,8 +703,11 @@
 - **B5 (wording, raised by the Stage 4 refactor):** `user-message.st` now reads "sending that grouping as its
   grouping" (ST20, per D11). It is accurate but reads oddly to a model; "sending that grouping as the `grouping`
   argument" would be plainer.
-- Resolution: left as designed — the line is settled by D11 and is asserted text. Worth revisiting only if the
-  model's grouping selection degrades in practice.
+- Resolution: **reworded after archiving**, at the developer's request. The line now reads "sending that same
+  grouping with it" — "that same" pins the referent to the grouping just looked up, and the tautology is gone.
+  The prompt keeps its plain register rather than naming the `grouping` argument, since the system prompt already
+  says "Fill each argument from what the tool says it takes". `AiExpenseRecordingAdapterTest`'s assertion moved
+  with it; `ai-provider.md`'s paraphrase was already wording-independent.
 
 ## Review Findings
 

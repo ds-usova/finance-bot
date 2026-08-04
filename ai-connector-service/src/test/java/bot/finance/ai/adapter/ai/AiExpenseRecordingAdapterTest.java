@@ -176,7 +176,7 @@ class AiExpenseRecordingAdapterTest {
                     .contains(CATCH_ALL_GROUPING)
                     .contains("EUR")
                     .contains(TEXT)
-                    .contains("sending that grouping as its grouping")
+                    .contains("sending that same grouping with it")
                     .doesNotContain(">");
 
             JsonNode tools = body.get("tools");
