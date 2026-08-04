@@ -641,7 +641,7 @@
 
 #### ADRs
 
-- [ ] P01 · Append one dated line to
+- [x] P01 · Append one dated line to
   [ADR 0003](../../ledger-service/docs/adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)'s
   **Consequences**: the two-level rule is now carried by the domain types rather than by a constructor check.
   `Status:` unchanged, no new ADR (D16). Authorized by **Q1**.
