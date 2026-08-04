@@ -44,6 +44,19 @@ system and direction**, not a single pair of inbound and outbound boxes.
 A reader then sees what a change to one partner system reaches, which is the question a component diagram is read
 to answer.
 
+**A layer boundary splits by the kind of type it holds** when one box would otherwise carry a mixed crowd — a use
+case, its command, the read model it answers and the port it calls, all in `application`.
+
+- **Label**: the layer, then the kind — `domain — values`, `domain — entities`, `application — usecases and
+  ports`, `application — dto`, `adapter (outbound) — Postgres — entities`. The same grammar as a partner-system
+  box, so the two read as one list.
+- **Kinds are the package names**: `model` is entities, `value` is values, `dto` is read models and commands.
+  A box for a kind the module does not separate in code is a distinction the reader cannot follow back.
+- **Split only what the change is about.** A layer holding three components is one box; splitting it spends a
+  border to say nothing.
+- **Boundaries stay siblings, never nested.** A box inside a box renders as depth the model does not have, and
+  the layer is already named in every label.
+
 ## Layout
 
 A structure diagram reads left to right along the call chain: **whoever initiates on the left**, the service's own
