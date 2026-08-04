@@ -71,6 +71,10 @@
       "Bash(sed -i:*)"
     ],
     "deny": [
+      "Edit(**/evidence.md)",
+      "Edit(**/evidence.json)",
+      "Write(**/evidence.md)",
+      "Write(**/evidence.json)",
       "Bash(echo:*)",
       "Bash(xargs:*)",
       "Bash(cd:*)",
@@ -133,6 +137,11 @@
             "if": "Bash(awk *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-awk-range.ps1')\""
+          },
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-evidence-write.ps1')\""
           },
           {
             "type": "command",

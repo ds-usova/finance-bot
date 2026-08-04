@@ -73,10 +73,16 @@ two spellings breaks the path arithmetic. `.gitattributes` pins `*.sh` to LF.
 
 ## Where it stops
 
-**It is evidence, not proof.** The file lives in the repository and can be edited like any other. What it gives
-a reader is a commit SHA and a command: `--verify` says whether the file still describes `HEAD`, and re-running
-without it reproduces every number from scratch. A file that cannot survive either check is not evidence of
-anything.
+**It is evidence, not proof.** What the file gives a reader is a commit SHA and a command: `--verify` says
+whether it still describes `HEAD`, and re-running without it reproduces every number from scratch. A file that
+cannot survive either check is not evidence of anything.
+
+The agent's permissions narrow the ways it could be written by something other than this script — `Edit` and
+`Write` on `evidence.md` and `evidence.json` are denied outright, and a `PreToolUse` hook
+(`.claude/scripts/hooks/deny-evidence-write.ps1`) rejects a shell command that names one, unless the command is a
+`git` verb that only stages, commits or reads it. That closes the routes an agent would actually take. It is not a
+security boundary: the file is in the repository, and anyone with an editor can change it. The SHA is what makes
+the change detectable.
 
 **It measures the tree, not the plan.** It cannot tell that the tests it ran are the tests the plan asked for,
 or that a passing suite covers the behaviour the plan describes. Whether the right tests exist is what the plan's
