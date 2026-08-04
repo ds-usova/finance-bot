@@ -205,24 +205,47 @@ Covers the plan's **Red Phase** group — its **TDD Unit Red Phase**, **TDD Inte
 System Test Red Phase** sections. Writing tests has no cross-dependencies — the stubs they compile against all
 exist after Stage 1 — so:
 
-- Spawn **one sub-agent per unchecked checklist item**, across all three red sections — `plan.sh next --group red`
-  lists them, and reports the stage finished rather than rolling into Green. Respect the module
-  conventions' **Parallelism** section: if it sets a max parallel RED-phase sub-agents count, spawn no more than
-  that many at once, launching the next queued item as each running one finishes, until the whole batch is done. If
-  the section is missing or silent, spawn everything at once, uncapped — the step count in the plan is the batch
-  size.
-- Spawn each item on the agent matching its kind, passing the parsed step context (target class, test class,
-  covered methods, and the given/when/then scenarios verbatim) and the module conventions:
+- Collect the unchecked items across all three red sections — `plan.sh next --group red` lists them, and reports
+  the stage finished rather than rolling into Green — then **bundle them by package and layer** (see below) and
+  spawn one sub-agent per bundle. Respect the module conventions' **Parallelism** section: if it sets a max
+  parallel RED-phase sub-agents count, spawn no more than that many at once, launching the next queued bundle as
+  each running one finishes. If the section is missing or silent, spawn everything at once, uncapped.
+- Spawn each bundle on the agent matching its layer, passing every one of its steps' context (target class, test
+  class, covered methods, and the given/when/then scenarios verbatim) and the module conventions:
     - unit steps → `tdd-unit-red-phase-step`
     - integration steps → `tdd-integration-red-phase-step`
     - system steps → `tdd-system-red-phase-step`
 
-**Per-step guardrail** (the sub-agent verifies; the orchestrator trusts the reports — the stage guardrail below is
-the systematic check): the test class it wrote **compiles cleanly and fails at runtime**. A red test that passes against
-a stub is as much a defect as one
-that doesn't compile — it means the test asserts nothing — with one exception: tests asserting the *absence* of
-behaviour (e.g. "no exception is thrown") may legitimately pass against a no-op stub, and sub-agents list those as
-expected passes in their reports rather than rework them. Production code must not be touched in this stage.
+**Bundle by package and layer, not by class.** Steps whose target classes share a package *and* a layer go to one
+sub-agent. They read the same collaborators, the same test infrastructure and the same design decisions, and split
+across agents they reconstruct all three separately — or worse, are told to mirror a sibling file they are
+forbidden to read. The layer half of the key keeps the agent types intact where a package holds both (a pure
+mapper beside its adapter's slice test).
+
+The bundled agent **reports per step ID**, and the orchestrator ticks each separately. A bundle starts only when
+every step in it is eligible, so leave a step out of the bundle rather than hold the bundle for it.
+
+**Prefer a wave that spans modules.** Modules do not share a test source set, so agents in different modules never
+collide; agents in one module do. When the cap forces a choice among eligible bundles, take them from different
+modules first.
+
+**Per-step guardrail**: the test classes written **compile cleanly and fail at runtime**. A red test that passes
+against a stub is as much a defect as one that doesn't compile — it means the test asserts nothing — with one
+exception: tests asserting the *absence* of behaviour (e.g. "no exception is thrown") may legitimately pass
+against a no-op stub, and are listed as expected passes rather than reworked. Production code must not be touched
+in this stage.
+
+**Who runs that guardrail depends on how many agents share a source set.** A module's test sources compile as one
+unit, so a second agent's half-written file fails the first agent's run — and even without a collision, N agents
+mean N full compilations of the same source set.
+
+- **One bundle in a module this wave** — the sub-agent verifies itself and reports the result.
+- **More than one** — the sub-agents **do not run tests at all**. Say so in the prompt: write the files, report,
+  verify nothing. The orchestrator runs the module's suite **once** when the wave is done and maps each failure
+  back to a step by its test class name, re-delegating only what actually failed.
+
+Never let an agent wait out or work around a compile error in a file it does not own. That is the other agent's
+work in progress, and the wave's single verification is where it resolves.
 
 Tick each item as its sub-agent reports success. If one reports a blocker, leave the item unchecked, record the
 blocker, and let the rest of the batch continue — one failed step does not stop the stage, but the stage is only
@@ -297,9 +320,14 @@ implementation lands here.
 
    Unit items run on `tdd-unit-green-phase-step` and integration items on `tdd-integration-green-phase-step`,
    each passed its step context and the module conventions.
-    - **One class = one sub-agent**: the plan structure normally gives each target class exactly one green item, so
-      no two parallel sub-agents ever edit the same production file. If two items do name the same target class,
-      merge them into a single sub-agent task covering both — never hand the same class to multiple parallel agents.
+    - **Bundle by package and layer, as in Stage 2**, and for the same reasons — plus one this phase owns: a
+      production class is edited here, and two classes in one package routinely pull on a third. Two adapters in
+      the same package will both reach for a mapping method on the entity they share. Bundling by package gives
+      that entity one owner; bundling by class leaves the race to luck. Never hand one production class to two
+      parallel agents.
+    - **Verification follows the same rule as Stage 2**: one bundle in a module this wave and the sub-agent
+      verifies itself; more than one and they write only, while the orchestrator runs the module's suite once at
+      the end of the wave and re-delegates what failed.
 2. Wait until every item in the unit + integration batch is ticked or recorded as blocked. Tick items as they
    succeed; run the module's unit and integration suites once the batch is done and confirm both are fully green
    before proceeding. Once green, commit per the Version Control policy (if its granularity commits per wave —
