@@ -35,8 +35,8 @@ No category is sent. The groupings travel as bare names, and the model is told t
 ledger which categories it holds, and file the expense under one of those — sending that grouping as the
 category's parent. The grouping to use when none fits is named in the same message.
 
-The model converts a stated amount into the currency's minor units. The rule it reads that from is the tool's
-own argument schema, not these instructions.
+The model sends a stated amount exactly as the message writes it, in the currency's main unit, and never
+converts it. The rule it reads that from is the tool's own argument schema, not these instructions.
 
 The standing instructions describe the task, the order and the retry policy, and name no tool, no argument and
 no format. The lookup tool is named once, in the per-turn message that carries the groupings; every argument

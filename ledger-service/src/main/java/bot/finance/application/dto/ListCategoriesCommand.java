@@ -10,7 +10,7 @@ public record ListCategoriesCommand(AuthenticatedUserId userId, String parentCat
             throw new InvalidCategoryException("list categories command has no userId");
         }
         if (parentCategoryName == null || parentCategoryName.isBlank()) {
-            throw new InvalidCategoryException("list categories command has no parentCategoryName");
+            throw new InvalidCategoryException("list categories command has no parent category");
         }
     }
 }

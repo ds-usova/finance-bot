@@ -29,7 +29,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     private static final String CALLER_TOKEN = "Bearer opaque-caller-token";
 
     /** The grouping the scenarios file under — one of the fixture's own, so no literal is repeated. */
-    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
+    private static final String GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.getFirst();
 
     private static String proposalArguments() {
         return """
