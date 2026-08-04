@@ -382,7 +382,9 @@ Once the guardrail holds, commit per the Version Control policy.
    `- Action:` on a Review Finding that prescribes content.
 2. **Whole-plan guardrail** — run yourself, from the conventions' commands: the module(s) fully compile, the
    architecture-enforcement test passes, and **the entire test suite is green** — not just the classes this plan
-   touched.
+   touched. If the module conventions name a **coverage guardrail**, run it here too — this is the first point at
+   which every step exists, so it is the only point where a coverage figure means anything. Coverage below the
+   minimum is a blocker: add the tests that close the gap, or record why under `### Open Questions / Blockers`.
 3. Only when the guardrail holds and **no `- [ ]` remains anywhere in the plan file**, move the plan's **whole
    task directory** — `docs/<n>-<task-name>/`, holding `plan.md`, the `design.md` its `**Design:**` header links,
    and anything else the task accumulated — into `docs/implemented/`. Moving the directory rather than the files

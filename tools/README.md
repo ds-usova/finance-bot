@@ -3,11 +3,12 @@
 Scripts that support working on this repository, rather than anything it ships. Each one lives in its own
 directory with its README and whatever helper files it needs, so a tool is added or removed in one place.
 
-| Tool                                      | What it answers                                          |
-|-------------------------------------------|----------------------------------------------------------|
-| [`agent-test/`](agent-test/README.md)     | Did the module compile, which tests failed, and why.     |
-| [`inspect-jar/`](inspect-jar/README.md)   | What is inside a dependency already in the Gradle cache. |
-| [`repad-tables/`](repad-tables/README.md) | Realigns the markdown tables in the files it is given.   |
+| Tool                                        | What it answers                                            |
+|---------------------------------------------|------------------------------------------------------------|
+| [`agent-test/`](agent-test/README.md)       | Did the module compile, which tests failed, is it covered. |
+| [`inspect-jar/`](inspect-jar/README.md)     | What is inside a dependency already in the Gradle cache.   |
+| [`plan-evidence/`](plan-evidence/README.md) | Was a finished plan's suite green and its coverage met.    |
+| [`repad-tables/`](repad-tables/README.md)   | Realigns the markdown tables in the files it is given.     |
 
 Run them with bash from the **repository root** — on Windows, a Git Bash prompt:
 

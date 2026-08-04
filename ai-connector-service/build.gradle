@@ -77,6 +77,40 @@ jacoco {
     toolVersion = "${jacocoVersion}"
 }
 
+// Generated protobuf and gRPC stubs compile into main output and are never exercised directly.
+// The report and the rule share one filter, so a reported percentage is the one being enforced.
+def coveredClasses = { task ->
+    task.classDirectories.setFrom(files(task.classDirectories.files.collect {
+        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "**/*Application.class"])
+    }))
+}
+
+tasks.named("jacocoTestReport") {
+    coveredClasses(it)
+
+    // CSV is what tools/plan-evidence reads: one row per class, no XML parsing in a shell script.
+    reports {
+        csv.required = true
+        html.required = true
+    }
+}
+
+// Deliberately not wired into `test` or `check`: a filtered run and a half-implemented plan both
+// have every right to low coverage. tools/agent-test/agent-test.sh --coverage names this task.
+tasks.named("jacocoTestCoverageVerification") {
+    dependsOn tasks.named("test")
+    coveredClasses(it)
+
+    violationRules {
+        rule {
+            limit {
+                counter = "INSTRUCTION"
+                minimum = coverageMinimum.toBigDecimal()
+            }
+        }
+    }
+}
+
 spotless {
     java {
         target "src/main/java/**/*.java", "src/test/java/**/*.java"

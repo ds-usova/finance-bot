@@ -8,9 +8,11 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 | `--module`               | `ledger-service`                                 |
 | Test package root        | `bot.finance`                                    |
 | Architecture-enforcement | `bot.finance.architecture.CleanArchitectureTest` |
+| Coverage minimum         | `0.85` instructions                              |
 
 ## Module Tasks
 
+- Coverage guardrail: `tools/agent-test/agent-test.sh --module ledger-service --coverage`
 - Coverage report (JaCoCo): `ledger-service/gradlew -p ledger-service test jacocoTestReport`
 - Reformat to style (Spotless): `ledger-service/gradlew -p ledger-service spotlessApply`
 - Check formatting (Spotless): `ledger-service/gradlew -p ledger-service spotlessCheck` — runs as part of `check`

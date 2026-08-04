@@ -34,6 +34,7 @@ tools/agent-test/agent-test.sh --module ai-connector-service --all
 | `--tests <pattern>` | JUnit pattern to run; repeatable. Omit (or `--all`) to run the whole suite. |
 | `--compile`         | Compile main and test sources only; run no tests.                           |
 | `--all`             | Run the whole suite. The default when no `--tests` is given.                |
+| `--coverage`        | Run the whole suite, then the coverage guardrail. Refuses `--tests`.        |
 | `--label <name>`    | Prefix of the run directory. Defaults to the test class name.               |
 | `--wait <seconds>`  | How long to wait for another run to finish before giving up. Default 540.   |
 | `--no-lock`         | Start immediately even if another run is in progress.                       |
@@ -66,7 +67,8 @@ The summary goes to stdout and to `summary.txt` inside a run directory of its ow
     test-report/     the HTML report
 ```
 
-The verdict is one of `PASS`, `FAIL`, `COMPILES`, `COMPILE ERROR`, `NO TESTS RAN`, or `NOT RUN`. Failures carry
+The verdict is one of `PASS`, `FAIL`, `COVERAGE BELOW MINIMUM`, `COMPILES`, `COMPILE ERROR`, `NO TESTS RAN`, or
+`NOT RUN`. Failures carry
 their assertion message and the stack frames inside `bot.finance`; the framework frames are dropped, because they
 never say what to fix. Anything the summary leaves out — a full stack trace, printed application logs — is in
 `console.log` next to it.
@@ -117,6 +119,22 @@ The runner compensates: whenever `--tests` is given and no pattern mentions `arc
 ArchUnit engine for that run. Name the architecture test explicitly to run it, and note that `--all` always
 includes it.
 
+## The coverage guardrail
+
+`--coverage` runs the whole suite and then `jacocoTestCoverageVerification`, which fails the build when
+instruction coverage falls below the module's `coverageMinimum` in its `gradle.properties`.
+
+- **Opt-in only.** The verification task is wired into neither `test` nor `check`, so it runs when this flag
+  names it and at no other time. A filtered run, a wave of a plan in progress, and a plain `--all` are all
+  free to be under the threshold.
+- **Whole suite or nothing.** Combining `--coverage` with `--tests` or `--compile` is refused: a partial run
+  measures partial coverage, and the resulting ratio would mean nothing.
+- **Excluded from the ratio.** The generated protobuf and gRPC stubs under `bot/finance/ai/adapter/grpc/v1`,
+  and each module's `*Application` class.
+- **In the summary.** A `== Coverage ==` section, carrying either the violated rules or a line saying the
+  guardrail was met. Tests green and coverage short reads as `COVERAGE BELOW MINIMUM`, not `FAIL`.
+- **Per-class detail.** `<module>/build/reports/jacoco/test/html/index.html`, written by the same run.
+
 ## Docker
 
 Docker must be running for the container-based tests. Every test class that uses containerized infrastructure
@@ -147,5 +165,5 @@ writer starts paying for its cold build cache, and it removes the shared-source-
 reach.
 
 Raw `./gradlew …` from a module's own directory still works and remains the way to run a task the runner does
-not wrap, such as `jacocoTestReport`. Two raw invocations at once will clobber each other's results in
+not wrap, such as `spotlessApply`. Two raw invocations at once will clobber each other's results in
 `build/test-results/test/`, which is what the runner exists to prevent.

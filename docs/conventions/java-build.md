@@ -16,6 +16,7 @@ with bash from the **repository root**, takes the same JUnit patterns Gradle doe
 tools/agent-test/agent-test.sh --module <module> --compile
 tools/agent-test/agent-test.sh --module <module> --tests "<package>.<TestClassName>"
 tools/agent-test/agent-test.sh --module <module> --all
+tools/agent-test/agent-test.sh --module <module> --coverage
 ```
 
 Name a test class in full. The architecture tests ignore Gradle's filter, so a wildcard pattern would pull them
@@ -55,6 +56,39 @@ the command a generous timeout, and let a run finish instead of interrupting and
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are in
 [`tools/agent-test/README.md`](../../tools/agent-test/README.md).
+
+## Test Coverage
+
+Every Java module carries a coverage guardrail: `jacocoTestCoverageVerification` fails the build when
+instruction coverage is below the `coverageMinimum` in the module's `gradle.properties`, currently `0.85` in
+both. Generated protobuf and gRPC stubs and the `*Application` class are outside the measured set.
+
+The guardrail belongs to neither `test` nor `check`. It runs only when `--coverage` names it, over the whole
+suite — a run filtered to one class, and a plan whose later steps have not been written yet, are both expected
+to be short of the threshold and are never failed for it. The verdict for a green suite under the minimum is
+`COVERAGE BELOW MINIMUM`, and the summary's `== Coverage ==` section names each violated rule.
+
+Where it is worth running: at the end of a change, once every step of it is implemented.
+
+## Evidence for a Finished Plan
+
+A finished plan carries `evidence.md` and `evidence.json` beside it, written by
+[`tools/plan-evidence/plan-evidence.sh`](../../tools/plan-evidence/README.md) — the verdict, the commit it was
+measured on, and a row per module with its test counts and its coverage against the minimum:
+
+```
+tools/plan-evidence/plan-evidence.sh --plan docs/implemented/<n>-<task>/plan.md
+```
+
+It runs **after the plan directory is archived and committed**, so the commit it names is the one that finished
+the work and the tree it measures is clean. It measures every module, not only the ones the plan touched. Its own
+output is then committed with `Documentation: <task> implementation evidence`.
+
+An exit code other than 0 means the plan is not finished after all: the evidence says which module, and whether
+it was a failing test, coverage below the minimum, or a suite that skipped.
+
+`--verify` re-checks an existing evidence file against the current `HEAD` without measuring anything, which is
+how a reader asks whether an archived plan's numbers still describe the code.
 
 ## Formatting
 

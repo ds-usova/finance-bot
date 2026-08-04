@@ -8,9 +8,11 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 | `--module`               | `ai-connector-service`                              |
 | Test package root        | `bot.finance.ai`                                    |
 | Architecture-enforcement | `bot.finance.ai.architecture.CleanArchitectureTest` |
+| Coverage minimum         | `0.85` instructions                                 |
 
 ## Module Tasks
 
+- Coverage guardrail: `tools/agent-test/agent-test.sh --module ai-connector-service --coverage`
 - Coverage report (JaCoCo): `ai-connector-service/gradlew -p ai-connector-service test jacocoTestReport`
 - Reformat to style (Spotless): `ai-connector-service/gradlew -p ai-connector-service spotlessApply`
 - Check formatting (Spotless): `ai-connector-service/gradlew -p ai-connector-service spotlessCheck` — runs as

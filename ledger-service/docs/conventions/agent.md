@@ -71,7 +71,13 @@ their work in progress, not a finding. Reconciling across steps is the orchestra
 What runs once a plan is finished — every item ticked, the guardrail green, the plan file moved to
 `docs/implemented/`. A run that ends with anything open runs none of them.
 
-1. `archive-knowledge`, given the archived plan: a document per usecase class with its collaborators on both
+1. `tools/plan-evidence/plan-evidence.sh --plan <the archived plan>`: measures every module and writes
+   `evidence.md` and `evidence.json` into the archived plan's directory — see
+   [Evidence for a Finished Plan](../../../docs/conventions/java-build.md#evidence-for-a-finished-plan). It runs
+   first, so the commit it records is the one that closed the plan. Commit its output as
+   `Documentation: <task> implementation evidence`. A non-zero exit means the plan is not finished: report the
+   verdict rather than continuing down this list.
+2. `archive-knowledge`, given the archived plan: a document per usecase class with its collaborators on both
    sides, the contracts with the systems around the service, and the ADRs the plan was authorized to record.
    Commits its own output.
 
