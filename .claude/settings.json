@@ -34,6 +34,7 @@
       "Bash(git show:*)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
+      "Bash(git restore --source=:*)",
       "Bash(git check-ignore:*)",
       "Bash(docker info:*)",
       "Bash(bash -n:*)",
