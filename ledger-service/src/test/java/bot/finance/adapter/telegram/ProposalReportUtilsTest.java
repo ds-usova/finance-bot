@@ -1,22 +1,30 @@
 package bot.finance.adapter.telegram;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bot.finance.application.dto.ProposalReport;
+import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ProposalReportUtilsTest {
 
@@ -169,6 +177,84 @@ class ProposalReportUtilsTest {
 
             assertThat(text).contains("weekly *shop_ trip");
             assertThat(text).doesNotContain("\\*").doesNotContain("\\_");
+        }
+    }
+
+    @Nested
+    @DisplayName("rendering a proposal report's Confirm/Delete keyboard")
+    class RenderKeyboard {
+
+        @Test
+        @DisplayName(
+                "when a RECORDED report carries two summaries and a reference - then returns a markup of exactly one row of two buttons, Confirm carrying ACCEPT's payload and Delete carrying DISCARD's payload")
+        void whenRecordedReportCarriesTwoSummariesAndReference_thenReturnsOneRowOfConfirmAndDeleteButtons() {
+            MessageReference reference = MessageReference.newReference();
+            ProposalSummary first =
+                    new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
+            ProposalSummary second =
+                    new ProposalSummary("Auto", "Fuel", "tank refill", Optional.empty(), new Money(6000, EUR));
+            ProposalReport report =
+                    new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(first, second), reference);
+
+            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+
+            assertThat(markup).isPresent();
+            InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
+            assertThat(rows).hasDimensions(1, 2);
+            assertThat(rows[0][0].text()).isEqualTo("Confirm");
+            assertThat(rows[0][0].callbackData())
+                    .isEqualTo(ProposalCallbackData.render(ProposalResolution.ACCEPT, reference));
+            assertThat(rows[0][1].text()).isEqualTo("Delete");
+            assertThat(rows[0][1].callbackData())
+                    .isEqualTo(ProposalCallbackData.render(ProposalResolution.DISCARD, reference));
+        }
+
+        @Test
+        @DisplayName(
+                "when a PARTIAL report carries one summary and a reference - then returns the same one-row, two-button markup")
+        void whenPartialReportCarriesOneSummaryAndReference_thenReturnsSameOneRowTwoButtonMarkup() {
+            MessageReference reference = MessageReference.newReference();
+            ProposalSummary summary =
+                    new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
+            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.PARTIAL, List.of(summary), reference);
+
+            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+
+            assertThat(markup).isPresent();
+            InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
+            assertThat(rows).hasDimensions(1, 2);
+            assertThat(rows[0][0].text()).isEqualTo("Confirm");
+            assertThat(rows[0][1].text()).isEqualTo("Delete");
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("outcomesWithNoSummaries")
+        @DisplayName("when a NOTHING_IDENTIFIED report and a FAILED report both have no summaries - then returns empty")
+        void whenNothingIdentifiedAndFailedReportsHaveNoSummaries_thenReturnsEmpty(
+                String description, ReportOutcome outcome) {
+            ProposalReport report = new ProposalReport("555", "1", outcome, List.of(), MessageReference.newReference());
+
+            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+
+            assertThat(markup).isEmpty();
+        }
+
+        static Stream<Arguments> outcomesWithNoSummaries() {
+            return Stream.of(
+                    arguments("NOTHING_IDENTIFIED", ReportOutcome.NOTHING_IDENTIFIED),
+                    arguments("FAILED", ReportOutcome.FAILED));
+        }
+
+        @Test
+        @DisplayName(
+                "when a RECORDED report's summary list is empty - then returns empty, since the outcome does not decide it, the proposal list does")
+        void whenRecordedReportSummaryListIsEmpty_thenReturnsEmpty() {
+            ProposalReport report =
+                    new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(), MessageReference.newReference());
+
+            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+
+            assertThat(markup).isEmpty();
         }
     }
 }

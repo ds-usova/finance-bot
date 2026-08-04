@@ -21,10 +21,13 @@ import bot.finance.common.WireMockStubs;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
+import java.io.IOException;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.List;
@@ -150,7 +153,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 + "expense_proposal row is stored under the reference the bearer token's mrf claim "
                 + "carries; and one sendMessage reply names the recorded proposal")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
-                throws ParseException {
+                throws ParseException, IOException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -249,6 +252,25 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(replyParameters(sendMessageRequest).get("message_id").asText())
                     .as("sendMessage reply_parameters message_id")
                     .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
+
+            assertThat(sendMessageRequest.formParameter("reply_markup").isPresent())
+                    .as("sendMessage reply_markup form param is present")
+                    .isTrue();
+            JsonNode replyMarkup = new ObjectMapper()
+                    .readTree(sendMessageRequest
+                            .formParameter("reply_markup")
+                            .getValues()
+                            .get(0));
+            JsonNode buttonRow = replyMarkup.get("inline_keyboard").get(0);
+            assertThat(buttonRow)
+                    .as("one row of buttons in the report's keyboard")
+                    .hasSize(2);
+            List<String> callbackDataValues = List.of(
+                    buttonRow.get(0).get("callback_data").asText(),
+                    buttonRow.get(1).get("callback_data").asText());
+            assertThat(callbackDataValues)
+                    .as("both buttons' callback_data carry the mrf claim's message reference")
+                    .allSatisfy(callbackData -> assertThat(callbackData).endsWith(messageReferenceClaim));
         }
     }
 }

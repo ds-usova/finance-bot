@@ -169,7 +169,7 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ResolveProposalsCommand` · test: `ResolveProposalsCommandTest` · covers: compact constructor
+- [x] RU01 · `ResolveProposalsCommand` · test: `ResolveProposalsCommandTest` · covers: compact constructor
     - compact constructor:
         - given: a non-blank user external id, conversation id, report message id and interaction id, a present
           reference and a present resolution
@@ -193,7 +193,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: a null `resolution`
           when: the record is constructed
           then: throws `InvalidIncomingMessageException`
-- [ ] RU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · covers: `resolve()`
+- [x] RU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · covers: `resolve()`
     - `resolve()`:
         - given: nothing stubbed
           when: `resolve(null)` is called
@@ -235,7 +235,7 @@ New-method stubs carry a short inline comment describing the implementation inte
           then: one `info` line is logged whose arguments carry a `MessageReference`, the `ProposalResolution`,
           the `ResolutionOutcome` and the count — the outcome leaves no other trace once the tap is answered
           (D26, D37)
-- [ ] RU03 · `ProposalCallbackData` · test: `ProposalCallbackDataTest` · covers: `render()`, `parse()`
+- [x] RU03 · `ProposalCallbackData` · test: `ProposalCallbackDataTest` · covers: `render()`, `parse()`
     - `render()`:
         - given: `ACCEPT` and a reference
           when: `render` is called
@@ -263,7 +263,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: `null`, `""`, `"   "`, a payload with no colon, and a bare `accept:`
           when: `parse` is called
           then: returns empty
-- [ ] RU04 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · covers: `renderKeyboard()`
+- [x] RU04 · `ProposalReportUtils` · test: `ProposalReportUtilsTest` · covers: `renderKeyboard()`
     - `renderKeyboard()`:
         - given: a `RECORDED` report carrying two summaries and a reference
           when: `renderKeyboard` is called
@@ -279,7 +279,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: a `RECORDED` report whose summary list is empty
           when: `renderKeyboard` is called
           then: returns empty — the outcome does not decide it, the proposal list does (D1)
-- [ ] RU05 · `ResolutionAcknowledgementUtils` · test: `ResolutionAcknowledgementUtilsTest` · covers: `render()`
+- [x] RU05 · `ResolutionAcknowledgementUtils` · test: `ResolutionAcknowledgementUtilsTest` · covers: `render()`
     - `render()`:
         - given: an `ACCEPTED` acknowledgement with a count of 2, and one with a count of 1
           when: `render` is called
@@ -296,7 +296,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: every `ResolutionOutcome`, each with a count of 999
           when: `render` is called
           then: the result is at most 200 characters, the limit `answerCallbackQuery` imposes on its text (D9)
-- [ ] RU06 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers: `toResolveProposalsCommand()`
+- [x] RU06 · `TelegramUpdateUtils` · test: `TelegramUpdateUtilsTest` · covers: `toResolveProposalsCommand()`
     - `toResolveProposalsCommand()`:
         - given: an update carrying a callback query with an id, a `from`, a message with a chat and a message id,
           and the data `accept:<uuid>`
@@ -311,7 +311,7 @@ New-method stubs carry a short inline comment describing the implementation inte
           query with no message, and a callback query whose data is `noop`
           when: `toResolveProposalsCommand` is called
           then: returns empty for each (D11)
-- [ ] RU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] RU07 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
     - `handle()`:
         - update: `whenExtractionSucceedsWithSummaries_thenDeliverReceivesRecordedReport()` — assert the delivered
           report's new reference component is the same `MessageReference` the captured `IntentExtractionRequest`
@@ -319,7 +319,7 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
+- [x] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
   `accept()`, `discard()`
     - `accept()`:
         - given: a stored user with a stored grouping and category, two proposal rows under one reference (one
@@ -356,7 +356,7 @@ New-method stubs carry a short inline comment describing the implementation inte
           raise, in the nested class that already exists for exactly that
           when: each adapter method is called
           then: throws `PersistenceFailedException` carrying the framework exception as its cause
-- [ ] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers:
+- [x] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers:
   `countByMessageReference()`. Every scenario below seeds its `expense` rows by inserting an `ExpenseEntity`
   carrying the reference through `JdbcAggregateTemplate`, the way `ExpenseProposalRowUtils.storedProposal` seeds a
   proposal row — `adapter.create` cannot produce one, since it writes the column as `null` (D39)
@@ -381,7 +381,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - update: `whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedExpenseCarriesGeneratedId()` —
           `ExpenseEntity` gained `messageReference`; assert the written row's `messageReference()` is null, since
           `create` builds no reference (D39)
-- [ ] RI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers: `deliver()`,
+- [x] RI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers: `deliver()`,
   `acknowledge()`
     - `deliver()`:
         - given: a `RECORDED` report carrying two summaries and a reference, over a bot WireMock accepts
@@ -426,7 +426,7 @@ New-method stubs carry a short inline comment describing the implementation inte
         - given: a bot pointed at an address that refuses the connection
           when: `acknowledge` is called
           then: throws `MessageDeliveryFailedException` carrying the client exception as its cause
-- [ ] RI04 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: a polled `callback_query`
+- [x] RI04 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: a polled `callback_query`
   update · mocks: `HandleIncomingMessagePort`, `ResolveProposalsPort`
     - Happy Path:
         - given: `ResolveProposalsPort` mocked, and the loop started with `allowed_updates` carrying both `message`
@@ -445,7 +445,7 @@ New-method stubs carry a short inline comment describing the implementation inte
     - Validation: an update whose callback query carries an unrecognised `data` — neither port is called and the
       batch is still confirmed (D11); a batch pairing a text-message update with a `callback_query` update — each
       port is called exactly once and the whole batch is confirmed
-- [ ] RI05 · `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest` · covers: `start()`
+- [x] RI05 · `TelegramLongPollingSubscriber` · test: `TelegramLongPollingSubscriberTest` · covers: `start()`
     - `start()`:
         - update: `whenStartIsCalled_thenPollsGetUpdatesWithConfiguredParametersAndReportsRunning()` — assert the
           recorded poll's `allowed_updates` form param carries `callback_query` alongside the `message` it already
@@ -453,7 +453,7 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ResolveProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
+- [x] RS01 · `ResolveProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
     - Happy Path:
         - given: a stored user under the `from` id with a stored grouping and category and two `expense_proposal`
           rows under one reference; and, registered in this order, the catch-all `getUpdates` stub, the
@@ -464,7 +464,7 @@ New-method stubs carry a short inline comment describing the implementation inte
           remains for that user; exactly two `expense` rows exist for them, each carrying that reference; one
           `answerCallbackQuery` is recorded naming the callback query id and reporting two confirmed expenses; and
           one `editMessageReplyMarkup` is recorded for the report message with no `reply_markup`
-- [ ] RS02 · `ResolveUnknownProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
+- [x] RS02 · `ResolveUnknownProposalsSystemTest` · covers: `ResolveProposalsPort.resolve()`
     - Unhappy Path:
         - given: a stored user under the `from` id and no `expense_proposal` or `expense` row under the tapped
           reference; and the same stub registration order as RS01, answering the first poll with a
@@ -473,13 +473,13 @@ New-method stubs carry a short inline comment describing the implementation inte
           then: the batch is confirmed; no `expense` row is written for that user; one `answerCallbackQuery`
           reports there is nothing left to resolve; and one `editMessageReplyMarkup` is still recorded, since
           every outcome strips the keyboard (D36)
-- [ ] RS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
     - Happy Path:
         - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — assert
           the recorded `sendMessage` carries a `reply_markup` holding two buttons whose `callback_data` values
           carry the same UUID as the bearer token's `mrf` claim the test already reads; the report the buttons
           attach to is what this change makes resolvable
-- [ ] RS04 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] RS04 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
     - Unhappy Path:
         - update: `whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed()` — assert the recorded
           `sendMessage` carries no `reply_markup` form param, since a `FAILED` report has nothing to resolve (D1)

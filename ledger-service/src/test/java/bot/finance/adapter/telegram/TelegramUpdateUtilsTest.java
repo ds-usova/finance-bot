@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
+import bot.finance.application.dto.ProposalResolution;
+import bot.finance.application.dto.ResolveProposalsCommand;
 import bot.finance.common.TelegramFixtures;
+import bot.finance.domain.value.MessageReference;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.utility.BotUtils;
 import java.util.Optional;
@@ -21,6 +24,8 @@ class TelegramUpdateUtilsTest {
     private static final int UPDATE_ID = 42;
     private static final long CHAT_ID = 555L;
     private static final long USER_ID = 777L;
+    private static final int REPORT_MESSAGE_ID = 99;
+    private static final String INTERACTION_ID = "callback-query-id";
 
     @Nested
     @DisplayName("mapping a Telegram update onto the inbound command")
@@ -73,6 +78,77 @@ class TelegramUpdateUtilsTest {
             Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(null);
 
             assertThat(command).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("mapping a Telegram callback query update onto the resolve-proposals command")
+    class ToResolveProposalsCommand {
+
+        @Test
+        @DisplayName(
+                "when the update carries a callback query with an id, a from, a message with a chat and a message id, and the data accept:<uuid> - then returns a command whose fields come from those components and whose resolution is ACCEPT, the tapper coming from from")
+        void whenUpdateCarriesCallbackQueryWithAcceptData_thenReturnsCommandWithAcceptResolution() {
+            MessageReference reference = MessageReference.newReference();
+            Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
+                    UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "accept:" + reference.value()));
+
+            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+
+            assertThat(command)
+                    .contains(new ResolveProposalsCommand(
+                            "777",
+                            "555",
+                            String.valueOf(REPORT_MESSAGE_ID),
+                            INTERACTION_ID,
+                            reference,
+                            ProposalResolution.ACCEPT));
+        }
+
+        @Test
+        @DisplayName(
+                "when the same update carries the data discard:<uuid> - then the returned command's resolution is DISCARD")
+        void whenSameUpdateCarriesDiscardData_thenReturnedCommandResolutionIsDiscard() {
+            MessageReference reference = MessageReference.newReference();
+            Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
+                    UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "discard:" + reference.value()));
+
+            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+
+            assertThat(command).isPresent();
+            assertThat(command.get().resolution()).isEqualTo(ProposalResolution.DISCARD);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("skippableCallbackUpdates")
+        @DisplayName(
+                "when the update is null, carries no callback query, a callback query with no from, no message, or data noop - then returns empty for each")
+        void whenUpdateIsUnusableForResolution_thenReturnsEmpty(String description, Update update) {
+            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+
+            assertThat(command).isEmpty();
+        }
+
+        static Stream<Arguments> skippableCallbackUpdates() {
+            MessageReference reference = MessageReference.newReference();
+            return Stream.of(
+                    Arguments.of("null update", (Update) null),
+                    Arguments.of(
+                            "a text-message update with no callback query",
+                            BotUtils.parseUpdate(
+                                    TelegramFixtures.textMessageUpdate(UPDATE_ID, USER_ID, CHAT_ID, "lunch 12 euro"))),
+                    Arguments.of(
+                            "a callback query with no from",
+                            BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdateWithoutFrom(
+                                    UPDATE_ID, CHAT_ID, "accept:" + reference.value()))),
+                    Arguments.of(
+                            "a callback query with no message",
+                            BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdateWithoutMessage(
+                                    UPDATE_ID, USER_ID, "accept:" + reference.value()))),
+                    Arguments.of(
+                            "a callback query whose data is noop",
+                            BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
+                                    UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "noop"))));
         }
     }
 }

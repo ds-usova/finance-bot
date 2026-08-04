@@ -93,6 +93,11 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
                                 .containsExactly(CONVERSATION_ID);
                         assertThat(sendMessageRequest.formParameter("text").getValues())
                                 .containsExactly(EXPECTED_TEXT);
+                        assertThat(sendMessageRequest
+                                        .formParameter("reply_markup")
+                                        .isPresent())
+                                .as("a FAILED report has nothing to resolve, so no reply_markup form param is sent")
+                                .isFalse();
 
                         assertThat(replyParameters(sendMessageRequest)
                                         .get("message_id")

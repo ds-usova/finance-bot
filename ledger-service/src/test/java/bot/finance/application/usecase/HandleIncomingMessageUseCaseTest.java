@@ -196,8 +196,8 @@ class HandleIncomingMessageUseCaseTest {
 
         @Test
         @DisplayName("when extraction returns normally and summaries are present - then deliver receives a "
-                + "RECORDED report carrying the command's conversation and inbound message ids and those "
-                + "summaries in order")
+                + "RECORDED report carrying the command's conversation and inbound message ids, those summaries "
+                + "in order, and the same MessageReference the captured IntentExtractionRequest carried")
         void whenExtractionSucceedsWithSummaries_thenDeliverReceivesRecordedReport() {
             stubKnownUserAndGroupings();
             List<ProposalSummary> summaries = twoSummaries();
@@ -206,6 +206,11 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
+            ArgumentCaptor<IntentExtractionRequest> extractCaptor =
+                    ArgumentCaptor.forClass(IntentExtractionRequest.class);
+            verify(intentExtractionPort).extract(extractCaptor.capture());
+            MessageReference reference = extractCaptor.getValue().messageReference();
+
             ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
             ProposalReport report = reportCaptor.getValue();
@@ -213,6 +218,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(report.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(report.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
+            assertThat(report.reference()).isEqualTo(reference);
         }
 
         @Test
