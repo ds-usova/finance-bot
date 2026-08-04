@@ -33,6 +33,8 @@
 - A name matching several of their categories is rejected, and the message names those categories' groupings to
   retry with.
 - A grouping given alongside the name narrows the match, and a name that sits under no such grouping is rejected.
+- The grouping is optional here, and required by [the tool this is reached through](../contracts/in/mcp.md), so
+  every request that arrives names it.
 - A description is present, and it is not blank.
 - A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
   absent rather than rejected.
@@ -55,6 +57,9 @@
 | Category is a grouping | the name resolves to a first-level grouping                                                               | the request is rejected, naming that grouping's children, and nothing is written     |
 | Category ambiguous     | the name resolves to several of their categories                                                          | the request is rejected, naming the groupings to choose from, and nothing is written |
 | Storage failed         | the store cannot be reached, or a value is too long for its column                                        | the failure reaches the caller                                                       |
+
+A request naming its grouping resolves to at most one category, so the grouping and ambiguity rejections stand
+as guards rather than answers the tool's caller can reach.
 
 ## Components
 

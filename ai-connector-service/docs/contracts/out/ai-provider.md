@@ -1,9 +1,10 @@
 # AI provider — recording spending (chat completions over HTTPS)
 
-The service hands a user's message to a language model together with the ledger's tool, and lets the model
+The service hands a user's message to a language model together with the ledger's tools, and lets the model
 record what the message says was spent. What crosses out is standing recording instructions, the user's text,
-the categories that user has and the ledger's tool schema; what comes back is a sequence of tool calls, each
-answered with the tool's result, until the model answers with text.
+the groupings that user's categories are filed under, the grouping to fall back on, and the ledger's tool
+schemas; what comes back is a sequence of tool calls, each answered with the tool's result, until the model
+answers with text.
 
 - **Counterpart:** an OpenAI-compatible chat-completions API — the address, the model and the credential are
   [configuration](../../configuration.md)
@@ -12,51 +13,56 @@ answered with the tool's result, until the model answers with text.
 
 ## Operations
 
-| Operation                     | Purpose                                                       | Used by                                                                         |
-|-------------------------------|---------------------------------------------------------------|---------------------------------------------------------------------------------|
-| Record the message's spending | calls the ledger's tool once per expense, in the user's order | [Record the spending a user's message names](../../usecases/extract-intents.md) |
+| Operation                     | Purpose                                                           | Used by                                                                         |
+|-------------------------------|-------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| Record the message's spending | calls the ledger's tools, one recording call per expense in order | [Record the spending a user's message names](../../usecases/extract-intents.md) |
 
 ## Semantics
 
 A turn is a loop, not a request. The model answers with a tool call, the call's result goes back to it as that
 call's answer, and the loop ends when the model answers with text instead.
 
-Nothing caps the loop. The instructions ask for one retry per refused expense; beyond that the turn runs for as
-long as the model keeps asking for tool calls.
+Nothing caps the loop. The instructions ask for one retry per refused recording call, and put no limit on how
+often a grouping's categories may be asked for; beyond that the turn runs for as long as the model keeps asking
+for tool calls.
 
 Nothing is cached, nothing is retried by this service, and no conversation is kept between turns.
 
-The standing instructions never change and never mention a user. The categories and the text vary per turn and
-travel together in the same message, so one user's categories can never reach another's turn.
+The standing instructions never change and never mention a user. The groupings, the catch-all and the text vary
+per turn and travel together in the same message, so one user's groupings can never reach another's turn.
 
-Each category is rendered as a `Grouping > Category` label, so two categories sharing a name can be told apart.
-The model splits a label into the tool's two category arguments — what follows the separator is the category,
-what precedes it is the parent.
+No category is sent. The groupings travel as bare names, and the model is told to pick a grouping, ask the
+ledger which categories it holds, and file the expense under one of those — sending that grouping as the
+category's parent. The grouping to use when none fits is named in the same message.
 
 The model converts a stated amount into the currency's minor units. The rule it reads that from is the tool's
 own argument schema, not these instructions.
 
-The instructions describe the task, the order, the retry policy and the closed set of categories. They name no
-tool, no argument and no format — the model reads those from the schema the ledger publishes.
+The standing instructions describe the task, the order and the retry policy, and name no tool, no argument and
+no format. The lookup tool is named once, in the per-turn message that carries the groupings; every argument
+and format the model uses comes from the schemas the ledger publishes.
 
 The model's final answer is discarded. What a turn recorded is visible in the ledger, not in anything the
 provider says.
 
 A model that cannot call tools answers with text and records nothing, and the turn still succeeds.
 
-Cost and latency grow with the number of categories sent and with the number of expenses the message names,
-since every tool call is a further round trip.
+Cost and latency grow with the number of groupings sent and with the number of expenses the message names,
+since every tool call is a further round trip. An expense costs at least two round trips — the lookup and the
+recording call. What bounds a turn is the caller's deadline, set by
+`spring.grpc.client.channel.ai-connector.default.deadline` on the ledger's side.
 
 ## Failures
 
-| Condition                                                | Signal                                                                           |
-|----------------------------------------------------------|----------------------------------------------------------------------------------|
-| The provider is unreachable, refuses the call, or errors | the turn fails and the caller is told the service is unavailable                 |
-| The model answers with no tool call                      | none — the turn succeeds having recorded nothing                               |
-| The model sends an argument the tool cannot read         | none — the failure goes back as that call's answer for the model to correct    |
-| The ledger refuses a call                                | none — the refusal goes back as that call's answer, and the model retries once |
-| The ledger cannot be reached under a tool call           | the turn fails and the caller is told the service is unavailable                 |
-| The turn outlives the caller's deadline                  | the caller abandons it; the turn runs on and what it recorded stands             |
+| Condition                                                | Signal                                                                          |
+|----------------------------------------------------------|---------------------------------------------------------------------------------|
+| The provider is unreachable, refuses the call, or errors | the turn fails and the caller is told the service is unavailable                |
+| The model answers with no tool call                      | none — the turn succeeds having recorded nothing                                |
+| The model sends an argument the tool cannot read         | none — the failure goes back as that call's answer for the model to correct     |
+| The ledger refuses a recording call                      | none — the refusal goes back as that call's answer, and the model retries once  |
+| The ledger refuses a category lookup                     | none — the refusal goes back as that call's answer; the expense keeps its retry |
+| The ledger cannot be reached under a tool call           | the turn fails and the caller is told the service is unavailable                |
+| The turn outlives the caller's deadline                  | the caller abandons it; the turn runs on and what it recorded stands            |
 
 ## Compatibility
 

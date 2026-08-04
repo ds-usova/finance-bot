@@ -27,7 +27,7 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                    |
 | out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                    |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the categories that person may file spending under, and what this message recorded |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, and what this message recorded |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)      | acting on whatever the message asks for, as that person                                    |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                    |
 
@@ -41,9 +41,14 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
   message; here it is Telegram that names them.
 - The sender's name is the identity the person is stored under, so a first message creates them and their
   categories, and every later one finds them.
-- What travels to the connector is every category the person may file spending under — each with the grouping it
-  sits in. A grouping itself never travels.
-- A person with no such category has nothing to send, and the turn is refused before the connector is reached.
+- What travels to the connector is the names of the groupings that person's categories sit under, in
+  alphabetical order. No category name travels; the connector
+  [asks for a grouping's categories](list-categories.md) when it needs them.
+- One of those groupings travels designated as the catch-all, so spending that fits none of the others still has
+  somewhere to go.
+- The designated catch-all is the [catch-all every catalogue starts with](../domain/category.md) when the person
+  still has it, and the first grouping read otherwise.
+- A person with no grouping has nothing to send, and the turn is refused before the connector is reached.
 - No currency is assumed: an amount stated without one is not acted on.
 - The connector acts as that person for the length of the turn, on a credential minted per call
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
@@ -65,7 +70,7 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 | Message answered | the person resolves and what the message recorded can be read back               | one report goes into the conversation, and an info line names the message and the person |
 | Message skipped  | the message names no sender or no conversation, or carries no text               | nothing happens and the message is not seen again                                        |
 | Message rejected | the message is absent                                                            | invalid incoming message — nothing is looked up                                          |
-| Request refused  | the person has no category spending can be filed under                           | invalid extraction request — the connector is never reached and no report is sent        |
+| Request refused  | the person has no grouping to file spending under                                | invalid extraction request — the connector is never reached and no report is sent        |
 | Storage failed   | the person cannot be resolved, their categories not read, or the read-back fails | the failure reaches the caller and no report is sent                                     |
 | Delivery failed  | the report cannot be put in front of the user                                    | the failure reaches the caller; what was recorded stays recorded                         |
 
@@ -101,7 +106,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(messageDeliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
-  Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads a user's categories", $tags="dbExternal")
+  Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
   Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Reads what a message recorded", $tags="dbExternal")
   Component(intentExtractionAdapter, "Intent Extraction Adapter", "gRPC client", "Mints a credential and calls the connector", $tags="aiExternal")
   Component(tokenMinter, "Access Token Minter", "Nimbus JOSE", "Signs a credential naming the person and the message", $tags="aiExternal")
@@ -132,7 +137,7 @@ Rel_D(deliveryAdapter, reportRenderer, "Writes the text with")
 Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(categoryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
-Rel_R(intentExtractionAdapter, connector, "Text, categories and a credential", "gRPC")
+Rel_R(intentExtractionAdapter, connector, "Text, groupings and a credential", "gRPC")
 Rel_U(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
 Lay_D(handleMessagePort, initializeUserPort)
@@ -166,14 +171,15 @@ loop each message in the batch
     IU -> DB : find or create the person
     DB --> IU : the person, with their categories on a first message
     IU --> UC : the person
-    UC -> DB : read the categories they may file spending under
+    UC -> DB : read the groupings their categories sit under
     alt the store fails
       DB --> UC : storage failed, no report
-    else they may file spending under no category
+    else they have no grouping
       DB --> UC : nothing to send, request refused, no report
-    else the categories are read
+    else the groupings are read
       UC -> UC : mint a reference for this message
-      UC -> AI : the text, the categories with their groupings, a credential naming the person and the message
+      UC -> UC : designate the catch-all grouping
+      UC -> AI : the text, the grouping names, the catch-all, a credential naming the person and the message
       alt the turn completes
         AI --> UC : handled
       else the turn does not complete

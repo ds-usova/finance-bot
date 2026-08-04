@@ -2,8 +2,8 @@
 
 A line a user wrote crosses this boundary in, together with a token to act as that user. Nothing crosses back:
 the service records the spending the message names and answers that the turn is done. The caller decides nothing
-about the text; it sends what the user said, the categories that user already has, and — optionally — the
-currency to assume when an amount is stated without one.
+about the text; it sends what the user said, the groupings that user's categories are filed under, the grouping
+to fall back on, and — optionally — the currency to assume when an amount is stated without one.
 
 - **Counterpart:** [the Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)
 - **Transport:** gRPC
@@ -43,9 +43,13 @@ Expenses are recorded in the order the user expressed them — nothing is reorde
 An expense the ledger will not record is left unrecorded and the rest of the message is still recorded. The
 caller is not told which expenses were recorded, or how many.
 
-The categories the caller sends are a closed set and must be non-empty. Each is a name and the grouping it sits
-in, both always present: a category that can hold an expense always hangs off a grouping. Every expense is filed
-under one of them. The caller includes a catch-all, so a fit always exists; the service never invents a category.
+The groupings the caller sends are a closed set and must be non-empty, each a name of its own with no blank
+among them. No category crosses this boundary: the service asks the
+[ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) which categories a grouping holds,
+and every expense is filed under one of those, never under a grouping itself.
+
+The caller designates one of the groupings as the catch-all, and it must be one of the groupings sent — so a fit
+always exists. The service never invents a name.
 
 The assumed currency applies only where the user stated an amount with no currency. It is accepted in any casing
 and must be a code ISO 4217 knows.
@@ -56,22 +60,29 @@ its expenses again and no duplicate is recognized.
 ## Failures
 
 | Condition                                                   | Signal                                                               |
-|-------------------------------------------------------------|----------------------------------------------------------------------|
+|-------------------------------------------------------------|------------------------------------------------------------------------|
 | No token is sent                                            | the call is refused as unauthenticated; the provider is never called |
 | The text is absent or only whitespace                       | rejected as an invalid argument; no call to the provider is made     |
-| No categories are sent                                      | rejected as an invalid argument; no call to the provider is made     |
-| A category's name or its grouping is blank                  | rejected as an invalid argument; no call to the provider is made     |
+| No groupings are sent                                       | rejected as an invalid argument; no call to the provider is made     |
+| A grouping's name is blank                                  | rejected as an invalid argument; no call to the provider is made     |
+| The catch-all grouping is blank or not sent                 | rejected as an invalid argument; no call to the provider is made     |
+| The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
 | An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
-| The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
-| The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
-| The ledger refuses an expense                               | none — the call succeeds and that expense is left unrecorded       |
-| The message under-says an expense                           | none — the call succeeds and that expense is left unrecorded       |
+| The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry                 |
+| The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry                 |
+| The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded         |
+| The ledger refuses a category lookup                        | none — the model corrects the grouping's name and asks again         |
+| The message under-says an expense                           | none — the call succeeds and that expense is left unrecorded         |
 | Anything else fails inside the service                      | the call fails as unknown, with no internal detail in the failure    |
 
 ## Compatibility
 
 Both sides generate from the one schema file, so a field added or renamed there reaches the caller's build
 rather than its runtime.
+
+The field the categories used to travel on is reserved and never reused, so a counterpart of the other vintage
+sends no groupings at all rather than something read as groupings: the call is refused as an invalid argument
+for the length of a partial deploy, and no expense is filed under a grouping the caller did not send.
 
 What the token carries is the caller's alone to change. A claim it adds reaches
 [its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, without a change to this

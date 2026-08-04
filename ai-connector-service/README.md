@@ -1,10 +1,10 @@
 # AI Connector Service
 
 The [Finance Bot](../README.md) system's boundary with the AI provider. It takes a line of user text over gRPC
-and puts it to a language model with the Ledger Service's expense proposal tool attached, so the model records
-each expense the message names — one call per expense, as the caller whose token arrived with the request.
+and puts it to a language model with the Ledger Service's tools attached, so the model records each expense the
+message names — one recording call per expense, as the caller whose token arrived with the request.
 
-It holds no state: a call carries its own text, its own closed set of categories, and its own credential.
+It holds no state: a call carries its own text, its own set of category groupings, and its own credential.
 
 For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture); C3 is below.
 Package structure is in the
@@ -18,7 +18,7 @@ Package structure is in the
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
 - [AI provider — recording spending](docs/contracts/out/ai-provider.md) (outbound)
-- [Ledger Service — the expense proposal tool](docs/contracts/out/ledger-mcp.md) (outbound)
+- [Ledger Service — the expense and category tools](docs/contracts/out/ledger-mcp.md) (outbound)
 
 ### Running It
 
@@ -44,7 +44,7 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
   Component(tokenInterceptor, "Caller Token Interceptor", "gRPC interceptor", "Holds the call's token for its duration", $tags="callerExternal")
   Component(extractIntentsPort, "Extract Intents Port", "Interface", "Inbound port", $tags="portIn")
-  Component(useCase, "Extract Intents Use Case", "Plain Java", "Labels the caller's categories, hands the turn on", $tags="core")
+  Component(useCase, "Extract Intents Use Case", "Plain Java", "Hands the turn on", $tags="core")
   Component(currency, "Currency Code", "Domain value object", "An ISO 4217 code", $tags="core")
 
   Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
@@ -60,10 +60,10 @@ Rel_D(grpcService, currency, "Validates the assumed currency with")
 
 Rel_R(useCase, recordingPort, "Uses")
 Rel_L(recordingAdapter, recordingPort, "Implements", $tags="implements")
-Rel_R(recordingAdapter, aiProvider, "Message, categories, tool schema", "HTTPS")
+Rel_R(recordingAdapter, aiProvider, "Message, groupings, tool schemas", "HTTPS")
 Rel_U(recordingAdapter, toolClient, "Attaches the ledger's tools from")
 Rel(toolClient, tokenInterceptor, "Reads the token from")
-Rel_L(toolClient, ledger, "create_expense_proposal", "MCP over HTTP")
+Rel_L(toolClient, ledger, "list_categories, create_expense_proposal", "MCP over HTTP")
 
 SHOW_LEGEND()
 @enduml
@@ -74,13 +74,13 @@ SHOW_LEGEND()
 Because gRPC server reflection is enabled, the running service can be explored
 without a copy of the schema:
 
-A call carries its categories as a name and its grouping, and is refused without a bearer token — the one the
-service calls the ledger back with.
+A call carries its groupings as bare names and names one of them as the catch-all, and is refused without a
+bearer token — the one the service calls the ledger back with.
 
 ```bash
 grpcurl -plaintext localhost:1001 list
 grpcurl -plaintext \
   -H 'authorization: Bearer <jwt>' \
-  -d '{"text":"spent 15 on lunch","known_categories":[{"name":"Lunch","parent_name":"Food"}],"default_currency":"EUR"}' \
+  -d '{"text":"spent 15 on lunch","category_groupings":["Dining","Miscellaneous"],"catch_all_grouping":"Miscellaneous","default_currency":"EUR"}' \
   localhost:1001 bot.finance.ai.v1.IntentExtractionService/ExtractIntents
 ```
