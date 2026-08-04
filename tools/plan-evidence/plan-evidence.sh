@@ -200,9 +200,14 @@ for module in "${modules[@]}"; do
         skipped_seen=1
     fi
 
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    # The run directory is worth having while its console log still exists, which is why it is
+    # reported here and not written into the evidence: a `build/` path means nothing to whoever
+    # pulls the file later, and by then the directory is gone anyway.
+    echo "  $verdict — run at $run_dir" >&2
+
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$module" "$verdict" "$tests" "$passed" "$failed" "$skipped" \
-        "$instructions" "$branches" "$minimum_percent" "$run_dir" >> "$rows"
+        "$instructions" "$branches" "$minimum_percent" >> "$rows"
 done
 
 if [ "$dirty_count" != "0" ]; then
@@ -242,7 +247,7 @@ module_list="$(printf '%s ' "${modules[@]}")"
     echo ""
     echo "| Module | Verdict | Tests | Passed | Failed | Skipped | Instructions | Branches | Minimum |"
     echo "|--------|---------|-------|--------|--------|---------|--------------|----------|---------|"
-    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum run_dir; do
+    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum; do
         echo "| $module | $verdict | $tests | $passed | $failed | $skipped | $instructions | $branches | $minimum |"
     done < "$rows"
 
@@ -266,13 +271,6 @@ module_list="$(printf '%s ' "${modules[@]}")"
                 echo "| $module | \`$class\` | $percent | $missed |"
             done
     fi
-
-    echo ""
-    echo "## Runs"
-    echo ""
-    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum run_dir; do
-        echo "- \`$module\` — \`$run_dir\` (console log, JUnit XML, HTML report; under \`build/\`, so it is not committed)"
-    done < "$rows"
 } > "$evidence_md"
 
 {
@@ -285,7 +283,7 @@ module_list="$(printf '%s ' "${modules[@]}")"
     echo "  \"verdict\": \"$overall\","
     echo "  \"modules\": ["
     first=1
-    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum run_dir; do
+    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum; do
         [ "$first" = "1" ] || echo ","
         first=0
         printf '    {"module": "%s", "verdict": "%s", "tests": %s, "passed": %s, "failed": %s, "skipped": %s, "instructions": "%s", "branches": "%s", "minimum": "%s"}' \

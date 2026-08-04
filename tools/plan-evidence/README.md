@@ -11,7 +11,7 @@ since moved on. The evidence file replaces that: every number in it comes from a
 the commit it names, in a format two plans share.
 
 The file is committed alongside the plan, so a plan archived six months ago still carries what its suite looked
-like the day it closed — the run directories it points at are under `build/` and are long gone.
+like the day it closed, long after the build directory that produced those numbers was cleaned.
 
 ## Usage
 
@@ -48,9 +48,11 @@ is still current — anything outside `docs/` is stale.
 - **A row per module**: the runner's verdict, tests total/passed/failed/skipped, instruction and branch
   coverage, and the module's minimum.
 - **The least-covered classes**, fully covered ones omitted — where the next test would go.
-- **The run directories**, for the console logs while they still exist.
 
 `evidence.json` carries the same fields for anything that would rather not parse a table.
+
+The run directories are **not** in the file. They are `build/` paths: gone by the time anyone pulls the commit,
+and pruned locally after twenty runs. The script prints them as it measures, which is when they are worth having.
 
 ### Skipped tests are called out, not hidden
 
