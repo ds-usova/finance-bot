@@ -110,6 +110,11 @@
           },
           {
             "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-chained-command.ps1')\""
+          },
+          {
+            "type": "command",
             "if": "Bash(find *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-find-locator.ps1')\""
