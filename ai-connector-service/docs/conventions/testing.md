@@ -82,6 +82,11 @@ bot.finance.ai
   loads a context. A protocol has a preamble and correlation rules of its own — an MCP client sends `initialize`
   and `notifications/initialized` before any tool call, and matches each response by the id it generated — so a
   stub that answers only the interesting message is green on its own and unusable by the adapter it exists for.
+- **A test owed a rework is `@Disabled`, never commented out.** `@Disabled("RU08: …")` names the step that owns
+  it, and the runner reports it as *skipped* — so what is owed is visible in every summary and clears itself when
+  the step lands. A method commented out disappears from the count instead, and a total that still balances hides
+  it. When the method cannot compile against a changed signature, keep the method and comment out the lines
+  inside it rather than the method itself.
 
 ## Naming Conventions
 

@@ -80,6 +80,12 @@ ports and its README's C3, and write a page for any edge that has none yet — a
 talked to has an undocumented contract just as much as one added yesterday. The tell is a use-case page's
 Collaborators table with a dash where a contract link belongs.
 
+**A page is stale as often as it is missing, and the age of the edge says nothing.** The test is not whether the
+edge is new — it is whether anything in the diff changed what its page already says. A prompt template, a query,
+a tool argument, a status code or a field name that moved invalidates every page naming it. Grep each contract
+page for the artifacts the diff touched before concluding it needs no update; an edge untouched for months is
+exactly where the check gets skipped.
+
 **Configuration** — one document per service, always updated when the plan added, removed, or changed a knob an
 operator sets from outside the build. One document per service and never more: a plan that changed nothing
 leaves it alone, and a plan that changed one variable still has the whole file re-read against the code, since

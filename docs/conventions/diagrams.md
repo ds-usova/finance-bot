@@ -10,6 +10,11 @@ committed image. Structure is drawn with the **C4 model** via the bundled C4-Pla
 
 ## Choosing a Flow Diagram
 
+**First: does the flow earn a diagram?** An activity diagram earns its place when the *shape* carries something
+a list cannot — arms that rejoin, a loop, a fork, a guard that changes what comes after it. A straight line of
+guards that each end the flow is a table of condition and outcome; drawing it spends a screen to say what five
+rows say, and the use-case pages already carry that table under **Outcomes**.
+
 - **Sequence** — when the participants are the content: who calls whom, in what order, and what crosses each
   boundary. Needs no include.
 - **Activity** — when the decisions are the content: the branches, guards and loops one flow runs through. Uses
