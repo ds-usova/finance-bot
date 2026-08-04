@@ -46,8 +46,9 @@ Run it with bash, from anywhere inside the project:
 
 Exit codes: **0** done, **1** no such entry, not settled, or `validate` found problems, **2** bad usage.
 
-`--file <design>` picks the design. Without it, the single `docs/<n>-design-<name>.md` is used; an archived design
-under `docs/implemented/` has to be named explicitly.
+`--file <design>` picks the design. Without it, the single `docs/<n>-<task>/design.md` is used — a task owns a
+directory, holding `design.md` and `plan.md`. An archived design under `docs/implemented/<n>-<task>/design.md`
+has to be named explicitly.
 
 ### Decision entries
 

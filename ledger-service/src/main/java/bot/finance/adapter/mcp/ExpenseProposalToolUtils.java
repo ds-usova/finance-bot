@@ -7,9 +7,13 @@ import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
+import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public final class ExpenseProposalToolUtils {
+
+    private static final Pattern AMOUNT_PATTERN = Pattern.compile("^\\d{1,18}(\\.\\d{1,4})?$");
 
     private ExpenseProposalToolUtils() {}
 
@@ -18,12 +22,16 @@ public final class ExpenseProposalToolUtils {
         if (request == null) {
             throw new InvalidExpenseProposalException("expense proposal request must be present");
         }
-        if (request.amountMinorUnits() == null) {
-            throw new InvalidExpenseProposalException("expense proposal request has no amountMinorUnits");
+        if (request.amount() == null) {
+            throw new InvalidExpenseProposalException("expense proposal request has no amount");
+        }
+        String strippedAmount = request.amount().strip();
+        if (!AMOUNT_PATTERN.matcher(strippedAmount).matches()) {
+            throw new InvalidExpenseProposalException("amount must be digits with an optional dot, like 7200 or 12.50");
         }
         Optional<String> parentCategory = blankToEmpty(request.parentCategory());
         Optional<String> merchant = blankToEmpty(request.merchant());
-        Money money = new Money(request.amountMinorUnits(), CurrencyCode.of(request.currencyCode()));
+        Money money = Money.ofMajorUnits(new BigDecimal(strippedAmount), CurrencyCode.of(request.currencyCode()));
         return new CreateExpenseProposalCommand(
                 userId, request.category(), parentCategory, request.description(), merchant, money, reference);
     }
@@ -38,7 +46,7 @@ public final class ExpenseProposalToolUtils {
                 categoryName,
                 proposal.description(),
                 proposal.merchant().orElse(null),
-                proposal.money().minorUnits(),
+                proposal.money().amount().toPlainString(),
                 proposal.money().currencyCode().code(),
                 proposal.createdAt());
     }

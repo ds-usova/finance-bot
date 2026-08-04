@@ -34,8 +34,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
     private static final String DESCRIPTION = "Milk";
     private static final String MERCHANT = "Corner Shop";
-    private static final long AMOUNT_MINOR_UNITS = 1500L;
-    private static final String CURRENCY_CODE = "EUR";
+    private static final String AMOUNT = "7200";
+    private static final String CURRENCY_CODE = "HUF";
 
     @Autowired
     private UserRepository userRepository;
@@ -82,9 +82,9 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
 
         @Test
         @DisplayName("when tools/call create_expense_proposal is posted to /mcp naming a child category - then the "
-                + "response carries the stored proposal, and exactly one expense_proposal row exists for "
-                + "that user carrying that category's id, the description, the merchant, the minor units "
-                + "and the currency code")
+                + "response carries the stored proposal with the amount as written, and exactly one "
+                + "expense_proposal row exists for that user carrying that category's id, the description, "
+                + "the merchant, the amount scaled to the currency's own minor units and the currency code")
         void whenToolCallNamesChildCategory_thenResponseCarriesStoredProposalAndRowIsWritten() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
@@ -92,7 +92,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
             String requestBody = McpRequests.createExpenseProposal(
-                    "Supermarkets", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
+                    "Supermarkets", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 
@@ -109,9 +109,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
                     .as("returned description")
                     .isEqualTo(DESCRIPTION);
             assertThat(toolResult.getString("merchant")).as("returned merchant").isEqualTo(MERCHANT);
-            assertThat(toolResult.getLong("amountMinorUnits"))
-                    .as("returned amountMinorUnits")
-                    .isEqualTo(AMOUNT_MINOR_UNITS);
+            assertThat(toolResult.getString("amount")).as("returned amount").isEqualTo("7200.00");
             assertThat(toolResult.getString("currencyCode"))
                     .as("returned currencyCode")
                     .isEqualTo(CURRENCY_CODE);
@@ -127,7 +125,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             assertThat(row.merchant()).as("stored proposal's merchant").isEqualTo(MERCHANT);
             assertThat(row.amountMinorUnits())
                     .as("stored proposal's minor units")
-                    .isEqualTo(AMOUNT_MINOR_UNITS);
+                    .isEqualTo(720000L);
             assertThat(row.currencyCode()).as("stored proposal's currency code").isEqualTo(CURRENCY_CODE);
         }
     }
@@ -145,8 +143,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
-            String requestBody = McpRequests.createExpenseProposal(
-                    "Groceries", null, DESCRIPTION, MERCHANT, AMOUNT_MINOR_UNITS, CURRENCY_CODE);
+            String requestBody =
+                    McpRequests.createExpenseProposal("Groceries", null, DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
 
             Response response = callCreateExpenseProposal(token, requestBody);
 

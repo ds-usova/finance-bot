@@ -114,6 +114,11 @@ would inherit the first's advanced state. Give each new class a token constant i
   assertions.
 - Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
+- **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
+  internally, assert what must hold whichever route it takes — *no proposal is stored at the wrong scale* — never
+  which route was taken. A test pinning the mechanism fails when the dependency turns out to work differently,
+  and says nothing about whether the product broke. The opposite error is as bad: a disjunction covering every
+  possible outcome asserts nothing. Assert what a user would notice going wrong.
 - **Do not assert on a log message** — `info`, `debug` or `error` — when the outcome can be observed any other
   way. Assert the outcome itself: the port that was called, the row that was written, the message that was sent.
   A log line is a diagnostic, not a contract; wording drifts with every edit to the class, and a test bound to it

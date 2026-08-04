@@ -61,7 +61,8 @@ a stabilization gap to report, not something to hand-write around.
 
 ## Plan Files
 
-- Location: repo-root `docs/`; completed plans are archived to `docs/implemented/` (see
+- Location: a task directory under repo-root `docs/` — `docs/<n>-<task-name>/`, holding `design.md` and the
+  `plan.md` written from it. A completed task's whole directory is archived to `docs/implemented/` (see
   [Documentation References](orientation.md#documentation-references)).
 
 ## Post-Implementation Actions

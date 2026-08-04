@@ -11,7 +11,7 @@ user, stamps the row's timestamps, and stores it.
 
 The proposal row carries exactly the columns the `expense` row carries; only the table name differs. Nothing drives
 the use case yet — this plan adds the inbound port and its implementation, not a caller, the same shape
-[Create an expense](implemented/5-plan-create-expense.md) ended in.
+[Create an expense](../5-create-expense/plan.md) ended in.
 
 ## Proposed Solution
 

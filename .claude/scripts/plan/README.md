@@ -50,8 +50,9 @@ resolves every ID before it writes any, and a name nothing defines ticks none of
 
 Exit codes: **0** done, **1** no such item, or `validate` found problems, **2** bad usage.
 
-`--file <plan>` picks the plan. Without it, the single `docs/<n>-plan-<name>.md` is used; an archived plan under
-`docs/implemented/` has to be named explicitly.
+`--file <plan>` picks the plan. Without it, the single `docs/<n>-<task>/plan.md` is used — a task owns a
+directory, holding `design.md` and `plan.md`. An archived plan under `docs/implemented/<n>-<task>/plan.md` has to
+be named explicitly.
 
 ### Item IDs
 
@@ -66,7 +67,7 @@ and the numbering rule belong to the plan format, defined by the `plan-task` ski
 | `after:` naming an ID nothing defines, dependency cycles                     | a schedule that never becomes eligible                       |
 | `after:` reaching into a group the plan lists later                          | a stage waiting on work a later stage owns                   |
 | A `given:` / `when:` / `then:` whose value is empty, `—`, `TBD` or `N/A`     | a scenario a step agent cannot implement                     |
-| An `update:` bullet naming a method found nowhere in the tree                | a plan written against remembered code                       |
+| An `update:` bullet on an **open** item naming a method found nowhere        | a plan written against remembered code                       |
 | A finding with no `Resolution:`, or an unrecognized one                      | a review that skipped the mechanical/decision classification |
 | A `mechanical` finding whose `Action:` is empty and that is not `Escalated:` | a fix the orchestrator was meant to apply and did not        |
 
@@ -75,6 +76,10 @@ The `update:` check greps the tree once per method named, excluding `build/`, `.
 itself, so a search including it would confirm each name against the text under test. A method a plan creates and
 then updates in the same run is the one false positive; say `update:` only of a test that exists, which is what
 the format means by it.
+
+**A ticked item is skipped.** Its `update:` bullets describe work that already happened, and a bullet saying to
+rename or drop a method is exactly why that method is no longer in the tree — so checking it reports the step's
+success as a defect. Validating after a red phase used to raise one such report per rename.
 
 What it cannot check: whether a **class** a step names exists, since a plan names the classes it is about to
 create; and whether a step's claim about a file is *true*, only that its scenarios are filled in. Those stay the

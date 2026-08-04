@@ -43,7 +43,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                             ChatCompletionFixtures.toolCall(
                                     "call-1",
                                     """
-                            {"category":"Lunch","description":"lunch","amountMinorUnits":1500,\
+                            {"category":"Lunch","description":"lunch","amount":"15.00",\
                             "currencyCode":"EUR","merchant":"Deli Co"}""")),
                     ChatCompletionFixtures.textResponse("recorded"));
 
@@ -58,7 +58,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(toolCalls.getFirst());
             assertThat(arguments.get("category").asText()).isEqualTo("Lunch");
             assertThat(arguments.get("merchant").asText()).isEqualTo("Deli Co");
-            assertThat(arguments.get("amountMinorUnits").asLong()).isEqualTo(1500L);
+            assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
             assertThat(toolCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
         }

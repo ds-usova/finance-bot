@@ -33,9 +33,11 @@ here:
 - Diagram labels are a few words.
 
 **What diagrams are written in comes from the module conventions' Diagram Format section** — the language, the
-fenced block's language tag, and any preamble a diagram needs. Where a module names none, use PlantUML with the
-bundled C4-PlantUML standard library. Every diagram sample below is written in that assumed default; a module
-naming another language gets the same diagram in it, showing exactly the same thing.
+fenced block's language tag, any preamble a diagram needs, and **which form a flow takes**. In this repository
+that section points at [`docs/conventions/diagrams.md`](../../docs/conventions/diagrams.md); read it before
+drawing a flow, since it decides sequence versus activity rather than leaving it to habit. Where a module names
+none, use PlantUML with the bundled C4-PlantUML standard library. Every diagram sample below is written in that
+assumed default; a module naming another language gets the same diagram in it, showing exactly the same thing.
 
 **Scannable over readable.** A reader looks things up here; nobody reads the page front to back.
 
@@ -80,15 +82,20 @@ One per usecase class — the application-layer class implementing an inbound po
 ## Flow
 
 ```plantuml
-@startuml <UseCase>-Sequence
+@startuml <UseCase>-Flow
 ...
 @enduml
 ```
 ````
 
-**The diagram is the flow.** It is not accompanied by a numbered restatement of itself: a step list beside a
-sequence diagram is the same walk written twice, and the diagram is the readable one. A step the diagram cannot
-carry is either a rule, an outcome, or a fact another page owns — put it there.
+**The diagram is the flow.** It is not accompanied by a numbered restatement of itself: a step list beside a flow
+diagram is the same walk written twice, and the diagram is the readable one. A step the diagram cannot carry is
+either a rule, an outcome, or a fact another page owns — put it there.
+
+**Which form the flow takes is the diagram conventions' call, not a default.** A use case whose interest is the
+walk across collaborators is a sequence diagram; one whose interest is the branching — the same one or two
+participants down every arm — is an activity diagram, and one that is genuinely both is two diagrams that do not
+restate each other. Name the block for what it is (`<UseCase>-Sequence`, `<UseCase>-Activity`).
 
 Where the output has distinct kinds, the page enumerates them — every kind, what each carries, and what the
 service does not produce. A table between the header and **Collaborators** is the place. The reader will never
@@ -101,11 +108,13 @@ over. Cross-repository links run both ways: the use case you link to lists this 
 walk a flow across services in either direction. A collaborator with no page anywhere is a gap; name it in your
 report.
 
-Every collaborator is a participant in the sequence diagram and every participant is a row in the table.
-Participants carry the collaborators' plain names, never class names. The diagram runs from whoever asks,
-through the service, to each system it depends on, with `alt`/`else`/`end` for each branch the outcomes table
-lists. Add a **Components** section — a C3 component diagram — only for components the service README's C3 does
-not already show.
+**Every collaborator appears in the flow diagram, and everything the diagram names is a row in the table** —
+in a sequence diagram as a participant, in an activity diagram as the target of the action that reaches it.
+Either way the names are the collaborators' plain ones, never class names. The diagram runs from whoever asks,
+through the service, to each system it depends on, and carries every branch the outcomes table lists — as
+`alt`/`else`/`end` fragments in a sequence diagram, as `if`/`else`/`endif` in an activity one. Add a
+**Components** section — a C3 component diagram — only for components the service README's C3 does not already
+show.
 
 **A use case's C3 shows the whole chain it runs through**, entry point to every store it reaches, whoever added
 each part. The plan's diff decides which page you write, never which components appear on it: a use case that

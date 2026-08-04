@@ -471,6 +471,12 @@ function visit(id,   i, c, nd, d, j) {
 
 function emit_updates(   i) {
     for (i = 1; i <= n_upd; i++) {
+        # A ticked item's update: bullets describe work that already happened, and the rename or
+        # deletion they asked for is why the method is gone. Only an open item's can be checked
+        # against the tree.
+        if (status[upd_id[i]] == "done") {
+            continue
+        }
         print upd_id[i] "\t" upd_m[i]
     }
 }

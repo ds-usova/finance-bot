@@ -1,7 +1,8 @@
 # Example Plan — Worked Example
 
 This is a complete worked example of a plan file produced by the `plan-task` skill — in a real repo this file would
-live at `docs/1-plan-add-widget.md` and be moved to `docs/implemented/` once every checkbox is ticked. It is
+live at `docs/1-add-widget/plan.md`, and its whole directory moves to `docs/implemented/` once every checkbox
+is ticked. It is
 illustrated with a Java/Spring-Boot-flavored `Widget` feature purely for concreteness — other stacks adapt the same
 structure (plan sections, section order, step formats, RED/GREEN choreography) using their own tech stack, tools,
 and file formats as recorded in the module's `docs/conventions.md`
@@ -11,12 +12,15 @@ What the feature *is* — the objective, the solution, the file names, the diagr
 lives in `.claude/templates/example-design.md`, the design this plan is written from. The plan links it rather than
 restating it, and starts at the step map.
 
+Every item below is in one of the formats specified in [`step-formats.md`](step-formats.md); read that for the
+rules, and this for what they look like when written out.
+
 ---
 
 # Plan: Add Widget Creation
 
 **Affected Modules:** `module-a`
-**Design:** [Add Widget Creation](1-design-add-widget.md)
+**Design:** [Add Widget Creation](design.md)
 
 ## Step-by-Step Implementation Map (To-Do List)
 
@@ -142,6 +146,9 @@ public Settings loadSettings(long userId) {
         - given: a domain object with a null optional field
           when: toRest() is called
           then: null is preserved in the response
+        - update: `whenGadgetIsMapped_thenResponseCarriesItsFields()` — the response record gained `value`, so
+          assert it alongside the fields the test already checks; without this the test compiles and passes while
+          asserting nothing about the new field
 
 #### TDD Integration Red Phase
 

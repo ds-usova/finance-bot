@@ -47,8 +47,8 @@ A tool result flagged as an error is a refusal, and it reaches the model as that
 corrects the call and tries the same expense once more; refused again, that expense is left unrecorded and the
 rest of the message is still sent. A refusal never ends the turn.
 
-An argument the protocol cannot bind is the same: the failure reaches the model, which corrects the call it just
-made.
+An argument whose value is not the type the published schema declares is refused before the tool runs, so
+nothing is recorded. The refusal reaches the model, which corrects the call it just made.
 
 A failure of the transport itself ends the turn — no further expense is sent, and what was recorded stands.
 
@@ -59,8 +59,8 @@ within one turn records two.
 
 | Condition                                                     | Signal                                                                  |
 |---------------------------------------------------------------|-------------------------------------------------------------------------|
-| The tool answers an error result                              | none — the model reads the refusal and retries the expense once       |
-| An argument's value cannot be bound to its declared type      | none — the model reads the failure and corrects the call              |
+| The tool answers an error result                              | none — the model reads the refusal and retries the expense once         |
+| An argument is not the type the published schema declares     | none — refused before the tool runs; the model corrects the call        |
 | The ledger cannot be reached, times out, or refuses the token | the turn fails; the caller is told the service is unavailable           |
 | The tools cannot be listed                                    | the same, before any expense is attempted                               |
 | No caller token is held for the turn                          | the same; nothing is sent to the ledger and the model is never prompted |
@@ -73,7 +73,11 @@ list. Renaming either changes what the model is offered rather than breaking a c
 An optional argument added on the ledger's side costs nothing. Making one required, or removing one, changes
 what the model is told to send.
 
-An argument description is where the ledger tells the model how to fill it — the minor-units conversion is read
-there, not from this service's instructions.
+How an argument is filled is read from the description the ledger publishes beside it, never from this service's
+instructions. The amount's description is what asks for it as the message writes it, in the currency's main
+unit.
+
+A change to the published list reaches this service only when it restarts. A ledger deployed on its own leaves
+every expense refused until then.
 
 The ledger can switch this endpoint off, which makes every turn fail as unavailable.

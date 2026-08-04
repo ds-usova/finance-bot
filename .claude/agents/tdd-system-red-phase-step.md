@@ -86,6 +86,11 @@ your report instead of filling it yourself.
 - Every test must assert something **meaningful**, derived from the entry point's contract and the scenario —
   specific response codes, specific response body values or outcomes, specific error responses — no trivial
   "call succeeded" checks.
+- **Where a scenario rests on how a dependency routes a call, observe the behaviour before asserting it.**
+  Exercise the path once, read what actually comes back, and write the assertion against that — reporting what you
+  observed. You run the test in the verify phase regardless, so this only reorders the work. A scenario whose
+  expected outcome turns out to be unreachable is a plan defect: report it, and never reshape the assertion to
+  cover every outcome, which asserts nothing.
 - **A `then` about stored state is asserted after the trigger, never arranged before it.** When a scenario says
   state exists once the entry point has run — a user the turn created, a row the request wrote — read it back
   afterwards and assert it. Seeding that state as a precondition deletes the assertion: the step goes green

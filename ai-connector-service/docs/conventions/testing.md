@@ -104,6 +104,11 @@ bot.finance.ai
   makes `Money.of(...)` resolve to the test class. Name it for the role instead: `MoneyFactory`.
 - `@ParameterizedTest` when one behaviour spans several values (currency scales, enum cases, validation
   matrices). Never duplicate a case as both a parameterized entry and a one-off test.
+- **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
+  internally, assert what must hold whichever route it takes, never which route was taken. A test pinning the
+  mechanism fails when the dependency turns out to work differently, and says nothing about whether the product
+  broke. The opposite error is as bad: a disjunction covering every possible outcome asserts nothing. Assert what
+  a user would notice going wrong.
 - AssertJ only. Compare a `BigDecimal` with `isEqualByComparingTo(...)`, so a scale difference does not fail an
   assertion about value. Assert a gRPC failure on `StatusRuntimeException` and its status code, never its
   message.

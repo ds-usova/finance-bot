@@ -40,11 +40,15 @@ public class CreateExpenseProposalMcpTool {
             @McpToolParam(description = "what was bought") String description,
             @McpToolParam(required = false, description = "who it was bought from, optional - null or blank is none")
                     String merchant,
-            @McpToolParam(description = "the amount in the currency's minor units, required - " + "12.50 EUR is 1250")
-                    Long amountMinorUnits,
+            @McpToolParam(
+                            description =
+                                    "the amount exactly as the message writes it, in the currency's main unit - 7200 "
+                                            + "for 7200 HUF, 12.50 for 12.50 EUR. Digits, and at most one dot for "
+                                            + "the decimals. Never convert it, never group the digits.")
+                    String amount,
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
         CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-                category, parentCategory, description, merchant, amountMinorUnits, currencyCode);
+                category, parentCategory, description, merchant, amount, currencyCode);
 
         log.debug("Received create_expense_proposal call: {}", request);
 

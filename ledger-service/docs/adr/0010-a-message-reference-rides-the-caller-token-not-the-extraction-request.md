@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-03
-- **Source:** [Identify the User by Telegram User Id and Report the Proposals Back](../../../docs/implemented/11-plan-report-expense-proposals-to-the-user.md)
+- **Source:** [Identify the User by Telegram User Id and Report the Proposals Back](../../../docs/implemented/11-report-expense-proposals-to-the-user/plan.md)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-27
-- **Source:** [Initialize the AI Connector Service](../implemented/2-plan-init-ai-connector-service.md)
+- **Source:** [Initialize the AI Connector Service](../implemented/2-init-ai-connector-service/plan.md)
 
 ## Context
 

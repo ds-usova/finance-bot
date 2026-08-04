@@ -27,6 +27,10 @@ class ExpenseProposalToolUtilsTest {
     private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
     private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
 
+    private static CreateExpenseProposalToolRequest requestWith(String amount, String currencyCode) {
+        return new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", amount, currencyCode);
+    }
+
     @Nested
     @DisplayName("mapping a tool request onto the create-expense-proposal command")
     class ToCommand {
@@ -37,7 +41,7 @@ class ExpenseProposalToolUtilsTest {
                 + "minor units and the currency code")
         void whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsCommandCarryingThatIdentityAndFields() {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -57,8 +61,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName("when the request, an identity and a message reference are valid - then the returned command "
                 + "carries that reference")
         void whenRequestIdentityAndReferenceAreValid_thenReturnedCommandCarriesThatReference() {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "EUR");
+            CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
             MessageReference reference = MessageReference.newReference();
 
             CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, reference);
@@ -73,7 +76,7 @@ class ExpenseProposalToolUtilsTest {
         void whenParentCategoryIsNullOrBlank_thenCommandParentCategoryNameIsEmpty(
                 String description, String parentCategory) {
             CreateExpenseProposalToolRequest request = new CreateExpenseProposalToolRequest(
-                    "Groceries", parentCategory, "Milk", "Corner Shop", 1500L, "EUR");
+                    "Groceries", parentCategory, "Milk", "Corner Shop", "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -90,7 +93,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName("when the request's merchant is null or blank - then the command's merchant is Optional.empty()")
         void whenMerchantIsNullOrBlank_thenCommandMerchantIsEmpty(String description, String merchant) {
             CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, 1500L, "EUR");
+                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
@@ -105,46 +108,86 @@ class ExpenseProposalToolUtilsTest {
         @Test
         @DisplayName("when the request's currencyCode is not an ISO 4217 code - then throws InvalidMoneyException")
         void whenCurrencyCodeIsNotAnIso4217Code_thenThrowsInvalidMoneyException() {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 1500L, "ZZZ");
+            CreateExpenseProposalToolRequest request = requestWith("15.00", "ZZZ");
 
             assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
         }
 
         @Test
-        @DisplayName(
-                "when the request's amountMinorUnits is absent - then throws InvalidExpenseProposalException, so an "
-                        + "absent amount is never read as zero")
-        void whenAmountMinorUnitsIsAbsent_thenThrowsInvalidExpenseProposalException() {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", null, "EUR");
+        @DisplayName("when the request's amount is absent - then throws InvalidExpenseProposalException, so an "
+                + "absent amount is never read as zero")
+        void whenAmountIsAbsent_thenThrowsInvalidExpenseProposalException() {
+            CreateExpenseProposalToolRequest request = requestWith(null, "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .hasMessage("expense proposal request has no amount");
         }
 
         @Test
-        @DisplayName("when the request's amountMinorUnits is zero - then returns a command whose Money carries zero "
-                + "minor units")
-        void whenAmountMinorUnitsIsZero_thenReturnsCommandWithZeroMinorUnitsMoney() {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", 0L, "EUR");
+        @DisplayName("when the request's amount is \"7200\" and its currencyCode is \"HUF\" - then the returned "
+                + "command's money carries 720000 minor units and HUF")
+        void
+                whenAmountIsSevenThousandTwoHundredAndCurrencyIsHuf_thenCommandMoneyCarriesSevenHundredTwentyThousandMinorUnitsAndHuf() {
+            CreateExpenseProposalToolRequest request = requestWith("7200", "HUF");
+
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+
+            assertThat(command.money()).isEqualTo(new Money(720000L, CurrencyCode.of("HUF")));
+        }
+
+        @Test
+        @DisplayName("when the request's amount is \"  12.50  \", with surrounding whitespace - then the returned "
+                + "command's money carries 1250 minor units, so the text is stripped before it is read")
+        void whenAmountHasSurroundingWhitespace_thenCommandMoneyCarriesMinorUnitsFromTheStrippedText() {
+            CreateExpenseProposalToolRequest request = requestWith("  12.50  ", "EUR");
+
+            CreateExpenseProposalCommand command =
+                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+
+            assertThat(command.money()).isEqualTo(new Money(1250L, CurrencyCode.of("EUR")));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("malformedAmounts")
+        @DisplayName("when the request's amount is a form the description never offered - then throws "
+                + "InvalidExpenseProposalException naming the accepted form")
+        void whenAmountIsAFormTheDescriptionNeverOffered_thenThrowsInvalidExpenseProposalExceptionNamingTheAcceptedForm(
+                String description, String amount) {
+            CreateExpenseProposalToolRequest request = requestWith(amount, "EUR");
+
+            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
+        }
+
+        static Stream<Arguments> malformedAmounts() {
+            return Stream.of(
+                    arguments("comma decimal", "12,50"),
+                    arguments("grouped digits", "7,200"),
+                    arguments("negative sign", "-5.00"),
+                    arguments("exponent", "1e3"),
+                    arguments("currency symbol", "€12"),
+                    arguments("trailing dot with no decimals", "12."),
+                    arguments("not a number", "twelve"),
+                    arguments("empty string", ""),
+                    arguments("blank string", "   "),
+                    arguments("nineteen digits", "1234567890123456789"),
+                    arguments("five decimals", "1.23456"));
+        }
+
+        @Test
+        @DisplayName("when the request's amount is \"0\" and its currencyCode is \"EUR\" - then the returned "
+                + "command's money carries zero minor units")
+        void whenAmountIsZeroAndCurrencyIsEur_thenCommandMoneyCarriesZeroMinorUnits() {
+            CreateExpenseProposalToolRequest request = requestWith("0", "EUR");
 
             CreateExpenseProposalCommand command =
                     ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money().minorUnits()).isZero();
-        }
-
-        @Test
-        @DisplayName("when the request's amountMinorUnits is negative - then throws InvalidMoneyException")
-        void whenAmountMinorUnitsIsNegative_thenThrowsInvalidMoneyException() {
-            CreateExpenseProposalToolRequest request =
-                    new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", -1L, "EUR");
-
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidMoneyException.class);
         }
 
         @Test
@@ -163,7 +206,7 @@ class ExpenseProposalToolUtilsTest {
         @DisplayName(
                 "when a stored proposal carries a merchant and the category name it was filed under - then returns "
                         + "a response carrying the proposal's id, that category name, the description, the "
-                        + "merchant, the minor units, the currency code and the created-at instant")
+                        + "merchant, the amount as text, the currency code and the created-at instant")
         void whenStoredProposalCarriesMerchantAndCategoryName_thenReturnsResponseCarryingThoseFields() {
             Instant createdAt = Instant.parse("2026-01-01T10:00:00Z");
             ExpenseProposal proposal = ExpenseProposal.stored(
@@ -181,7 +224,7 @@ class ExpenseProposalToolUtilsTest {
 
             assertThat(response)
                     .isEqualTo(new CreateExpenseProposalToolResponse(
-                            1L, "Groceries", "Milk", "Corner Shop", 1500L, "EUR", createdAt));
+                            1L, "Groceries", "Milk", "Corner Shop", "15.00", "EUR", createdAt));
         }
 
         @Test

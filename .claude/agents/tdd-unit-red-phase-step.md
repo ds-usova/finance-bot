@@ -64,6 +64,11 @@ record it in your report instead of filling it yourself.
   no application-framework context; a unit test exercises the class in isolation.
 - Every test must assert something **meaningful**, derived from the stub's intent comment and the scenario — no
   trivial not-null checks.
+- **Where a scenario rests on how a dependency routes a call, observe the behaviour before asserting it.** Run the
+  path once, read what actually comes back, and write the assertion against that — reporting what you observed.
+  You run the test in Phase 3 regardless, so this only reorders the work. A scenario whose expected outcome turns
+  out to be unreachable is a plan defect: report it, and never reshape the assertion to cover every outcome, which
+  asserts nothing.
 - For scenarios where the intent says the method throws, assert on the specific error type (and message where the
   intent specifies one).
 - Follow the testing-style rules in the conventions (parameterized-test preference, assertion style, import/

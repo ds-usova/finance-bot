@@ -11,6 +11,12 @@ Use the Read, Glob, and Grep tools to inspect files and directories — not `cat
 The file tools run unprompted; shell equivalents (especially wrapped in `cd ... &&` or `for f in ...; do cat; done`)
 trigger permission prompts and can't be allowlisted around.
 
+## Editing files
+
+Use the Write and Edit tools for every change to a file's content, including a reformat. Re-padding a markdown
+table after a cell grows is an Edit that re-emits the table, never a `python`, `sed`, or `awk` invocation written
+to realign it — those always prompt, and an interpreter is never allowlisted.
+
 ## No `cd` prefix
 
 Never prefix a shell command with `cd "<repo path>" &&` — the Bash tool already runs from the repo's working

@@ -5,8 +5,22 @@ contract pages. It says what a diagram is written in; what a diagram must *show*
 
 Diagrams are **PlantUML** in fenced ` ```plantuml ` blocks, inline in the document — nothing is rendered to a
 committed image. Structure is drawn with the **C4 model** via the bundled C4-PlantUML stdlib (`!include
-<C4/C4_Context>`, `<C4/C4_Container>`, `<C4/C4_Component>` for C1, C2 and C3), and flows are drawn as plain
-**sequence diagrams**.
+<C4/C4_Context>`, `<C4/C4_Container>`, `<C4/C4_Component>` for C1, C2 and C3). Flows are drawn as **sequence** or
+**activity** diagrams — see below.
+
+## Choosing a Flow Diagram
+
+- **Sequence** — when the participants are the content: who calls whom, in what order, and what crosses each
+  boundary. Needs no include.
+- **Activity** — when the decisions are the content: the branches, guards and loops one flow runs through. Uses
+  `start` / `stop`, `if (…) then (…)` / `else` / `endif`, `repeat`, `fork`. Needs no include.
+
+**The test: read the branches.** If every arm of an `alt` names the same one or two participants, the diagram is
+about logic rather than interaction, and the lifelines are repeated scenery — an activity diagram states the same
+thing once. If the arms differ in *who* takes part, it is a sequence diagram.
+
+A flow with both — several participants *and* real branching — is two diagrams, not one overloaded diagram: a
+sequence diagram for the exchange, an activity diagram for the decision it turns on. Neither restates the other.
 
 ## Component Boundaries
 

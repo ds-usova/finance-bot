@@ -19,4 +19,35 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
         int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
         return BigDecimal.valueOf(minorUnits, fractionDigits);
     }
+
+    public static Money ofMajorUnits(BigDecimal amount, CurrencyCode currencyCode) {
+        if (amount == null) {
+            throw new InvalidMoneyException("Amount must not be null");
+        }
+        if (currencyCode == null) {
+            throw new InvalidMoneyException("Currency code must not be null");
+        }
+
+        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
+        if (fractionDigits < 0) {
+            throw new InvalidMoneyException(currencyCode.code() + " is not a currency an amount can be recorded in");
+        }
+
+        BigDecimal scaled;
+        try {
+            scaled = amount.movePointRight(fractionDigits).setScale(0);
+        } catch (ArithmeticException e) {
+            throw new InvalidMoneyException(amount + " is more precise than " + currencyCode.code() + ", which has "
+                    + fractionDigits + " decimal places");
+        }
+
+        long minorUnits;
+        try {
+            minorUnits = scaled.longValueExact();
+        } catch (ArithmeticException e) {
+            throw new InvalidMoneyException("Amount is too large to record");
+        }
+
+        return new Money(minorUnits, currencyCode);
+    }
 }

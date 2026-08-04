@@ -429,7 +429,7 @@ end
   proposal loop are deleted; the use case prompts the model and lets the tool loop run.
 - Basis: decided — the user chose deletion over keeping the assembly for logging (user, 2026-08-02). The ledger's
   tool errors are written as retry guidance a model reads, which only a model-driven call can use, and
-  [ADR 0005](adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md) already records that no
+  [ADR 0005](../../adr/0005-the-ledger-mirrors-the-intent-vocabulary-in-its-own-domain.md) already records that no
   intent crosses into the ledger.
 
 - **D2:** How does the caller's token reach each MCP request, when the client is a singleton and the token is
@@ -530,7 +530,7 @@ end
 - Answer: No. The same message handled twice records its expenses twice, and a model that retries a call it
   already made records it twice within one turn.
 - Basis: deferred — unchanged from
-  [design 8's D9 and D20](implemented/8-design-mcp-adapter-create-expense-proposal.md); the answer is an
+  [design 8's D9 and D20](../8-mcp-adapter-create-expense-proposal/design.md); the answer is an
   idempotency key on the ledger's tool, not anything here. What is new is that a model, not a program, decides
   when to repeat a call.
 
@@ -553,7 +553,7 @@ end
 - Answer: No. `io.modelcontextprotocol..` is already banned from `domain`/`application`, and `Mcp` is already a
   forbidden simple name there.
 - Basis: assumed — both were added by
-  [design 8](implemented/8-design-mcp-adapter-create-expense-proposal.md) and are in
+  [design 8](../8-mcp-adapter-create-expense-proposal/design.md) and are in
   `CleanArchitectureTest` today; this change moves MCP types between adapter classes and adds none to the core.
 
 - **D17:** What proves in production that a turn recorded anything?
@@ -561,7 +561,7 @@ end
   from the message. What was recorded is visible in the ledger, which logs each stored proposal with the
   identity it resolved.
 - Basis: assumed — the ledger already logs every creation
-  ([design 8's D12](implemented/8-design-mcp-adapter-create-expense-proposal.md)), and this service now learns
+  ([design 8's D12](../8-mcp-adapter-create-expense-proposal/design.md)), and this service now learns
   what happened only from the model's answer, which D6 keeps at `debug`. Counting tool calls here would mean
   reading that answer for a number the ledger already has.
 
@@ -591,7 +591,7 @@ end
   "the category's name — one filed under a grouping, never a grouping" and `parentCategory` as a tie-breaker.
   The split is what `ProposedExpense(categoryName, parentCategoryName)` did, and this change deletes it —
   without the instruction the likely first call carries `category: "Food > Groceries"`, which
-  [design 8's D31](implemented/8-design-mcp-adapter-create-expense-proposal.md) refuses, spending the one retry
+  [design 8's D31](../8-mcp-adapter-create-expense-proposal/design.md) refuses, spending the one retry
   the prompt allows on a mismatch the prompt could have avoided.
 
 - **D20:** Does `McpError` end a turn on a failure the ledger writes for the model to read?
@@ -602,7 +602,7 @@ end
 - Basis: assumed — challenges D7 as first written. `McpError extends RuntimeException` (`mcp-core-2.0.0`), and
   `DefaultToolExecutionExceptionProcessor.process` rethrows on `rethrown.isAssignableFrom(cause.getClass())`.
   The ledger's [failure table](../ledger-service/docs/contracts/in/mcp.md#failures) and
-  [design 8's D17](implemented/8-design-mcp-adapter-create-expense-proposal.md) both place the binding failure
+  [design 8's D17](../8-mcp-adapter-create-expense-proposal/design.md) both place the binding failure
   outside the tool-error vocabulary, which is exactly the class of failure D5 wants the model to correct.
 
 - **D21:** Does a ledger that is unreachable *during initialization* end the turn, or reach the model as text?
@@ -632,7 +632,7 @@ end
 - Answer: Nothing in this service. Both end at the same INFO line, and the refusal text is consumed by the model
   and logged nowhere here.
 - Basis: assumed — sharpens D17. The trace exists on the other side: the ledger logs every rejection at WARN and
-  every creation at INFO ([design 8's D12](implemented/8-design-mcp-adapter-create-expense-proposal.md)). What
+  every creation at INFO ([design 8's D12](../8-mcp-adapter-create-expense-proposal/design.md)). What
   neither side carries is anything tying a ledger log line to the connector turn that caused it, so the
   correlation is by user and clock. The current adapter needed none, because a refusal ended the turn and
   surfaced as `FAILED_PRECONDITION`; D5 removes that signal.
@@ -642,7 +642,7 @@ end
 - Answer: The transport-carried identity, the single tool attached, and human review. A message cannot name a
   user, cannot reach a second tool, and cannot produce an expense — only a proposal a human accepts.
 - Basis: assumed — [ADR 0007](../ledger-service/docs/adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)
-  and [design 8's D14](implemented/8-design-mcp-adapter-create-expense-proposal.md) keep identity out of the
+  and [design 8's D14](../8-mcp-adapter-create-expense-proposal/design.md) keep identity out of the
   input schema for exactly this reason; the ledger publishes one tool, so the callback list holds one entry; and
   [ADR 0006](../ledger-service/docs/adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md) keeps a
   proposal apart from the ledger until reviewed. What the message gains over today is the amount, the currency
@@ -654,7 +654,7 @@ end
 - Basis: assumed — `McpSyncClient` evaluates its `contextProvider` inside `withProvidedContext` on every
   operation (D2), `SyncMcpToolCallbackProvider` guards its cache with a `ReentrantLock` and holds only the tool
   schema, which is a property of the server, and the ledger's MCP server is `STATELESS` with per-call token
-  validation ([design 8's D1](implemented/8-design-mcp-adapter-create-expense-proposal.md)). The one shared
+  validation ([design 8's D1](../8-mcp-adapter-create-expense-proposal/design.md)). The one shared
   thing that is a caller's is the `initialize` exchange, which the first turn makes with its own token; the
   ledger's contract permits it, since every call carries its own token and no session is kept.
 
@@ -700,6 +700,6 @@ end
 
 Grilled (2026-08-02): nothing to raise on data and migrations, since the change adds no schema and no column;
 nothing on idempotency and retry beyond D13, nor on lifecycle beyond
-[design 8's D21](implemented/8-design-mcp-adapter-create-expense-proposal.md), both of which this change leaves
+[design 8's D21](../8-mcp-adapter-create-expense-proposal/design.md), both of which this change leaves
 exactly where they were; nothing on contract compatibility, since `proto/intent_extraction.proto` is untouched,
 the response was always empty, and the caller's failure table names no status this change removes.

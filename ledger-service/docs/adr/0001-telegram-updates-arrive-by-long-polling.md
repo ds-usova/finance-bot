@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-25
-- **Source:** [Telegram Update Listener](../../../docs/implemented/1-plan-telegram-update-listener.md)
+- **Source:** [Telegram Update Listener](../../../docs/implemented/1-telegram-update-listener/plan.md)
 
 ## Context
 

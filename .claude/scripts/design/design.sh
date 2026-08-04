@@ -39,8 +39,9 @@ Commands:
             section with no Grilled (...) line. A must-decide is not itself a problem here - a
             design in flight is expected to have them; that is what `settled` is for.
 
---file defaults to the single docs/<n>-design-<name>.md. An archived design under docs/implemented/
-is addressed by passing --file explicitly.
+--file defaults to the single docs/<n>-<task>/design.md - a task owns a directory, holding design.md
+and plan.md. An archived design under docs/implemented/<n>-<task>/design.md is addressed by passing
+--file explicitly.
 
 Exit codes: 0 done - 1 no such entry, not settled, or validate found problems - 2 bad usage.
 EOF
@@ -59,14 +60,15 @@ resolve_design() {
     fi
     while IFS= read -r f; do
         candidates+=("$f")
-    done < <(find "$repo_root/docs" -maxdepth 1 -name '[0-9]*-design-*.md' -type f 2>/dev/null | sort)
+    done < <(find "$repo_root/docs" -maxdepth 2 -name 'design.md' -type f \
+        -not -path '*/implemented/*' 2>/dev/null | sort)
 
     case "${#candidates[@]}" in
-        0) die "no <n>-design-<name>.md in $repo_root/docs - pass --file <design>" ;;
+        0) die "no <n>-<task>/design.md in $repo_root/docs - pass --file <design>" ;;
         1) design_file="${candidates[0]}" ;;
         *)
             {
-                echo "docs/ holds ${#candidates[@]} design files - pass --file <design>:"
+                echo "docs/ holds ${#candidates[@]} designs in flight - pass --file <design>:"
                 printf '  %s\n' "${candidates[@]#"$repo_root/"}"
             } >&2
             exit 2
