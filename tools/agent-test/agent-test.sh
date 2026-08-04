@@ -20,6 +20,7 @@ lock_wait=540
 use_lock=1
 keep_runs=20
 brief=0
+coverage=0
 
 usage() {
     cat <<'EOF'
@@ -35,6 +36,9 @@ Options:
                       Prefer a fully qualified class name: a pattern containing ** also drags in the
                       architecture tests, which ignore Gradle's filter.
   --compile           Compile main and test sources only; run no tests.
+  --coverage          Run the whole suite and then the coverage guardrail, failing the run when
+                      instruction coverage is below the module's coverageMinimum. Cannot be
+                      combined with --tests or --compile: a partial run measures partial coverage.
   --label <name>      Prefix of the run directory under build/agent-runs. Defaults to the test class.
   --wait <seconds>    How long to wait for another run to finish before giving up. Default 540.
   --no-lock           Start immediately even if another run is in progress. Results stay separate,
@@ -62,6 +66,7 @@ while [ $# -gt 0 ]; do
         --keep)     keep_runs="${2:-}"; shift 2 ;;
         --compile)  mode="compile"; shift ;;
         --all)      mode="test"; shift ;;
+        --coverage) coverage=1; shift ;;
         --no-lock)  use_lock=0; shift ;;
         --brief)    brief=1; shift ;;
         -h|--help)  usage; exit 0 ;;
@@ -73,6 +78,19 @@ if [ -z "$module" ]; then
     echo "--module <name> is required." >&2
     usage >&2
     exit 2
+fi
+
+# Coverage is measured over one full run or not at all, so the flags that shrink a run are refused
+# rather than silently producing a ratio of whatever happened to execute.
+if [ "$coverage" = "1" ]; then
+    if [ "$mode" = "compile" ]; then
+        echo "--coverage cannot be combined with --compile." >&2
+        exit 2
+    fi
+    if [ ${#patterns[@]} -gt 0 ]; then
+        echo "--coverage cannot be combined with --tests: coverage is measured over the whole suite." >&2
+        exit 2
+    fi
 fi
 
 module_dir="$repo_root/$module"
@@ -94,6 +112,8 @@ derive_label() {
 if [ -z "$label" ]; then
     if [ "$mode" = "compile" ]; then
         label="compile"
+    elif [ "$coverage" = "1" ]; then
+        label="coverage"
     elif [ ${#patterns[@]} -gt 0 ]; then
         label="$(derive_label "${patterns[0]}")"
     else
@@ -222,6 +242,11 @@ else
     for pattern in ${patterns[@]+"${patterns[@]}"}; do
         gradle_args+=(--tests "$pattern")
     done
+
+    # The guardrail is never wired into `test`, so it only ever runs because it was named here.
+    if [ "$coverage" = "1" ]; then
+        gradle_args+=(jacocoTestReport jacocoTestCoverageVerification)
+    fi
 fi
 
 command_line="gradlew ${gradle_args[*]}"
@@ -253,9 +278,35 @@ else
     if [ ! -e "${result_files[0]}" ]; then
         result_files=()
     fi
-    awk -v command="$command_line" -v exitCode="$exit_code" \
+    # JaCoCo reports each unmet rule as its own "Rule violated for ..." line; their absence after a
+    # requested verification is what says the guardrail held.
+    coverage_violations=""
+    if [ "$coverage" = "1" ]; then
+        # The same violation reaches the log three times — as an ant task line, as Gradle's failure
+        # line, and inside the stack trace — so each one is trimmed back to its message and deduped.
+        coverage_violations="$(grep -o "Rule violated for.*" "$console_log" | sort -u)"
+    fi
+    coverage_failed=0
+    [ -z "$coverage_violations" ] || coverage_failed=1
+
+    awk -v command="$command_line" -v exitCode="$exit_code" -v coverageFailed="$coverage_failed" \
         -f "$script_dir/junit-summary.awk" ${result_files[@]+"${result_files[@]}"} < /dev/null \
         > "$summary_file"
+
+    if [ "$coverage" = "1" ]; then
+        {
+            echo ""
+            echo "== Coverage =="
+            if [ "$coverage_failed" = "1" ]; then
+                printf '%s\n' "$coverage_violations"
+                echo ""
+                echo "Below coverageMinimum in the module's gradle.properties. The per-class report is at"
+                echo "$module/build/reports/jacoco/test/html/index.html."
+            else
+                echo "Guardrail met: instruction coverage is at or above coverageMinimum."
+            fi
+        } >> "$summary_file"
+    fi
 fi
 
 if [ "$use_lock" = "0" ]; then
@@ -263,13 +314,15 @@ if [ "$use_lock" = "0" ]; then
 fi
 
 # Compilation errors and Gradle's own failures never reach the JUnit XML, so lift them out of the
-# console log — they are the whole story when the build never got as far as running a test.
-if [ "$exit_code" != "0" ]; then
+# console log — they are the whole story when the build never got as far as running a test. A build
+# that failed only on the coverage rule is already fully explained by the Coverage section.
+if [ "$exit_code" != "0" ] && [ "$(head -n 1 "$summary_file")" != "Result: COVERAGE BELOW MINIMUM" ]; then
     {
         echo ""
         echo "== Build output =="
         grep -E "error:|^e: |FAILURE:|What went wrong|^> " "$console_log" \
             | grep -v "There were failing tests" \
+            | grep -v "Rule violated for" \
             | head -n 25
     } >> "$summary_file"
 fi
@@ -279,8 +332,13 @@ echo ""
 if [ "$brief" = "1" ]; then
     # The per-class table is the long half of the summary and is rarely what a run is read for; it stays
     # in summary.txt either way. Dropping it here is what removes the reason to pipe this script's output.
-    awk '/^== Test classes ==$/ { print "(per-class table omitted; see summary.txt)"; exit } { print }' \
-        "$summary_file"
+    # Only the table is dropped: whatever section follows it is still printed.
+    awk '
+        /^== Test classes ==$/ { skipping = 1; print "(per-class table omitted; see summary.txt)"; next }
+        skipping && /^== / { skipping = 0 }
+        skipping { next }
+        { print }
+    ' "$summary_file"
 else
     cat "$summary_file"
 fi

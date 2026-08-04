@@ -16,6 +16,7 @@ with bash from the **repository root**, takes the same JUnit patterns Gradle doe
 tools/agent-test/agent-test.sh --module <module> --compile
 tools/agent-test/agent-test.sh --module <module> --tests "<package>.<TestClassName>"
 tools/agent-test/agent-test.sh --module <module> --all
+tools/agent-test/agent-test.sh --module <module> --coverage
 ```
 
 Name a test class in full. The architecture tests ignore Gradle's filter, so a wildcard pattern would pull them
@@ -55,6 +56,19 @@ the command a generous timeout, and let a run finish instead of interrupting and
 
 The wrapper's remaining options, its exit codes, and the limits of what queueing can protect are in
 [`tools/agent-test/README.md`](../../tools/agent-test/README.md).
+
+## Test Coverage
+
+Every Java module carries a coverage guardrail: `jacocoTestCoverageVerification` fails the build when
+instruction coverage is below the `coverageMinimum` in the module's `gradle.properties`, currently `0.85` in
+both. Generated protobuf and gRPC stubs and the `*Application` class are outside the measured set.
+
+The guardrail belongs to neither `test` nor `check`. It runs only when `--coverage` names it, over the whole
+suite — a run filtered to one class, and a plan whose later steps have not been written yet, are both expected
+to be short of the threshold and are never failed for it. The verdict for a green suite under the minimum is
+`COVERAGE BELOW MINIMUM`, and the summary's `== Coverage ==` section names each violated rule.
+
+Where it is worth running: at the end of a change, once every step of it is implemented.
 
 ## Formatting
 

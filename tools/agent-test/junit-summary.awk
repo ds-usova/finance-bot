@@ -1,7 +1,7 @@
 # Turns Gradle's JUnit XML result files into a plain-text summary.
 #
 # Invoked by tools/agent-test/agent-test.sh over every TEST-*.xml of a single run; the caller passes
-# label, command, and exitCode as -v variables and captures stdout as the run's summary.
+# command, exitCode, and coverageFailed as -v variables and captures stdout as the run's summary.
 
 function unescape(s) {
     gsub(/&lt;/, "<", s)
@@ -116,6 +116,7 @@ END {
     }
 
     if (exitCode == 0 && totalFailures == 0) verdict = "PASS"
+    else if (totalFailures == 0 && coverageFailed == 1) verdict = "COVERAGE BELOW MINIMUM"
     else verdict = "FAIL"
 
     print "Result: " verdict
