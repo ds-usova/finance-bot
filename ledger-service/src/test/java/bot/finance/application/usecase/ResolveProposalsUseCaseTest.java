@@ -248,24 +248,5 @@ class ResolveProposalsUseCaseTest {
             assertThatThrownBy(() -> useCase.resolve(newCommand(ProposalResolution.DISCARD)))
                     .isSameAs(failure);
         }
-
-        @Test
-        @DisplayName("when a user is stored and accept answers 2 - then one info line is logged whose arguments "
-                + "carry a MessageReference, the ProposalResolution, the ResolutionOutcome and the count")
-        void whenAcceptResolvesTwo_thenInfoLineCarriesReferenceResolutionOutcomeAndCount() {
-            stubStoredUser();
-            when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
-                    .thenReturn(2);
-
-            useCase.resolve(newCommand(ProposalResolution.ACCEPT));
-
-            ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
-            verify(log).info(messageCaptor.capture(), argsCaptor.capture());
-            assertThat(argsCaptor.getValue()).contains(REFERENCE);
-            assertThat(argsCaptor.getValue()).contains(ProposalResolution.ACCEPT);
-            assertThat(argsCaptor.getValue()).contains(ResolutionOutcome.ACCEPTED);
-            assertThat(argsCaptor.getValue()).contains(2);
-        }
     }
 }

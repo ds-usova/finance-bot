@@ -515,7 +515,7 @@ New-method stubs carry a short inline comment describing the implementation inte
 
 #### ADRs
 
-- [ ] P01 · Write ADR: a set of rows is moved between tables by a single data-modifying CTE — a
+- [x] P01 · Write ADR: a set of rows is moved between tables by a single data-modifying CTE — a
   `DELETE … RETURNING` feeding an `INSERT` — so two concurrent resolutions contend on the same rows and only the
   transaction that deletes them writes anything
 
@@ -541,7 +541,8 @@ New-method stubs carry a short inline comment describing the implementation inte
   [testing.md](../../ledger-service/docs/conventions/testing.md) reserves a log assertion against. It fails on any
   rewording of that line and says nothing about whether the product broke. Delete it, or keep it as the one guard
   on D37's "the outcome is what separates `ACCEPTED` from `ALREADY_ACCEPTED` in the log"?
-- A:
+- A: Delete it. `testing.md` reserves a log assertion for behaviour that leaves no other trace, and this leaves
+  plenty; it fails on any rewording of the line and says nothing about whether the product broke.
 
 - **Q4:** Raised by the refactor pass, unverified — it could not construct a failing input.
   `TelegramMessageDeliveryAdapter.acknowledge` calls `Integer.parseInt(ack.reportMessageId())`, and
@@ -549,7 +550,8 @@ New-method stubs carry a short inline comment describing the implementation inte
   a raw `NumberFormatException` rather than a domain exception, against the outbound-adapter translation rule. Not
   reachable today: the only producer is `TelegramUpdateUtils`, which sets it from `String.valueOf(message.messageId())`.
   `deliver` carries the same pattern and predates this plan. Worth closing, or left as it is?
-- A:
+- A: Leave it — out of scope. It is not reachable, and the same pattern predates this plan in `deliver`; fixing
+  both belongs in its own change rather than riding along on this diff unreviewed.
 
 ## Review Findings
 
