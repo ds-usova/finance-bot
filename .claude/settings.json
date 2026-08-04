@@ -69,6 +69,8 @@
     "deny": [
       "Bash(echo:*)",
       "Bash(xargs:*)",
+      "Bash(cd:*)",
+      "Bash(gradlew:*)",
       "Bash(git -C:*)",
       "Bash(./gradlew test:*)",
       "Bash(ledger-service/gradlew test:*)",

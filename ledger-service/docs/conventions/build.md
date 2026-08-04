@@ -11,9 +11,9 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 
 ## Module Tasks
 
-- Coverage report (JaCoCo): `ledger-service/gradlew test jacocoTestReport`
-- Reformat to style (Spotless): `ledger-service/gradlew spotlessApply`
-- Check formatting (Spotless): `ledger-service/gradlew spotlessCheck` — runs as part of `check`
+- Coverage report (JaCoCo): `ledger-service/gradlew -p ledger-service test jacocoTestReport`
+- Reformat to style (Spotless): `ledger-service/gradlew -p ledger-service spotlessApply`
+- Check formatting (Spotless): `ledger-service/gradlew -p ledger-service spotlessCheck` — runs as part of `check`
 - Contract codegen: none is wired.
 
 ## Docker

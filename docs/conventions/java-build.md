@@ -69,8 +69,13 @@ than being reformatted. Name it.
 ## Running Gradle Directly
 
 The Gradle wrapper still works and is the way to run a task the script does not cover. It runs from the
-repository root as `<module>/gradlew …`, so no command needs a `cd`. Two of its invocations at once clobber each
-other's results in `build/test-results/test/`, which is exactly what the script exists to prevent.
+repository root as `<module>/gradlew -p <module> <task>`, so no command needs a `cd`. Two of its invocations at
+once clobber each other's results in `build/test-results/test/`, which is exactly what the script exists to
+prevent.
+
+**`-p <module>` is not optional.** The wrapper takes its project directory from the working directory, not from
+where the script sits, and this repository's root holds no Gradle build — so `<module>/gradlew <task>` fails with
+`does not contain a Gradle build` before running anything. A command that appears to do nothing is this one.
 
 ## Inspecting a Dependency
 
