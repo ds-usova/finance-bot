@@ -57,12 +57,12 @@ public final class TelegramTestBot {
     public static final String DELIVERY_TOKEN = "delivery-test-token";
 
     /**
-     * Token owned by {@code ResolveProposalsSystemTest}, RS01.
+     * Token owned by {@code ResolveProposalsSystemTest}.
      */
     public static final String RESOLVE_PROPOSALS_TOKEN = "resolve-proposals-test-token";
 
     /**
-     * Token owned by {@code ResolveProposalsSystemTest}, RS02.
+     * Token owned by {@code ResolveUnknownProposalsSystemTest}.
      */
     public static final String RESOLVE_UNKNOWN_PROPOSALS_TOKEN = "resolve-unknown-proposals-test-token";
 

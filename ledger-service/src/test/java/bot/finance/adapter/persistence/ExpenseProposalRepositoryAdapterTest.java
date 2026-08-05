@@ -595,8 +595,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a stored user and a reference nothing was written under - then returns 0 and no expense row is written (D5)")
+        @DisplayName("when nothing was stored under the reference - then returns 0 and writes no expense row")
         void whenReferenceHasNoStoredProposals_thenReturnsZeroAndWritesNoExpenseRow() {
             long userId = storedUserId("accept-no-proposals-user");
 

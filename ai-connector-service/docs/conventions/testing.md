@@ -124,7 +124,8 @@ bot.finance.ai
   outcome, under 120 characters.** The name says what the test proves, never what it asserts — the assertions are
   in the body, and a name that lists them has to be re-read every time one of them changes. A name that will not
   fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
-  one behaviour they add up to.
+  one behaviour they add up to. It never cites a plan step or a design decision by number either — the scenario a
+  step agent works from carries those, and they name nothing once the plan is archived.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution — and move any body past

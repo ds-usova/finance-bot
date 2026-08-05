@@ -317,7 +317,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when called with a stored user and a reference nothing was written under - then returns 0 (D30)")
+        @DisplayName("when nothing was stored under the reference - then returns 0")
         void whenReferenceHasNoStoredExpenses_thenReturnsZero() {
             long userId = storedUserId("count-no-expenses-user");
 
@@ -339,8 +339,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for the first of two users each holding one expense under the same reference value - then returns 1 (D7)")
+        @DisplayName("when two users share a reference value - then counting for one ignores the other's expense")
         void whenTwoUsersShareReferenceValue_thenReturnsOne() {
             long firstUserId = storedUserId("count-shared-reference-first-user");
             long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
@@ -435,7 +434,7 @@ class ExpenseRepositoryAdapterTest {
     }
 
     // countByMessageReference's rows have to carry a message_reference, which adapter.create()
-    // never writes (D39) - so they are seeded directly through JdbcAggregateTemplate, the way
+    // never writes - so they are seeded directly through JdbcAggregateTemplate, the way
     // ExpenseProposalRowUtils.storedProposal seeds a proposal row.
     private ExpenseEntity storedExpense(
             long userId,

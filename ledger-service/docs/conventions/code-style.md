@@ -32,6 +32,9 @@ Applies across all layers.
   together with the constraint forcing it. Never restate a name, a signature, or an annotation, and never
   justify a design decision: conventions belong in this directory, and a second copy in a javadoc is one more
   thing to keep in sync. The same goes for `@param`/`@return` tags that only spell the parameter name out again.
+  **Never cite a plan step or a design decision by number** — `D7`, `RI03`. Those live in an archived task
+  directory that a reader of this file has no reason to open, and they name nothing once the plan is finished.
+  Write the reason itself, or leave it out.
 
 ### Domain
 

@@ -73,7 +73,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .mapToInt(grouping -> grouping.categories().size())
                     .sum();
 
-    /** The grouping names {@link Grouping#defaults()} seeds, sorted the way the groupings travel (D15). */
+    /** The grouping names {@link Grouping#defaults()} seeds, sorted the way the groupings travel. */
     private static final List<String> EXPECTED_GROUPING_NAMES =
             Grouping.defaults().stream().map(Grouping::name).sorted().toList();
 
