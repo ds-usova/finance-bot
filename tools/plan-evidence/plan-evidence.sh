@@ -72,7 +72,16 @@ evidence_json="$plan_dir/evidence.json"
 
 head_sha="$(git -C "$repo_root" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
 branch="$(git -C "$repo_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
-dirty_count="$(git -C "$repo_root" status --porcelain 2>/dev/null | grep -vc "^$" || true)"
+
+# The two files this script writes are excluded from the tree check. A previous run leaves them
+# uncommitted, and without this the *next* run reports an unclean tree because it re-measured —
+# so a re-measure could never come back verified without a commit in between. What the check is
+# for is uncommitted *code*, which these two are not.
+evidence_md_rel="${evidence_md#"$repo_root/"}"
+evidence_json_rel="${evidence_json#"$repo_root/"}"
+dirty_count="$(git -C "$repo_root" status --porcelain 2>/dev/null \
+    | grep -v "^$" \
+    | grep -vFc -e "$evidence_md_rel" -e "$evidence_json_rel" || true)"
 [ -n "$dirty_count" ] || dirty_count=0
 
 # --verify reads; it never measures. Re-measuring is what a plain run does, and conflating the two
