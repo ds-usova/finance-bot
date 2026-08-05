@@ -1,9 +1,10 @@
 # Ledger Service — intent extraction (gRPC)
 
 A line a user wrote crosses this boundary in, together with a token to act as that user. Nothing crosses back:
-the service records the spending the message names and answers that the turn is done. The caller decides nothing
+the service acts on what the message asks for and answers that the turn is done. The caller decides nothing
 about the text; it sends what the user said, the groupings that user's categories are filed under, the grouping
-to fall back on, and — optionally — the currency to assume when an amount is stated without one.
+to fall back on, the day the turn runs on, and — optionally — the currency to assume when an amount is stated
+without one.
 
 - **Counterpart:** [the Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)
 - **Transport:** gRPC
@@ -14,7 +15,7 @@ to fall back on, and — optionally — the currency to assume when an amount is
 
 | Operation       | Purpose                                                          | Used by                                                                                                                                                                                                          |
 |-----------------|------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Extract intents | records the spending a user's message names, in their order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [Handle an incoming message](../../../../ledger-service/docs/usecases/handle-incoming-message.md) |
+| Extract intents | acts on what a user's message asks for, in the user's order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [Handle an incoming message](../../../../ledger-service/docs/usecases/handle-incoming-message.md) |
 | Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md), which reports it in its own health endpoint                                                                                 |
 
 ## Semantics
@@ -32,11 +33,13 @@ The token is required but not verified here — it is checked where it is spent,
 authenticated therefore records nothing, but does reach the model
 ([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
 
-A successful call answers with nothing at all. There is no count, no per-entry outcome and no text for the
-user — the answer says only that the message was acted on.
+A successful call answers with nothing at all. There is no count, no per-entry outcome, no total and no text
+for the user — the answer says only that the message was acted on. A summary the message asked for reaches the
+user from the ledger, never through this boundary.
 
-Only spending is recorded, by the [use case's rule](../../usecases/extract-intents.md#rules). A message asking
-for anything else records nothing and still succeeds.
+Only spending is recorded, and only spending is summarized, by the
+[use case's rule](../../usecases/extract-intents.md#rules). A message asking for anything else records nothing
+and still succeeds.
 
 Expenses are recorded in the order the user expressed them — nothing is reordered or merged.
 
@@ -54,6 +57,10 @@ always exists. The service never invents a name.
 The assumed currency applies only where the user stated an amount with no currency. It is accepted in any casing
 and must be a code ISO 4217 knows.
 
+The day the turn runs on is required, and is a calendar date written the ISO-8601 way. It is the caller's to
+choose and is checked against no clock here — a day in the past or the future is accepted as sent. Every period
+read out of a relative phrase is anchored on it, and the week counted from it starts on Monday.
+
 The same text sent twice is acted on twice: nothing is remembered between calls, so a repeated request records
 its expenses again and no duplicate is recognized.
 
@@ -68,6 +75,8 @@ its expenses again and no duplicate is recognized.
 | The catch-all grouping is blank or not sent                 | rejected as an invalid argument; no call to the provider is made     |
 | The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
 | An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
+| The day the turn runs on is absent or only whitespace       | rejected as an invalid argument; no call to the provider is made     |
+| The day the turn runs on is not an ISO-8601 date            | rejected as an invalid argument; no call to the provider is made     |
 | The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
 | The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
 | The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded       |

@@ -20,12 +20,13 @@ again and reported back to whoever sent it.
 A single unique value.
 
 - [Expense proposal](expense-proposal.md) — every stored proposal records the message it came from.
+- [Spending query](spending-query.md) — every period asked about records the message that asked.
 - [Act on a user's message](../usecases/handle-incoming-message.md) — mints one per message, and reads back
   what was recorded under it.
 - [AI Connector Service — intent extraction](../contracts/out/ai-connector.md) — carries it on the credential
   minted for the turn.
-- [MCP — the create expense proposal tool](../contracts/in/mcp.md) — where it is read back out of that
-  credential.
+- [MCP — the ledger's tools](../contracts/in/mcp.md) — where it is read back out of that credential, by the
+  tools that record a proposal and a period.
 - [Telegram — outgoing replies](../contracts/out/telegram-replies.md) — carried in each button under a report.
 - [Telegram — incoming messages](../contracts/in/telegram-updates.md) — read back off the button a user taps.
 - [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md) — finds what that message proposed,

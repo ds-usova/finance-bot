@@ -1,8 +1,9 @@
 # Ledger Service — the ledger's tools (MCP over HTTP)
 
-Two things cross this boundary as tool calls made by the model reading a user's message: which categories one of
-the user's groupings holds, and every expense that message says was paid. Both are made against the person whose
-token arrived with the extraction request, never against anyone this service names.
+Three things cross this boundary as tool calls made by the model reading a user's message: which categories one
+of the user's groupings holds, every expense that message says was paid, and the period the message asks what
+was spent over. All are made against the person whose token arrived with the extraction request, never against
+anyone this service names.
 
 - **Counterpart:** [the Ledger Service's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md)
 - **Transport:** MCP over Streamable HTTP, one long-lived client for the whole process — the address is
@@ -16,6 +17,7 @@ token arrived with the extraction request, never against anyone this service nam
 | List the tools            | reads what the ledger offers and what each of them takes         | here, [Record the spending a user's message names](../../usecases/extract-intents.md)                                                                                                                               |
 | `list_categories`         | answers the categories filed under one of the caller's groupings | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [List a grouping's categories](../../../../ledger-service/docs/usecases/list-categories.md)          |
 | `create_expense_proposal` | records one expense the user's message asks for                  | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [Create an expense proposal](../../../../ledger-service/docs/usecases/create-an-expense-proposal.md) |
+| `summarize_spending`      | answers what the caller spent over a period                      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the ledger's side, [Summarize spending over a period](../../../../ledger-service/docs/usecases/summarize-spending.md)   |
 
 ### What is sent
 
@@ -24,8 +26,9 @@ arguments take. This service assembles none of them.
 
 A lookup carries one grouping name, taken from the groupings that arrived on the extraction request. A recording
 call carries the category the lookup answered and the grouping it was asked for, both required. `merchant` is
-sent when the message names who the expense was paid to. The arguments, and which are required, are
-[the tools' own declarations](../../../../ledger-service/docs/contracts/in/mcp.md).
+sent when the message names who the expense was paid to. A summary call carries a first and a last day, both
+required, both inclusive, both worked out by the model from the day the turn runs on. The arguments, and which
+are required, are [the tools' own declarations](../../../../ledger-service/docs/contracts/in/mcp.md).
 
 ## Semantics
 
@@ -47,6 +50,9 @@ is filed under it, and nothing forbids reusing a listing already made in the sam
 
 Nothing is read out of the answer here. A grouping's categories, a stored proposal's id, its timestamp, and
 everything else the ledger returns go back to the model as that call's result.
+
+A summary call answers the period the ledger accepted, and no amount. What was spent is put in front of the user
+by the ledger, so no total ever enters the model's context.
 
 A tool result flagged as an error is a refusal, and it reaches the model as that call's answer. A refusal never
 ends the turn.
@@ -78,7 +84,11 @@ handled twice records two proposals, and a model that repeats a recording call w
 
 A tool is chosen by the model from the list the ledger publishes, and its arguments are filled from the same
 list. Adding a tool, or renaming one, changes what the model is offered rather than breaking a call assembled
-here.
+here. Nothing is wired for a new tool: it reaches the model as soon as this process has read the published list.
+
+That makes a newly published tool a matter of restart order, not of a compatibility window. The ledger must be
+serving the tool before this service starts; a process that read the list without it goes on offering what it
+read, and a message asking for that tool is answered by whatever the model can do with the rest.
 
 An optional argument added on the ledger's side costs nothing. Making one required, or removing one, changes
 what the model is told to send.

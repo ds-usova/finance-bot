@@ -1,8 +1,8 @@
 # AI Connector Service — intent extraction (gRPC)
 
 The service hands a user's turn to the AI Connector: the text, the groupings that user's categories are filed
-under, and a credential to act as them. The connector acts on whatever the message asks for and answers only
-that the turn completed — no action crosses back.
+under, the day the turn runs on, and a credential to act as them. The connector acts on whatever the message
+asks for and answers only that the turn completed — no action crosses back.
 
 - **Counterpart:** the AI Connector Service — its address is [configuration](../../configuration.md)
 - **Transport:** gRPC, one call per message
@@ -19,8 +19,8 @@ that the turn completed — no action crosses back.
 ## Semantics
 
 **Sent:** the user's text · the names of the groupings their categories are filed under · which of those
-groupings is the catch-all · the currency to assume (optional) · a credential naming the user, carried on the
-call rather than in the payload.
+groupings is the catch-all · the currency to assume (optional) · the day the turn runs on · a credential naming
+the user, carried on the call rather than in the payload.
 
 **Answered:** an acknowledgement carrying nothing. Success means the turn was acted on — no count, no per-action
 outcome, no text for the user. What the turn actually recorded is read back out of this service's own store,
@@ -39,6 +39,11 @@ What this side adds:
   so a catalogue that does not carry it produces no call at all rather than a substitute.
 - The groupings travel in alphabetical order, and nothing depends on the position of one in the list.
 - The assumed currency is stated as present or absent; it is never left unsaid.
+- The day the turn runs on is a calendar date in UTC, taken from this service's own clock, and always present.
+- It is what a period asked for in words is anchored on, so "last week" is a UTC week for every user wherever
+  they are. Nothing records a user's own time zone.
+- The period itself never crosses here: the connector resolves it and asks for it over
+  [the tool it calls back on](../in/mcp.md).
 - An absent request is refused before the connector is reached.
 - The credential is minted per call, names the user as its subject, and is what the connector calls back with
   ([the tool it calls](../in/mcp.md)).
@@ -50,7 +55,7 @@ What this side adds:
 - Nothing is retried and nothing is cached: the same text sent twice is two calls.
 - A call answers within `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover the whole
   model-driven loop: listing the tools, a provider call, a category lookup and a recording callback per expense,
-  a provider call per result, and a further pair per expense retried.
+  a summary callback per period asked about, a provider call per result, and a further pair per expense retried.
 - Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
   mints, then the call's deadline, then the connector's own per-callback timeout — so a single slow callback
   cannot spend the turn.

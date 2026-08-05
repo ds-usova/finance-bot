@@ -1,7 +1,8 @@
 # Telegram — outgoing replies (Bot API)
 
 What the bot says back crosses this boundary. Every message the service handles is answered here, with a report
-of the spending that message produced; so is every tap on that report's buttons.
+of what that message produced — the totals it asked for, and the spending it named; so is every tap on that
+report's buttons.
 
 - **Counterpart:** Telegram, the messaging platform hosting the bot
 - **Transport:** Telegram Bot API over HTTP
@@ -17,8 +18,8 @@ of the spending that message produced; so is every tap on that report's buttons.
 
 ## Semantics
 
-**Sent with a report:** the conversation to say it in · the message it answers · the text of the report · the two
-buttons, when it lists anything to resolve.
+**Sent with a report:** the conversation to say it in · the message it answers · the text of the report — its
+totals, then whatever it proposes · the two buttons, when it lists anything to resolve.
 
 A report is addressed to the conversation the message came from, not to the person who sent it — in a group, the
 answer is read by everyone in it. It is threaded onto the message it answers, so a group reader can tell which
@@ -47,15 +48,25 @@ rather than refused.
 
 The service turns [the report](../../usecases/handle-incoming-message.md#the-report) and
 [what a tap did](../../usecases/resolve-a-reported-proposal.md#outcomes) into chat text here, at the boundary
-whose limits shape it. What the core hands over is an outcome and a count, or an outcome and a list; never a
-rendered string. An answer to a tap is one short line, well inside the far tighter length limit Telegram allows
+whose limits shape it. What the core hands over is an outcome, the periods it totalled and the proposals it
+recorded; never a rendered string, and never an amount already written out. An answer to a tap is one short line, well inside the far tighter length limit Telegram allows
 it.
+
+A report's text is written in two parts, in this order:
+
+- **The totals**, one block per period the message asked about — a header naming the two days, then one line per
+  currency with the amount and how many expenses are behind it. A period the ledger holds nothing in gets a
+  single line saying so.
+- **What the turn proposed**, under whichever of the report's own texts the outcome earned.
+
+A period's two days are written as a day, an English month and a year, whatever locale the service runs under.
 
 No formatting markup is claimed for the text, so a description or a merchant name is shown exactly as it was
 stored and nothing in it is treated as an instruction to the renderer.
 
-One report is always one message. A list too long for the Bot API's own length limit is cut, and what was left
-out is counted in a closing line.
+One report is always one message, and its length limit is spent on the totals first. What is cut is the proposal
+list, and what was left out is counted in a closing line. When the totals alone fill the limit, whole periods are
+dropped from the oldest and counted in a closing line of their own.
 
 Nothing is retried, and nothing is sent twice: a report that fails is a report the user never sees.
 

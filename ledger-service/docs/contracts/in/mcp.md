@@ -1,8 +1,9 @@
 # Agent acting for a user — the ledger's tools (MCP over HTTP)
 
-A language model acting for a user records the spending in their message here, one tool call per expense. This
-is the boundary an AI agent reaches the ledger through. Two things cross it: which categories one of the
-caller's own groupings holds, and a proposed expense, which a human reviews before it becomes one.
+A language model acting for a user acts on their message here, one tool call per thing the message asks for.
+This is the boundary an AI agent reaches the ledger through. Three things cross it: which categories one of the
+caller's own groupings holds, a proposed expense, which a human reviews before it becomes one, and a period the
+caller wants their spending totalled over.
 
 - **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
   acting for the user whose message it was handed
@@ -17,6 +18,7 @@ caller's own groupings holds, and a proposed expense, which a human reviews befo
 | List the tools            | tells a client which tools exist and what each takes                                                      | the client, to put the tools and their arguments in front of its model     |
 | `create_expense_proposal` | records one expense the model read from its caller's message                                              | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 | `list_categories`         | answers which categories one of the caller's groupings holds                                              | [List a grouping's categories](../../usecases/list-categories.md)          |
+| `summarize_spending`      | records the period the model read from a question about what its caller spent                             | [Summarize spending over a period](../../usecases/summarize-spending.md)   |
 | Fetch the signing keys    | publishes the public half of the key tokens are signed with, so a client can verify and follow a rotation | any holder of a token                                                      |
 
 ### What `create_expense_proposal` takes
@@ -52,16 +54,34 @@ already knows whose token it sent, and everything returned enters a model's cont
 Under `grouping`, the grouping the call named; under `categories`, the names of the categories filed under it,
 ordered by name. It carries no identity and no stored id.
 
+### What `summarize_spending` takes
+
+| Argument | Meaning                                                    | Required |
+|----------|------------------------------------------------------------|----------|
+| `from`   | the first day of the period, counted, as `YYYY-MM-DD`      | yes      |
+| `to`     | the last day of the period, counted, as `YYYY-MM-DD`       | yes      |
+
+Both days are ISO-8601 calendar dates. A relative phrase — "last week", "since Friday" — is never sent: the
+caller works the period out against [the day the turn states](../out/ai-connector.md) and sends two days.
+
+### What `summarize_spending` answers with
+
+Under `from` and `to`, the period that was accepted, as the two days it was stored as. **No amount, no count and
+no expense.** What the caller asked about is put in front of the user by
+[the turn](../../usecases/handle-incoming-message.md), and never returned here, so a total no model has read is
+a total no model can restate.
+
 ## Semantics
 
 Every call carries its own token and the server keeps nothing between calls; two calls never share state.
 
-Each proposal is stored under the message reference its token carries, which is what lets the ledger tell the
-user which message produced what. A proposal call whose token carries no readable reference is refused, and
-stores nothing. Listing categories never reads the reference, so a token carrying none still lists.
+Each proposal, and each period asked about, is stored under the message reference its token carries, which is
+what lets the ledger tell the user which message produced what. A proposal call, or a summary call, whose token
+carries no readable reference is refused and stores nothing. Listing categories never reads the reference, so a
+token carrying none still lists.
 
-A caller reaches only their own categories: neither tool takes an identity argument, and every read is scoped to
-the token's subject.
+A caller reaches only their own categories and their own spending: no tool takes an identity argument, and every
+read is scoped to the token's subject.
 
 A grouping and a category are both named, never identified. Which names resolve, and which are refused, is the
 use case's rule, not the tool's — [for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
@@ -87,6 +107,13 @@ from two intended ones. A refused call stores nothing, so a corrected retry of i
 
 Listing categories stores nothing: a duplicate, a redelivery, or a retry after a timeout whose first attempt
 succeeded all answer the same list and leave no row behind.
+
+The summary tool is idempotent in what the user reads, not in what is stored: the same call made twice leaves
+two rows, and the turn reports the period once. Two *different* periods in one turn are two blocks, oldest
+first.
+
+A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant, and the
+summary it produces is the whole ledger over those days.
 
 How a caller authenticates:
 
@@ -118,9 +145,12 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | The grouping sent holds no category of the category name sent                           | a tool error naming both, so it can be corrected                     |
 | The grouping name is unknown                                                            | a tool error repeating it, so it can be corrected                    |
 | A listing's grouping name names a category rather than a grouping                       | a tool error saying so, so it can be corrected                       |
+| A day of a period is blank, or is not an ISO-8601 calendar date                         | a tool error naming the day at fault and the value it could not read |
+| A period's last day is before its first                                                 | a tool error saying the period ends before it starts                 |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
-| The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |
-| The proposal cannot be stored, or the categories cannot be read                         | a tool error saying so, naming no table, constraint or stack frame   |
+| The token carries no readable message reference, on a proposal call                     | a tool error saying the proposal could not be created                |
+| The token carries no readable message reference, on a summary call                      | a tool error saying the spending could not be summarized             |
+| The proposal or the period cannot be stored, or the categories cannot be read           | a tool error saying so, naming no table, constraint or stack frame   |
 | Anything else                                                                           | a tool error saying the call could not be completed                  |
 
 A failure inside the tool is a successful call carrying an error result, never an exception on the transport.
@@ -149,8 +179,8 @@ Deploying the two independently makes a rename a new tool instead.
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way
 ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)). A caller
-that mints its own tokens instead would have to carry that claim, which the proposal tool refuses a call
-without.
+that mints its own tokens instead would have to carry that claim, which the proposal and summary tools both
+refuse a call without.
 
 Moving to an identity provider outside this service means the tokens are minted and the keys published
 elsewhere. Callers change where they get a token; the tools and their arguments do not change.

@@ -16,6 +16,7 @@ C3 is below. Package structure is in the
 - [Create an expense](docs/usecases/create-an-expense.md)
 - [Create an expense proposal](docs/usecases/create-an-expense-proposal.md)
 - [List a grouping's categories](docs/usecases/list-categories.md)
+- [Summarize spending over a period](docs/usecases/summarize-spending.md)
 
 ### Contracts
 
