@@ -1,7 +1,12 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits",
+    "defaultMode": "dontAsk",
     "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit",
+      "Write",
       "Edit(.claude/**)",
       "Edit(tools/**)",
       "Bash(tools/agent-test/agent-test.sh:*)",
