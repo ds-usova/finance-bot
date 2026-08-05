@@ -1,12 +1,7 @@
 {
   "permissions": {
-    "defaultMode": "dontAsk",
+    "defaultMode": "acceptEdits",
     "allow": [
-      "Read",
-      "Glob",
-      "Grep",
-      "Edit",
-      "Write",
       "Edit(.claude/**)",
       "Edit(tools/**)",
       "Bash(tools/agent-test/agent-test.sh:*)",
@@ -103,6 +98,7 @@
       "Bash(java:*)"
     ]
   },
+  "askUserQuestionTimeout": "10m",
   "hooks": {
     "PreToolUse": [
       {
