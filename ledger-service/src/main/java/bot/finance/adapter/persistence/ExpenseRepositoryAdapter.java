@@ -4,6 +4,7 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
+import bot.finance.domain.value.MessageReference;
 import java.time.temporal.ChronoUnit;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,16 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         return saved.toDomain();
     }
 
+    @Override
+    public int countByMessageReference(long userId, MessageReference reference) {
+        try {
+            return expenseEntityRepository.countByMessageReference(userId, reference.value());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to count expenses for user " + userId + " and message reference " + reference.value(), e);
+        }
+    }
+
     private static RuntimeException classify(Expense expense, RuntimeException e) {
         return switch (ForeignKeyViolations.constraintName(e)) {
             case CATEGORY_FOREIGN_KEY ->
@@ -58,6 +69,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
                 mapped.merchant(),
                 mapped.amountMinorUnits(),
                 mapped.currencyCode(),
+                mapped.messageReference(),
                 mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
                 mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
     }

@@ -49,7 +49,7 @@ class CallerTokenInterceptorTest {
         void whenStubCarriesAuthorizationHeader_thenPortSeesCallerTokenInContext() {
             AtomicReference<Optional<String>> capturedToken = new AtomicReference<>();
             doAnswer(invocation -> {
-                        capturedToken.set(CallerTokenUtils.callerToken());
+                        capturedToken.set(CallerTokenContext.callerToken());
                         return null;
                     })
                     .when(extractIntentsPort)

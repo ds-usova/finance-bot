@@ -24,6 +24,13 @@ Applies across all layers.
   cramped line. Text long enough to be edited as prose belongs in a resource file instead.
 - **Method decomposition**: extract private helpers once a method exceeds roughly one screen. One public method
   per port operation on a use case or an adapter.
+- **A method body separates its phases with a blank line** — the guards, the work, the result. A method whose
+  lines run together reads as one step, and a reader has to re-derive where one phase ends and the next begins.
+- **A stateless helper class is named for its role**, never `*Utils`. One that converts between two
+  representations is a `*Mapper`; one that writes a core type as text for a transport is a `*Renderer`. A class
+  that goes both ways, or that answers a question about a thing rather than transforming it, takes that thing's
+  own name instead — `CallerTokenContext`. `Utils` names a bucket, and a bucket collects whatever is convenient
+  to put down.
 - **Member order**: fields, then constructors, then methods by descending visibility — `public`,
   package-private, `protected`, `private`. A reader meets the type's API before its internals.
 - **Comments and javadoc**: the fewer the better. Write one only for what the code cannot show — third-party
@@ -31,6 +38,9 @@ Applies across all layers.
   together with the constraint forcing it. Never restate a name, a signature, or an annotation, and never
   justify a design decision: conventions belong in this directory, and a second copy in a javadoc is one more
   thing to keep in sync. The same goes for `@param`/`@return` tags that only spell the parameter name out again.
+  **Never cite a plan step or a design decision by number** — `D7`, `RI03`. Those live in an archived task
+  directory that a reader of this file has no reason to open, and they name nothing once the plan is finished.
+  Write the reason itself, or leave it out.
 
 ### Domain
 

@@ -1,6 +1,7 @@
 package bot.finance.adapter.telegram;
 
 import static bot.finance.common.TelegramFixtures.MESSAGE_ID;
+import static bot.finance.common.TelegramFixtures.callbackQueryUpdate;
 import static bot.finance.common.TelegramFixtures.textMessageUpdate;
 import static bot.finance.common.TelegramFixtures.textMessageUpdateWithoutFrom;
 import static bot.finance.common.TelegramFixtures.updatesResponse;
@@ -20,9 +21,14 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
+import bot.finance.application.dto.ProposalResolution;
+import bot.finance.application.dto.ResolveProposalsCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
+import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.MessageReference;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.GetUpdates;
 import java.time.Duration;
@@ -42,6 +48,8 @@ class TelegramUpdateListenerTest {
 
     private static final int TEXT_UPDATE_ID = 42;
     private static final int VOICE_UPDATE_ID = 43;
+    private static final int CALLBACK_UPDATE_ID = 44;
+    private static final String CALLBACK_QUERY_ID = "callback-query-id";
     private static final long CHAT_ID = 555L;
     private static final long USER_ID = 777L;
     private static final String CONVERSATION_ID = "555";
@@ -54,13 +62,16 @@ class TelegramUpdateListenerTest {
     private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(5);
 
     private HandleIncomingMessagePort handleIncomingMessagePort;
+    private ResolveProposalsPort resolveProposalsPort;
     private TelegramBot bot;
     private TelegramUpdateListener listener;
 
     @BeforeEach
     void setUp() {
         handleIncomingMessagePort = mock(HandleIncomingMessagePort.class);
-        listener = new TelegramUpdateListener(handleIncomingMessagePort, new Slf4jLoggerFactory());
+        resolveProposalsPort = mock(ResolveProposalsPort.class);
+        listener =
+                new TelegramUpdateListener(handleIncomingMessagePort, resolveProposalsPort, new Slf4jLoggerFactory());
         bot = forToken(LISTENER_TOKEN);
         telegramReturnsNoUpdates(LISTENER_TOKEN);
     }
@@ -74,7 +85,10 @@ class TelegramUpdateListenerTest {
     private void startLoop() {
         bot.setUpdatesListener(
                 listener,
-                new GetUpdates().limit(POLL_LIMIT).timeout(POLL_TIMEOUT_SECONDS).allowedUpdates("message"));
+                new GetUpdates()
+                        .limit(POLL_LIMIT)
+                        .timeout(POLL_TIMEOUT_SECONDS)
+                        .allowedUpdates("message", "callback_query"));
     }
 
     private void awaitFollowUpPollWithOffset(String offset) {
@@ -88,6 +102,13 @@ class TelegramUpdateListenerTest {
                 ArgumentCaptor.forClass(HandleIncomingMessageCommand.class);
         await().atMost(AWAIT_TIMEOUT)
                 .untilAsserted(() -> verify(handleIncomingMessagePort).handle(command.capture()));
+        return command.getValue();
+    }
+
+    private ResolveProposalsCommand awaitSingleResolvedCommand() {
+        ArgumentCaptor<ResolveProposalsCommand> command = ArgumentCaptor.forClass(ResolveProposalsCommand.class);
+        await().atMost(AWAIT_TIMEOUT)
+                .untilAsserted(() -> verify(resolveProposalsPort).resolve(command.capture()));
         return command.getValue();
     }
 
@@ -111,6 +132,28 @@ class TelegramUpdateListenerTest {
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
         }
+
+        @Test
+        @DisplayName("when a callback_query update is polled - then only resolve is called and the batch is confirmed")
+        void whenCallbackQueryUpdateIsPolled_thenResolveIsCalledWithMappedCommandAndBatchIsConfirmed() {
+            MessageReference reference = MessageReference.newReference();
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN,
+                    updatesResponse(callbackQueryUpdate(
+                            CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "accept:" + reference.value())));
+
+            startLoop();
+
+            ResolveProposalsCommand resolved = awaitSingleResolvedCommand();
+            assertThat(resolved.userExternalId()).isEqualTo(USER_EXTERNAL_ID);
+            assertThat(resolved.conversationId()).isEqualTo(CONVERSATION_ID);
+            assertThat(resolved.reportMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
+            assertThat(resolved.interactionId()).isEqualTo(CALLBACK_QUERY_ID);
+            assertThat(resolved.reference()).isEqualTo(reference);
+            assertThat(resolved.resolution()).isEqualTo(ProposalResolution.ACCEPT);
+            verifyNoInteractions(handleIncomingMessagePort);
+            awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
+        }
     }
 
     @Nested
@@ -130,6 +173,24 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset("43");
+        }
+
+        @Test
+        @DisplayName(
+                "when resolve throws PersistenceFailedException - then a follow-up poll still confirms the batch so the loop is not stalled")
+        void whenResolveThrowsPersistenceFailedException_thenBatchIsStillConfirmedSoTheLoopIsNotStalled() {
+            doThrow(new PersistenceFailedException("simulated persistence failure", new RuntimeException()))
+                    .when(resolveProposalsPort)
+                    .resolve(any());
+            MessageReference reference = MessageReference.newReference();
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN,
+                    updatesResponse(callbackQueryUpdate(
+                            CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "accept:" + reference.value())));
+
+            startLoop();
+
+            awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
         }
     }
 
@@ -181,6 +242,40 @@ class TelegramUpdateListenerTest {
 
             awaitFollowUpPollWithOffset("43");
             verifyNoInteractions(handleIncomingMessagePort);
+        }
+
+        @Test
+        @DisplayName(
+                "when a callback_query carries unrecognised data - then neither port is called and the batch is confirmed")
+        void whenCallbackQueryUpdateWithUnrecognisedDataIsPolled_thenNeitherPortIsCalledAndBatchIsStillConfirmed() {
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN,
+                    updatesResponse(callbackQueryUpdate(CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "noop")));
+
+            startLoop();
+
+            awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
+            verifyNoInteractions(handleIncomingMessagePort);
+            verifyNoInteractions(resolveProposalsPort);
+        }
+
+        @Test
+        @DisplayName("when a batch pairs a text and a callback_query update - then each port is called exactly once")
+        void
+                whenBatchPairingTextAndCallbackQueryUpdateIsPolled_thenEachPortIsCalledExactlyOnceAndWholeBatchIsConfirmed() {
+            MessageReference reference = MessageReference.newReference();
+            telegramReturnsOnFirstPoll(
+                    LISTENER_TOKEN,
+                    updatesResponse(
+                            textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT),
+                            callbackQueryUpdate(
+                                    CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "discard:" + reference.value())));
+
+            startLoop();
+
+            awaitSingleHandledCommand();
+            awaitSingleResolvedCommand();
+            awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
         }
     }
 }

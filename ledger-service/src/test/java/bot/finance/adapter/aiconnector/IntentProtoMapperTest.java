@@ -13,7 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class IntentProtoUtilsTest {
+class IntentProtoMapperTest {
 
     @Nested
     @DisplayName("mapping an intent-extraction request to the generated proto request")
@@ -31,7 +31,7 @@ class IntentProtoUtilsTest {
                     "user-external-id",
                     MessageReference.newReference());
 
-            ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
             assertThat(protoRequest.getText()).isEqualTo("lunch 12 euro");
             assertThat(protoRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Transport", "Other");
@@ -52,7 +52,7 @@ class IntentProtoUtilsTest {
                     "user-external-id",
                     MessageReference.newReference());
 
-            ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
             assertThat(protoRequest.hasDefaultCurrency()).isFalse();
         }
@@ -69,7 +69,7 @@ class IntentProtoUtilsTest {
                     "user-external-id",
                     MessageReference.newReference());
 
-            ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
             assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
                     .isNull();

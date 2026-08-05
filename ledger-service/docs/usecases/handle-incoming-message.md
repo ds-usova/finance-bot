@@ -21,6 +21,9 @@ Every message that reaches the turn is answered with exactly one of these.
 Nothing is worded as accepted or final: what a report lists is proposals, not the user's ledger
 ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md)).
 
+A report that lists at least one proposal carries a **Confirm** and a **Delete** button, so what it lists can be
+[resolved](resolve-a-reported-proposal.md). A report that lists none carries neither.
+
 ## Collaborators
 
 | Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                      |
@@ -30,6 +33,7 @@ Nothing is worded as accepted or final: what a report lists is proposals, not th
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, and what this message recorded |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                  |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                  |
+| out       | [Resolve a reported proposal](resolve-a-reported-proposal.md)                                                | [Outgoing replies](../contracts/out/telegram-replies.md)                          | handing over what the report lists, through the buttons it carries                       |
 
 ## Rules
 
@@ -112,7 +116,8 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(intentExtractionAdapter, "Intent Extraction Adapter", "gRPC client", "Mints a credential and calls the connector", $tags="aiExternal")
   Component(tokenMinter, "Access Token Minter", "Nimbus JOSE", "Signs a credential naming the person and the message", $tags="aiExternal")
   Component(deliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report as a reply", $tags="telegramExternal")
-  Component(reportRenderer, "Proposal Report Renderer", "Plain Java", "Writes the report as chat text", $tags="telegramExternal")
+  Component(reportRenderer, "Proposal Report Renderer", "Plain Java", "Writes the report as chat text, with its two buttons", $tags="telegramExternal")
+  Component(buttonPayload, "Proposal Button Payload", "Plain Java", "Writes the message into each button", $tags="telegramExternal")
 }
 
 ContainerDb(db, "Database", "PostgreSQL", "Stores users, their categories and their expense proposals", $tags="dbExternal")
@@ -135,6 +140,7 @@ Rel_L(intentExtractionAdapter, intentExtractionPort, "Implements", $tags="implem
 Rel_R(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
 Rel_D(intentExtractionAdapter, tokenMinter, "Mints with")
 Rel_D(deliveryAdapter, reportRenderer, "Writes the text with")
+Rel_D(reportRenderer, buttonPayload, "Writes the buttons with")
 Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
@@ -160,6 +166,7 @@ participant "Act on a user's message" as UC
 participant "Initialize a new user" as IU
 database "Database" as DB
 participant "AI Connector Service" as AI
+participant "Resolve a reported proposal" as RP
 
 TG -> UC : batch of waiting messages
 
@@ -197,6 +204,7 @@ loop each message in the batch
         else the report is delivered
           TG --> UC : delivered
           UC -> UC : log the message and the person
+          TG -> RP : whichever button the user later taps
         end
       end
     end

@@ -19,7 +19,7 @@ bot.finance
     ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     ├── ExpenseRowUtils       # reads back a user's stored expense rows
-    ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows
+    ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
     ├── UserRowUtils          # stores a user row and returns its generated id
     ├── WireMockStubs         # stub registration, one static method per endpoint
     ├── JsonUtils             # loads JSON fixtures from src/test/resources
@@ -27,13 +27,14 @@ bot.finance
     ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
     ├── TelegramFixtures      # Bot API JSON bodies
-    └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification
+    └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
 ```
 
 ## Test Layers
 
-- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and pure
-  mapper/`*Utils` classes in an adapter package. Plain JUnit, outbound ports mocked, no Spring context.
+- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and the stateless
+  helper classes in an adapter package — the renderers, mappers and their kind
+  ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context.
 - **Integration, outbound** — `adapter/persistence/` and future outbound HTTP adapters, one subpackage per
   external system. Wire only the adapter under test and call its public methods directly against real test
   infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`.
@@ -102,7 +103,9 @@ would inherit the first's advanced state. Give each new class a token constant i
 - Test methods: `when<Condition>_then<Result>()`.
 - Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
 - Helpers: static `*Utils` classes with a private constructor; stub helpers as static methods on
-  `WireMockStubs`.
+  `WireMockStubs`. Test helpers are the one place `*Utils` is kept — production code names a helper for its role
+  ([Code Style](code-style.md#general)) — because a test helper genuinely is a bag of conveniences keyed to a
+  fixture rather than a thing with one job.
 - New shared builders and factories go in `bot.finance.common` and get listed in
   [Package Structure](#package-structure), so later tests reuse them instead of recreating them.
 
@@ -120,7 +123,12 @@ would inherit the first's advanced state. Give each new class a token constant i
   Never duplicate a case as both a parameterized entry and a one-off test.
 - AssertJ only — never JUnit `assertEquals`/`assertTrue`. RestAssured response specs are fine for HTTP-level
   assertions.
-- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`.
+- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`: **one condition, one
+  outcome, under 120 characters.** The name says what the test proves, never what it asserts — the assertions are
+  in the body, and a name that lists them has to be re-read every time one of them changes. A name that will not
+  fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
+  one behaviour they add up to. It never cites a plan step or a design decision by number either — the scenario a
+  step agent works from carries those, and they name nothing once the plan is archived.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
   internally, assert what must hold whichever route it takes — *no proposal is stored at the wrong scale* — never
@@ -132,6 +140,12 @@ would inherit the first's advanced state. Give each new class a token constant i
   A log line is a diagnostic, not a contract; wording drifts with every edit to the class, and a test bound to it
   fails for a change that broke nothing. Reserve a `LogCapture` assertion for the case where the behaviour leaves
   no other trace — a failure that is swallowed on purpose, a path whose whole point is that nothing else happens.
+- **A system test signposts its phases with `// then:` comments.** One per thing the flow proves — the batch was
+  confirmed, the tool was called, the reply went back — written in the same words the display name uses. A system
+  test is a long sequence of awaits and assertions against a stack the reader cannot see, and the phases are what
+  a reader scans for; nothing else in the method says where one ends and the next begins. This is the one place a
+  comment restating the code earns its place, and it does not license them elsewhere: a unit or adapter test
+  short enough to read at once gets none ([Code Style](code-style.md#general)).
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution, which is why
   `TelegramFixtures` stays a set of text-block builders. Move any body past roughly fifteen lines to a file.

@@ -18,7 +18,7 @@ carry that correlation from the ledger, through the connector, into a tool call:
 ## Decision
 
 The ledger mints a `MessageReference` per handled message and puts it on the caller token as the `mrf` claim.
-`AuthenticatedCallerUtils` reads it back inside the tool call and stores it on the proposal row; the read-back
+`AuthenticatedCaller` reads it back inside the tool call and stores it on the proposal row; the read-back
 matches on it.
 
 `intent_extraction.proto` gains no field, and the tool's input schema gains no argument.

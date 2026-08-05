@@ -11,11 +11,11 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-public final class ExpenseProposalToolUtils {
+public final class ExpenseProposalToolMapper {
 
     private static final Pattern AMOUNT_PATTERN = Pattern.compile("^\\d{1,18}(\\.\\d{1,4})?$");
 
-    private ExpenseProposalToolUtils() {}
+    private ExpenseProposalToolMapper() {}
 
     public static CreateExpenseProposalCommand toCommand(
             CreateExpenseProposalToolRequest request, AuthenticatedUserId userId, MessageReference reference) {

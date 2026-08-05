@@ -3,6 +3,7 @@ package bot.finance.common;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
 import bot.finance.common.containers.WireMockSupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,6 +56,16 @@ public final class TelegramTestBot {
      */
     public static final String DELIVERY_TOKEN = "delivery-test-token";
 
+    /**
+     * Token owned by {@code ResolveProposalsSystemTest}.
+     */
+    public static final String RESOLVE_PROPOSALS_TOKEN = "resolve-proposals-test-token";
+
+    /**
+     * Token owned by {@code ResolveUnknownProposalsSystemTest}.
+     */
+    public static final String RESOLVE_UNKNOWN_PROPOSALS_TOKEN = "resolve-unknown-proposals-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -75,6 +86,23 @@ public final class TelegramTestBot {
      */
     public static String sendMessagePath(String token) {
         return "/bot%s/sendMessage".formatted(token);
+    }
+
+    /**
+     * The token-scoped path pengrad posts {@code answerCallbackQuery} to: {@code /bot<token>/answerCallbackQuery}.
+     * Stub registration and request verification both go through this, never a hand-written path.
+     */
+    public static String answerCallbackQueryPath(String token) {
+        return "/bot%s/answerCallbackQuery".formatted(token);
+    }
+
+    /**
+     * The token-scoped path pengrad posts {@code editMessageReplyMarkup} to:
+     * {@code /bot<token>/editMessageReplyMarkup}. Stub registration and request verification both go through
+     * this, never a hand-written path.
+     */
+    public static String editMessageReplyMarkupPath(String token) {
+        return "/bot%s/editMessageReplyMarkup".formatted(token);
     }
 
     /**
@@ -113,17 +141,52 @@ public final class TelegramTestBot {
     }
 
     /**
+     * Every {@code answerCallbackQuery} the stub server recorded for this token.
+     */
+    public static List<LoggedRequest> recordedAnswerCallbackQueries(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(answerCallbackQueryPath(token))));
+    }
+
+    /**
+     * Every {@code editMessageReplyMarkup} the stub server recorded for this token.
+     */
+    public static List<LoggedRequest> recordedEditMessageReplyMarkups(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(editMessageReplyMarkupPath(token))));
+    }
+
+    /**
+     * The Bot API method names the stub server received for this token, in arrival order — the last path segment
+     * of every {@code /bot<token>/<method>} request.
+     */
+    public static List<String> recordedBotApiMethods(String token) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathMatching("/bot%s/.*".formatted(token)))).stream()
+                .map(request -> request.getUrl().substring(request.getUrl().lastIndexOf('/') + 1))
+                .toList();
+    }
+
+    /**
      * The {@code reply_parameters} form param of a recorded {@code sendMessage}, parsed — pengrad sends it as a
      * JSON document inside a form field, so reading {@code message_id} or {@code allow_sending_without_reply} off
      * it means parsing rather than a string comparison.
      */
     public static JsonNode replyParameters(LoggedRequest sendMessageRequest) {
-        String json =
-                sendMessageRequest.formParameter("reply_parameters").getValues().get(0);
+        return formParameterAsJson(sendMessageRequest, "reply_parameters");
+    }
+
+    /**
+     * The {@code reply_markup} form param of a recorded {@code sendMessage}, parsed — pengrad sends it as a JSON
+     * document inside a form field, the way it sends {@code reply_parameters}.
+     */
+    public static JsonNode replyMarkup(LoggedRequest sendMessageRequest) {
+        return formParameterAsJson(sendMessageRequest, "reply_markup");
+    }
+
+    private static JsonNode formParameterAsJson(LoggedRequest request, String name) {
+        String json = request.formParameter(name).getValues().get(0);
         try {
             return MAPPER.readTree(json);
         } catch (IOException e) {
-            throw new UncheckedIOException("failed to parse reply_parameters: " + json, e);
+            throw new UncheckedIOException("failed to parse %s: %s".formatted(name, json), e);
         }
     }
 }

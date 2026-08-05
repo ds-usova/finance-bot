@@ -119,4 +119,36 @@ public final class WireMockStubs {
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.sendMessagePath(token)))
                 .willReturn(okJson(TelegramFixtures.error(errorCode, description))));
     }
+
+    /**
+     * Answers every {@code answerCallbackQuery} for this token with a successful envelope.
+     */
+    public static void telegramAcceptsAnswerCallbackQuery(String token) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.answerCallbackQueryPath(token)))
+                .willReturn(okJson(TelegramFixtures.answerCallbackQueryResponse())));
+    }
+
+    /**
+     * Fails every {@code answerCallbackQuery} for this token with the given {@code ok:false} body.
+     */
+    public static void telegramFailsAnswerCallbackQuery(String token, int errorCode, String description) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.answerCallbackQueryPath(token)))
+                .willReturn(okJson(TelegramFixtures.error(errorCode, description))));
+    }
+
+    /**
+     * Answers every {@code editMessageReplyMarkup} for this token with a successful envelope.
+     */
+    public static void telegramAcceptsEditMessageReplyMarkup(String token) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.editMessageReplyMarkupPath(token)))
+                .willReturn(okJson(TelegramFixtures.editMessageReplyMarkupResponse())));
+    }
+
+    /**
+     * Fails every {@code editMessageReplyMarkup} for this token with the given {@code ok:false} body.
+     */
+    public static void telegramFailsEditMessageReplyMarkup(String token, int errorCode, String description) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(TelegramTestBot.editMessageReplyMarkupPath(token)))
+                .willReturn(okJson(TelegramFixtures.error(errorCode, description))));
+    }
 }

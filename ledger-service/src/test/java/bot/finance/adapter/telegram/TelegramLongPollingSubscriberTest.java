@@ -6,6 +6,7 @@ import static bot.finance.common.TelegramTestBot.getUpdatesPath;
 import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.WireMockStubs.telegramFails;
 import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
+import static com.github.tomakehurst.wiremock.client.WireMock.and;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -83,8 +84,7 @@ class TelegramLongPollingSubscriberTest {
     class Start {
 
         @Test
-        @DisplayName(
-                "when start() is called - then getUpdates is polled with the configured limit, timeout and allowed updates, and isRunning() reports true")
+        @DisplayName("when start() is called - then getUpdates is polled as configured and isRunning() reports true")
         void whenStartIsCalled_thenPollsGetUpdatesWithConfiguredParametersAndReportsRunning() {
             telegramReturnsNoUpdates(SUBSCRIBER_TOKEN);
 
@@ -94,7 +94,9 @@ class TelegramLongPollingSubscriberTest {
                             postRequestedFor(urlPathEqualTo(getUpdatesPath(SUBSCRIBER_TOKEN)))
                                     .withFormParam("limit", equalTo(String.valueOf(POLL_LIMIT)))
                                     .withFormParam("timeout", equalTo(String.valueOf(POLL_TIMEOUT_SECONDS)))
-                                    .withFormParam("allowed_updates", containing("message"))))
+                                    .withFormParam(
+                                            "allowed_updates",
+                                            and(containing("message"), containing("callback_query")))))
                     .isNotEmpty());
             assertThat(subscriber.isRunning()).isTrue();
         }

@@ -22,7 +22,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ExpenseProposalToolUtilsTest {
+class ExpenseProposalToolMapperTest {
 
     private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
     private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
@@ -44,7 +44,7 @@ class ExpenseProposalToolUtilsTest {
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command)
                     .isEqualTo(new CreateExpenseProposalCommand(
@@ -64,7 +64,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
             MessageReference reference = MessageReference.newReference();
 
-            CreateExpenseProposalCommand command = ExpenseProposalToolUtils.toCommand(request, USER_ID, reference);
+            CreateExpenseProposalCommand command = ExpenseProposalToolMapper.toCommand(request, USER_ID, reference);
 
             assertThat(command.messageReference()).isEqualTo(reference);
         }
@@ -77,7 +77,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class)
                     .hasMessage("expense proposal request has no grouping");
         }
@@ -96,7 +96,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", null, "Milk", "Corner Shop", "twelve", "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class)
                     .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
         }
@@ -107,7 +107,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.groupingName()).isEqualTo("Food");
         }
@@ -120,7 +120,7 @@ class ExpenseProposalToolUtilsTest {
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", merchant, "15.00", "EUR");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.merchant()).isEmpty();
         }
@@ -134,7 +134,7 @@ class ExpenseProposalToolUtilsTest {
         void whenCurrencyCodeIsNotAnIso4217Code_thenThrowsInvalidMoneyException() {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "ZZZ");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidMoneyException.class);
         }
 
@@ -144,7 +144,7 @@ class ExpenseProposalToolUtilsTest {
         void whenAmountIsAbsent_thenThrowsInvalidExpenseProposalException() {
             CreateExpenseProposalToolRequest request = requestWith(null, "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class)
                     .hasMessage("expense proposal request has no amount");
         }
@@ -157,7 +157,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request = requestWith("7200", "HUF");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money()).isEqualTo(new Money(720000L, CurrencyCode.of("HUF")));
         }
@@ -169,7 +169,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request = requestWith("  12.50  ", "EUR");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money()).isEqualTo(new Money(1250L, CurrencyCode.of("EUR")));
         }
@@ -182,7 +182,7 @@ class ExpenseProposalToolUtilsTest {
                 String description, String amount) {
             CreateExpenseProposalToolRequest request = requestWith(amount, "EUR");
 
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class)
                     .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
         }
@@ -209,7 +209,7 @@ class ExpenseProposalToolUtilsTest {
             CreateExpenseProposalToolRequest request = requestWith("0", "EUR");
 
             CreateExpenseProposalCommand command =
-                    ExpenseProposalToolUtils.toCommand(request, USER_ID, MESSAGE_REFERENCE);
+                    ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE);
 
             assertThat(command.money().minorUnits()).isZero();
         }
@@ -217,7 +217,7 @@ class ExpenseProposalToolUtilsTest {
         @Test
         @DisplayName("when the request is absent - then throws InvalidExpenseProposalException")
         void whenRequestIsAbsent_thenThrowsInvalidExpenseProposalException() {
-            assertThatThrownBy(() -> ExpenseProposalToolUtils.toCommand(null, USER_ID, MESSAGE_REFERENCE))
+            assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(null, USER_ID, MESSAGE_REFERENCE))
                     .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
@@ -244,7 +244,7 @@ class ExpenseProposalToolUtilsTest {
                     createdAt,
                     createdAt);
 
-            CreateExpenseProposalToolResponse response = ExpenseProposalToolUtils.toResponse(proposal, "Groceries");
+            CreateExpenseProposalToolResponse response = ExpenseProposalToolMapper.toResponse(proposal, "Groceries");
 
             assertThat(response)
                     .isEqualTo(new CreateExpenseProposalToolResponse(
@@ -266,7 +266,7 @@ class ExpenseProposalToolUtilsTest {
                     createdAt,
                     createdAt);
 
-            CreateExpenseProposalToolResponse response = ExpenseProposalToolUtils.toResponse(proposal, "Groceries");
+            CreateExpenseProposalToolResponse response = ExpenseProposalToolMapper.toResponse(proposal, "Groceries");
 
             assertThat(response.merchant()).isNull();
         }

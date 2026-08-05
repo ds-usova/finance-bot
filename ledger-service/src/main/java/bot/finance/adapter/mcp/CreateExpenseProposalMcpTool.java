@@ -1,6 +1,6 @@
 package bot.finance.adapter.mcp;
 
-import bot.finance.adapter.security.AuthenticatedCallerUtils;
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -51,13 +51,13 @@ public class CreateExpenseProposalMcpTool {
         log.debug("Received create_expense_proposal call: {}", request);
 
         try {
-            AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
-            MessageReference reference = AuthenticatedCallerUtils.messageReference();
+            AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
+            MessageReference reference = AuthenticatedCaller.messageReference();
 
             ExpenseProposal stored =
-                    createExpenseProposalPort.create(ExpenseProposalToolUtils.toCommand(request, userId, reference));
+                    createExpenseProposalPort.create(ExpenseProposalToolMapper.toCommand(request, userId, reference));
             CreateExpenseProposalToolResponse response =
-                    ExpenseProposalToolUtils.toResponse(stored, request.category());
+                    ExpenseProposalToolMapper.toResponse(stored, request.category());
 
             log.debug("create_expense_proposal call succeeded: {}", response);
             return CallToolResult.builder()

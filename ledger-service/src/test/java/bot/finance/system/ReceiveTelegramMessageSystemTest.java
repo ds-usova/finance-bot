@@ -3,6 +3,7 @@ package bot.finance.system;
 import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.TelegramTestBot.replyMarkup;
 import static bot.finance.common.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -21,6 +22,7 @@ import bot.finance.common.WireMockStubs;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -71,7 +73,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .mapToInt(grouping -> grouping.categories().size())
                     .sum();
 
-    /** The grouping names {@link Grouping#defaults()} seeds, sorted the way the groupings travel (D15). */
+    /** The grouping names {@link Grouping#defaults()} seeds, sorted the way the groupings travel. */
     private static final List<String> EXPECTED_GROUPING_NAMES =
             Grouping.defaults().stream().map(Grouping::name).sorted().toList();
 
@@ -143,14 +145,11 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the running poll loop picks up a text message update - then the batch is confirmed, the AI "
-                + "connector receives the message text, the user's grouping names and catch-all, and a "
-                + "bearer token whose sub is the from id; a user is stored under the from id rather than "
-                + "the chat id; list_categories answers that grouping's categories before one "
-                + "expense_proposal row is stored under the reference the bearer token's mrf claim "
-                + "carries; and one sendMessage reply names the recorded proposal")
+        @DisplayName("when the poll loop picks up a text message - then the turn records one proposal and reports it "
+                + "back with its buttons")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
+            // then: the message is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -158,6 +157,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                             .isNotEmpty());
 
+            // then: the turn reaches the AI connector
             await("the AI connector receives an extraction request")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -165,6 +165,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             .as("last ExtractIntentsRequest received by the stub AI connector")
                             .isNotNull());
 
+            // then: the sender is stored as the user, not the chat, and starts with a full catalogue
             assertThat(userRepository.findByExternalId(CHAT_ID_STRING))
                     .as("no user should be stored under the chat id %s", CHAT_ID_STRING)
                     .isEmpty();
@@ -179,6 +180,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("the categories the first message created for this conversation")
                     .isEqualTo(EXPECTED_CATEGORY_COUNT);
 
+            // then: the connector is given the text, the user's groupings and the catch-all
             ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
             assertThat(request.getText()).as("extraction request text").isEqualTo(MESSAGE_TEXT);
 
@@ -189,6 +191,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("extraction request catch-all grouping")
                     .isEqualTo(Grouping.catchAllName());
 
+            // then: it acts as that user, for this one message, on a credential this service signed
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
             assertThat(metadata)
                     .as("metadata received by the stub AI connector")
@@ -201,6 +204,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             String messageReferenceClaim = claims.getStringClaim(MESSAGE_REFERENCE_CLAIM);
             assertThat(messageReferenceClaim).as("jwt mrf claim").isNotNull();
 
+            // then: one proposal is stored, filed under the message that produced it
             List<ExpenseProposalEntity> proposalRows = ExpenseProposalRowUtils.expenseProposalRowsFor(
                     jdbcAggregateTemplate, storedUser.id().orElseThrow());
             assertThat(proposalRows)
@@ -213,6 +217,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("stored proposal's message reference matches the bearer token's mrf claim")
                     .isEqualTo(UUID.fromString(messageReferenceClaim));
 
+            // then: the model called the two MCP tools in order — the categories first, then the proposal
             List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
             assertThat(mcpAnswers)
                     .as("what /mcp answered the stub connector, call by call")
@@ -225,6 +230,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("the create_expense_proposal answer")
                     .contains(PROPOSAL_CATEGORY);
 
+            // then: one report goes back into the chat, threaded onto the message it answers
             await("a sendMessage reply is recorded for the confirmed batch")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -249,6 +255,22 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(replyParameters(sendMessageRequest).get("message_id").asText())
                     .as("sendMessage reply_parameters message_id")
                     .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
+
+            // then: the report carries the two buttons that make it resolvable, naming this message
+            assertThat(sendMessageRequest.formParameter("reply_markup").isPresent())
+                    .as("sendMessage reply_markup form param is present")
+                    .isTrue();
+            JsonNode buttonRow =
+                    replyMarkup(sendMessageRequest).get("inline_keyboard").get(0);
+            assertThat(buttonRow)
+                    .as("one row of buttons in the report's keyboard")
+                    .hasSize(2);
+            List<String> callbackDataValues = List.of(
+                    buttonRow.get(0).get("callback_data").asText(),
+                    buttonRow.get(1).get("callback_data").asText());
+            assertThat(callbackDataValues)
+                    .as("both buttons' callback_data carry the mrf claim's message reference")
+                    .allSatisfy(callbackData -> assertThat(callbackData).endsWith(messageReferenceClaim));
         }
     }
 }

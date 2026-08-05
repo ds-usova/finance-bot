@@ -74,7 +74,8 @@ Where it is worth running: at the end of a change, once every step of it is impl
 
 A finished plan carries `evidence.md` and `evidence.json` beside it, written by
 [`tools/plan-evidence/plan-evidence.sh`](../../tools/plan-evidence/README.md) — the verdict, the commit it was
-measured on, and a row per module with its test counts and its coverage against the minimum:
+measured on, and a row per module with its test counts, its coverage against the minimum, and whether it is
+formatted:
 
 ```
 tools/plan-evidence/plan-evidence.sh --plan docs/implemented/<n>-<task>/plan.md

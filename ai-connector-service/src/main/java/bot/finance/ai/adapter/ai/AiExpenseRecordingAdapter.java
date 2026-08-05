@@ -1,6 +1,6 @@
 package bot.finance.ai.adapter.ai;
 
-import bot.finance.ai.adapter.grpc.CallerTokenUtils;
+import bot.finance.ai.adapter.grpc.CallerTokenContext;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
@@ -41,7 +41,7 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             List<String> categoryGroupings,
             String catchAllGrouping,
             Optional<CurrencyCode> assumedCurrency) {
-        if (CallerTokenUtils.callerToken().isEmpty()) {
+        if (CallerTokenContext.callerToken().isEmpty()) {
             throw new ExpenseRecordingFailedException("No caller token held for this turn");
         }
 

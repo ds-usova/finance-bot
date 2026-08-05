@@ -3,16 +3,14 @@ package bot.finance.system;
 import static bot.finance.common.TelegramTestBot.POLL_RECOVERY_TOKEN;
 import static bot.finance.common.TelegramTestBot.recordedPolls;
 import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.TelegramTestBot.recordedSendMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.LogCapture;
 import bot.finance.common.TelegramFixtures;
 import bot.finance.common.WireMockStubs;
 import java.time.Duration;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,15 +34,13 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
-    private LogCapture logCapture;
-
     /**
-     * The order here is load-bearing: the poll loop is already running, so the appender must be attached before
-     * any stub can serve the update, or the loop consumes it and logs it into a logger with no appender.
+     * The order here is load-bearing: the poll loop is already running, so the catch-all and the sendMessage stub
+     * must exist before the update-bearing one, or the loop consumes the update before the reply it triggers can
+     * be recorded.
      */
     @BeforeEach
-    void attachLogCaptureAndStubTelegram() {
-        logCapture = LogCapture.attachedTo(HandleIncomingMessageUseCase.class);
+    void stubTelegram() {
         WireMockStubs.telegramReturnsNoUpdates(POLL_RECOVERY_TOKEN);
         WireMockStubs.telegramAcceptsSendMessage(POLL_RECOVERY_TOKEN);
         WireMockStubs.telegramFailsOnceThenReturns(
@@ -52,11 +48,6 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
                 TOO_MANY_REQUESTS,
                 TelegramFixtures.updatesResponse(
                         TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
-    }
-
-    @AfterEach
-    void detachLogCapture() {
-        logCapture.close();
     }
 
     @Nested
@@ -67,16 +58,21 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
         @DisplayName(
                 "when the first poll fails with error code 429 - then the loop recovers and the message is still handled")
         void whenFirstPollFailsWithTooManyRequests_thenLoopRecoversAndMessageIsStillHandled() {
-            await("the message is handled after the failed poll")
+            // then: the message the failed poll delayed is answered, so the failure cost the user nothing
+            await("a sendMessage reply is recorded once the good response arrived")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> {
-                        log.debug("Captured log messages: {}", logCapture.messages());
+                    .untilAsserted(() -> assertThat(recordedSendMessages(POLL_RECOVERY_TOKEN))
+                            .as("sendMessage requests recorded for token %s", POLL_RECOVERY_TOKEN)
+                            .isNotEmpty());
 
-                        assertThat(logCapture.messages())
-                                .as("messages logged by the use case once the good response arrived")
-                                .anyMatch(message -> message.contains(CONVERSATION_ID));
-                    });
+            assertThat(recordedSendMessages(POLL_RECOVERY_TOKEN))
+                    .singleElement()
+                    .satisfies(
+                            reply -> assertThat(reply.formParameter("chat_id").getValues())
+                                    .as("the reply goes back into the conversation the message came from")
+                                    .containsExactly(CONVERSATION_ID));
 
+            // then: the recovered poll advanced the offset, so the batch is not delivered again
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> {
                 log.debug("Recorded getUpdates requests: {}", recordedPolls(POLL_RECOVERY_TOKEN));
 

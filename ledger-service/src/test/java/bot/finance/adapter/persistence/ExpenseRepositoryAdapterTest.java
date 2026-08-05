@@ -16,12 +16,14 @@ import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,7 +55,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category, and an unstored expense carrying a merchant - then one expense row exists for that user carrying the category id, description, merchant, minor units and currency code given, and the returned expense carries its generated database id")
+                "when called with an expense carrying a merchant - then the row holds what was given and carries a generated id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedExpenseCarriesGeneratedId() {
             long userId = storedUserId("merchant-expense-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -75,6 +77,7 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(row.merchant()).isEqualTo("Trader Joe's");
                 assertThat(row.amountMinorUnits()).isEqualTo(1500);
                 assertThat(row.currencyCode()).isEqualTo("USD");
+                assertThat(row.messageReference()).isNull();
             });
         }
 
@@ -293,6 +296,65 @@ class ExpenseRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("counting expenses by message reference")
+    class CountByMessageReference {
+
+        @Test
+        @DisplayName("when two expenses share a reference and one does not - then returns 2")
+        void whenTwoExpensesStoredUnderReferenceAndOneUnderAnother_thenReturnsTwo() {
+            long userId = storedUserId("count-two-expenses-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            MessageReference reference = MessageReference.newReference();
+            MessageReference otherReference = MessageReference.newReference();
+            storedExpense(userId, categoryId, "First", 100, "USD", reference.value());
+            storedExpense(userId, categoryId, "Second", 200, "USD", reference.value());
+            storedExpense(userId, categoryId, "Other reference", 300, "USD", otherReference.value());
+
+            int count = adapter.countByMessageReference(userId, reference);
+
+            assertThat(count).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("when nothing was stored under the reference - then returns 0")
+        void whenReferenceHasNoStoredExpenses_thenReturnsZero() {
+            long userId = storedUserId("count-no-expenses-user");
+
+            int count = adapter.countByMessageReference(userId, MessageReference.newReference());
+
+            assertThat(count).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("when every expense row carries a null message_reference - then returns 0")
+        void whenAllExpensesHaveNullMessageReference_thenReturnsZero() {
+            long userId = storedUserId("count-null-reference-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            storedExpense(userId, categoryId, "No message", 100, "USD", null);
+
+            int count = adapter.countByMessageReference(userId, MessageReference.newReference());
+
+            assertThat(count).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("when two users share a reference value - then counting for one ignores the other's expense")
+        void whenTwoUsersShareReferenceValue_thenReturnsOne() {
+            long firstUserId = storedUserId("count-shared-reference-first-user");
+            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long secondUserId = storedUserId("count-shared-reference-second-user");
+            long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
+            MessageReference sharedReference = MessageReference.newReference();
+            storedExpense(firstUserId, firstCategoryId, "First user's expense", 100, "USD", sharedReference.value());
+            storedExpense(secondUserId, secondCategoryId, "Second user's expense", 200, "USD", sharedReference.value());
+
+            int count = adapter.countByMessageReference(firstUserId, sharedReference);
+
+            assertThat(count).isEqualTo(1);
+        }
+    }
+
     // The scenario below needs a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure. It constructs its own adapter over a
     // Mockito mock and calls the adapter's own public method directly - it is still the adapter
@@ -341,6 +403,22 @@ class ExpenseRepositoryAdapterTest {
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
         }
+
+        @Test
+        @DisplayName(
+                "when countByMessageReference() hits a database failure - then throws PersistenceFailedException, never EntityNotFoundException")
+        void
+                whenCountByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.countByMessageReference(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.countByMessageReference(1L, MessageReference.newReference()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .isNotInstanceOf(EntityNotFoundException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
     }
 
     private long storedUserId(String externalId) {
@@ -353,5 +431,29 @@ class ExpenseRepositoryAdapterTest {
 
     private List<ExpenseEntity> expenseRowsFor(long userId) {
         return ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+    }
+
+    // countByMessageReference's rows have to carry a message_reference, which adapter.create()
+    // never writes - so they are seeded directly through JdbcAggregateTemplate, the way
+    // ExpenseProposalRowUtils.storedProposal seeds a proposal row.
+    private ExpenseEntity storedExpense(
+            long userId,
+            long categoryId,
+            String description,
+            long amountMinorUnits,
+            String currencyCode,
+            UUID messageReference) {
+        Instant now = Instant.now();
+        return jdbcAggregateTemplate.insert(new ExpenseEntity(
+                null,
+                userId,
+                categoryId,
+                description,
+                null,
+                amountMinorUnits,
+                currencyCode,
+                messageReference,
+                now,
+                now));
     }
 }

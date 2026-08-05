@@ -27,5 +27,7 @@ the reference of the message it came from, and the instants it was created and l
 - [Money](money.md) — what was proposed, and its [currency](currency-code.md).
 - [Create an expense proposal](../usecases/create-an-expense-proposal.md) — what it is built from, and what
   stores one.
+- [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md) — the only thing that removes one,
+  by turning it into an expense or throwing it away.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).

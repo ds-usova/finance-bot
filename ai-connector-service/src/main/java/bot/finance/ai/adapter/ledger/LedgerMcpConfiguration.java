@@ -1,6 +1,6 @@
 package bot.finance.ai.adapter.ledger;
 
-import bot.finance.ai.adapter.grpc.CallerTokenUtils;
+import bot.finance.ai.adapter.grpc.CallerTokenContext;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.common.McpTransportContext;
@@ -28,7 +28,7 @@ public class LedgerMcpConfiguration {
     McpClientCustomizer<McpClient.SyncSpec> callerTokenContextCustomizer() {
         return (name, spec) -> {
             if (LEDGER_CONNECTION.equals(name)) {
-                spec.transportContextProvider(() -> CallerTokenUtils.callerToken()
+                spec.transportContextProvider(() -> CallerTokenContext.callerToken()
                         .<McpTransportContext>map(token ->
                                 McpTransportContext.create(Map.of(CallerTokenMcpRequestCustomizer.CALLER_TOKEN, token)))
                         .orElse(McpTransportContext.EMPTY));
