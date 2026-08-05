@@ -44,7 +44,9 @@ is still current — anything outside `docs/` is stale.
 
 - **The verdict**, on its own line: `VERIFIED`, `VERIFIED WITH SKIPPED TESTS`, `NOT VERIFIED`, or
   `UNVERIFIED (uncommitted changes)`.
-- **The commit** it was measured on, the branch, and whether the working tree was clean.
+- **The commit** it was measured on, the branch, and whether the working tree was clean. `evidence.md` and
+  `evidence.json` themselves are left out of that check — a previous run leaves them uncommitted, and counting
+  them would mean a re-measure could never come back verified without a commit in between.
 - **A row per module**: the runner's verdict, tests total/passed/failed/skipped, instruction and branch
   coverage, the module's minimum, and whether the module is formatted — `clean`, `unformatted`, or `n/a` for a
   module with no `spotlessCheck` task. Formatting is measured because it is enforced by `check`, which this
