@@ -18,6 +18,7 @@ import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 class ExtractIntentsUseCaseTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     private ExpenseRecordingPort expenseRecordingPort;
     private Logger log;
@@ -44,12 +46,13 @@ class ExtractIntentsUseCaseTest {
     }
 
     private static ExtractIntentsCommand command(String text, List<String> categoryGroupings, String catchAllGrouping) {
-        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty());
+        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty(), CURRENT_DATE);
     }
 
     private static ExtractIntentsCommand command(
             String text, List<String> categoryGroupings, String catchAllGrouping, CurrencyCode defaultCurrency) {
-        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency));
+        return new ExtractIntentsCommand(
+                text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), CURRENT_DATE);
     }
 
     /**
@@ -80,7 +83,8 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()));
+            verify(expenseRecordingPort)
+                    .record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()), eq(CURRENT_DATE));
         }
 
         @Test
@@ -91,7 +95,7 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))));
+            verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))), any());
         }
 
         @Test
@@ -109,7 +113,7 @@ class ExtractIntentsUseCaseTest {
             List<String> categoryGroupings = List.of("Food");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
-            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any());
+            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any(), any());
 
             assertThatThrownBy(() -> useCase.extractIntents(command)).isSameAs(failure);
         }

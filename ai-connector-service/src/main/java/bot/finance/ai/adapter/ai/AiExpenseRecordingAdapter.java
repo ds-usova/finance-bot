@@ -6,6 +6,7 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,7 +41,8 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             String text,
             List<String> categoryGroupings,
             String catchAllGrouping,
-            Optional<CurrencyCode> assumedCurrency) {
+            Optional<CurrencyCode> assumedCurrency,
+            LocalDate currentDate) {
         if (CallerTokenContext.callerToken().isEmpty()) {
             throw new ExpenseRecordingFailedException("No caller token held for this turn");
         }
@@ -54,7 +56,9 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
                         "assumedCurrency",
                         assumedCurrency.map(CurrencyCode::code).orElse(NO_ASSUMED_CURRENCY),
                         "text",
-                        text));
+                        text,
+                        "today",
+                        currentDate.toString()));
 
         try {
             String answer = chatClient

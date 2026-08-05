@@ -9,6 +9,7 @@ import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
@@ -39,8 +40,13 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return;
         }
 
+        LocalDate currentDate = LocalDate.parse(request.getCurrentDate());
         ExtractIntentsCommand command = new ExtractIntentsCommand(
-                request.getText(), request.getCategoryGroupingsList(), request.getCatchAllGrouping(), defaultCurrency);
+                request.getText(),
+                request.getCategoryGroupingsList(),
+                request.getCatchAllGrouping(),
+                defaultCurrency,
+                currentDate);
         extractIntentsPort.extractIntents(command);
 
         responseObserver.onNext(ExtractIntentsResponse.getDefaultInstance());
@@ -83,6 +89,9 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
                     .asRuntimeException());
             return true;
         }
+
+        // TODO(RI05): reject a blank current_date with "Current date must not be blank" and one that is
+        // not an ISO-8601 date with "Current date must be an ISO-8601 date"
 
         return false;
     }

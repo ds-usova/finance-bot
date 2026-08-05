@@ -3,10 +3,10 @@ package bot.finance.adapter.telegram;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnReport;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
@@ -26,7 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ProposalReportRendererTest {
+class TurnReportRendererTest {
 
     private static final CurrencyCode EUR = CurrencyCode.of("EUR");
 
@@ -43,14 +43,15 @@ class ProposalReportRendererTest {
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary withoutMerchant =
                     new ProposalSummary("Auto", "Fuel", "tank refill", Optional.empty(), new Money(6000, EUR));
-            ProposalReport report = new ProposalReport(
+            TurnReport report = new TurnReport(
                     "555",
                     "1",
                     ReportOutcome.RECORDED,
                     List.of(withMerchant, withoutMerchant),
+                    List.of(),
                     MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text)
                     .isEqualTo(
@@ -65,10 +66,10 @@ class ProposalReportRendererTest {
         void whenRecordedReportCarriesExactlyOneSummary_thenOpensWithSingularCount() {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport(
-                    "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text).startsWith("Noted 1 expense, pending your confirmation:");
         }
@@ -76,10 +77,15 @@ class ProposalReportRendererTest {
         @Test
         @DisplayName("when a NOTHING_IDENTIFIED report has no summaries - then renders the no-expense-identified text")
         void whenNothingIdentifiedReportHasNoSummaries_thenRendersNoExpenseIdentifiedText() {
-            ProposalReport report = new ProposalReport(
-                    "555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of(), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555",
+                    "1",
+                    ReportOutcome.NOTHING_IDENTIFIED,
+                    List.of(),
+                    List.of(),
+                    MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text).isEqualTo("No expense was identified in that message.");
         }
@@ -87,10 +93,10 @@ class ProposalReportRendererTest {
         @Test
         @DisplayName("when a FAILED report has no summaries - then renders the went-wrong text")
         void whenFailedReportHasNoSummaries_thenRendersWentWrongText() {
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.FAILED, List.of(), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.FAILED, List.of(), List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text).isEqualTo("Something went wrong and nothing was noted — please try again.");
         }
@@ -101,10 +107,10 @@ class ProposalReportRendererTest {
         void whenPartialReportCarriesOneSummary_thenOpensWithMayBeIncompleteTextAndCarriesBulletBelowIt() {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport(
-                    "555", "1", ReportOutcome.PARTIAL, List.of(summary), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.PARTIAL, List.of(summary), List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text)
                     .isEqualTo(
@@ -126,10 +132,10 @@ class ProposalReportRendererTest {
                             Optional.of("Rewe supermarket"),
                             new Money(4230, EUR)))
                     .toList();
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.RECORDED, summaries, List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text.length()).isLessThanOrEqualTo(4000);
 
@@ -156,10 +162,10 @@ class ProposalReportRendererTest {
                             "Groceries", "Food", "d".repeat(31), Optional.of("Rewe supermarket"), new Money(4230, EUR)))
                     .toList());
             summaries.add(new ProposalSummary("A", "B", "c", Optional.empty(), new Money(100, EUR)));
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.RECORDED, summaries, List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text.length()).isLessThanOrEqualTo(4000);
         }
@@ -170,10 +176,10 @@ class ProposalReportRendererTest {
         void whenSummaryDescriptionContainsAsteriskAndUnderscore_thenThoseCharactersAppearLiterallyWithNoEscaping() {
             ProposalSummary summary = new ProposalSummary(
                     "Groceries", "Food", "weekly *shop_ trip", Optional.empty(), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport(
-                    "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), List.of(), MessageReference.newReference());
 
-            String text = ProposalReportRenderer.render(report);
+            String text = TurnReportRenderer.render(report);
 
             assertThat(text).contains("weekly *shop_ trip");
             assertThat(text).doesNotContain("\\*").doesNotContain("\\_");
@@ -192,10 +198,10 @@ class ProposalReportRendererTest {
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary second =
                     new ProposalSummary("Auto", "Fuel", "tank refill", Optional.empty(), new Money(6000, EUR));
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(first, second), reference);
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.RECORDED, List.of(first, second), List.of(), reference);
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isPresent();
             InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
@@ -215,9 +221,10 @@ class ProposalReportRendererTest {
             MessageReference reference = MessageReference.newReference();
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            ProposalReport report = new ProposalReport("555", "1", ReportOutcome.PARTIAL, List.of(summary), reference);
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.PARTIAL, List.of(summary), List.of(), reference);
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isPresent();
             InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
@@ -231,9 +238,10 @@ class ProposalReportRendererTest {
         @DisplayName("when a NOTHING_IDENTIFIED report and a FAILED report both have no summaries - then returns empty")
         void whenNothingIdentifiedAndFailedReportsHaveNoSummaries_thenReturnsEmpty(
                 String description, ReportOutcome outcome) {
-            ProposalReport report = new ProposalReport("555", "1", outcome, List.of(), MessageReference.newReference());
+            TurnReport report =
+                    new TurnReport("555", "1", outcome, List.of(), List.of(), MessageReference.newReference());
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isEmpty();
         }
@@ -248,10 +256,10 @@ class ProposalReportRendererTest {
         @DisplayName(
                 "when a RECORDED report's summary list is empty - then returns empty, the list deciding, not the outcome")
         void whenRecordedReportSummaryListIsEmpty_thenReturnsEmpty() {
-            ProposalReport report =
-                    new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(), MessageReference.newReference());
+            TurnReport report = new TurnReport(
+                    "555", "1", ReportOutcome.RECORDED, List.of(), List.of(), MessageReference.newReference());
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isEmpty();
         }

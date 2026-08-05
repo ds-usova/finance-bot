@@ -13,6 +13,7 @@ public final class IntentProtoMapper {
         builder.addAllCategoryGroupings(request.categoryGroupings());
         builder.setCatchAllGrouping(request.catchAllGrouping());
         request.defaultCurrency().ifPresent(currency -> builder.setDefaultCurrency(currency.code()));
+        builder.setCurrentDate(request.currentDate().toString());
         return builder.build();
     }
 }

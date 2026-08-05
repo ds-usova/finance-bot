@@ -20,6 +20,7 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @AiConnectorAdapterTest
 class AiConnectorIntentExtractionAdapterTest {
+
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     @Autowired
     private AiConnectorIntentExtractionAdapter adapter;
@@ -56,7 +59,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
 
@@ -80,7 +84,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id-77",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             adapter.extract(request);
 
@@ -107,7 +112,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    reference);
+                    reference,
+                    CURRENT_DATE);
 
             adapter.extract(request);
 
@@ -139,7 +145,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             IntentExtractionFailedException thrown =
                     catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);

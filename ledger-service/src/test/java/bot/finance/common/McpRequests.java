@@ -61,6 +61,24 @@ public final class McpRequests {
                         jsonString(currencyCode));
     }
 
+    public static String summarizeSpending(String from, String to) {
+        return """
+                {
+                  "jsonrpc": "2.0",
+                  "id": 2,
+                  "method": "tools/call",
+                  "params": {
+                    "name": "summarize_spending",
+                    "arguments": {
+                      "from": %s,
+                      "to": %s
+                    }
+                  }
+                }
+                """
+                .formatted(jsonString(from), jsonString(to));
+    }
+
     public static String listCategories(String grouping) {
         return """
                 {

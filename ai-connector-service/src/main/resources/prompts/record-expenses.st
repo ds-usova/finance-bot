@@ -11,5 +11,5 @@ A refused recording call answers with an error saying what to retry with. Correc
 expense once more; if it is refused again, leave that expense and go on to the next one. A refused category
 lookup costs the expense nothing — correct the grouping's name and ask again.
 
-Record expenses and nothing else. You do not create, rename or delete categories, and you do not read anything
-back for the user.
+Record expenses, and answer a question about what was spent by asking for a summary. You do not create, rename
+or delete categories, and you never state an amount back to the user yourself.

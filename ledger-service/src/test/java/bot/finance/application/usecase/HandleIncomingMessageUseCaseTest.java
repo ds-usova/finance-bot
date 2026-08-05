@@ -13,16 +13,18 @@ import static org.mockito.Mockito.when;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.TurnReport;
 import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
@@ -34,6 +36,9 @@ import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +61,9 @@ class HandleIncomingMessageUseCaseTest {
     private IntentExtractionPort intentExtractionPort;
     private ExpenseProposalRepository expenseProposalRepository;
     private MessageDeliveryPort messageDeliveryPort;
+    private Clock clock;
+    private SpendingQueryRepository spendingQueryRepository;
+    private ExpenseRepository expenseRepository;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -68,12 +76,18 @@ class HandleIncomingMessageUseCaseTest {
         intentExtractionPort = mock(IntentExtractionPort.class);
         expenseProposalRepository = mock(ExpenseProposalRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
+        clock = Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC);
+        spendingQueryRepository = mock(SpendingQueryRepository.class);
+        expenseRepository = mock(ExpenseRepository.class);
         useCase = new HandleIncomingMessageUseCase(
                 initializeUserPort,
                 groupingRepository,
                 intentExtractionPort,
                 expenseProposalRepository,
                 messageDeliveryPort,
+                clock,
+                spendingQueryRepository,
+                expenseRepository,
                 loggerFactory);
     }
 
@@ -211,9 +225,9 @@ class HandleIncomingMessageUseCaseTest {
             verify(intentExtractionPort).extract(extractCaptor.capture());
             MessageReference reference = extractCaptor.getValue().messageReference();
 
-            ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
+            ArgumentCaptor<TurnReport> reportCaptor = ArgumentCaptor.forClass(TurnReport.class);
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
-            ProposalReport report = reportCaptor.getValue();
+            TurnReport report = reportCaptor.getValue();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.RECORDED);
             assertThat(report.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(report.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
@@ -231,9 +245,9 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
+            ArgumentCaptor<TurnReport> reportCaptor = ArgumentCaptor.forClass(TurnReport.class);
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
-            ProposalReport report = reportCaptor.getValue();
+            TurnReport report = reportCaptor.getValue();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.NOTHING_IDENTIFIED);
             assertThat(report.proposals()).isEmpty();
         }
@@ -253,9 +267,9 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
+            ArgumentCaptor<TurnReport> reportCaptor = ArgumentCaptor.forClass(TurnReport.class);
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
-            ProposalReport report = reportCaptor.getValue();
+            TurnReport report = reportCaptor.getValue();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.PARTIAL);
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
         }
@@ -273,7 +287,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
+            ArgumentCaptor<TurnReport> reportCaptor = ArgumentCaptor.forClass(TurnReport.class);
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
             assertThat(reportCaptor.getValue().outcome()).isEqualTo(ReportOutcome.FAILED);
         }

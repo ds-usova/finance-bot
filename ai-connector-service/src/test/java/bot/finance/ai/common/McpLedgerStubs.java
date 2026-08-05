@@ -86,6 +86,16 @@ public final class McpLedgerStubs {
     }
 
     /**
+     * The ledger accepts a {@code summarize_spending} tool call and answers the period it accepted.
+     */
+    public static void stubSummarizeSpendingAccepted(String from, String to) {
+        stubHandshake();
+        stubToolsList();
+        WireMockSupport.SERVER.stubFor(
+                summarizeSpendingRequest().willReturn(jsonRpc(summarizeSpendingResult(from, to))));
+    }
+
+    /**
      * The ledger's {@code /mcp} endpoint fails the transport outright — a connection the adapter cannot reach.
      * Registered without a body matcher, so it takes down the handshake as well as the tool call.
      */
@@ -164,6 +174,18 @@ public final class McpLedgerStubs {
                                   },
                                   "required": ["grouping"]
                                 }
+                              },
+                              {
+                                "name": "summarize_spending",
+                                "description": "Answers the caller's question about what they spent over a period.",
+                                "inputSchema": {
+                                  "type": "object",
+                                  "properties": {
+                                    "from": {"type": "string"},
+                                    "to": {"type": "string"}
+                                  },
+                                  "required": ["from", "to"]
+                                }
                               }
                             ]
                           }
@@ -185,6 +207,11 @@ public final class McpLedgerStubs {
                 .withRequestBody(matchingJsonPath("$.params.name", equalTo("list_categories")));
     }
 
+    private static MappingBuilder summarizeSpendingRequest() {
+        return post(urlPathEqualTo(MCP_PATH))
+                .withRequestBody(matchingJsonPath("$.params.name", equalTo("summarize_spending")));
+    }
+
     private static String listCategoriesResult(String grouping, List<String> categories) {
         // The names sit inside "text", itself a JSON string carrying JSON, so their quotes are escaped twice.
         String categoriesJson =
@@ -199,6 +226,19 @@ public final class McpLedgerStubs {
                 }
                 """
                 .formatted(grouping, categoriesJson);
+    }
+
+    private static String summarizeSpendingResult(String from, String to) {
+        return """
+                {
+                  "jsonrpc": "2.0",
+                  "id": "%%s",
+                  "result": {
+                    "content": [{"type": "text", "text": "{\\"from\\":\\"%s\\",\\"to\\":\\"%s\\"}"}]
+                  }
+                }
+                """
+                .formatted(from, to);
     }
 
     private static String accepted() {

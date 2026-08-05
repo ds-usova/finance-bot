@@ -1,11 +1,14 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.SpendingPeriod;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +47,14 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             throw new PersistenceFailedException(
                     "failed to count expenses for user " + userId + " and message reference " + reference.value(), e);
         }
+    }
+
+    @Override
+    public List<CurrencyTotal> totalsByCurrency(long userId, SpendingPeriod period) {
+        // bounds the read by the period's first day at UTC midnight and the day after its last day at
+        // UTC midnight, both built in Java rather than cast in SQL (D28), and maps each row through
+        // CurrencyTotalProjection.toCurrencyTotal(), wrapping every failure in PersistenceFailedException
+        return null;
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

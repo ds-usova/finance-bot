@@ -1,20 +1,20 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.dto.TurnReport;
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import java.util.List;
 import java.util.Optional;
 
-public final class ProposalReportRenderer {
+public final class TurnReportRenderer {
 
     private static final int MAX_LENGTH = 4000;
 
-    private ProposalReportRenderer() {}
+    private TurnReportRenderer() {}
 
-    public static Optional<InlineKeyboardMarkup> renderKeyboard(ProposalReport report) {
+    public static Optional<InlineKeyboardMarkup> renderKeyboard(TurnReport report) {
         if (report.proposals().isEmpty()) {
             return Optional.empty();
         }
@@ -25,9 +25,12 @@ public final class ProposalReportRenderer {
         return Optional.of(new InlineKeyboardMarkup(new InlineKeyboardButton[] {confirm, delete}));
     }
 
+    // TODO(GU10): write the summary block above the proposal block, spending the 4000-character budget
+    // on the summaries first and trimming the proposal list against what is left (D24)
     /** No character is escaped, since {@link TelegramMessageDeliveryAdapter} sets no {@code parse_mode}. */
-    public static String render(ProposalReport report) {
+    public static String render(TurnReport report) {
         return switch (report.outcome()) {
+            case ANSWERED -> "";
             case NOTHING_IDENTIFIED -> "No expense was identified in that message.";
             case FAILED -> "Something went wrong and nothing was noted — please try again.";
             case RECORDED -> renderList(recordedHeader(report.proposals().size()), report.proposals());

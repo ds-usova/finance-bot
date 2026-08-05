@@ -12,6 +12,7 @@ public final class RequestFixtures {
 
     public static final List<String> DEFAULT_CATEGORY_GROUPINGS = List.of("Groceries", "Insurance", "Other");
     public static final String DEFAULT_CATCH_ALL = "Other";
+    public static final String DEFAULT_CURRENT_DATE = "2026-08-05";
     private static final String DEFAULT_TEXT = "spent 15 euros on lunch";
 
     private RequestFixtures() {}
@@ -29,6 +30,7 @@ public final class RequestFixtures {
                 .setText(text)
                 .addAllCategoryGroupings(categoryGroupings)
                 .setCatchAllGrouping(catchAllGrouping)
+                .setCurrentDate(DEFAULT_CURRENT_DATE)
                 .build();
     }
 
@@ -36,6 +38,16 @@ public final class RequestFixtures {
             String text, List<String> categoryGroupings, String catchAllGrouping, String defaultCurrency) {
         return request(text, categoryGroupings, catchAllGrouping).toBuilder()
                 .setDefaultCurrency(defaultCurrency)
+                .build();
+    }
+
+    /**
+     * A valid request carrying the given {@code current_date}, for the invalid-date cases RI05 covers — a further
+     * {@code String} overload of {@code request(...)} would reproduce an existing signature.
+     */
+    public static ExtractIntentsRequest requestWithCurrentDate(String currentDate) {
+        return request(DEFAULT_TEXT, DEFAULT_CATEGORY_GROUPINGS, DEFAULT_CATCH_ALL).toBuilder()
+                .setCurrentDate(currentDate)
                 .build();
     }
 }

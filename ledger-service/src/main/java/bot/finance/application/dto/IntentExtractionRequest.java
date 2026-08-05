@@ -3,6 +3,7 @@ package bot.finance.application.dto;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,9 +13,11 @@ public record IntentExtractionRequest(
         String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
         String userExternalId,
-        MessageReference messageReference) {
+        MessageReference messageReference,
+        LocalDate currentDate) {
 
     public IntentExtractionRequest {
+        // TODO(RU07): refuse a null currentDate
         if (text == null || text.isBlank()) {
             throw new InvalidExtractionRequestException("Text must not be null or blank");
         }

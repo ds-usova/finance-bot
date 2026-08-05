@@ -66,6 +66,11 @@ public final class TelegramTestBot {
      */
     public static final String RESOLVE_UNKNOWN_PROPOSALS_TOKEN = "resolve-unknown-proposals-test-token";
 
+    /**
+     * Token owned by the system test covering {@code summarize_spending}.
+     */
+    public static final String SUMMARIZE_SPENDING_TOKEN = "summarize-spending-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

@@ -1,7 +1,7 @@
 package bot.finance.adapter.telegram;
 
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ResolutionAcknowledgement;
+import bot.finance.application.dto.TurnReport;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -33,15 +33,15 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
     }
 
     @Override
-    public void deliver(ProposalReport report) {
+    public void deliver(TurnReport report) {
         if (report == null) {
             throw new InvalidIncomingMessageException("report must not be null");
         }
 
-        SendMessage request = new SendMessage(report.conversationId(), ProposalReportRenderer.render(report))
+        SendMessage request = new SendMessage(report.conversationId(), TurnReportRenderer.render(report))
                 .replyParameters(
                         new ReplyParameters(Integer.valueOf(report.inboundMessageId())).allowSendingWithoutReply(true));
-        ProposalReportRenderer.renderKeyboard(report).ifPresent(request::replyMarkup);
+        TurnReportRenderer.renderKeyboard(report).ifPresent(request::replyMarkup);
 
         execute(request, SEND_MESSAGE).ifPresent(failure -> {
             throw failure;

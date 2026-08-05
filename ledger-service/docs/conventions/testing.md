@@ -18,8 +18,9 @@ bot.finance
     ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
-    ├── ExpenseRowUtils       # reads back a user's stored expense rows
+    ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
     ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
+    ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     ├── UserRowUtils          # stores a user row and returns its generated id
     ├── WireMockStubs         # stub registration, one static method per endpoint
     ├── JsonUtils             # loads JSON fixtures from src/test/resources

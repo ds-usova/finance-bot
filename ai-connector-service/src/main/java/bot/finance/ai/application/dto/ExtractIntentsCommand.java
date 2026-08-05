@@ -2,13 +2,19 @@ package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 public record ExtractIntentsCommand(
-        String text, List<String> categoryGroupings, String catchAllGrouping, Optional<CurrencyCode> defaultCurrency) {
+        String text,
+        List<String> categoryGroupings,
+        String catchAllGrouping,
+        Optional<CurrencyCode> defaultCurrency,
+        LocalDate currentDate) {
 
     public ExtractIntentsCommand {
+        // TODO(RU11): refuse a null currentDate
         if (text == null || text.isBlank()) {
             throw new InvalidValueException("Text must not be null or blank");
         }
