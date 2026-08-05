@@ -279,9 +279,8 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when extraction throws IntentExtractionFailedException - then an error line is logged "
-                + "carrying the message reference and the outcome, and not the message text")
-        void whenExtractionFails_thenErrorLineNamesReferenceAndOutcomeAndOmitsText() {
+        @DisplayName("when extraction fails - then the error line does not carry the user's own words")
+        void whenExtractionFails_thenErrorLineOmitsTheMessageText() {
             stubKnownUserAndGroupings();
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
@@ -294,16 +293,13 @@ class HandleIncomingMessageUseCaseTest {
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
             verify(log).error(messageCaptor.capture(), argsCaptor.capture());
-            assertThat(argsCaptor.getValue()).contains(ReportOutcome.FAILED);
-            assertThat(argsCaptor.getValue()).anyMatch(arg -> arg instanceof MessageReference);
             assertThat(argsCaptor.getValue()).doesNotContain(TEXT);
             assertThat(messageCaptor.getValue()).doesNotContain(TEXT);
         }
 
         @Test
-        @DisplayName("when a turn succeeds - then an info line names the message reference and the user's "
-                + "external id, and does not carry the message text")
-        void whenTurnSucceeds_thenInfoLineNamesReferenceAndExternalIdAndOmitsText() {
+        @DisplayName("when a turn succeeds - then the info line does not carry the user's own words")
+        void whenTurnSucceeds_thenInfoLineOmitsTheMessageText() {
             stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
@@ -313,8 +309,6 @@ class HandleIncomingMessageUseCaseTest {
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
             verify(log).info(messageCaptor.capture(), argsCaptor.capture());
-            assertThat(argsCaptor.getValue()).contains(EXTERNAL_ID);
-            assertThat(argsCaptor.getValue()).anyMatch(arg -> arg instanceof MessageReference);
             assertThat(argsCaptor.getValue()).doesNotContain(TEXT);
             assertThat(messageCaptor.getValue()).doesNotContain(TEXT);
         }

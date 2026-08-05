@@ -24,6 +24,8 @@ Applies across all layers.
   cramped line. Text long enough to be edited as prose belongs in a resource file instead.
 - **Method decomposition**: extract private helpers once a method exceeds roughly one screen. One public method
   per port operation on a use case or an adapter.
+- **A method body separates its phases with a blank line** — the guards, the work, the result. A method whose
+  lines run together reads as one step, and a reader has to re-derive where one phase ends and the next begins.
 - **A stateless helper class is named for its role**, never `*Utils`. One that converts between two
   representations is a `*Mapper`; one that writes a core type as text for a transport is a `*Renderer`. A class
   that goes both ways, or that answers a question about a thing rather than transforming it, takes that thing's
