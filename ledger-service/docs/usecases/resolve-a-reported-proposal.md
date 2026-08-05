@@ -9,12 +9,12 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                            | Through                                                                           | For                                                                                 |
-|-----------|---------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| in        | [Telegram](../contracts/in/telegram-updates.md)         | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering the tap on a report's button                                             |
-| in        | [Act on a user's message](handle-incoming-message.md)   | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the buttons on the report, and storing the proposals a tap resolves         |
-| out       | [Database](../contracts/out/database.md)                | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving who tapped, moving or removing what the message proposed, counting it     |
-| out       | [Telegram](../contracts/out/telegram-replies.md)        | [Outgoing replies](../contracts/out/telegram-replies.md)                          | answering the tap, and taking the buttons off the report                            |
+| Direction | Collaborator                                          | Through                                                                           | For                                                                             |
+|-----------|-------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| in        | [Telegram](../contracts/in/telegram-updates.md)       | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering the tap on a report's button                                         |
+| in        | [Act on a user's message](handle-incoming-message.md) | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the buttons on the report, and storing the proposals a tap resolves     |
+| out       | [Database](../contracts/out/database.md)              | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving who tapped, moving or removing what the message proposed, counting it |
+| out       | [Telegram](../contracts/out/telegram-replies.md)      | [Outgoing replies](../contracts/out/telegram-replies.md)                          | answering the tap, and taking the buttons off the report                        |
 
 ## Rules
 
@@ -45,16 +45,16 @@
 
 ## Outcomes
 
-| Outcome            | When                                                                                       | Result                                                                                           |
-|--------------------|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| Confirmed          | the person's proposals under that message are still stored, and Confirm was tapped         | they become expenses carrying that message; the tap says how many, and the buttons come off      |
-| Discarded          | the person's proposals under that message are still stored, and Delete was tapped          | they are removed; the tap says how many, and the buttons come off                                |
-| Already confirmed  | nothing was left to resolve, and expenses are stored under that message                    | the tap says how many are already recorded, and the buttons come off                             |
-| Nothing to resolve | nothing of that person's is stored under the message, or under their identity              | the tap is told there is nothing left, and the buttons come off                                  |
-| Tap skipped        | the tap names no sender or no conversation, or carries a payload this bot never sent       | nothing happens and the tap is left unanswered                                                   |
-| Tap rejected       | the tap is absent                                                                          | rejected as invalid; nothing is looked up                                                        |
-| Storage failed     | the move, the removal or the count fails                                                   | nothing is moved or removed, the buttons stay, and the failure reaches the caller                |
-| Answer failed      | the tap cannot be answered, or the buttons cannot be taken off                             | the resolution stands, and the failure reaches the caller                                        |
+| Outcome            | When                                                                                 | Result                                                                                      |
+|--------------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Confirmed          | the person's proposals under that message are still stored, and Confirm was tapped   | they become expenses carrying that message; the tap says how many, and the buttons come off |
+| Discarded          | the person's proposals under that message are still stored, and Delete was tapped    | they are removed; the tap says how many, and the buttons come off                           |
+| Already confirmed  | nothing was left to resolve, and expenses are stored under that message              | the tap says how many are already recorded, and the buttons come off                        |
+| Nothing to resolve | nothing of that person's is stored under the message, or under their identity        | the tap is told there is nothing left, and the buttons come off                             |
+| Tap skipped        | the tap names no sender or no conversation, or carries a payload this bot never sent | nothing happens and the tap is left unanswered                                              |
+| Tap rejected       | the tap is absent                                                                    | rejected as invalid; nothing is looked up                                                   |
+| Storage failed     | the move, the removal or the count fails                                             | nothing is moved or removed, the buttons stay, and the failure reaches the caller           |
+| Answer failed      | the tap cannot be answered, or the buttons cannot be taken off                       | the resolution stands, and the failure reaches the caller                                   |
 
 A failure of any kind is logged where the tap was delivered, and its batch is acknowledged with the rest.
 
@@ -93,7 +93,7 @@ ContainerDb(db, "Database", "PostgreSQL", "Stores users, their expenses and thei
 
 Rel_R(telegram, telegramListener, "Update (button tap)", "Telegram Bot API, long polling")
 Rel_D(telegramListener, buttonPayload, "Reads the tap with")
-Rel_R(telegramListener, resolvePort, "Invokes")
+Rel_D(telegramListener, resolvePort, "Invokes")
 Rel_L(resolveService, resolvePort, "Implements", $tags="implements")
 Rel_R(resolveService, userRepositoryPort, "Uses")
 Rel_R(resolveService, proposalRepositoryPort, "Uses")
