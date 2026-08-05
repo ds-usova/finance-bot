@@ -53,7 +53,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category, and an unstored proposal carrying a merchant - then one proposal row exists for that user carrying the category id, description, merchant, minor units and currency code given, and the returned proposal carries its generated database id")
+                "when called with a proposal carrying a merchant - then the row holds what was given and carries a generated id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedProposalCarriesGeneratedId() {
             long userId = storedUserId("merchant-proposal-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -333,7 +333,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a user id and reference under which three proposals were stored at increasing created_at - then returns three summaries oldest first, each carrying the category name, the parent's name, the description, the merchant and a Money built from the row's minor units and currency code")
+                "when three proposals were stored under one reference - then returns three fully mapped summaries, oldest first")
         void whenThreeProposalsStoredUnderSameReference_thenReturnsThreeSummariesOldestFirstWithFullMapping() {
             long userId = storedUserId("summary-ordering-user");
             long parentId = storedGroupingId(userId, "Food");
@@ -501,10 +501,8 @@ class ExpenseProposalRepositoryAdapterTest {
     class Accept {
 
         @Test
-        @DisplayName(
-                "when called for a reference under which two proposals are stored, one carrying a merchant and one not, alongside a third proposal stored under a different reference - then returns 2, the user's expense rows are exactly two, each carrying the category id, description, merchant, minor units, currency code and message_reference of the proposal it came from, with both timestamps equal to now, and the two proposal rows are gone while the third survives")
-        void
-                whenTwoProposalsStoredUnderReferenceAndAThirdUnderAnother_thenReturnsTwoMovesThemToExpenseAndLeavesThirdProposal() {
+        @DisplayName("when two proposals share a reference and a third does not - then only those two move to expense")
+        void whenTwoProposalsShareAReference_thenOnlyThoseMoveToExpense() {
             long userId = storedUserId("accept-two-proposals-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
             MessageReference reference = MessageReference.newReference();

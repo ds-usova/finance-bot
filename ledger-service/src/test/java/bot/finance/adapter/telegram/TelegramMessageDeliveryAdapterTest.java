@@ -181,7 +181,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a RECORDED report carrying two summaries and a reference over a bot WireMock accepts sendMessage for - then the recorded sendMessage carries a reply_markup form param holding one row of two buttons whose texts are Confirm and Delete and whose callback_data values are what ProposalCallbackData.render produces for that reference")
+                "when a report carries proposals - then the sendMessage carries a Confirm and a Delete button for its reference")
         void
                 whenCalledWithRecordedReportCarryingReference_thenSendMessageCarriesReplyMarkupWithConfirmAndDeleteButtons() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
@@ -225,8 +225,7 @@ class TelegramMessageDeliveryAdapterTest {
     class Acknowledge {
 
         @Test
-        @DisplayName(
-                "when called with an ACCEPTED acknowledgement over a bot WireMock accepts both answerCallbackQuery and editMessageReplyMarkup for - then exactly one answerCallbackQuery is recorded carrying the interaction id and the acknowledgement's wording, and exactly one editMessageReplyMarkup is recorded carrying the conversation id, the report message id and no reply_markup form param")
+        @DisplayName("when both calls are accepted - then the tap is answered and the report's buttons are cleared")
         void
                 whenCalledWithAcceptedAcknowledgementAndBothCallsAccepted_thenBothCallsAreRecordedAsTheAcknowledgementSays() {
             telegramAcceptsAnswerCallbackQuery(DELIVERY_TOKEN);

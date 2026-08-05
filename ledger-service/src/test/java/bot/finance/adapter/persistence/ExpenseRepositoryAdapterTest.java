@@ -55,7 +55,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category, and an unstored expense carrying a merchant - then one expense row exists for that user carrying the category id, description, merchant, minor units and currency code given, and the returned expense carries its generated database id")
+                "when called with an expense carrying a merchant - then the row holds what was given and carries a generated id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedExpenseCarriesGeneratedId() {
             long userId = storedUserId("merchant-expense-user");
             long categoryId = storedGroupingId(userId, "Groceries");

@@ -120,7 +120,11 @@ bot.finance.ai
 - AssertJ only. Compare a `BigDecimal` with `isEqualByComparingTo(...)`, so a scale difference does not fail an
   assertion about value. Assert a gRPC failure on `StatusRuntimeException` and its status code, never its
   message.
-- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`.
+- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`: **one condition, one
+  outcome, under 120 characters.** The name says what the test proves, never what it asserts — the assertions are
+  in the body, and a name that lists them has to be re-read every time one of them changes. A name that will not
+  fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
+  one behaviour they add up to.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution — and move any body past

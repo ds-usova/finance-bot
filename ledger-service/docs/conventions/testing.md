@@ -123,7 +123,11 @@ would inherit the first's advanced state. Give each new class a token constant i
   Never duplicate a case as both a parameterized entry and a one-off test.
 - AssertJ only — never JUnit `assertEquals`/`assertTrue`. RestAssured response specs are fine for HTTP-level
   assertions.
-- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`.
+- Every test method carries `@DisplayName` as `"when [condition] - then [outcome]"`: **one condition, one
+  outcome, under 120 characters.** The name says what the test proves, never what it asserts — the assertions are
+  in the body, and a name that lists them has to be re-read every time one of them changes. A name that will not
+  fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
+  one behaviour they add up to.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
   internally, assert what must hold whichever route it takes — *no proposal is stored at the wrong scale* — never
