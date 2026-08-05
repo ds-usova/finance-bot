@@ -40,8 +40,7 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
     private static String summarizeSpendingArguments(String from, String to) {
         return """
-                {"from":"%s","to":"%s"}"""
-                .formatted(from, to);
+                {"from":"%s","to":"%s"}""".formatted(from, to);
     }
 
     @Nested
@@ -134,7 +133,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
             assertThat(summarizeSpendingCalls).hasSize(1);
-            assertThat(summarizeSpendingCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
+            assertThat(summarizeSpendingCalls.getFirst().getHeader("Authorization"))
+                    .isEqualTo(CALLER_TOKEN);
             JsonNode arguments = CapturedRequestUtils.toolCallArguments(summarizeSpendingCalls.getFirst());
             assertThat(arguments.get("from").asText()).isEqualTo(from);
             assertThat(arguments.get("to").asText()).isEqualTo(to);

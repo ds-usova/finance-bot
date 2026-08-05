@@ -371,7 +371,8 @@ class ExpenseRepositoryAdapterTest {
             long userId = storedUserId("totals-mixed-currency-user");
             long categoryId = storedGroupingId(userId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
-            Instant insidePeriod = period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
             storedExpenseAt(userId, categoryId, "EUR one", 1000, "EUR", insidePeriod);
             storedExpenseAt(userId, categoryId, "EUR two", 2000, "EUR", insidePeriod);
             storedExpenseAt(userId, categoryId, "EUR three", 3000, "EUR", insidePeriod);
@@ -394,7 +395,8 @@ class ExpenseRepositoryAdapterTest {
             long userId = storedUserId("totals-inclusive-bounds-user");
             long categoryId = storedGroupingId(userId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
-            Instant firstDayMidnight = period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant firstDayMidnight =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
             Instant lastDayLastSecond =
                     period.to().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toInstant();
             storedExpenseAt(userId, categoryId, "First day midnight", 100, "USD", firstDayMidnight);
@@ -436,7 +438,8 @@ class ExpenseRepositoryAdapterTest {
             long secondUserId = storedUserId("totals-two-users-second-user");
             long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
-            Instant insidePeriod = period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
             storedExpenseAt(firstUserId, firstCategoryId, "First user's expense", 100, "USD", insidePeriod);
             storedExpenseAt(secondUserId, secondCategoryId, "Second user's expense", 200, "USD", insidePeriod);
 
@@ -456,7 +459,8 @@ class ExpenseRepositoryAdapterTest {
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, parentId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
-            Instant insidePeriod = period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,

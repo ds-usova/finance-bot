@@ -214,8 +214,7 @@ class SpendingQueryRepositoryAdapterTest {
             when(mockedSpendingQueryEntityRepository.findPeriodsByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() ->
-                            mockedAdapter.findPeriodsByMessageReference(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.findPeriodsByMessageReference(1L, MessageReference.newReference()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

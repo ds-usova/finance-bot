@@ -140,8 +140,8 @@ class ExtractIntentsCommandTest {
         }
 
         @Test
-        @DisplayName("when an otherwise valid command carries a current date - then currentDate() reads back "
-                + "unchanged")
+        @DisplayName(
+                "when an otherwise valid command carries a current date - then currentDate() reads back " + "unchanged")
         void whenCommandCarriesCurrentDate_thenCurrentDateReadsBackUnchanged() {
             ExtractIntentsCommand command = new ExtractIntentsCommand(
                     TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);

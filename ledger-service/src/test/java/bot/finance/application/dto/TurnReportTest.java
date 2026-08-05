@@ -19,8 +19,8 @@ class TurnReportTest {
 
     private static final ProposalSummary PROPOSAL = new ProposalSummary(
             "groceries", "essentials", "lunch", Optional.of("Trader Joe's"), new Money(1000, new CurrencyCode("USD")));
-    private static final SpendingSummary SUMMARY = new SpendingSummary(
-            new SpendingPeriod(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5)), List.of());
+    private static final SpendingSummary SUMMARY =
+            new SpendingSummary(new SpendingPeriod(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5)), List.of());
 
     @Nested
     @DisplayName("constructing a turn report")
@@ -33,7 +33,11 @@ class TurnReportTest {
             MessageReference reference = MessageReference.newReference();
 
             TurnReport report = new TurnReport(
-                    "conversation-1", "message-1", ReportOutcome.RECORDED, List.of(PROPOSAL), List.of(SUMMARY),
+                    "conversation-1",
+                    "message-1",
+                    ReportOutcome.RECORDED,
+                    List.of(PROPOSAL),
+                    List.of(SUMMARY),
                     reference);
 
             assertThat(report.conversationId()).isEqualTo("conversation-1");
@@ -44,8 +48,7 @@ class TurnReportTest {
             assertThat(report.reference()).isEqualTo(reference);
             assertThatThrownBy(() -> report.proposals().add(PROPOSAL))
                     .isInstanceOf(UnsupportedOperationException.class);
-            assertThatThrownBy(() -> report.summaries().add(SUMMARY))
-                    .isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> report.summaries().add(SUMMARY)).isInstanceOf(UnsupportedOperationException.class);
         }
 
         @Test

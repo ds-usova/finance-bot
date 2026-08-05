@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
@@ -14,8 +15,18 @@ public final class SpendingQuery extends Entity {
     private SpendingQuery(
             Long id, long userId, SpendingPeriod period, MessageReference messageReference, Instant createdAt) {
         super(id);
-        // TODO(RU02): refuse a non-positive user id, an absent period, reference or instant, with
-        // InvalidSpendingQueryException
+        if (userId <= 0) {
+            throw new InvalidSpendingQueryException("user id must be positive");
+        }
+        if (period == null) {
+            throw new InvalidSpendingQueryException("period must be present");
+        }
+        if (messageReference == null) {
+            throw new InvalidSpendingQueryException("message reference must be present");
+        }
+        if (createdAt == null) {
+            throw new InvalidSpendingQueryException("created at must be present");
+        }
         this.userId = userId;
         this.period = period;
         this.messageReference = messageReference;

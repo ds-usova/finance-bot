@@ -5,6 +5,7 @@ import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.SpendingSummary;
 import bot.finance.application.dto.TurnReport;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
@@ -22,6 +23,7 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -76,14 +78,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
                 user.id().orElseThrow(), reference);
-        // TODO(GU08): read the periods recorded under the reference through spendingQueryRepository,
-        // total each through expenseRepository, and fold the resulting summaries into the outcome
-        ReportOutcome outcome = outcomeFor(extractionFailed, proposals);
+        List<SpendingSummary> summaries = spendingSummaries(user.id().orElseThrow(), reference);
+
+        ReportOutcome outcome = outcomeFor(extractionFailed, proposals, summaries);
         if (extractionFailed) {
             log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
         }
         messageDeliveryPort.deliver(new TurnReport(
-                command.conversationId(), command.inboundMessageId(), outcome, proposals, List.of(), reference));
+                command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference));
         log.info("delivered report for message {} to user {}", reference, user.externalId());
     }
 
@@ -115,10 +117,21 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         return designated;
     }
 
-    private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {
+    private List<SpendingSummary> spendingSummaries(long userId, MessageReference reference) {
+        List<SpendingPeriod> periods = spendingQueryRepository.findPeriodsByMessageReference(userId, reference);
+        return periods.stream()
+                .map(period -> new SpendingSummary(period, expenseRepository.totalsByCurrency(userId, period)))
+                .toList();
+    }
+
+    private ReportOutcome outcomeFor(
+            boolean extractionFailed, List<ProposalSummary> proposals, List<SpendingSummary> summaries) {
         if (extractionFailed) {
-            return proposals.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
+            return proposals.isEmpty() && summaries.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
         }
-        return proposals.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.RECORDED;
+        if (!proposals.isEmpty()) {
+            return ReportOutcome.RECORDED;
+        }
+        return summaries.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.ANSWERED;
     }
 }

@@ -17,7 +17,6 @@ public record IntentExtractionRequest(
         LocalDate currentDate) {
 
     public IntentExtractionRequest {
-        // TODO(RU07): refuse a null currentDate
         if (text == null || text.isBlank()) {
             throw new InvalidExtractionRequestException("Text must not be null or blank");
         }
@@ -42,6 +41,9 @@ public record IntentExtractionRequest(
         }
         if (messageReference == null) {
             throw new InvalidExtractionRequestException("Message reference must not be null");
+        }
+        if (currentDate == null) {
+            throw new InvalidExtractionRequestException("Current date must not be null");
         }
 
         categoryGroupings = List.copyOf(categoryGroupings);

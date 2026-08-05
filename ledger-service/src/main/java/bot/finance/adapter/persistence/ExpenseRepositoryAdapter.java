@@ -7,6 +7,8 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -51,10 +53,18 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public List<CurrencyTotal> totalsByCurrency(long userId, SpendingPeriod period) {
-        // bounds the read by the period's first day at UTC midnight and the day after its last day at
-        // UTC midnight, both built in Java rather than cast in SQL (D28), and maps each row through
-        // CurrencyTotalProjection.toCurrencyTotal(), wrapping every failure in PersistenceFailedException
-        return null;
+        Instant from = period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant toExclusive =
+                period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        try {
+            return expenseEntityRepository.totalsByCurrency(userId, from, toExclusive).stream()
+                    .map(CurrencyTotalProjection::toCurrencyTotal)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to total expenses by currency for user " + userId + " and period " + period, e);
+        }
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

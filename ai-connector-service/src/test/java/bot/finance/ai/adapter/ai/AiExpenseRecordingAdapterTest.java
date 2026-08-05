@@ -209,9 +209,7 @@ class AiExpenseRecordingAdapterTest {
             assertThat(summarizeSpendingTool.get("type").asText()).isEqualTo("function");
             JsonNode summarizeSpendingProperties =
                     summarizeSpendingTool.get("function").get("parameters").get("properties");
-            assertThat(summarizeSpendingProperties.fieldNames())
-                    .toIterable()
-                    .containsExactlyInAnyOrder("from", "to");
+            assertThat(summarizeSpendingProperties.fieldNames()).toIterable().containsExactlyInAnyOrder("from", "to");
         }
 
         @Test
@@ -276,7 +274,8 @@ class AiExpenseRecordingAdapterTest {
                     CapturedRequestUtils.messageContent(CapturedRequestUtils.body(chatRequests.get(0)), "user");
             assertThat(userMessage).contains("unrecorded");
 
-            String userMessageWithoutTodayLine = userMessage.lines()
+            String userMessageWithoutTodayLine = userMessage
+                    .lines()
                     .filter(line -> !line.startsWith("Today is "))
                     .collect(Collectors.joining("\n"));
             assertThat(userMessageWithoutTodayLine).doesNotContainPattern("\\b[A-Z]{3}\\b");

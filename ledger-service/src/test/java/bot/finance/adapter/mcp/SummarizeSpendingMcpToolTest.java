@@ -124,7 +124,8 @@ class SummarizeSpendingMcpToolTest {
                 "when the port throws InvalidSpendingPeriodException - then the tool error carries that exception's own message")
         void whenPortThrowsInvalidSpendingPeriodException_thenToolErrorCarriesThatExceptionsMessage() {
             String exceptionMessage = "the period ends before it starts";
-            when(summarizeSpendingPort.summarize(any())).thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
+            when(summarizeSpendingPort.summarize(any()))
+                    .thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
 
             Response response = postSummarizeSpending(token("user-1"), "2026-08-05", "2026-08-01");
 
@@ -234,13 +235,14 @@ class SummarizeSpendingMcpToolTest {
     class Validation {
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("bot.finance.adapter.mcp.SummarizeSpendingMcpToolTest#invalidDayCases")
-        @DisplayName("when from or to is absent or blank - then the written value reaches the port unchanged and "
+        @MethodSource("bot.finance.adapter.mcp.SummarizeSpendingMcpToolTest#blankDayCases")
+        @DisplayName("when from or to is blank - then the written value reaches the port unchanged and "
                 + "the tool error carries InvalidSpendingPeriodException's own message")
-        void whenFromOrToIsAbsentOrBlank_thenValueReachesPortUnchangedAndToolErrorCarriesExceptionMessage(
+        void whenFromOrToIsBlank_thenValueReachesPortUnchangedAndToolErrorCarriesExceptionMessage(
                 String description, String from, String to) {
             String exceptionMessage = "the period must carry both a first and a last day";
-            when(summarizeSpendingPort.summarize(any())).thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
+            when(summarizeSpendingPort.summarize(any()))
+                    .thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
 
             Response response = postSummarizeSpending(token("user-8"), from, to);
 
@@ -252,6 +254,58 @@ class SummarizeSpendingMcpToolTest {
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
         }
+
+        @Test
+        @DisplayName(
+                "when from is absent from the call - then the framework's own JSON-schema rejection names the missing from and the port is never called")
+        void whenFromAbsent_thenFrameworkSchemaRejectionNamesMissingFromAndPortNeverCalled() {
+            String body =
+                    """
+                    {
+                      "jsonrpc": "2.0",
+                      "id": 2,
+                      "method": "tools/call",
+                      "params": {
+                        "name": "summarize_spending",
+                        "arguments": {
+                          "to": "2026-08-05"
+                        }
+                      }
+                    }
+                    """;
+
+            Response response = postMcp(token("user-9"), body);
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("from");
+            verify(summarizeSpendingPort, never()).summarize(any());
+        }
+
+        @Test
+        @DisplayName(
+                "when to is absent from the call - then the framework's own JSON-schema rejection names the missing to and the port is never called")
+        void whenToAbsent_thenFrameworkSchemaRejectionNamesMissingToAndPortNeverCalled() {
+            String body =
+                    """
+                    {
+                      "jsonrpc": "2.0",
+                      "id": 2,
+                      "method": "tools/call",
+                      "params": {
+                        "name": "summarize_spending",
+                        "arguments": {
+                          "from": "2026-08-01"
+                        }
+                      }
+                    }
+                    """;
+
+            Response response = postMcp(token("user-10"), body);
+
+            assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("to");
+            verify(summarizeSpendingPort, never()).summarize(any());
+        }
     }
 
     static Stream<Arguments> invalidRequestFailures() {
@@ -262,11 +316,7 @@ class SummarizeSpendingMcpToolTest {
                 arguments("InvalidUserException", new InvalidUserException("authenticated user id is blank")));
     }
 
-    static Stream<Arguments> invalidDayCases() {
-        return Stream.of(
-                arguments("from absent", null, "2026-08-05"),
-                arguments("from blank", "", "2026-08-05"),
-                arguments("to absent", "2026-08-01", null),
-                arguments("to blank", "2026-08-01", ""));
+    static Stream<Arguments> blankDayCases() {
+        return Stream.of(arguments("from blank", "", "2026-08-05"), arguments("to blank", "2026-08-01", ""));
     }
 }

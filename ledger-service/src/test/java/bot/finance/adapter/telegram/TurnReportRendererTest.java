@@ -200,12 +200,7 @@ class TurnReportRendererTest {
             CurrencyTotal hufTotal = new CurrencyTotal(new Money(720000, CurrencyCode.of("HUF")), 1);
             SpendingSummary summary = new SpendingSummary(period, List.of(eurTotal, hufTotal));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    MessageReference.newReference());
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), MessageReference.newReference());
 
             String text = TurnReportRenderer.render(report);
 
@@ -224,12 +219,7 @@ class TurnReportRendererTest {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of());
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    MessageReference.newReference());
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), MessageReference.newReference());
 
             String text = TurnReportRenderer.render(report);
 
@@ -294,8 +284,7 @@ class TurnReportRendererTest {
                 "when a RECORDED report carries one summary and two proposals - then the summary block comes first and the recorded-proposal header and its bullets follow it")
         void whenRecordedReportCarriesSummaryAndTwoProposals_thenSummaryBlockPrecedesRecordedHeaderAndBullets() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary withMerchant =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary withoutMerchant =
@@ -326,8 +315,7 @@ class TurnReportRendererTest {
                 "when a PARTIAL report carries one summary and one proposal - then the summary block comes first, then the may-be-incomplete line and the proposal bullet")
         void whenPartialReportCarriesSummaryAndOneProposal_thenSummaryBlockPrecedesMayBeIncompleteLineAndBullet() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary proposal =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report = new TurnReport(
@@ -355,8 +343,7 @@ class TurnReportRendererTest {
                 "when a NOTHING_IDENTIFIED report carries one summary - then the summary block comes first and the no-expense-identified text follows it")
         void whenNothingIdentifiedReportCarriesSummary_thenSummaryBlockPrecedesNoExpenseIdentifiedText() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
                     "555",
                     "1",
@@ -381,15 +368,9 @@ class TurnReportRendererTest {
                 "when a FAILED report carries one summary - then the summary block comes first and the went-wrong text follows it")
         void whenFailedReportCarriesSummary_thenSummaryBlockPrecedesWentWrongText() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.FAILED,
-                    List.of(),
-                    List.of(summary),
-                    MessageReference.newReference());
+                    "555", "1", ReportOutcome.FAILED, List.of(), List.of(summary), MessageReference.newReference());
 
             String text = TurnReportRenderer.render(report);
 
@@ -407,8 +388,7 @@ class TurnReportRendererTest {
                 "when a RECORDED report's summaries and proposals together exceed 4000 characters - then every summary line is intact and the proposal list is what trims, ending with its omitted-count line")
         void whenRecordedReportSummariesAndProposalsExceed4000Characters_thenSummaryLinesSurviveAndProposalListTrims() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             int proposalCount = 200;
             List<ProposalSummary> proposals = IntStream.range(0, proposalCount)
                     .mapToObj(i -> new ProposalSummary(
@@ -437,8 +417,9 @@ class TurnReportRendererTest {
             assertThat(matcher.find()).isTrue();
             int omittedCount = Integer.parseInt(matcher.group(1));
 
-            long bulletCount =
-                    text.lines().filter(line -> line.startsWith("• Groceries (Food)")).count();
+            long bulletCount = text.lines()
+                    .filter(line -> line.startsWith("• Groceries (Food)"))
+                    .count();
             assertThat(bulletCount + omittedCount).isEqualTo(proposalCount);
             assertThat(omittedCount).isGreaterThan(0);
         }
@@ -446,7 +427,8 @@ class TurnReportRendererTest {
         @Test
         @DisplayName(
                 "when an ANSWERED report's summary blocks alone exceed 4000 characters - then whole periods are dropped from the oldest and the text ends with the omitted-periods line")
-        void whenAnsweredReportSummaryBlocksAloneExceed4000Characters_thenOldestPeriodsDropAndTextEndsWithOmittedPeriodsLine() {
+        void
+                whenAnsweredReportSummaryBlocksAloneExceed4000Characters_thenOldestPeriodsDropAndTextEndsWithOmittedPeriodsLine() {
             int summaryCount = 150;
             DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
             List<SpendingSummary> summaries = IntStream.range(0, summaryCount)
@@ -457,9 +439,12 @@ class TurnReportRendererTest {
                     .toList();
             TurnReport report = new TurnReport(
                     "555", "1", ReportOutcome.ANSWERED, List.of(), summaries, MessageReference.newReference());
-            String oldestBlock = "Nothing is recorded between %s and %s.".formatted(
-                    LocalDate.of(2026, 1, 1).format(dateFormat), LocalDate.of(2026, 1, 1).format(dateFormat));
-            String newestDay = LocalDate.of(2026, 1, 1).plusDays(summaryCount - 1).format(dateFormat);
+            String oldestBlock = "Nothing is recorded between %s and %s."
+                    .formatted(
+                            LocalDate.of(2026, 1, 1).format(dateFormat),
+                            LocalDate.of(2026, 1, 1).format(dateFormat));
+            String newestDay =
+                    LocalDate.of(2026, 1, 1).plusDays(summaryCount - 1).format(dateFormat);
             String newestBlock = "Nothing is recorded between %s and %s.".formatted(newestDay, newestDay);
 
             String text = TurnReportRenderer.render(report);
@@ -473,8 +458,9 @@ class TurnReportRendererTest {
             assertThat(matcher.find()).isTrue();
             int omittedCount = Integer.parseInt(matcher.group(1));
 
-            long blocksPresent =
-                    text.lines().filter(line -> line.startsWith("Nothing is recorded between")).count();
+            long blocksPresent = text.lines()
+                    .filter(line -> line.startsWith("Nothing is recorded between"))
+                    .count();
             assertThat(blocksPresent + omittedCount).isEqualTo(summaryCount);
             assertThat(omittedCount).isGreaterThan(0);
         }
@@ -563,15 +549,9 @@ class TurnReportRendererTest {
                 "when an ANSWERED report carries summaries and no proposal - then returns empty, since the buttons resolve proposals and there are none")
         void whenAnsweredReportCarriesSummariesAndNoProposal_thenReturnsEmpty() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    MessageReference.newReference());
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), MessageReference.newReference());
 
             Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
@@ -584,12 +564,11 @@ class TurnReportRendererTest {
         void whenRecordedReportCarriesSummaryAndProposal_thenReturnsSameOneRowTwoButtonMarkup() {
             MessageReference reference = MessageReference.newReference();
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
-            SpendingSummary summary =
-                    new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
+            SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary proposal =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
-            TurnReport report = new TurnReport(
-                    "555", "1", ReportOutcome.RECORDED, List.of(proposal), List.of(summary), reference);
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.RECORDED, List.of(proposal), List.of(summary), reference);
 
             Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 

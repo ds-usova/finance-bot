@@ -84,7 +84,8 @@ class HandleIncomingMessageUseCaseTest {
         clock = Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC);
         spendingQueryRepository = mock(SpendingQueryRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
-        when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any())).thenReturn(List.of());
+        when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any()))
+                .thenReturn(List.of());
         when(expenseRepository.totalsByCurrency(anyLong(), any())).thenReturn(List.of());
         useCase = new HandleIncomingMessageUseCase(
                 initializeUserPort,
@@ -450,7 +451,8 @@ class HandleIncomingMessageUseCaseTest {
             verify(messageDeliveryPort).deliver(reportCaptor.capture());
             assertThat(reportCaptor.getValue().summaries())
                     .containsExactly(
-                            new SpendingSummary(firstPeriod, firstTotals), new SpendingSummary(secondPeriod, secondTotals));
+                            new SpendingSummary(firstPeriod, firstTotals),
+                            new SpendingSummary(secondPeriod, secondTotals));
         }
 
         @Test
@@ -547,8 +549,7 @@ class HandleIncomingMessageUseCaseTest {
             stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
-            PersistenceFailedException failure =
-                    new PersistenceFailedException("read failed", new RuntimeException());
+            PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
                     .thenThrow(failure);
 
@@ -567,8 +568,7 @@ class HandleIncomingMessageUseCaseTest {
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of(period));
-            PersistenceFailedException failure =
-                    new PersistenceFailedException("read failed", new RuntimeException());
+            PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(expenseRepository.totalsByCurrency(USER_ID, period)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);

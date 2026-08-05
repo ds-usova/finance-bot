@@ -34,8 +34,7 @@ class SpendingPeriodTest {
         @MethodSource("bot.finance.domain.value.SpendingPeriodTest#nullFromOrTo")
         @DisplayName("when from or to is null - then throws InvalidSpendingPeriodException")
         void whenFromOrToIsNull_thenThrowsInvalidSpendingPeriodException(LocalDate from, LocalDate to) {
-            assertThatThrownBy(() -> new SpendingPeriod(from, to))
-                    .isInstanceOf(InvalidSpendingPeriodException.class);
+            assertThatThrownBy(() -> new SpendingPeriod(from, to)).isInstanceOf(InvalidSpendingPeriodException.class);
         }
 
         @Test
@@ -44,8 +43,7 @@ class SpendingPeriodTest {
             LocalDate from = LocalDate.parse("2026-07-27");
             LocalDate to = from.minusDays(1);
 
-            assertThatThrownBy(() -> new SpendingPeriod(from, to))
-                    .isInstanceOf(InvalidSpendingPeriodException.class);
+            assertThatThrownBy(() -> new SpendingPeriod(from, to)).isInstanceOf(InvalidSpendingPeriodException.class);
         }
     }
 
@@ -59,7 +57,8 @@ class SpendingPeriodTest {
     class Of {
 
         @Test
-        @DisplayName("when two ISO-8601 dates a week apart are given - then returns a period whose ends are those two dates")
+        @DisplayName(
+                "when two ISO-8601 dates a week apart are given - then returns a period whose ends are those two dates")
         void whenTwoIso8601DatesAWeekApartAreGiven_thenReturnsPeriodWhoseEndsAreThoseTwoDates() {
             SpendingPeriod period = SpendingPeriod.of("2026-07-20", "2026-07-27");
 
@@ -69,9 +68,9 @@ class SpendingPeriodTest {
 
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.SpendingPeriodTest#blankValues")
-        @DisplayName("when from is null, empty, or whitespace only - then throws InvalidSpendingPeriodException naming the first day")
-        void whenFromIsNullEmptyOrWhitespaceOnly_thenThrowsInvalidSpendingPeriodExceptionNamingFirstDay(
-                String from) {
+        @DisplayName(
+                "when from is null, empty, or whitespace only - then throws InvalidSpendingPeriodException naming the first day")
+        void whenFromIsNullEmptyOrWhitespaceOnly_thenThrowsInvalidSpendingPeriodExceptionNamingFirstDay(String from) {
             assertThatThrownBy(() -> SpendingPeriod.of(from, "2026-07-27"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)
                     .hasMessageContaining("first day");
@@ -79,7 +78,8 @@ class SpendingPeriodTest {
 
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.SpendingPeriodTest#blankValues")
-        @DisplayName("when to is null, empty, or whitespace only - then throws InvalidSpendingPeriodException naming the last day")
+        @DisplayName(
+                "when to is null, empty, or whitespace only - then throws InvalidSpendingPeriodException naming the last day")
         void whenToIsNullEmptyOrWhitespaceOnly_thenThrowsInvalidSpendingPeriodExceptionNamingLastDay(String to) {
             assertThatThrownBy(() -> SpendingPeriod.of("2026-07-20", to))
                     .isInstanceOf(InvalidSpendingPeriodException.class)
@@ -88,7 +88,8 @@ class SpendingPeriodTest {
 
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.SpendingPeriodTest#unparseableDates")
-        @DisplayName("when a date is not an ISO-8601 YYYY-MM-DD value - then throws InvalidSpendingPeriodException naming the value it could not read")
+        @DisplayName(
+                "when a date is not an ISO-8601 YYYY-MM-DD value - then throws InvalidSpendingPeriodException naming the value it could not read")
         void whenDateIsNotIso8601Value_thenThrowsInvalidSpendingPeriodExceptionNamingTheValue(String badDate) {
             assertThatThrownBy(() -> SpendingPeriod.of(badDate, "2026-07-27"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)
@@ -96,7 +97,8 @@ class SpendingPeriodTest {
         }
 
         @Test
-        @DisplayName("when to precedes from, both well-formed - then throws InvalidSpendingPeriodException saying the period ends before it starts")
+        @DisplayName(
+                "when to precedes from, both well-formed - then throws InvalidSpendingPeriodException saying the period ends before it starts")
         void whenToPrecedesFromBothWellFormed_thenThrowsInvalidSpendingPeriodExceptionSayingEndsBeforeItStarts() {
             assertThatThrownBy(() -> SpendingPeriod.of("2026-07-27", "2026-07-20"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)

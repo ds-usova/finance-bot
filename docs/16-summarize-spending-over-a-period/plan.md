@@ -613,10 +613,13 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: the tool is called
           then: a WARN line names the failure's class and message, and no line other than the debug received-call
           trace carries the token (D18)
-    - Validation: `from` — absent, blank; `to` — absent, blank. Given the mocked port is stubbed to throw
+    - Validation: `from` — blank; `to` — blank. Given the mocked port is stubbed to throw
       `InvalidSpendingPeriodException`, each case reaches the port carrying that written value unchanged and comes
       back as a tool error carrying the exception's own message — the tool reads neither day itself, unlike
       `ListCategoriesMcpTool`, whose command self-validates before the port
+    - Validation: `from` — absent; `to` — absent. Both arguments are required in the published schema, so the
+      framework refuses an absent one before the method is entered: the result is a tool error and the port is
+      never called, the same way `CreateExpenseProposalMcpToolTest` covers its own required arguments
 - [x] RI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()`
     - `extract()`:
@@ -708,39 +711,39 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `SpendingPeriod` · test: `SpendingPeriodTest`
-- [ ] GU02 · `SpendingQuery` · test: `SpendingQueryTest` · after: GU01
-- [ ] GU03 · `SummarizeSpendingCommand` · test: `SummarizeSpendingCommandTest`
-- [ ] GU04 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · after: GU01, GU02, GU03
-- [ ] GU05 · `SpendingSummary` · test: `SpendingSummaryTest` · after: GU01
-- [ ] GU06 · `TurnReport` · test: `TurnReportTest` · after: GU05
-- [ ] GU07 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
-- [ ] GU08 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU05, GU06,
+- [x] GU01 · `SpendingPeriod` · test: `SpendingPeriodTest`
+- [x] GU02 · `SpendingQuery` · test: `SpendingQueryTest` · after: GU01
+- [x] GU03 · `SummarizeSpendingCommand` · test: `SummarizeSpendingCommandTest`
+- [x] GU04 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · after: GU01, GU02, GU03
+- [x] GU05 · `SpendingSummary` · test: `SpendingSummaryTest` · after: GU01
+- [x] GU06 · `TurnReport` · test: `TurnReportTest` · after: GU05
+- [x] GU07 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
+- [x] GU08 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01, GU05, GU06,
   GU07
-- [ ] GU09 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · after: GU07
-- [ ] GU10 · `TurnReportRenderer` · test: `TurnReportRendererTest` · after: GU01, GU05, GU06
-- [ ] GU11 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest`
-- [ ] GU12 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU11
+- [x] GU09 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · after: GU07
+- [x] GU10 · `TurnReportRenderer` · test: `TurnReportRendererTest` · after: GU01, GU05, GU06
+- [x] GU11 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest`
+- [x] GU12 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU11
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `SpendingQueryRepositoryAdapter` · test: `SpendingQueryRepositoryAdapterTest` · after: GU01, GU02
-- [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
-- [ ] GI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · after: GU03
-- [ ] GI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU07,
+- [x] GI01 · `SpendingQueryRepositoryAdapter` · test: `SpendingQueryRepositoryAdapterTest` · after: GU01, GU02
+- [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
+- [x] GI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · after: GU03
+- [x] GI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · after: GU07,
   GU09
-- [ ] GI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU11
-- [ ] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
+- [x] GI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · after: GU11
+- [x] GI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `SummarizeSpendingMcpToolSystemTest` · covers: `POST /mcp`
-- [ ] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
-- [ ] GS03 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] GS01 · `SummarizeSpendingMcpToolSystemTest` · covers: `POST /mcp`
+- [x] GS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] GS03 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
-- [ ] GS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] GS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
-- [ ] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] GS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
 
 ### Post-Implementation Steps
 
@@ -763,6 +766,14 @@ None. The one ADR candidate was raised as Q1 and declined; D28's rule lands in
   repository's names. Confirm that is right rather than the design's, or say which name should win.
 - A: The repository's names win. The design's are drift from change 13, not a decision; no production type is
   renamed and the design file is left as it stands.
+
+- **Note (run, 2026-08-05):** RI03's Validation group listed `from`/`to` *absent* as cases reaching the port,
+  which is unreachable: both arguments are required in the published schema, so the MCP framework refuses an
+  absent one before the method is entered. GI03 first made them `required = false` to satisfy those scenarios,
+  which dropped both days from the published `required` array and failed `McpAuthenticationSystemTest`. Resolved
+  in favour of the contract — the design's tool spec, RS02 and `CreateExpenseProposalMcpTool` all say required —
+  and RI03's Validation group above was split into the blank cases (which reach the port) and the absent cases
+  (which the framework refuses, port never called).
 
 - **Note (run, 2026-08-05):** stabilization wrote RU09's first scenario early, as
   `IntentProtoMapperTest.whenRequestCarriesCurrentDate_thenGeneratedRequestCarriesItAsCurrentDate()`. It passes

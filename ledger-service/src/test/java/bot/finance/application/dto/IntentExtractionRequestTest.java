@@ -278,8 +278,8 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when an otherwise valid request carries a current date - "
-                + "then currentDate() reads back unchanged")
+        @DisplayName(
+                "when an otherwise valid request carries a current date - " + "then currentDate() reads back unchanged")
         void whenRequestIsOtherwiseValidWithACurrentDate_thenCurrentDateReadsBackUnchanged() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",

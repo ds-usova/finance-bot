@@ -14,7 +14,10 @@ public record ExtractIntentsCommand(
         LocalDate currentDate) {
 
     public ExtractIntentsCommand {
-        // TODO(RU11): refuse a null currentDate
+        if (currentDate == null) {
+            throw new InvalidValueException("Current date must not be null");
+        }
+
         if (text == null || text.isBlank()) {
             throw new InvalidValueException("Text must not be null or blank");
         }

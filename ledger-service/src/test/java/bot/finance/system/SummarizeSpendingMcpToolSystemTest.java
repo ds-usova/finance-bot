@@ -91,7 +91,9 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
             assertThat(toolResultText).as("tool result text carries no amount").doesNotContain("amount");
 
             List<SpendingQueryEntity> rows = SpendingQueryRowUtils.spendingQueryRowsFor(jdbcAggregateTemplate, userId);
-            assertThat(rows).as("stored spending_query rows for user %s", userId).hasSize(1);
+            assertThat(rows)
+                    .as("stored spending_query rows for user %s", userId)
+                    .hasSize(1);
             SpendingQueryEntity row = rows.get(0);
             assertThat(row.messageReference())
                     .as("stored query's message reference matches the token's mrf claim")

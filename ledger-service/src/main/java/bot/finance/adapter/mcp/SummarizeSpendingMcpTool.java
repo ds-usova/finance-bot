@@ -1,8 +1,18 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.security.AuthenticatedCaller;
+import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import bot.finance.domain.exception.InvalidSpendingQueryException;
+import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.SpendingPeriod;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -31,9 +41,36 @@ public class SummarizeSpendingMcpTool {
     public CallToolResult summarizeSpending(
             @McpToolParam(description = "the first day of the period, inclusive, as YYYY-MM-DD") String from,
             @McpToolParam(description = "the last day of the period, inclusive, as YYYY-MM-DD") String to) {
-        // logs the call at debug, reads the caller and the message reference off the token, invokes
-        // SummarizeSpendingPort, serializes SummarizeSpendingToolResponse, and renders every failure as an
-        // isError result logged at warn
-        return null;
+        log.debug("Received summarize_spending call: {} {}", from, to);
+
+        try {
+            AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
+            MessageReference reference = AuthenticatedCaller.messageReference();
+
+            SpendingPeriod period =
+                    summarizeSpendingPort.summarize(new SummarizeSpendingCommand(userId, reference, from, to));
+            SummarizeSpendingToolResponse response = new SummarizeSpendingToolResponse(
+                    period.from().toString(), period.to().toString());
+
+            log.debug("summarize_spending call succeeded: {}", response);
+            return CallToolResult.builder()
+                    .addTextContent(jsonMapper.writeValueAsString(response))
+                    .build();
+        } catch (InvalidSpendingPeriodException e) {
+            return rejected(e, e.getMessage());
+        } catch (InvalidSpendingQueryException | InvalidUserException e) {
+            return rejected(e, "invalid request: " + e.getMessage());
+        } catch (EntityNotFoundException e) {
+            return rejected(e, "the user is unknown");
+        } catch (PersistenceFailedException e) {
+            return rejected(e, "the summary could not be recorded");
+        } catch (RuntimeException e) {
+            return rejected(e, "the spending could not be summarized");
+        }
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message) {
+        log.warn("rejected summarize_spending call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

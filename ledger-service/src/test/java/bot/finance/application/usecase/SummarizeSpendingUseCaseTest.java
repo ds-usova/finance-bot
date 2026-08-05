@@ -97,9 +97,11 @@ class SummarizeSpendingUseCaseTest {
                 + "that user's stored id, the command's reference, the parsed period and the fixed clock's "
                 + "instant, and the answer is that same period")
         void whenStoredUserAndWellFormedPeriod_thenStoredQueryCarriesUserReferencePeriodAndClockInstant() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+            when(userRepository.findByExternalId(EXTERNAL_ID))
+                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
             MessageReference reference = MessageReference.newReference();
-            SpendingPeriod expectedPeriod = new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
+            SpendingPeriod expectedPeriod =
+                    new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
             when(spendingQueryRepository.create(any()))
                     .thenReturn(SpendingQuery.stored(9L, USER_ID, expectedPeriod, reference, FIXED_INSTANT));
             SummarizeSpendingCommand command = newCommand(reference, "2026-07-27", "2026-08-02");
@@ -124,7 +126,8 @@ class SummarizeSpendingUseCaseTest {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(differentUserId, EXTERNAL_ID)));
             MessageReference reference = MessageReference.newReference();
-            SpendingPeriod expectedPeriod = new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
+            SpendingPeriod expectedPeriod =
+                    new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
             when(spendingQueryRepository.create(any()))
                     .thenReturn(SpendingQuery.stored(9L, differentUserId, expectedPeriod, reference, FIXED_INSTANT));
             SummarizeSpendingCommand command = newCommand(reference, "2026-07-27", "2026-08-02");
@@ -140,7 +143,8 @@ class SummarizeSpendingUseCaseTest {
         @DisplayName("when the spending query repository raises PersistenceFailedException - then the "
                 + "exception propagates unchanged")
         void whenSpendingQueryRepositoryThrowsPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+            when(userRepository.findByExternalId(EXTERNAL_ID))
+                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
             when(spendingQueryRepository.create(any())).thenThrow(failure);
             SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "2026-07-27", "2026-08-02");

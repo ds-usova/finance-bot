@@ -10,6 +10,7 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
@@ -90,8 +91,21 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
             return true;
         }
 
-        // TODO(RI05): reject a blank current_date with "Current date must not be blank" and one that is
-        // not an ISO-8601 date with "Current date must be an ISO-8601 date"
+        if (request.getCurrentDate().isBlank()) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Current date must not be blank")
+                    .asRuntimeException());
+            return true;
+        }
+
+        try {
+            LocalDate.parse(request.getCurrentDate());
+        } catch (DateTimeParseException e) {
+            responseObserver.onError(Status.INVALID_ARGUMENT
+                    .withDescription("Current date must be an ISO-8601 date")
+                    .asRuntimeException());
+            return true;
+        }
 
         return false;
     }
