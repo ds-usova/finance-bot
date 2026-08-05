@@ -42,13 +42,14 @@ public class TelegramUpdateListener implements UpdatesListener {
      */
     private void handle(Update update) {
         try {
-            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
+            Optional<HandleIncomingMessageCommand> command =
+                    TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
             if (command.isPresent()) {
                 handleIncomingMessagePort.handle(command.get());
                 return;
             }
 
-            Optional<ResolveProposalsCommand> resolution = TelegramUpdateUtils.toResolveProposalsCommand(update);
+            Optional<ResolveProposalsCommand> resolution = TelegramUpdateMapper.toResolveProposalsCommand(update);
             if (resolution.isPresent()) {
                 resolveProposalsPort.resolve(resolution.get());
                 return;

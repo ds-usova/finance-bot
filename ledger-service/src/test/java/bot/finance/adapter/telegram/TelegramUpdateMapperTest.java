@@ -19,7 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class TelegramUpdateUtilsTest {
+class TelegramUpdateMapperTest {
 
     private static final int UPDATE_ID = 42;
     private static final long CHAT_ID = 555L;
@@ -38,7 +38,8 @@ class TelegramUpdateUtilsTest {
             Update update = BotUtils.parseUpdate(
                     TelegramFixtures.textMessageUpdate(UPDATE_ID, USER_ID, CHAT_ID, "lunch 12 euro"));
 
-            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
+            Optional<HandleIncomingMessageCommand> command =
+                    TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
 
             assertThat(command)
                     .contains(new HandleIncomingMessageCommand(
@@ -52,7 +53,8 @@ class TelegramUpdateUtilsTest {
                 String description, String updateJson) {
             Update update = BotUtils.parseUpdate(updateJson);
 
-            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(update);
+            Optional<HandleIncomingMessageCommand> command =
+                    TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
 
             assertThat(command).isEmpty();
         }
@@ -75,7 +77,7 @@ class TelegramUpdateUtilsTest {
         @Test
         @DisplayName("when the update is null - then returns an empty Optional")
         void whenUpdateIsNull_thenReturnsAnEmptyOptional() {
-            Optional<HandleIncomingMessageCommand> command = TelegramUpdateUtils.toHandleIncomingMessageCommand(null);
+            Optional<HandleIncomingMessageCommand> command = TelegramUpdateMapper.toHandleIncomingMessageCommand(null);
 
             assertThat(command).isEmpty();
         }
@@ -93,7 +95,7 @@ class TelegramUpdateUtilsTest {
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "accept:" + reference.value()));
 
-            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+            Optional<ResolveProposalsCommand> command = TelegramUpdateMapper.toResolveProposalsCommand(update);
 
             assertThat(command)
                     .contains(new ResolveProposalsCommand(
@@ -113,7 +115,7 @@ class TelegramUpdateUtilsTest {
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "discard:" + reference.value()));
 
-            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+            Optional<ResolveProposalsCommand> command = TelegramUpdateMapper.toResolveProposalsCommand(update);
 
             assertThat(command).isPresent();
             assertThat(command.get().resolution()).isEqualTo(ProposalResolution.DISCARD);
@@ -124,7 +126,7 @@ class TelegramUpdateUtilsTest {
         @DisplayName(
                 "when the update is null, carries no callback query, a callback query with no from, no message, or data noop - then returns empty for each")
         void whenUpdateIsUnusableForResolution_thenReturnsEmpty(String description, Update update) {
-            Optional<ResolveProposalsCommand> command = TelegramUpdateUtils.toResolveProposalsCommand(update);
+            Optional<ResolveProposalsCommand> command = TelegramUpdateMapper.toResolveProposalsCommand(update);
 
             assertThat(command).isEmpty();
         }

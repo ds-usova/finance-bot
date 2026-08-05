@@ -18,7 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-class AuthenticatedCallerUtilsTest {
+class AuthenticatedCallerTest {
 
     @AfterEach
     void clearSecurityContext() {
@@ -35,7 +35,7 @@ class AuthenticatedCallerUtilsTest {
         void whenContextHoldsValidatedTokenWithExternalIdSubject_thenReturnsAuthenticatedUserIdCarryingThatSubject() {
             SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithSubject("ext-123")));
 
-            AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+            AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
 
             assertThat(userId).isEqualTo(new AuthenticatedUserId("ext-123"));
         }
@@ -43,7 +43,7 @@ class AuthenticatedCallerUtilsTest {
         @Test
         @DisplayName("when the security context holds no authentication - then throws InvalidUserException")
         void whenContextHoldsNoAuthentication_thenThrowsInvalidUserException() {
-            assertThatThrownBy(AuthenticatedCallerUtils::authenticatedUserId).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::authenticatedUserId).isInstanceOf(InvalidUserException.class);
         }
 
         @Test
@@ -53,7 +53,7 @@ class AuthenticatedCallerUtilsTest {
             SecurityContextHolder.getContext()
                     .setAuthentication(new UsernamePasswordAuthenticationToken("user", "password"));
 
-            assertThatThrownBy(AuthenticatedCallerUtils::authenticatedUserId).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::authenticatedUserId).isInstanceOf(InvalidUserException.class);
         }
 
         @Test
@@ -62,7 +62,7 @@ class AuthenticatedCallerUtilsTest {
         void whenContextHoldsValidatedTokenWithBlankSubject_thenThrowsInvalidUserException() {
             SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithSubject("   ")));
 
-            assertThatThrownBy(AuthenticatedCallerUtils::authenticatedUserId).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::authenticatedUserId).isInstanceOf(InvalidUserException.class);
         }
 
         private static Jwt jwtWithSubject(String subject) {
@@ -87,7 +87,7 @@ class AuthenticatedCallerUtilsTest {
             SecurityContextHolder.getContext()
                     .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim(reference.toString())));
 
-            MessageReference messageReference = AuthenticatedCallerUtils.messageReference();
+            MessageReference messageReference = AuthenticatedCaller.messageReference();
 
             assertThat(messageReference).isEqualTo(new MessageReference(reference));
         }
@@ -98,7 +98,7 @@ class AuthenticatedCallerUtilsTest {
         void whenContextHoldsValidatedTokenWithNoMrfClaim_thenThrowsInvalidIncomingMessageException() {
             SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithoutMrfClaim()));
 
-            assertThatThrownBy(AuthenticatedCallerUtils::messageReference)
+            assertThatThrownBy(AuthenticatedCaller::messageReference)
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -109,7 +109,7 @@ class AuthenticatedCallerUtilsTest {
             SecurityContextHolder.getContext()
                     .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim("not-a-uuid")));
 
-            assertThatThrownBy(AuthenticatedCallerUtils::messageReference)
+            assertThatThrownBy(AuthenticatedCaller::messageReference)
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -117,12 +117,12 @@ class AuthenticatedCallerUtilsTest {
         @DisplayName("when the security context holds no authentication, or one that is not a validated token"
                 + " - then throws InvalidUserException")
         void whenContextHoldsNoValidatedToken_thenThrowsInvalidUserException() {
-            assertThatThrownBy(AuthenticatedCallerUtils::messageReference).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::messageReference).isInstanceOf(InvalidUserException.class);
 
             SecurityContextHolder.getContext()
                     .setAuthentication(new UsernamePasswordAuthenticationToken("user", "password"));
 
-            assertThatThrownBy(AuthenticatedCallerUtils::messageReference).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::messageReference).isInstanceOf(InvalidUserException.class);
         }
 
         private static Jwt jwtWithMrfClaim(String mrf) {

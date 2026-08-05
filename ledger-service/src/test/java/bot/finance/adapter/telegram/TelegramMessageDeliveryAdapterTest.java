@@ -121,7 +121,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a RECORDED report over a bot WireMock accepts sendMessage for - then exactly one sendMessage is recorded, addressed and replying as the report says, rendered as ProposalReportUtils.render() says, with no parse_mode")
+                "when called with a RECORDED report over a bot WireMock accepts sendMessage for - then exactly one sendMessage is recorded, addressed and replying as the report says, rendered as ProposalReportRenderer.render() says, with no parse_mode")
         void whenCalledWithRecordedReportAndSendMessageAccepted_thenExactlyOneSendMessageIsRecordedAsTheReportSays() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
             ProposalReport report = recordedReportWithTwoSummaries();
@@ -134,7 +134,7 @@ class TelegramMessageDeliveryAdapterTest {
             LoggedRequest sendMessageRequest = sent.get(0);
             assertThat(sendMessageRequest.formParameter("chat_id").getValues()).containsExactly(CONVERSATION_ID);
             assertThat(sendMessageRequest.formParameter("text").getValues())
-                    .containsExactly(ProposalReportUtils.render(report));
+                    .containsExactly(ProposalReportRenderer.render(report));
             assertThat(sendMessageRequest.formParameter("parse_mode").isPresent())
                     .isFalse();
 
@@ -241,7 +241,7 @@ class TelegramMessageDeliveryAdapterTest {
             assertThat(answers.get(0).formParameter("callback_query_id").getValues())
                     .containsExactly(INTERACTION_ID);
             assertThat(answers.get(0).formParameter("text").getValues())
-                    .containsExactly(ResolutionAcknowledgementUtils.render(ack));
+                    .containsExactly(ResolutionAcknowledgementRenderer.render(ack));
 
             List<LoggedRequest> edits = recordedEditMessageReplyMarkups(DELIVERY_TOKEN);
             assertThat(edits).hasSize(1);

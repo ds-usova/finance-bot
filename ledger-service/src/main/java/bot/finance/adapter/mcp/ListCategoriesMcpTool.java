@@ -1,6 +1,6 @@
 package bot.finance.adapter.mcp;
 
-import bot.finance.adapter.security.AuthenticatedCallerUtils;
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
@@ -41,7 +41,7 @@ public class ListCategoriesMcpTool {
         log.debug("Received list_categories call: {}", grouping);
 
         try {
-            AuthenticatedUserId userId = AuthenticatedCallerUtils.authenticatedUserId();
+            AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
 
             List<String> categories = listCategoriesPort.list(new ListCategoriesCommand(userId, grouping));
             ListCategoriesToolResponse response = new ListCategoriesToolResponse(grouping, categories);

@@ -7,11 +7,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-public final class AuthenticatedCallerUtils {
+public final class AuthenticatedCaller {
 
     private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
 
-    private AuthenticatedCallerUtils() {}
+    private AuthenticatedCaller() {}
 
     public static AuthenticatedUserId authenticatedUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

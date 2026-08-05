@@ -32,8 +32,9 @@ bot.finance
 
 ## Test Layers
 
-- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and pure
-  mapper/`*Utils` classes in an adapter package. Plain JUnit, outbound ports mocked, no Spring context.
+- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and the stateless
+  helper classes in an adapter package — the renderers, mappers and their kind
+  ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context.
 - **Integration, outbound** — `adapter/persistence/` and future outbound HTTP adapters, one subpackage per
   external system. Wire only the adapter under test and call its public methods directly against real test
   infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`.
@@ -102,7 +103,9 @@ would inherit the first's advanced state. Give each new class a token constant i
 - Test methods: `when<Condition>_then<Result>()`.
 - Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
 - Helpers: static `*Utils` classes with a private constructor; stub helpers as static methods on
-  `WireMockStubs`.
+  `WireMockStubs`. Test helpers are the one place `*Utils` is kept — production code names a helper for its role
+  ([Code Style](code-style.md#general)) — because a test helper genuinely is a bag of conveniences keyed to a
+  fixture rather than a thing with one job.
 - New shared builders and factories go in `bot.finance.common` and get listed in
   [Package Structure](#package-structure), so later tests reuse them instead of recreating them.
 

@@ -10,9 +10,9 @@ import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.model.message.MaybeInaccessibleMessage;
 import java.util.Optional;
 
-public final class TelegramUpdateUtils {
+public final class TelegramUpdateMapper {
 
-    private TelegramUpdateUtils() {}
+    private TelegramUpdateMapper() {}
 
     public static Optional<ResolveProposalsCommand> toResolveProposalsCommand(Update update) {
         if (update == null) {

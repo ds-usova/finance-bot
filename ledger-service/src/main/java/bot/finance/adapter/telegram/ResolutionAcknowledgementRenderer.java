@@ -2,9 +2,9 @@ package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.ResolutionAcknowledgement;
 
-public final class ResolutionAcknowledgementUtils {
+public final class ResolutionAcknowledgementRenderer {
 
-    private ResolutionAcknowledgementUtils() {}
+    private ResolutionAcknowledgementRenderer() {}
 
     public static String render(ResolutionAcknowledgement ack) {
         return switch (ack.outcome()) {

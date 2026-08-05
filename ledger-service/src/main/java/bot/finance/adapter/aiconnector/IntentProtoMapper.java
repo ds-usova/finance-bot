@@ -3,9 +3,9 @@ package bot.finance.adapter.aiconnector;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 
-public final class IntentProtoUtils {
+public final class IntentProtoMapper {
 
-    private IntentProtoUtils() {}
+    private IntentProtoMapper() {}
 
     public static ExtractIntentsRequest toProtoRequest(IntentExtractionRequest request) {
         ExtractIntentsRequest.Builder builder =

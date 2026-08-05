@@ -26,7 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ProposalReportUtilsTest {
+class ProposalReportRendererTest {
 
     private static final CurrencyCode EUR = CurrencyCode.of("EUR");
 
@@ -50,7 +50,7 @@ class ProposalReportUtilsTest {
                     List.of(withMerchant, withoutMerchant),
                     MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text)
                     .isEqualTo(
@@ -68,7 +68,7 @@ class ProposalReportUtilsTest {
             ProposalReport report = new ProposalReport(
                     "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text).startsWith("Noted 1 expense, pending your confirmation:");
         }
@@ -79,7 +79,7 @@ class ProposalReportUtilsTest {
             ProposalReport report = new ProposalReport(
                     "555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of(), MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text).isEqualTo("No expense was identified in that message.");
         }
@@ -90,7 +90,7 @@ class ProposalReportUtilsTest {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.FAILED, List.of(), MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text).isEqualTo("Something went wrong and nothing was noted — please try again.");
         }
@@ -104,7 +104,7 @@ class ProposalReportUtilsTest {
             ProposalReport report = new ProposalReport(
                     "555", "1", ReportOutcome.PARTIAL, List.of(summary), MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text)
                     .isEqualTo(
@@ -129,7 +129,7 @@ class ProposalReportUtilsTest {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text.length()).isLessThanOrEqualTo(4000);
 
@@ -159,7 +159,7 @@ class ProposalReportUtilsTest {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.RECORDED, summaries, MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text.length()).isLessThanOrEqualTo(4000);
         }
@@ -173,7 +173,7 @@ class ProposalReportUtilsTest {
             ProposalReport report = new ProposalReport(
                     "555", "1", ReportOutcome.RECORDED, List.of(summary), MessageReference.newReference());
 
-            String text = ProposalReportUtils.render(report);
+            String text = ProposalReportRenderer.render(report);
 
             assertThat(text).contains("weekly *shop_ trip");
             assertThat(text).doesNotContain("\\*").doesNotContain("\\_");
@@ -196,7 +196,7 @@ class ProposalReportUtilsTest {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(first, second), reference);
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isPresent();
             InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
@@ -218,7 +218,7 @@ class ProposalReportUtilsTest {
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalReport report = new ProposalReport("555", "1", ReportOutcome.PARTIAL, List.of(summary), reference);
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isPresent();
             InlineKeyboardButton[][] rows = markup.get().inlineKeyboard();
@@ -234,7 +234,7 @@ class ProposalReportUtilsTest {
                 String description, ReportOutcome outcome) {
             ProposalReport report = new ProposalReport("555", "1", outcome, List.of(), MessageReference.newReference());
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isEmpty();
         }
@@ -252,7 +252,7 @@ class ProposalReportUtilsTest {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(), MessageReference.newReference());
 
-            Optional<InlineKeyboardMarkup> markup = ProposalReportUtils.renderKeyboard(report);
+            Optional<InlineKeyboardMarkup> markup = ProposalReportRenderer.renderKeyboard(report);
 
             assertThat(markup).isEmpty();
         }

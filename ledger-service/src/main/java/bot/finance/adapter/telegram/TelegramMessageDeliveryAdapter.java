@@ -38,10 +38,10 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
             throw new InvalidIncomingMessageException("report must not be null");
         }
 
-        SendMessage request = new SendMessage(report.conversationId(), ProposalReportUtils.render(report))
+        SendMessage request = new SendMessage(report.conversationId(), ProposalReportRenderer.render(report))
                 .replyParameters(
                         new ReplyParameters(Integer.valueOf(report.inboundMessageId())).allowSendingWithoutReply(true));
-        ProposalReportUtils.renderKeyboard(report).ifPresent(request::replyMarkup);
+        ProposalReportRenderer.renderKeyboard(report).ifPresent(request::replyMarkup);
 
         execute(request, SEND_MESSAGE).ifPresent(failure -> {
             throw failure;
@@ -55,7 +55,7 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         }
 
         AnswerCallbackQuery answer =
-                new AnswerCallbackQuery(ack.interactionId()).text(ResolutionAcknowledgementUtils.render(ack));
+                new AnswerCallbackQuery(ack.interactionId()).text(ResolutionAcknowledgementRenderer.render(ack));
         EditMessageReplyMarkup edit =
                 new EditMessageReplyMarkup(ack.conversationId(), Integer.parseInt(ack.reportMessageId()));
 

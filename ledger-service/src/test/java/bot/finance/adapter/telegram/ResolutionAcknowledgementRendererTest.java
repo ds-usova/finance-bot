@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ResolutionAcknowledgementUtilsTest {
+class ResolutionAcknowledgementRendererTest {
 
     private static final String CONVERSATION_ID = "555";
     private static final String REPORT_MESSAGE_ID = "1";
@@ -33,7 +33,7 @@ class ResolutionAcknowledgementUtilsTest {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
                     CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, ResolutionOutcome.ACCEPTED, count);
 
-            String text = ResolutionAcknowledgementUtils.render(ack);
+            String text = ResolutionAcknowledgementRenderer.render(ack);
 
             assertThat(text).isEqualTo(expected);
         }
@@ -51,7 +51,7 @@ class ResolutionAcknowledgementUtilsTest {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
                     CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, ResolutionOutcome.DISCARDED, count);
 
-            String text = ResolutionAcknowledgementUtils.render(ack);
+            String text = ResolutionAcknowledgementRenderer.render(ack);
 
             assertThat(text).isEqualTo(expected);
         }
@@ -69,7 +69,7 @@ class ResolutionAcknowledgementUtilsTest {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
                     CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, ResolutionOutcome.ALREADY_ACCEPTED, count);
 
-            String text = ResolutionAcknowledgementUtils.render(ack);
+            String text = ResolutionAcknowledgementRenderer.render(ack);
 
             assertThat(text).isEqualTo(expected);
         }
@@ -86,7 +86,7 @@ class ResolutionAcknowledgementUtilsTest {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
                     CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, ResolutionOutcome.NOTHING_TO_RESOLVE, 0);
 
-            String text = ResolutionAcknowledgementUtils.render(ack);
+            String text = ResolutionAcknowledgementRenderer.render(ack);
 
             assertThat(text).isEqualTo("There is nothing left to resolve.");
         }
@@ -99,7 +99,7 @@ class ResolutionAcknowledgementUtilsTest {
             ResolutionAcknowledgement ack =
                     new ResolutionAcknowledgement(CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, outcome, 999);
 
-            String text = ResolutionAcknowledgementUtils.render(ack);
+            String text = ResolutionAcknowledgementRenderer.render(ack);
 
             assertThat(text.length()).isLessThanOrEqualTo(200);
         }

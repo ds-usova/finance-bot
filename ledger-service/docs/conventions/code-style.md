@@ -20,6 +20,11 @@ Applies across all layers.
   line.
 - **Method decomposition**: extract private helpers once a method exceeds roughly one screen. One public method
   per port operation on a use case or an adapter.
+- **A stateless helper class is named for its role**, never `*Utils`. One that writes a core type as text for a
+  transport is a `*Renderer`; one that converts between two representations is a `*Mapper`. A class that goes both
+  ways, or that answers a question about a thing rather than transforming it, takes that thing's own name instead
+  — `ProposalCallbackData`, `ColumnLimits`, `ForeignKeyViolations`. `Utils` names a bucket, and a bucket collects
+  whatever is convenient to put down.
 - **Member order**: fields, then constructors, then methods by descending visibility — `public`,
   package-private, `protected`, `private`. A reader meets the type's API before its internals.
 - **Comments and javadoc**: the fewer the better. Write one only for what the code cannot show — third-party

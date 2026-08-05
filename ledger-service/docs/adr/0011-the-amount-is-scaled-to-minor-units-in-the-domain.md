@@ -17,7 +17,7 @@ second adapter to need it copies the rule rather than calls it (D2).
 The conversion lives in the domain, as `Money.ofMajorUnits(BigDecimal, CurrencyCode)`, beside the `amount()` it
 inverts. What a currency's scale is, and what exceeds it, is a fact about money.
 
-What a JSON argument may look like stays in the adapter: `ExpenseProposalToolUtils` checks the text form and hands
+What a JSON argument may look like stays in the adapter: `ExpenseProposalToolMapper` checks the text form and hands
 the domain a `BigDecimal`. The factory never sees a wire string.
 
 ## Consequences

@@ -8,11 +8,11 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import java.util.List;
 import java.util.Optional;
 
-public final class ProposalReportUtils {
+public final class ProposalReportRenderer {
 
     private static final int MAX_LENGTH = 4000;
 
-    private ProposalReportUtils() {}
+    private ProposalReportRenderer() {}
 
     public static Optional<InlineKeyboardMarkup> renderKeyboard(ProposalReport report) {
         if (report.proposals().isEmpty()) {

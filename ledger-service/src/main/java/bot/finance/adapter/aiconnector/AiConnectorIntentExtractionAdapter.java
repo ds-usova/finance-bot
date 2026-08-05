@@ -41,7 +41,7 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
 
         log.debug("Extracting the intent with text {}", request.text());
 
-        ExtractIntentsRequest protoRequest = IntentProtoUtils.toProtoRequest(request);
+        ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
         Metadata metadata = new Metadata();
         metadata.put(
                 AUTHORIZATION,
