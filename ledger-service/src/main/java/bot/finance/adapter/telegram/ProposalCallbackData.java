@@ -32,15 +32,18 @@ public final class ProposalCallbackData {
         if (separatorIndex < 0) {
             return Optional.empty();
         }
-        Optional<ProposalResolution> resolution = resolutionOf(data.substring(0, separatorIndex));
+
+        Optional<ProposalResolution> verb = verbOf(data.substring(0, separatorIndex));
         Optional<MessageReference> reference = referenceOf(data.substring(separatorIndex + 1));
-        if (resolution.isEmpty() || reference.isEmpty()) {
+
+        if (verb.isEmpty() || reference.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new ParsedCallback(resolution.get(), reference.get()));
+
+        return Optional.of(new ParsedCallback(verb.get(), reference.get()));
     }
 
-    private static Optional<ProposalResolution> resolutionOf(String verb) {
+    private static Optional<ProposalResolution> verbOf(String verb) {
         return switch (verb) {
             case ACCEPT_VERB -> Optional.of(ProposalResolution.ACCEPT);
             case DISCARD_VERB -> Optional.of(ProposalResolution.DISCARD);
