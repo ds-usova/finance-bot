@@ -26,8 +26,7 @@ class ResolutionAcknowledgementRendererTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("acceptedAcknowledgements")
-        @DisplayName(
-                "when an ACCEPTED acknowledgement carries a count of 2, and one of 1 - then returns Confirmed 2 expenses. and Confirmed 1 expense.")
+        @DisplayName("when ACCEPTED carries a count of 2, and one of 1 - then pluralises Confirmed n expense(s).")
         void whenAcceptedAcknowledgementCarriesCountOf2And1_thenReturnsConfirmedExpensesPluralAndSingular(
                 int count, String expected) {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
@@ -44,8 +43,7 @@ class ResolutionAcknowledgementRendererTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("discardedAcknowledgements")
-        @DisplayName(
-                "when a DISCARDED acknowledgement carries a count of 2, and one of 1 - then returns Deleted 2 expenses. and Deleted 1 expense.")
+        @DisplayName("when DISCARDED carries a count of 2, and one of 1 - then pluralises Deleted n expense(s).")
         void whenDiscardedAcknowledgementCarriesCountOf2And1_thenReturnsDeletedExpensesPluralAndSingular(
                 int count, String expected) {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
@@ -63,7 +61,7 @@ class ResolutionAcknowledgementRendererTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("alreadyAcceptedAcknowledgements")
         @DisplayName(
-                "when an ALREADY_ACCEPTED acknowledgement carries a count of 2, and one of 1 - then returns Already confirmed: 2 expenses. and Already confirmed: 1 expense.")
+                "when ALREADY_ACCEPTED carries a count of 2, and one of 1 - then pluralises Already confirmed: n expense(s).")
         void whenAlreadyAcceptedAcknowledgementCarriesCountOf2And1_thenReturnsAlreadyConfirmedExpensesPluralAndSingular(
                 int count, String expected) {
             ResolutionAcknowledgement ack = new ResolutionAcknowledgement(
@@ -94,7 +92,7 @@ class ResolutionAcknowledgementRendererTest {
         @ParameterizedTest(name = "{0}")
         @EnumSource(ResolutionOutcome.class)
         @DisplayName(
-                "when every ResolutionOutcome carries a count of 999 - then the result is at most 200 characters, the limit answerCallbackQuery imposes on its text")
+                "when every outcome carries a count of 999 - then the wording fits answerCallbackQuery's 200-character limit")
         void whenEveryResolutionOutcomeCarriesCountOf999_thenResultIsAtMost200Characters(ResolutionOutcome outcome) {
             ResolutionAcknowledgement ack =
                     new ResolutionAcknowledgement(CONVERSATION_ID, REPORT_MESSAGE_ID, INTERACTION_ID, outcome, 999);

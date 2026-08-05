@@ -46,7 +46,7 @@ class ProposalCallbackDataTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("resolutionsWithExpectedByteLength")
         @DisplayName(
-                "when either resolution and a reference are rendered - then the result is at most 64 bytes, the Bot API's callback_data limit")
+                "when either resolution is rendered - then the payload fits the Bot API's 64-byte callback_data limit")
         void whenEitherResolutionAndReferenceAreRendered_thenResultIsAtMost64Bytes(
                 ProposalResolution resolution, int expectedByteLength) {
             String payload = ProposalCallbackData.render(resolution, REFERENCE);
@@ -67,7 +67,7 @@ class ProposalCallbackDataTest {
 
         @Test
         @DisplayName(
-                "when parsing the payload render(ACCEPT, reference) produced - then returns a ParsedCallback carrying ACCEPT and that same reference")
+                "when parsing what render(ACCEPT, reference) produced - then returns ACCEPT and that same reference")
         void whenParsingPayloadRenderAcceptProduced_thenReturnsParsedCallbackCarryingAcceptAndSameReference() {
             String payload = ProposalCallbackData.render(ProposalResolution.ACCEPT, REFERENCE);
 
@@ -78,7 +78,7 @@ class ProposalCallbackDataTest {
 
         @Test
         @DisplayName(
-                "when parsing the payload render(DISCARD, reference) produced - then returns a ParsedCallback carrying DISCARD and that same reference")
+                "when parsing what render(DISCARD, reference) produced - then returns DISCARD and that same reference")
         void whenParsingPayloadRenderDiscardProduced_thenReturnsParsedCallbackCarryingDiscardAndSameReference() {
             String payload = ProposalCallbackData.render(ProposalResolution.DISCARD, REFERENCE);
 

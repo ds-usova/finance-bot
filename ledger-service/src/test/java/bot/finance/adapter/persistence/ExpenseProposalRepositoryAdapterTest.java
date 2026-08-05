@@ -572,8 +572,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for a reference under which the stored proposal's merchant column is null - then the written expense row's merchant column is null")
+        @DisplayName("when the stored proposal's merchant is null - then the written expense row's merchant is null")
         void whenProposalMerchantColumnIsNull_thenWrittenExpenseRowMerchantColumnIsNull() {
             long userId = storedUserId("accept-null-merchant-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Utilities");
@@ -609,7 +608,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called for the first of two users each holding one proposal under the same reference value - then returns 1, the first user's proposal is gone and the second user's survives untouched (D7)")
+                "when two users share a reference value - then accepting for one leaves the other's proposal untouched")
         void whenTwoUsersShareReferenceValue_thenReturnsOneAndOnlyFirstUsersProposalMoves() {
             long firstUserId = storedUserId("accept-shared-reference-first-user");
             long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");
@@ -648,7 +647,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a now carrying nanosecond precision - then both written timestamps equal that instant truncated to microseconds")
+                "when now carries nanosecond precision - then both written timestamps are truncated to microseconds")
         void whenNowCarriesNanosecondPrecision_thenWrittenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("accept-nanosecond-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
@@ -681,7 +680,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called for a reference under which two proposals are stored, alongside a third proposal stored under a different reference - then returns 2, only the third proposal row survives, and no expense row is written (D14)")
+                "when two proposals share a reference and a third does not - then only those two are removed, and none becomes an expense")
         void
                 whenTwoProposalsStoredUnderReferenceAndAThirdUnderAnother_thenReturnsTwoDeletesThemAndLeavesThirdProposal() {
             long userId = storedUserId("discard-two-proposals-user");
@@ -731,8 +730,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for the first of two users each holding one proposal under the same reference value - then returns 1 and the second user's row survives (D7)")
+        @DisplayName("when two users share a reference value - then discarding for one leaves the other's row intact")
         void whenTwoUsersShareReferenceValue_thenReturnsOneAndSecondUsersRowSurvives() {
             long firstUserId = storedUserId("discard-shared-reference-first-user");
             long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");

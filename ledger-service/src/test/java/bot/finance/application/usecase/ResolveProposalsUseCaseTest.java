@@ -98,10 +98,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when resolve is called for an ACCEPT command and accept answers 2 - then accept is called "
-                + "with the user's id, the command's reference and Instant.now(clock), and acknowledge receives a "
-                + "ResolutionAcknowledgement carrying ACCEPTED, a count of 2 and the command's conversation id, "
-                + "report message id and interaction id")
+        @DisplayName(
+                "when ACCEPT is tapped and accept answers 2 - then acknowledge receives ACCEPTED with a count of 2")
         void whenAcceptCommandResolvesTwo_thenAcceptCalledAndAcknowledgeReceivesAcceptedAcknowledgement() {
             stubStoredUser();
             when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
@@ -123,9 +121,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when resolve is called for a DISCARD command and discard answers 3 - then acknowledge "
-                + "receives DISCARDED with a count of 3, accept is never called and ExpenseRepository is never "
-                + "touched")
+        @DisplayName("when DISCARD is tapped and discard answers 3 - then acknowledge receives DISCARDED with a count "
+                + "of 3")
         void whenDiscardCommandResolvesThree_thenAcknowledgeReceivesDiscardedAndAcceptAndExpenseRepositoryUntouched() {
             stubStoredUser();
             when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(3);
@@ -144,9 +141,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when resolve is called for an ACCEPT command, accept answers 0 and countByMessageReference "
-                + "answers 2 - then countByMessageReference is called with the user's id and the command's "
-                + "reference, and acknowledge receives ALREADY_ACCEPTED with a count of 2")
+        @DisplayName("when accept answers 0 and two expenses are stored - then acknowledge receives ALREADY_ACCEPTED "
+                + "with a count of 2")
         void whenAcceptResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
             when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
@@ -166,8 +162,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when resolve is called for a DISCARD command, discard answers 0 and countByMessageReference "
-                + "answers 2 - then acknowledge receives ALREADY_ACCEPTED with a count of 2")
+        @DisplayName("when discard answers 0 and two expenses are stored - then acknowledge receives ALREADY_ACCEPTED "
+                + "with a count of 2")
         void whenDiscardResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
             when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(0);
@@ -184,8 +180,7 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when resolve is called, the resolution answers 0 and countByMessageReference answers 0 - "
-                + "then acknowledge receives NOTHING_TO_RESOLVE with a count of 0")
+        @DisplayName("when the resolution and the count both answer 0 - then acknowledge receives NOTHING_TO_RESOLVE")
         void whenResolutionAndCountBothZero_thenAcknowledgeReceivesNothingToResolve() {
             stubStoredUser();
             when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
@@ -203,8 +198,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when findByExternalId answers empty - then acknowledge receives NOTHING_TO_RESOLVE with a "
-                + "count of 0, and neither ExpenseProposalRepository nor ExpenseRepository is touched")
+        @DisplayName("when the tapper is stored under no user - then acknowledge receives NOTHING_TO_RESOLVE and no "
+                + "store is touched")
         void whenNoUserStoredForExternalId_thenAcknowledgeReceivesNothingToResolveAndRepositoriesUntouched() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
@@ -222,8 +217,8 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a user is stored and accept throws PersistenceFailedException - then that exception "
-                + "propagates and acknowledge is never called")
+        @DisplayName("when accept throws PersistenceFailedException - then it propagates and acknowledge is never "
+                + "called")
         void whenAcceptThrowsPersistenceFailedException_thenExceptionPropagatesAndAcknowledgeNeverCalled() {
             stubStoredUser();
             PersistenceFailedException failure = new PersistenceFailedException("move failed", new RuntimeException());

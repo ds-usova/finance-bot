@@ -80,9 +80,8 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the running poll loop picks up a discard callback query for an unknown reference - then "
-                + "the batch is confirmed, no expense row is written for the user, one answerCallbackQuery reports "
-                + "there is nothing left to resolve, and one editMessageReplyMarkup still clears the keyboard")
+        @DisplayName("when the poll loop picks up a discard tap for an unknown reference - then nothing is resolved "
+                + "and the buttons still clear")
         void whenRunningPollLoopPicksUpDiscardCallbackQueryForUnknownReference_thenNothingIsResolvedButAcknowledged() {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)

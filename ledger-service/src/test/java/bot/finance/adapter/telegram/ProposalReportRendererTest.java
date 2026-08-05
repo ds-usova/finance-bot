@@ -185,8 +185,7 @@ class ProposalReportRendererTest {
     class RenderKeyboard {
 
         @Test
-        @DisplayName(
-                "when a RECORDED report carries two summaries and a reference - then returns a markup of exactly one row of two buttons, Confirm carrying ACCEPT's payload and Delete carrying DISCARD's payload")
+        @DisplayName("when a RECORDED report carries summaries - then returns one row of a Confirm and a Delete button")
         void whenRecordedReportCarriesTwoSummariesAndReference_thenReturnsOneRowOfConfirmAndDeleteButtons() {
             MessageReference reference = MessageReference.newReference();
             ProposalSummary first =
@@ -247,7 +246,7 @@ class ProposalReportRendererTest {
 
         @Test
         @DisplayName(
-                "when a RECORDED report's summary list is empty - then returns empty, since the outcome does not decide it, the proposal list does")
+                "when a RECORDED report's summary list is empty - then returns empty, the list deciding, not the outcome")
         void whenRecordedReportSummaryListIsEmpty_thenReturnsEmpty() {
             ProposalReport report =
                     new ProposalReport("555", "1", ReportOutcome.RECORDED, List.of(), MessageReference.newReference());

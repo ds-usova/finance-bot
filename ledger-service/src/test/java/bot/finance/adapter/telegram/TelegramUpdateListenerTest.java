@@ -134,8 +134,7 @@ class TelegramUpdateListenerTest {
         }
 
         @Test
-        @DisplayName(
-                "when a callback_query update is polled - then resolve is called with the mapped command, HandleIncomingMessagePort is never called, and the batch is confirmed")
+        @DisplayName("when a callback_query update is polled - then only resolve is called and the batch is confirmed")
         void whenCallbackQueryUpdateIsPolled_thenResolveIsCalledWithMappedCommandAndBatchIsConfirmed() {
             MessageReference reference = MessageReference.newReference();
             telegramReturnsOnFirstPoll(
@@ -247,7 +246,7 @@ class TelegramUpdateListenerTest {
 
         @Test
         @DisplayName(
-                "when a callback_query update carrying unrecognised data is polled - then neither port is called and the batch is still confirmed")
+                "when a callback_query carries unrecognised data - then neither port is called and the batch is confirmed")
         void whenCallbackQueryUpdateWithUnrecognisedDataIsPolled_thenNeitherPortIsCalledAndBatchIsStillConfirmed() {
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
@@ -261,8 +260,7 @@ class TelegramUpdateListenerTest {
         }
 
         @Test
-        @DisplayName(
-                "when a batch pairing a text-message update with a callback_query update is polled - then each port is called exactly once and the whole batch is confirmed")
+        @DisplayName("when a batch pairs a text and a callback_query update - then each port is called exactly once")
         void
                 whenBatchPairingTextAndCallbackQueryUpdateIsPolled_thenEachPortIsCalledExactlyOnceAndWholeBatchIsConfirmed() {
             MessageReference reference = MessageReference.newReference();

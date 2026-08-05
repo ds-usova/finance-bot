@@ -121,7 +121,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a RECORDED report over a bot WireMock accepts sendMessage for - then exactly one sendMessage is recorded, addressed and replying as the report says, rendered as ProposalReportRenderer.render() says, with no parse_mode")
+                "when a RECORDED report is delivered - then one sendMessage is addressed, threaded and rendered as the report says")
         void whenCalledWithRecordedReportAndSendMessageAccepted_thenExactlyOneSendMessageIsRecordedAsTheReportSays() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
             ProposalReport report = recordedReportWithTwoSummaries();
@@ -205,8 +205,7 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a NOTHING_IDENTIFIED report with no summaries - then the recorded sendMessage carries no reply_markup form param")
+        @DisplayName("when a report carries no summaries - then the sendMessage carries no reply_markup")
         void whenCalledWithNothingIdentifiedReport_thenSendMessageCarriesNoReplyMarkupFormParam() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
             ProposalReport report = nothingIdentifiedReport();
@@ -251,7 +250,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an ACCEPTED acknowledgement over a bot whose stubs record both calls - then the two recorded Bot API calls, in arrival order, are answerCallbackQuery then editMessageReplyMarkup")
+                "when both calls are accepted - then answerCallbackQuery is recorded before editMessageReplyMarkup")
         void
                 whenCalledWithAcceptedAcknowledgement_thenAnswerCallbackQueryPrecedesEditMessageReplyMarkupInArrivalOrder() {
             telegramAcceptsAnswerCallbackQuery(DELIVERY_TOKEN);
@@ -266,8 +265,7 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called over a bot whose answerCallbackQuery is answered with a non-OK envelope and whose editMessageReplyMarkup is accepted - then throws MessageDeliveryFailedException and the editMessageReplyMarkup is still recorded")
+        @DisplayName("when answerCallbackQuery is refused - then it throws and the buttons are still cleared")
         void
                 whenAnswerCallbackQueryFailsAndEditMessageReplyMarkupAccepted_thenThrowsMessageDeliveryFailedExceptionAndEditIsStillRecorded() {
             telegramFailsAnswerCallbackQuery(DELIVERY_TOKEN, 400, "simulated answerCallbackQuery failure");
@@ -281,8 +279,7 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called over a bot whose answerCallbackQuery is accepted and whose editMessageReplyMarkup is answered with a non-OK envelope - then throws MessageDeliveryFailedException")
+        @DisplayName("when editMessageReplyMarkup is refused - then throws MessageDeliveryFailedException")
         void whenAnswerCallbackQueryAcceptedAndEditMessageReplyMarkupFails_thenThrowsMessageDeliveryFailedException() {
             telegramAcceptsAnswerCallbackQuery(DELIVERY_TOKEN);
             telegramFailsEditMessageReplyMarkup(DELIVERY_TOKEN, 400, "message is not modified");
@@ -293,8 +290,7 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called over a bot answering both calls with a non-OK envelope, each carrying a distinguishable description - then the thrown MessageDeliveryFailedException's message names the answerCallbackQuery failure's description and not the edit's")
+        @DisplayName("when both calls are refused - then the answerCallbackQuery failure is the one thrown")
         void
                 whenBothCallsFailWithDistinguishableDescriptions_thenThrownExceptionMessageNamesAnswerCallbackQueryFailureDescription() {
             telegramFailsAnswerCallbackQuery(DELIVERY_TOKEN, 400, "simulated answerCallbackQuery failure");
@@ -310,7 +306,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with null over a bot WireMock accepts both calls for - then throws InvalidIncomingMessageException and nothing is sent, as deliver(null) already does")
+                "when called with a null acknowledgement - then throws InvalidIncomingMessageException and sends nothing")
         void whenCalledWithNullAcknowledgement_thenThrowsInvalidIncomingMessageExceptionAndSendsNothing() {
             telegramAcceptsAnswerCallbackQuery(DELIVERY_TOKEN);
             telegramAcceptsEditMessageReplyMarkup(DELIVERY_TOKEN);
@@ -324,9 +320,8 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called over a bot pointed at an address that refuses the connection - then throws MessageDeliveryFailedException carrying the client exception as its cause")
-        void
-                whenBotIsPointedAtRefusingAddress_thenThrowsMessageDeliveryFailedExceptionCarryingClientExceptionAsCause() {
+                "when the bot's address refuses the connection - then throws with the client exception as its cause")
+        void whenBotAddressRefusesConnection_thenThrowsCarryingClientExceptionAsCause() {
             ResolutionAcknowledgement ack = acceptedAcknowledgement();
             TelegramMessageDeliveryAdapter adapter = adapterOver(refusingBot());
 

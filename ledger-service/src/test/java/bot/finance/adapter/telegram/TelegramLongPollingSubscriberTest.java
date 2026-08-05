@@ -84,8 +84,7 @@ class TelegramLongPollingSubscriberTest {
     class Start {
 
         @Test
-        @DisplayName(
-                "when start() is called - then getUpdates is polled with the configured limit, timeout and allowed updates, and isRunning() reports true")
+        @DisplayName("when start() is called - then getUpdates is polled as configured and isRunning() reports true")
         void whenStartIsCalled_thenPollsGetUpdatesWithConfiguredParametersAndReportsRunning() {
             telegramReturnsNoUpdates(SUBSCRIBER_TOKEN);
 

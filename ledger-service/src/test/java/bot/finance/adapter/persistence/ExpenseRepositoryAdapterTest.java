@@ -301,8 +301,7 @@ class ExpenseRepositoryAdapterTest {
     class CountByMessageReference {
 
         @Test
-        @DisplayName(
-                "when called with a user id and reference under which two expenses were stored, alongside one expense under a different reference - then returns 2")
+        @DisplayName("when two expenses share a reference and one does not - then returns 2")
         void whenTwoExpensesStoredUnderReferenceAndOneUnderAnother_thenReturnsTwo() {
             long userId = storedUserId("count-two-expenses-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -328,8 +327,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for a stored user whose expense rows all carry a null message_reference - then returns 0, since a row no message produced is counted for no reference (D28)")
+        @DisplayName("when every expense row carries a null message_reference - then returns 0")
         void whenAllExpensesHaveNullMessageReference_thenReturnsZero() {
             long userId = storedUserId("count-null-reference-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -409,7 +407,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when countByMessageReference() hits a database failure - then throws PersistenceFailedException, never EntityNotFoundException, carrying the framework exception as its cause")
+                "when countByMessageReference() hits a database failure - then throws PersistenceFailedException, never EntityNotFoundException")
         void
                 whenCountByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");

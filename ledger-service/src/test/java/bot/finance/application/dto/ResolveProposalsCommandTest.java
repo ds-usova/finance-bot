@@ -19,8 +19,7 @@ class ResolveProposalsCommandTest {
     class ResolveProposalsCommandConstructor {
 
         @Test
-        @DisplayName(
-                "when the user external id, conversation id, report message id and interaction id are non-blank and the reference and resolution are present - then it is constructed and each component reads back what was passed")
+        @DisplayName("when every component is present and non-blank - then each reads back what was passed")
         void whenAllComponentsArePresent_thenEachComponentReadsBackWhatWasPassed() {
             MessageReference reference = MessageReference.newReference();
 

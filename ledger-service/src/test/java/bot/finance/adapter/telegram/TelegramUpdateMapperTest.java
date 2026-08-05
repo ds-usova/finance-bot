@@ -89,7 +89,7 @@ class TelegramUpdateMapperTest {
 
         @Test
         @DisplayName(
-                "when the update carries a callback query with an id, a from, a message with a chat and a message id, and the data accept:<uuid> - then returns a command whose fields come from those components and whose resolution is ACCEPT, the tapper coming from from")
+                "when a callback query carries accept:<uuid> - then returns an ACCEPT command whose sender comes from from")
         void whenUpdateCarriesCallbackQueryWithAcceptData_thenReturnsCommandWithAcceptResolution() {
             MessageReference reference = MessageReference.newReference();
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
@@ -123,8 +123,7 @@ class TelegramUpdateMapperTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("skippableCallbackUpdates")
-        @DisplayName(
-                "when the update is null, carries no callback query, a callback query with no from, no message, or data noop - then returns empty for each")
+        @DisplayName("when the update carries no usable callback query - then returns an empty Optional")
         void whenUpdateIsUnusableForResolution_thenReturnsEmpty(String description, Update update) {
             Optional<ResolveProposalsCommand> command = TelegramUpdateMapper.toResolveProposalsCommand(update);
 

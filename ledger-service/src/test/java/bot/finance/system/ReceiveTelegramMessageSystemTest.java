@@ -145,12 +145,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the running poll loop picks up a text message update - then the batch is confirmed, the AI "
-                + "connector receives the message text, the user's grouping names and catch-all, and a "
-                + "bearer token whose sub is the from id; a user is stored under the from id rather than "
-                + "the chat id; list_categories answers that grouping's categories before one "
-                + "expense_proposal row is stored under the reference the bearer token's mrf claim "
-                + "carries; and one sendMessage reply names the recorded proposal")
+        @DisplayName("when the poll loop picks up a text message - then the turn records one proposal and reports it "
+                + "back with its buttons")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)

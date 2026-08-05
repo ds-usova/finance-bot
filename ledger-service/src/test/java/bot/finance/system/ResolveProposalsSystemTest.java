@@ -115,10 +115,8 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the running poll loop picks up an accept callback query - then the batch is confirmed, "
-                + "no expense_proposal row remains for the user, exactly two expense rows exist carrying the "
-                + "reference, one answerCallbackQuery names the callback query id and reports two confirmed "
-                + "expenses, and one editMessageReplyMarkup clears the report message's keyboard")
+        @DisplayName("when the poll loop picks up an accept tap - then both proposals become expenses and the tap is "
+                + "answered")
         void whenRunningPollLoopPicksUpAcceptCallbackQuery_thenProposalsAreAcceptedAndAcknowledged() {
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
