@@ -49,12 +49,14 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
                 .findByExternalId(command.userExternalId())
                 .map(user -> acknowledgementFor(user.id().orElseThrow(), command))
                 .orElseGet(() -> acknowledgement(command, ResolutionOutcome.NOTHING_TO_RESOLVE, 0));
+
         log.info(
                 "resolved proposals under reference {} as {} with outcome {} and count {}",
                 command.reference(),
                 command.resolution(),
                 acknowledgement.outcome(),
                 acknowledgement.count());
+
         messageDeliveryPort.acknowledge(acknowledgement);
     }
 
