@@ -83,6 +83,7 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
         @DisplayName("when the poll loop picks up a discard tap for an unknown reference - then nothing is resolved "
                 + "and the buttons still clear")
         void whenRunningPollLoopPicksUpDiscardCallbackQueryForUnknownReference_thenNothingIsResolvedButAcknowledged() {
+            // then: the tap is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
                     .untilAsserted(
@@ -90,9 +91,11 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
                                     .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                                     .isNotEmpty());
 
+            // then: a reference naming nothing of this user's records nothing
             List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
             assertThat(expenseRows).as("expense rows for user %s", userId).isEmpty();
 
+            // then: the tap is still answered, saying there was nothing to resolve
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedAnswerCallbackQueries(RESOLVE_UNKNOWN_PROPOSALS_TOKEN))
                     .as("answerCallbackQuery requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
@@ -107,6 +110,7 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
                     .as("answerCallbackQuery text form param")
                     .containsExactly(EXPECTED_ANSWER_TEXT);
 
+            // then: the buttons come off anyway, which is what repairs a report whose earlier edit was lost
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedEditMessageReplyMarkups(RESOLVE_UNKNOWN_PROPOSALS_TOKEN))
                     .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)

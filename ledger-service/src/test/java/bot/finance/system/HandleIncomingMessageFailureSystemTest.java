@@ -76,11 +76,13 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         @DisplayName("when the loop picks the update up - then one sendMessage reports nothing was noted, with no "
                 + "buttons")
         void whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed() {
+            // then: a connector that never answered does not stall the loop
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedPollsWithOffset(HANDLE_MESSAGE_FAILURE_TOKEN, NEXT_OFFSET))
                     .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                     .isNotEmpty());
 
+            // then: the user is told nothing was noted, and gets no buttons for a report with nothing to resolve
             await("exactly one sendMessage reporting the FAILED outcome is recorded")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
@@ -105,6 +107,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
                                 .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
                     });
 
+            // then: a failed turn leaves nothing half-recorded behind it
             Optional<User> storedUser = userRepository.findByExternalId(CONVERSATION_ID);
             storedUser.ifPresent(user -> assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(
                             jdbcAggregateTemplate, user.id().orElseThrow()))

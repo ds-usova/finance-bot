@@ -118,24 +118,28 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         @DisplayName("when the poll loop picks up an accept tap - then both proposals become expenses and the tap is "
                 + "answered")
         void whenRunningPollLoopPicksUpAcceptCallbackQuery_thenProposalsAreAcceptedAndAcknowledged() {
+            // then: the tap is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> assertThat(recordedPollsWithOffset(RESOLVE_PROPOSALS_TOKEN, NEXT_OFFSET))
                             .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                             .isNotEmpty());
 
+            // then: nothing the message proposed is left pending
             List<ExpenseProposalEntity> remainingProposals =
                     ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
             assertThat(remainingProposals)
                     .as("expense_proposal rows for user %s", userId)
                     .isEmpty();
 
+            // then: both proposals are now expenses, each still naming the message it came from
             List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
             assertThat(expenseRows).as("expense rows for user %s", userId).hasSize(2);
             assertThat(expenseRows)
                     .as("every accepted expense carries the resolved message reference")
                     .allSatisfy(row -> assertThat(row.messageReference()).isEqualTo(reference));
 
+            // then: the tap is answered, telling the user what it did
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedAnswerCallbackQueries(RESOLVE_PROPOSALS_TOKEN))
                     .as("answerCallbackQuery requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)
@@ -150,6 +154,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
                     .as("answerCallbackQuery text form param")
                     .containsExactly(EXPECTED_ANSWER_TEXT);
 
+            // then: the report loses its buttons, so it cannot be resolved twice
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
                             recordedEditMessageReplyMarkups(RESOLVE_PROPOSALS_TOKEN))
                     .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)

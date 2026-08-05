@@ -149,6 +149,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 + "back with its buttons")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
+            // then: the message is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -156,6 +157,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                             .isNotEmpty());
 
+            // then: the turn reaches the AI connector
             await("the AI connector receives an extraction request")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -163,6 +165,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             .as("last ExtractIntentsRequest received by the stub AI connector")
                             .isNotNull());
 
+            // then: the sender is stored as the user, not the chat, and starts with a full catalogue
             assertThat(userRepository.findByExternalId(CHAT_ID_STRING))
                     .as("no user should be stored under the chat id %s", CHAT_ID_STRING)
                     .isEmpty();
@@ -177,6 +180,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("the categories the first message created for this conversation")
                     .isEqualTo(EXPECTED_CATEGORY_COUNT);
 
+            // then: the connector is given the text, the user's groupings and the catch-all
             ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
             assertThat(request.getText()).as("extraction request text").isEqualTo(MESSAGE_TEXT);
 
@@ -187,6 +191,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("extraction request catch-all grouping")
                     .isEqualTo(Grouping.catchAllName());
 
+            // then: it acts as that user, for this one message, on a credential this service signed
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();
             assertThat(metadata)
                     .as("metadata received by the stub AI connector")
@@ -199,6 +204,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             String messageReferenceClaim = claims.getStringClaim(MESSAGE_REFERENCE_CLAIM);
             assertThat(messageReferenceClaim).as("jwt mrf claim").isNotNull();
 
+            // then: one proposal is stored, filed under the message that produced it
             List<ExpenseProposalEntity> proposalRows = ExpenseProposalRowUtils.expenseProposalRowsFor(
                     jdbcAggregateTemplate, storedUser.id().orElseThrow());
             assertThat(proposalRows)
@@ -211,6 +217,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("stored proposal's message reference matches the bearer token's mrf claim")
                     .isEqualTo(UUID.fromString(messageReferenceClaim));
 
+            // then: the model called the two MCP tools in order — the categories first, then the proposal
             List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
             assertThat(mcpAnswers)
                     .as("what /mcp answered the stub connector, call by call")
@@ -223,6 +230,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("the create_expense_proposal answer")
                     .contains(PROPOSAL_CATEGORY);
 
+            // then: one report goes back into the chat, threaded onto the message it answers
             await("a sendMessage reply is recorded for the confirmed batch")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
@@ -248,6 +256,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("sendMessage reply_parameters message_id")
                     .isEqualTo(String.valueOf(TelegramFixtures.MESSAGE_ID));
 
+            // then: the report carries the two buttons that make it resolvable, naming this message
             assertThat(sendMessageRequest.formParameter("reply_markup").isPresent())
                     .as("sendMessage reply_markup form param is present")
                     .isTrue();

@@ -140,6 +140,12 @@ would inherit the first's advanced state. Give each new class a token constant i
   A log line is a diagnostic, not a contract; wording drifts with every edit to the class, and a test bound to it
   fails for a change that broke nothing. Reserve a `LogCapture` assertion for the case where the behaviour leaves
   no other trace — a failure that is swallowed on purpose, a path whose whole point is that nothing else happens.
+- **A system test signposts its phases with `// then:` comments.** One per thing the flow proves — the batch was
+  confirmed, the tool was called, the reply went back — written in the same words the display name uses. A system
+  test is a long sequence of awaits and assertions against a stack the reader cannot see, and the phases are what
+  a reader scans for; nothing else in the method says where one ends and the next begins. This is the one place a
+  comment restating the code earns its place, and it does not license them elsewhere: a unit or adapter test
+  short enough to read at once gets none ([Code Style](code-style.md#general)).
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution, which is why
   `TelegramFixtures` stays a set of text-block builders. Move any body past roughly fifteen lines to a file.
