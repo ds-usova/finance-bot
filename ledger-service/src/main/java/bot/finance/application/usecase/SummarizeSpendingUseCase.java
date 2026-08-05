@@ -27,12 +27,10 @@ public class SummarizeSpendingUseCase implements SummarizeSpendingPort {
 
     @Override
     public SpendingPeriod summarize(SummarizeSpendingCommand command) {
-        // refuses an absent command, parses the written dates into a SpendingPeriod, resolves the token's
-        // subject to a stored user, stores a SpendingQuery under the command's reference, and answers the
-        // period it accepted
         if (command == null) {
             throw new InvalidSpendingQueryException("summarize spending command is absent");
         }
+
         SpendingPeriod period = SpendingPeriod.of(command.from(), command.to());
         User user = userRepository
                 .findByExternalId(command.userId().externalId())
@@ -41,8 +39,8 @@ public class SummarizeSpendingUseCase implements SummarizeSpendingPort {
                         "no user stored under external id " + command.userId().externalId()));
         long userId = user.id().orElseThrow();
         Instant now = clock.instant();
-        SpendingQuery query = SpendingQuery.newQuery(userId, period, command.reference(), now);
-        spendingQueryRepository.create(query);
+        spendingQueryRepository.create(SpendingQuery.newQuery(userId, period, command.reference(), now));
+
         return period;
     }
 }

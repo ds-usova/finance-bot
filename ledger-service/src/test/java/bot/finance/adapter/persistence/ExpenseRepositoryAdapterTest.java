@@ -583,9 +583,9 @@ class ExpenseRepositoryAdapterTest {
         return ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
     }
 
-    // countByMessageReference's rows have to carry a message_reference, which adapter.create()
-    // never writes - so they are seeded directly through JdbcAggregateTemplate, the way
-    // ExpenseProposalRowUtils.storedProposal seeds a proposal row.
+    // countByMessageReference's rows have to carry a message_reference, and totalsByCurrency's an
+    // exact createdAt to probe the period's bounds - neither of which adapter.create() writes. So
+    // both are seeded directly, the way ExpenseProposalRowUtils.storedProposal seeds a proposal row.
     private ExpenseEntity storedExpense(
             long userId,
             long categoryId,
@@ -593,9 +593,8 @@ class ExpenseRepositoryAdapterTest {
             long amountMinorUnits,
             String currencyCode,
             UUID messageReference) {
-        Instant now = Instant.now();
-        return jdbcAggregateTemplate.insert(new ExpenseEntity(
-                null,
+        return ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
                 userId,
                 categoryId,
                 description,
@@ -603,14 +602,9 @@ class ExpenseRepositoryAdapterTest {
                 amountMinorUnits,
                 currencyCode,
                 messageReference,
-                now,
-                now));
+                Instant.now());
     }
 
-    // totalsByCurrency's rows have to carry an exact createdAt to probe the period's bounds, which
-    // adapter.create() stamps with Instant.now() - so they are seeded directly through
-    // ExpenseRowUtils.storedExpense, the way ExpenseProposalRowUtils.storedProposal seeds a
-    // proposal row at a given instant.
     private ExpenseEntity storedExpenseAt(
             long userId,
             long categoryId,

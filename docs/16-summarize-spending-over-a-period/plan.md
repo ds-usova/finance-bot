@@ -767,6 +767,21 @@ None. The one ADR candidate was raised as Q1 and declined; D28's rule lands in
 - A: The repository's names win. The design's are drift from change 13, not a decision; no production type is
   renamed and the design file is left as it stands.
 
+- **Blocker (refactor, 2026-08-05):** `TurnReportRenderer.render` can exceed its own 4000-character cap when the
+  summaries fill the budget and the report also carries proposals, so D24's bound does not hold in that corner.
+  `renderSummaries` budgets against the full `MAX_LENGTH` and may return up to 4000 characters; `render` then
+  computes `remainingBudget` as what is left, which can reach zero or go negative, while `renderList` seeds its
+  header before consulting the budget and always appends its `… and N more.` line. Worked case: a `RECORDED`
+  report with ~150 single-day summaries plus three proposals renders 4026 characters. No test covers it, and
+  Telegram's own limit is 4096, so nothing breaks for a user today. Left unfixed — the refactor phase may not
+  change behaviour. Needs a decision: fix it here as a follow-up, or fold it into the next change.
+- A:
+
+- **Note (refactor, 2026-08-05):** `SummarizeSpendingMcpToolTest`'s WARN scenario carries a `filteredOn(...)`
+  assertion strictly weaker than the unfiltered one below it, plus the `RECEIVED_CALL_PREFIX` constant that
+  exists only to serve it — leftovers from an earlier version of the scenario. Removing an assertion was outside
+  the refactor phase's remit, so both stayed.
+
 - **Note (run, 2026-08-05):** RI03's Validation group listed `from`/`to` *absent* as cases reaching the port,
   which is unreachable: both arguments are required in the published schema, so the MCP framework refuses an
   absent one before the method is entered. GI03 first made them `required = false` to satisfy those scenarios,

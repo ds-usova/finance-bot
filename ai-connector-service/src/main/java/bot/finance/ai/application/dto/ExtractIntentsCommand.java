@@ -14,10 +14,6 @@ public record ExtractIntentsCommand(
         LocalDate currentDate) {
 
     public ExtractIntentsCommand {
-        if (currentDate == null) {
-            throw new InvalidValueException("Current date must not be null");
-        }
-
         if (text == null || text.isBlank()) {
             throw new InvalidValueException("Text must not be null or blank");
         }
@@ -37,6 +33,9 @@ public record ExtractIntentsCommand(
 
         if (defaultCurrency == null) {
             throw new InvalidValueException("Default currency Optional must not be null");
+        }
+        if (currentDate == null) {
+            throw new InvalidValueException("Current date must not be null");
         }
 
         categoryGroupings = List.copyOf(categoryGroupings);

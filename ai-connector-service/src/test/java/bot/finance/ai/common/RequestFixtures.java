@@ -42,8 +42,8 @@ public final class RequestFixtures {
     }
 
     /**
-     * A valid request carrying the given {@code current_date}, for the invalid-date cases RI05 covers — a further
-     * {@code String} overload of {@code request(...)} would reproduce an existing signature.
+     * A valid request carrying the given {@code current_date}. It is a named factory rather than a further
+     * {@code request(...)} overload, which would reproduce an existing signature.
      */
     public static ExtractIntentsRequest requestWithCurrentDate(String currentDate) {
         return request(DEFAULT_TEXT, DEFAULT_CATEGORY_GROUPINGS, DEFAULT_CATCH_ALL).toBuilder()

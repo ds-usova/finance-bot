@@ -47,11 +47,6 @@ class SpendingPeriodTest {
         }
     }
 
-    static Stream<Arguments> nullFromOrTo() {
-        LocalDate day = LocalDate.parse("2026-07-27");
-        return Stream.of(Arguments.of(null, day), Arguments.of(day, null));
-    }
-
     @Nested
     @DisplayName("parsing a spending period from written dates")
     class Of {
@@ -116,6 +111,11 @@ class SpendingPeriodTest {
             assertThat(future.from()).isEqualTo(LocalDate.parse("2099-01-01"));
             assertThat(future.to()).isEqualTo(LocalDate.parse("2099-01-08"));
         }
+    }
+
+    static Stream<Arguments> nullFromOrTo() {
+        LocalDate day = LocalDate.parse("2026-07-27");
+        return Stream.of(Arguments.of(null, day), Arguments.of(day, null));
     }
 
     static Stream<String> blankValues() {
