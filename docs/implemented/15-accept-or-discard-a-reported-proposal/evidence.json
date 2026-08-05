@@ -1,12 +1,12 @@
 {
   "plan": "docs/implemented/15-accept-or-discard-a-reported-proposal/plan.md",
-  "commit": "5979a6c",
+  "commit": "50a95de",
   "branch": "feature/acknowledge-proposal",
-  "workingTree": "clean",
-  "generated": "2026-08-05T07:19:46Z",
-  "verdict": "VERIFIED",
+  "workingTree": "5 uncommitted file(s)",
+  "generated": "2026-08-05T14:23:34Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
   "modules": [
-    {"module": "ai-connector-service", "verdict": "PASS", "tests": 74, "passed": 74, "failed": 0, "skipped": 0, "instructions": "97.1%", "branches": "96.8%", "minimum": "85%"},
-    {"module": "ledger-service", "verdict": "PASS", "tests": 556, "passed": 556, "failed": 0, "skipped": 0, "instructions": "98.8%", "branches": "97.0%", "minimum": "85%"}
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 74, "passed": 74, "failed": 0, "skipped": 0, "instructions": "97.1%", "branches": "96.8%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 556, "passed": 556, "failed": 0, "skipped": 0, "instructions": "98.8%", "branches": "97.0%", "minimum": "85%", "format": "clean"}
   ]
 }

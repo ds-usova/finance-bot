@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Produces the evidence file that a finished plan's test suite and coverage were actually measured,
-# next to the plan itself. Every number in it comes from a run this script performed.
+# Produces the evidence file that a finished plan's test suite, coverage and formatting were actually
+# measured, next to the plan itself. Every number in it comes from a run this script performed.
 #
 # See tools/plan-evidence/README.md for what the evidence proves and where that stops.
 
@@ -33,8 +33,8 @@ Options:
                     was edited by hand.
   --wait <seconds>  Passed to the test runner's queue. Default 900.
 
-Exit codes: 0 verified - 1 not verified (a failure, coverage below minimum, or stale evidence)
-            2 the run never started (bad usage, missing plan, no modules).
+Exit codes: 0 verified - 1 not verified (a failure, coverage below minimum, unformatted code, or
+              stale evidence) - 2 the run never started (bad usage, missing plan, no modules).
 EOF
 }
 
@@ -193,7 +193,30 @@ for module in "${modules[@]}"; do
         }' "$csv" | sort -t "$(printf '\t')" -k3,3n -k2,2 | head -n 10 >> "$laggards"
     fi
 
-    if [ "$run_exit" != "0" ]; then
+    # Formatting is enforced by `check`, which this script never runs — it runs `test` plus the
+    # coverage tasks. Without this, a plan could be archived over unformatted code and the evidence
+    # would still read VERIFIED. `spotlessCheck` joins no queue because it is not a test task and
+    # writes no test results.
+    format_output="$work_dir/$module.format"
+    format="clean"
+    (
+        cd "$repo_root/$module" || exit 2
+        if [ -x ./gradlew ]; then
+            ./gradlew --console=plain -p . spotlessCheck
+        else
+            ./gradlew.bat --console=plain -p . spotlessCheck
+        fi
+    ) > "$format_output" 2>&1
+    format_exit=$?
+    if [ "$format_exit" != "0" ]; then
+        if grep -q "Task 'spotlessCheck' not found" "$format_output"; then
+            format="n/a"
+        else
+            format="unformatted"
+        fi
+    fi
+
+    if [ "$run_exit" != "0" ] || [ "$format" = "unformatted" ]; then
         overall="NOT VERIFIED"
     fi
     if [ "$skipped" != "0" ]; then
@@ -203,11 +226,11 @@ for module in "${modules[@]}"; do
     # The run directory is worth having while its console log still exists, which is why it is
     # reported here and not written into the evidence: a `build/` path means nothing to whoever
     # pulls the file later, and by then the directory is gone anyway.
-    echo "  $verdict — run at $run_dir" >&2
+    echo "  $verdict — run at $run_dir (format: $format)" >&2
 
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$module" "$verdict" "$tests" "$passed" "$failed" "$skipped" \
-        "$instructions" "$branches" "$minimum_percent" >> "$rows"
+        "$instructions" "$branches" "$minimum_percent" "$format" >> "$rows"
 done
 
 if [ "$dirty_count" != "0" ]; then
@@ -244,10 +267,10 @@ module_list="$(printf '%s ' "${modules[@]}")"
     echo ""
     echo "## Modules"
     echo ""
-    echo "| Module | Verdict | Tests | Passed | Failed | Skipped | Instructions | Branches | Minimum |"
-    echo "|--------|---------|-------|--------|--------|---------|--------------|----------|---------|"
-    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum; do
-        echo "| $module | $verdict | $tests | $passed | $failed | $skipped | $instructions | $branches | $minimum |"
+    echo "| Module | Verdict | Tests | Passed | Failed | Skipped | Instructions | Branches | Minimum | Format |"
+    echo "|--------|---------|-------|--------|--------|---------|--------------|----------|---------|--------|"
+    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum format; do
+        echo "| $module | $verdict | $tests | $passed | $failed | $skipped | $instructions | $branches | $minimum | $format |"
     done < "$rows"
 
     if [ "$skipped_seen" = "1" ]; then
@@ -299,11 +322,11 @@ module_list="$(printf '%s ' "${modules[@]}")"
     echo "  \"verdict\": \"$overall\","
     echo "  \"modules\": ["
     first=1
-    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum; do
+    while IFS="$(printf '\t')" read -r module verdict tests passed failed skipped instructions branches minimum format; do
         [ "$first" = "1" ] || echo ","
         first=0
-        printf '    {"module": "%s", "verdict": "%s", "tests": %s, "passed": %s, "failed": %s, "skipped": %s, "instructions": "%s", "branches": "%s", "minimum": "%s"}' \
-            "$module" "$verdict" "$tests" "$passed" "$failed" "$skipped" "$instructions" "$branches" "$minimum"
+        printf '    {"module": "%s", "verdict": "%s", "tests": %s, "passed": %s, "failed": %s, "skipped": %s, "instructions": "%s", "branches": "%s", "minimum": "%s", "format": "%s"}' \
+            "$module" "$verdict" "$tests" "$passed" "$failed" "$skipped" "$instructions" "$branches" "$minimum" "$format"
     done < "$rows"
     echo ""
     echo "  ]"
