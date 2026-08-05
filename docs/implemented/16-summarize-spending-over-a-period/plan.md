@@ -775,7 +775,9 @@ None. The one ADR candidate was raised as Q1 and declined; D28's rule lands in
   report with ~150 single-day summaries plus three proposals renders 4026 characters. No test covers it, and
   Telegram's own limit is 4096, so nothing breaks for a user today. Left unfixed — the refactor phase may not
   change behaviour. Needs a decision: fix it here as a follow-up, or fold it into the next change.
-- A:
+- A: Archive now and fix it as a follow-up. The defect is unreachable for a user at 4026 against Telegram's own
+  4096 limit, and a correct fix wants a red test pinning the bound with summaries and proposals together, which
+  is its own small design-and-plan cycle rather than a wrap-up edit.
 
 - **Note (refactor, 2026-08-05):** `SummarizeSpendingMcpToolTest`'s WARN scenario carries a `filteredOn(...)`
   assertion strictly weaker than the unfiltered one below it, plus the `RECEIVED_CALL_PREFIX` constant that
