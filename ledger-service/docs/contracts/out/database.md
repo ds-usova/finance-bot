@@ -39,6 +39,7 @@ entity "expense" as expense {
   merchant : VARCHAR(255)
   * amount_minor_units : BIGINT <<check >= 0>>
   * currency_code : VARCHAR(3)
+  message_reference : UUID
   * created_at : TIMESTAMPTZ
   * updated_at : TIMESTAMPTZ
 }
@@ -70,12 +71,20 @@ Indexes beyond the constraints above:
 
 - `uq_category_user_parent_name` on `(user_id, parent_id, name)`, **`NULLS NOT DISTINCT`**.
 - `idx_expense_user_created_at` on `(user_id, created_at DESC)`.
+- `idx_expense_message_reference` on `(user_id, message_reference)`.
 - `idx_expense_proposal_user_created_at` on `(user_id, created_at DESC)`.
 - `idx_expense_proposal_message_reference` on `(user_id, message_reference)`.
 
 `expense_proposal.message_reference` is the [message](../../domain/message-reference.md) that produced the row.
 Rows stored before the column existed each carry a reference of their own, so no two of them are read as one
 message.
+
+`expense.message_reference` is the message whose report the user confirmed, and it is empty for an expense no
+message produced. Rows stored before the column existed keep no reference: there is none to invent for them.
+
+A reference lives in `expense_proposal` or in `expense` and never in both, so which table holds it answers
+whether the report was resolved
+([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
 
 A category row with no parent is a grouping. That is how a grouping is told from a category carrying the same
 name: a grouping is read as the parentless row, a category as a row under one.
@@ -101,6 +110,9 @@ cannot be removed while either references it.
 | Find the groupings one user's categories sit under | reads the names of one user's groupings that hold at least one category, ordered by name, in one statement | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
 | Create an expense proposal                         | stores a proposal against a user and category                                                              | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                                                             |
 | Find what a message recorded                       | reads the proposals stored under one message, oldest first, each with its category and grouping            | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
+| Confirm what a message proposed                    | turns one user's proposals under one message into expenses carrying that message, in one statement         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
+| Discard what a message proposed                    | removes one user's proposals under one message                                                             | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
+| Count what a message had confirmed                 | answers how many of one user's expenses are stored under one message                                       | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
 
 ## Compatibility
 
