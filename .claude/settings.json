@@ -148,6 +148,21 @@
             "if": "Bash(grep *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-grep-search.ps1')\""
+          },
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-unless-whitelisted.ps1')\""
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-unless-whitelisted.ps1')\""
           }
         ]
       }
