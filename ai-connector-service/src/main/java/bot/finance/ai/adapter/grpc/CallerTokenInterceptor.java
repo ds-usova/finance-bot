@@ -28,7 +28,7 @@ public class CallerTokenInterceptor implements ServerInterceptor {
             return new ServerCall.Listener<>() {};
         }
 
-        Context context = Context.current().withValue(CallerTokenUtils.CALLER_TOKEN, token);
+        Context context = Context.current().withValue(CallerTokenContext.CALLER_TOKEN, token);
         return Contexts.interceptCall(context, call, headers, next);
     }
 

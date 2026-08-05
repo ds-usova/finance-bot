@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class CallerTokenUtilsTest {
+class CallerTokenContextTest {
 
     @Nested
     @DisplayName("callerToken()")
@@ -18,8 +18,8 @@ class CallerTokenUtilsTest {
         @DisplayName("when the context key holds a token - then answers a present token")
         void whenContextKeyHoldsToken_thenAnswersPresentToken() throws Exception {
             Optional<String> token = Context.current()
-                    .withValue(CallerTokenUtils.CALLER_TOKEN, "Bearer abc")
-                    .call(CallerTokenUtils::callerToken);
+                    .withValue(CallerTokenContext.CALLER_TOKEN, "Bearer abc")
+                    .call(CallerTokenContext::callerToken);
 
             assertThat(token).contains("Bearer abc");
         }
@@ -27,7 +27,7 @@ class CallerTokenUtilsTest {
         @Test
         @DisplayName("when no context key is set - then answers an empty Optional")
         void whenNoContextKeyIsSet_thenAnswersEmptyOptional() {
-            Optional<String> token = CallerTokenUtils.callerToken();
+            Optional<String> token = CallerTokenContext.callerToken();
 
             assertThat(token).isEmpty();
         }

@@ -28,8 +28,9 @@ bot.finance.ai
 
 ## Test Layers
 
-- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and pure `*Utils`
-  mappers in an adapter package. Plain JUnit, outbound ports mocked, no Spring context. A proto mapper is a
+- **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and the stateless
+  helper classes in an adapter package — the mappers, renderers and their kind
+  ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A proto mapper is a
   unit target: building a message needs no server and no channel. The same goes for an adapter-layer class
   doing something non-trivial — branching logic with no infrastructure of its own, like
   `LedgerToolFailureProcessor` or `CallerTokenMcpRequestCustomizer`; a class whose behaviour is trivial is left
@@ -92,7 +93,9 @@ bot.finance.ai
 
 - Test methods: `when<Condition>_then<Result>()`.
 - Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
-- Helpers: static `*Utils` classes with a private constructor.
+- Helpers: static `*Utils` classes with a private constructor. Test helpers are the one place `*Utils` is kept —
+  production code names a helper for its role ([Code Style](code-style.md#general)) — because a test helper
+  genuinely is a bag of conveniences keyed to a fixture rather than a thing with one job.
 - New shared builders and factories go in `bot.finance.ai.common` and get listed in
   [Package Structure](#package-structure), so later tests reuse them instead of recreating them. The exception
   is a helper needing package-private access to the class it fronts: it stays in that class's package and is
