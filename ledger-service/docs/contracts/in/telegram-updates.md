@@ -40,6 +40,15 @@ interpreted:
 In a private chat Telegram numbers the sender and the conversation alike; in a group it does not, and only the
 sender says whose spending it is.
 
+**The bot does not work in a group chat.** Telegram withholds an ordinary group message from a bot unless the bot
+is addressed, so a message written in a group is never collected and never answered.
+
+- **Reaches the service:** a private chat with the bot.
+- **Does not:** a group message that neither names the bot nor replies to one of its own.
+- **Consequence:** the sender-and-conversation distinction above shapes what is *stored*, not what arrives today.
+- **What would change it:** turning the bot's privacy mode off with its owner, which is a BotFather setting
+  rather than anything in this service.
+
 ## Failures
 
 | Condition                                                     | Signal                                                                                             |
@@ -57,7 +66,7 @@ removes, or reshapes passes unnoticed.
 
 Users stored before the sender became the identity keep working only where Telegram numbers a private chat and
 its one participant alike. A user first seen through a group message is stored under that group, and their
-spending is reachable under nothing else.
+spending is reachable under nothing else — unreachable today, since no group message is collected at all.
 
 Handling more than text — voice notes, photos — means asking Telegram for nothing new, only stopping the
 discard. Handling anything that is not a message means widening what is requested.
