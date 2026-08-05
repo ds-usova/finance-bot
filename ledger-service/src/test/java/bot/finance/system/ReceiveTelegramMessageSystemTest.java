@@ -28,7 +28,9 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
 import java.text.ParseException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -190,6 +192,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(request.getCatchAllGrouping())
                     .as("extraction request catch-all grouping")
                     .isEqualTo(Grouping.catchAllName());
+            assertThat(LocalDate.parse(request.getCurrentDate()))
+                    .as("extraction request current_date")
+                    .isEqualTo(LocalDate.now(Clock.systemUTC()));
 
             // then: it acts as that user, for this one message, on a credential this service signed
             Metadata metadata = GrpcStubServer.lastExtractionMetadata();

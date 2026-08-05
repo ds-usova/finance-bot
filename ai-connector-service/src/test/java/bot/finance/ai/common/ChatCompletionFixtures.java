@@ -11,7 +11,8 @@ public final class ChatCompletionFixtures {
     /** The tools the ledger publishes, by the name the provider calls them under. */
     public enum LedgerTool {
         CREATE_EXPENSE_PROPOSAL("create_expense_proposal"),
-        LIST_CATEGORIES("list_categories");
+        LIST_CATEGORIES("list_categories"),
+        SUMMARIZE_SPENDING("summarize_spending");
 
         private final String toolName;
 

@@ -219,7 +219,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `SpendingPeriod` · test: `SpendingPeriodTest` · covers: the compact constructor, `of()`
+- [x] RU01 · `SpendingPeriod` · test: `SpendingPeriodTest` · covers: the compact constructor, `of()`
     - `SpendingPeriod`:
         - given: two dates whose `to` equals the `from`
           when: the record is constructed
@@ -250,7 +250,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a period a decade wide, and one wholly in the future
           when: of() is called
           then: both are accepted — no span or future bound is imposed (D10)
-- [ ] RU02 · `SpendingQuery` · test: `SpendingQueryTest` · covers: `newQuery()`, `stored()`
+- [x] RU02 · `SpendingQuery` · test: `SpendingQueryTest` · covers: `newQuery()`, `stored()`
     - `newQuery()`:
         - given: a positive user id, a period, a reference and an instant
           when: newQuery() is called
@@ -265,7 +265,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: an id beside otherwise valid components
           when: stored() is called
           then: the entity carries that id and every other component reads back unchanged
-- [ ] RU03 · `SummarizeSpendingCommand` · test: `SummarizeSpendingCommandTest` · covers: the compact constructor
+- [x] RU03 · `SummarizeSpendingCommand` · test: `SummarizeSpendingCommandTest` · covers: the compact constructor
     - `SummarizeSpendingCommand`:
         - given: an authenticated user id, a reference and two written dates
           when: the record is constructed
@@ -280,7 +280,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: the record is constructed
           then: the record is built and the value is carried through unchanged — the written dates are the
           period's to judge, not the command's (RU01 owns their refusal)
-- [ ] RU04 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · covers: `summarize()`
+- [x] RU04 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · covers: `summarize()`
     - `summarize()`:
         - given: nothing stubbed
           when: summarize(null) is called
@@ -302,7 +302,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: the spending query repository throws PersistenceFailedException
           when: summarize() is called
           then: the exception propagates unchanged
-- [ ] RU05 · `SpendingSummary` · test: `SpendingSummaryTest` · covers: the compact constructor
+- [x] RU05 · `SpendingSummary` · test: `SpendingSummaryTest` · covers: the compact constructor
     - `SpendingSummary`:
         - given: totals handed in out of currency-code order
           when: the record is constructed
@@ -314,7 +314,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: the record is constructed
           then: the summary is built and `totals()` is empty — a period holding nothing is a summary, not a
           failure (D11)
-- [ ] RU06 · `TurnReport` · test: `TurnReportTest` · covers: the compact constructor
+- [x] RU06 · `TurnReport` · test: `TurnReportTest` · covers: the compact constructor
     - `TurnReport`:
         - given: a conversation id, an inbound message id, an outcome, a proposal list, a summary list and a
           reference
@@ -326,7 +326,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: mutable proposal and summary lists handed to the constructor, modified afterwards
           when: proposals() and summaries() are read
           then: both are unchanged
-- [ ] RU07 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
+- [x] RU07 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor
     - `IntentExtractionRequest`:
         - given: a null current date
           when: the record is constructed
@@ -348,7 +348,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `whenGroupingListIsModifiedAfterConstruction_thenCategoryGroupingsIsUnchanged()`,
           `whenTextCategoriesCurrencyExternalIdAndMessageReferenceAreValid_thenMessageReferenceReadsBackUnchanged()`
           and `whenMessageReferenceIsNull_thenThrowsInvalidExtractionRequestException()`
-- [ ] RU08 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
+- [x] RU08 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()`
     - `handle()`:
         - given: a fixed clock and a stored user
           when: handle() is called
@@ -409,7 +409,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `whenTurnSucceeds_thenInfoLineOmitsTheMessageText()`,
           `whenInitializeThrowsPersistenceFailedException_thenExceptionPropagatesAndRemainingPortsUntouched()` and
           `whenExtractionThrowsInvalidExtractionRequestException_thenExceptionPropagatesAndDeliverUntouched()`
-- [ ] RU09 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · covers: `toProtoRequest()`
+- [x] RU09 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · covers: `toProtoRequest()`
     - `toProtoRequest()`:
         - given: a request whose current date is a fixed day
           when: toProtoRequest() is called
@@ -422,7 +422,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesFieldAndFieldTwoIsGroupings()`
           — build the request with a current date and extend the descriptor assertion to field 5 being
           `current_date`
-- [ ] RU10 · `TurnReportRenderer` · test: `TurnReportRendererTest` · covers: `render()`, `renderKeyboard()`
+- [x] RU10 · `TurnReportRenderer` · test: `TurnReportRendererTest` · covers: `render()`, `renderKeyboard()`
     - `render()`:
         - given: an `ANSWERED` report carrying one summary with two currency totals, one of them a single expense
           when: render() is called
@@ -486,7 +486,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `whenPartialReportCarriesOneSummaryAndReference_thenReturnsSameOneRowTwoButtonMarkup()`,
           `whenNothingIdentifiedAndFailedReportsHaveNoSummaries_thenReturnsEmpty()` and
           `whenRecordedReportSummaryListIsEmpty_thenReturnsEmpty()`
-- [ ] RU11 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor
+- [x] RU11 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor
     - `ExtractIntentsCommand`:
         - given: a null current date
           when: the record is constructed
@@ -505,7 +505,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           `whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchangedAndOwnListImmutable()`,
           `whenDefaultCurrencyPresent_thenCommandExposesCurrencyCode()` and
           `whenDefaultCurrencyOptionalIsNull_thenThrowsInvalidValueException()`
-- [ ] RU12 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
+- [x] RU12 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()`
     - `extractIntents()`:
         - given: a command carrying a current date
           when: extractIntents() is called
@@ -522,7 +522,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `SpendingQueryRepositoryAdapter` · test: `SpendingQueryRepositoryAdapterTest` · covers: `create()`,
+- [x] RI01 · `SpendingQueryRepositoryAdapter` · test: `SpendingQueryRepositoryAdapterTest` · covers: `create()`,
   `findPeriodsByMessageReference()`
     - `create()`:
         - given: a stored user and a query over a one-week period
@@ -554,7 +554,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a mocked entity repository whose query throws a framework exception
           when: findPeriodsByMessageReference() is called
           then: throws PersistenceFailedException carrying that exception as its cause
-- [ ] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `totalsByCurrency()`
+- [x] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `totalsByCurrency()`
     - `totalsByCurrency()`:
         - given: a stored user with four EUR expenses and one HUF expense inside the period
           when: totalsByCurrency() is called
@@ -579,7 +579,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
         - given: a mocked entity repository whose query throws a framework exception
           when: totalsByCurrency() is called
           then: throws PersistenceFailedException carrying that exception as its cause
-- [ ] RI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
+- [x] RI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
   `tools/call summarize_spending` posted to `POST /mcp` · mocks: `SummarizeSpendingPort`
     - Happy Path:
         - given: the mocked port answers the period it was given
@@ -617,7 +617,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
       `InvalidSpendingPeriodException`, each case reaches the port carrying that written value unchanged and comes
       back as a tool error carrying the exception's own message — the tool reads neither day itself, unlike
       `ListCategoriesMcpTool`, whose command self-validates before the port
-- [ ] RI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI04 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()`
     - `extract()`:
         - given: the stub server answers an empty response and a request carrying a current date
@@ -625,7 +625,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           then: the request the server received carries that date as `current_date` in ISO-8601 text
         - every existing scenario in the class changes only how it builds its `IntentExtractionRequest` — a
           current date joins the arguments — and keeps the assertion it already makes
-- [ ] RI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI05 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `ExtractIntentsPort`
     - Happy Path:
         - given: a tokened request whose `current_date` is a valid ISO-8601 date
@@ -639,7 +639,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
       catch-all and currency cases stay, taking their `current_date` from the ST33 fixture
     - update: `whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode()` —
       same fixture change; the currency assertion is unchanged
-- [ ] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
+- [x] RI06 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()`
     - `record()`:
         - given: the provider is stubbed to call `summarize_spending` and the ledger answers it
           when: record() is called
@@ -661,7 +661,7 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `SummarizeSpendingMcpToolSystemTest` · covers: `POST /mcp`
+- [x] RS01 · `SummarizeSpendingMcpToolSystemTest` · covers: `POST /mcp`
     - Happy Path:
         - given: a user seeded through the wired repositories, and a valid token for them carrying a message
           reference
@@ -673,12 +673,12 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           when: `tools/call summarize_spending` is posted with a last day before the first
           then: 200 with a tool error saying the period ends before it starts, and no `spending_query` row for
           that user
-- [ ] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
+- [x] RS02 · `McpAuthenticationSystemTest` · covers: `POST /mcp`
     - update: `publishedTools()` — add a `summarize_spending` entry whose arguments are `from` and `to`, both
       required, so
       `whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument()`
       proves the new tool publishes no identity argument either (D12)
-- [ ] RS03 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] RS03 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
     - Happy Path:
         - given: a user seeded with expenses in two currencies dated inside a period and one dated outside it,
@@ -688,12 +688,12 @@ signature changes keeps its logic and gains a `TODO` at the insertion point.
           then: the batch is confirmed, the extraction request carried today's date, and the reply text carries
           one line per currency with the totals of the in-period expenses only and no button markup — the whole
           loop from the model's tool call to the user's answer, which no lower layer proves
-- [ ] RS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
+- [x] RS04 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` — the running
   Telegram poll loop
     - update: `whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()` — assert the
       extraction request carries a `current_date` that parses as today's UTC date, beside the grouping assertions
       it already makes
-- [ ] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
+- [x] RS05 · `ExtractIntentsSystemTest` · covers: `IntentExtractionService.ExtractIntents`
     - Happy Path:
         - given: the ledger stub answers a `summarize_spending` call and the provider is stubbed to make one
           when: a tokened request carrying a current date arrives

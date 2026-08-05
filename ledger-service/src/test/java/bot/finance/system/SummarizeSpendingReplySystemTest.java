@@ -1,0 +1,201 @@
+package bot.finance.system;
+
+import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import bot.finance.adapter.persistence.CategoryEntity;
+import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.application.port.UserRepository;
+import bot.finance.common.AbstractSystemTest;
+import bot.finance.common.CategoryRowUtils;
+import bot.finance.common.ExpenseRowUtils;
+import bot.finance.common.McpRequests;
+import bot.finance.common.TelegramFixtures;
+import bot.finance.common.TelegramTestBot;
+import bot.finance.common.WireMockStubs;
+import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.domain.model.User;
+import bot.finance.domain.value.Grouping;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.test.context.TestPropertySource;
+
+/**
+ * The bot token below is what isolates this class, the same way {@code ReceiveTelegramMessageSystemTest} isolates
+ * itself: a differing property defeats Spring's context cache, so the class gets its own context, its own poll
+ * loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no other class's poller reaches.
+ */
+@TestPropertySource(properties = "telegram.bot.token=" + TelegramTestBot.SUMMARIZE_SPENDING_TOKEN)
+class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
+
+    private static final String TOKEN = TelegramTestBot.SUMMARIZE_SPENDING_TOKEN;
+
+    private static final int UPDATE_ID = 42;
+    private static final long FROM_ID = 888L;
+    private static final long CHAT_ID = 666L;
+    private static final String FROM_ID_STRING = String.valueOf(FROM_ID);
+    private static final String CHAT_ID_STRING = String.valueOf(CHAT_ID);
+    private static final String MESSAGE_TEXT = "how much did I spend last month";
+    private static final String NEXT_OFFSET = "43";
+
+    private static final String PERIOD_FROM = "2026-07-01";
+    private static final String PERIOD_TO = "2026-07-31";
+
+    private static final String EUR_DESCRIPTION = "in-period EUR expense";
+    private static final long EUR_AMOUNT_MINOR_UNITS = 1500L; // 15.00 EUR
+    private static final String USD_DESCRIPTION = "in-period USD expense";
+    private static final long USD_AMOUNT_MINOR_UNITS = 2500L; // 25.00 USD
+    private static final String OUTSIDE_DESCRIPTION = "outside-period EUR expense";
+    private static final long OUTSIDE_AMOUNT_MINOR_UNITS = 9999L; // 99.99 EUR, dated outside the period
+
+    private static final Instant INSIDE_PERIOD_INSTANT = Instant.parse("2026-07-15T12:00:00Z");
+    private static final Instant OUTSIDE_PERIOD_INSTANT = Instant.parse("2026-06-15T12:00:00Z");
+
+    private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JdbcAggregateTemplate jdbcAggregateTemplate;
+
+    /**
+     * The order below is load-bearing, the same way {@code ReceiveTelegramMessageSystemTest} explains it: the user
+     * and the expenses are seeded first, since the poll loop is already running and must find them the moment it
+     * picks up the message; the catch-all and callback-arming stubs are registered before the update-bearing one,
+     * or the loop consumes the update before the response it triggers can be recorded.
+     */
+    @BeforeEach
+    void seedUserAndExpensesThenStubTelegram() {
+        User user = userRepository.create(User.newUser(FROM_ID_STRING), Grouping.defaults());
+        long userId = user.id().orElseThrow();
+        long categoryId = CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row -> row.parentId() != null)
+                .map(CategoryEntity::id)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no seeded category for user " + userId));
+
+        ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                EUR_DESCRIPTION,
+                null,
+                EUR_AMOUNT_MINOR_UNITS,
+                "EUR",
+                null,
+                INSIDE_PERIOD_INSTANT);
+        ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                USD_DESCRIPTION,
+                null,
+                USD_AMOUNT_MINOR_UNITS,
+                "USD",
+                null,
+                INSIDE_PERIOD_INSTANT);
+        ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                OUTSIDE_DESCRIPTION,
+                null,
+                OUTSIDE_AMOUNT_MINOR_UNITS,
+                "EUR",
+                null,
+                OUTSIDE_PERIOD_INSTANT);
+
+        WireMockStubs.telegramReturnsNoUpdates(TOKEN);
+        WireMockStubs.telegramAcceptsSendMessage(TOKEN);
+        GrpcStubServer.armMcpCallbacks(
+                "http://localhost:" + port, McpRequests.summarizeSpending(PERIOD_FROM, PERIOD_TO));
+        WireMockStubs.telegramReturnsOnFirstPoll(
+                TOKEN,
+                TelegramFixtures.updatesResponse(
+                        TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
+    }
+
+    @Nested
+    @DisplayName("happy path")
+    class HappyPath {
+
+        @Test
+        @DisplayName("when the poll loop picks up a text message asking what was spent - then the batch is "
+                + "confirmed, the extraction request carries today's date, and the reply lists one line per "
+                + "currency with only the in-period totals and no button markup")
+        void whenPollLoopPicksUpSpendingQuestion_thenBatchConfirmedAndReplyListsInPeriodTotalsOnly() {
+            // then: the message is consumed and its batch confirmed
+            await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
+                            .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
+                            .isNotEmpty());
+
+            // then: the extraction request reached the connector, carrying today's date
+            await("the AI connector receives an extraction request")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(GrpcStubServer.lastExtractionRequest())
+                            .as("last ExtractIntentsRequest received by the stub AI connector")
+                            .isNotNull());
+            ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
+            assertThat(LocalDate.parse(request.getCurrentDate()))
+                    .as("extraction request current_date")
+                    .isEqualTo(LocalDate.now(Clock.systemUTC()));
+
+            // then: the model's summarize_spending call reached /mcp and was accepted for the seeded period
+            List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
+            assertThat(mcpAnswers)
+                    .as("what /mcp answered the stub connector, call by call")
+                    .hasSize(1);
+            assertThat(mcpAnswers.get(0))
+                    .as("the summarize_spending answer echoes the accepted period")
+                    .contains(PERIOD_FROM)
+                    .contains(PERIOD_TO);
+
+            // then: one report goes back into the chat, threaded onto the message it answers
+            await("a sendMessage reply is recorded for the answered turn")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(recordedSendMessages(TOKEN))
+                            .as("sendMessage requests recorded for token %s", TOKEN)
+                            .isNotEmpty());
+
+            List<LoggedRequest> sent = recordedSendMessages(TOKEN);
+            assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);
+            LoggedRequest sendMessageRequest = sent.get(0);
+            assertThat(sendMessageRequest.formParameter("chat_id").getValues())
+                    .as("sendMessage chat_id form param")
+                    .containsExactly(CHAT_ID_STRING);
+
+            // then: the reply carries one line per currency with only the in-period totals
+            String replyText =
+                    sendMessageRequest.formParameter("text").getValues().get(0);
+            assertThat(replyText)
+                    .as("reply text carries the in-period EUR and USD totals, and no amount from outside the period")
+                    .contains("15.00 EUR")
+                    .contains("25.00 USD")
+                    .doesNotContain("99.99");
+
+            // then: no button markup is offered, since the turn produced no proposal
+            assertThat(sendMessageRequest.formParameter("reply_markup").isPresent())
+                    .as("sendMessage reply_markup form param is present")
+                    .isFalse();
+        }
+    }
+}

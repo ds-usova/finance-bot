@@ -42,6 +42,7 @@ class IntentProtoMapperTest {
             assertThat(protoRequest.getCatchAllGrouping()).isEqualTo("Other");
             assertThat(protoRequest.hasDefaultCurrency()).isTrue();
             assertThat(protoRequest.getDefaultCurrency()).isEqualTo("EUR");
+            assertThat(protoRequest.getCurrentDate()).isEqualTo("2026-08-05");
         }
 
         @Test
@@ -83,6 +84,10 @@ class IntentProtoMapperTest {
                     .isNotNull()
                     .extracting(Descriptors.FieldDescriptor::getName)
                     .isEqualTo("category_groupings");
+            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(5))
+                    .isNotNull()
+                    .extracting(Descriptors.FieldDescriptor::getName)
+                    .isEqualTo("current_date");
         }
 
         @Test

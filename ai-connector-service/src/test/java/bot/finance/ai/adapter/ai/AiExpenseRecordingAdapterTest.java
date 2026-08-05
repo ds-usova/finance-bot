@@ -20,8 +20,8 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -157,9 +157,9 @@ class AiExpenseRecordingAdapterTest {
         @Test
         @DisplayName("when record() is called with labels, a text and an assumed currency - then the provider's "
                 + "request carries record-expenses.st verbatim as the system message, and a user message holding "
-                + "the labels, the currency code and the text; its tool schema names create_expense_proposal with "
-                + "the six arguments the ledger declares")
-        @Disabled("RI06: the tools-array assertion needs summarize_spending added, since ST34 publishes a third tool")
+                + "the current date, the labels, the currency code and the text; its tool schema names "
+                + "create_expense_proposal, list_categories and summarize_spending with the arguments each ledger "
+                + "tool declares")
         void whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
@@ -175,6 +175,7 @@ class AiExpenseRecordingAdapterTest {
 
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
             assertThat(userMessage)
+                    .contains("Today is " + CURRENT_DATE + " (UTC)")
                     .contains(CATEGORY_GROUPINGS.get(0))
                     .contains(CATEGORY_GROUPINGS.get(1))
                     .contains(CATEGORY_GROUPINGS.get(2))
@@ -187,7 +188,7 @@ class AiExpenseRecordingAdapterTest {
             JsonNode tools = body.get("tools");
             assertThat(tools)
                     .extracting(tool -> tool.path("function").path("name").asText())
-                    .containsExactlyInAnyOrder("create_expense_proposal", "list_categories");
+                    .containsExactlyInAnyOrder("create_expense_proposal", "list_categories", "summarize_spending");
 
             JsonNode createExpenseProposalTool = toolNamed(tools, "create_expense_proposal");
             assertThat(createExpenseProposalTool.get("type").asText()).isEqualTo("function");
@@ -203,6 +204,14 @@ class AiExpenseRecordingAdapterTest {
             JsonNode listCategoriesProperties =
                     listCategoriesTool.get("function").get("parameters").get("properties");
             assertThat(listCategoriesProperties.fieldNames()).toIterable().containsExactly("grouping");
+
+            JsonNode summarizeSpendingTool = toolNamed(tools, "summarize_spending");
+            assertThat(summarizeSpendingTool.get("type").asText()).isEqualTo("function");
+            JsonNode summarizeSpendingProperties =
+                    summarizeSpendingTool.get("function").get("parameters").get("properties");
+            assertThat(summarizeSpendingProperties.fieldNames())
+                    .toIterable()
+                    .containsExactlyInAnyOrder("from", "to");
         }
 
         @Test
@@ -255,8 +264,6 @@ class AiExpenseRecordingAdapterTest {
         @Test
         @DisplayName("when no assumed currency is given - then the user message says an amount with no currency "
                 + "is left unrecorded, and names no currency code")
-        @Disabled("RI06: the no-currency-code search must exclude the new Today is … (UTC) line, which now carries "
-                + "one")
         void whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
@@ -268,7 +275,11 @@ class AiExpenseRecordingAdapterTest {
             String userMessage =
                     CapturedRequestUtils.messageContent(CapturedRequestUtils.body(chatRequests.get(0)), "user");
             assertThat(userMessage).contains("unrecorded");
-            assertThat(userMessage).doesNotContainPattern("\\b[A-Z]{3}\\b");
+
+            String userMessageWithoutTodayLine = userMessage.lines()
+                    .filter(line -> !line.startsWith("Today is "))
+                    .collect(Collectors.joining("\n"));
+            assertThat(userMessageWithoutTodayLine).doesNotContainPattern("\\b[A-Z]{3}\\b");
         }
 
         @Test
@@ -365,6 +376,32 @@ class AiExpenseRecordingAdapterTest {
                     ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)));
 
             assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1)).isInstanceOf(ExpenseRecordingFailedException.class);
+        }
+
+        @Test
+        @DisplayName("when the provider calls summarize_spending and the ledger accepts it - then that tool call "
+                + "reaches the ledger under the turn's caller token, carrying the first and last day the provider "
+                + "asked for")
+        void whenProviderCallsSummarizeSpendingAndLedgerAccepts_thenLedgerReceivesItUnderCallerTokenWithAskedPeriod() {
+            String from = "2026-07-27";
+            String to = "2026-08-02";
+            McpLedgerStubs.stubSummarizeSpendingAccepted(from, to);
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-1",
+                            ChatCompletionFixtures.LedgerTool.SUMMARIZE_SPENDING,
+                            "{\"from\":\"" + from + "\",\"to\":\"" + to + "\"}")),
+                    ChatCompletionFixtures.textResponse("here you go"));
+
+            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+
+            List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
+            assertThat(summarizeSpendingCalls).hasSize(1);
+            assertThat(summarizeSpendingCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN_1);
+
+            JsonNode arguments = CapturedRequestUtils.toolCallArguments(summarizeSpendingCalls.get(0));
+            assertThat(arguments.get("from").asText()).isEqualTo(from);
+            assertThat(arguments.get("to").asText()).isEqualTo(to);
         }
 
         @Test

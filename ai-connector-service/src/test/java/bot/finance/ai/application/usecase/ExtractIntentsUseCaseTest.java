@@ -45,14 +45,19 @@ class ExtractIntentsUseCaseTest {
         useCase = new ExtractIntentsUseCase(expenseRecordingPort, loggerFactory);
     }
 
-    private static ExtractIntentsCommand command(String text, List<String> categoryGroupings, String catchAllGrouping) {
-        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty(), CURRENT_DATE);
+    private static ExtractIntentsCommand command(
+            String text, List<String> categoryGroupings, String catchAllGrouping, LocalDate currentDate) {
+        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty(), currentDate);
     }
 
     private static ExtractIntentsCommand command(
-            String text, List<String> categoryGroupings, String catchAllGrouping, CurrencyCode defaultCurrency) {
+            String text,
+            List<String> categoryGroupings,
+            String catchAllGrouping,
+            CurrencyCode defaultCurrency,
+            LocalDate currentDate) {
         return new ExtractIntentsCommand(
-                text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), CURRENT_DATE);
+                text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), currentDate);
     }
 
     /**
@@ -79,7 +84,7 @@ class ExtractIntentsUseCaseTest {
                 + "text, those names in the command's order, that catch-all, and the command's currency")
         void whenCommandCarriesThreeGroupingNamesAndACatchAll_thenPortReceivesThemPassedThrough() {
             List<String> categoryGroupings = List.of("Food", "Travel", "Other");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other", CURRENT_DATE);
 
             useCase.extractIntents(command);
 
@@ -88,10 +93,23 @@ class ExtractIntentsUseCaseTest {
         }
 
         @Test
+        @DisplayName("when a command carries a current date - then the port receives that same date, unchanged")
+        void whenCommandCarriesCurrentDate_thenPortReceivesThatSameDateUnchanged() {
+            LocalDate currentDate = LocalDate.of(2026, 1, 15);
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", currentDate);
+
+            useCase.extractIntents(command);
+
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), eq(currentDate));
+        }
+
+        @Test
         @DisplayName("when a command carries an assumed currency - then the port receives that currency code")
         void whenCommandCarriesAssumedCurrency_thenPortReceivesThatCurrencyCode() {
             List<String> categoryGroupings = List.of("Food");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CurrencyCode.of("EUR"));
+            ExtractIntentsCommand command =
+                    command(TEXT, categoryGroupings, "Food", CurrencyCode.of("EUR"), CURRENT_DATE);
 
             useCase.extractIntents(command);
 
@@ -111,7 +129,7 @@ class ExtractIntentsUseCaseTest {
                 "when the port throws ExpenseRecordingFailedException - then the exception propagates " + "unchanged")
         void whenPortThrowsExpenseRecordingFailedException_thenExceptionPropagatesUnchanged() {
             List<String> categoryGroupings = List.of("Food");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
             doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any(), any());
 
@@ -123,7 +141,7 @@ class ExtractIntentsUseCaseTest {
                 + "were offered and carrying nothing from the message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
             List<String> categoryGroupings = List.of("Food", "Travel");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
 
             useCase.extractIntents(command);
 

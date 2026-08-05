@@ -75,6 +75,26 @@ class AiConnectorIntentExtractionAdapterTest {
 
         @Test
         @DisplayName(
+                "when extract is called with a request carrying a current date - then the request the server received carries that date as current_date in ISO-8601 text")
+        void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of("Groceries"),
+                    "Groceries",
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id",
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
+
+            adapter.extract(request);
+
+            ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
+            assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
+        }
+
+        @Test
+        @DisplayName(
                 "when extract is called - then the call's metadata carries authorization: Bearer <jwt>, whose sub claim is the request's userExternalId")
         void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());

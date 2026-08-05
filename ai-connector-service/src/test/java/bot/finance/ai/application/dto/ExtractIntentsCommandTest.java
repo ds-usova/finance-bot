@@ -130,5 +130,23 @@ class ExtractIntentsCommandTest {
                             new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, null, CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
+
+        @Test
+        @DisplayName("when the current date is null - then throws InvalidValueException")
+        void whenCurrentDateIsNull_thenThrowsInvalidValueException() {
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), null))
+                    .isInstanceOf(InvalidValueException.class);
+        }
+
+        @Test
+        @DisplayName("when an otherwise valid command carries a current date - then currentDate() reads back "
+                + "unchanged")
+        void whenCommandCarriesCurrentDate_thenCurrentDateReadsBackUnchanged() {
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);
+
+            assertThat(command.currentDate()).isEqualTo(CURRENT_DATE);
+        }
     }
 }

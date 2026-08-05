@@ -38,6 +38,12 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
                 .formatted(GROUPING);
     }
 
+    private static String summarizeSpendingArguments(String from, String to) {
+        return """
+                {"from":"%s","to":"%s"}"""
+                .formatted(from, to);
+    }
+
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -103,6 +109,35 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
 
             JsonNode lookupArguments = CapturedRequestUtils.toolCallArguments(listCategoriesCalls.getFirst());
             assertThat(lookupArguments.get("grouping").asText()).isEqualTo(GROUPING);
+        }
+
+        @Test
+        @DisplayName("when a tokened request carrying a current date arrives - then the RPC answers an empty "
+                + "response and the ledger received the summarize_spending call under the request's own token, "
+                + "carrying the days the provider asked for")
+        void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesSummarizeSpendingCallUnderToken() {
+            String from = "2026-08-01";
+            String to = RequestFixtures.DEFAULT_CURRENT_DATE;
+            McpLedgerStubs.stubSummarizeSpendingAccepted(from, to);
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-summarize-1",
+                            ChatCompletionFixtures.LedgerTool.SUMMARIZE_SPENDING,
+                            summarizeSpendingArguments(from, to))),
+                    ChatCompletionFixtures.textResponse("you spent 15 euros"));
+
+            ExtractIntentsResponse response = AuthorizedStubs.withCallerToken(intentExtractionStub, CALLER_TOKEN)
+                    .extractIntents(RequestFixtures.request());
+            log.info("response: {}", response);
+
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+
+            List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
+            assertThat(summarizeSpendingCalls).hasSize(1);
+            assertThat(summarizeSpendingCalls.getFirst().getHeader("Authorization")).isEqualTo(CALLER_TOKEN);
+            JsonNode arguments = CapturedRequestUtils.toolCallArguments(summarizeSpendingCalls.getFirst());
+            assertThat(arguments.get("from").asText()).isEqualTo(from);
+            assertThat(arguments.get("to").asText()).isEqualTo(to);
         }
     }
 

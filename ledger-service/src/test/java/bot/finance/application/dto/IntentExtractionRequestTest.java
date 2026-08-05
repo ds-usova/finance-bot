@@ -262,5 +262,35 @@ class IntentExtractionRequestTest {
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
+
+        @Test
+        @DisplayName("when the current date is null - then throws InvalidExtractionRequestException")
+        void whenCurrentDateIsNull_thenThrowsInvalidExtractionRequestException() {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of("groceries"),
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference(),
+                            null))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        @Test
+        @DisplayName("when an otherwise valid request carries a current date - "
+                + "then currentDate() reads back unchanged")
+        void whenRequestIsOtherwiseValidWithACurrentDate_thenCurrentDateReadsBackUnchanged() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of("groceries"),
+                    "groceries",
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id",
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
+
+            assertThat(request.currentDate()).isEqualTo(CURRENT_DATE);
+        }
     }
 }
