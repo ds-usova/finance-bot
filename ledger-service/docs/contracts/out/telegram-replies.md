@@ -65,6 +65,66 @@ A report's text is written in two parts, in this order:
   nothing in it is treated as an instruction to the renderer.
 - Nothing is retried and nothing is sent twice. A report that fails is a report the user never sees.
 
+### What a user reads
+
+A message that only asked a question:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 120.50 EUR (4 expenses)
+• 7200.00 HUF (1 expense)
+```
+
+A period the ledger holds nothing in, and two periods in one message:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 42.30 EUR (1 expense)
+
+Nothing is recorded between 3 Aug 2026 and 9 Aug 2026.
+```
+
+A message that named spending. The two buttons ride this one:
+
+```
+Noted 2 expenses, pending your confirmation:
+• Groceries (Food) — weekly shop, Rewe: 42.30 EUR
+• Auto (Fuel) — tank refill: 60.00 EUR
+```
+
+A message that did both — the totals come first:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 42.30 EUR (1 expense)
+
+Noted 2 expenses, pending your confirmation:
+• Groceries (Food) — weekly shop, Rewe: 42.30 EUR
+• Auto (Fuel) — tank refill: 60.00 EUR
+```
+
+The rest, one line each:
+
+| Outcome                                   | Text                                                          |
+|-------------------------------------------|---------------------------------------------------------------|
+| The message named and asked nothing       | `No expense was identified in that message.`                  |
+| The turn failed, having recorded nothing  | `Something went wrong and nothing was noted — please try again.` |
+| The turn failed, having recorded something | `Something went wrong, so this may be incomplete. What I could read:` then the bullets |
+
+A trimmed report closes with the count it left out — `… and 3 more.` for proposals, `… and 3 more periods.`
+when the totals alone fill the limit.
+
+### What a tap answers with
+
+| Outcome                          | Text                            |
+|----------------------------------|---------------------------------|
+| Confirmed                        | `Confirmed 2 expenses.`         |
+| Deleted                          | `Deleted 2 expenses.`           |
+| Tapped again, already confirmed  | `Already confirmed: 2 expenses.` |
+| Nothing left to resolve          | `There is nothing left to resolve.` |
+
+A count of one drops the plural: `Confirmed 1 expense.`
+
 One report is always one message. Its length limit is spent in this order:
 
 | Filled first | Then                                                      | When it still does not fit                          |

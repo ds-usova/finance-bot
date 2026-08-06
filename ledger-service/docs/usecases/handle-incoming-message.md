@@ -10,7 +10,8 @@
 
 ## The report
 
-Every message that reaches the turn is answered with exactly one of these.
+Every message that reaches the turn is answered with exactly one of these. What each one looks like in the chat
+is [written out where it is rendered](../contracts/out/telegram-replies.md#what-a-user-reads).
 
 | Report             | What it tells the user                                                                                                                                     |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
