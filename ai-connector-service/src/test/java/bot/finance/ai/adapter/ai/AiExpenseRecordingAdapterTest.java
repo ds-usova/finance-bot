@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 
 @AiAdapterTest
 class AiExpenseRecordingAdapterTest {
@@ -52,32 +53,13 @@ class AiExpenseRecordingAdapterTest {
     @Autowired
     private AiExpenseRecordingAdapter adapter;
 
-    /** Whether the throwaway turn below has already run in this JVM. */
-    private static boolean clientWarmed;
-
     /**
      * Reset before as well as after, so a test starts on an empty journal whatever the class that ran before it
      * left on the wire — the server is a singleton, and every context pointed at it outlives its own class.
-     *
-     * <p>The first turn of the JVM is spent on a throwaway one. The MCP client is configured
-     * {@code initialized: false}, so that turn is what pays for the handshake and {@code tools/list}, and it
-     * carries the cold-start cost of both HTTP clients. Whichever test ran first would otherwise pay it, and on
-     * a slow build agent that test fails on a wire it never got to use.
      */
     @BeforeEach
     void setUp() {
         WireMockSupport.SERVER.resetAll();
-
-        if (!clientWarmed) {
-            clientWarmed = true;
-            McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("warm-up", LUNCH_ARGUMENTS)),
-                    ChatCompletionFixtures.textResponse("recorded"));
-            recordInEuros(CALLER_TOKEN_1);
-            WireMockSupport.SERVER.resetAll();
-        }
     }
 
     @AfterEach
@@ -395,7 +377,14 @@ class AiExpenseRecordingAdapterTest {
             assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1)).isInstanceOf(ExpenseRecordingFailedException.class);
         }
 
+        /**
+         * Runs against a context of its own, so the client meets the dead endpoint with no session in hand. The
+         * stub carries no body matcher and so takes down the handshake as well as the tool call — the failure
+         * this scenario is about. A client that had already handshaken would meet it mid-session instead, and
+         * the turn would fail, or not, by whatever ran before.
+         */
         @Test
+        @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
         @DisplayName("when the ledger's endpoint fails the transport under the tool call - then it throws "
                 + "ExpenseRecordingFailedException")
         void whenLedgerTransportFails_thenThrowsExpenseRecordingFailedException() {
