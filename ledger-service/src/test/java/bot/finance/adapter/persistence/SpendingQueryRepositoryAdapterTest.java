@@ -179,6 +179,71 @@ class SpendingQueryRepositoryAdapterTest {
     // a Mockito mock and call the adapter's own public method directly - it is still the adapter
     // under test, just not wired against the real database.
     @Nested
+    @DisplayName("discarding the periods asked about under one message")
+    class Discard {
+
+        @Test
+        @DisplayName("when two rows are stored under the reference - then both are removed and two is answered")
+        void whenTwoRowsStoredUnderReference_thenBothRemovedAndCountAnswered() {
+            long userId = storedUserId("spending-query-discard-user");
+            MessageReference reference = MessageReference.newReference();
+            Instant now = Instant.now();
+            storedQuery(userId, reference.value(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7), now);
+            storedQuery(userId, reference.value(), LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 14), now);
+
+            int discarded = adapter.discard(userId, reference);
+
+            assertThat(discarded).isEqualTo(2);
+            assertThat(adapter.findPeriodsByMessageReference(userId, reference)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when another message's rows are stored for the same user - then only the named message's rows go")
+        void whenAnotherMessagesRowsExist_thenOnlyTheNamedMessagesRowsGo() {
+            long userId = storedUserId("spending-query-discard-other-reference-user");
+            MessageReference discarded = MessageReference.newReference();
+            MessageReference kept = MessageReference.newReference();
+            SpendingPeriod keptPeriod = new SpendingPeriod(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 7));
+            Instant now = Instant.now();
+            storedQuery(userId, discarded.value(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7), now);
+            storedQuery(userId, kept.value(), keptPeriod.from(), keptPeriod.to(), now);
+
+            adapter.discard(userId, discarded);
+
+            assertThat(adapter.findPeriodsByMessageReference(userId, discarded)).isEmpty();
+            assertThat(adapter.findPeriodsByMessageReference(userId, kept)).containsExactly(keptPeriod);
+        }
+
+        @Test
+        @DisplayName("when two users hold rows under the same reference value - then only the named user's rows go")
+        void whenTwoUsersShareReferenceValue_thenOnlyTheNamedUsersRowsGo() {
+            long userId = storedUserId("spending-query-discard-first-user");
+            long otherUserId = storedUserId("spending-query-discard-second-user");
+            MessageReference reference = MessageReference.newReference();
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 7));
+            Instant now = Instant.now();
+            storedQuery(userId, reference.value(), period.from(), period.to(), now);
+            storedQuery(otherUserId, reference.value(), period.from(), period.to(), now);
+
+            adapter.discard(userId, reference);
+
+            assertThat(adapter.findPeriodsByMessageReference(userId, reference)).isEmpty();
+            assertThat(adapter.findPeriodsByMessageReference(otherUserId, reference))
+                    .containsExactly(period);
+        }
+
+        @Test
+        @DisplayName("when no row is stored under the reference - then nothing is removed and zero is answered")
+        void whenNoRowStoredUnderReference_thenNothingRemovedAndZeroAnswered() {
+            long userId = storedUserId("spending-query-discard-nothing-user");
+
+            int discarded = adapter.discard(userId, MessageReference.newReference());
+
+            assertThat(discarded).isEqualTo(0);
+        }
+    }
+
+    @Nested
     @DisplayName("against a mocked store, not the containerized database")
     class WithAMockedStore {
 
@@ -215,6 +280,19 @@ class SpendingQueryRepositoryAdapterTest {
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findPeriodsByMessageReference(1L, MessageReference.newReference()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when discard() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedSpendingQueryEntityRepository.discard(any(), any())).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.discard(1L, MessageReference.newReference()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

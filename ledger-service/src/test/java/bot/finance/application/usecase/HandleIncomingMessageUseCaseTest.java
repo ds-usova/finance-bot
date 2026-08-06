@@ -1,12 +1,14 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -413,6 +415,70 @@ class HandleIncomingMessageUseCaseTest {
             doThrow(failure).when(messageDeliveryPort).deliver(any(TurnReport.class));
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
+        }
+
+        @Test
+        @DisplayName("when the report carrying a period reaches the user - then the periods asked about under that "
+                + "message are discarded")
+        void whenReportReachesTheUser_thenPeriodsAskedAboutAreDiscarded() {
+            stubKnownUserAndGroupings();
+            SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
+            when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of(period));
+            when(expenseRepository.totalsByCurrency(USER_ID, period)).thenReturn(oneTotal());
+
+            useCase.handle(newCommand());
+
+            ArgumentCaptor<MessageReference> referenceCaptor = ArgumentCaptor.forClass(MessageReference.class);
+            verify(spendingQueryRepository).discard(eq(USER_ID), referenceCaptor.capture());
+            verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, referenceCaptor.getValue());
+        }
+
+        @Test
+        @DisplayName("when the report cannot be delivered - then the periods asked about are kept, so a turn nobody "
+                + "was told about leaves its record behind")
+        void whenReportCannotBeDelivered_thenPeriodsAskedAboutAreKept() {
+            stubKnownUserAndGroupings();
+            SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
+            when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of(period));
+            when(expenseRepository.totalsByCurrency(USER_ID, period)).thenReturn(oneTotal());
+            doThrow(new MessageDeliveryFailedException("delivery failed", new RuntimeException()))
+                    .when(messageDeliveryPort)
+                    .deliver(any(TurnReport.class));
+
+            assertThatThrownBy(() -> useCase.handle(newCommand())).isInstanceOf(MessageDeliveryFailedException.class);
+
+            verify(spendingQueryRepository, never()).discard(anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("when the report is delivered but discarding the periods fails - then the turn still succeeds, "
+                + "since the user already has the report")
+        void whenDiscardingFailsAfterDelivery_thenTurnStillSucceeds() {
+            stubKnownUserAndGroupings();
+            SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
+            when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of(period));
+            when(expenseRepository.totalsByCurrency(USER_ID, period)).thenReturn(oneTotal());
+            when(spendingQueryRepository.discard(anyLong(), any()))
+                    .thenThrow(new PersistenceFailedException("discard failed", new RuntimeException()));
+
+            assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
+
+            verify(messageDeliveryPort).deliver(any(TurnReport.class));
+        }
+
+        @Test
+        @DisplayName("when the message asked about no period - then nothing is discarded")
+        void whenMessageAskedAboutNoPeriod_thenNothingIsDiscarded() {
+            stubKnownUserAndGroupings();
+            when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+
+            useCase.handle(newCommand());
+
+            verify(spendingQueryRepository, never()).discard(anyLong(), any());
         }
 
         @Test

@@ -20,6 +20,7 @@ import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.MessageReference;
@@ -87,6 +88,19 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         messageDeliveryPort.deliver(new TurnReport(
                 command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference));
         log.info("delivered report for message {} to user {}", reference, user.externalId());
+
+        discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
+    }
+
+    private void discardReportedPeriods(long userId, MessageReference reference, List<SpendingSummary> summaries) {
+        if (summaries.isEmpty()) {
+            return;
+        }
+        try {
+            spendingQueryRepository.discard(userId, reference);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to discard spending queries for message {}: {}", reference, e.getMessage());
+        }
     }
 
     private boolean extract(

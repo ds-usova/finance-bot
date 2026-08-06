@@ -49,6 +49,19 @@ public class SpendingQueryRepositoryAdapter implements SpendingQueryRepository {
         }
     }
 
+    @Override
+    @Transactional
+    public int discard(long userId, MessageReference reference) {
+        try {
+            return spendingQueryEntityRepository.discard(userId, reference.value());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to discard spending queries for user " + userId + " and message reference "
+                            + reference.value(),
+                    e);
+        }
+    }
+
     private static RuntimeException classify(SpendingQuery query, RuntimeException e) {
         return switch (ForeignKeyViolations.constraintName(e)) {
             case USER_FOREIGN_KEY -> new EntityNotFoundException("user", "no user stored for id " + query.userId());

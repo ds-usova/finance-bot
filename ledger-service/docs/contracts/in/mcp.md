@@ -106,7 +106,7 @@ What a repeated call leaves behind:
 |---------------------------|----------------------------------------------------------------------------------|
 | `create_expense_proposal` | not idempotent — two calls store two proposals, indistinguishable from two intended ones |
 | `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                   |
-| `summarize_spending`      | idempotent in what the user reads, not in what is stored — two calls leave two rows, and the turn reports the period once |
+| `summarize_spending`      | idempotent in what the user reads — two calls leave two rows, the turn reports the period once, and both rows go once the report is delivered |
 
 - A refused proposal stores nothing, so a corrected retry of it leaves one proposal.
 - Two *different* periods asked about in one turn are two blocks, oldest first.

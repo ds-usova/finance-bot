@@ -9,16 +9,16 @@ indistinguishable from a measured one, so do not edit it.
 | Field        | Value |
 |--------------|-------|
 | Plan         | `docs/implemented/16-summarize-spending-over-a-period/plan.md` |
-| Commit       | `da417db` on `feature/summarize-spending` |
+| Commit       | `12bb589` on `feature/summarize-spending` |
 | Working tree | clean |
-| Generated    | 2026-08-05T21:20:01Z |
+| Generated    | 2026-08-06T11:46:09Z |
 
 ## Modules
 
 | Module | Verdict | Tests | Passed | Failed | Skipped | Instructions | Branches | Minimum | Format |
 |--------|---------|-------|--------|--------|---------|--------------|----------|---------|--------|
-| ai-connector-service | PASS | 83 | 83 | 0 | 0 | 97.3% | 97.0% | 85% | clean |
-| ledger-service | PASS | 657 | 657 | 0 | 0 | 99.0% | 97.6% | 85% | clean |
+| ai-connector-service | PASS | 83 | 83 | 0 | 0 | 97.2% | 96.9% | 85% | clean |
+| ledger-service | PASS | 665 | 665 | 0 | 0 | 99.0% | 97.6% | 85% | clean |
 
 ## Least-covered classes
 

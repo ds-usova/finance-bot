@@ -105,9 +105,9 @@ Every read of the table leads with `user_id` and is covered end to end by `uq_ca
 grouping's id supplied from anywhere else answers nothing.
 
 `spending_query.message_reference` is the [message](../../domain/message-reference.md) that asked the question
-the row records. Rows are only ever inserted: nothing updates one and nothing deletes one, so the table is a
-standing record of what every user has ever asked. It is read only by `(user_id, message_reference)`, which its
-index covers end to end.
+the row records. Nothing updates a row. It is read and then deleted by `(user_id, message_reference)`, which its
+index covers end to end, so the table holds only the questions whose answers have not yet reached their user.
+Rows a failed delivery leaves behind stay until that user is removed.
 
 `expense.user_id`, `expense_proposal.user_id` and `spending_query.user_id` cascade on delete: removing a user
 removes their expenses, their proposals and the questions they asked. `expense.category_id` and
