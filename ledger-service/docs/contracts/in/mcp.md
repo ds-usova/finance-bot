@@ -73,22 +73,20 @@ a total no model can restate.
 
 ## Semantics
 
-Every call carries its own token and the server keeps nothing between calls; two calls never share state.
+- Every call carries its own token. The server keeps nothing between calls, so two calls never share state.
+- Each proposal, and each period asked about, is stored under the message reference its token carries. That is
+  what lets the ledger tell the user which message produced what.
+- A proposal or summary call whose token carries no readable reference is refused, and stores nothing.
+- Listing categories never reads the reference, so a token carrying none still lists.
+- A caller reaches only their own categories and their own spending. No tool takes an identity argument, and
+  every read is scoped to the token's subject.
+- A grouping and a category are both named, never identified.
+- A proposal names both. The grouping is resolved first, the category only under it. Nothing is filed under a
+  grouping itself.
 
-Each proposal, and each period asked about, is stored under the message reference its token carries, which is
-what lets the ledger tell the user which message produced what. A proposal call, or a summary call, whose token
-carries no readable reference is refused and stores nothing. Listing categories never reads the reference, so a
-token carrying none still lists.
-
-A caller reaches only their own categories and their own spending: no tool takes an identity argument, and every
-read is scoped to the token's subject.
-
-A grouping and a category are both named, never identified. Which names resolve, and which are refused, is the
-use case's rule, not the tool's — [for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
+Which names resolve, and which are refused, is the use case's rule rather than the tool's —
+[for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
 [for a listing](../../usecases/list-categories.md#rules).
-
-A proposal names both: the grouping is resolved first, and the category only under it. Nothing is filed under a
-grouping itself.
 
 The amount crosses as written, in the currency's main unit, and is scaled to minor units on this side
 ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)).
@@ -102,18 +100,18 @@ The amount crosses as written, in the currency's main unit, and is scaled to min
 - An absent `amount` is refused rather than read as zero. A deliberate zero is stored.
 - The answer states the amount in the units the call spoke.
 
-The proposal tool is not idempotent: the same call made twice stores two proposals, and nothing tells them apart
-from two intended ones. A refused call stores nothing, so a corrected retry of it leaves one proposal.
+What a repeated call leaves behind:
 
-Listing categories stores nothing: a duplicate, a redelivery, or a retry after a timeout whose first attempt
-succeeded all answer the same list and leave no row behind.
+| Tool                      | Repeating it                                                                     |
+|---------------------------|----------------------------------------------------------------------------------|
+| `create_expense_proposal` | not idempotent — two calls store two proposals, indistinguishable from two intended ones |
+| `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                   |
+| `summarize_spending`      | idempotent in what the user reads, not in what is stored — two calls leave two rows, and the turn reports the period once |
 
-The summary tool is idempotent in what the user reads, not in what is stored: the same call made twice leaves
-two rows, and the turn reports the period once. Two *different* periods in one turn are two blocks, oldest
-first.
-
-A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant, and the
-summary it produces is the whole ledger over those days.
+- A refused proposal stores nothing, so a corrected retry of it leaves one proposal.
+- Two *different* periods asked about in one turn are two blocks, oldest first.
+- A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant.
+- The summary it produces is the whole ledger over those days.
 
 How a caller authenticates:
 

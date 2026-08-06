@@ -59,16 +59,17 @@ A report's text is written in two parts, in this order:
   single line saying so.
 - **What the turn proposed**, under whichever of the report's own texts the outcome earned.
 
-A period's two days are written as a day, an English month and a year, whatever locale the service runs under.
+- A period's two days are written as a day, an English month and a year. The locale the service runs under does
+  not change that.
+- No formatting markup is claimed for the text. A description or a merchant name is shown exactly as stored, and
+  nothing in it is treated as an instruction to the renderer.
+- Nothing is retried and nothing is sent twice. A report that fails is a report the user never sees.
 
-No formatting markup is claimed for the text, so a description or a merchant name is shown exactly as it was
-stored and nothing in it is treated as an instruction to the renderer.
+One report is always one message. Its length limit is spent in this order:
 
-One report is always one message, and its length limit is spent on the totals first. What is cut is the proposal
-list, and what was left out is counted in a closing line. When the totals alone fill the limit, whole periods are
-dropped from the oldest and counted in a closing line of their own.
-
-Nothing is retried, and nothing is sent twice: a report that fails is a report the user never sees.
+| Filled first | Then                                                      | When it still does not fit                          |
+|--------------|------------------------------------------------------------|-------------------------------------------------------|
+| The totals   | the proposal list, trimmed, with what was left out counted | whole periods drop from the oldest, and are counted too |
 
 ## Failures
 

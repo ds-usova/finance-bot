@@ -48,10 +48,10 @@ opens with.
 
 - The person is the sender. The conversation is only where the answer goes, so the same person keeps one ledger
   wherever they write from, and a group chat is not one shared identity.
-- A message names its sender, its conversation and itself, none of them blank; text is present, and it is not
-  blank.
-- Each of those names is opaque text — whatever the delivering platform calls a sender, a conversation and a
-  message; here it is Telegram that names them.
+- A message names its sender, its conversation and itself. None of the three is blank.
+- Its text is present and not blank.
+- Each of those names is opaque text: whatever the delivering platform calls a sender, a conversation and a
+  message. Here it is Telegram that names them.
 - The sender's name is the identity the person is stored under, so a first message creates them and their
   categories, and every later one finds them.
 - What travels to the connector is the names of the groupings that person's categories sit under, in
@@ -63,23 +63,24 @@ opens with.
 - The designated catch-all is the [catch-all every catalogue starts with](../domain/grouping.md), and nothing
   else. A person whose groupings do not carry that name has a catalogue that cannot exist, so the turn ends
   there rather than falling back to another grouping.
-- No currency is assumed: an amount stated without one is not acted on.
-- The day the turn runs on travels too, in UTC, so a period asked for in words — "last week", "this month" — is
-  worked out against a day the service named rather than one the connector guessed.
+- No currency is assumed. An amount stated without one is not acted on.
+- The day the turn runs on travels too, in UTC.
+- So a period asked for in words — "last week", "this month" — is worked out against a day the service named,
+  never one the connector guessed.
 - The connector acts as that person for the length of the turn, on a credential minted per call
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
 - A [message reference](../domain/message-reference.md) is minted per message and rides that credential, so
   everything the turn records carries it
   ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
-- Only what was recorded under this message's reference is reported, oldest first — the spending it named, and
-  the periods it asked about alike.
+- Only what was recorded under this message's reference is reported, oldest first. That covers the spending it
+  named and the periods it asked about alike.
 - A period asked about twice in one turn is reported once. Two different periods are two blocks, oldest first.
-- A period is totalled over that person's expenses alone: a proposal awaiting confirmation counts towards
+- A period is totalled over that person's expenses alone. A proposal awaiting confirmation counts towards
   nothing.
-- An expense counts towards the period its confirmation falls in, not the day the money was spent — nothing
+- An expense counts towards the period its confirmation falls in, not the day the money was spent. Nothing
   records the latter.
-- Currencies are never added together, and never converted: one line per currency.
-- A period the ledger holds nothing in is reported as holding nothing; it is not left out and it is not a
+- Currencies are never added together and never converted. One line per currency.
+- A period the ledger holds nothing in is reported as holding nothing. It is not left out, and it is not a
   failure.
 - A turn the connector could not complete is still reported: what it managed to record is read back and named.
 - Spending recorded after the read-back has run stays stored and appears in no report.

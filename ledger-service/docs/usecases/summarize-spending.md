@@ -17,21 +17,22 @@
 
 ## Rules
 
-- The identity is the one the service has already authenticated
-  ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose spending it is
+- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
+  The request never names whose spending it is
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- The [message reference](../domain/message-reference.md) is read from the same credential as the identity, and
-  the request never names it either
+- The [message reference](../domain/message-reference.md) comes off the same credential. The request never names
+  it either
   ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
-- The two written days are read into a [spending period](../domain/spending-period.md) before anything is looked
-  up, so a period that does not hold together reaches no store.
-- The identity is resolved only once a period holds, and the period is recorded only once the identity does.
-- A recorded [spending query](../domain/spending-query.md) is tied to the message being handled, so the turn that
+- The two written days are read into a [spending period](../domain/spending-period.md) first. A period that does
+  not hold together reaches no store.
+- The identity is resolved only once the period holds.
+- The period is recorded only once the identity resolves.
+- A recorded [spending query](../domain/spending-query.md) is tied to the message being handled. The turn that
   minted the reference is the one that reports it.
-- Nothing is read out of the ledger here, and no total is computed: the amounts are put in front of the user by
-  [the turn](handle-incoming-message.md), and reach the caller nowhere.
+- No total is computed here, and nothing is read out of the ledger.
+- Amounts reach the user from [the turn](handle-incoming-message.md). They reach this caller nowhere.
 - The answer is the period that was accepted, as two days.
-- A repeat of the same request records a second query; the turn reports each distinct period once.
+- A repeat of the same request records a second query. The turn reports each distinct period once.
 
 ## Outcomes
 
