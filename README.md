@@ -25,12 +25,16 @@ Diagrams follow the [C4 model](https://c4model.com) and are written in [PlantUML
 !include <C4/C4_Context>
 
 Person(user, "Telegram User", "Sends voice messages describing expenses")
+Person(webUser, "Web User", "Signs in and views their ledger in a browser")
 System(financeBot, "Finance Bot", "Transcribes voice messages and extracts structured expense data")
-System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot and audio files")
+System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio files and the sign-in widget")
 System_Ext(aiProvider, "AI Provider", "LLM used to extract structured expense data from a transcript")
 
 Rel_R(user, telegram, "Sends voice message", "Telegram app")
 Rel_L(telegram, user, "Delivers confirmation reply", "Telegram app")
+
+Rel_D(webUser, financeBot, "Signs in and browses", "HTTPS")
+Rel_U(webUser, telegram, "Approves the sign-in", "Login Widget")
 
 Rel_L(financeBot, telegram, "Receives updates, downloads audio", "Telegram Bot API")
 Rel_L(financeBot, telegram, "Sends confirmation reply", "Telegram Bot API")
@@ -48,18 +52,24 @@ SHOW_LEGEND()
 !include <C4/C4_Container>
 
 Person(user, "Telegram User", "Sends voice messages describing expenses")
-System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot and audio files")
+Person(webUser, "Web User", "Signs in and views their ledger in a browser")
+System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio files and the sign-in widget")
 System_Ext(aiProvider, "AI Provider", "LLM used for expense extraction")
 
 System_Boundary(financeBot, "Finance Bot") {
+  Container(webApp, "Web App", "TypeScript, React, nginx", "Signs a user in with Telegram and serves the authenticated shell")
   Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates expense capture: coordinates transcription and AI extraction, then persists and confirms the result")
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts voice message audio into a text transcript")
   Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
   ContainerDb(db, "Database", "PostgreSQL", "Stores users and their recorded expenses")
 }
 
-Rel_R(user, telegram, "Sends voice message", "Telegram app")
+Rel(user, telegram, "Sends voice message", "Telegram app")
 Rel_L(telegram, user, "Delivers confirmation reply", "Telegram app")
+
+Rel_D(webUser, webApp, "Signs in and browses", "HTTPS")
+Rel(webApp, telegram, "Embeds the sign-in widget", "HTTPS")
+Rel_D(webApp, ledger, "Opens, reads and ends a browser session", "REST/HTTPS, same origin")
 
 Rel_L(ledger, telegram, "Polls updates, downloads audio", "Telegram Bot API")
 Rel_R(ledger, telegram, "Sends confirmation reply", "Telegram Bot API")
@@ -77,12 +87,13 @@ SHOW_LEGEND()
 
 ## Services
 
-| Container             | Stack                        | Responsibility                                   | Docs                                      | Ports |
-|-----------------------|-------------------------------|--------------------------------------------------|-------------------------------------------|-------|
-| Ledger Service        | Java, Spring Boot             | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)         | 1000  |
-| Transcription Service | Python, FasterWhisper         | Speech-to-text                                   | -                                          | -     |
-| AI Connector Service  | Java, Spring Boot, Spring AI  | Structured expense extraction from text          | [README](ai-connector-service/README.md)   | 1001  |
-| Database              | PostgreSQL                    | Stores users and expenses                        | -                                          | 5432  |
+| Container             | Stack                        | Responsibility                                   | Docs                                     | Ports |
+|-----------------------|------------------------------|--------------------------------------------------|------------------------------------------|-------|
+| Web App               | TypeScript, React, nginx     | Telegram sign-in and the authenticated shell     | [README](web-app/README.md)              | 1003  |
+| Ledger Service        | Java, Spring Boot            | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)       | 1000  |
+| Transcription Service | Python, FasterWhisper        | Speech-to-text                                   | -                                        | -     |
+| AI Connector Service  | Java, Spring Boot, Spring AI | Structured expense extraction from text          | [README](ai-connector-service/README.md) | 1001  |
+| Database              | PostgreSQL                   | Stores users and expenses                        | -                                        | 5432  |
 
 Container definitions and port mappings live in
 [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml).

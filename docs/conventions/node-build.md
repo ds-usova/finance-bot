@@ -1,0 +1,49 @@
+# Conventions > Building a Node Module
+
+How every npm/TypeScript module in this repository is built, tested, formatted, and measured. A module's own
+`docs/conventions/build.md` names what is specific to it.
+
+## Build & Test Commands
+
+Every command is an npm script, run from the module's own directory. 
+
+| Command                   | Answers                                                      |
+|---------------------------|--------------------------------------------------------------|
+| `npm ci`                  | Installs exactly what the lockfile pins                      |
+| `npm run dev`             | Serves the module with hot reload                            |
+| `npm run build`           | Does it type-check and bundle                                |
+| `npm run test`            | Watches the tests while working on them                      |
+| `npm run test:run`        | Do the tests pass, once                                      |
+| `npm run lint`            | Does it satisfy the lint rules                               |
+| `npm run format:check`    | Is it formatted                                              |
+| `npm run format`          | Reformats it                                                 |
+| `npm run verify`          | The gate: lint, format check, build and tests, in that order |
+| `npm run verify:coverage` | Is it covered                                                |
+
+`npm run verify` is the gate a change passes before it is finished, the way `check` is for a Gradle module.
+
+## Test Coverage
+
+Coverage runs under `npm run verify:coverage` and is deliberately **outside** `verify`. A run filtered to part of the suite, and
+a change whose later steps are not written yet, are both expected to fall short and are never failed for it.
+
+The thresholds live in the module's `vite.config.ts` under `test.coverage.thresholds`.
+
+## Formatting
+
+Formatting is Prettier, configured in the module's `.prettierrc.json`. `format:check` fails the build on
+unformatted code and `format` rewrites it.
+
+Linting is ESLint with the TypeScript rules, configured in `eslint.config.js`. `eslint-config-prettier` is last
+in the chain, so no lint rule disagrees with the formatter about layout.
+
+## Node Version
+
+The Node version is pinned in two places that must agree: `.nvmrc`, which `nvm use` reads, and the `engines.node`
+range in `package.json`, which `npm` enforces on install. CI reads neither — its `setup-node` step names the
+version itself.
+
+## Dependencies
+
+`package-lock.json` is committed and is what CI installs from. A dependency is added with `npm install`, never by
+editing `package.json` by hand, so the lockfile and the manifest cannot disagree.

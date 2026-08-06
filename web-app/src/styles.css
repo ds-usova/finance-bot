@@ -1,0 +1,22 @@
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+main {
+  padding: 2rem 1.5rem;
+  max-width: 40rem;
+  width: 100%;
+}
+
+.error {
+  color: #b3261e;
+}

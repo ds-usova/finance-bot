@@ -1,0 +1,8 @@
+dist
+coverage
+node_modules
+package-lock.json
+
+# Markdown here follows the repository's documentation conventions, and its tables are
+# aligned by tools/repad-tables. Prettier would undo that.
+*.md

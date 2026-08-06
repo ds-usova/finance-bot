@@ -52,6 +52,7 @@
       "Bash(javap:*)",
       "Bash(unzip -l:*)",
       "Bash(unzip -p:*)",
+      "Bash(npm audit:*)",
       "Bash(npm ci:*)",
       "Bash(npm install:*)",
       "Bash(npm run:*)",

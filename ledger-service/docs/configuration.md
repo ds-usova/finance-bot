@@ -55,8 +55,9 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   [A person signing in from a browser](contracts/in/web-session-api.md).
 - The session token is verified in process against the public half of the signing key, so reading it makes no
   request to the published key set.
-- `WEB_SESSION_COOKIE_SECURE` defaults to off so the app works over plain HTTP on a developer's machine. Any
-  deployment served over HTTPS sets it on.
+- `WEB_SESSION_COOKIE_SECURE` defaults to off so the service works over plain HTTP when run directly on a
+  developer's machine. **Compose turns it on**, because a Telegram sign-in needs an HTTPS tunnel in front of the
+  web app and the browser would otherwise discard the cookie. Any deployment served over HTTPS sets it on too.
 - `WEB_SESSION_COOKIE_SAME_SITE` can stay at `Lax` because the browser reaches the API on the same origin as the
   page — see [ADR 0014](../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md).
 - `TELEGRAM_LOGIN_MAX_AGE` bounds how long a captured Login Widget payload stays replayable.
