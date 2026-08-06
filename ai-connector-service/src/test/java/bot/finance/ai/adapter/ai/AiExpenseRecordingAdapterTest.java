@@ -52,13 +52,31 @@ class AiExpenseRecordingAdapterTest {
     @Autowired
     private AiExpenseRecordingAdapter adapter;
 
+    /** Whether the throwaway turn below has already run in this JVM. */
+    private static boolean clientWarmed;
+
     /**
      * Reset before as well as after, so a test starts on an empty journal whatever the class that ran before it
      * left on the wire — the server is a singleton, and every context pointed at it outlives its own class.
+     *
+     * <p>The first turn of the JVM is spent on a throwaway one. The MCP client is configured
+     * {@code initialized: false}, so that turn is what pays for the handshake and {@code tools/list}, and it
+     * carries the cold-start cost of both HTTP clients. Whichever test ran first would otherwise pay it, and on
+     * a slow build agent that test fails on a wire it never got to use.
      */
     @BeforeEach
     void setUp() {
         WireMockSupport.SERVER.resetAll();
+
+        if (!clientWarmed) {
+            clientWarmed = true;
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("warm-up", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.textResponse("recorded"));
+            recordInEuros(CALLER_TOKEN_1);
+            WireMockSupport.SERVER.resetAll();
+        }
     }
 
     @AfterEach
