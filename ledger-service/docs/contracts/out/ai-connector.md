@@ -44,7 +44,8 @@ outcome, no text for the user.
 - It also names the [message](../../domain/message-reference.md) the turn is about, so everything recorded
   during it can be found again
   ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
-- The connector forwards the credential untouched. Nothing riding it is part of what the schema agreed.
+- The connector forwards it untouched. Nothing riding it is part of what the schema agreed. Its whole path is
+  [drawn where it is spent](../in/mcp.md#how-a-caller-authenticates).
 - Nothing is retried and nothing is cached. The same text sent twice is two calls.
 
 ## Timing

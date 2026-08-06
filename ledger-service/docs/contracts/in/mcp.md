@@ -113,23 +113,43 @@ What a repeated call leaves behind:
 - A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant.
 - The summary it produces is the whole ledger over those days.
 
-How a caller authenticates:
+### How a caller authenticates
 
-- A short-lived RS256 JSON Web Token on the request, issued and validated by this service itself.
-- The token names the user as its subject, `ledger-service` as its issuer, `mcp-adapter` as its audience, and
-  carries the instant it was issued, the instant it expires, a unique id, and the
+The ledger both mints the token and validates it. It leaves this service, crosses two boundaries, and comes
+back:
+
+```plantuml
+@startuml McpCallerToken-Sequence
+participant "Ledger — act on a message" as Turn
+participant "AI Connector" as Connector
+participant "AI Provider" as Provider
+participant "Ledger — MCP tools" as Tools
+
+Turn -> Turn : mint a token\nsubject: the user\nmrf: this message
+Turn -> Connector : ExtractIntents + token, as call metadata
+note right of Connector : opaque here\nnever parsed, logged or stored
+
+Connector -> Provider : the message and the tool schemas
+Provider --> Connector : call a tool
+
+Connector -> Tools : the tool call + the same token, verbatim
+Tools -> Tools : validate\nsignature · algorithm · not expired\nnot future-dated · issuer · audience\nlifetime within the maximum
+Tools -> Tools : read the subject → the user\nread mrf → the message reference
+Tools --> Connector : the result, stored under that reference
+
+note over Connector, Tools : one token per call — no session.\nA turn making several calls makes several independent ones.
+@enduml
+```
+
+- The token is a short-lived RS256 JSON Web Token, issued and validated by this service itself.
+- It names the user as its subject, `ledger-service` as its issuer, and `mcp-adapter` as its audience.
+- It carries the instant it was issued, the instant it expires, a unique id, and the
   [message reference](../../domain/message-reference.md) of the message being handled.
-- Validation checks the signature and the algorithm, that the token is neither expired nor future-dated, the
-  issuer, the audience, and that the token's own lifetime does not exceed the configured maximum.
-- The signing key comes from a keystore read at startup; its public half is published, unauthenticated, at
-  `/.well-known/jwks.json`. A rotation is a new key in the keystore and a restart — a client re-reads the keys
-  and needs no change.
+- The signing key comes from a keystore read at startup. Its public half is published, unauthenticated, at
+  `/.well-known/jwks.json`.
+- A rotation is a new key in the keystore and a restart. A client re-reads the keys and needs no change.
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
-- A token is minted when this service [hands a user's turn to the connector](../out/ai-connector.md), which
-  calls back with it while the turn runs. A token outlives the turn it was minted for by design, and nothing
-  revokes one early.
-- The caller sends its own token per call rather than establishing a session, so a turn making several proposals
-  makes several independent calls.
+- A token outlives the turn it was minted for by design. Nothing revokes one early.
 
 Monitoring endpoints stay reachable without a token. Every other address on the service answers to nobody.
 

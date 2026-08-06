@@ -22,13 +22,15 @@ the day the turn runs on, and optionally the currency to assume. It decides noth
 
 ### The token
 
-- Every extraction call carries the caller's bearer token as call metadata, not as a field.
+The caller mints it and the caller checks it. Its whole path is
+[the ledger's, drawn there](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
+What this boundary promises about it:
+
+- Every extraction call carries it as call metadata, not as a field.
 - It is the identity every expense is recorded against, and the only identity this boundary carries.
 - A health check carries none.
-- The caller mints it per message and puts a reference to that message on it.
 - Everything on it is opaque here. The service forwards it and reads nothing out of it.
-- It is required but not verified here. It is checked where it is spent, by the
-  [ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md).
+- It is required, but never verified here.
 - So a caller this boundary has not authenticated records nothing, but does reach the model
   ([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
 

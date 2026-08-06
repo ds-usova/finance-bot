@@ -29,7 +29,8 @@ Every one is driven by [Record the spending a user's message names](../../usecas
 
 The token is never parsed, never logged, never stored. Forwarding it untouched is what carries the ledger's own
 claims across — the reference tying a turn's proposals to its message rides the token, and this service never
-sees it.
+sees it. Its whole path is
+[drawn on the ledger's side](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
 
 ## What this service does not do
 
