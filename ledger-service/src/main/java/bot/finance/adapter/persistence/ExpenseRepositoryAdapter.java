@@ -1,11 +1,16 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.SpendingPeriod;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +48,22 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
                     "failed to count expenses for user " + userId + " and message reference " + reference.value(), e);
+        }
+    }
+
+    @Override
+    public List<CurrencyTotal> totalsByCurrency(long userId, SpendingPeriod period) {
+        Instant from = period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant toExclusive =
+                period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        try {
+            return expenseEntityRepository.totalsByCurrency(userId, from, toExclusive).stream()
+                    .map(CurrencyTotalProjection::toCurrencyTotal)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to total expenses by currency for user " + userId + " and period " + period, e);
         }
     }
 

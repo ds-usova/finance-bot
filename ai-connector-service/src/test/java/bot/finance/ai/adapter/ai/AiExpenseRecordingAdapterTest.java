@@ -5,25 +5,29 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.CallerTokenTestSupport;
-import bot.finance.ai.common.AiAdapterTest;
-import bot.finance.ai.common.CapturedRequestUtils;
-import bot.finance.ai.common.ChatCompletionFixtures;
-import bot.finance.ai.common.JsonUtils;
-import bot.finance.ai.common.McpLedgerStubs;
-import bot.finance.ai.common.RequestFixtures;
-import bot.finance.ai.common.WireMockStubs;
-import bot.finance.ai.common.WireMockSupport;
+import bot.finance.ai.common.boot.AiAdapterTest;
+import bot.finance.ai.common.containers.WireMockSupport;
+import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
+import bot.finance.ai.common.fixtures.JsonUtils;
+import bot.finance.ai.common.fixtures.RequestFixtures;
+import bot.finance.ai.common.stubs.CapturedRequestUtils;
+import bot.finance.ai.common.stubs.McpLedgerStubs;
+import bot.finance.ai.common.stubs.WireMockStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 
 @AiAdapterTest
 class AiExpenseRecordingAdapterTest {
@@ -34,6 +38,7 @@ class AiExpenseRecordingAdapterTest {
     private static final String CATCH_ALL_GROUPING = RequestFixtures.DEFAULT_CATCH_ALL;
     private static final String CALLER_TOKEN_1 = "Bearer caller-token-1";
     private static final String CALLER_TOKEN_2 = "Bearer caller-token-2";
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     /** The grouping the lookup scenarios ask about — one of the fixture's own, so no literal is repeated. */
     private static final String LOOKUP_GROUPING = RequestFixtures.DEFAULT_CATEGORY_GROUPINGS.get(0);
@@ -48,6 +53,15 @@ class AiExpenseRecordingAdapterTest {
     @Autowired
     private AiExpenseRecordingAdapter adapter;
 
+    /**
+     * Reset before as well as after, so a test starts on an empty journal whatever the class that ran before it
+     * left on the wire — the server is a singleton, and every context pointed at it outlives its own class.
+     */
+    @BeforeEach
+    void setUp() {
+        WireMockSupport.SERVER.resetAll();
+    }
+
     @AfterEach
     void tearDown() {
         WireMockSupport.SERVER.resetAll();
@@ -55,7 +69,8 @@ class AiExpenseRecordingAdapterTest {
 
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
         CallerTokenTestSupport.withCallerToken(
-                callerToken, () -> adapter.record(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency));
+                callerToken,
+                () -> adapter.record(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE));
     }
 
     private void recordInEuros(String callerToken) {
@@ -153,8 +168,9 @@ class AiExpenseRecordingAdapterTest {
         @Test
         @DisplayName("when record() is called with labels, a text and an assumed currency - then the provider's "
                 + "request carries record-expenses.st verbatim as the system message, and a user message holding "
-                + "the labels, the currency code and the text; its tool schema names create_expense_proposal with "
-                + "the six arguments the ledger declares")
+                + "the current date, the labels, the currency code and the text; its tool schema names "
+                + "create_expense_proposal, list_categories and summarize_spending with the arguments each ledger "
+                + "tool declares")
         void whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
@@ -170,6 +186,7 @@ class AiExpenseRecordingAdapterTest {
 
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
             assertThat(userMessage)
+                    .contains("Today is " + CURRENT_DATE + " (UTC)")
                     .contains(CATEGORY_GROUPINGS.get(0))
                     .contains(CATEGORY_GROUPINGS.get(1))
                     .contains(CATEGORY_GROUPINGS.get(2))
@@ -182,7 +199,7 @@ class AiExpenseRecordingAdapterTest {
             JsonNode tools = body.get("tools");
             assertThat(tools)
                     .extracting(tool -> tool.path("function").path("name").asText())
-                    .containsExactlyInAnyOrder("create_expense_proposal", "list_categories");
+                    .containsExactlyInAnyOrder("create_expense_proposal", "list_categories", "summarize_spending");
 
             JsonNode createExpenseProposalTool = toolNamed(tools, "create_expense_proposal");
             assertThat(createExpenseProposalTool.get("type").asText()).isEqualTo("function");
@@ -198,6 +215,12 @@ class AiExpenseRecordingAdapterTest {
             JsonNode listCategoriesProperties =
                     listCategoriesTool.get("function").get("parameters").get("properties");
             assertThat(listCategoriesProperties.fieldNames()).toIterable().containsExactly("grouping");
+
+            JsonNode summarizeSpendingTool = toolNamed(tools, "summarize_spending");
+            assertThat(summarizeSpendingTool.get("type").asText()).isEqualTo("function");
+            JsonNode summarizeSpendingProperties =
+                    summarizeSpendingTool.get("function").get("parameters").get("properties");
+            assertThat(summarizeSpendingProperties.fieldNames()).toIterable().containsExactlyInAnyOrder("from", "to");
         }
 
         @Test
@@ -261,7 +284,12 @@ class AiExpenseRecordingAdapterTest {
             String userMessage =
                     CapturedRequestUtils.messageContent(CapturedRequestUtils.body(chatRequests.get(0)), "user");
             assertThat(userMessage).contains("unrecorded");
-            assertThat(userMessage).doesNotContainPattern("\\b[A-Z]{3}\\b");
+
+            String userMessageWithoutTodayLine = userMessage
+                    .lines()
+                    .filter(line -> !line.startsWith("Today is "))
+                    .collect(Collectors.joining("\n"));
+            assertThat(userMessageWithoutTodayLine).doesNotContainPattern("\\b[A-Z]{3}\\b");
         }
 
         @Test
@@ -349,7 +377,14 @@ class AiExpenseRecordingAdapterTest {
             assertThatThrownBy(() -> recordInEuros(CALLER_TOKEN_1)).isInstanceOf(ExpenseRecordingFailedException.class);
         }
 
+        /**
+         * Runs against a context of its own, so the client meets the dead endpoint with no session in hand. The
+         * stub carries no body matcher and so takes down the handshake as well as the tool call — the failure
+         * this scenario is about. A client that had already handshaken would meet it mid-session instead, and
+         * the turn would fail, or not, by whatever ran before.
+         */
         @Test
+        @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
         @DisplayName("when the ledger's endpoint fails the transport under the tool call - then it throws "
                 + "ExpenseRecordingFailedException")
         void whenLedgerTransportFails_thenThrowsExpenseRecordingFailedException() {
@@ -361,13 +396,43 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
+        @DisplayName("when the provider calls summarize_spending and the ledger accepts it - then that tool call "
+                + "reaches the ledger under the turn's caller token, carrying the first and last day the provider "
+                + "asked for")
+        void whenProviderCallsSummarizeSpendingAndLedgerAccepts_thenLedgerReceivesItUnderCallerTokenWithAskedPeriod() {
+            String from = "2026-07-27";
+            String to = "2026-08-02";
+            McpLedgerStubs.stubSummarizeSpendingAccepted(from, to);
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                            "call-1",
+                            ChatCompletionFixtures.LedgerTool.SUMMARIZE_SPENDING,
+                            "{\"from\":\"" + from + "\",\"to\":\"" + to + "\"}")),
+                    ChatCompletionFixtures.textResponse("here you go"));
+
+            assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
+
+            List<LoggedRequest> summarizeSpendingCalls = CapturedRequestUtils.toolCallRequests("summarize_spending");
+            assertThat(summarizeSpendingCalls).hasSize(1);
+            assertThat(summarizeSpendingCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN_1);
+
+            JsonNode arguments = CapturedRequestUtils.toolCallArguments(summarizeSpendingCalls.get(0));
+            assertThat(arguments.get("from").asText()).isEqualTo(from);
+            assertThat(arguments.get("to").asText()).isEqualTo(to);
+        }
+
+        @Test
         @DisplayName("when no caller token is held for the turn - then it throws ExpenseRecordingFailedException")
         void whenNoCallerTokenHeld_thenThrowsExpenseRecordingFailedException() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("irrelevant"));
 
             assertThatThrownBy(() -> adapter.record(
-                            TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.of(CurrencyCode.of("EUR"))))
+                            TEXT,
+                            CATEGORY_GROUPINGS,
+                            CATCH_ALL_GROUPING,
+                            Optional.of(CurrencyCode.of("EUR")),
+                            CURRENT_DATE))
                     .isInstanceOf(ExpenseRecordingFailedException.class);
         }
     }

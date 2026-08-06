@@ -12,12 +12,13 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
-import bot.finance.ai.common.AuthorizedStubs;
-import bot.finance.ai.common.GrpcAdapterTest;
-import bot.finance.ai.common.RequestFixtures;
+import bot.finance.ai.common.boot.GrpcAdapterTest;
+import bot.finance.ai.common.fixtures.RequestFixtures;
+import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -85,6 +86,21 @@ class IntentExtractionGrpcServiceTest {
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().categoryGroupings()).containsExactly("Food", "Insurance");
             assertThat(commandCaptor.getValue().catchAllGrouping()).isEqualTo(catchAllGrouping);
+            assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+        }
+
+        @Test
+        @DisplayName(
+                "when a tokened request carries a valid YYYY-MM-DD current_date - then the port receives a command holding that date as a LocalDate and the RPC answers an empty response")
+        void whenRequestCarriesValidCurrentDate_thenCommandHoldsItAsLocalDateAndResponseIsEmpty() {
+            String currentDate = "2026-01-15";
+
+            ExtractIntentsResponse response =
+                    authenticatedStub().extractIntents(RequestFixtures.requestWithCurrentDate(currentDate));
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().currentDate()).isEqualTo(LocalDate.parse(currentDate));
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
         }
     }
@@ -166,7 +182,14 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "")),
                     Arguments.of(
                             "catch_all_grouping not among category_groupings",
-                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "NotInList")));
+                            RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "NotInList")),
+                    Arguments.of("current_date blank", RequestFixtures.requestWithCurrentDate("")),
+                    Arguments.of(
+                            "current_date not written YYYY-MM-DD (wrong format)",
+                            RequestFixtures.requestWithCurrentDate("27/07/2026")),
+                    Arguments.of(
+                            "current_date not written YYYY-MM-DD (invalid calendar date)",
+                            RequestFixtures.requestWithCurrentDate("2026-13-01")));
         }
     }
 }

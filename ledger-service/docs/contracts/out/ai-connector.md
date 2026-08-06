@@ -1,11 +1,11 @@
 # AI Connector Service — intent extraction (gRPC)
 
-The service hands a user's turn to the AI Connector: the text, the groupings that user's categories are filed
-under, and a credential to act as them. The connector acts on whatever the message asks for and answers only
-that the turn completed — no action crosses back.
+This service hands a user's turn to the connector and gets back an acknowledgement. Nothing else crosses back.
+Whatever the turn recorded is read from this service's own store afterwards.
 
-- **Counterpart:** the AI Connector Service — its address is [configuration](../../configuration.md)
-- **Transport:** gRPC, one call per message
+- **Counterpart:** [the connector's extraction RPC](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md)
+  — what it accepts, and how it refuses
+- **Transport:** gRPC, one call per message. The address is [configuration](../../configuration.md).
 - **Schema:** [`proto/intent_extraction.proto`](../../../../proto/intent_extraction.proto), shared with the
   counterpart at the repository root
 
@@ -16,48 +16,53 @@ that the turn completed — no action crosses back.
 | Extract intents                | act on what a message asks for            | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
 | Check the connector is serving | whether the connector is answering at all | this service's health endpoint                                                                                                                                                                    |
 
-## Semantics
+## What crosses
 
-**Sent:** the user's text · the names of the groupings their categories are filed under · which of those
-groupings is the catch-all · the currency to assume (optional) · a credential naming the user, carried on the
-call rather than in the payload.
+**Sent:** the user's text · the names of the groupings their categories are filed under · which of those is the
+catch-all · the day the turn runs on · the currency to assume, present or absent · a credential naming the user,
+carried on the call rather than in the payload.
 
-**Answered:** an acknowledgement carrying nothing. Success means the turn was acted on — no count, no per-action
-outcome, no text for the user. What the turn actually recorded is read back out of this service's own store,
-under the message the credential named.
+**Answered:** an acknowledgement carrying nothing. It means the turn was acted on. No count, no per-action
+outcome, no text for the user.
 
-What the connector promises is [its side of this boundary](../../../../ai-connector-service/docs/contracts/in/intent-extraction.md#semantics).
-What this side adds:
+## What this service decides
 
-- A request is fixed once made: blank text, no groupings, or a blank name among them is refused where the
-  request is built, so it never crosses.
-- Only grouping names are sent; no category name crosses.
-- Only groupings holding at least one category are sent; there is nothing to file under an empty one.
+- Only grouping names are sent. No category name crosses.
+- Only groupings holding at least one category are sent. There is nothing to file under an empty one.
 - A category is reached from the other side, through [the tool the connector calls back on](../in/mcp.md).
-- One grouping is designated the catch-all, so a fit always exists. It is never blank, and always one of the
-  groupings sent. It is the [catch-all every catalogue starts with](../../domain/grouping.md) and nothing else,
-  so a catalogue that does not carry it produces no call at all rather than a substitute.
-- The groupings travel in alphabetical order, and nothing depends on the position of one in the list.
-- The assumed currency is stated as present or absent; it is never left unsaid.
-- An absent request is refused before the connector is reached.
-- The credential is minted per call, names the user as its subject, and is what the connector calls back with
-  ([the tool it calls](../in/mcp.md)).
-- The credential also names the [message](../../domain/message-reference.md) the turn is about, so everything
-  recorded during it can be found again afterwards
+- Groupings travel in alphabetical order. Nothing depends on the position of one.
+- One grouping is designated the catch-all, so a fit always exists.
+- That catch-all is [the one every catalogue starts with](../../domain/grouping.md), and nothing else. A
+  catalogue that does not carry it produces no call at all, rather than a substitute.
+- An invalid request is refused where it is built, so it never crosses.
+- The day the turn runs on is a calendar date in UTC, from this service's own clock.
+- A period asked for in words is anchored on that day. "Last week" is a UTC week for every user, wherever they
+  are. No user's own time zone is recorded anywhere.
+- The period itself never crosses here. The connector works it out and asks for it over
+  [the tool it calls back on](../in/mcp.md).
+- The credential is minted per call and names the user as its subject.
+- It also names the [message](../../domain/message-reference.md) the turn is about, so everything recorded
+  during it can be found again
   ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
-- The connector forwards the credential untouched, so nothing carried on it is part of what the two sides agreed
-  in the schema.
-- Nothing is retried and nothing is cached: the same text sent twice is two calls.
-- A call answers within `spring.grpc.client.channel.ai-connector.default.deadline`, which has to cover the whole
-  model-driven loop: listing the tools, a provider call, a category lookup and a recording callback per expense,
-  a provider call per result, and a further pair per expense retried.
+- The connector forwards it untouched. Nothing riding it is part of what the schema agreed. Its whole path is
+  [drawn where it is spent](../in/mcp.md#how-a-caller-authenticates).
+- Nothing is retried and nothing is cached. The same text sent twice is two calls.
+
+## Timing
+
+- A call must answer within `spring.grpc.client.channel.ai-connector.default.deadline`.
+- That deadline covers the whole model-driven loop: listing the tools, then a provider call and a callback per
+  expense, per period asked about, and per retry.
 - Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
-  mints, then the call's deadline, then the connector's own per-callback timeout — so a single slow callback
-  cannot spend the turn.
-- A call that runs out of time is abandoned on this side while the connector runs on: a failure here does not
-  mean nothing was recorded, and what was recorded by then is still reported to the user.
-- The connector's own serving status is polled and reported in this service's health endpoint, so a target
-  pointing nowhere shows there rather than at the first message.
+  mints, then the call's deadline, then the connector's own per-callback timeout.
+- So one slow callback cannot spend the turn.
+- A call that runs out of time is abandoned here while the connector runs on.
+- A failure here does not mean nothing was recorded. What was recorded by then still reaches the user.
+
+## Health
+
+- The connector's serving status is polled and reported in this service's health endpoint.
+- A target pointing nowhere shows there, rather than at the first message.
 - The check asks about the connector's server as a whole, not one service on it, and carries no credential.
 
 ## Failures
@@ -72,13 +77,8 @@ What this side adds:
 
 ## Compatibility
 
-Both sides build from the one schema, so a change to it reaches the build rather than the runtime.
-
-The credential's shape is the fragile part: the connector passes it through untouched, and it is this service
-that mints and later validates it. Changing who signs it, or how long it lives, changes both ends of the turn.
-
-Removing what the connector promises breaks this side: an acknowledgement that no longer means the turn was
-acted on, and a permanent refusal arriving as an unavailability, are the sharpest.
-
-Pointing the service at a different connector is an address change and nothing else — but that connector must
-reach this service's tool back, with the credential it was given.
+- Both sides build from the one schema. A change to it reaches the build, not the runtime.
+- The credential is the fragile part. This service mints and later validates it; the connector only passes it
+  through. Changing who signs it, or how long it lives, changes both ends of the turn.
+- Pointing at a different connector is an address change and nothing else. That connector must still reach this
+  service's tools, with the credential it was given.

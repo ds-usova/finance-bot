@@ -2,7 +2,7 @@ package bot.finance.adapter.aiconnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.common.AiConnectorAdapterTest;
+import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
 import io.grpc.Status;
 import io.grpc.health.v1.HealthCheckResponse;

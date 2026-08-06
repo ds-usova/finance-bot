@@ -2,7 +2,7 @@ package bot.finance.adapter.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.common.McpTokens;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.RSASSAVerifier;

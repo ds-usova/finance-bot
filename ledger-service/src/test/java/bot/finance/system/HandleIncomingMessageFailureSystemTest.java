@@ -1,19 +1,19 @@
 package bot.finance.system;
 
-import static bot.finance.common.TelegramTestBot.HANDLE_MESSAGE_FAILURE_TOKEN;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.TelegramTestBot.recordedSendMessages;
-import static bot.finance.common.TelegramTestBot.replyParameters;
-import static bot.finance.common.WireMockStubs.telegramAcceptsSendMessage;
+import static bot.finance.common.stubs.TelegramTestBot.HANDLE_MESSAGE_FAILURE_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsSendMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.application.port.UserRepository;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.ExpenseProposalRowUtils;
-import bot.finance.common.TelegramFixtures;
-import bot.finance.common.WireMockStubs;
+import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;

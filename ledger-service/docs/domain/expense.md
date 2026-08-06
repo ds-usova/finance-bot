@@ -17,5 +17,6 @@ and the instants it was created and last updated.
 - [Category](category.md) — what it is filed under, by the category's stored id.
 - [Money](money.md) — what was spent, and its [currency](currency-code.md).
 - [Create an expense](../usecases/create-an-expense.md) — what it is built from, and what stores one.
+- [Spending period](spending-period.md) — the stretch of days a user's expenses are totalled over.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).

@@ -1,22 +1,22 @@
 package bot.finance.system;
 
-import static bot.finance.common.TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS_TOKEN;
-import static bot.finance.common.TelegramTestBot.recordedAnswerCallbackQueries;
-import static bot.finance.common.TelegramTestBot.recordedEditMessageReplyMarkups;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
-import static bot.finance.common.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
-import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
-import static bot.finance.common.WireMockStubs.telegramReturnsOnFirstPoll;
+import static bot.finance.common.stubs.TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkups;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
+import static bot.finance.common.stubs.WireMockStubs.telegramReturnsOnFirstPoll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.ExpenseRowUtils;
-import bot.finance.common.TelegramFixtures;
-import bot.finance.common.UserRowUtils;
+import bot.finance.common.boot.AbstractSystemTest;
+import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.util.List;

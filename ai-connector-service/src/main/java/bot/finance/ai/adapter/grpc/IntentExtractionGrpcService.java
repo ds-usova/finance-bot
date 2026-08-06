@@ -6,10 +6,8 @@ import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
-import bot.finance.ai.domain.value.CurrencyCode;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
 @GrpcService
@@ -23,67 +21,18 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
 
     @Override
     public void extractIntents(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
-        if (rejectIfInvalid(request, responseObserver)) {
-            return;
-        }
-
-        Optional<CurrencyCode> defaultCurrency;
+        ExtractIntentsCommand command;
         try {
-            defaultCurrency = request.hasDefaultCurrency()
-                    ? Optional.of(CurrencyCode.of(request.getDefaultCurrency()))
-                    : Optional.empty();
+            command = ExtractIntentsRequestReader.toCommand(request);
         } catch (InvalidValueException e) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Unrecognized ISO 4217 currency code: " + request.getDefaultCurrency())
-                    .asRuntimeException());
+            responseObserver.onError(
+                    Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
             return;
         }
 
-        ExtractIntentsCommand command = new ExtractIntentsCommand(
-                request.getText(), request.getCategoryGroupingsList(), request.getCatchAllGrouping(), defaultCurrency);
         extractIntentsPort.extractIntents(command);
 
         responseObserver.onNext(ExtractIntentsResponse.getDefaultInstance());
         responseObserver.onCompleted();
-    }
-
-    private boolean rejectIfInvalid(
-            ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
-        if (request.getText().isBlank()) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Text must not be blank")
-                    .asRuntimeException());
-            return true;
-        }
-
-        if (request.getCategoryGroupingsList().isEmpty()) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Category groupings must not be empty")
-                    .asRuntimeException());
-            return true;
-        }
-
-        if (request.getCategoryGroupingsList().stream().anyMatch(String::isBlank)) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Category groupings must not contain a blank name")
-                    .asRuntimeException());
-            return true;
-        }
-
-        if (request.getCatchAllGrouping().isBlank()) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Catch-all grouping must not be blank")
-                    .asRuntimeException());
-            return true;
-        }
-
-        if (!request.getCategoryGroupingsList().contains(request.getCatchAllGrouping())) {
-            responseObserver.onError(Status.INVALID_ARGUMENT
-                    .withDescription("Catch-all grouping must be one of the category groupings")
-                    .asRuntimeException());
-            return true;
-        }
-
-        return false;
     }
 }

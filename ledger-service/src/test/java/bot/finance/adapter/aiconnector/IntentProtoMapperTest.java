@@ -6,7 +6,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
-import com.google.protobuf.Descriptors;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class IntentProtoMapperTest {
+
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     @Nested
     @DisplayName("mapping an intent-extraction request to the generated proto request")
@@ -29,7 +31,8 @@ class IntentProtoMapperTest {
                     "Other",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
@@ -38,6 +41,7 @@ class IntentProtoMapperTest {
             assertThat(protoRequest.getCatchAllGrouping()).isEqualTo("Other");
             assertThat(protoRequest.hasDefaultCurrency()).isTrue();
             assertThat(protoRequest.getDefaultCurrency()).isEqualTo("EUR");
+            assertThat(protoRequest.getCurrentDate()).isEqualTo("2026-08-05");
         }
 
         @Test
@@ -50,7 +54,8 @@ class IntentProtoMapperTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
@@ -58,25 +63,21 @@ class IntentProtoMapperTest {
         }
 
         @Test
-        @DisplayName("when the generated request's descriptor is inspected - then it declares no "
-                + "known_categories field, and field 2 is category_groupings")
-        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesFieldAndFieldTwoIsGroupings() {
+        @DisplayName(
+                "when the request carries a current date - then the generated request carries it as " + "current_date")
+        void whenRequestCarriesCurrentDate_thenGeneratedRequestCarriesItAsCurrentDate() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
                     List.of("Groceries", "Other"),
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
-            assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
-                    .isNull();
-            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2))
-                    .isNotNull()
-                    .extracting(Descriptors.FieldDescriptor::getName)
-                    .isEqualTo("category_groupings");
+            assertThat(protoRequest.getCurrentDate()).isEqualTo("2026-08-05");
         }
     }
 }

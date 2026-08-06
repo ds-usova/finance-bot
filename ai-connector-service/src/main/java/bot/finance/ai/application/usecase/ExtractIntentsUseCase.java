@@ -24,7 +24,11 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         }
 
         expenseRecordingPort.record(
-                command.text(), command.categoryGroupings(), command.catchAllGrouping(), command.defaultCurrency());
+                command.text(),
+                command.categoryGroupings(),
+                command.catchAllGrouping(),
+                command.defaultCurrency(),
+                command.currentDate());
 
         log.info(
                 "Acted on turn with {} groupings offered",

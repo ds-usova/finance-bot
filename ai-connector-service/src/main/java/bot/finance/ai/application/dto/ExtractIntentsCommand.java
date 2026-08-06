@@ -2,11 +2,16 @@ package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 public record ExtractIntentsCommand(
-        String text, List<String> categoryGroupings, String catchAllGrouping, Optional<CurrencyCode> defaultCurrency) {
+        String text,
+        List<String> categoryGroupings,
+        String catchAllGrouping,
+        Optional<CurrencyCode> defaultCurrency,
+        LocalDate currentDate) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
@@ -28,6 +33,9 @@ public record ExtractIntentsCommand(
 
         if (defaultCurrency == null) {
             throw new InvalidValueException("Default currency Optional must not be null");
+        }
+        if (currentDate == null) {
+            throw new InvalidValueException("Current date must not be null");
         }
 
         categoryGroupings = List.copyOf(categoryGroupings);

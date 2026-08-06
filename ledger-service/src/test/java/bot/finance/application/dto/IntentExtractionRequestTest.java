@@ -7,6 +7,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +22,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class IntentExtractionRequestTest {
 
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
+
     @Nested
     @DisplayName("constructing an intent extraction request")
     class IntentExtractionRequestConstructor {
@@ -34,7 +37,8 @@ class IntentExtractionRequestTest {
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.categoryGroupings()).containsExactly("groceries");
@@ -53,7 +57,8 @@ class IntentExtractionRequestTest {
                     "transport",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.categoryGroupings()).containsExactly("groceries", "transport");
@@ -74,7 +79,8 @@ class IntentExtractionRequestTest {
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -93,7 +99,8 @@ class IntentExtractionRequestTest {
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -113,7 +120,8 @@ class IntentExtractionRequestTest {
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -132,7 +140,8 @@ class IntentExtractionRequestTest {
                             catchAllGrouping,
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -150,7 +159,8 @@ class IntentExtractionRequestTest {
                             "utilities",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -163,7 +173,8 @@ class IntentExtractionRequestTest {
                             "groceries",
                             null,
                             "user-external-id",
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -176,7 +187,8 @@ class IntentExtractionRequestTest {
                     "groceries",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             assertThat(request.defaultCurrency()).isEmpty();
         }
@@ -191,7 +203,8 @@ class IntentExtractionRequestTest {
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             userExternalId,
-                            MessageReference.newReference()))
+                            MessageReference.newReference(),
+                            CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
@@ -211,7 +224,8 @@ class IntentExtractionRequestTest {
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
             mutableGroupings.add("transport");
 
             assertThat(request.categoryGroupings()).containsExactly("groceries");
@@ -229,7 +243,8 @@ class IntentExtractionRequestTest {
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
-                    messageReference);
+                    messageReference,
+                    CURRENT_DATE);
 
             assertThat(request.messageReference()).isEqualTo(messageReference);
         }
@@ -243,8 +258,39 @@ class IntentExtractionRequestTest {
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
                             "user-external-id",
+                            null,
+                            CURRENT_DATE))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        @Test
+        @DisplayName("when the current date is null - then throws InvalidExtractionRequestException")
+        void whenCurrentDateIsNull_thenThrowsInvalidExtractionRequestException() {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            List.of("groceries"),
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            "user-external-id",
+                            MessageReference.newReference(),
                             null))
                     .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        @Test
+        @DisplayName(
+                "when an otherwise valid request carries a current date - " + "then currentDate() reads back unchanged")
+        void whenRequestIsOtherwiseValidWithACurrentDate_thenCurrentDateReadsBackUnchanged() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of("groceries"),
+                    "groceries",
+                    Optional.of(CurrencyCode.of("EUR")),
+                    "user-external-id",
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
+
+            assertThat(request.currentDate()).isEqualTo(CURRENT_DATE);
         }
     }
 }

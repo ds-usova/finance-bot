@@ -1,0 +1,12 @@
+{
+  "plan": "docs/implemented/16-summarize-spending-over-a-period/plan.md",
+  "commit": "12bb589",
+  "branch": "feature/summarize-spending",
+  "workingTree": "clean",
+  "generated": "2026-08-06T11:46:09Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 83, "passed": 83, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 665, "passed": 665, "failed": 0, "skipped": 0, "instructions": "99.0%", "branches": "97.6%", "minimum": "85%", "format": "clean"}
+  ]
+}

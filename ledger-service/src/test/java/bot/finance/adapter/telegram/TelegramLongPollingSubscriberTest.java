@@ -1,11 +1,11 @@
 package bot.finance.adapter.telegram;
 
-import static bot.finance.common.TelegramTestBot.SUBSCRIBER_TOKEN;
-import static bot.finance.common.TelegramTestBot.forToken;
-import static bot.finance.common.TelegramTestBot.getUpdatesPath;
-import static bot.finance.common.TelegramTestBot.recordedPolls;
-import static bot.finance.common.WireMockStubs.telegramFails;
-import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
+import static bot.finance.common.stubs.TelegramTestBot.SUBSCRIBER_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.forToken;
+import static bot.finance.common.stubs.TelegramTestBot.getUpdatesPath;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
+import static bot.finance.common.stubs.WireMockStubs.telegramFails;
+import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
 import static com.github.tomakehurst.wiremock.client.WireMock.and;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;

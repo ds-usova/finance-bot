@@ -1,16 +1,16 @@
 package bot.finance.adapter.telegram;
 
-import static bot.finance.common.TelegramFixtures.MESSAGE_ID;
-import static bot.finance.common.TelegramFixtures.callbackQueryUpdate;
-import static bot.finance.common.TelegramFixtures.textMessageUpdate;
-import static bot.finance.common.TelegramFixtures.textMessageUpdateWithoutFrom;
-import static bot.finance.common.TelegramFixtures.updatesResponse;
-import static bot.finance.common.TelegramFixtures.voiceMessageUpdate;
-import static bot.finance.common.TelegramTestBot.LISTENER_TOKEN;
-import static bot.finance.common.TelegramTestBot.forToken;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.WireMockStubs.telegramReturnsNoUpdates;
-import static bot.finance.common.WireMockStubs.telegramReturnsOnFirstPoll;
+import static bot.finance.common.fixtures.TelegramFixtures.MESSAGE_ID;
+import static bot.finance.common.fixtures.TelegramFixtures.callbackQueryUpdate;
+import static bot.finance.common.fixtures.TelegramFixtures.textMessageUpdate;
+import static bot.finance.common.fixtures.TelegramFixtures.textMessageUpdateWithoutFrom;
+import static bot.finance.common.fixtures.TelegramFixtures.updatesResponse;
+import static bot.finance.common.fixtures.TelegramFixtures.voiceMessageUpdate;
+import static bot.finance.common.stubs.TelegramTestBot.LISTENER_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.forToken;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
+import static bot.finance.common.stubs.WireMockStubs.telegramReturnsOnFirstPoll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;

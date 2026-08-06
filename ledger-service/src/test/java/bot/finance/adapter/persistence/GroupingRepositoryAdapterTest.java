@@ -7,9 +7,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.StoredGrouping;
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.PersistenceAdapterTest;
-import bot.finance.common.UserRowUtils;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.List;
 import java.util.Optional;

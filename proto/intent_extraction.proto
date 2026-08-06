@@ -22,6 +22,9 @@ message ExtractIntentsRequest {
   // ISO 4217 code applied when the user states an amount but no currency. Absent means
   // an amount without a currency is not acted on.
   optional string default_currency = 4;
+  // The day the turn runs on, in UTC, written `YYYY-MM-DD`. Every period the model reads out
+  // of a relative phrase is anchored on it.
+  string current_date = 5;
 }
 
 // Empty: a call that returns has been acted on. A failure is a gRPC status.

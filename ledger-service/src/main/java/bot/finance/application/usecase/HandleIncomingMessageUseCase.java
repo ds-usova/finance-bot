@@ -3,10 +3,12 @@ package bot.finance.application.usecase;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.SpendingSummary;
+import bot.finance.application.dto.TurnReport;
 import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
@@ -14,12 +16,17 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
+import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.SpendingPeriod;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +37,9 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final IntentExtractionPort intentExtractionPort;
     private final ExpenseProposalRepository expenseProposalRepository;
     private final MessageDeliveryPort messageDeliveryPort;
+    private final Clock clock;
+    private final SpendingQueryRepository spendingQueryRepository;
+    private final ExpenseRepository expenseRepository;
     private final Logger log;
 
     public HandleIncomingMessageUseCase(
@@ -38,12 +48,18 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             IntentExtractionPort intentExtractionPort,
             ExpenseProposalRepository expenseProposalRepository,
             MessageDeliveryPort messageDeliveryPort,
+            Clock clock,
+            SpendingQueryRepository spendingQueryRepository,
+            ExpenseRepository expenseRepository,
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
         this.intentExtractionPort = intentExtractionPort;
         this.expenseProposalRepository = expenseProposalRepository;
         this.messageDeliveryPort = messageDeliveryPort;
+        this.clock = clock;
+        this.spendingQueryRepository = spendingQueryRepository;
+        this.expenseRepository = expenseRepository;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
     }
 
@@ -63,13 +79,28 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
                 user.id().orElseThrow(), reference);
-        ReportOutcome outcome = outcomeFor(extractionFailed, proposals);
+        List<SpendingSummary> summaries = spendingSummaries(user.id().orElseThrow(), reference);
+
+        ReportOutcome outcome = outcomeFor(extractionFailed, proposals, summaries);
         if (extractionFailed) {
             log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
         }
-        messageDeliveryPort.deliver(new ProposalReport(
-                command.conversationId(), command.inboundMessageId(), outcome, proposals, reference));
+        messageDeliveryPort.deliver(new TurnReport(
+                command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference));
         log.info("delivered report for message {} to user {}", reference, user.externalId());
+
+        discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
+    }
+
+    private void discardReportedPeriods(long userId, MessageReference reference, List<SpendingSummary> summaries) {
+        if (summaries.isEmpty()) {
+            return;
+        }
+        try {
+            spendingQueryRepository.discard(userId, reference);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to discard spending queries for message {}: {}", reference, e.getMessage());
+        }
     }
 
     private boolean extract(
@@ -84,7 +115,8 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
                     catchAllGrouping(categoryGroupings),
                     Optional.empty(),
                     user.externalId(),
-                    reference));
+                    reference,
+                    LocalDate.now(clock)));
             return false;
         } catch (IntentExtractionFailedException e) {
             return true;
@@ -99,10 +131,21 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         return designated;
     }
 
-    private ReportOutcome outcomeFor(boolean extractionFailed, List<ProposalSummary> proposals) {
+    private List<SpendingSummary> spendingSummaries(long userId, MessageReference reference) {
+        List<SpendingPeriod> periods = spendingQueryRepository.findPeriodsByMessageReference(userId, reference);
+        return periods.stream()
+                .map(period -> new SpendingSummary(period, expenseRepository.totalsByCurrency(userId, period)))
+                .toList();
+    }
+
+    private ReportOutcome outcomeFor(
+            boolean extractionFailed, List<ProposalSummary> proposals, List<SpendingSummary> summaries) {
         if (extractionFailed) {
-            return proposals.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
+            return proposals.isEmpty() && summaries.isEmpty() ? ReportOutcome.FAILED : ReportOutcome.PARTIAL;
         }
-        return proposals.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.RECORDED;
+        if (!proposals.isEmpty()) {
+            return ReportOutcome.RECORDED;
+        }
+        return summaries.isEmpty() ? ReportOutcome.NOTHING_IDENTIFIED : ReportOutcome.ANSWERED;
     }
 }

@@ -1,30 +1,30 @@
 package bot.finance.adapter.telegram;
 
-import static bot.finance.common.TelegramTestBot.DELIVERY_TOKEN;
-import static bot.finance.common.TelegramTestBot.forToken;
-import static bot.finance.common.TelegramTestBot.recordedAnswerCallbackQueries;
-import static bot.finance.common.TelegramTestBot.recordedBotApiMethods;
-import static bot.finance.common.TelegramTestBot.recordedEditMessageReplyMarkups;
-import static bot.finance.common.TelegramTestBot.recordedSendMessages;
-import static bot.finance.common.TelegramTestBot.replyMarkup;
-import static bot.finance.common.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
-import static bot.finance.common.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
-import static bot.finance.common.WireMockStubs.telegramAcceptsSendMessage;
-import static bot.finance.common.WireMockStubs.telegramFailsAnswerCallbackQuery;
-import static bot.finance.common.WireMockStubs.telegramFailsEditMessageReplyMarkup;
-import static bot.finance.common.WireMockStubs.telegramFailsSendMessage;
+import static bot.finance.common.stubs.TelegramTestBot.DELIVERY_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.forToken;
+import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
+import static bot.finance.common.stubs.TelegramTestBot.recordedBotApiMethods;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkups;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.replyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsSendMessage;
+import static bot.finance.common.stubs.WireMockStubs.telegramFailsAnswerCallbackQuery;
+import static bot.finance.common.stubs.WireMockStubs.telegramFailsEditMessageReplyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramFailsSendMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.application.dto.ProposalReport;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.dto.ResolutionOutcome;
-import bot.finance.common.TelegramTestBot;
+import bot.finance.application.dto.TurnReport;
 import bot.finance.common.containers.WireMockSupport;
+import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.value.CurrencyCode;
@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Integration test for the outbound Telegram adapter. Its protocol is the Telegram Bot API over HTTP, not an
  * endpoint this service exposes, so the test wires only the adapter under test over a real {@link TelegramBot}
- * pointed at the WireMock singleton and calls {@link TelegramMessageDeliveryAdapter#deliver(ProposalReport)}
+ * pointed at the WireMock singleton and calls {@link TelegramMessageDeliveryAdapter#deliver(TurnReport)}
  * directly; nothing is mocked.
  */
 class TelegramMessageDeliveryAdapterTest {
@@ -60,8 +60,8 @@ class TelegramMessageDeliveryAdapterTest {
         WireMockSupport.SERVER.resetAll();
     }
 
-    private static ProposalReport recordedReportWithTwoSummaries() {
-        return new ProposalReport(
+    private static TurnReport recordedReportWithTwoSummaries() {
+        return new TurnReport(
                 CONVERSATION_ID,
                 INBOUND_MESSAGE_ID,
                 ReportOutcome.RECORDED,
@@ -78,14 +78,16 @@ class TelegramMessageDeliveryAdapterTest {
                                 "tank refill",
                                 Optional.empty(),
                                 new Money(6000, CurrencyCode.of("EUR")))),
+                List.of(),
                 MessageReference.newReference());
     }
 
-    private static ProposalReport nothingIdentifiedReport() {
-        return new ProposalReport(
+    private static TurnReport nothingIdentifiedReport() {
+        return new TurnReport(
                 CONVERSATION_ID,
                 INBOUND_MESSAGE_ID,
                 ReportOutcome.NOTHING_IDENTIFIED,
+                List.of(),
                 List.of(),
                 MessageReference.newReference());
     }
@@ -116,7 +118,7 @@ class TelegramMessageDeliveryAdapterTest {
     }
 
     @Nested
-    @DisplayName("deliver(ProposalReport)")
+    @DisplayName("deliver(TurnReport)")
     class Deliver {
 
         @Test
@@ -124,7 +126,7 @@ class TelegramMessageDeliveryAdapterTest {
                 "when a RECORDED report is delivered - then one sendMessage is addressed, threaded and rendered as the report says")
         void whenCalledWithRecordedReportAndSendMessageAccepted_thenExactlyOneSendMessageIsRecordedAsTheReportSays() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
-            ProposalReport report = recordedReportWithTwoSummaries();
+            TurnReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
 
             adapter.deliver(report);
@@ -134,7 +136,7 @@ class TelegramMessageDeliveryAdapterTest {
             LoggedRequest sendMessageRequest = sent.get(0);
             assertThat(sendMessageRequest.formParameter("chat_id").getValues()).containsExactly(CONVERSATION_ID);
             assertThat(sendMessageRequest.formParameter("text").getValues())
-                    .containsExactly(ProposalReportRenderer.render(report));
+                    .containsExactly(TurnReportRenderer.render(report));
             assertThat(sendMessageRequest.formParameter("parse_mode").isPresent())
                     .isFalse();
 
@@ -149,7 +151,7 @@ class TelegramMessageDeliveryAdapterTest {
                 "when called over a bot WireMock answers sendMessage with a non-OK envelope for - then throws MessageDeliveryFailedException")
         void whenSendMessageAnsweredWithNonOkEnvelope_thenThrowsMessageDeliveryFailedException() {
             telegramFailsSendMessage(DELIVERY_TOKEN, 400, "simulated sendMessage failure");
-            ProposalReport report = recordedReportWithTwoSummaries();
+            TurnReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
 
             assertThatThrownBy(() -> adapter.deliver(report)).isInstanceOf(MessageDeliveryFailedException.class);
@@ -160,7 +162,7 @@ class TelegramMessageDeliveryAdapterTest {
                 "when called over a bot pointed at an address that refuses the connection - then throws MessageDeliveryFailedException carrying the client exception as its cause")
         void
                 whenBotIsPointedAtRefusingAddress_thenThrowsMessageDeliveryFailedExceptionCarryingClientExceptionAsCause() {
-            ProposalReport report = recordedReportWithTwoSummaries();
+            TurnReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(refusingBot());
 
             assertThatThrownBy(() -> adapter.deliver(report))
@@ -185,7 +187,7 @@ class TelegramMessageDeliveryAdapterTest {
         void
                 whenCalledWithRecordedReportCarryingReference_thenSendMessageCarriesReplyMarkupWithConfirmAndDeleteButtons() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
-            ProposalReport report = recordedReportWithTwoSummaries();
+            TurnReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
 
             adapter.deliver(report);
@@ -208,7 +210,7 @@ class TelegramMessageDeliveryAdapterTest {
         @DisplayName("when a report carries no summaries - then the sendMessage carries no reply_markup")
         void whenCalledWithNothingIdentifiedReport_thenSendMessageCarriesNoReplyMarkupFormParam() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
-            ProposalReport report = nothingIdentifiedReport();
+            TurnReport report = nothingIdentifiedReport();
             TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
 
             adapter.deliver(report);

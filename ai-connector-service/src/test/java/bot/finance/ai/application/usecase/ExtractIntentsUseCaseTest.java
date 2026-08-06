@@ -18,6 +18,7 @@ import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 class ExtractIntentsUseCaseTest {
 
     private static final String TEXT = "spent 15 euros on lunch";
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     private ExpenseRecordingPort expenseRecordingPort;
     private Logger log;
@@ -43,13 +45,19 @@ class ExtractIntentsUseCaseTest {
         useCase = new ExtractIntentsUseCase(expenseRecordingPort, loggerFactory);
     }
 
-    private static ExtractIntentsCommand command(String text, List<String> categoryGroupings, String catchAllGrouping) {
-        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty());
+    private static ExtractIntentsCommand command(
+            String text, List<String> categoryGroupings, String catchAllGrouping, LocalDate currentDate) {
+        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.empty(), currentDate);
     }
 
     private static ExtractIntentsCommand command(
-            String text, List<String> categoryGroupings, String catchAllGrouping, CurrencyCode defaultCurrency) {
-        return new ExtractIntentsCommand(text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency));
+            String text,
+            List<String> categoryGroupings,
+            String catchAllGrouping,
+            CurrencyCode defaultCurrency,
+            LocalDate currentDate) {
+        return new ExtractIntentsCommand(
+                text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), currentDate);
     }
 
     /**
@@ -76,22 +84,36 @@ class ExtractIntentsUseCaseTest {
                 + "text, those names in the command's order, that catch-all, and the command's currency")
         void whenCommandCarriesThreeGroupingNamesAndACatchAll_thenPortReceivesThemPassedThrough() {
             List<String> categoryGroupings = List.of("Food", "Travel", "Other");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other", CURRENT_DATE);
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()));
+            verify(expenseRecordingPort)
+                    .record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()), eq(CURRENT_DATE));
+        }
+
+        @Test
+        @DisplayName("when a command carries a current date - then the port receives that same date, unchanged")
+        void whenCommandCarriesCurrentDate_thenPortReceivesThatSameDateUnchanged() {
+            LocalDate currentDate = LocalDate.of(2026, 1, 15);
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", currentDate);
+
+            useCase.extractIntents(command);
+
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), eq(currentDate));
         }
 
         @Test
         @DisplayName("when a command carries an assumed currency - then the port receives that currency code")
         void whenCommandCarriesAssumedCurrency_thenPortReceivesThatCurrencyCode() {
             List<String> categoryGroupings = List.of("Food");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CurrencyCode.of("EUR"));
+            ExtractIntentsCommand command =
+                    command(TEXT, categoryGroupings, "Food", CurrencyCode.of("EUR"), CURRENT_DATE);
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))));
+            verify(expenseRecordingPort).record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))), any());
         }
 
         @Test
@@ -107,9 +129,9 @@ class ExtractIntentsUseCaseTest {
                 "when the port throws ExpenseRecordingFailedException - then the exception propagates " + "unchanged")
         void whenPortThrowsExpenseRecordingFailedException_thenExceptionPropagatesUnchanged() {
             List<String> categoryGroupings = List.of("Food");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
-            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any());
+            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any(), any());
 
             assertThatThrownBy(() -> useCase.extractIntents(command)).isSameAs(failure);
         }
@@ -119,7 +141,7 @@ class ExtractIntentsUseCaseTest {
                 + "were offered and carrying nothing from the message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
             List<String> categoryGroupings = List.of("Food", "Travel");
-            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
 
             useCase.extractIntents(command);
 

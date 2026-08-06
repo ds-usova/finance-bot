@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
-import bot.finance.common.AiConnectorAdapterTest;
+import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
@@ -20,6 +20,7 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @AiConnectorAdapterTest
 class AiConnectorIntentExtractionAdapterTest {
+
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     @Autowired
     private AiConnectorIntentExtractionAdapter adapter;
@@ -56,7 +59,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
 
@@ -64,9 +68,27 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
             assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
             assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
-            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("known_categories"))
-                    .isNull();
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
+        }
+
+        @Test
+        @DisplayName(
+                "when extract is called with a request carrying a current date - then the request the server received carries that date as current_date written YYYY-MM-DD")
+        void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of("Groceries"),
+                    "Groceries",
+                    Optional.of(CurrencyCode.of("USD")),
+                    "user-external-id",
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
+
+            adapter.extract(request);
+
+            ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
+            assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
         }
 
         @Test
@@ -80,7 +102,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id-77",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             adapter.extract(request);
 
@@ -107,7 +130,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Groceries",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    reference);
+                    reference,
+                    CURRENT_DATE);
 
             adapter.extract(request);
 
@@ -139,7 +163,8 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference());
+                    MessageReference.newReference(),
+                    CURRENT_DATE);
 
             IntentExtractionFailedException thrown =
                     catchThrowableOfType(() -> adapter.extract(request), IntentExtractionFailedException.class);

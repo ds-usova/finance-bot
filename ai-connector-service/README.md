@@ -18,7 +18,7 @@ Package structure is in the
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
 - [AI provider — recording spending](docs/contracts/out/ai-provider.md) (outbound)
-- [Ledger Service — the expense and category tools](docs/contracts/out/ledger-mcp.md) (outbound)
+- [Ledger Service — the ledger's tools](docs/contracts/out/ledger-mcp.md) (outbound)
 
 ### Running It
 
@@ -81,6 +81,6 @@ bearer token — the one the service calls the ledger back with.
 grpcurl -plaintext localhost:1001 list
 grpcurl -plaintext \
   -H 'authorization: Bearer <jwt>' \
-  -d '{"text":"spent 15 on lunch","category_groupings":["Dining","Miscellaneous"],"catch_all_grouping":"Miscellaneous","default_currency":"EUR"}' \
+  -d '{"text":"spent 15 on lunch","category_groupings":["Dining","Miscellaneous"],"catch_all_grouping":"Miscellaneous","current_date":"2026-08-05","default_currency":"EUR"}' \
   localhost:1001 bot.finance.ai.v1.IntentExtractionService/ExtractIntents
 ```

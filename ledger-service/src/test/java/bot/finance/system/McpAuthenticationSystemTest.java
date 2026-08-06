@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.ExpenseProposalRowUtils;
-import bot.finance.common.McpRequests;
-import bot.finance.common.McpTokens;
-import bot.finance.common.UserRowUtils;
+import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.McpTokens;
+import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -172,7 +172,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                         "create_expense_proposal",
                         List.of("category", "grouping", "description", "merchant", "amount", "currencyCode"),
                         List.of("amount", "grouping")),
-                Arguments.of("list_categories", List.of("grouping"), List.of("grouping")));
+                Arguments.of("list_categories", List.of("grouping"), List.of("grouping")),
+                Arguments.of("summarize_spending", List.of("from", "to"), List.of("from", "to")));
     }
 
     static Stream<Arguments> rejectedTokens() {

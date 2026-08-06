@@ -1,8 +1,8 @@
 # Database — users, categories, expenses and expense proposals (SQL)
 
 Everything the service remembers. A user is stored under the identity the delivering platform knows them by; the
-categories they file spending under, the expenses they record, and the expense proposals assembled against them,
-hang off that user.
+categories they file spending under, the expenses they record, the expense proposals assembled against them, and
+the periods they have asked about, all hang off that user.
 
 - **Counterpart:** the service's own PostgreSQL database — its address is [configuration](../../configuration.md)
 - **Transport:** SQL over JDBC
@@ -58,12 +58,23 @@ entity "expense_proposal" as expense_proposal {
   * updated_at : TIMESTAMPTZ
 }
 
+entity "spending_query" as spending_query {
+  * id : BIGSERIAL <<PK>>
+  --
+  * user_id : BIGINT <<FK app_user.id>>
+  * message_reference : UUID
+  * period_start : DATE
+  * period_end : DATE <<check >= period_start>>
+  * created_at : TIMESTAMPTZ
+}
+
 app_user ||--o{ category
 category ||--o{ category
 app_user ||--o{ expense
 category ||--o{ expense
 app_user ||--o{ expense_proposal
 category ||--o{ expense_proposal
+app_user ||--o{ spending_query
 @enduml
 ```
 
@@ -74,6 +85,7 @@ Indexes beyond the constraints above:
 - `idx_expense_message_reference` on `(user_id, message_reference)`.
 - `idx_expense_proposal_user_created_at` on `(user_id, created_at DESC)`.
 - `idx_expense_proposal_message_reference` on `(user_id, message_reference)`.
+- `idx_spending_query_message_reference` on `(user_id, message_reference)`.
 
 `expense_proposal.message_reference` is the [message](../../domain/message-reference.md) that produced the row.
 Rows stored before the column existed each carry a reference of their own, so no two of them are read as one
@@ -92,9 +104,20 @@ name: a grouping is read as the parentless row, a category as a row under one.
 Every read of the table leads with `user_id` and is covered end to end by `uq_category_user_parent_name`, so a
 grouping's id supplied from anywhere else answers nothing.
 
-`expense.user_id` and `expense_proposal.user_id` cascade on delete: removing a user removes their expenses and
-their proposals. `expense.category_id` and `expense_proposal.category_id` carry no `ON DELETE` clause: a category
-cannot be removed while either references it.
+`spending_query.message_reference` is the [message](../../domain/message-reference.md) that asked the question
+the row records. Nothing updates a row. It is read and then deleted by `(user_id, message_reference)`, which its
+index covers end to end, so the table holds only the questions whose answers have not yet reached their user.
+Rows a failed delivery leaves behind stay until that user is removed.
+
+`expense.user_id`, `expense_proposal.user_id` and `spending_query.user_id` cascade on delete: removing a user
+removes their expenses, their proposals and the questions they asked. `expense.category_id` and
+`expense_proposal.category_id` carry no `ON DELETE` clause: a category cannot be removed while either references
+it.
+
+**A date-bounded read converts its period to instants before the statement, in Java, and binds them as
+parameters.** No `DATE` is cast to a timestamp in SQL, where the session's time zone would decide the result.
+The bounds of a [spending period](../../domain/spending-period.md) are its first day at UTC midnight, and the
+day after its last day at UTC midnight, taken as the exclusive upper bound — so both end days count whole.
 
 ## Operations
 
@@ -113,6 +136,9 @@ cannot be removed while either references it.
 | Confirm what a message proposed                    | turns one user's proposals under one message into expenses carrying that message, in one statement         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
 | Discard what a message proposed                    | removes one user's proposals under one message                                                             | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
 | Count what a message had confirmed                 | answers how many of one user's expenses are stored under one message                                       | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                                                           |
+| Record a period a user asked about                 | stores one period against a user and the message that asked about it                                       | [Summarize spending over a period](../../usecases/summarize-spending.md)                                                                                                                               |
+| Find the periods a message asked about             | reads the distinct periods stored under one message, oldest first                                          | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
+| Total a user's expenses over a period              | sums and counts one user's expenses by currency between two instants, ordered by currency code             | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                                                                   |
 
 ## Compatibility
 

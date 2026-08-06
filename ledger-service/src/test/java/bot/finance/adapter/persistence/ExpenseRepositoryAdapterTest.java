@@ -7,10 +7,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.ExpenseRowUtils;
-import bot.finance.common.PersistenceAdapterTest;
-import bot.finance.common.UserRowUtils;
+import bot.finance.application.dto.CurrencyTotal;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -18,8 +20,11 @@ import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
+import bot.finance.domain.value.SpendingPeriod;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -355,6 +360,135 @@ class ExpenseRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("totaling expenses by currency over a period")
+    class TotalsByCurrency {
+
+        @Test
+        @DisplayName(
+                "when a stored user has four EUR expenses and one HUF expense inside the period - then returns one total per currency, ordered by currency code, with no currency added to another")
+        void whenFourEurExpensesAndOneHufExpenseInsidePeriod_thenReturnsOneTotalPerCurrencyOrderedByCode() {
+            long userId = storedUserId("totals-mixed-currency-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            storedExpenseAt(userId, categoryId, "EUR one", 1000, "EUR", insidePeriod);
+            storedExpenseAt(userId, categoryId, "EUR two", 2000, "EUR", insidePeriod);
+            storedExpenseAt(userId, categoryId, "EUR three", 3000, "EUR", insidePeriod);
+            storedExpenseAt(userId, categoryId, "EUR four", 4000, "EUR", insidePeriod);
+            storedExpenseAt(userId, categoryId, "HUF one", 50000, "HUF", insidePeriod);
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
+
+            assertThat(totals).hasSize(2);
+            assertThat(totals.get(0).total()).isEqualTo(new Money(10000, CurrencyCode.of("EUR")));
+            assertThat(totals.get(0).expenseCount()).isEqualTo(4);
+            assertThat(totals.get(1).total()).isEqualTo(new Money(50000, CurrencyCode.of("HUF")));
+            assertThat(totals.get(1).expenseCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName(
+                "when expenses fall at the period's first day 00:00:00 UTC and last day 23:59:59 UTC - then both are counted")
+        void whenExpensesFallOnFirstAndLastDayBounds_thenBothAreCounted() {
+            long userId = storedUserId("totals-inclusive-bounds-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant firstDayMidnight =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant lastDayLastSecond =
+                    period.to().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toInstant();
+            storedExpenseAt(userId, categoryId, "First day midnight", 100, "USD", firstDayMidnight);
+            storedExpenseAt(userId, categoryId, "Last day last second", 200, "USD", lastDayLastSecond);
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
+
+            assertThat(totals).singleElement().satisfies(total -> {
+                assertThat(total.total()).isEqualTo(new Money(300, CurrencyCode.of("USD")));
+                assertThat(total.expenseCount()).isEqualTo(2);
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when expenses fall one microsecond before the period's first day and at 00:00:00 UTC on the day after its last - then neither is counted")
+        void whenExpensesFallJustOutsidePeriodBounds_thenNeitherIsCounted() {
+            long userId = storedUserId("totals-exclusive-bounds-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant justBeforeFirstDay =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().minus(1, ChronoUnit.MICROS);
+            Instant dayAfterLastDayMidnight =
+                    period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            storedExpenseAt(userId, categoryId, "Just before period", 100, "USD", justBeforeFirstDay);
+            storedExpenseAt(userId, categoryId, "Day after period", 200, "USD", dayAfterLastDayMidnight);
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
+
+            assertThat(totals).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when two stored users each have an expense inside the period - then only the requested user's expense is counted")
+        void whenTwoUsersHaveExpensesInsidePeriod_thenOnlyRequestedUsersExpenseCounted() {
+            long firstUserId = storedUserId("totals-two-users-first-user");
+            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long secondUserId = storedUserId("totals-two-users-second-user");
+            long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            storedExpenseAt(firstUserId, firstCategoryId, "First user's expense", 100, "USD", insidePeriod);
+            storedExpenseAt(secondUserId, secondCategoryId, "Second user's expense", 200, "USD", insidePeriod);
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(firstUserId, period);
+
+            assertThat(totals).singleElement().satisfies(total -> {
+                assertThat(total.total()).isEqualTo(new Money(100, CurrencyCode.of("USD")));
+                assertThat(total.expenseCount()).isEqualTo(1);
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when an expense_proposal row exists inside the period and no expense row does - then returns an empty list")
+        void whenOnlyProposalRowExistsInsidePeriod_thenReturnsEmptyList() {
+            long userId = storedUserId("totals-only-proposal-user");
+            long parentId = storedGroupingId(userId, "Food");
+            long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, parentId, "Groceries");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant insidePeriod =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Awaiting confirmation",
+                    null,
+                    500,
+                    "USD",
+                    MessageReference.newReference().value(),
+                    insidePeriod);
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
+
+            assertThat(totals).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when the user has no expenses in the period - then returns an empty list rather than throwing")
+        void whenUserHasNoExpensesInPeriod_thenReturnsEmptyList() {
+            long userId = storedUserId("totals-no-expenses-user");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+
+            List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
+
+            assertThat(totals).isEmpty();
+        }
+    }
+
     // The scenario below needs a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure. It constructs its own adapter over a
     // Mockito mock and calls the adapter's own public method directly - it is still the adapter
@@ -419,6 +553,22 @@ class ExpenseRepositoryAdapterTest {
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
         }
+
+        @Test
+        @DisplayName(
+                "when totalsByCurrency() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenTotalsByCurrencyHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.totalsByCurrency(any(), any(), any()))
+                    .thenThrow(frameworkException);
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+
+            assertThatThrownBy(() -> mockedAdapter.totalsByCurrency(1L, period))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
     }
 
     private long storedUserId(String externalId) {
@@ -433,9 +583,9 @@ class ExpenseRepositoryAdapterTest {
         return ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
     }
 
-    // countByMessageReference's rows have to carry a message_reference, which adapter.create()
-    // never writes - so they are seeded directly through JdbcAggregateTemplate, the way
-    // ExpenseProposalRowUtils.storedProposal seeds a proposal row.
+    // countByMessageReference's rows have to carry a message_reference, and totalsByCurrency's an
+    // exact createdAt to probe the period's bounds - neither of which adapter.create() writes. So
+    // both are seeded directly, the way ExpenseProposalRowUtils.storedProposal seeds a proposal row.
     private ExpenseEntity storedExpense(
             long userId,
             long categoryId,
@@ -443,9 +593,8 @@ class ExpenseRepositoryAdapterTest {
             long amountMinorUnits,
             String currencyCode,
             UUID messageReference) {
-        Instant now = Instant.now();
-        return jdbcAggregateTemplate.insert(new ExpenseEntity(
-                null,
+        return ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
                 userId,
                 categoryId,
                 description,
@@ -453,7 +602,25 @@ class ExpenseRepositoryAdapterTest {
                 amountMinorUnits,
                 currencyCode,
                 messageReference,
-                now,
-                now));
+                Instant.now());
+    }
+
+    private ExpenseEntity storedExpenseAt(
+            long userId,
+            long categoryId,
+            String description,
+            long amountMinorUnits,
+            String currencyCode,
+            Instant createdAt) {
+        return ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                description,
+                null,
+                amountMinorUnits,
+                currencyCode,
+                null,
+                createdAt);
     }
 }

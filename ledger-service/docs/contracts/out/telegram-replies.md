@@ -1,7 +1,8 @@
 # Telegram — outgoing replies (Bot API)
 
 What the bot says back crosses this boundary. Every message the service handles is answered here, with a report
-of the spending that message produced; so is every tap on that report's buttons.
+of what that message produced — the totals it asked for, and the spending it named; so is every tap on that
+report's buttons.
 
 - **Counterpart:** Telegram, the messaging platform hosting the bot
 - **Transport:** Telegram Bot API over HTTP
@@ -17,8 +18,8 @@ of the spending that message produced; so is every tap on that report's buttons.
 
 ## Semantics
 
-**Sent with a report:** the conversation to say it in · the message it answers · the text of the report · the two
-buttons, when it lists anything to resolve.
+**Sent with a report:** the conversation to say it in · the message it answers · the text of the report — its
+totals, then whatever it proposes · the two buttons, when it lists anything to resolve.
 
 A report is addressed to the conversation the message came from, not to the person who sent it — in a group, the
 answer is read by everyone in it. It is threaded onto the message it answers, so a group reader can tell which
@@ -47,17 +48,88 @@ rather than refused.
 
 The service turns [the report](../../usecases/handle-incoming-message.md#the-report) and
 [what a tap did](../../usecases/resolve-a-reported-proposal.md#outcomes) into chat text here, at the boundary
-whose limits shape it. What the core hands over is an outcome and a count, or an outcome and a list; never a
-rendered string. An answer to a tap is one short line, well inside the far tighter length limit Telegram allows
+whose limits shape it. What the core hands over is an outcome, the periods it totalled and the proposals it
+recorded; never a rendered string, and never an amount already written out. An answer to a tap is one short line, well inside the far tighter length limit Telegram allows
 it.
 
-No formatting markup is claimed for the text, so a description or a merchant name is shown exactly as it was
-stored and nothing in it is treated as an instruction to the renderer.
+A report's text is written in two parts, in this order:
 
-One report is always one message. A list too long for the Bot API's own length limit is cut, and what was left
-out is counted in a closing line.
+- **The totals**, one block per period the message asked about — a header naming the two days, then one line per
+  currency with the amount and how many expenses are behind it. A period the ledger holds nothing in gets a
+  single line saying so.
+- **What the turn proposed**, under whichever of the report's own texts the outcome earned.
 
-Nothing is retried, and nothing is sent twice: a report that fails is a report the user never sees.
+- A period's two days are written as a day, an English month and a year. The locale the service runs under does
+  not change that.
+- No formatting markup is claimed for the text. A description or a merchant name is shown exactly as stored, and
+  nothing in it is treated as an instruction to the renderer.
+- Nothing is retried and nothing is sent twice. A report that fails is a report the user never sees.
+
+### What a user reads
+
+A message that only asked a question:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 120.50 EUR (4 expenses)
+• 7200.00 HUF (1 expense)
+```
+
+A period the ledger holds nothing in, and two periods in one message:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 42.30 EUR (1 expense)
+
+Nothing is recorded between 3 Aug 2026 and 9 Aug 2026.
+```
+
+A message that named spending. The two buttons ride this one:
+
+```
+Noted 2 expenses, pending your confirmation:
+• Groceries (Food) — weekly shop, Rewe: 42.30 EUR
+• Auto (Fuel) — tank refill: 60.00 EUR
+```
+
+A message that did both — the totals come first:
+
+```
+Between 27 Jul 2026 and 2 Aug 2026 you spent:
+• 42.30 EUR (1 expense)
+
+Noted 2 expenses, pending your confirmation:
+• Groceries (Food) — weekly shop, Rewe: 42.30 EUR
+• Auto (Fuel) — tank refill: 60.00 EUR
+```
+
+The rest, one line each:
+
+| Outcome                                   | Text                                                          |
+|-------------------------------------------|---------------------------------------------------------------|
+| The message named and asked nothing       | `No expense was identified in that message.`                  |
+| The turn failed, having recorded nothing  | `Something went wrong and nothing was noted — please try again.` |
+| The turn failed, having recorded something | `Something went wrong, so this may be incomplete. What I could read:` then the bullets |
+
+A trimmed report closes with the count it left out — `… and 3 more.` for proposals, `… and 3 more periods.`
+when the totals alone fill the limit.
+
+### What a tap answers with
+
+| Outcome                          | Text                            |
+|----------------------------------|---------------------------------|
+| Confirmed                        | `Confirmed 2 expenses.`         |
+| Deleted                          | `Deleted 2 expenses.`           |
+| Tapped again, already confirmed  | `Already confirmed: 2 expenses.` |
+| Nothing left to resolve          | `There is nothing left to resolve.` |
+
+A count of one drops the plural: `Confirmed 1 expense.`
+
+One report is always one message. Its length limit is spent in this order:
+
+| Filled first | Then                                                      | When it still does not fit                          |
+|--------------|------------------------------------------------------------|-------------------------------------------------------|
+| The totals   | the proposal list, trimmed, with what was left out counted | whole periods drop from the oldest, and are counted too |
 
 ## Failures
 

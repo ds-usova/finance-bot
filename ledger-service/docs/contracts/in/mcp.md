@@ -1,8 +1,9 @@
 # Agent acting for a user — the ledger's tools (MCP over HTTP)
 
-A language model acting for a user records the spending in their message here, one tool call per expense. This
-is the boundary an AI agent reaches the ledger through. Two things cross it: which categories one of the
-caller's own groupings holds, and a proposed expense, which a human reviews before it becomes one.
+A language model acting for a user acts on their message here, one tool call per thing the message asks for.
+This is the boundary an AI agent reaches the ledger through. Three things cross it: which categories one of the
+caller's own groupings holds, a proposed expense, which a human reviews before it becomes one, and a period the
+caller wants their spending totalled over.
 
 - **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
   acting for the user whose message it was handed
@@ -17,6 +18,7 @@ caller's own groupings holds, and a proposed expense, which a human reviews befo
 | List the tools            | tells a client which tools exist and what each takes                                                      | the client, to put the tools and their arguments in front of its model     |
 | `create_expense_proposal` | records one expense the model read from its caller's message                                              | [Create an expense proposal](../../usecases/create-an-expense-proposal.md) |
 | `list_categories`         | answers which categories one of the caller's groupings holds                                              | [List a grouping's categories](../../usecases/list-categories.md)          |
+| `summarize_spending`      | records the period the model read from a question about what its caller spent                             | [Summarize spending over a period](../../usecases/summarize-spending.md)   |
 | Fetch the signing keys    | publishes the public half of the key tokens are signed with, so a client can verify and follow a rotation | any holder of a token                                                      |
 
 ### What `create_expense_proposal` takes
@@ -52,23 +54,39 @@ already knows whose token it sent, and everything returned enters a model's cont
 Under `grouping`, the grouping the call named; under `categories`, the names of the categories filed under it,
 ordered by name. It carries no identity and no stored id.
 
+### What `summarize_spending` takes
+
+| Argument | Meaning                                                    | Required |
+|----------|------------------------------------------------------------|----------|
+| `from`   | the first day of the period, counted, as `YYYY-MM-DD`      | yes      |
+| `to`     | the last day of the period, counted, as `YYYY-MM-DD`       | yes      |
+
+Both days are calendar dates written `YYYY-MM-DD`. A relative phrase — "last week", "since Friday" — is never sent: the
+caller works the period out against [the day the turn states](../out/ai-connector.md) and sends two days.
+
+### What `summarize_spending` answers with
+
+Under `from` and `to`, the period that was accepted, as the two days it was stored as. **No amount, no count and
+no expense.** What the caller asked about is put in front of the user by
+[the turn](../../usecases/handle-incoming-message.md), and never returned here, so a total no model has read is
+a total no model can restate.
+
 ## Semantics
 
-Every call carries its own token and the server keeps nothing between calls; two calls never share state.
+- Every call carries its own token. The server keeps nothing between calls, so two calls never share state.
+- Each proposal, and each period asked about, is stored under the message reference its token carries. That is
+  what lets the ledger tell the user which message produced what.
+- A proposal or summary call whose token carries no readable reference is refused, and stores nothing.
+- Listing categories never reads the reference, so a token carrying none still lists.
+- A caller reaches only their own categories and their own spending. No tool takes an identity argument, and
+  every read is scoped to the token's subject.
+- A grouping and a category are both named, never identified.
+- A proposal names both. The grouping is resolved first, the category only under it. Nothing is filed under a
+  grouping itself.
 
-Each proposal is stored under the message reference its token carries, which is what lets the ledger tell the
-user which message produced what. A proposal call whose token carries no readable reference is refused, and
-stores nothing. Listing categories never reads the reference, so a token carrying none still lists.
-
-A caller reaches only their own categories: neither tool takes an identity argument, and every read is scoped to
-the token's subject.
-
-A grouping and a category are both named, never identified. Which names resolve, and which are refused, is the
-use case's rule, not the tool's — [for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
+Which names resolve, and which are refused, is the use case's rule rather than the tool's —
+[for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
 [for a listing](../../usecases/list-categories.md#rules).
-
-A proposal names both: the grouping is resolved first, and the category only under it. Nothing is filed under a
-grouping itself.
 
 The amount crosses as written, in the currency's main unit, and is scaled to minor units on this side
 ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)).
@@ -82,29 +100,56 @@ The amount crosses as written, in the currency's main unit, and is scaled to min
 - An absent `amount` is refused rather than read as zero. A deliberate zero is stored.
 - The answer states the amount in the units the call spoke.
 
-The proposal tool is not idempotent: the same call made twice stores two proposals, and nothing tells them apart
-from two intended ones. A refused call stores nothing, so a corrected retry of it leaves one proposal.
+What a repeated call leaves behind:
 
-Listing categories stores nothing: a duplicate, a redelivery, or a retry after a timeout whose first attempt
-succeeded all answer the same list and leave no row behind.
+| Tool                      | Repeating it                                                                     |
+|---------------------------|----------------------------------------------------------------------------------|
+| `create_expense_proposal` | not idempotent — two calls store two proposals, indistinguishable from two intended ones |
+| `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                   |
+| `summarize_spending`      | idempotent in what the user reads — two calls leave two rows, the turn reports the period once, and both rows go once the report is delivered |
 
-How a caller authenticates:
+- A refused proposal stores nothing, so a corrected retry of it leaves one proposal.
+- Two *different* periods asked about in one turn are two blocks, oldest first.
+- A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant.
+- The summary it produces is the whole ledger over those days.
 
-- A short-lived RS256 JSON Web Token on the request, issued and validated by this service itself.
-- The token names the user as its subject, `ledger-service` as its issuer, `mcp-adapter` as its audience, and
-  carries the instant it was issued, the instant it expires, a unique id, and the
+### How a caller authenticates
+
+The ledger both mints the token and validates it. It leaves this service, crosses two boundaries, and comes
+back:
+
+```plantuml
+@startuml McpCallerToken-Sequence
+participant "Ledger — act on a message" as Turn
+participant "AI Connector" as Connector
+participant "AI Provider" as Provider
+participant "Ledger — MCP tools" as Tools
+
+Turn -> Turn : mint a token\nsubject: the user\nmrf: this message
+Turn -> Connector : ExtractIntents + token, as call metadata
+note right of Connector : opaque here\nnever parsed, logged or stored
+
+Connector -> Provider : the message and the tool schemas
+Provider --> Connector : call a tool
+
+Connector -> Tools : the tool call + the same token, verbatim
+Tools -> Tools : validate\nsignature · algorithm · not expired\nnot future-dated · issuer · audience\nlifetime within the maximum
+Tools -> Tools : read the subject → the user\nread mrf → the message reference
+Tools --> Connector : the result, stored under that reference
+
+note over Connector, Tools : one token per call — no session.\nA turn making several calls makes several independent ones.
+@enduml
+```
+
+- The token is a short-lived RS256 JSON Web Token, issued and validated by this service itself.
+- It names the user as its subject, `ledger-service` as its issuer, and `mcp-adapter` as its audience.
+- It carries the instant it was issued, the instant it expires, a unique id, and the
   [message reference](../../domain/message-reference.md) of the message being handled.
-- Validation checks the signature and the algorithm, that the token is neither expired nor future-dated, the
-  issuer, the audience, and that the token's own lifetime does not exceed the configured maximum.
-- The signing key comes from a keystore read at startup; its public half is published, unauthenticated, at
-  `/.well-known/jwks.json`. A rotation is a new key in the keystore and a restart — a client re-reads the keys
-  and needs no change.
+- The signing key comes from a keystore read at startup. Its public half is published, unauthenticated, at
+  `/.well-known/jwks.json`.
+- A rotation is a new key in the keystore and a restart. A client re-reads the keys and needs no change.
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
-- A token is minted when this service [hands a user's turn to the connector](../out/ai-connector.md), which
-  calls back with it while the turn runs. A token outlives the turn it was minted for by design, and nothing
-  revokes one early.
-- The caller sends its own token per call rather than establishing a session, so a turn making several proposals
-  makes several independent calls.
+- A token outlives the turn it was minted for by design. Nothing revokes one early.
 
 Monitoring endpoints stay reachable without a token. Every other address on the service answers to nobody.
 
@@ -118,9 +163,12 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | The grouping sent holds no category of the category name sent                           | a tool error naming both, so it can be corrected                     |
 | The grouping name is unknown                                                            | a tool error repeating it, so it can be corrected                    |
 | A listing's grouping name names a category rather than a grouping                       | a tool error saying so, so it can be corrected                       |
+| A day of a period is blank, or is not written `YYYY-MM-DD`                              | a tool error naming the day at fault and the value it could not read |
+| A period's last day is before its first                                                 | a tool error saying the period ends before it starts                 |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
-| The token carries no message reference, or one that cannot be read                      | a tool error saying the proposal could not be created                |
-| The proposal cannot be stored, or the categories cannot be read                         | a tool error saying so, naming no table, constraint or stack frame   |
+| The token carries no readable message reference, on a proposal call                     | a tool error saying the proposal could not be created                |
+| The token carries no readable message reference, on a summary call                      | a tool error saying the spending could not be summarized             |
+| The proposal or the period cannot be stored, or the categories cannot be read           | a tool error saying so, naming no table, constraint or stack frame   |
 | Anything else                                                                           | a tool error saying the call could not be completed                  |
 
 A failure inside the tool is a successful call carrying an error result, never an exception on the transport.
@@ -149,8 +197,8 @@ Deploying the two independently makes a rename a new tool instead.
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way
 ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)). A caller
-that mints its own tokens instead would have to carry that claim, which the proposal tool refuses a call
-without.
+that mints its own tokens instead would have to carry that claim, which the proposal and summary tools both
+refuse a call without.
 
 Moving to an identity provider outside this service means the tokens are minted and the keys published
 elsewhere. Callers change where they get a token; the tools and their arguments do not change.

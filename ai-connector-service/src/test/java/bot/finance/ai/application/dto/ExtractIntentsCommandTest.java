@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +24,7 @@ class ExtractIntentsCommandTest {
     private static final String TEXT = "spent 15 euros on lunch";
     private static final List<String> CATEGORY_GROUPINGS = List.of("Food", "Travel", "Other");
     private static final String CATCH_ALL_GROUPING = "Other";
+    private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
     @Nested
     @DisplayName("constructing the command")
@@ -32,8 +34,8 @@ class ExtractIntentsCommandTest {
         @DisplayName("when non-blank text, category groupings, a catch-all among them, and an empty currency are "
                 + "given - then the command exposes every component unchanged and the groupings are unmodifiable")
         void whenNonBlankTextAndCategoryList_thenCommandExposesBoth() {
-            ExtractIntentsCommand command =
-                    new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty());
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);
 
             assertThat(command.text()).isEqualTo(TEXT);
             assertThat(command.categoryGroupings()).containsExactlyElementsOf(CATEGORY_GROUPINGS);
@@ -48,22 +50,24 @@ class ExtractIntentsCommandTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when text is null, empty, or whitespace-only - then throws InvalidValueException")
         void whenTextIsNullEmptyOrBlank_thenThrowsInvalidValueException(String text) {
-            assertThatThrownBy(() ->
-                            new ExtractIntentsCommand(text, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            text, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
 
         @Test
         @DisplayName("when the category groupings list is empty - then throws InvalidValueException")
         void whenCategoryListIsEmpty_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, List.of(), CATCH_ALL_GROUPING, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, List.of(), CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
 
         @Test
         @DisplayName("when the category groupings list is null - then throws InvalidValueException")
         void whenCategoryListIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, null, CATCH_ALL_GROUPING, Optional.empty()))
+            assertThatThrownBy(() ->
+                            new ExtractIntentsCommand(TEXT, null, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -72,8 +76,8 @@ class ExtractIntentsCommandTest {
         @DisplayName("when the category groupings list contains a null or blank element - then throws "
                 + "InvalidValueException")
         void whenCategoryListContainsNullElement_thenThrowsInvalidValueException(List<String> categoryGroupings) {
-            assertThatThrownBy(() ->
-                            new ExtractIntentsCommand(TEXT, categoryGroupings, CATCH_ALL_GROUPING, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, categoryGroupings, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -84,8 +88,8 @@ class ExtractIntentsCommandTest {
                 + "throws InvalidValueException")
         void whenCatchAllGroupingIsNullBlankOrNotAmongCategoryGroupings_thenThrowsInvalidValueException(
                 String catchAllGrouping) {
-            assertThatThrownBy(() ->
-                            new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, catchAllGrouping, Optional.empty()))
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, CATEGORY_GROUPINGS, catchAllGrouping, Optional.empty(), CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
         }
 
@@ -95,7 +99,8 @@ class ExtractIntentsCommandTest {
         void whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchangedAndOwnListImmutable() {
             List<String> mutable = new ArrayList<>(List.of("Food", "Travel"));
 
-            ExtractIntentsCommand command = new ExtractIntentsCommand(TEXT, mutable, "Food", Optional.empty());
+            ExtractIntentsCommand command =
+                    new ExtractIntentsCommand(TEXT, mutable, "Food", Optional.empty(), CURRENT_DATE);
             mutable.add("Other");
 
             assertThat(command.categoryGroupings()).containsExactly("Food", "Travel");
@@ -112,8 +117,8 @@ class ExtractIntentsCommandTest {
         void whenDefaultCurrencyPresent_thenCommandExposesCurrencyCode() {
             CurrencyCode eur = CurrencyCode.of("EUR");
 
-            ExtractIntentsCommand command =
-                    new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.of(eur));
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.of(eur), CURRENT_DATE);
 
             assertThat(command.defaultCurrency()).contains(eur);
         }
@@ -121,8 +126,27 @@ class ExtractIntentsCommandTest {
         @Test
         @DisplayName("when the defaultCurrency Optional is null - then throws InvalidValueException")
         void whenDefaultCurrencyOptionalIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, null))
+            assertThatThrownBy(() ->
+                            new ExtractIntentsCommand(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, null, CURRENT_DATE))
                     .isInstanceOf(InvalidValueException.class);
+        }
+
+        @Test
+        @DisplayName("when the current date is null - then throws InvalidValueException")
+        void whenCurrentDateIsNull_thenThrowsInvalidValueException() {
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), null))
+                    .isInstanceOf(InvalidValueException.class);
+        }
+
+        @Test
+        @DisplayName(
+                "when an otherwise valid command carries a current date - then currentDate() reads back " + "unchanged")
+        void whenCommandCarriesCurrentDate_thenCurrentDateReadsBackUnchanged() {
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);
+
+            assertThat(command.currentDate()).isEqualTo(CURRENT_DATE);
         }
     }
 }

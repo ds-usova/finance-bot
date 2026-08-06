@@ -12,23 +12,31 @@ bot.finance
 ├── architecture    # ArchUnit dependency-rule tests
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
+    ├── boot                  # what a test starts, and how
+    │   ├── AbstractSystemTest    # full-application base class
+    │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
+    │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
+    │   └── McpAdapterTest        # composed annotation — MCP tool adapter tests
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
-    ├── AbstractSystemTest    # full-application base class
-    ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
-    ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
-    ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
-    ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
-    ├── ExpenseRowUtils       # reads back a user's stored expense rows
-    ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
-    ├── UserRowUtils          # stores a user row and returns its generated id
-    ├── WireMockStubs         # stub registration, one static method per endpoint
-    ├── JsonUtils             # loads JSON fixtures from src/test/resources
-    ├── LogCapture            # Logback appender, for asserting on log output
-    ├── McpRequests           # JSON-RPC request bodies posted to /mcp
-    ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
-    ├── TelegramFixtures      # Bot API JSON bodies
-    └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
+    ├── rows                  # seeds a table's rows and reads them back, one class per table
+    │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
+    │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
+    │   ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
+    │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
+    │   └── UserRowUtils          # stores a user row and returns its generated id
+    ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
+    │   ├── JsonUtils             # loads JSON fixtures from src/test/resources
+    │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
+    │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
+    │   └── TelegramFixtures      # Bot API JSON bodies
+    ├── stubs                 # the external systems' fakes, and what they recorded
+    │   ├── WireMockStubs         # stub registration, one static method per endpoint
+    │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
+    └── LogCapture            # Logback appender, for asserting on log output
 ```
+
+A new helper joins the subpackage its role names, and is listed above. `LogCapture` sits at the root because it
+belongs to none of them — a bucket of one is worth less than the honesty of leaving it where it is.
 
 ## Test Layers
 
@@ -106,7 +114,8 @@ would inherit the first's advanced state. Give each new class a token constant i
   `WireMockStubs`. Test helpers are the one place `*Utils` is kept — production code names a helper for its role
   ([Code Style](code-style.md#general)) — because a test helper genuinely is a bag of conveniences keyed to a
   fixture rather than a thing with one job.
-- New shared builders and factories go in `bot.finance.common` and get listed in
+- New shared builders and factories go in the `bot.finance.common` subpackage their role names — `boot`,
+  `containers`, `rows`, `fixtures` or `stubs` — and get listed in
   [Package Structure](#package-structure), so later tests reuse them instead of recreating them.
 
 ## Testing Style

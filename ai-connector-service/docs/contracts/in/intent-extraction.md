@@ -1,9 +1,10 @@
 # Ledger Service — intent extraction (gRPC)
 
-A line a user wrote crosses this boundary in, together with a token to act as that user. Nothing crosses back:
-the service records the spending the message names and answers that the turn is done. The caller decides nothing
-about the text; it sends what the user said, the groupings that user's categories are filed under, the grouping
-to fall back on, and — optionally — the currency to assume when an amount is stated without one.
+A line a user wrote crosses this boundary in, with a token to act as that user. The service acts on what the
+message asks for and answers only that the turn is done.
+
+The caller sends the user's text, the groupings their categories are filed under, the grouping to fall back on,
+the day the turn runs on, and optionally the currency to assume. It decides nothing about the text itself.
 
 - **Counterpart:** [the Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md)
 - **Transport:** gRPC
@@ -14,48 +15,62 @@ to fall back on, and — optionally — the currency to assume when an amount is
 
 | Operation       | Purpose                                                          | Used by                                                                                                                                                                                                          |
 |-----------------|------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Extract intents | records the spending a user's message names, in their order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [Handle an incoming message](../../../../ledger-service/docs/usecases/handle-incoming-message.md) |
+| Extract intents | acts on what a user's message asks for, in the user's order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [Handle an incoming message](../../../../ledger-service/docs/usecases/handle-incoming-message.md) |
 | Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md), which reports it in its own health endpoint                                                                                 |
 
 ## Semantics
 
-Every extraction call carries the caller's bearer token as call metadata, not as a field. It is the identity
-every expense the turn records is recorded against, and the only identity this boundary carries. A health check
-carries none.
+### The token
 
-The token carries more than that identity: the caller mints it per message and puts on it a reference to the
-message being handled. Everything on the token is opaque here — the service forwards it and reads nothing out
-of it.
+The caller mints it and the caller checks it. Its whole path is
+[the ledger's, drawn there](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
+What this boundary promises about it:
 
-The token is required but not verified here — it is checked where it is spent, by the
-[ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md). A caller this boundary has not
-authenticated therefore records nothing, but does reach the model
-([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
+- Every extraction call carries it as call metadata, not as a field.
+- It is the identity every expense is recorded against, and the only identity this boundary carries.
+- A health check carries none.
+- Everything on it is opaque here. The service forwards it and reads nothing out of it.
+- It is required, but never verified here.
+- So a caller this boundary has not authenticated records nothing, but does reach the model
+  ([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
 
-A successful call answers with nothing at all. There is no count, no per-entry outcome and no text for the
-user — the answer says only that the message was acted on.
+### What the caller sends
 
-Only spending is recorded, by the [use case's rule](../../usecases/extract-intents.md#rules). A message asking
-for anything else records nothing and still succeeds.
+| Field                    | Rule                                                                         |
+|--------------------------|------------------------------------------------------------------------------|
+| The text                 | what the user said, unread by the caller                                    |
+| The groupings            | a closed set, non-empty, each a name of its own, none blank                 |
+| The catch-all grouping   | one of the groupings sent, so a fit always exists                           |
+| The day the turn runs on | a calendar date written `YYYY-MM-DD`, required                              |
+| The currency to assume   | optional; any casing; a code ISO 4217 knows                                 |
 
-Expenses are recorded in the order the user expressed them — nothing is reordered or merged.
+- No category crosses this boundary. The service asks the
+  [ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) which categories a grouping
+  holds.
+- Every expense is filed under one of those, never under a grouping itself.
+- The service never invents a name.
+- The assumed currency applies only where the user stated an amount with no currency.
+- The day the turn runs on is the caller's to choose, and is checked against no clock here. A day in the past or
+  the future is accepted as sent.
+- Every period read out of a relative phrase is anchored on that day. The week counted from it starts on Monday.
 
-An expense the ledger will not record is left unrecorded and the rest of the message is still recorded. The
-caller is not told which expenses were recorded, or how many.
+### What the answer means
 
-The groupings the caller sends are a closed set and must be non-empty, each a name of its own with no blank
-among them. No category crosses this boundary: the service asks the
-[ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) which categories a grouping holds,
-and every expense is filed under one of those, never under a grouping itself.
+- A successful call answers with nothing at all.
+- No count, no per-entry outcome, no total, no text for the user.
+- It says only that the message was acted on.
+- A summary the message asked for reaches the user from the ledger, never through this boundary.
 
-The caller designates one of the groupings as the catch-all, and it must be one of the groupings sent — so a fit
-always exists. The service never invents a name.
+### How the message is acted on
 
-The assumed currency applies only where the user stated an amount with no currency. It is accepted in any casing
-and must be a code ISO 4217 knows.
-
-The same text sent twice is acted on twice: nothing is remembered between calls, so a repeated request records
-its expenses again and no duplicate is recognized.
+- Only spending is recorded, and only spending is summarized
+  ([the use case's rule](../../usecases/extract-intents.md#rules)).
+- A message asking for anything else records nothing and still succeeds.
+- Expenses are recorded in the order the user expressed them. Nothing is reordered or merged.
+- An expense the ledger will not record is left unrecorded. The rest of the message is still recorded.
+- The caller is never told which expenses were recorded, or how many.
+- The same text sent twice is acted on twice. Nothing is remembered between calls, so no duplicate is
+  recognized.
 
 ## Failures
 
@@ -68,6 +83,8 @@ its expenses again and no duplicate is recognized.
 | The catch-all grouping is blank or not sent                 | rejected as an invalid argument; no call to the provider is made     |
 | The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
 | An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
+| The day the turn runs on is absent or only whitespace       | rejected as an invalid argument; no call to the provider is made     |
+| The day the turn runs on is not written `YYYY-MM-DD`        | rejected as an invalid argument; no call to the provider is made     |
 | The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
 | The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
 | The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded       |
@@ -77,21 +94,23 @@ its expenses again and no duplicate is recognized.
 
 ## Compatibility
 
-Both sides generate from the one schema file, so a field added or renamed there reaches the caller's build
-rather than its runtime.
+- Both sides generate from the one schema file. A field added or renamed there reaches the caller's build, not
+  its runtime.
+- No field number is reserved. Neither service is deployed anywhere, so the two are released together and no
+  counterpart of an older vintage can be confused by a reused number.
+- What the token carries is the caller's alone to change. A claim it adds reaches
+  [its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, with no change to this
+  schema and no release of this service
+  ([ADR 0010](../../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+- Widening what the service records breaks nothing.
 
-No field number is reserved: neither service is deployed anywhere, so the two are released together and there is
-no counterpart of an older vintage for a reused number to confuse. A partial deploy is a rebuild away from
-being whole, not a window the schema has to survive.
+Three promises cannot be removed without rewriting every caller:
 
-What the token carries is the caller's alone to change. A claim it adds reaches
-[its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, without a change to this
-schema or a release of this service
-([ADR 0010](../../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+| Promise                              | What breaks if it goes                   |
+|--------------------------------------|-------------------------------------------|
+| Expenses keep the user's order       | the caller can no longer trust the order |
+| An unrecorded expense is not a failure | a partial turn starts arriving as an error |
+| An empty answer means the turn was acted on | success stops being readable          |
 
-Removing a promise breaks every caller: an order that is not the user's, an unrecorded expense arriving as a
-failed call, or an empty answer that stops meaning the turn was acted on would each force the caller to be
-rewritten. Widening what the service records does not.
-
-The empty answer is what leaves room to grow: reporting what was recorded, or a reply for the user, means a
-response body where there is none today, and every caller reads it or ignores it as it chooses.
+That empty answer is also the room to grow. Reporting what was recorded, or a reply for the user, means a
+response body where there is none today. Every caller reads it or ignores it as it chooses.
