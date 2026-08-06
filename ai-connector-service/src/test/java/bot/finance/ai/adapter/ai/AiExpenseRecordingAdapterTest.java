@@ -72,7 +72,8 @@ class AiExpenseRecordingAdapterTest {
             clientWarmed = true;
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("warm-up", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.toolCallResponse(
+                            ChatCompletionFixtures.toolCall("warm-up", LUNCH_ARGUMENTS)),
                     ChatCompletionFixtures.textResponse("recorded"));
             recordInEuros(CALLER_TOKEN_1);
             WireMockSupport.SERVER.resetAll();
