@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.fixtures;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

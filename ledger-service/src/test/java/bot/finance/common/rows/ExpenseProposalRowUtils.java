@@ -1,22 +1,23 @@
-package bot.finance.common;
+package bot.finance.common.rows;
 
-import bot.finance.adapter.persistence.ExpenseEntity;
+import bot.finance.adapter.persistence.ExpenseProposalEntity;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
-public class ExpenseRowUtils {
+public class ExpenseProposalRowUtils {
 
-    private ExpenseRowUtils() {}
+    private ExpenseProposalRowUtils() {}
 
-    public static List<ExpenseEntity> expenseRowsFor(JdbcAggregateTemplate jdbcAggregateTemplate, long userId) {
-        return jdbcAggregateTemplate.findAll(ExpenseEntity.class).stream()
+    public static List<ExpenseProposalEntity> expenseProposalRowsFor(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId) {
+        return jdbcAggregateTemplate.findAll(ExpenseProposalEntity.class).stream()
                 .filter(row -> row.userId() == userId)
                 .toList();
     }
 
-    public static ExpenseEntity storedExpense(
+    public static ExpenseProposalEntity storedProposal(
             JdbcAggregateTemplate jdbcAggregateTemplate,
             long userId,
             long categoryId,
@@ -26,7 +27,7 @@ public class ExpenseRowUtils {
             String currencyCode,
             UUID messageReference,
             Instant createdAt) {
-        return jdbcAggregateTemplate.insert(new ExpenseEntity(
+        return jdbcAggregateTemplate.insert(new ExpenseProposalEntity(
                 null,
                 userId,
                 categoryId,

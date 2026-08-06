@@ -1,10 +1,10 @@
 package bot.finance.system;
 
-import static bot.finance.common.TelegramTestBot.recordedPolls;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.TelegramTestBot.recordedSendMessages;
-import static bot.finance.common.TelegramTestBot.replyMarkup;
-import static bot.finance.common.TelegramTestBot.replyParameters;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.replyMarkup;
+import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -12,14 +12,14 @@ import bot.finance.adapter.persistence.ExpenseProposalEntity;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.ExpenseProposalRowUtils;
 import bot.finance.common.LogCapture;
-import bot.finance.common.McpRequests;
-import bot.finance.common.TelegramFixtures;
-import bot.finance.common.TelegramTestBot;
-import bot.finance.common.WireMockStubs;
+import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import com.fasterxml.jackson.databind.JsonNode;

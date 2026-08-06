@@ -7,9 +7,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.common.PersistenceAdapterTest;
-import bot.finance.common.SpendingQueryRowUtils;
-import bot.finance.common.UserRowUtils;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.SpendingQueryRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.SpendingQuery;

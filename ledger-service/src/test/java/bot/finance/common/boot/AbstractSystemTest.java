@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.boot;
 
 import bot.finance.LedgerServiceApplication;
 import bot.finance.common.containers.GrpcStubServer;

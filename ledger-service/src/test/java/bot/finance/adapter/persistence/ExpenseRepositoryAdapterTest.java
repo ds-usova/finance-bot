@@ -8,11 +8,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.CurrencyTotal;
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.ExpenseProposalRowUtils;
-import bot.finance.common.ExpenseRowUtils;
-import bot.finance.common.PersistenceAdapterTest;
-import bot.finance.common.UserRowUtils;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;

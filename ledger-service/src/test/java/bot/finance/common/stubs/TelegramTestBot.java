@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.stubs;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;

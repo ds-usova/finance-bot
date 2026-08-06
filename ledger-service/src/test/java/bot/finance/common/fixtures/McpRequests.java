@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.fixtures;
 
 public final class McpRequests {
 

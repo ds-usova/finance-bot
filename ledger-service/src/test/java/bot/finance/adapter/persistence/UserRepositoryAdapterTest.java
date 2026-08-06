@@ -6,8 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.PersistenceAdapterTest;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;

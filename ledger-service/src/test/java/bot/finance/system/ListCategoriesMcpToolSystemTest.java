@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.port.UserRepository;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.McpRequests;
-import bot.finance.common.McpTokens;
+import bot.finance.common.boot.AbstractSystemTest;
+import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import io.restassured.RestAssured;

@@ -6,7 +6,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolveProposalsCommand;
-import bot.finance.common.TelegramFixtures;
+import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.domain.value.MessageReference;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.utility.BotUtils;

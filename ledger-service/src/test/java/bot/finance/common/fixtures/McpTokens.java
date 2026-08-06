@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.fixtures;
 
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.adapter.security.AccessTokenProperties;

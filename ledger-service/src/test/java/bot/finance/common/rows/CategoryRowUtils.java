@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.rows;
 
 import bot.finance.adapter.persistence.CategoryEntity;
 import java.util.List;

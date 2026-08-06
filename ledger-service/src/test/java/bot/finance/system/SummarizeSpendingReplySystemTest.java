@@ -1,21 +1,21 @@
 package bot.finance.system;
 
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.CategoryEntity;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.port.UserRepository;
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.ExpenseRowUtils;
-import bot.finance.common.McpRequests;
-import bot.finance.common.TelegramFixtures;
-import bot.finance.common.TelegramTestBot;
-import bot.finance.common.WireMockStubs;
+import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;

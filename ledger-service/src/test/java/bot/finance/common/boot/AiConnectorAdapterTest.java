@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.boot;
 
 import bot.finance.adapter.aiconnector.AiConnectorChannelConfiguration;
 import bot.finance.adapter.aiconnector.AiConnectorHealthIndicator;

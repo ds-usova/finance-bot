@@ -1,6 +1,6 @@
-package bot.finance.common;
+package bot.finance.common.stubs;
 
-import static bot.finance.common.TelegramTestBot.getUpdatesPath;
+import static bot.finance.common.stubs.TelegramTestBot.getUpdatesPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -8,14 +8,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 
 import bot.finance.common.containers.WireMockSupport;
+import bot.finance.common.fixtures.TelegramFixtures;
 
 /**
  * Static helpers for registering WireMock stubs against external partner services.
  *
  * <p>The underlying {@link WireMockSupport#SERVER} is started once for the JVM and its stubs are
- * reset after every test via {@link AbstractSystemTest}'s {@code @AfterEach} hook.
- * Tests call one of these methods in their precondition setup; no lifecycle management is needed
- * inside the test class itself.
+ * reset after every test via {@link bot.finance.common.boot.AbstractSystemTest AbstractSystemTest}'s
+ * {@code @AfterEach} hook. Tests call one of these methods in their precondition setup; no lifecycle
+ * management is needed inside the test class itself.
  *
  * <p>To add support for a new external service or endpoint, add a new static method here.
  *

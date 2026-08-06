@@ -1,15 +1,15 @@
 package bot.finance.system;
 
-import static bot.finance.common.TelegramTestBot.POLL_RECOVERY_TOKEN;
-import static bot.finance.common.TelegramTestBot.recordedPolls;
-import static bot.finance.common.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.POLL_RECOVERY_TOKEN;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
+import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.common.AbstractSystemTest;
-import bot.finance.common.TelegramFixtures;
-import bot.finance.common.WireMockStubs;
+import bot.finance.common.boot.AbstractSystemTest;
+import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.stubs.WireMockStubs;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

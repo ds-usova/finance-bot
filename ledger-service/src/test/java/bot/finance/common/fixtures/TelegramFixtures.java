@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.fixtures;
 
 /**
  * Telegram Bot API JSON bodies for tests, in the two shapes the Bot API actually uses — which must never be

@@ -2,8 +2,8 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.common.CategoryRowUtils;
-import bot.finance.common.PersistenceAdapterTest;
+import bot.finance.common.boot.PersistenceAdapterTest;
+import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import java.util.List;

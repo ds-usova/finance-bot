@@ -1,4 +1,4 @@
-package bot.finance.common;
+package bot.finance.common.boot;
 
 import bot.finance.adapter.mcp.CreateExpenseProposalMcpTool;
 import org.junit.jupiter.api.Test;
