@@ -5,6 +5,7 @@ import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
@@ -16,6 +17,9 @@ import java.util.Optional;
  * where they are checked, so no later reader has to trust that someone else already looked.
  */
 final class ExtractIntentsRequestReader {
+
+    /** `YYYY-MM-DD`, the form the schema agrees `current_date` crosses in. Named rather than left to a default. */
+    private static final DateTimeFormatter WIRE_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private ExtractIntentsRequestReader() {}
 
@@ -58,9 +62,9 @@ final class ExtractIntentsRequestReader {
             throw new InvalidValueException("Current date must not be blank");
         }
         try {
-            return LocalDate.parse(request.getCurrentDate());
+            return LocalDate.parse(request.getCurrentDate(), WIRE_DATE);
         } catch (DateTimeParseException e) {
-            throw new InvalidValueException("Current date must be an ISO-8601 date");
+            throw new InvalidValueException("Current date must be a YYYY-MM-DD date");
         }
     }
 

@@ -2,9 +2,13 @@ package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 public record SpendingPeriod(LocalDate from, LocalDate to) {
+
+    /** `YYYY-MM-DD`, the form a day is written in wherever one is asked for. Named rather than left to a default. */
+    private static final DateTimeFormatter WRITTEN_DAY = DateTimeFormatter.ISO_LOCAL_DATE;
 
     public SpendingPeriod {
         if (from == null) {
@@ -31,9 +35,9 @@ public record SpendingPeriod(LocalDate from, LocalDate to) {
         }
 
         try {
-            return LocalDate.parse(value);
+            return LocalDate.parse(value, WRITTEN_DAY);
         } catch (DateTimeParseException e) {
-            throw new InvalidSpendingPeriodException(value + " is not a valid ISO-8601 date for the " + label);
+            throw new InvalidSpendingPeriodException(value + " is not a YYYY-MM-DD date for the " + label);
         }
     }
 }

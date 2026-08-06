@@ -61,7 +61,7 @@ ordered by name. It carries no identity and no stored id.
 | `from`   | the first day of the period, counted, as `YYYY-MM-DD`      | yes      |
 | `to`     | the last day of the period, counted, as `YYYY-MM-DD`       | yes      |
 
-Both days are ISO-8601 calendar dates. A relative phrase — "last week", "since Friday" — is never sent: the
+Both days are calendar dates written `YYYY-MM-DD`. A relative phrase — "last week", "since Friday" — is never sent: the
 caller works the period out against [the day the turn states](../out/ai-connector.md) and sends two days.
 
 ### What `summarize_spending` answers with
@@ -163,7 +163,7 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | The grouping sent holds no category of the category name sent                           | a tool error naming both, so it can be corrected                     |
 | The grouping name is unknown                                                            | a tool error repeating it, so it can be corrected                    |
 | A listing's grouping name names a category rather than a grouping                       | a tool error saying so, so it can be corrected                       |
-| A day of a period is blank, or is not an ISO-8601 calendar date                         | a tool error naming the day at fault and the value it could not read |
+| A day of a period is blank, or is not written `YYYY-MM-DD`                              | a tool error naming the day at fault and the value it could not read |
 | A period's last day is before its first                                                 | a tool error saying the period ends before it starts                 |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
 | The token carries no readable message reference, on a proposal call                     | a tool error saying the proposal could not be created                |

@@ -91,7 +91,7 @@ class IntentExtractionGrpcServiceTest {
 
         @Test
         @DisplayName(
-                "when a tokened request carries a valid ISO-8601 current_date - then the port receives a command holding that date as a LocalDate and the RPC answers an empty response")
+                "when a tokened request carries a valid YYYY-MM-DD current_date - then the port receives a command holding that date as a LocalDate and the RPC answers an empty response")
         void whenRequestCarriesValidCurrentDate_thenCommandHoldsItAsLocalDateAndResponseIsEmpty() {
             String currentDate = "2026-01-15";
 
@@ -185,10 +185,10 @@ class IntentExtractionGrpcServiceTest {
                             RequestFixtures.request(TEXT, RequestFixtures.DEFAULT_CATEGORY_GROUPINGS, "NotInList")),
                     Arguments.of("current_date blank", RequestFixtures.requestWithCurrentDate("")),
                     Arguments.of(
-                            "current_date not an ISO-8601 date (wrong format)",
+                            "current_date not written YYYY-MM-DD (wrong format)",
                             RequestFixtures.requestWithCurrentDate("27/07/2026")),
                     Arguments.of(
-                            "current_date not an ISO-8601 date (invalid calendar date)",
+                            "current_date not written YYYY-MM-DD (invalid calendar date)",
                             RequestFixtures.requestWithCurrentDate("2026-13-01")));
         }
     }

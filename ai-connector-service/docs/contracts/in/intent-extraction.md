@@ -41,7 +41,7 @@ What this boundary promises about it:
 | The text                 | what the user said, unread by the caller                                    |
 | The groupings            | a closed set, non-empty, each a name of its own, none blank                 |
 | The catch-all grouping   | one of the groupings sent, so a fit always exists                           |
-| The day the turn runs on | a calendar date written the ISO-8601 way, required                          |
+| The day the turn runs on | a calendar date written `YYYY-MM-DD`, required                              |
 | The currency to assume   | optional; any casing; a code ISO 4217 knows                                 |
 
 - No category crosses this boundary. The service asks the
@@ -84,7 +84,7 @@ What this boundary promises about it:
 | The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
 | An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
 | The day the turn runs on is absent or only whitespace       | rejected as an invalid argument; no call to the provider is made     |
-| The day the turn runs on is not an ISO-8601 date            | rejected as an invalid argument; no call to the provider is made     |
+| The day the turn runs on is not written `YYYY-MM-DD`        | rejected as an invalid argument; no call to the provider is made     |
 | The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
 | The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
 | The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded       |

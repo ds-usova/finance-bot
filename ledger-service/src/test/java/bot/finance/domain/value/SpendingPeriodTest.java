@@ -53,7 +53,7 @@ class SpendingPeriodTest {
 
         @Test
         @DisplayName(
-                "when two ISO-8601 dates a week apart are given - then returns a period whose ends are those two dates")
+                "when two YYYY-MM-DD dates a week apart are given - then returns a period whose ends are those two dates")
         void whenTwoIso8601DatesAWeekApartAreGiven_thenReturnsPeriodWhoseEndsAreThoseTwoDates() {
             SpendingPeriod period = SpendingPeriod.of("2026-07-20", "2026-07-27");
 
@@ -84,7 +84,7 @@ class SpendingPeriodTest {
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.SpendingPeriodTest#unparseableDates")
         @DisplayName(
-                "when a date is not an ISO-8601 YYYY-MM-DD value - then throws InvalidSpendingPeriodException naming the value it could not read")
+                "when a date is not written YYYY-MM-DD - then throws InvalidSpendingPeriodException naming the value it could not read")
         void whenDateIsNotIso8601Value_thenThrowsInvalidSpendingPeriodExceptionNamingTheValue(String badDate) {
             assertThatThrownBy(() -> SpendingPeriod.of(badDate, "2026-07-27"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)

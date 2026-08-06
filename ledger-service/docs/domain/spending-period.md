@@ -18,7 +18,7 @@ A period can be given as the two days were written — `2026-07-27` and `2026-08
 Refused, never adjusted:
 
 - A day that is absent or blank, naming which of the two is at fault.
-- A day that is not an ISO-8601 `YYYY-MM-DD` value, naming the value that could not be read.
+- A day not written `YYYY-MM-DD`, naming the value that could not be read.
 - A day that reads as a date but names none — the thirtieth of February.
 - A relative phrase. A period is never worked out here; it arrives already resolved to two days.
 

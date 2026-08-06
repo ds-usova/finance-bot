@@ -73,7 +73,7 @@ class AiConnectorIntentExtractionAdapterTest {
 
         @Test
         @DisplayName(
-                "when extract is called with a request carrying a current date - then the request the server received carries that date as current_date in ISO-8601 text")
+                "when extract is called with a request carrying a current date - then the request the server received carries that date as current_date written YYYY-MM-DD")
         void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
