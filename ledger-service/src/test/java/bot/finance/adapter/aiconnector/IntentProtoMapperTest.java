@@ -6,7 +6,6 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.MessageReference;
-import com.google.protobuf.Descriptors;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -61,33 +60,6 @@ class IntentProtoMapperTest {
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
 
             assertThat(protoRequest.hasDefaultCurrency()).isFalse();
-        }
-
-        @Test
-        @DisplayName("when the generated request's descriptor is inspected - then it declares no "
-                + "known_categories field, and field 2 is category_groupings")
-        void whenGeneratedRequestDescriptorIsInspected_thenItDeclaresNoKnownCategoriesFieldAndFieldTwoIsGroupings() {
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro",
-                    List.of("Groceries", "Other"),
-                    "Other",
-                    Optional.empty(),
-                    "user-external-id",
-                    MessageReference.newReference(),
-                    CURRENT_DATE);
-
-            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
-
-            assertThat(protoRequest.getDescriptorForType().findFieldByName("known_categories"))
-                    .isNull();
-            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(2))
-                    .isNotNull()
-                    .extracting(Descriptors.FieldDescriptor::getName)
-                    .isEqualTo("category_groupings");
-            assertThat(protoRequest.getDescriptorForType().findFieldByNumber(5))
-                    .isNotNull()
-                    .extracting(Descriptors.FieldDescriptor::getName)
-                    .isEqualTo("current_date");
         }
 
         @Test

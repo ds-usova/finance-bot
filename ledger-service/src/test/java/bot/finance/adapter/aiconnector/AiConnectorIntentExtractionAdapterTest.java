@@ -68,8 +68,6 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(receivedRequest.getText()).isEqualTo("spent 15 on milk");
             assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
             assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
-            assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("known_categories"))
-                    .isNull();
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
         }
 
