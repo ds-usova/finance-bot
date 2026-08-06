@@ -43,6 +43,7 @@
       "Bash(bash -n:*)",
       "Bash(gawk --posix:*)",
       "Bash(ls:*)",
+      "Bash(mkdir:*)",
       "Bash(wc:*)",
       "Bash(head:*)",
       "Bash(tail:*)",
