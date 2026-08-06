@@ -1,8 +1,9 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.stubs;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
+import bot.finance.ai.common.containers.WireMockSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

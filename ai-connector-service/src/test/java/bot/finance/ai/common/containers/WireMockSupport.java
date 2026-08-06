@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.containers;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 

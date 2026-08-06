@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.ai.AiExpenseRecordingAdapter;
 import bot.finance.ai.adapter.ai.ChatClientConfiguration;
@@ -6,6 +6,7 @@ import bot.finance.ai.adapter.ledger.CallerTokenMcpRequestCustomizer;
 import bot.finance.ai.adapter.ledger.LedgerMcpConfiguration;
 import bot.finance.ai.adapter.ledger.LedgerToolFailureProcessor;
 import bot.finance.ai.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.ai.common.containers.WireMockSupport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

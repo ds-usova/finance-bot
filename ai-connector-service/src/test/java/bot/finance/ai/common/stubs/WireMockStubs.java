@@ -1,10 +1,11 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.stubs;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
+import bot.finance.ai.common.containers.WireMockSupport;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 /**

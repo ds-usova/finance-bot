@@ -3,7 +3,7 @@ package bot.finance.ai.system;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.ai.common.AbstractSystemTest;
+import bot.finance.ai.common.boot.AbstractSystemTest;
 import io.grpc.health.v1.HealthCheckRequest;
 import io.grpc.health.v1.HealthCheckResponse;
 import io.grpc.health.v1.HealthGrpc;

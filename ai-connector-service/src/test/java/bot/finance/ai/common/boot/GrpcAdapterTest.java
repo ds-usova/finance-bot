@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import java.lang.annotation.ElementType;

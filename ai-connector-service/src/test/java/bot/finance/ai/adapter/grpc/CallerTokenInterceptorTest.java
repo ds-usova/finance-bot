@@ -9,9 +9,9 @@ import static org.mockito.Mockito.verify;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
 import bot.finance.ai.application.port.ExtractIntentsPort;
-import bot.finance.ai.common.AuthorizedStubs;
-import bot.finance.ai.common.GrpcAdapterTest;
-import bot.finance.ai.common.RequestFixtures;
+import bot.finance.ai.common.boot.GrpcAdapterTest;
+import bot.finance.ai.common.fixtures.RequestFixtures;
+import bot.finance.ai.common.stubs.AuthorizedStubs;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.health.v1.HealthCheckRequest;

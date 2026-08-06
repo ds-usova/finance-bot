@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.stubs;
 
 import io.grpc.Metadata;
 import io.grpc.stub.AbstractStub;

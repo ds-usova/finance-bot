@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.fixtures;
 
 /**
  * Builders for whole OpenAI chat-completion response bodies. {@link WireMockStubs} serves what they build

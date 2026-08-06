@@ -1,4 +1,4 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.fixtures;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import java.util.List;

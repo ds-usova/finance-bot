@@ -1,6 +1,7 @@
-package bot.finance.ai.common;
+package bot.finance.ai.common.boot;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
+import bot.finance.ai.common.containers.WireMockSupport;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.junit.jupiter.api.AfterAll;

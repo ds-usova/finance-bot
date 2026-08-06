@@ -12,19 +12,27 @@ bot.finance.ai
 ├── architecture    # ArchUnit dependency-rule tests
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
-    ├── WireMockSupport        # JVM-wide stub-server singleton
-    ├── AbstractSystemTest     # full-application base class
-    ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
-    ├── AiAdapterTest          # composed annotation — outbound-adapter tests
-    ├── WireMockStubs          # stub registration, one static method per endpoint
-    ├── JsonUtils              # loads JSON fixtures from src/test/resources
-    ├── LogCapture             # Logback appender, for asserting on log output
-    ├── ChatCompletionFixtures # provider response bodies
-    ├── RequestFixtures        # valid ExtractIntentsRequest builders
-    ├── AuthorizedStubs        # attaches an authorization header to a generated stub
-    ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
-    └── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
+    ├── boot                   # what a test starts, and how
+    │   ├── AbstractSystemTest     # full-application base class
+    │   ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
+    │   └── AiAdapterTest          # composed annotation — outbound-adapter tests
+    ├── containers             # stub-server lifecycle
+    │   └── WireMockSupport        # JVM-wide stub-server singleton
+    ├── fixtures               # payloads a test sends, and the loader for the ones kept on disk
+    │   ├── JsonUtils              # loads JSON fixtures from src/test/resources
+    │   ├── ChatCompletionFixtures # provider response bodies
+    │   └── RequestFixtures        # valid ExtractIntentsRequest builders
+    ├── stubs                  # the external systems' fakes, and what they recorded
+    │   ├── WireMockStubs          # stub registration, one static method per endpoint
+    │   ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
+    │   ├── AuthorizedStubs        # attaches an authorization header to a generated stub
+    │   └── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
+    └── LogCapture             # Logback appender, for asserting on log output
 ```
+
+A new helper joins the subpackage its role names, and is listed above. `LogCapture` sits at the root because it
+belongs to none of them — a bucket of one is worth less than the honesty of leaving it where it is. The same five
+names carry the same meanings in `ledger-service`, so a helper is looked for in the same place in either module.
 
 ## Test Layers
 
@@ -96,7 +104,8 @@ bot.finance.ai
 - Helpers: static `*Utils` classes with a private constructor. Test helpers are the one place `*Utils` is kept —
   production code names a helper for its role ([Code Style](code-style.md#general)) — because a test helper
   genuinely is a bag of conveniences keyed to a fixture rather than a thing with one job.
-- New shared builders and factories go in `bot.finance.ai.common` and get listed in
+- New shared builders and factories go in the `bot.finance.ai.common` subpackage their role names — `boot`,
+  `containers`, `fixtures` or `stubs` — and get listed in
   [Package Structure](#package-structure), so later tests reuse them instead of recreating them. The exception
   is a helper needing package-private access to the class it fronts: it stays in that class's package and is
   listed there — `adapter/grpc/CallerTokenTestSupport` runs a body inside a context holding a caller token,
