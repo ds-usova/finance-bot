@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,15 @@ class AiExpenseRecordingAdapterTest {
 
     @Autowired
     private AiExpenseRecordingAdapter adapter;
+
+    /**
+     * Reset before as well as after, so a test starts on an empty journal whatever the class that ran before it
+     * left on the wire — the server is a singleton, and every context pointed at it outlives its own class.
+     */
+    @BeforeEach
+    void setUp() {
+        WireMockSupport.SERVER.resetAll();
+    }
 
     @AfterEach
     void tearDown() {

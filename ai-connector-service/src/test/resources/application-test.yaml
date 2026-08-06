@@ -2,3 +2,9 @@ spring:
   ai:
     openai:
       api-key: test-api-key
+    mcp:
+      client:
+        # The lazily-initialized client pays for the handshake and tools/list before the first tool call of a
+        # turn. On a cold, slow build agent that chain crosses the production 5s, and a timed-out handshake is
+        # not a transport failure — the tool call is simply never sent, and the turn ends looking successful.
+        request-timeout: 30s

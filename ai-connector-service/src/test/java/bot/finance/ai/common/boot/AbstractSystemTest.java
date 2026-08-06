@@ -7,6 +7,7 @@ import io.grpc.ManagedChannelBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,15 @@ public abstract class AbstractSystemTest {
     @AfterAll
     void closeChannel() {
         channel.shutdownNow();
+    }
+
+    /**
+     * Reset before as well as after, so a test starts on an empty journal whatever the class that ran before it
+     * left on the wire — the server is a singleton, and every context pointed at it outlives its own class.
+     */
+    @BeforeEach
+    void resetStubsBefore() {
+        WireMockSupport.SERVER.resetAll();
     }
 
     @AfterEach

@@ -39,8 +39,9 @@
 - A message naming no spending is not a failure.
 - The same message handled twice records its expenses twice.
 - The day the turn runs on is required, and arrives with the request as a UTC calendar date.
-- A relative period — "last week", "this month", "since Friday" — is worked out from that day. The week starts
-  on Monday.
+- A relative period — "today", "yesterday", "last week", "this month", "since Friday" — is worked out from that
+  day. The week starts on Monday.
+- A single day is a period whose first and last day are that same day.
 - A question about what was spent is answered by asking the ledger to summarize one period, given as its first
   and last day.
 - No amount is ever stated back to the user here. The totals reach the user from the ledger.
