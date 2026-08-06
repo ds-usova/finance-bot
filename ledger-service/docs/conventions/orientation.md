@@ -20,7 +20,9 @@ server in tests. The gRPC client comes from Spring Boot's own `spring-boot-start
 Spring gRPC;
 **APIs exposed**: an MCP server endpoint over HTTP, built on Spring AI's MCP server and reachable only with a
 token this service issues and validates itself — see
-[Agent acting for a user — the expense proposal tool](../contracts/in/mcp.md);
+[Agent acting for a user — the expense proposal tool](../contracts/in/mcp.md); and a session API under `/api`
+for the browser client, on a filter chain of its own, reachable with a cookie this service issues and validates
+itself — see [A person signing in from a browser](../contracts/in/web-session-api.md);
 **Contract-first codegen**: **yes** — the repo-root `proto/` schema is the contract with the AI Connector
 Service, and the `com.google.protobuf` Gradle plugin generates the message classes and client stubs into
 `build/generated/sources/proto/main/` (see [File Locations](architecture.md#file-locations)).

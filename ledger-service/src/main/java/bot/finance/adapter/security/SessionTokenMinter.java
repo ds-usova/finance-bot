@@ -1,6 +1,5 @@
 package bot.finance.adapter.security;
 
-import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -13,19 +12,20 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AccessTokenMinter {
+public class SessionTokenMinter {
 
-    private final AccessTokenProperties properties;
+    private final SessionTokenProperties properties;
     private final TokenSigningKeys signingKeys;
 
-    public AccessTokenMinter(AccessTokenProperties properties, TokenSigningKeys signingKeys) {
+    public SessionTokenMinter(SessionTokenProperties properties, TokenSigningKeys signingKeys) {
         this.properties = properties;
         this.signingKeys = signingKeys;
     }
 
-    public String mint(String userExternalId, MessageReference reference) {
+    public String mint(String userExternalId) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
+
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .subject(userExternalId)
                 .issuer(properties.issuer())
@@ -33,7 +33,6 @@ public class AccessTokenMinter {
                 .issueTime(issuedAt)
                 .expirationTime(expiresAt)
                 .jwtID(UUID.randomUUID().toString())
-                .claim("mrf", reference.value().toString())
                 .build();
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(signingKeys.keyId())
@@ -43,8 +42,9 @@ public class AccessTokenMinter {
             JWSSigner signer = new RSASSASigner(signingKeys.privateKey());
             signedJwt.sign(signer);
         } catch (JOSEException e) {
-            throw new IllegalStateException("failed to sign MCP access token", e);
+            throw new IllegalStateException("failed to sign browser session token", e);
         }
+
         return signedJwt.serialize();
     }
 }

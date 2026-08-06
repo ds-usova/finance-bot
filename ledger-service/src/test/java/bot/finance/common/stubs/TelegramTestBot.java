@@ -71,6 +71,11 @@ public final class TelegramTestBot {
      */
     public static final String SUMMARIZE_SPENDING_TOKEN = "summarize-spending-test-token";
 
+    /**
+     * Token owned by {@code WebSessionSystemTest}, which signs its Login Widget payloads with it.
+     */
+    public static final String WEB_SESSION_TOKEN = "web-session-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
