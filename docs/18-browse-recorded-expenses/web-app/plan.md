@@ -299,7 +299,7 @@ adds none of its own.
 
 #### Documentation Corrections
 
-- [ ] P01 · Correct [the ledger session API contract](../../../web-app/docs/contracts/out/ledger-session-api.md) —
+- [x] P01 · Correct [the ledger session API contract](../../../web-app/docs/contracts/out/ledger-session-api.md) —
   every path becomes `/api/v1/session`, and it names the specification file the types are now generated from. Its
   counterpart on the ledger's side is `ledger-service/plan.md`'s P01.
 

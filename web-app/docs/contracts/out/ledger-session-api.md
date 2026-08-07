@@ -5,7 +5,9 @@ the session.
 
 - **Counterpart:** [the ledger's session API](../../../../ledger-service/docs/contracts/in/web-session-api.md),
   which owns what each request takes and answers with
-- **Transport:** HTTP under `/api`, on the same origin as the page
+- **Specification:** [`openapi/ledger-api.yaml`](../../../../openapi/ledger-api.yaml), from which this module
+  generates the types it declares the calls against
+- **Transport:** HTTP on `/api/v1/session`, on the same origin as the page
 
 ## What It Sends, and When
 
