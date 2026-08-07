@@ -44,8 +44,12 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public List<CategoryEntry> findAllForUser(long userId, Long groupingId) {
-        // reads every category row for userId, each naming its grouping's id and name, narrowed to one
-        // grouping when groupingId is given, through CategoryEntityRepository
-        return List.of();
+        try {
+            return categoryEntityRepository.findCategoryEntriesForUser(userId, groupingId).stream()
+                    .map(CategoryEntryProjection::toCategoryEntry)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find categories for user " + userId, e);
+        }
     }
 }

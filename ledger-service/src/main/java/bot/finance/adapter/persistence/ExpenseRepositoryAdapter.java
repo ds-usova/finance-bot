@@ -7,6 +7,7 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
@@ -71,16 +72,50 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public List<ExpenseEntry> findPage(long userId, ExpenseFilter filter) {
-        // reads one page of the UNION ALL over expense and expense_proposal, scoped to userId and narrowed by
-        // filter, ordered created_at DESC, status, id DESC, through ExpenseEntityRepository
-        return List.of();
+        try {
+            return expenseEntityRepository
+                    .findPage(
+                            userId,
+                            statusName(filter.status()),
+                            filter.categoryId(),
+                            periodStart(filter.period()),
+                            periodEndExclusive(filter.period()),
+                            filter.limit(),
+                            filter.offset())
+                    .stream()
+                    .map(ExpenseEntryProjection::toExpenseEntry)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find expense page for user " + userId, e);
+        }
     }
 
     @Override
     public long countMatching(long userId, ExpenseFilter filter) {
-        // adds the two arms' counts, each scoped to userId and narrowed by the same predicates as findPage(),
-        // ignoring filter's limit and offset, through ExpenseEntityRepository
-        return 0;
+        try {
+            return expenseEntityRepository.countMatching(
+                    userId,
+                    statusName(filter.status()),
+                    filter.categoryId(),
+                    periodStart(filter.period()),
+                    periodEndExclusive(filter.period()));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to count expenses for user " + userId, e);
+        }
+    }
+
+    private static String statusName(ExpenseStatus status) {
+        return status == null ? null : status.name();
+    }
+
+    private static Instant periodStart(SpendingPeriod period) {
+        return period == null ? null : period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+    }
+
+    private static Instant periodEndExclusive(SpendingPeriod period) {
+        return period == null
+                ? null
+                : period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

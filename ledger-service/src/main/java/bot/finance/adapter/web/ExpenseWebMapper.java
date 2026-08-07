@@ -1,9 +1,15 @@
 package bot.finance.adapter.web;
 
 import bot.finance.api.model.ListExpenses200Response;
+import bot.finance.api.model.ListExpenses200ResponseItemsInner;
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.value.ExpenseFilter;
+import bot.finance.domain.value.ExpenseStatus;
+import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 public final class ExpenseWebMapper {
 
@@ -11,15 +17,47 @@ public final class ExpenseWebMapper {
 
     public static ExpenseFilter toFilter(
             Integer limit, Integer offset, String status, Long categoryId, LocalDate from, LocalDate to) {
-        // TODO: parse status into ExpenseStatus, build a SpendingPeriod from from and to when both are present
-        // (InvalidSpendingPeriodException when only one is), default limit to ExpenseFilter.DEFAULT_LIMIT and
-        // offset to zero when absent
-        return null;
+        ExpenseStatus parsedStatus = status == null ? null : ExpenseStatus.valueOf(status);
+        SpendingPeriod period = toPeriod(from, to);
+
+        return new ExpenseFilter(
+                parsedStatus,
+                categoryId,
+                period,
+                limit == null ? ExpenseFilter.DEFAULT_LIMIT : limit,
+                offset == null ? 0 : offset);
     }
 
     public static ListExpenses200Response toResponse(ExpensePage page) {
-        // TODO: map every ExpenseEntry into a ListExpenses200ResponseItemsInner, carrying merchant only when
-        // present, and copy limit, offset and total from the page
-        return null;
+        return new ListExpenses200Response(
+                page.items().stream().map(ExpenseWebMapper::toItem).toList(),
+                page.limit(),
+                page.offset(),
+                page.total());
+    }
+
+    private static SpendingPeriod toPeriod(LocalDate from, LocalDate to) {
+        if (from == null && to == null) {
+            return null;
+        }
+        if (from == null || to == null) {
+            throw new InvalidSpendingPeriodException("A period needs both a from and a to day, or neither");
+        }
+
+        return new SpendingPeriod(from, to);
+    }
+
+    private static ListExpenses200ResponseItemsInner toItem(ExpenseEntry entry) {
+        ListExpenses200ResponseItemsInner item = new ListExpenses200ResponseItemsInner(
+                entry.id(),
+                ListExpenses200ResponseItemsInner.StatusEnum.valueOf(entry.status().name()),
+                entry.categoryId(),
+                entry.description(),
+                entry.money().minorUnits(),
+                entry.money().currencyCode().code(),
+                entry.createdAt().atOffset(ZoneOffset.UTC));
+        entry.merchant().ifPresent(item::merchant);
+
+        return item;
     }
 }

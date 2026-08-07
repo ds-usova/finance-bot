@@ -1,7 +1,9 @@
 package bot.finance.adapter.web;
 
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.api.GroupingsApi;
 import bot.finance.api.model.ListGroupings200ResponseInner;
+import bot.finance.application.dto.BrowseGroupingsCommand;
 import bot.finance.application.port.BrowseGroupingsPort;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +20,7 @@ public class GroupingsController implements GroupingsApi {
 
     @Override
     public ResponseEntity<List<ListGroupings200ResponseInner>> listGroupings() {
-        // TODO: take AuthenticatedCaller.authenticatedUserId(), call browseGroupingsPort.browse with a
-        // BrowseGroupingsCommand, and map the answered entries through CategoryWebMapper.toGroupings
-        return GroupingsApi.super.listGroupings();
+        BrowseGroupingsCommand command = new BrowseGroupingsCommand(AuthenticatedCaller.authenticatedUserId());
+        return ResponseEntity.ok(CategoryWebMapper.toGroupings(browseGroupingsPort.browse(command)));
     }
 }

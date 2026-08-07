@@ -50,7 +50,12 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
 
     @Override
     public List<GroupingEntry> findAllForUser(long userId) {
-        // reads every grouping row for userId, unpaged, through CategoryEntityRepository
-        return List.of();
+        try {
+            return categoryEntityRepository.findGroupingEntriesForUser(userId).stream()
+                    .map(GroupingEntryProjection::toGroupingEntry)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find groupings for user " + userId, e);
+        }
     }
 }

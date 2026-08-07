@@ -26,4 +26,61 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             """)
     List<CurrencyTotalProjection> totalsByCurrency(
             @Param("userId") Long userId, @Param("from") Instant from, @Param("toExclusive") Instant toExclusive);
+
+    @Query(
+            """
+            SELECT 'RECORDED' AS status, e.id AS id, e.category_id AS category_id, e.description AS description,
+                   e.merchant AS merchant, e.amount_minor_units AS amount_minor_units,
+                   e.currency_code AS currency_code, e.created_at AS created_at
+            FROM expense e
+            WHERE e.user_id = :userId
+              AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'RECORDED')
+              AND (CAST(:categoryId AS BIGINT) IS NULL OR e.category_id = :categoryId)
+              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR e.created_at >= :from)
+              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR e.created_at < :toExclusive)
+            UNION ALL
+            SELECT 'PENDING', ep.id, ep.category_id, ep.description, ep.merchant,
+                   ep.amount_minor_units, ep.currency_code, ep.created_at
+            FROM expense_proposal ep
+            WHERE ep.user_id = :userId
+              AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'PENDING')
+              AND (CAST(:categoryId AS BIGINT) IS NULL OR ep.category_id = :categoryId)
+              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR ep.created_at >= :from)
+              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR ep.created_at < :toExclusive)
+            ORDER BY created_at DESC, status, id DESC
+            LIMIT :limit OFFSET :offset
+            """)
+    List<ExpenseEntryProjection> findPage(
+            @Param("userId") Long userId,
+            @Param("status") String status,
+            @Param("categoryId") Long categoryId,
+            @Param("from") Instant from,
+            @Param("toExclusive") Instant toExclusive,
+            @Param("limit") Integer limit,
+            @Param("offset") Integer offset);
+
+    @Query(
+            """
+            SELECT (
+                SELECT count(*) FROM expense e
+                WHERE e.user_id = :userId
+                  AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'RECORDED')
+                  AND (CAST(:categoryId AS BIGINT) IS NULL OR e.category_id = :categoryId)
+                  AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR e.created_at >= :from)
+                  AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR e.created_at < :toExclusive)
+            ) + (
+                SELECT count(*) FROM expense_proposal ep
+                WHERE ep.user_id = :userId
+                  AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'PENDING')
+                  AND (CAST(:categoryId AS BIGINT) IS NULL OR ep.category_id = :categoryId)
+                  AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR ep.created_at >= :from)
+                  AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR ep.created_at < :toExclusive)
+            ) AS total
+            """)
+    long countMatching(
+            @Param("userId") Long userId,
+            @Param("status") String status,
+            @Param("categoryId") Long categoryId,
+            @Param("from") Instant from,
+            @Param("toExclusive") Instant toExclusive);
 }

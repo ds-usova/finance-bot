@@ -197,7 +197,8 @@ Rel_D(securityConfiguration, sessionApi, "admits the paths of")
 | `InvalidExpenseFilterException`        | 400    | the exception's own message, which this module wrote naming the parameter and the bound | new |
 | `InvalidSpendingPeriodException`       | 400    | a sentence this module writes, naming `from` and `to` (D41)                 | new           |
 | `MethodArgumentTypeMismatchException`  | 400    | composed from `getName()` and the rejected value, never the exception's message (D41) | new |
-| `HandlerMethodValidationException`     | 400    | composed from the parameter and the bound it broke (D41)                    | new           |
+| `ConstraintViolationException`         | 400    | composed from the violated property and the bound it broke (D41)            | new           |
+| `IllegalArgumentException`             | 400    | composed from the rejected `status` value (D41)                             | new           |
 | `TelegramLoginRejectedException`       | 401    | "the Telegram sign-in was not accepted"                                     | yes, unchanged |
 | `InvalidUserException`                 | 401    | "no browser session is open"                                                | yes, unchanged |
 | `EntityNotFoundException`              | 404    | the caller is unknown (D10)                                                 | new           |
@@ -665,32 +666,32 @@ union's cross-table ordering (D42).
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ExpenseFilter` · test: `ExpenseFilterTest`
-- [ ] GU02 · `BrowseExpensesCommand` · test: `BrowseExpensesCommandTest` · after: GU01
-- [ ] GU03 · `BrowseCategoriesCommand` · test: `BrowseCategoriesCommandTest`
-- [ ] GU04 · `BrowseGroupingsCommand` · test: `BrowseGroupingsCommandTest`
-- [ ] GU05 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · after: GU01, GU02
-- [ ] GU06 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · after: GU03
-- [ ] GU07 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · after: GU04
-- [ ] GU08 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01
-- [ ] GU09 · `CategoryWebMapper` · test: `CategoryWebMapperTest`
+- [x] GU01 · `ExpenseFilter` · test: `ExpenseFilterTest`
+- [x] GU02 · `BrowseExpensesCommand` · test: `BrowseExpensesCommandTest` · after: GU01
+- [x] GU03 · `BrowseCategoriesCommand` · test: `BrowseCategoriesCommandTest`
+- [x] GU04 · `BrowseGroupingsCommand` · test: `BrowseGroupingsCommandTest`
+- [x] GU05 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · after: GU01, GU02
+- [x] GU06 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · after: GU03
+- [x] GU07 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · after: GU04
+- [x] GU08 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01
+- [x] GU09 · `CategoryWebMapper` · test: `CategoryWebMapperTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
-- [ ] GI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
-- [ ] GI03 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest`
-- [ ] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `GET /api/v1/expenses` · mocks: `BrowseExpensesPort` · after: GU08
-- [ ] GI05 · `CategoriesController` · test: `CategoriesControllerTest` · covers: `GET /api/v1/categories` · mocks: `BrowseCategoriesPort` · after: GU09
-- [ ] GI06 · `GroupingsController` · test: `GroupingsControllerTest` · covers: `GET /api/v1/groupings` · mocks: `BrowseGroupingsPort` · after: GU09
-- [ ] GI07 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the advice over `GET /api/v1/expenses` and `GET /api/v1/categories` · mocks: `BrowseExpensesPort`, `BrowseCategoriesPort` · after: GI04, GI05
-- [ ] GI08 · `SessionController` · test: `SessionControllerTest` · covers: `POST`, `GET`, `DELETE /api/v1/session` · mocks: `TelegramLoginVerifier`, `InitializeUserPort`
+- [x] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
+- [x] GI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
+- [x] GI03 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest`
+- [x] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `GET /api/v1/expenses` · mocks: `BrowseExpensesPort` · after: GU08
+- [x] GI05 · `CategoriesController` · test: `CategoriesControllerTest` · covers: `GET /api/v1/categories` · mocks: `BrowseCategoriesPort` · after: GU09
+- [x] GI06 · `GroupingsController` · test: `GroupingsControllerTest` · covers: `GET /api/v1/groupings` · mocks: `BrowseGroupingsPort` · after: GU09
+- [x] GI07 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the advice over `GET /api/v1/expenses` and `GET /api/v1/categories` · mocks: `BrowseExpensesPort`, `BrowseCategoriesPort` · after: GI04, GI05
+- [x] GI08 · `SessionController` · test: `SessionControllerTest` · covers: `POST`, `GET`, `DELETE /api/v1/session` · mocks: `TelegramLoginVerifier`, `InitializeUserPort`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses`
-- [ ] GS02 · `BrowseCategoryTreeSystemTest` · covers: `GET /api/v1/categories` and `GET /api/v1/groupings`
-- [ ] GS03 · `WebSessionSystemTest` · covers: `POST /api/v1/session`
+- [x] GS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses`
+- [x] GS02 · `BrowseCategoryTreeSystemTest` · covers: `GET /api/v1/categories` and `GET /api/v1/groupings`
+- [x] GS03 · `WebSessionSystemTest` · covers: `POST /api/v1/session`
 
 ### Post-Implementation Steps
 
@@ -731,6 +732,25 @@ No **ADRs** section: Q1 was answered `no`, so this change records none.
   `SummarizeSpendingCommand` throw a command-specific one. RU02–RU04 settled it as `InvalidUserException` for
   every null `userId` and `InvalidExpenseFilterException` for `BrowseExpensesCommand`'s null `filter`, and the
   red tests now pin both, so the green phase has no choice left to make.
+
+- **B3 (plan defect, corrected in place):** the `WebExceptionHandler` table and D41 named
+  `HandlerMethodValidationException` as the exception a broken `limit`, `offset` or `status` raises. GI07 found
+  that neither reaches the advice. The generated endpoint interfaces are `@Validated`, so Spring's AOP
+  `MethodValidationInterceptor` throws `ConstraintViolationException` at method invocation, before MVC's
+  `HandlerMethodValidationException` path can run; and `status` binds as a plain `String` rather than a generated
+  enum, so an unrecognized value raises `IllegalArgumentException` from `ExpenseStatus.valueOf` inside
+  `ExpenseWebMapper`. Both were verified against the real stack traces, not reasoned about. The table above now
+  names the two exceptions actually thrown; `MethodArgumentTypeMismatchException` was correct and is unchanged.
+
+- **B4 (pre-existing defect this plan surfaced, fixed because it blocked GS01):** the suite was not hermetic. A
+  developer's shell exporting a real `TELEGRAM_BOT_TOKEN` wins over `application-test.yaml`, because Spring's
+  environment-variable property source outranks a profile file, so the verifier checked payloads against the
+  ambient token while the fixtures signed them with the profile's own. `WebSessionSystemTest` was immune only
+  because it pins the token with `@TestPropertySource`, which outranks both; RS01 and RS02 follow the profile
+  instead, as the non-poll system tests do, and so both failed. GS01 fixed it in `ledger-service/build.gradle` by
+  stripping the variable from the forked test JVM, mirroring the precedent `infrastructure/.env` already sets and
+  its comment. The fix is module-wide, so it turned RS02's test green too — GS02 therefore needed no work of its
+  own. Worth knowing: this was latent before this change and would have hit any later system test that signs in.
 
 - **Q1:** [Follow-Up Work](../../conventions/follow-up.md) writes an ADR only for a decision approved for
   recording. The one candidate this change raises is D1 — the specification lives at `openapi/` at the repository

@@ -122,6 +122,12 @@ dependencies {
 
 test {
     useJUnitPlatform()
+
+    // A developer's shell may export a real TELEGRAM_BOT_TOKEN for running the bot locally. Spring Boot's
+    // environment-variable property source outranks the "test" profile's own application-test.yaml, so an
+    // inherited value would silently replace the fixed token the test profile declares. Strip it from the
+    // forked test JVM so the profile's own default always wins, the way the test suite assumes it does.
+    environment.remove("TELEGRAM_BOT_TOKEN")
 }
 
 jacoco {

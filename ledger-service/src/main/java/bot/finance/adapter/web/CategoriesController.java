@@ -1,7 +1,9 @@
 package bot.finance.adapter.web;
 
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.api.CategoriesApi;
 import bot.finance.api.model.ListCategories200ResponseInner;
+import bot.finance.application.dto.BrowseCategoriesCommand;
 import bot.finance.application.port.BrowseCategoriesPort;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +20,8 @@ public class CategoriesController implements CategoriesApi {
 
     @Override
     public ResponseEntity<List<ListCategories200ResponseInner>> listCategories(Long groupingId) {
-        // TODO: take AuthenticatedCaller.authenticatedUserId(), call browseCategoriesPort.browse with a
-        // BrowseCategoriesCommand, and map the answered entries through CategoryWebMapper.toCategories
-        return CategoriesApi.super.listCategories(groupingId);
+        BrowseCategoriesCommand command =
+                new BrowseCategoriesCommand(AuthenticatedCaller.authenticatedUserId(), groupingId);
+        return ResponseEntity.ok(CategoryWebMapper.toCategories(browseCategoriesPort.browse(command)));
     }
 }

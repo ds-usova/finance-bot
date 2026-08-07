@@ -5,6 +5,8 @@ import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.port.BrowseGroupingsPort;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.model.User;
 import java.util.List;
 
 public class BrowseGroupingsUseCase implements BrowseGroupingsPort {
@@ -19,8 +21,12 @@ public class BrowseGroupingsUseCase implements BrowseGroupingsPort {
 
     @Override
     public List<GroupingEntry> browse(BrowseGroupingsCommand command) {
-        // resolves the caller's user row by external id, then reads every grouping for that user, unpaged,
-        // through GroupingRepository
-        return List.of();
+        User user = userRepository
+                .findByExternalId(command.userId().externalId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "user",
+                        "no user stored under external id " + command.userId().externalId()));
+
+        return groupingRepository.findAllForUser(user.id().orElseThrow());
     }
 }

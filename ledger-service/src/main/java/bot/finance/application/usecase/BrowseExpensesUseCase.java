@@ -1,12 +1,16 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.BrowseExpensesCommand;
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.model.User;
+import java.util.List;
 
 public class BrowseExpensesUseCase implements BrowseExpensesPort {
 
@@ -23,8 +27,22 @@ public class BrowseExpensesUseCase implements BrowseExpensesPort {
 
     @Override
     public ExpensePage browse(BrowseExpensesCommand command) {
-        // resolves the caller's user row by external id, reads the filtered page and the matching total
-        // through ExpenseRepository, logs the resolved id, the filter and the entry count at DEBUG
-        return null;
+        User user = userRepository
+                .findByExternalId(command.userId().externalId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "user",
+                        "no user stored under external id " + command.userId().externalId()));
+        long userId = user.id().orElseThrow();
+
+        List<ExpenseEntry> entries = expenseRepository.findPage(userId, command.filter());
+        long total = expenseRepository.countMatching(userId, command.filter());
+
+        log.debug(
+                "resolved user {} browsing expenses with filter {}, found {} entries",
+                userId,
+                command.filter(),
+                entries.size());
+
+        return new ExpensePage(entries, command.filter().limit(), command.filter().offset(), total);
     }
 }
