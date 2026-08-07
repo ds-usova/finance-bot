@@ -76,7 +76,8 @@ The first is enforced below; the second by review. How a command is named is enf
   `build/generated/sources/proto/main/`, never edited or committed.
 - API schema: repo-root `openapi/ledger-api.yaml`, layered under `openapi/paths/` and `openapi/components/`.
   Generated Java lands in `build/generated/sources/openapi/`, never edited or committed.
-- Manual `.http` request files: none yet — intended `ledger-service/docs/requests/`.
+- Manual `.http` request files: `ledger-service/docs/requests/`, one file per endpoint — `expenses.http`,
+  `categories.http`, `groupings.http` and `session.http`.
 
 ## Architecture Enforcement
 

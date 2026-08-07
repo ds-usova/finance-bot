@@ -697,7 +697,7 @@ union's cross-table ordering (D42).
 
 #### Documentation Corrections
 
-- [ ] P01 · Correct [the session contract](../../../ledger-service/docs/contracts/in/web-session-api.md), which the
+- [x] P01 · Correct [the session contract](../../../ledger-service/docs/contracts/in/web-session-api.md), which the
   design lists as a document this change moves the facts of: every path becomes `/api/v1/session`, in the
   operations table, in the sequence diagram and in the Compatibility section; and the **Schema** line stops saying
   "none held in a file" and names `openapi/paths/session.yaml` and `openapi/components/schemas/session.yaml`. The
@@ -706,7 +706,7 @@ union's cross-table ordering (D42).
 
 #### Manual Request Files
 
-- [ ] P02 · Add `ledger-service/docs/requests/` with one `.http` file per endpoint — `expenses.http`,
+- [x] P02 · Add `ledger-service/docs/requests/` with one `.http` file per endpoint — `expenses.http`,
   `categories.http`, `groupings.http` and `session.http` — each carrying a request per operation, the session
   cookie and, for the two session writes, the CSRF header. `expenses.http` shows the unfiltered read and one
   request per narrowing dimension. Then correct
