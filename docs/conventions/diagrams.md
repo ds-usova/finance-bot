@@ -61,6 +61,33 @@ case, its command, the read model it answers and the port it calls, all in `appl
 - **Boundaries stay siblings, never nested.** A box inside a box renders as depth the model does not have, and
   the layer is already named in every label.
 
+## Marking What a Change Adds
+
+A component diagram in a plan is read to answer one question first: what is new here. So **every class the change
+creates is coloured, and everything already in the tree keeps the default style.**
+
+Declare the tag once, in the preamble, and tag each new element:
+
+```plantuml
+@startuml
+!include <C4/C4_Component>
+
+AddElementTag("new", $bgColor="#2E8B57", $fontColor="#FFFFFF", $borderColor="#1E5E3A")
+
+Container_Boundary(application, "application — usecases and ports") {
+  Component(listExpenses, "ListExpensesUseCase", "use case", $tags="new")
+  Component(expenseRepository, "ExpenseRepository", "outbound port")
+}
+@enduml
+```
+
+- **`new` is the only tag this rule adds.** An existing class drawn for context, or one the change edits without
+  creating, carries no tag: green means "this file does not exist yet".
+- **The legend is the colour itself.** No `SHOW_LEGEND()` and no explanatory line under the diagram — one colour
+  against the default needs neither.
+- **A diagram where everything is green says nothing**, and that is fine: a change that adds a whole subject is
+  exactly the case where the reader wants the shape, not the novelty.
+
 ## Layout
 
 A structure diagram reads left to right along the call chain: **whoever initiates on the left**, the service's own

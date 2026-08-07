@@ -23,11 +23,19 @@ Usage:
   tools/plan-evidence/plan-evidence.sh --plan docs/implemented/15-a-task/plan.md
   tools/plan-evidence/plan-evidence.sh --plan docs/15-a-task/plan.md --module ledger-service
   tools/plan-evidence/plan-evidence.sh --plan docs/implemented/15-a-task/plan.md --verify
+  tools/plan-evidence/plan-evidence.sh --plan docs/15-a-task/web-app/plan.md --module web-app
 
 Options:
   --plan <path>     Required. The plan file. evidence.md and evidence.json are written beside it.
-  --module <name>   Module to measure; may be repeated. Default: every module in the repository,
-                    because "the plan is finished" is a claim about the whole tree, not one module.
+                    A task spanning several modules holds one plan each, at <n>-<task>/<module>/plan.md;
+                    run this once per plan, scoping it with --module to that plan's own module, so each
+                    module's evidence sits beside the plan that claims it.
+  --module <name>   Module to measure; may be repeated. Default: every module in the repository —
+                    Gradle and npm alike, told apart by the wrapper or package.json in its
+                    directory — because "the plan is finished" is a claim about the whole tree,
+                    not one module.
+                    For a per-module plan, name that module: the whole-tree claim belongs to the
+                    archiving guardrail, which runs once for the task rather than once per plan.
   --verify          Measure nothing. Read the evidence already beside the plan and report whether it
                     still describes HEAD. Use it to detect an evidence file that has gone stale or
                     was edited by hand.
@@ -120,18 +128,29 @@ if [ "$verify" = "1" ]; then
     esac
 fi
 
-# A module is a directory holding a Gradle wrapper. Sorted, so two runs list them the same way.
+# A module is a directory holding a Gradle wrapper or a package.json. Sorted and deduplicated, so
+# two runs list them the same way and a module holding both is measured once.
 if [ ${#modules[@]} -eq 0 ]; then
     while IFS= read -r candidate; do
         modules+=("$candidate")
-    done < <(cd "$repo_root" && find . -maxdepth 2 -name gradlew -not -path "./.git/*" \
-        | sed 's|^\./||; s|/gradlew$||' | sort)
+    done < <(cd "$repo_root" && find . -maxdepth 2 \( -name gradlew -o -name package.json \) \
+        -not -path "./.git/*" -not -path "./node_modules/*" -not -path "*/node_modules/*" \
+        | sed 's|^\./||; s|/gradlew$||; s|/package.json$||' | sort -u)
 fi
 
 if [ ${#modules[@]} -eq 0 ]; then
-    echo "No modules to measure: none of the directories at the repository root holds a gradlew." >&2
+    echo "No modules to measure: no directory at the repository root holds a gradlew or a package.json." >&2
     exit 2
 fi
+
+# Which of the two a module is decides where its coverage and its formatting check come from.
+module_kind() {
+    if [ -f "$repo_root/$1/gradlew" ] || [ -f "$repo_root/$1/gradlew.bat" ]; then
+        echo "gradle"
+    else
+        echo "npm"
+    fi
+}
 
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT INT TERM
@@ -181,44 +200,74 @@ for module in "${modules[@]}"; do
         eval "[ -n \"\$$name\" ] || $name=0"
     done
 
-    minimum="$(sed -n 's/^coverageMinimum=//p' "$repo_root/$module/gradle.properties" | head -n 1)"
-    [ -n "$minimum" ] || minimum="none"
-    minimum_percent="$(awk -v m="$minimum" 'BEGIN { if (m == "none") print "n/a"; else printf "%.0f%%", m * 100 }')"
-
-    csv="$repo_root/$module/build/reports/jacoco/test/jacocoTestReport.csv"
+    kind="$(module_kind "$module")"
     instructions="n/a"
     branches="n/a"
-    if [ -f "$csv" ]; then
-        counters="$(awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7 } END { print im, ic, bm, bc }' "$csv")"
-        set -- $counters
-        instructions="$(ratio "$1" "$2")"
-        branches="$(ratio "$3" "$4")"
 
-        # The classes a reader would look at first: lowest instruction coverage, ties broken by name
-        # so the list is identical between two runs of the same code. A fully covered class is left
-        # out — a table padded to ten rows with 100% entries hides the one row worth reading.
-        awk -F, -v module="$module" 'NR > 1 && $4 > 0 && ($4 + $5) > 0 {
-            printf "%s\t%s.%s\t%.4f\t%d\n", module, $2, $3, $5 / ($4 + $5), $4
-        }' "$csv" | sort -t "$(printf '\t')" -k3,3n -k2,2 | head -n 10 >> "$laggards"
+    if [ "$kind" = "gradle" ]; then
+        minimum="$(sed -n 's/^coverageMinimum=//p' "$repo_root/$module/gradle.properties" | head -n 1)"
+        [ -n "$minimum" ] || minimum="none"
+        minimum_percent="$(awk -v m="$minimum" 'BEGIN { if (m == "none") print "n/a"; else printf "%.0f%%", m * 100 }')"
+
+        csv="$repo_root/$module/build/reports/jacoco/test/jacocoTestReport.csv"
+        if [ -f "$csv" ]; then
+            counters="$(awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7 } END { print im, ic, bm, bc }' "$csv")"
+            set -- $counters
+            instructions="$(ratio "$1" "$2")"
+            branches="$(ratio "$3" "$4")"
+
+            # The classes a reader would look at first: lowest instruction coverage, ties broken by
+            # name so the list is identical between two runs of the same code. A fully covered class
+            # is left out — a table padded to ten rows with 100% entries hides the one row worth
+            # reading.
+            awk -F, -v module="$module" 'NR > 1 && $4 > 0 && ($4 + $5) > 0 {
+                printf "%s\t%s.%s\t%.4f\t%d\n", module, $2, $3, $5 / ($4 + $5), $4
+            }' "$csv" | sort -t "$(printf '\t')" -k3,3n -k2,2 | head -n 10 >> "$laggards"
+        fi
+    else
+        # The npm module states its thresholds in its vite config rather than a properties file, so
+        # the number is read from there. Lines is the one reported, being the one the table's
+        # instruction column is closest to.
+        minimum="$(sed -n 's/.*lines:[ ]*\([0-9][0-9]*\).*/\1/p' "$repo_root/$module/vite.config.ts" | head -n 1)"
+        if [ -n "$minimum" ]; then
+            minimum_percent="${minimum}%"
+        else
+            minimum_percent="n/a"
+        fi
+
+        # Written by the json-summary reporter that the test runner asks for on a coverage run.
+        summary_json="$repo_root/$module/coverage/coverage-summary.json"
+        if [ -f "$summary_json" ]; then
+            instructions="$(awk -f "$script_dir/coverage-summary.awk" -v mode=total -v metric=lines "$summary_json")"
+            branches="$(awk -f "$script_dir/coverage-summary.awk" -v mode=total -v metric=branches "$summary_json")"
+
+            awk -f "$script_dir/coverage-summary.awk" -v mode=files -v metric=lines -v module="$module" \
+                "$summary_json" | sort -t "$(printf '\t')" -k3,3n -k2,2 | head -n 10 >> "$laggards"
+        fi
     fi
 
-    # Formatting is enforced by `check`, which this script never runs — it runs `test` plus the
-    # coverage tasks. Without this, a plan could be archived over unformatted code and the evidence
-    # would still read VERIFIED. `spotlessCheck` joins no queue because it is not a test task and
-    # writes no test results.
+    # Formatting is enforced by the module's own gate, which this script never runs — it runs the
+    # tests plus the coverage task. Without this, a plan could be archived over unformatted code and
+    # the evidence would still read VERIFIED. Neither check joins the test queue: neither runs a test
+    # or writes a test result.
     format_output="$work_dir/$module.format"
     format="clean"
     (
         cd "$repo_root/$module" || exit 2
-        if [ -x ./gradlew ]; then
-            ./gradlew --console=plain -p . spotlessCheck
+        if [ "$kind" = "gradle" ]; then
+            if [ -x ./gradlew ]; then
+                ./gradlew --console=plain -p . spotlessCheck
+            else
+                ./gradlew.bat --console=plain -p . spotlessCheck
+            fi
         else
-            ./gradlew.bat --console=plain -p . spotlessCheck
+            npm run format:check
         fi
     ) > "$format_output" 2>&1
     format_exit=$?
     if [ "$format_exit" != "0" ]; then
-        if grep -q "Task 'spotlessCheck' not found" "$format_output"; then
+        if grep -q "Task 'spotlessCheck' not found" "$format_output" \
+            || grep -q "Missing script: \"format:check\"" "$format_output"; then
             format="n/a"
         else
             format="unformatted"

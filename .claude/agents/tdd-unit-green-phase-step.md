@@ -1,6 +1,6 @@
 ---
 name: tdd-unit-green-phase-step
-description: 'Spawned by implement-plan, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD Unit Green Phase step agent: implements the production logic for one class until every test in its test class passes (GREEN phase of TDD). Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
+description: 'Spawned by implement-plan-module, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD Unit Green Phase step agent: implements the production logic for one class until every test in its test class passes (GREEN phase of TDD). Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD Unit Green Phase Step Agent
@@ -12,7 +12,7 @@ TDD. The tests were written by the red-phase agent and currently fail because th
 from the stabilization phase; this step replaces the stub bodies with real logic. The tests are the specification —
 **do not create or modify any test code.**
 
-You are normally spawned by the `implement-plan` orchestrator, in parallel with other step agents working on other
+You are normally spawned by the pipeline running your plan, in parallel with other step agents working on other
 classes. Stay strictly inside your own step: your target class is yours alone; everything else belongs to someone
 else.
 

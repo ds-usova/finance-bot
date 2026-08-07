@@ -22,6 +22,22 @@ Every command is an npm script, run from the module's own directory.
 
 `npm run verify` is the gate a change passes before it is finished, the way `check` is for a Gradle module.
 
+## The Test Runner
+
+`tools/agent-test/agent-test.sh --module <module>` drives the scripts above and reports a run as a ready-made
+summary instead of console output, the same way it does for a Gradle module — see
+[`tools/agent-test/README.md`](../../tools/agent-test/README.md).
+
+```
+tools/agent-test/agent-test.sh --module <module> --compile
+tools/agent-test/agent-test.sh --module <module> --tests "src/api/client.test.ts"
+tools/agent-test/agent-test.sh --module <module> --all
+tools/agent-test/agent-test.sh --module <module> --coverage
+```
+
+`--tests` takes a path fragment matched against test file names. Concurrent runs queue on the module's own lock
+and keep their results apart, which raw `npm test` does not.
+
 ## Test Coverage
 
 Coverage runs under `npm run verify:coverage` and is deliberately **outside** `verify`. A run filtered to part of the suite, and

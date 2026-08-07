@@ -74,6 +74,7 @@ defined by the `design-task` skill this ships with; a worked example is at
 | A basis that is not one of the four, or one with nothing after it        | an assumption with no evidence — a `must-decide` in disguise |
 | A `must-decide` carrying an answer, or any other basis carrying none     | an entry whose two halves disagree                       |
 | A Design Findings section with no `Grilled (<date>):` line               | a design the grill never saw                             |
+| A missing or out-of-order section, `## Acceptance Scenarios` included    | a design a plan cannot be written from                   |
 
 A `must-decide` entry is **not** a problem here: a design in flight is expected to have them, and that is exactly
 what `settled` is for. `validate` asks whether the file is well-formed; `settled` asks whether it is finished.

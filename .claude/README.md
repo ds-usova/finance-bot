@@ -3,11 +3,12 @@
 `commands/` holds the skills — init-conventions, design, plan, implement, archive, retro. `agents/` holds the sub-agents they
 spawn, `scripts/` the mechanics they share, `templates/` the examples they point at.
 
-These files are pulled into other repositories as a plugin. What follows is what keeps them portable.
+[`STRATEGY.md`](STRATEGY.md) states what the framework is trying to achieve. This file states what keeps it
+portable, since these files are pulled into other repositories as a plugin.
 
 ## A skill names the subject, never the arrangement
 
-A skill states **what** the repository must tell it — the build command, the test layers, the sub-agent models,
+A skill states **what** the repository must tell it — the build command, the test-type mapping, the sub-agent models,
 how documentation is written — and never how that repository files the answer. "What the module conventions say
 about diagram format governs this run" travels; "follow the files the conventions index links" does not, because
 the next repository keeps one file where this one keeps eight.

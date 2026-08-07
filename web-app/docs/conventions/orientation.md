@@ -25,6 +25,19 @@ context, styling is one hand-written stylesheet, and fetching is the module's ow
 | Ledger Service        | out       | [`contracts/out/ledger-session-api.md`](../contracts/out/ledger-session-api.md) |
 | Telegram Login Widget | in        | A script the sign-in page embeds, which calls back with a signed payload        |
 
+## What Cannot Be Exercised Locally
+
+**The Telegram Login Widget does not render on `localhost`.** BotFather's `/setdomain` refuses `localhost` and
+bare IP addresses, and the widget checks the page's origin against the domain registered for the bot. A real
+sign-in therefore cannot happen from a bare local run — it needs a tunnel, registered with BotFather, and the
+steps are in the [README](../../README.md#signing-in-for-real).
+
+Nothing else in the module needs one, and the tests do not: they build a payload and sign it with a test bot
+token, the same way `ledger-service`'s fixtures do.
+
+No sign-in bypass exists, and none is added: an authentication bypass that ships by accident costs more than the
+inconvenience.
+
 ## Documentation
 
 - [Use cases](../usecases/) — what the module does, one page each.

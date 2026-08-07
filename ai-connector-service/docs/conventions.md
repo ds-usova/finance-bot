@@ -11,8 +11,8 @@ and testing at once.
 - [Testing Conventions](conventions/testing.md) — test layers, test tooling, naming conventions, testing style.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
 - [Build](conventions/build.md) — this module's name, package root, architecture test and tasks.
-- [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism, plan-file
-  locations, post-implementation actions.
+- [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what it earns.
+- [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism.
 
 The [repository-wide conventions](../../docs/conventions.md) — how documentation is written, how diagrams are
 drawn, how an ADR lives — bind this module too, and these sections extend them.

@@ -202,7 +202,7 @@ edits it.
 
 ## Stage 5 — Commit
 
-Per the module's **Version Control** policy, documentation prefix. Policy silent or against: no commit.
+Per the conventions' **Version Control** rules, documentation prefix. Silent or against: no commit.
 
 ## Report
 

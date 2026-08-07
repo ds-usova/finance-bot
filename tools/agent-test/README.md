@@ -1,8 +1,18 @@
 # The Test Runner
 
-`tools/agent-test/agent-test.sh` is the single entry point for compiling and testing a module â€” `ledger-service` or
-`ai-connector-service`, selected with `--module`. It wraps the Gradle wrapper and turns a build into a
-ready-made summary, so that reading the result of a run is not an ad-hoc parsing problem for whoever ran it.
+`tools/agent-test/agent-test.sh` is the single entry point for compiling and testing a module, selected with
+`--module`. It turns a build into a ready-made summary, so that reading the result of a run is not an ad-hoc
+parsing problem for whoever ran it.
+
+**It covers both stacks.** A module holding a Gradle wrapper is driven through it; one holding a `package.json`
+is driven through its own npm scripts. Every flag means the same thing either way, and both produce the same
+summary, because both end in JUnit XML.
+
+| Module                 | Driven by                                          |
+|------------------------|----------------------------------------------------|
+| `ledger-service`       | `./gradlew`                                        |
+| `ai-connector-service` | `./gradlew`                                        |
+| `web-app`              | `npm run test:run` / `verify:coverage` / `build`   |
 
 ## Why it exists
 
@@ -26,7 +36,12 @@ Run it with bash, from the **repository root** (on Windows that means Git Bash â
 tools/agent-test/agent-test.sh --module ledger-service --compile
 tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
 tools/agent-test/agent-test.sh --module ai-connector-service --all
+tools/agent-test/agent-test.sh --module web-app --coverage
+tools/agent-test/agent-test.sh --module web-app --tests "src/api/client.test.ts"
 ```
+
+`--tests` names what the stack names: a JUnit pattern for Gradle, a path fragment matched against test file
+names for npm.
 
 | Option              | Meaning                                                                     |
 |---------------------|-----------------------------------------------------------------------------|
@@ -121,8 +136,13 @@ includes it.
 
 ## The coverage guardrail
 
-`--coverage` runs the whole suite and then `jacocoTestCoverageVerification`, which fails the build when
-instruction coverage falls below the module's `coverageMinimum` in its `gradle.properties`.
+`--coverage` runs the whole suite and then the module's own coverage check, which fails the run when coverage
+falls below the module's own minimum.
+
+| Stack  | The check                              | The minimum lives in                       |
+|--------|----------------------------------------|--------------------------------------------|
+| Gradle | `jacocoTestCoverageVerification`       | `gradle.properties`, as `coverageMinimum`  |
+| npm    | the test runner's own thresholds       | the vite config, under `test.coverage`     |
 
 - **Opt-in only.** The verification task is wired into neither `test` nor `check`, so it runs when this flag
   names it and at no other time. A filtered run, a wave of a plan in progress, and a plain `--all` are all
@@ -133,7 +153,8 @@ instruction coverage falls below the module's `coverageMinimum` in its `gradle.p
   and each module's `*Application` class.
 - **In the summary.** A `== Coverage ==` section, carrying either the violated rules or a line saying the
   guardrail was met. Tests green and coverage short reads as `COVERAGE BELOW MINIMUM`, not `FAIL`.
-- **Per-class detail.** `<module>/build/reports/jacoco/test/html/index.html`, written by the same run.
+- **Per-class detail.** `<module>/build/reports/jacoco/test/html/index.html` for a Gradle module,
+  `<module>/coverage/index.html` for an npm one, written by the same run.
 
 ## Docker
 

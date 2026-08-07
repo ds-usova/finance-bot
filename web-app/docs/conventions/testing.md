@@ -2,14 +2,17 @@
 
 ## Test Layers
 
-| Layer     | Covers                                               | Boundary                               |
-|-----------|------------------------------------------------------|----------------------------------------|
-| Unit      | A module's own logic — the API client, a hook        | `fetch` stubbed with `vi.stubGlobal`   |
-| Component | What a component renders and what it calls back with | Its own props, or a hand-built context |
-| Page      | A route's composition, including its redirects       | `api/` mocked with `vi.mock`           |
+| Layer     | Test type | Covers                                               | Boundary                               |
+|-----------|-----------|------------------------------------------------------|----------------------------------------|
+| Unit      | unit      | A module's own logic — the API client, a hook        | `fetch` stubbed with `vi.stubGlobal`   |
+| Component | unit      | What a component renders and what it calls back with | Its own props, or a hand-built context |
+| Page      | unit      | A route's composition, including its redirects       | `api/` mocked with `vi.mock`           |
 
-There is no end-to-end layer here. The whole stack is covered by `ledger-service`'s `WebSessionSystemTest`, and
-the Login Widget itself cannot be driven from a test at all — see [Agent Configuration](agent.md).
+**All three are unit tests**, because each one fakes everything the code under test depends on. This module has
+no test that runs against a real dependency and none that runs the whole system.
+
+The whole stack is covered by `ledger-service`'s `WebSessionSystemTest`, and the Login Widget itself cannot be
+driven from a test at all — see [Agent Configuration](agent.md).
 
 ## Test Tooling
 

@@ -32,13 +32,87 @@ the transport model and the domain model.
 
 ## Proposed Solution
 
-Add a `POST /widgets` endpoint to the module's API contract (`<api-schema-file>`) with a `CreateWidgetRequest`
-request schema and a `Widget` response schema.
+`POST /widgets` joins the module's API contract (`<api-schema-file>`), taking a `CreateWidgetRequest` — `name` and
+`value`, both required — and answering a `Widget` with its generated id. A widget belongs to a parent, named by
+`parentId`.
 
-`CreateWidgetPort` is the inbound port, implemented by `CreateWidgetUseCase`: it validates the command, assembles
-the domain `Widget` via `WidgetAssembler`, and persists it through a new `WidgetRepository` outbound port. That
-outbound port is implemented by `WidgetRepositoryAdapter` in the persistence adapter, backed by a new `widget`
-table created in migration `<migration-file>`:
+### Diagrams
+
+`module-a` names no **Diagram Format** in its conventions, so these use the assumed default. There is no component
+diagram: classes belong to the plan.
+
+```plantuml
+@startuml
+' Uses PlantUML's bundled C4-PlantUML stdlib (angle-bracket include — no network fetch, no relative file
+' path, resolved the same way regardless of where this diagram is rendered from). If a renderer's PlantUML
+' version doesn't have the C4 stdlib bundled, fall back to:
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include <C4/C4_Container>
+
+Person(client, "Client", "Creates widgets under a parent")
+Container(moduleA, "module-a", "the service", "Owns widgets and the parents they hang from")
+ContainerDb(db, "the store", "PostgreSQL", "Holds the widget table and its unique index")
+
+Rel(client, moduleA, "POST /widgets", "HTTPS / JSON")
+Rel(moduleA, db, "inserts a widget row, rejected on a duplicate name", "JDBC")
+@enduml
+```
+
+**Affected Modules** lists one module, so nothing crosses between two. The diagram still answers what this change
+reaches outside the module — the caller and the store — which is where every failure mode below comes from.
+
+```plantuml
+@startuml
+actor Client
+participant "the endpoint" as API
+participant "create a widget" as Create
+participant "the widget store" as Store
+
+Client -> API : POST /widgets
+API -> Create : the request
+
+alt invalid request
+    Create --> API : rejected, naming the field at fault
+    API --> Client : 400 Bad Request
+else unknown parent id
+    Create -> Store : save
+    Store --> Create : no such parent
+    API --> Client : 404 Not Found
+else duplicate name under that parent
+    Create -> Store : save
+    Store --> Create : already used
+    API --> Client : 409 Conflict
+else the store is unavailable
+    Create -> Store : save
+    Store --> Create : write failed
+    API --> Client : 503 Service Unavailable
+else happy path
+    Create -> Store : save
+    Store --> Create : the stored widget
+    Create --> API : the widget
+    API --> Client : 200 OK, with its id
+end
+@enduml
+```
+
+### Details
+
+What the diagrams cannot hold: a field, a signature, an invariant, a status, a setting.
+
+| A widget holds | Refuses                                       |
+|----------------|-----------------------------------------------|
+| `parentId`     | a parent that does not exist                  |
+| `name`         | blank, or already used under the same parent  |
+| `value`        | over 255 characters                           |
+
+| The caller gets | When                        |
+|-----------------|-----------------------------|
+| 400             | a field is missing or blank |
+| 404             | the `parentId` is unknown   |
+| 409             | the name is already used    |
+| 503             | the write failed            |
+
+The `widget` table is created in migration `<migration-file>`:
 
 ```sql
 CREATE TABLE widget (
@@ -51,143 +125,91 @@ CREATE TABLE widget (
 CREATE UNIQUE INDEX idx_widget_parent_name ON widget (parent_id, name);
 ```
 
-`WidgetController` exposes the endpoint and maps between the REST model and the domain model via `WidgetUtils`.
+## Acceptance Scenarios
 
-Files touched: `<api-schema-file>`, `<migration-file>`, `CreateWidgetPort`, `CreateWidgetUseCase`,
-`WidgetAssembler`, `WidgetRepository`, `WidgetRepositoryAdapter`, `WidgetController`, `WidgetUtils`.
+One per branch of the flow above. `POST /widgets` is the only entry point.
 
-### Diagrams
+- **A1:** a widget is created
+  - Given: a parent exists, and it has no widget named `left-rail`
+  - When: the caller posts `parentId`, `name: left-rail` and a value
+  - Then: the response is 200 with the new widget and its generated id, and the widget is stored under that parent
 
-`module-a` names no **Diagram Format** in its conventions, so these use the assumed default. There is no container
-diagram: **Affected Modules** lists one module, so nothing crosses between two.
+- **A2:** a required field is missing
+  - Given: a parent exists
+  - When: the caller posts a blank `name`
+  - Then: the response is 400 naming `name`, and nothing is stored
 
-```plantuml
-@startuml
-' Uses PlantUML's bundled C4-PlantUML stdlib (angle-bracket include — no network fetch, no relative file
-' path, resolved the same way regardless of where this diagram is rendered from). If a renderer's PlantUML
-' version doesn't have the C4 stdlib bundled, fall back to:
-' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
-!include <C4/C4_Component>
+- **A3:** the parent does not exist
+  - Given: no parent with the posted `parentId`
+  - When: the caller posts an otherwise valid widget
+  - Then: the response is 404, and nothing is stored
 
-Container_Boundary(domain, "domain") {
-  Component(widget, "Widget", "domain entity")
-  Component(widgetAssembler, "WidgetAssembler", "domain service")
-}
-Container_Boundary(application, "application") {
-  Component(createWidgetPort, "CreateWidgetPort", "inbound port")
-  Component(createWidgetUseCase, "CreateWidgetUseCase", "use case")
-  Component(widgetRepository, "WidgetRepository", "outbound port")
-}
-Container_Boundary(inboundAdapter, "adapter (inbound)") {
-  Component(widgetController, "WidgetController", "REST controller")
-  Component(widgetUtils, "WidgetUtils", "REST mapper")
-}
-Container_Boundary(outboundAdapter, "adapter (outbound)") {
-  Component(widgetRepositoryAdapter, "WidgetRepositoryAdapter", "persistence adapter")
-}
+- **A4:** the name is already used under that parent
+  - Given: the parent already has a widget named `left-rail`
+  - When: the caller posts a second widget named `left-rail` under it
+  - Then: the response is 409, and the first widget is unchanged
 
-Rel(widgetController, createWidgetPort, "calls")
-Rel(createWidgetUseCase, createWidgetPort, "implements")
-Rel(widgetController, widgetUtils, "maps via")
-Rel(createWidgetUseCase, widgetAssembler, "uses")
-Rel(createWidgetUseCase, widget, "produces")
-Rel(createWidgetUseCase, widgetRepository, "depends on")
-Rel(widgetRepositoryAdapter, widgetRepository, "implements")
-@enduml
-```
-
-```plantuml
-@startuml
-actor Client
-Client -> WidgetController : POST /widgets
-WidgetController -> CreateWidgetUseCase : createWidget(command)
-
-alt invalid request
-    CreateWidgetUseCase -> CreateWidgetUseCase : validateRequest(command)
-    CreateWidgetUseCase --> WidgetController : IllegalArgumentException
-    WidgetController --> Client : 400 Bad Request
-else unknown parent id
-    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : ResourceNotFoundException
-    CreateWidgetUseCase --> WidgetController : ResourceNotFoundException
-    WidgetController --> Client : 404 Not Found
-else duplicate name for the parent
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : DuplicateResourceException
-    CreateWidgetUseCase --> WidgetController : DuplicateResourceException
-    WidgetController --> Client : 409 Conflict
-else persistence unavailable
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : PersistenceFailedException
-    CreateWidgetUseCase --> WidgetController : PersistenceFailedException
-    WidgetController --> Client : 503 Service Unavailable
-else happy path
-    CreateWidgetUseCase -> WidgetAssembler : assemble(parts)
-    CreateWidgetUseCase -> WidgetRepository : save(widget)
-    WidgetRepository --> CreateWidgetUseCase : persisted widget
-    CreateWidgetUseCase --> WidgetController : widget
-    WidgetController --> Client : 200 OK
-end
-@enduml
-```
+- **A5:** the store is unavailable
+  - Given: a parent exists, and the store refuses writes
+  - When: the caller posts a valid widget
+  - Then: the response is 503, and the caller can retry the same request
 
 ## Decisions
 
 - **D1:** Must a widget's `name` be unique, and what does a duplicate return?
-- Answer: Unique per parent, enforced by `idx_widget_parent_name`. A duplicate returns 409, mapped from
-  `DuplicateResourceException`.
-- Basis: decided — the user chose unique-per-parent over globally unique, so two parents can each own a widget
-  called "default" (2026-07-30).
+  - Answer: Unique per parent, enforced by `idx_widget_parent_name`. A duplicate returns 409, mapped from
+    `DuplicateResourceException`.
+  - Basis: decided — the user chose unique-per-parent over globally unique, so two parents can each own a widget
+    called "default" (2026-07-30).
 
 - **D2:** What does the caller see when the database is unavailable mid-write?
-- Answer: `PersistenceFailedException` propagates and the controller maps it to 503. Nothing is persisted and no
-  partial row is written.
-- Basis: assumed — the parent resource's adapter classifies every non-constraint persistence failure this way, and
-  a single-row insert has no partial state to leave behind.
+  - Answer: `PersistenceFailedException` propagates and the controller maps it to 503. Nothing is persisted and
+    no partial row is written.
+  - Basis: assumed — the parent resource's adapter classifies every non-constraint persistence failure this way,
+    and a single-row insert has no partial state to leave behind.
 
 - **D3:** What happens when the parent id does not exist?
-- Answer: 404, mapped from `ResourceNotFoundException`. The foreign key is what detects it — the use case does not
-  read the parent first.
-- Basis: assumed — the module's existing endpoints report an unknown parent this way, and a read-then-insert would
-  be the race D4 rules out.
+  - Answer: 404, mapped from `ResourceNotFoundException`. The foreign key is what detects it — the use case does
+    not read the parent first.
+  - Basis: assumed — the module's existing endpoints report an unknown parent this way, and a read-then-insert
+    would be the race D4 rules out.
 
 - **D4:** What happens when the same widget is created twice concurrently?
-- Answer: One request wins with 200; the other's insert violates `idx_widget_parent_name` and returns the same 409
-  a sequential duplicate returns.
-- Basis: decided — the user chose the unique index over a check-then-insert in the use case, so the guarantee
-  survives a second service instance (2026-07-30).
+  - Answer: One request wins with 200; the other's insert violates `idx_widget_parent_name` and returns the same
+    409 a sequential duplicate returns.
+  - Basis: decided — the user chose the unique index over a check-then-insert in the use case, so the guarantee
+    survives a second service instance (2026-07-30).
 
 - **D5:** Is `POST /widgets` idempotent for a retried request?
-- Answer: No. A retry after a successful create returns 409, not the widget created the first time.
-- Basis: deferred — comes back if a client needs safe retries, which would mean an idempotency key on the request
-  rather than a change to this design. Nothing calls the endpoint with a retry today.
+  - Answer: No. A retry after a successful create returns 409, not the widget created the first time.
+  - Basis: deferred — comes back if a client needs safe retries, which would mean an idempotency key on the
+    request rather than a change to this design. Nothing calls the endpoint with a retry today.
 
 - **D6:** What does the migration do to rows that already exist?
-- Answer: Nothing — it creates the table.
-- Basis: assumed — `widget` does not exist in `<migration-file>`'s history, so there is no data to migrate and the
-  unique index cannot fail on legacy duplicates.
+  - Answer: Nothing — it creates the table.
+  - Basis: assumed — `widget` does not exist in `<migration-file>`'s history, so there is no data to migrate and
+    the unique index cannot fail on legacy duplicates.
 
 - **D7:** Who may create a widget under a given parent?
-- Answer: Any authenticated caller. The endpoint does not check that the caller owns the parent.
-- Basis: decided — the grill raised this as `must-decide`, since the module has no per-resource ownership model and
-  nothing in the API contract implies one; the user confirmed that ownership is out of scope until the module has
-  an authorization model at all (2026-07-30).
+  - Answer: Any authenticated caller. The endpoint does not check that the caller owns the parent.
+  - Basis: decided — the grill raised this as `must-decide`, since the module has no per-resource ownership model
+    and nothing in the API contract implies one; the user confirmed that ownership is out of scope until the
+    module has an authorization model at all (2026-07-30).
 
 - **D8:** What proves in production that a widget was created?
-- Answer: The use case logs the widget id, the parent id and the name at INFO on success; the 409 and 404 paths log
-  at WARN with the rejected name.
-- Basis: assumed — the module's logging convention in `module-a/docs/conventions.md`.
+  - Answer: The use case logs the widget id, the parent id and the name at INFO on success; the 409 and 404 paths
+    log at WARN with the rejected name.
+  - Basis: assumed — the module's logging convention in `module-a/docs/conventions.md`.
 
 - **D9:** Is `name` bounded, and where is the bound enforced?
-- Answer: 255 characters, declared in the API schema and matched by the column width. The request is rejected with
-  400 before it reaches the use case.
-- Basis: assumed — every text column in the module carries its width in the schema so a rejection is a 400 rather
-  than a persistence error.
+  - Answer: 255 characters, declared in the API schema and matched by the column width. The request is rejected
+    with 400 before it reaches the use case.
+  - Basis: assumed — every text column in the module carries its width in the schema so a rejection is a 400
+    rather than a persistence error.
 
 - **D10:** What happens to a widget when its parent is deleted?
-- Answer: It is deleted with the parent, via `ON DELETE CASCADE`.
-- Basis: assumed — the parent's other child tables cascade, and a widget has no meaning without its parent.
+  - Answer: It is deleted with the parent, via `ON DELETE CASCADE`.
+  - Basis: assumed — the parent's other child tables cascade, and a widget has no meaning without its parent.
 
 ## Design Findings
 

@@ -22,6 +22,66 @@ rules, and this for what they look like when written out.
 **Affected Modules:** `module-a`
 **Design:** [Add Widget Creation](design.md)
 
+The design lists one module, so this task holds one plan at `docs/1-add-widget/plan.md` and the link above is a
+bare sibling. Had it listed two, there would be `module-a/plan.md` and `module-b/plan.md` — each linking
+`../design.md` and each run as its own pipeline — plus a `shared/plan.md` holding anything both of them read,
+implemented first so that neither waits on the other.
+
+## Components
+
+The design named responsibilities; these are the classes that hold them.
+
+```plantuml
+@startuml
+' Uses PlantUML's bundled C4-PlantUML stdlib (angle-bracket include — no network fetch, no relative file
+' path, resolved the same way regardless of where this diagram is rendered from). If a renderer's PlantUML
+' version doesn't have the C4 stdlib bundled, fall back to:
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include <C4/C4_Component>
+
+Container_Boundary(domain, "domain") {
+  Component(widget, "Widget", "domain entity")
+  Component(widgetAssembler, "WidgetAssembler", "domain service")
+}
+Container_Boundary(application, "application") {
+  Component(createWidgetPort, "CreateWidgetPort", "inbound port")
+  Component(createWidgetUseCase, "CreateWidgetUseCase", "use case")
+  Component(widgetRepository, "WidgetRepository", "outbound port")
+}
+Container_Boundary(inboundAdapter, "adapter (inbound)") {
+  Component(widgetController, "WidgetController", "REST controller")
+  Component(widgetUtils, "WidgetUtils", "REST mapper")
+}
+Container_Boundary(outboundAdapter, "adapter (outbound)") {
+  Component(widgetRepositoryAdapter, "WidgetRepositoryAdapter", "persistence adapter")
+}
+
+Rel(widgetController, createWidgetPort, "calls")
+Rel(createWidgetUseCase, createWidgetPort, "implements")
+Rel(widgetController, widgetUtils, "maps via")
+Rel(createWidgetUseCase, widgetAssembler, "uses")
+Rel(createWidgetUseCase, widget, "produces")
+Rel(createWidgetUseCase, widgetRepository, "depends on")
+Rel(widgetRepositoryAdapter, widgetRepository, "implements")
+@enduml
+```
+
+| Type                  | Holds                        | Refuses                                       |
+|-----------------------|------------------------------|-----------------------------------------------|
+| `Widget`              | `parentId`, `name`, `value`  | a blank `name`, a `value` over 255 characters |
+| `CreateWidgetCommand` | `parentId`, `name`, `value`  | —                                             |
+
+| Port               | Methods        |
+|--------------------|----------------|
+| `CreateWidgetPort` | `create(cmd)`  |
+| `WidgetRepository` | `save(widget)` |
+
+| Exception                    | Status | Raised by                    |
+|------------------------------|--------|------------------------------|
+| `ResourceNotFoundException`  | 404    | an unknown `parentId`        |
+| `DuplicateResourceException` | 409    | a name already used under it |
+| `PersistenceFailedException` | 503    | any other write failure      |
+
 ## Step-by-Step Implementation Map (To-Do List)
 
 ### Stabilization
@@ -108,7 +168,7 @@ public Settings loadSettings(long userId) {
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest` · covers: `createWidget()`, `validateRequest()`
+- [ ] RU01 · `CreateWidgetUseCase` · test: `CreateWidgetUseCaseTest` · covers: `createWidget()`, `validateRequest()` · scenarios: A1, A2
     - `createWidget()`:
         - given: a valid request
           when: createWidget() is called
@@ -153,7 +213,7 @@ public Settings loadSettings(long userId) {
 #### TDD Integration Red Phase
 
 - [ ] RI01 · `WidgetRepositoryAdapter` · test: `WidgetRepositoryAdapterTest` · covers: `findById()`,
-  `save()`
+  `save()` · scenarios: A4, A5
     - `findById()`:
         - given: an existing widget
           when: findById() is called
@@ -171,7 +231,7 @@ public Settings loadSettings(long userId) {
         - given: a widget whose name is already taken under the same parent
           when: save() is called
           then: throws DuplicateResourceException
-- [ ] RI02 · `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort`
+- [ ] RI02 · `WidgetController` · test: `WidgetControllerTest` · covers: `POST /widgets` · mocks: `CreateWidgetPort` · scenarios: A2, A3
     - Happy Path:
         - given: the mocked port returns a created widget
           when: request is made with a valid payload
@@ -190,7 +250,7 @@ public Settings loadSettings(long userId) {
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `CreateWidgetTest` · covers: `POST /widgets`
+- [ ] RS01 · `CreateWidgetTest` · covers: `POST /widgets` · scenarios: A1, A3
     - Happy Path:
         - given: a valid parent resource
           when: request is made with a valid payload
@@ -228,11 +288,11 @@ public Settings loadSettings(long userId) {
 
 - **Q1:** `module-a`'s integration tests need a containerized database; the CI runner has no container runtime
   configured, so `RI01` cannot run there until it does. Run it locally, or configure the runner first?
-- A:
+  - A:
 
 ## Review Findings
 
 - **F1:** `RI02`'s error-mapping scenarios cover 404 and 409, but `WidgetControllerTest` must also assert the 503
   the design maps `PersistenceFailedException` to — no scenario covers it at any layer.
-- Resolution: mechanical
-- Action: applied — added the scenario to `RI02`.
+  - Resolution: mechanical
+  - Action: applied — added the scenario to `RI02`.

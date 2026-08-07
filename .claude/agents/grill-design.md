@@ -46,6 +46,10 @@ inventing a finding to fill a row is the failure mode this list creates. Ask eac
 | **Limits**              | Unbounded collections, payload size, an unpaginated list, a query with no index behind it, a loop over an external call.                                                                                                                                                                                                                                                                                                          |
 | **Business invariants** | The rule everyone knows and nobody wrote down: what must always be true of this entity, what combination must never exist, what ordering is required.                                                                                                                                                                                                                                                                             |
 
+**One more pass, over what is already written.** Every branch the flow diagram draws has an acceptance scenario,
+and every scenario has a branch. A branch with no scenario is behaviour nobody agreed to; a scenario with no
+branch is a flow the diagram is missing. Both are findings, and both are usually cheaper than a new decision.
+
 ## 3. Answer It Yourself First
 
 For every question the interrogation raises, attempt the answer against the repository before writing it down as a

@@ -58,6 +58,8 @@ What such a file typically turns out to be — as illustration, never a checklis
 | draws diagrams in its documents                  | a page naming the language, its includes, and what each level shows |
 | keeps decision records                           | a page on how one is numbered, superseded, and deprecated           |
 | runs two or more modules on one stack            | a page on compiling, testing, and inspecting dependencies on it     |
+| has one history for all its modules              | a page on when work is committed, and what a message says           |
+| builds and tests every module on one machine     | a page on how much may run at once, across all of them              |
 
 A single-module repository keeps the build facts in the module tier, and may have no root tier at all.
 
@@ -67,13 +69,18 @@ A single-module repository keeps the build facts in the module tier, and may hav
 |-------------------|--------------------------------------------------------------------------------------------|------------------------------|
 | `orientation.md`  | tech stack, and the documentation worth reading before changing anything                   | anyone arriving cold         |
 | `architecture.md` | package layout, layer boundaries and the rule between them, file locations, diagram format | design, planning, guardrails |
-| `testing.md`      | test layers and what each targets, tooling, naming, assertion and style rules              | every red and green phase    |
+| `testing.md`      | which parts fall into unit / integration / system, tooling, naming, assertion and style   | every red and green phase    |
 | `code-style.md`   | production-code idioms, and what a refactoring pass prioritizes and must leave alone       | green and refactor phases    |
 | `build.md`        | this module's exact compile, single-test, full-suite and architecture-test commands        | every phase                  |
-| `agent.md`        | commit behaviour, sub-agent models, parallelism caps, plan-file locations                  | the orchestrating skills     |
+| `follow-up.md`    | what runs once a change is complete, and what documents it earns                           | the last stage, archiving    |
+| `agent.md`        | commit behaviour, sub-agent models, this module's own parallelism caps                     | the orchestrating skills     |
 
 **Every agent-only fact belongs in `agent.md`** and nowhere else. The other files are documentation for a person
 who happens to also be read by an agent: they describe the module, never a workflow, and never mention agents.
+
+**The test for `agent.md` is whether the fact survives without an agent.** What runs when a change is finished
+survives — a person doing the work by hand runs it too — so it is `follow-up.md`, not an agent fact. A sub-agent
+model does not survive, and belongs in `agent.md`.
 
 The `conventions/` templates — under `${CLAUDE_PLUGIN_ROOT}/templates/` when this framework is installed as a
 plugin, under `.claude/templates/` in a plain checkout — are the module tier as blank files, one per row above

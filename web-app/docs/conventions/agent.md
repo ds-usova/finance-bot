@@ -4,9 +4,7 @@ How the coding agent works this module, and what it cannot exercise here.
 
 ## Version Control
 
-Commit behavior, message format, branch policy and squash policy are the repository's, and are stated once in
-[`ledger-service/docs/conventions/agent.md`](../../../ledger-service/docs/conventions/agent.md#version-control).
-They apply here unchanged.
+Repository-wide, since every module shares one history: [Version Control](../../../docs/conventions/version-control.md).
 
 ## Permissions
 
@@ -25,19 +23,27 @@ Without them nothing in this module can be installed, built, tested, or verified
 
 ## Parallelism
 
-Two runs share `coverage/` and `dist/`, so a coverage run and a test run are not started at the same time.
+What the machine allows across every module at once is repository-wide:
+[Parallelism](../../../docs/conventions/parallelism.md). Below is this module only.
+
+- Max concurrent implementation agents on this module's plan: **4**.
+- Concurrent test runs: **1**. Two runs share `coverage/` and `dist/`, so a coverage run and a test run are not
+  started at the same time.
+
 Nothing else here is contended: there is no shared build directory of the kind that forces a queue on a Gradle
-module.
+module, and the suite runs under jsdom without starting a container.
 
-## What Cannot Be Exercised Locally
+## Follow-Up Work in a Plan
 
-**The Telegram Login Widget does not render on `localhost`.** BotFather's `/setdomain` refuses `localhost` and
-bare IP addresses, and the widget checks the page's origin against the domain registered for the bot. A real
-sign-in therefore cannot happen from a bare local run — it needs a tunnel, registered with BotFather, and the
-steps are in the [README](../../README.md#signing-in-for-real).
+What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md).
 
-Nothing else in the module needs one, and no agent should reach for a tunnel to run the tests: they build a
-payload and sign it with a test bot token, the same way `ledger-service`'s fixtures do.
+A plan carries one of those kinds in its **Post-Implementation Steps** group:
 
-No sign-in bypass exists, and none is added: an authentication bypass that ships by accident costs more than the
-inconvenience.
+- **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+
+The approval is a numbered open question in the plan, and only an answered `yes` becomes an item.
+
+## Reaching for a Tunnel
+
+Never, to run the tests. [Orientation](orientation.md#what-cannot-be-exercised-locally) says what a local run
+cannot exercise and why the suite does not need it: the tests sign their own payload with a test bot token.
