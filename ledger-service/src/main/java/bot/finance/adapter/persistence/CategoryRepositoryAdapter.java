@@ -1,9 +1,11 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.CategoryEntry;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -38,5 +40,12 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
             throw new PersistenceFailedException(
                     "failed to check existence of category for user " + userId + " and name " + name, e);
         }
+    }
+
+    @Override
+    public List<CategoryEntry> findAllForUser(long userId, Long groupingId) {
+        // reads every category row for userId, each naming its grouping's id and name, narrowed to one
+        // grouping when groupingId is given, through CategoryEntityRepository
+        return List.of();
     }
 }

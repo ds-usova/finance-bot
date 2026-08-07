@@ -17,6 +17,7 @@ bot.finance
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
+    │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
     │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     ├── rows                  # seeds a table's rows and reads them back, one class per table

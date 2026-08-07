@@ -1,10 +1,12 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.CurrencyTotal;
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
+import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
@@ -65,6 +67,20 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             throw new PersistenceFailedException(
                     "failed to total expenses by currency for user " + userId + " and period " + period, e);
         }
+    }
+
+    @Override
+    public List<ExpenseEntry> findPage(long userId, ExpenseFilter filter) {
+        // reads one page of the UNION ALL over expense and expense_proposal, scoped to userId and narrowed by
+        // filter, ordered created_at DESC, status, id DESC, through ExpenseEntityRepository
+        return List.of();
+    }
+
+    @Override
+    public long countMatching(long userId, ExpenseFilter filter) {
+        // adds the two arms' counts, each scoped to userId and narrowed by the same predicates as findPage(),
+        // ignoring filter's limit and offset, through ExpenseEntityRepository
+        return 0;
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

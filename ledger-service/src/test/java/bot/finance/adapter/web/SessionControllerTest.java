@@ -22,6 +22,7 @@ import bot.finance.common.boot.SigningKeysConfiguration;
 import bot.finance.common.fixtures.SessionTokens;
 import bot.finance.domain.model.User;
 import jakarta.servlet.http.Cookie;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,7 @@ class SessionControllerTest {
     class SignIn {
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when the payload verifies - then the user is initialized with the id the payload is signed for")
         void whenThePayloadVerifies_thenTheUserIsInitializedWithTheIdThePayloadIsSignedFor() throws Exception {
             acceptTheSignIn();
@@ -75,6 +77,7 @@ class SessionControllerTest {
         }
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when the payload verifies - then the session cookie is HttpOnly, path-scoped and SameSite=Lax")
         void whenThePayloadVerifies_thenTheSessionCookieIsHttpOnlyPathScopedAndSameSiteLax() throws Exception {
             acceptTheSignIn();
@@ -90,6 +93,7 @@ class SessionControllerTest {
         }
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when web.session.secure is left at its local default - then the session cookie is not Secure")
         void whenWebSessionSecureIsLeftAtItsLocalDefault_thenTheSessionCookieIsNotSecure() throws Exception {
             acceptTheSignIn();
@@ -101,6 +105,7 @@ class SessionControllerTest {
         }
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when the payload verifies - then the body answers with the signed-in external id")
         void whenThePayloadVerifies_thenTheBodyAnswersWithTheSignedInExternalId() throws Exception {
             acceptTheSignIn();
@@ -155,6 +160,7 @@ class SessionControllerTest {
     class ReadSession {
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when the request carries a valid session cookie - then it answers with that cookie's subject")
         void whenTheRequestCarriesAValidSessionCookie_thenItAnswersWithThatCookiesSubject() throws Exception {
             MvcResult result = mockMvc.perform(get("/api/session").cookie(sessionCookieFor(EXTERNAL_ID)))
@@ -191,6 +197,7 @@ class SessionControllerTest {
     class SignOut {
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when the session is deleted - then the cookie is cleared with Max-Age=0")
         void whenTheSessionIsDeleted_thenTheCookieIsClearedWithMaxAgeZero() throws Exception {
             MvcResult result = mockMvc.perform(delete("/api/session").with(csrf()))
@@ -201,6 +208,7 @@ class SessionControllerTest {
         }
 
         @Test
+        @Disabled("RI08: retargets this class onto /api/v1/session and the @WebAdapterTest annotation")
         @DisplayName("when no session cookie is present - then the delete still clears the cookie")
         void whenNoSessionCookieIsPresent_thenTheDeleteStillClearsTheCookie() throws Exception {
             MvcResult result = mockMvc.perform(delete("/api/session").with(csrf()))

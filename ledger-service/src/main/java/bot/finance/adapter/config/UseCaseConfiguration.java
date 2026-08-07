@@ -1,5 +1,8 @@
 package bot.finance.adapter.config;
 
+import bot.finance.application.port.BrowseCategoriesPort;
+import bot.finance.application.port.BrowseExpensesPort;
+import bot.finance.application.port.BrowseGroupingsPort;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
@@ -16,6 +19,9 @@ import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.UserRepository;
+import bot.finance.application.usecase.BrowseCategoriesUseCase;
+import bot.finance.application.usecase.BrowseExpensesUseCase;
+import bot.finance.application.usecase.BrowseGroupingsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
@@ -107,5 +113,21 @@ public class UseCaseConfiguration {
             GroupingRepository groupingRepository,
             CategoryRepository categoryRepository) {
         return new ListCategoriesUseCase(userRepository, groupingRepository, categoryRepository);
+    }
+
+    @Bean
+    BrowseExpensesPort browseExpensesPort(
+            UserRepository userRepository, ExpenseRepository expenseRepository, LoggerFactory loggerFactory) {
+        return new BrowseExpensesUseCase(userRepository, expenseRepository, loggerFactory);
+    }
+
+    @Bean
+    BrowseCategoriesPort browseCategoriesPort(UserRepository userRepository, CategoryRepository categoryRepository) {
+        return new BrowseCategoriesUseCase(userRepository, categoryRepository);
+    }
+
+    @Bean
+    BrowseGroupingsPort browseGroupingsPort(UserRepository userRepository, GroupingRepository groupingRepository) {
+        return new BrowseGroupingsUseCase(userRepository, groupingRepository);
     }
 }
