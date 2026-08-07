@@ -30,6 +30,7 @@ export default defineConfig({
         'src/auth/types.ts',
         'src/**/*.test.{ts,tsx}',
         'src/api/generated/**',
+        'src/testing/**',
       ],
       thresholds: {
         lines: 80,

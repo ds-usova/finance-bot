@@ -8,6 +8,7 @@ src/
   auth/         session state, its types and the route guard
   components/   presentational components, reusable across pages
   pages/        one component per route, composing the rest
+  testing/      fixtures the tests share, built by hand and never imported by production code
   routes.tsx    the route table
   App.tsx       the provider and router shell
   main.tsx      the mount point

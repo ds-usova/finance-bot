@@ -11,6 +11,7 @@ function renderLogin(status: AuthStatus, signIn: AuthContextValue['signIn']) {
     session: status === 'authenticated' ? { externalId: '42' } : null,
     signIn,
     signOut: async () => {},
+    sessionExpired: () => {},
   };
 
   return render(

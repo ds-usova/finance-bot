@@ -36,7 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'anonymous', session: null });
   }, []);
 
-  const value = useMemo(() => ({ ...state, signIn, signOut }), [state, signIn, signOut]);
+  const sessionExpired = useCallback(() => {
+    // TODO RU04/GU04: set the state to anonymous and drop the session, issuing no DELETE — the session the
+    // ledger refused is already gone, so there is nothing left to end.
+  }, []);
+
+  const value = useMemo(
+    () => ({ ...state, signIn, signOut, sessionExpired }),
+    [state, signIn, signOut, sessionExpired],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

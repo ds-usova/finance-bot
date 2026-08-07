@@ -11,6 +11,7 @@ function renderAt(status: AuthStatus) {
     session: status === 'authenticated' ? { externalId: '42' } : null,
     signIn: async () => {},
     signOut: async () => {},
+    sessionExpired: () => {},
   };
 
   return render(

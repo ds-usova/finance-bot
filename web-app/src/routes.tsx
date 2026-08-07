@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RequireAuth } from './auth/RequireAuth';
-import { HomePage } from './pages/HomePage';
+import { ExpensesPage } from './pages/ExpensesPage';
 import { LoginPage } from './pages/LoginPage';
 
 export function AppRoutes() {
@@ -8,7 +8,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<ExpensesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
