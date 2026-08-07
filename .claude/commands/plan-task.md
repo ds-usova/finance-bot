@@ -7,23 +7,28 @@ argument-hint: [ design file path, or a description of the feature to plan ]
 
 When the user asks you to plan a task, create a step-by-step implementation plan in a file before starting your work.
 
-This skill is **mechanical translation**: a settled design becomes checklist items, test scenarios and a dependency
-graph. It decides nothing about what the change does. What it does about a failure, a duplicate request, or a
-missing constraint was settled by `design-task`, and anything this skill discovers that is *not* settled goes back
-there — never into this plan as a new question.
+**This skill decides structure and sequencing. It never decides behaviour.** Which classes exist, which layer
+each sits in, which ports they talk through, which test covers what, and in what order it all gets built — all
+of that is settled here, and none of it is in the design. What the change *does* — including what it does about
+a failure, a duplicate request, or a missing constraint — was settled by `design-task`. Anything this skill finds
+unsettled goes back there, never into this plan as a new question.
 
-> **Architecture Contract:** the design file states it and places every class in a layer — a dependency-free
-> domain, an application layer of usecases on ports, adapters implementing the outbound ports and driving the
-> inbound ones. Steps inherit that placement; a step that would land a class in a different layer than the design
-> puts it in is a defect in one of the two, and it is resolved in the design. If a module does not follow this
-> architecture, the phase structure below does not apply.
+> **Layering is the module's, not this framework's.** Its conventions name the layers, the packages they map to,
+> and which may depend on which. Read them and apply what they say.
+>
+> **Placing a class is this file's decision**, and the component diagram below is where the placement is checked
+> against that rule, while moving a class still costs a line in a diagram.
+>
+> A module whose conventions name no layers is planned the same way. The diagram then groups classes the way that
+> module really organizes code, and no dependency rule is enforced beyond the ones its conventions state. What
+> the phase structure below depends on is the module's **test types**, which its testing conventions map.
 
 ## 1. Require a Settled Design
 
 Every plan is written from a design file — `docs/<n>-<task-name>/design.md`, produced by `design-task`. Read it
-in
-full before anything else. It carries the **Objective**, the **Proposed Solution** with the real file names, the
-diagrams, and the **Decisions** this plan's steps have to encode.
+in full before anything else. It carries the **Objective**, the **Proposed Solution**, the flow the change
+follows, the **Acceptance Scenarios** a person signed off, and the **Decisions** this plan's steps have to
+encode.
 
 **Two gates, both hard:**
 
@@ -38,17 +43,81 @@ diagrams, and the **Decisions** this plan's steps have to encode.
 A design gap found *while* planning — a case the **Decisions** section does not cover — is amended in the design
 file (a new `D` entry, answered against the repository or escalated to the user), not absorbed into the plan.
 
-## 2. Create a Plan File
+## 2. Create a Plan File per Module
 
-A task owns a directory under the repository-root `docs/`, and its design and plan are the files in it — one
-directory whatever the task touches, one module or several.
+The design already created its task directory and `design.md` inside it. Write **one plan per module** the
+design's **Affected Modules** names:
 
-The design already created `docs/<n>-<task-name>/design.md`. Write the plan beside it, as
-`docs/<n>-<task-name>/plan.md` — `docs/1-add-auth/plan.md`.
+| Design's Affected Modules       | Where the plan goes                               |
+|---------------------------------|---------------------------------------------------|
+| one module                      | `docs/<n>-<task-name>/plan.md`                    |
+| several                         | `docs/<n>-<task-name>/<module>/plan.md`, one each |
+| several, with a shared artifact | one more: `docs/<n>-<task-name>/shared/plan.md`   |
 
-> **Naming rule:** the directory carries the number and the task name; the files do not repeat them. A task
-> directory holds `design.md` and `plan.md`, the same way `docs/conventions/` holds `testing.md` rather than
-> `conventions-testing.md`.
+> **Naming rule:** the directory carries the name; the file does not repeat it. A task directory holds
+> `design.md` and `plan.md`, or `design.md` and `module-a/plan.md` and `module-b/plan.md` — the same way
+> `docs/conventions/` holds `testing.md` rather than `conventions-testing.md`.
+
+**The design is never split; the plans always are.** A design's value is the contract between the modules, and
+half a contract belongs to nobody. A plan's unit is what gets implemented and verified — one module, one
+toolchain, one set of conventions. Each plan is then implemented on its own, with its own verification between
+waves, instead of one sequence of barriers that makes independent modules wait for each other. It also gives a
+refactor pass one module's diff rather than one spanning two stacks.
+
+**A plan is self-contained.** Its own step IDs, its own dependency graph, its own Open Questions. IDs restart in
+each file, so the same ID can exist in two plans and means nothing without its path.
+
+**Affected Modules** in the header names the one module that plan implements.
+
+### The Shared Plan
+
+Everything that crosses between modules goes in `shared/plan.md`, and nothing crosses any other way. It is
+implemented first, alone, before any module plan starts — so a module plan never waits on another and never
+names one.
+
+**What belongs in it**, in three layers:
+
+1. **The artifact** — an API schema, a message schema, any file more than one module's **build** reads, whether
+   it generates sources from it or merely validates against it.
+2. **Each consuming module's wiring to it** — the generator invocation, the build hookup, the script that
+   produces the generated sources.
+3. **Every call site the change to it breaks.** Removing a field or a parameter leaves the code that read it
+   referring to something the regenerated sources no longer have. Those call sites are stabilized here, because
+   no module plan can compile until they are.
+
+**The artifact is shared; the behaviour it describes is not.** A schema both modules generate from goes here.
+The endpoint that schema declares does not — the module serving it implements it in its own plan, and the
+consumer's build never waits, having generated its types from the schema and mocking the call. The test is what
+breaks while the thing is missing: another module's **build** means shared, a mocked call means it belongs to
+whoever implements it.
+
+**Layer 3 gets it compiling, nothing more.** Its items follow the **Interface-First / Build Stabilization**
+rules unchanged:
+
+| What the change broke        | What layer 3 does                                |
+|------------------------------|--------------------------------------------------|
+| a method's signature         | keep its logic, add a `TODO`, return the minimum |
+| a method that now must exist | add a stub with an intent comment                |
+| a test that cannot compile   | disable it, naming the step that will rework it  |
+
+Making any of it work again is the module plan's job.
+
+**Its header names every module on the seam:**
+
+```
+**Affected Modules:** `module-a`, `module-b`
+**Design:** [<task name>](../design.md)
+```
+
+The plan is finished when **every module in that list** compiles, passes its architecture test, and still has a
+green pre-existing suite. So the list is not a label: it is where those commands come from, one set per module's
+build conventions.
+
+**It has a Stabilization group and no other.** A schema file has nothing to red, green or refactor, so the other
+three groups are left out and every item ID is an `ST`. It reads the repository-tier conventions plus each
+listed module's build section, and needs no layer or test mapping — it runs no test phase.
+
+**Write it only when the design names a shared artifact.** No file means nothing crosses.
 
 > **Archiving rule:** Once every checklist item in the **entire** plan file is ticked (`[x]`), move **the task's
 > whole directory** from `docs/` into `docs/implemented/`. Active (in-progress) work lives in `docs/`; completed
@@ -63,13 +132,18 @@ After determining the **Affected Modules**, read `<module>/docs/conventions.md` 
 generating the plan's layer sections. Also read the repo-root `docs/conventions.md` if it exists — it holds
 conventions shared by all modules; a module's own file overrides/extends it.
 
-The conventions file tells the skill the module's tech stack and test tooling, its layer → test-type mapping,
-naming conventions, file locations, and inbound adapter types.
+The conventions file tells the skill the module's tech stack and test tooling, how it organizes code, its
+dependency rule if it has one, its naming conventions, its file locations, and — the one this skill cannot
+proceed without — **which of its parts fall into which test type**.
 
-If a module has no conventions file: use generic defaults, and add an entry under **Open Questions / Blockers** in
-the generated plan asking the user to run `init-conventions`, or to fill in the templates at
+**A module whose conventions carry no test-type mapping cannot be planned.** Say so and ask for it, rather than
+reading a test type off a package name. That guess is wrong exactly where this module differs from the last one,
+and it is wrong in every step at once.
+
+If a module has no conventions file at all: use generic defaults, and add an entry under **Open Questions /
+Blockers** in the generated plan asking the user to run `init-conventions`, or to fill in the templates at
 `.claude/templates/conventions/` by hand.
-Never fail and never silently guess module conventions.
+Never fail silently and never guess module conventions.
 
 ## 4. Plan Structure
 
@@ -81,19 +155,63 @@ instructions for writing those sections, not sections to reproduce in the plan.
 Two lines at the very top of the plan, immediately after the title:
 
 ```
-**Affected Modules:** `module-a`, `module-b`
+**Affected Modules:** `module-a`
 **Design:** [<task name>](design.md)
 ```
 
-**Affected Modules** lists only the top-level modules whose code, config, or migrations change as part of this plan
-(e.g. a monorepo service directory) — the same list the design file carries. If the task touches only one module,
-list that single module; do not omit the property.
+**Affected Modules** is read differently by the two kinds of plan, and neither reading is inferred:
 
-**Design** links the design file this plan translates. The objective, the solution, the file names and the diagrams
-live there and are **not** repeated here: one fact, one owner. The plan's own content starts at the step map.
+| Plan             | The property names                               |
+|------------------|--------------------------------------------------|
+| a module plan    | the one module it implements                     |
+| `shared/plan.md` | every module on the seam, producer and consumers |
 
-The link is a bare sibling filename and survives archiving: the two share a directory, and `implement-plan`
-moves that directory whole.
+Never omit it. The design's own **Affected Modules** is the list of all of them.
+
+**No plan declares an order.** `shared/plan.md` finishes before any module plan starts, and nothing else
+crosses. So no plan has anything to wait for, and none says it does.
+
+`after:` is for steps inside one file. It never names a step in another plan — `plan.sh validate` fails on an ID
+it cannot find. The one place a plan mentions another is a disabled test's reason, which points at the step that
+will rework it. That is a note for a reader, not a dependency.
+
+**Design** links the design file this plan translates. The objective, the behaviour, the schema and the flow live
+there and are **not** repeated here: one fact, one owner. What lives here is the structure that behaviour gets
+built in.
+
+The link is relative and survives archiving, because the whole task directory moves together: `design.md` from a
+single-module plan, `../design.md` from a per-module or shared one.
+
+### Components
+
+The classes this module gets, and how they connect. One component diagram (C4 level 3), plus a table of what a
+box cannot carry.
+
+**What to write it in comes from the module's conventions file** — its **Diagram Format** entry names the
+language and any preamble. Where a module names none, use PlantUML with the bundled C4-PlantUML standard library:
+a fenced ` ```plantuml ` block and `!include <C4/C4_Component>`. Angle brackets, no `.puml` extension. Where a
+renderer predates the bundled stdlib, fall back to
+`https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml`.
+
+- **Every new or changed class**, grouped into the boundaries the module's conventions name. Where those
+  conventions split a layer by direction — an inbound adapter and an outbound one — the diagram splits it too,
+  because direction is what such a rule turns on. Where they name no layers, group by whatever the module really
+  organizes code by, and say in a line beneath the diagram what the grouping is.
+- **Draw the dependency between each pair**, pointing the way the dependency really runs. An arrow the
+  conventions' dependency rule forbids is a violation, and this is where it costs a line instead of a rewrite.
+  Where they state no such rule, the arrows are still drawn — a picture of what depends on what is worth having
+  even when nothing enforces it.
+- **One diagram per subject, not one per change.** A change touching expenses and the category tree draws one
+  each. Where no arrow crosses between two groups of boxes, they were never one diagram.
+- **Keep it small.** An untouched class is drawn only where an arrow needs it. A class belonging to no subject —
+  a filter chain, an exception handler — is left to the table.
+
+The wiring is drawn, never written. Which class calls, implements, or wraps which never appears as a sentence or
+a table row. Beneath the diagram, a table carries only what a box cannot: a port signature, a record's fields, an
+invariant, an exception-to-status mapping.
+
+**This is the plan's own content, not a copy of anything.** The design named responsibilities; naming the classes
+that hold them is this section's work, and the step map below targets exactly the classes drawn here.
 
 ### Step-by-Step Implementation Map (To-Do List)
 
@@ -120,12 +238,12 @@ group — use only the sections that apply:
 ` · `. The ID names the item everywhere else it comes up — `after:` dependencies, blocker records, sub-agent
 prompts, and step reports — so an item stays addressable when its wording changes:
 
-| Prefix | Items                                | Prefix | Items                                 |
-|--------|--------------------------------------|--------|---------------------------------------|
-| `ST`   | Stabilization                        | `GU`   | TDD Unit Green Phase                  |
-| `RU`   | TDD Unit Red Phase                   | `GI`   | TDD Integration Green Phase           |
-| `RI`   | TDD Integration Red Phase            | `GS`   | TDD System Test Green Phase           |
-| `RS`   | TDD System Test Red Phase            | `P`    | Post-Implementation Steps             |
+| Prefix | Items                     | Prefix | Items                       |
+|--------|---------------------------|--------|-----------------------------|
+| `ST`   | Stabilization             | `GU`   | TDD Unit Green Phase        |
+| `RU`   | TDD Unit Red Phase        | `GI`   | TDD Integration Green Phase |
+| `RI`   | TDD Integration Red Phase | `GS`   | TDD System Test Green Phase |
+| `RS`   | TDD System Test Red Phase | `P`    | Post-Implementation Steps   |
 
 Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
 renumbered once the plan is written — a dropped step leaves a gap.
@@ -185,49 +303,54 @@ installed as a plugin, under `.claude/` in a plain checkout.
 
 #### Red Phase
 
-- **TDD Unit Red Phase** — write meaningful unit tests that build for classes the module's conventions file maps to
-  the unit layer; tests are expected to fail at this stage (stubs return null/defaults); no production
-  implementation yet
-- **TDD Integration Red Phase** — write meaningful integration tests that build for adapter classes on **both
-  sides of the hexagon**, per the conventions file's integration layer mapping: outbound adapters against real
-  infrastructure as defined there (e.g. a containerized database, an HTTP stub server), and inbound adapters (e.g.
-  REST controllers) through the framework's slice-test mechanism with their inbound ports mocked; same RED-phase
-  rules apply — no production implementation yet
-- **TDD System Test Red Phase** — write a thin set of end-to-end system tests that build, entering through an
-  inbound port the way production does: via HTTP using the module's API-level test client (per conventions file),
-  or, when there is no HTTP layer, by making the framework fire the entry point itself (e.g. a test-configured
-  schedule for a cron trigger, a message published to the test broker for a listener) — never by calling the
-  inbound-port method directly; scope is what only the fully wired stack can prove — per entry point, one happy path and a
-  representative error path originating below the inbound adapter (validation matrices belong to the inbound
-  adapter's integration step); tests are expected to fail at runtime until the full stack is implemented — no
+The three types are separated by **what is real and what is faked**, and the module's conventions map its own
+parts onto them.
+
+- **TDD Unit Red Phase** — write meaningful unit tests that build for classes the conventions map to the unit
+  type, with every dependency mocked; tests are expected to fail at this stage (stubs return null/defaults); no
   production implementation yet
+- **TDD Integration Red Phase** — write meaningful integration tests that build for classes the conventions map
+  to the integration type, each against the **real** thing it talks to. Two variants: a class that calls
+  infrastructure is driven directly, against a real database, store or stub server as the conventions define it;
+  a class the framework calls is reached through the framework, with what it delegates to mocked. Same RED-phase
+  rules — no production implementation yet
+- **TDD System Test Red Phase** — write a thin set of end-to-end system tests that build, against the fully wired
+  application with **nothing mocked**, entered the way production enters it: an HTTP request via the module's
+  API-level test client, or the framework firing the entry point itself — a test-configured schedule, a message
+  published to the test broker — never a direct method call. Scope is what only the whole application can prove:
+  per entry point, one happy path and a representative error path raised from deep in the stack. Validation
+  matrices belong to the entry point's integration step. Tests are expected to fail at runtime until the full
+  stack is implemented — no production implementation yet
 
 #### Green Phase
 
 - **TDD Unit Green Phase** — implement the production logic for each class from `TDD Unit Red Phase`, one class per
   step, until its unit tests pass
-- **TDD Integration Green Phase** — implement the adapter logic for each class from `TDD Integration Red Phase`, one
-  class per step, until its integration tests pass; for an inbound-adapter step this implements only the adapter
-  itself (binding, mapping, validation wiring, error mapping) — the usecase behind it is a unit-phase target
+- **TDD Integration Green Phase** — implement each class from `TDD Integration Red Phase`, one class per step,
+  until its integration tests pass; for an entry-point step that is the class itself — binding, mapping,
+  validation wiring, error mapping — never what it delegates to, which has its own step
 - **TDD System Test Green Phase** — run each system test class from `TDD System Test Red Phase` and confirm all
-  tests pass; fix implementation bugs in any layer (never the tests) until the full test class is green — inbound
-  adapters covered by an Integration Phase step are already implemented there; an entry point without one (e.g. a
-  framework-fired trigger) is wired here
+  tests pass; fix implementation bugs anywhere in the stack (never the tests) until the full test class is green.
+  An entry point with an integration step is already implemented there; one without — a framework-fired trigger —
+  is wired here
 
 #### Post-Implementation Steps
 
 - **Manual Request Files** — manual request files (e.g. `.http`), only if the module's conventions file lists this
   as a convention
 
-Sections here come from the module's conventions file — whatever it lists as work that only makes sense once the
-feature is green, in the order it lists them. The framework prescribes none of them beyond the rule that they run
-last. A module that names a post-implementation artifact requiring the user's approval says so there, and the
-approval is a question under [Open Questions / Blockers](#open-questions--blockers) like any other.
+Sections here come from the module's conventions — whatever they say a finished change earns, filtered to what
+this plan can produce, in the order they list it. Follow the conventions index to wherever that is stated. The
+framework prescribes none of them beyond the rule that they run last.
+
+Where the conventions put an artifact under the user's approval, that approval is a question under
+[Open Questions / Blockers](#open-questions--blockers) like any other, and only an answered yes becomes an item
+here.
 
 ### Step Formats — reference
 
-The exact shape of every Red Phase and Green Phase item, the **Test Layer Mapping** that decides which phase a
-step belongs to, and the scenario-authoring rules that bind them all, are
+The exact shape of every Red Phase and Green Phase item, **The Three Test Types** that decide which phase a step
+belongs to, and the scenario-authoring rules that bind them all, are
 [`.claude/templates/step-formats.md`](../templates/step-formats.md). Read it before writing or reviewing a step;
 `plan.sh validate` checks what it can of the result.
 [`.claude/templates/example-plan.md`](../templates/example-plan.md) is a complete worked plan in those formats.
@@ -239,13 +362,16 @@ credential that may be missing, an approval a conventions file requires. Questio
 **do** belong in the design file's **Decisions** section and are settled before this plan exists; a design question
 appearing here means step 1's gate was skipped.
 
-Generate placeholders for the user's answers beneath each open question, for example:
+Generate placeholders for the user's answers beneath each open question, nested under it, for example:
 
 - **Q1:** [Your question here]?
-- A:
+  - A:
 
 - **Q2:** [Next question]?
-- A:
+  - A:
+
+The answer is nested and a blank line separates the questions, for the same reason a decision's is: flat bullets
+render as one undifferentiated list.
 
 **Number every question** (`Q1`, `Q2`, …) so it can be referenced in conversation, in a commit, or from another
 document. Numbers are assigned once and never renumbered: a question that is answered or withdrawn keeps its
@@ -265,9 +391,16 @@ the rest of the plan. Each finding uses this exact format:
 
 ```
 - **F1:** [what's wrong or missing, with file/class/scenario reference]
-- Resolution: mechanical | decision
-- Action:
+  - Resolution: mechanical | decision
+  - Action:
+
+- **F2:** [the next one]
+  - Resolution: …
 ```
+
+**`Resolution` and `Action` are nested under their finding, and a blank line separates one finding from the
+next.** Flat bullets render as one undifferentiated list, where a reader cannot see a finding begin or end. The
+same holds for `Escalated:` where a finding carries one.
 
 Findings are numbered on the same terms as the questions above — `F1`, `F2`, … assigned once, never renumbered,
 and continuing past the highest existing number on a re-review.
@@ -297,16 +430,16 @@ proceed to **6. Resolve the Mechanical Findings** below.
 Apply every finding the reviewer marked `Resolution: mechanical` to the plan, then write under it what changed:
 
 ```
-- Action: applied — [what changed in the plan, in a clause]
+  - Action: applied — [what changed in the plan, in a clause]
 ```
 
 A finding marked `Resolution: decision` keeps that classification — this step never regrades the reviewer's
 verdict. It still gets **attempted against the repository**: the sibling service's code, the module conventions,
 an existing ADR, the schema. Answer it when the evidence is there and write the evidence into `Action:`
 (`resolved — the connector's own `ExpenseIntent` imposes no `UPDATE` rule`). Leave `Action:` empty for the user
-only when the answer is a product, operational, or business rule that exists nowhere yet — and add a line
-`- Missing: [what the repository does not say]` beneath it, so the user answers a question rather than picking
-from a menu.
+only when the answer is a product, operational, or business rule that exists nowhere yet — and add a
+`- Missing: [what the repository does not say]` line beside it, nested under the finding like the rest, so the
+user answers a question rather than picking from a menu.
 
 How to apply them:
 

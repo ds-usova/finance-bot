@@ -13,9 +13,10 @@ description of it.
 
 ## 1. Locate the Plan and Its Modules
 
-Read the plan file at the given path in full, then the design file its **Design** header links — the plan carries
-only the step map, so the objective, the solution, the diagrams and the settled **Decisions** the steps must encode
-are all there. A step is audited against the design, not against the plan's own restatement of it.
+Read the plan file at the given path in full, then the design file its **Design** header links. The objective,
+the behaviour, the flow, the **Acceptance Scenarios** and the settled **Decisions** the steps must encode are all
+in the design. The plan carries the classes that hold them: its **Components** section and its step map. A step
+is audited against the design, not against the plan's own restatement of it.
 
 Read `<module>/docs/conventions.md` for every module listed in **Affected Modules** (and the repo-root
 `docs/conventions.md` if present) — the boundary audit and test-scenario audit both depend on knowing the module's
@@ -47,7 +48,7 @@ job — do not re-derive them by hand and do not report them again as findings.
   the Red Phase group, no stabilization section appearing under Green Phase).
 - Confirm every step under **TDD Unit Red Phase**, **TDD Integration Red Phase**, and **TDD System Test Red Phase**
   follows its mandated step format exactly (`<TargetClass>` · test: `<TestClass>` · covers: line — plus `mocks:`
-  for inbound-adapter integration steps — given/when/then sub-bullets, and optional `update:` sub-bullets for
+  for a framework-variant integration step — given/when/then sub-bullets, and optional `update:` sub-bullets for
   existing tests). The formats and the scenario-authoring rules they carry are
   `.claude/templates/step-formats.md`; read them there rather than from memory.
 - Confirm every Green-phase step corresponds 1-to-1 with a Red-phase step (same target class, same test class) — no
@@ -63,22 +64,28 @@ job — do not re-derive them by hand and do not report them again as findings.
 
 ### 2.2 Boundary Audit
 
-- Confirm every new/changed class is placed in the layer its module's conventions file maps it to (domain,
-  application/usecase, adapter).
-- Confirm every **TDD Unit Red Phase** step fakes/mocks only outbound ports — no real infrastructure, no
-  application-framework context.
-- Confirm every **TDD Integration Red Phase** outbound-adapter step calls only the adapter-under-test's own public
-  methods — never through a usecase, a port default method, or the full application context.
-- Confirm every **TDD Integration Red Phase** inbound-adapter step mocks only the adapter's inbound port / usecase
-  beans and uses no real infrastructure — entered through the protocol via the framework's slice mechanism, never
-  by direct method calls, and never with real usecases or the full application context.
-- Confirm every **TDD System Test Red Phase** step enters only through an inbound port, the way production does
-  (HTTP via the API-level test client, or a framework-fired trigger induced as in production — never a direct
-  inbound-port method call), and stays a thin slice — per entry point, a happy path and a representative error path;
-  flag any field-validation matrix listed at system level (it belongs to the inbound adapter's integration step).
+- Confirm every new/changed class is placed in the layer its module's conventions file maps it to, and that the
+  **Components** diagram draws it there. An arrow the conventions' dependency rule forbids is a violation the
+  plan can still fix for the price of a line.
+
+  **Audit against the conventions, never against a remembered architecture.** Where a module states no layering
+  and no dependency rule, there is nothing to flag here, and the bullets below apply only as far as the module's
+  own test-layer definitions reach.
+- Confirm every class a step targets appears in that diagram, and every class in the diagram is targeted by a
+  step. A box nothing builds and a step building an undrawn class are the same defect from two sides.
+- Confirm every **TDD Unit Red Phase** step mocks or fakes **every** dependency its target class is handed — no
+  real infrastructure, no application-framework context.
+- Confirm every **TDD Integration Red Phase** infrastructure step calls only the class-under-test's own public
+  methods — never through another class, and never the full application.
+- Confirm every **TDD Integration Red Phase** framework step mocks what its class delegates to and uses no real
+  infrastructure past the framework — entered through the protocol, never by a direct method call.
+- Confirm every **TDD System Test Red Phase** step mocks **nothing** and enters the way production does — HTTP via
+  the API-level test client, or a framework-fired trigger induced as in production, never a direct method call —
+  and stays a thin slice: per entry point, a happy path and a representative error path. Flag any field-validation
+  matrix listed at system level; it belongs to that entry point's integration step.
 - Confirm Green-phase `after:` markers match the real collaborator graph: a green step whose tests exercise
   another green target as a **real, unmocked collaborator** (a domain entity/value object in a unit test, an
-  unmocked mapper or domain object on an adapter's execution path in an integration test) must carry an `after:`
+  unmocked mapper or domain object on the execution path of an integration test) must carry an `after:`
   naming it; flag a missing marker, and flag an `after:` on a collaborator the tests actually mock (a false
   dependency that needlessly serializes the schedule).
 
@@ -97,15 +104,18 @@ would reject if the code existed today.
 Read the actual production code and schema the plan describes changing — not just the plan's prose — before judging
 this section.
 
+- **Every acceptance scenario in the design is covered by at least one step.** The design numbers them `A1`,
+  `A2`; each Red Phase step names the ones it covers. An `A<n>` no step names is behaviour a person signed off
+  and nothing will test. A step naming an `A<n>` the design does not carry is the reverse, and just as wrong.
 - For every request/entity field the plan touches, confirm there is a corresponding validation scenario; flag any
   field with no validation coverage.
 - Check for missing boundary values relevant to the field's type: `null`, empty, max-length, unknown-id, and similar
   edges.
 - Confirm every error path the plan introduces has a matching unhappy-path scenario; flag any error path with only
   happy-path coverage.
-- Flag any scenario tested at the wrong layer — the default home for request validation, binding, and the
-  status-code contract is the inbound adapter's integration step (e.g. field validation listed at system level, or
-  the same scenario duplicated across two layers when one would suffice).
+- Flag any scenario tested at the wrong type — the home for request validation, binding and the status-code
+  contract is the entry point's integration step, so field validation listed at system level is misplaced, as is
+  the same scenario duplicated across two types when one would suffice.
 - Verify the plan's **coverage balance rule** claims: open the actual `<TestClass>` files the plan references and
   confirm the scenarios listed as "new coverage" are not already covered by an existing test.
 - Verify the plan's **existing-test updates rule** the other way around: in those same test files, flag any existing
@@ -122,9 +132,15 @@ Append one entry per finding, in this exact format:
 
 ```
 - **F1:** [what's wrong or missing, with file/class/scenario reference]
-- Resolution: mechanical | decision
-- Action:
+  - Resolution: mechanical | decision
+  - Action:
+
+- **F2:** [the next one]
+  - Resolution: …
 ```
+
+**Nest `Resolution` and `Action` under the finding, and leave a blank line between findings.** Flat bullets
+render as one undifferentiated list, where a reader cannot see a finding begin or end.
 
 Findings are numbered `F1`, `F2`, … continuing past the highest number already in the section; a number is
 assigned once and never renumbered. Leave `Action:` empty — it records how the finding was resolved, and is

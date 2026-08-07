@@ -27,18 +27,24 @@ usage() {
 Usage:
   tools/agent-test/agent-test.sh --module <name> --compile
   tools/agent-test/agent-test.sh --module <name> --tests "bot.finance.application.usecase.HandleIncomingMessageUseCaseTest"
-  tools/agent-test/agent-test.sh --module <name> --tests "bot.finance.architecture.CleanArchitectureTest"
+  tools/agent-test/agent-test.sh --module <name> --tests "src/api/client.test.ts"
   tools/agent-test/agent-test.sh --module <name> --all
+
+A module is driven by Gradle or by npm; the wrapper or the package.json in its directory decides
+which, and every option below means the same thing either way.
 
 Options:
   --module <name>     Required. Module directory at the repository root to compile and test.
-  --tests <pattern>   JUnit pattern to run; may be repeated. Omit (or --all) to run the whole suite.
-                      Prefer a fully qualified class name: a pattern containing ** also drags in the
-                      architecture tests, which ignore Gradle's filter.
-  --compile           Compile main and test sources only; run no tests.
+  --tests <pattern>   Test selector; may be repeated. Omit (or --all) to run the whole suite.
+                      Gradle: a JUnit pattern, preferably a fully qualified class name — a pattern
+                      containing ** also drags in the architecture tests, which ignore the filter.
+                      npm: a path fragment, which the runner matches against test file names.
+  --compile           Gradle: compile main and test sources only. npm: type-check and bundle.
+                      Runs no tests either way.
   --coverage          Run the whole suite and then the coverage guardrail, failing the run when
-                      instruction coverage is below the module's coverageMinimum. Cannot be
-                      combined with --tests or --compile: a partial run measures partial coverage.
+                      coverage is below the module's own minimum — coverageMinimum for Gradle, the
+                      thresholds in the vite config for npm. Cannot be combined with --tests or
+                      --compile: a partial run measures partial coverage.
   --label <name>      Prefix of the run directory under build/agent-runs. Defaults to the test class.
   --wait <seconds>    How long to wait for another run to finish before giving up. Default 540.
   --no-lock           Start immediately even if another run is in progress. Results stay separate,
@@ -101,12 +107,27 @@ if [ ! -d "$module_dir" ]; then
     exit 2
 fi
 
+# A module is driven by Gradle or by npm, told apart by the file that drives it. Everything below
+# branches on this one value rather than assuming a stack.
+if [ -f "$module_dir/gradlew" ] || [ -f "$module_dir/gradlew.bat" ]; then
+    kind="gradle"
+elif [ -f "$module_dir/package.json" ]; then
+    kind="npm"
+else
+    echo "Module $module holds neither a Gradle wrapper nor a package.json — nothing here can run it." >&2
+    exit 2
+fi
+
 # The last package segment before any wildcard: "bot.finance.application.**" labels itself
-# "application" rather than the "**" a plain suffix strip would leave behind.
+# "application" rather than the "**" a plain suffix strip would leave behind. A path is labelled by
+# its file name instead, since its last dot-segment is an extension and every run would be "ts".
 derive_label() {
     local pattern="${1%%[*]*}"
     pattern="${pattern%.}"
-    printf '%s' "${pattern##*.}"
+    case "$pattern" in
+        */*) pattern="${pattern##*/}"; printf '%s' "${pattern%%.*}" ;;
+        *)   printf '%s' "${pattern##*.}" ;;
+    esac
 }
 
 if [ -z "$label" ]; then
@@ -161,7 +182,7 @@ trap release_lock EXIT INT TERM
 report_not_run() {
     {
         echo "Result: NOT RUN"
-        echo "Gradle exit code: n/a"
+        echo "Build exit code: n/a"
         echo ""
         echo "$1"
     } > "$summary_file"
@@ -222,42 +243,79 @@ if [ "$use_lock" = "1" ]; then
     acquire_lock
 fi
 
-gradle_args=(--console=plain --stacktrace)
-if [ "$mode" = "compile" ]; then
-    gradle_args+=(compileJava compileTestJava)
-else
-    gradle_args+=(-I "$script_dir/agent-reports.gradle" "-DagentRunDir=$run_dir")
+if [ "$kind" = "gradle" ]; then
+    gradle_args=(--console=plain --stacktrace)
+    if [ "$mode" = "compile" ]; then
+        gradle_args+=(compileJava compileTestJava)
+    else
+        gradle_args+=(-I "$script_dir/agent-reports.gradle" "-DagentRunDir=$run_dir")
 
-    # The ArchUnit engine ignores Gradle's --tests filter, so a filtered run would otherwise also
-    # report architecture failures the caller did not ask about and did not cause.
-    if [ ${#patterns[@]} -gt 0 ]; then
-        wants_architecture=0
-        for pattern in "${patterns[@]}"; do
-            case "$pattern" in *[Aa]rchitecture*) wants_architecture=1 ;; esac
+        # The ArchUnit engine ignores Gradle's --tests filter, so a filtered run would otherwise also
+        # report architecture failures the caller did not ask about and did not cause.
+        if [ ${#patterns[@]} -gt 0 ]; then
+            wants_architecture=0
+            for pattern in "${patterns[@]}"; do
+                case "$pattern" in *[Aa]rchitecture*) wants_architecture=1 ;; esac
+            done
+            [ "$wants_architecture" = "1" ] || gradle_args+=(-DagentExcludeArchUnit=true)
+        fi
+
+        gradle_args+=(test)
+        for pattern in ${patterns[@]+"${patterns[@]}"}; do
+            gradle_args+=(--tests "$pattern")
         done
-        [ "$wants_architecture" = "1" ] || gradle_args+=(-DagentExcludeArchUnit=true)
+
+        # The guardrail is never wired into `test`, so it only ever runs because it was named here.
+        if [ "$coverage" = "1" ]; then
+            gradle_args+=(jacocoTestReport jacocoTestCoverageVerification)
+        fi
     fi
 
-    gradle_args+=(test)
-    for pattern in ${patterns[@]+"${patterns[@]}"}; do
-        gradle_args+=(--tests "$pattern")
-    done
+    command_line="gradlew ${gradle_args[*]}"
 
-    # The guardrail is never wired into `test`, so it only ever runs because it was named here.
-    if [ "$coverage" = "1" ]; then
-        gradle_args+=(jacocoTestReport jacocoTestCoverageVerification)
+    cd "$module_dir" || exit 2
+    if [ -x ./gradlew ]; then
+        ./gradlew "${gradle_args[@]}" > "$console_log" 2>&1
+    else
+        ./gradlew.bat "${gradle_args[@]}" > "$console_log" 2>&1
     fi
-fi
-
-command_line="gradlew ${gradle_args[*]}"
-
-cd "$module_dir" || exit 2
-if [ -x ./gradlew ]; then
-    ./gradlew "${gradle_args[@]}" > "$console_log" 2>&1
+    exit_code=$?
 else
-    ./gradlew.bat "${gradle_args[@]}" > "$console_log" 2>&1
+    # The module's own npm scripts are the entry points, so a change to what "test" or "coverage"
+    # means lands in package.json and not here. Everything after `--` is forwarded to the runner.
+    mkdir -p "$run_dir/test-results"
+
+    if [ "$mode" = "compile" ]; then
+        # `build` is tsc plus the bundler: the npm module's answer to "does it still compile".
+        npm_args=(run build)
+    else
+        npm_script="test:run"
+        [ "$coverage" = "0" ] || npm_script="verify:coverage"
+
+        npm_args=(run "$npm_script" --
+            --reporter=default
+            --reporter=junit
+            "--outputFile.junit=$run_dir/test-results/junit.xml")
+
+        # A coverage run reports per file as well as on the console, so the evidence tool has
+        # something to read that is not console text.
+        if [ "$coverage" = "1" ]; then
+            npm_args+=(--coverage.reporter=text --coverage.reporter=json-summary)
+        fi
+
+        # Vitest filters by file path, not by class name, so a pattern is passed through as-is and
+        # a caller who names a test file gets that file.
+        for pattern in ${patterns[@]+"${patterns[@]}"}; do
+            npm_args+=("$pattern")
+        done
+    fi
+
+    command_line="npm ${npm_args[*]}"
+
+    cd "$module_dir" || exit 2
+    npm "${npm_args[@]}" > "$console_log" 2>&1
+    exit_code=$?
 fi
-exit_code=$?
 
 release_lock
 
@@ -269,7 +327,7 @@ if [ "$mode" = "compile" ]; then
             echo "Result: COMPILE ERROR"
         fi
         echo "Command: $command_line"
-        echo "Gradle exit code: $exit_code"
+        echo "Build exit code: $exit_code"
     } > "$summary_file"
 else
     # *.xml, not TEST-*.xml: Gradle renames files whose path would exceed the Windows path limit to
@@ -282,9 +340,15 @@ else
     # requested verification is what says the guardrail held.
     coverage_violations=""
     if [ "$coverage" = "1" ]; then
-        # The same violation reaches the log three times — as an ant task line, as Gradle's failure
-        # line, and inside the stack trace — so each one is trimmed back to its message and deduped.
-        coverage_violations="$(grep -o "Rule violated for.*" "$console_log" | sort -u)"
+        if [ "$kind" = "gradle" ]; then
+            # The same violation reaches the log three times — as an ant task line, as Gradle's
+            # failure line, and inside the stack trace — so each one is trimmed back to its message
+            # and deduped.
+            coverage_violations="$(grep -o "Rule violated for.*" "$console_log" | sort -u)"
+        else
+            # Vitest prints one line per threshold it missed, already in a readable form.
+            coverage_violations="$(grep -o "ERROR: Coverage for.*" "$console_log" | sort -u)"
+        fi
     fi
     coverage_failed=0
     [ -z "$coverage_violations" ] || coverage_failed=1
@@ -300,10 +364,17 @@ else
             if [ "$coverage_failed" = "1" ]; then
                 printf '%s\n' "$coverage_violations"
                 echo ""
-                echo "Below coverageMinimum in the module's gradle.properties. The per-class report is at"
-                echo "$module/build/reports/jacoco/test/html/index.html."
-            else
+                if [ "$kind" = "gradle" ]; then
+                    echo "Below coverageMinimum in the module's gradle.properties. The per-class report is at"
+                    echo "$module/build/reports/jacoco/test/html/index.html."
+                else
+                    echo "Below the thresholds in the module's vite config. The per-file report is at"
+                    echo "$module/coverage/index.html."
+                fi
+            elif [ "$kind" = "gradle" ]; then
                 echo "Guardrail met: instruction coverage is at or above coverageMinimum."
+            else
+                echo "Guardrail met: every coverage threshold in the module's vite config holds."
             fi
         } >> "$summary_file"
     fi
@@ -320,7 +391,7 @@ if [ "$exit_code" != "0" ] && [ "$(head -n 1 "$summary_file")" != "Result: COVER
     {
         echo ""
         echo "== Build output =="
-        grep -E "error:|^e: |FAILURE:|What went wrong|^> " "$console_log" \
+        grep -E "error:|error TS|^e: |FAILURE:|What went wrong|^> |^npm error|^npm ERR!" "$console_log" \
             | grep -v "There were failing tests" \
             | grep -v "Rule violated for" \
             | head -n 25

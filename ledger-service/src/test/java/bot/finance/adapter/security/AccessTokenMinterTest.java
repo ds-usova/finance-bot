@@ -3,22 +3,18 @@ package bot.finance.adapter.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.fixtures.McpTokens;
+import bot.finance.common.fixtures.SigningKeys;
 import bot.finance.domain.value.MessageReference;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import java.security.KeyStore;
-import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
 class AccessTokenMinterTest {
 
@@ -26,7 +22,7 @@ class AccessTokenMinterTest {
 
     private final AccessTokenProperties properties = McpTokens.properties();
 
-    private final AccessTokenMinter minter = new AccessTokenMinter(properties, new DefaultResourceLoader());
+    private final AccessTokenMinter minter = McpTokens.minter();
 
     @Nested
     @DisplayName("minting a token")
@@ -71,7 +67,16 @@ class AccessTokenMinterTest {
             SignedJWT signedJwt = SignedJWT.parse(token);
 
             assertThat(signedJwt.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.RS256);
-            assertThat(signedJwt.verify(new RSASSAVerifier(minter.publicKey()))).isTrue();
+            assertThat(signedJwt.verify(new RSASSAVerifier(SigningKeys.keys().publicKey())))
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("when the minted token's header is read - then its kid is the alias the JWK Set publishes")
+        void whenTheMintedTokenHeaderIsRead_thenItsKidIsTheAliasTheJwkSetPublishes() throws ParseException {
+            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+
+            assertThat(SignedJWT.parse(token).getHeader().getKeyID()).isEqualTo(SigningKeys.KEY_ALIAS);
         }
 
         @Test
@@ -96,31 +101,6 @@ class AccessTokenMinterTest {
             String secondMrf = SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim("mrf");
 
             assertThat(firstMrf).isNotEqualTo(secondMrf);
-        }
-    }
-
-    @Nested
-    @DisplayName("reading the public key")
-    class PublicKey {
-
-        @Test
-        @DisplayName(
-                "when publicKey() is called - then it returns the RSA public key matching the private key mint() signs with")
-        void whenPublicKeyIsCalled_thenItReturnsTheRsaPublicKeyMatchingThePrivateKeyMintSignsWith() throws Exception {
-            RSAPublicKey expectedPublicKey = loadPublicKeyDirectlyFromKeystore(properties, new DefaultResourceLoader());
-
-            assertThat(minter.publicKey()).isEqualTo(expectedPublicKey);
-        }
-
-        private static RSAPublicKey loadPublicKeyDirectlyFromKeystore(
-                AccessTokenProperties properties, ResourceLoader resourceLoader) throws Exception {
-            char[] password = properties.keystorePassword().toCharArray();
-            Resource resource = resourceLoader.getResource(properties.keystore());
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            try (var in = resource.getInputStream()) {
-                keyStore.load(in, password);
-            }
-            return (RSAPublicKey) keyStore.getCertificate(properties.keyAlias()).getPublicKey();
         }
     }
 }

@@ -28,6 +28,15 @@ build/
 # Ignore .env
 /infrastructure/.env
 
+# Node
+node_modules/
+/web-app/dist/
+/web-app/coverage/
+/web-app/.env
+/web-app/.env*.local
+.vite/
+*.tsbuildinfo
+
 # Python
 __pycache__/
 *.py[cod]

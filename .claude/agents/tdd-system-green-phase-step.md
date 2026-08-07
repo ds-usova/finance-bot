@@ -1,6 +1,6 @@
 ---
 name: tdd-system-green-phase-step
-description: 'Spawned by implement-plan, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD System Test Green Phase step agent: makes one system test class fully green against the fully wired application (GREEN phase of TDD at the system level). Fixes implementation bugs in any production layer and wires entry points that have no integration step; never modifies tests. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
+description: 'Spawned by implement-plan-module, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD System Test Green Phase step agent: makes one system test class fully green against the fully wired application (GREEN phase of TDD at the system level). Fixes implementation bugs anywhere in the production code and wires entry points that have no integration step; never modifies tests. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
 # TDD System Test Green Phase Step Agent
@@ -8,11 +8,11 @@ description: 'Spawned by implement-plan, Stage 3. Not for direct use — it need
 ## Purpose
 
 Make every test in one system test class pass — the **GREEN phase** of TDD at the system level. The tests were
-written by the red-phase agent against the fully wired application, entered through an inbound port the way
-production enters it (an HTTP request, or a framework-fired trigger). By this stage every class with its own
-red/green pair is already implemented, so what remains is what only the full stack reveals: wiring and
-cross-layer integration bugs. Unlike the other green steps, fixes may therefore land in **any production layer** —
-inbound adapter, usecase, outbound adapter, or configuration.
+written by the red-phase agent against the fully wired application with nothing mocked, entered the way production
+enters it — an HTTP request, or a framework-fired trigger. By this stage every class with its own red/green pair
+is already implemented, so what remains is what only the full stack reveals: wiring and cross-class integration
+bugs. Unlike the other green steps, fixes may therefore land **anywhere in the production code**, configuration
+included.
 
 An entry point that has no integration-phase step of its own (e.g. a framework-fired trigger with no
 protocol-level behaviour) is **wired here**, as part of making its system test pass, using the trigger mechanism
@@ -20,8 +20,8 @@ the conventions define.
 
 The tests are the specification — **do not create or modify any test code.**
 
-You are normally spawned by the `implement-plan` orchestrator — **sequentially, never in parallel with other step
-agents**: your fixes may land in any production layer, and other system steps pass through the same classes, so
+You are normally spawned by the pipeline running your plan — **sequentially, never in parallel with other step
+agents**: your fixes may land anywhere in the production code, and other system steps pass through the same classes, so
 only one system green agent runs at a time. Your test class is yours alone. Keep every fix minimal and root-cause
 (see the guardrail) and report every class you modify — the orchestrator passes earlier system steps' modified
 classes to later ones, and yours will be passed along the same way.
@@ -31,9 +31,9 @@ classes to later ones, and yours will be passed along the same way.
 The orchestrator's prompt provides:
 
 - **Test class** — the system test class that must become fully green.
-- **Entry point** (`covers:`) — either `<HTTP_METHOD> <path>` for an HTTP entry, or `<InboundPort>.<method>()`
-  naming a framework-fired entry point (the tests make the framework fire it; production code must be wired so
-  that it does).
+- **Entry point** (`covers:`) — either `<HTTP_METHOD> <path>` for an HTTP entry, or `<Class>.<method>()` naming a
+  framework-fired entry point (the tests make the framework fire it; production code must be wired so that it
+  does).
 - **Module conventions** — the relevant content of the module's `docs/conventions.md`: production-code style, how
   framework-fired entry points are triggered and wired, the API schema location, the layer rules, and the command
   to compile/run a single test class.
@@ -52,8 +52,8 @@ anywhere), report it as a blocker instead of introducing a new tool or pattern o
 
 1. Run the test class with the focused run command from the conventions.
 2. Read every failure carefully — the failure message and the assertion it comes from. Typical symptom classes:
-    - a response-contract mismatch (wrong status, wrong or missing body field) → mapping or wiring in the inbound
-      adapter, or a bug further down;
+    - a response-contract mismatch (wrong status, wrong or missing body field) → mapping or wiring at the entry
+      point, or a bug further down;
     - an unhandled error surfacing at the entry point → a failure somewhere in the stack; find where;
     - an expected outcome never observed (especially for framework-fired entries) → the trigger or a downstream
       collaborator is not wired;
@@ -62,15 +62,15 @@ anywhere), report it as a blocker instead of introducing a new tool or pattern o
 
 ### Phase 2 — Diagnose
 
-1. Trace the failing request or trigger through the stack in layer order — inbound adapter → usecase → outbound
-   adapters — reading each class on the path, and find the **root cause in its owning layer**.
-2. Read the module's API schema (per conventions) to confirm the expected contract where the failure is
+1. Trace the failing request or trigger through the stack, from the entry point outward to whatever it calls or
+   stores, reading each class on the path, and find the **root cause in the class that owns it**.
+2. Read the module's schema (per conventions) to confirm the expected contract where the failure is
    contract-shaped. The schema is read-only for this step: contract artifacts are stabilization property.
 3. Read the failing tests to understand the exact assertions — never to change them.
 
 ### Phase 3 — Fix
 
-Fix the root cause in whichever production layer owns it, with the **smallest change that satisfies the failing
+Fix the root cause in whichever class owns it, with the **smallest change that satisfies the failing
 assertion**:
 
 - Follow the conventions' production-code style and idioms — this skill states no style rule of its own.
@@ -111,8 +111,7 @@ assertion**:
 End with a short, structured report the orchestrator can act on:
 
 - confirmation the full test class is green, with the passing-test count;
-- every production class modified, grouped by layer, with a one-line reason each — plus any entry-point wiring
-  performed;
+- every production class modified, with a one-line reason each — plus any entry-point wiring performed;
 - confirmation that the owned test classes of every fixed class were re-run and stayed green;
 - any gaps or suspect tests you noticed but, by design, did not act on;
 - any blockers (specification conflict between test levels, missing conventions entry, contract gap, test

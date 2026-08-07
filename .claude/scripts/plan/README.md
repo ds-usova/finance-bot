@@ -47,12 +47,52 @@ resolves every ID before it writes any, and a name nothing defines ticks none of
 | `tick <ID>...`      | Mark the items done. Saying so twice is not an error.                                                     |
 | `block <ID> <note>` | Leave the item open; record the note under Open Questions / Blockers.                                     |
 | `validate`          | See [What `validate` checks](#what-validate-checks).                                                      |
+| `task [<path>]`     | Every plan the task holds, its done/total, and whether all are finished. Exit 0 means nothing is open.   |
 
-Exit codes: **0** done, **1** no such item, or `validate` found problems, **2** bad usage.
+Exit codes: **0** done, **1** no such item, `validate` found problems, or `task` found something open,
+**2** bad usage.
 
-`--file <plan>` picks the plan. Without it, the single `docs/<n>-<task>/plan.md` is used — a task owns a
-directory, holding `design.md` and `plan.md`. An archived plan under `docs/implemented/<n>-<task>/plan.md` has to
-be named explicitly.
+**The plan is named as a bare path, on any subcommand**, and it comes last:
+
+```
+.claude/scripts/plan/plan.sh show GU07 docs/1-add-widget/plan.md
+.claude/scripts/plan/plan.sh tick GU07 GU08 docs/1-add-widget/plan.md
+```
+
+`--file <plan>` does the same thing and is accepted anywhere the bare path is. Neither is required: without one,
+the single plan in flight under `docs/` is used — a task owns a directory holding `design.md` and one plan per
+module, `plan.md` for a single-module task and `<module>/plan.md` for each module of a multi-module one. An
+archived plan under `docs/implemented/` has to be named explicitly.
+
+A multi-module task therefore has several plans in flight, and every command names the one it addresses. IDs
+restart per plan, so `GU07` can exist in two of them and is only meaningful with its plan's path.
+
+### What `task` answers
+
+Every other command reads one plan. `task` reads the directory that holds them, which is the only place a
+question about the whole task can be answered.
+
+```
+.claude/scripts/plan/plan.sh task docs/18-browse-recorded-expenses
+```
+
+```
+docs/18-browse-recorded-expenses
+  ledger-service/plan.md              47/47   complete
+  shared/plan.md                       6/6    complete
+  web-app/plan.md                     19/23   4 open
+1 of 3 plans still open
+```
+
+**The argument is the task directory**, or nothing when only one task is in flight.
+
+A plan path works too, and one caller needs it: a run given a single plan knows its own file and not the
+directory above it. Working that directory out means knowing whether the plan sits one level under `docs/` or
+two, which is the arithmetic this command exists to take over. So it walks up to the level directly under
+`docs/` itself, and all three spellings reach the same answer.
+
+A plan with no IDs at all counts as open, whether it is empty or predates the item format. Neither is a plan
+anything should be concluded from.
 
 ### Item IDs
 

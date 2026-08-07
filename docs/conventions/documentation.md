@@ -15,6 +15,8 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
   this rule exists to stop.
 - **Do not repeat within a document either.** If a rule appears in a section, a diagram label, and a step
   description, keep the one place a reader will look and drop the rest.
+- **Prose never restates a diagram.** A page carrying a component diagram does not also narrate which class calls,
+  implements, or wraps which. The text carries what the diagram cannot: a field, a rule, a failure, a setting.
 - **Docs describe what a thing does and why it matters to a reader** — never how it is wired. No DI, bean
   registration, annotation, or framework mechanics in a README or a diagram label.
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
@@ -34,5 +36,24 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
   there — a rule filed on its own is a rule the next reader, and the next agent, does not find. `CLAUDE.md` is
   not one of those homes: it carries how an agent works this repository, not what the repository's documents
   must look like.
+
+## A Domain Page
+
+A page under `docs/domain/` carries **Invariants** and **Made of / held by**. An **entity** — a type with
+identity, whose page describes something the store keeps rows of — carries one more section.
+
+- **`## Lifecycle`, on every entity page.** A table of what brings the entity into being, what changes it, and
+  what removes it, each naming the use case that does it. Where nothing does, the row says so: "never changed"
+  and "never removed except with its user" are facts a reader needs and cannot infer.
+- **The section is mandatory; a diagram inside it is not.** Add a state diagram when the entity has more than
+  one state, or more than one way out. One state and one way out is a table row, and drawing it spends a screen
+  saying what the row already said.
+- **A value object gets no Lifecycle section.** A value is constructed and validated, never created or removed —
+  which is what **Invariants** already covers. Adding one describes a life it does not have.
+- **Do not invent a state the schema does not have.** Where the "state" is really a different table or a
+  different type, the diagram says so. A status drawn on an entity that has no status column documents a model
+  nobody implemented.
+- **A lifecycle crossing two entities is drawn once**, on the page where the branch happens, and the other page
+  links it.
 
 An architectural decision record follows [its own lifecycle](adr.md) on top of these.

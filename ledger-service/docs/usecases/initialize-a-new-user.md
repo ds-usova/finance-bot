@@ -35,10 +35,11 @@ A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories
 
 ## Collaborators
 
-| Direction | Collaborator                                                                     | Through                                                                           | For                                                       |
-|-----------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
-| in        | [Act on a user's message](handle-incoming-message.md)                            | [Act on a user's message](handle-incoming-message.md)                             | resolving the person who sent a message, on every message   |
-| out       | [Database](../contracts/out/database.md)                                         | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their catalogue                        |
+| Direction | Collaborator                                          | Through                                                                           | For                                                       |
+|-----------|-------------------------------------------------------|-----------------------------------------------------------------------------------|-----------------------------------------------------------|
+| in        | [Act on a user's message](handle-incoming-message.md) | [Act on a user's message](handle-incoming-message.md)                             | resolving the person who sent a message, on every message |
+| in        | [Web App](../../../web-app/README.md)                 | [The session API](../contracts/in/web-session-api.md)                             | resolving the person signing in, on every sign-in         |
+| out       | [Database](../contracts/out/database.md)              | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their catalogue                      |
 
 ## Rules
 
@@ -57,13 +58,13 @@ A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories
 
 ## Outcomes
 
-| Outcome                | When                                             | Result                                                                         |
-|------------------------|--------------------------------------------------|--------------------------------------------------------------------------------|
-| User created           | nothing is stored under the identity             | the user and the catalogue are stored together, and the creation is logged     |
-| Existing user returned | a user is already stored under the identity      | that user is returned and nothing is written                                   |
-| Request rejected       | the request is absent or carries no identity     | invalid user — nothing is looked up                                            |
-| Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                               |
-| Storage failed         | the store cannot be reached or refuses the write | the failure reaches the caller                                                 |
+| Outcome                | When                                             | Result                                                                     |
+|------------------------|--------------------------------------------------|----------------------------------------------------------------------------|
+| User created           | nothing is stored under the identity             | the user and the catalogue are stored together, and the creation is logged |
+| Existing user returned | a user is already stored under the identity      | that user is returned and nothing is written                               |
+| Request rejected       | the request is absent or carries no identity     | invalid user — nothing is looked up                                        |
+| Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                           |
+| Storage failed         | the store cannot be reached or refuses the write | the failure reaches the caller                                             |
 
 ## Components
 

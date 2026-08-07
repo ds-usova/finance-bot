@@ -11,21 +11,15 @@ implementation steps exist rewrites them.
 
 This skill produces one file and stops. It writes no checklist items, no test scenarios, and no step IDs.
 
-> **Architecture Contract:** this framework requires the module to follow clean/hexagonal architecture — a
-> dependency-free domain layer; an application layer of usecases implementing inbound ports and depending only on
-> outbound ports; and adapters implementing the outbound ports and driving the inbound ones. The module's
-> conventions file maps these abstract layers onto its concrete packages/folders.
->
-> **Placing a class is this file's decision.** Every class the **Proposed Solution** names belongs to exactly one
-> of those layers, and the component diagram is where the placement is checked — while it costs a line to move a
-> class, rather than after implementation steps target it. A module that does not follow this architecture is
-> outside what this framework describes.
+**It works one level above the code.** What the change adds at the module's edges — what calls it, what it calls,
+what it stores — and how it behaves at each of them. Package structure, layering and classes are the plan's, and
+none of them appear here.
 
 ## 1. Create the Design File
 
 A task owns a directory under the repository-root `docs/`. Create it as `docs/<number>-<task-name>/` and write
-the design inside it as `design.md` — `docs/7-create-expense/design.md`. The `plan.md` that `plan-task` writes
-later joins it there, so the pair travels as one directory.
+the design inside it as `design.md` — `docs/7-create-expense/design.md`. Whatever else the task accumulates joins
+it there, so everything about one change travels as one directory.
 
 The directory carries the number and the task name; the files do not repeat them, the same way
 `docs/conventions/` holds `testing.md` rather than `conventions-testing.md`.
@@ -40,7 +34,7 @@ The directory carries the number and the task name; the files do not repeat them
 ## 2. Read Module Conventions
 
 After determining the **Affected Modules**, read `<module>/docs/conventions.md` for every affected module, and the
-repo-root `docs/conventions.md` if it exists. The conventions give the stack, the layer mapping, and the file
+repo-root `docs/conventions.md` if it exists. The conventions give the stack, the diagram format, and the file
 locations the **Proposed Solution** has to be written in terms of.
 
 If a module has no conventions file, record a `must-decide` decision asking the user to run `init-conventions`,
@@ -72,6 +66,15 @@ A single line at the very top, immediately after the title:
 
 Only the top-level modules whose code, config, or migrations change. One module is still listed.
 
+Where the list holds more than one, the design owes one fact about the boundary between them:
+
+- **Which artifacts are shared** — an API schema, a message schema, anything outside both modules that both read
+  at build time. Name each in the **Proposed Solution** where it is described, along with the modules that read
+  it. No module owns one: a shared artifact is implemented on its own, before either module's work.
+
+A design whose modules wait on each other for anything *else* has not found the boundary — say so, or move the
+seam.
+
 ### Objective
 
 What needs to be achieved, and why it matters to whoever asked. A short paragraph.
@@ -83,49 +86,115 @@ here which existing feature is the model, and every "same as X" elsewhere in the
 
 ### Proposed Solution
 
-The architectural and implementation shape of the change, in terms of the module's real packages and file names.
+What the change adds at the surfaces a person can see: what crosses the module's boundary, what it stores, and
+how it behaves.
 
 - A database change includes the migration content in the module's migration format.
 - An API contract change includes the endpoint and schema changes.
-- Name the actual files in the paths the module's conventions give them. A design that says "a repository adapter"
-  rather than naming the class and its package leaves the plan to invent the name.
+- **Name responsibilities, not classes.** "The read side answers a page of expenses" is this file's; which class
+  holds it, in which package, is the plan's. A design naming classes decides the layout in the document nobody
+  reviews for layout, and then the plan can only copy it.
 
-Organize it by architectural layer when the change spans several.
+**Order: the proposal, then the diagrams, then the details.** A reader arrives for what the change is and what
+its shape looks like. Lead with the surface it adds — the endpoints, the schema, the versioned paths — then the
+diagrams, and only then the tables. Details before diagrams make a reader scan for the picture, and a reader who
+has to hunt stops reading.
+
+- **What the change adds** — the API surface, the file layout, the shape of a response. Short.
+- **Diagrams** — the section below.
+- **Details** — one `####` per module and concern, holding only what a box cannot: a field, a signature, an
+  invariant, an exception-to-status mapping, the SQL, a build setting.
+
+**There is no closing list of files touched.** Every file the change reaches is already a box in a diagram or a
+row in a table, so a list repeating them is a third copy — and the one that goes stale first, because it mirrors
+the others instead of owning anything. A file that would appear *only* in such a list is the real finding: it
+means a config edit, a lint rule, or a document this change invalidates has no row of its own yet. Give it one.
+
+**The diagram owns what happens and in what order; a table owns only what fits inside a box.** A person reads a
+picture faster than any list, so the flow is drawn, never written. What a box cannot carry goes in a table
+beneath it.
+
+| Instead of                                                             | Write                                           |
+|------------------------------------------------------------------------|-------------------------------------------------|
+| "`FooController` calls `ListFooPort`, implemented by `ListFooUseCase`" | nothing — the plan owns every class             |
+| a port/use-case/command/answer table                                   | nothing — the plan owns every signature         |
+| "the amount is validated before anything is stored"                    | the invariant, in that field's row of a table   |
+| "the controller answers 400 when the filter is out of bounds"          | an exception/status/cause table                 |
+
+Sentence discipline, on top of the repository's documentation conventions: one claim per sentence, under 25
+words. A sentence joining two clauses with a dash, a semicolon, or a second "and" is two sentences. Reach for a
+paragraph only where a fact needs a reason a reader would otherwise get wrong, and hold it to two sentences.
 
 #### Diagrams
 
-Include diagrams whenever the change introduces new classes or a new flow; a one-line stub change needs none.
+Include diagrams whenever the change introduces new behaviour or a new flow; a one-line stub change needs none.
 
 **What to write them in comes from the module's conventions file** — its **Diagram Format** entry names the
 language, the fenced block's language tag, and any preamble a diagram needs. Where a module names none, use
-PlantUML with the bundled C4-PlantUML standard library: fenced ` ```plantuml ` blocks, and the include for the
-level being drawn — `!include <C4/C4_Component>` for a C3, `!include <C4/C4_Container>` for a C2. Angle brackets,
-no `.puml` extension: that resolves against PlantUML's own bundled stdlib, needing neither a network fetch nor a
-relative path. Where a renderer's PlantUML predates the bundled stdlib, fall back to the raw URL for the same file
-(`https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml`, or `…/C4_Container.puml`).
+PlantUML with the bundled C4-PlantUML standard library: fenced ` ```plantuml ` blocks, and `!include
+<C4/C4_Container>` for a C2. Angle brackets, no `.puml` extension: that resolves against PlantUML's own bundled
+stdlib, needing neither a network fetch nor a relative path. Where a renderer's PlantUML predates the bundled
+stdlib, fall back to the raw URL for the same file
+(`https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml`).
 See `.claude/templates/example-design.md` for working syntax.
+
+**No class appears in any of them.** The component diagram, which is the one that draws classes, belongs to the
+plan. Here a box is a responsibility, a module, or a system.
 
 What each diagram must **show**:
 
-- **Component diagram (C4 level 3)** — always. Every new/changed class, grouped into four boundaries: **domain**,
-  **application**, **adapter (inbound)**, **adapter (outbound)**. Those are the Architecture Contract's own layers,
-  with the adapters split by direction because direction is what the contract turns on. Draw the dependency between
-  each pair, pointing the way the dependency really runs. A design whose arrows leave the domain, or reach the
-  application from an adapter by any route other than an inbound port, has drawn a contract violation — rework the
-  placement now, while it is a line in a diagram.
-- **Flow diagram** — always. The flow from the entry point, through the usecase, to the outbound port(s), showing
-  every alternative branch: a validation failure, a not-found case, an outbound call erroring. Every branch a
-  **Decisions** entry settles appears, and those branches are what the red phase turns into unhappy-path test
-  scenarios. A straight-line happy path means the failure modes were never designed, and the tests for them will
-  not exist either.
+- **Flow diagram** — always. The flow from the entry point, through the change's responsibilities, to whatever it
+  calls or stores, showing every alternative branch: a validation failure, a not-found case, an outbound call
+  erroring. Every branch a **Decisions** entry settles appears, and those branches are what the red phase turns
+  into unhappy-path test scenarios. A straight-line happy path means the failure modes were never designed, and
+  the tests for them will not exist either.
+
+  Name each box for what it does, not for the class that will do it. "Validate the period", not
+  `PeriodValidator`.
 
   Whether that is a sequence diagram (`alt`/`else`/`end` fragments) or an activity diagram is decided by the
   repository's own diagram conventions — read them and pick, rather than defaulting to one form. A flow carrying
   both several participants and real branching is two diagrams, not one overloaded one.
-- **Container diagram (C4 level 2)** — only when **Affected Modules** lists more than one. Each module as a
-  `Container(...)`, and what crosses between them: the call, the message, the shared table. A cross-module design
-  carrying only a C3 shows two sets of classes and not the thing that joins them, which is exactly where the
-  contract between the modules lives.
+- **Container diagram (C4 level 2)** — always. It is the design's structural picture, and the only one: the
+  component diagram that draws classes belongs to the plan.
+
+  Every module in **Affected Modules** as a `Container(...)`, plus what each talks to *for this change* — the
+  caller, the store, the external system. Draw what crosses, and label it with what it carries: the call, the
+  message, the shared table.
+
+  **Where the list holds more than one module, that crossing is the contract between them**, and it is the one
+  thing no module's own plan can draw. Where it holds one, the diagram still answers what the module reaches
+  outside itself, which is where every failure mode in **Decisions** comes from.
+
+  No system-context diagram (C4 level 1). What systems exist is a property of the repository, not of one change,
+  and it is drawn where the repository documents itself.
+
+### Acceptance Scenarios
+
+What the change does, as behaviour a person can agree or disagree with. One block per entry point, each scenario
+numbered `A1`, `A2`, … in this format:
+
+```
+- **A1:** [what the scenario is, one line]
+  - Given: [the state before]
+  - When: [what the user or caller does]
+  - Then: [what they get back, and what changed]
+
+- **A2:** [the next one]
+  - Given: …
+```
+
+**The three lines are nested under the scenario, and a blank line separates one scenario from the next.** Flat
+bullets render as one undifferentiated list, where a reader cannot see a scenario begin or end.
+
+**One per branch of the flow diagram**, happy path and every failure alike. A branch drawn but never accepted is
+a behaviour nobody agreed to; a scenario with no branch is a flow the diagram is missing.
+
+Numbers are assigned once and never reused, like a decision's. Every red-phase step in the plan cites the
+scenarios it covers, so a scenario no step names is a visible gap rather than a silent one.
+
+**These are behaviour, never mechanics.** No class, no test class, no layer. "Then: the response is 400 with
+`PERIOD_INVALID`" is a scenario; "then `ListExpensesUseCase` throws" is a plan step.
 
 ### Decisions
 
@@ -133,13 +202,19 @@ Every judgment call the change requires, one entry each, in this exact format:
 
 ```
 - **D1:** [the question, one line]
-- Answer: [what the change does]
-- Basis: assumed — [the evidence in the repository] | decided — [what the user chose, and when] | deferred — [what
-  is out of scope, and what would bring it back] | must-decide — [what the repository does not say]
+  - Answer: [what the change does]
+  - Basis: assumed — [the evidence in the repository] | decided — [what the user chose, and when] | deferred —
+    [what is out of scope, and what would bring it back] | must-decide — [what the repository does not say]
+
+- **D2:** [the next question]
+  - Answer: …
 ```
 
+**`Answer` and `Basis` are nested under their entry, and a blank line separates one entry from the next.** Flat
+bullets render as one undifferentiated list, where a reader cannot see an entry begin or end.
+
 Numbered `D1`, `D2`, … assigned once and never renumbered: an entry that is answered, withdrawn, or reversed keeps
-its number, so a reference from a commit, an ADR, or the plan stays valid for the life of the change.
+its number, so anything citing it — a commit, an ADR, another document — stays valid for the life of the change.
 
 The four bases, and what each obliges:
 
@@ -163,8 +238,8 @@ on how a dependency behaves — which of its layers acts first, what it does wit
 source shows what code exists, not what runs. `assumed` is available only when something in the tree already
 exercises that path and what it was *observed* to produce is cited. Otherwise the entry is `deferred`, naming
 what would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
-expected answer and costs nothing: it tells the plan to assert the invariant rather than the mechanism, and tells
-the step that eventually builds it to look before asserting.
+expected answer and costs nothing: the entry records the invariant that must hold rather than the mechanism
+assumed to deliver it, and names what has to be observed before anyone can claim otherwise.
 
 The design is **settled** when no entry carries `Basis: must-decide`.
 
@@ -224,11 +299,11 @@ Read the file's **Decisions** section back after the grill has run and act on it
 - List any entry still `must-decide`, and say that the design is unfinished while any remains.
 - **Stop.** Do not plan, write code, create other files, or run build commands.
 
-**The design file is the whole handoff, so planning starts in a fresh session.** Everything the next stage needs is
-in the file by construction; this session also holds what the file deliberately leaves out — a rejected
-alternative, a question the grill raised and the repository answered, a shape considered and dropped. A planner
-inheriting that plans partly from context nobody else can see, and the gap only shows up when someone reads the
-design on its own. Planning cold is also the format's own test: a design a fresh session cannot plan from was
-underspecified, which is worth discovering now rather than during implementation.
+**The design file is the whole handoff, and this session ends with it.** Everything a reader needs is in the file
+by construction; this session also holds what the file deliberately leaves out — a rejected alternative, a
+question the grill raised and the repository answered, a shape considered and dropped. Whoever works from the
+design next must work from the file alone, or they inherit context nobody else can see, and the gap only shows up
+when someone reads the design on its own. Starting cold is also the format's own test: a design a fresh session
+cannot work from was underspecified, which is worth discovering now rather than later.
 
 Say so when handing over, so the user knows the stop is the design's, not an unfinished job.

@@ -44,6 +44,10 @@ system and direction**, not a single pair of inbound and outbound boxes.
 A reader then sees what a change to one partner system reaches, which is the question a component diagram is read
 to answer.
 
+**One diagram per subject.** Two groups of components with no arrow between them are two diagrams, whatever put
+them in the same change. Each is read on its own screen, and a reader looking for one of them is not made to
+scan the other. A component belonging to neither — a filter chain, an exception handler — is drawn in neither.
+
 **A layer boundary splits by the kind of type it holds** when one box would otherwise carry a mixed crowd — a use
 case, its command, the read model it answers and the port it calls, all in `application`.
 
@@ -56,6 +60,33 @@ case, its command, the read model it answers and the port it calls, all in `appl
   border to say nothing.
 - **Boundaries stay siblings, never nested.** A box inside a box renders as depth the model does not have, and
   the layer is already named in every label.
+
+## Marking What a Change Adds
+
+A component diagram in a plan is read to answer one question first: what is new here. So **every class the change
+creates is coloured, and everything already in the tree keeps the default style.**
+
+Declare the tag once, in the preamble, and tag each new element:
+
+```plantuml
+@startuml
+!include <C4/C4_Component>
+
+AddElementTag("new", $bgColor="#2E8B57", $fontColor="#FFFFFF", $borderColor="#1E5E3A")
+
+Container_Boundary(application, "application — usecases and ports") {
+  Component(listExpenses, "ListExpensesUseCase", "use case", $tags="new")
+  Component(expenseRepository, "ExpenseRepository", "outbound port")
+}
+@enduml
+```
+
+- **`new` is the only tag this rule adds.** An existing class drawn for context, or one the change edits without
+  creating, carries no tag: green means "this file does not exist yet".
+- **The legend is the colour itself.** No `SHOW_LEGEND()` and no explanatory line under the diagram — one colour
+  against the default needs neither.
+- **A diagram where everything is green says nothing**, and that is fine: a change that adds a whole subject is
+  exactly the case where the reader wants the shape, not the novelty.
 
 ## Layout
 

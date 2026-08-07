@@ -77,7 +77,7 @@ Two more rules:
 
 Create `docs/retro/<n>-retro-<slug>.md`, where `<n>` is one more than the highest number already used by a
 `<number>-retro-*.md` file in that directory (starting at 1), and `<slug>` names what the session was about —
-`3-retro-ai-connector-green-phase.md`.
+`3-retro-green-phase-rework.md`.
 
 **The directory stays out of version control.** Before writing, confirm `docs/retro/` is excluded — check with
 `git check-ignore -q docs/retro`, and if it is not, add the line `docs/retro/` to `.git/info/exclude`. That file

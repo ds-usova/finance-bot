@@ -2,32 +2,66 @@ package bot.finance.adapter.security;
 
 import java.time.Duration;
 import java.time.Instant;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtAudienceValidator;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
-import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.util.function.SingletonSupplier;
 
 @Configuration
-@EnableConfigurationProperties(AccessTokenProperties.class)
+@EnableConfigurationProperties({
+    AccessTokenProperties.class,
+    TokenSigningProperties.class,
+    SessionTokenProperties.class,
+    WebSessionProperties.class
+})
 public class SecurityConfiguration {
 
     @Bean
-    SecurityFilterChain mcpSecurityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+    @Order(1)
+    SecurityFilterChain webSessionSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("sessionJwtDecoder") JwtDecoder sessionJwtDecoder,
+            WebSessionProperties cookieProperties) {
+        BearerTokenResolver sessionCookieResolver = new SessionCookieBearerTokenResolver(cookieProperties);
+        http.securityMatcher("/api/**")
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(eagerCsrfTokenRequestHandler()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.POST, "/api/session")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/session")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/session")
+                        .authenticated()
+                        .anyRequest()
+                        .denyAll())
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.bearerTokenResolver(sessionCookieResolver).jwt(jwt -> jwt.decoder(sessionJwtDecoder)));
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain mcpSecurityFilterChain(HttpSecurity http, @Qualifier("mcpJwtDecoder") JwtDecoder jwtDecoder) {
+        http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/**", "/.well-known/jwks.json")
                         .permitAll()
@@ -39,16 +73,40 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    @Bean
-    JwtDecoder jwtDecoder(AccessTokenProperties properties, Environment environment) {
+    @Bean("mcpJwtDecoder")
+    JwtDecoder mcpJwtDecoder(AccessTokenProperties properties, Environment environment) {
         // The actual bound port is only published as local.server.port once the embedded server has started,
         // which happens after this bean is eagerly instantiated under a random-port test. Resolving it lazily,
         // on first decode, lets the JWKS route still resolve to this service's own listening port.
-        SingletonSupplier<JwtDecoder> delegate = SingletonSupplier.of(() -> buildJwtDecoder(properties, environment));
+        SingletonSupplier<JwtDecoder> delegate =
+                SingletonSupplier.of(() -> buildMcpJwtDecoder(properties, environment));
         return token -> delegate.obtain().decode(token);
     }
 
-    private static JwtDecoder buildJwtDecoder(AccessTokenProperties properties, Environment environment) {
+    @Bean("sessionJwtDecoder")
+    JwtDecoder sessionJwtDecoder(SessionTokenProperties properties, TokenSigningKeys signingKeys) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(signingKeys.publicKey())
+                .signatureAlgorithm(SignatureAlgorithm.RS256)
+                .build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                new JwtIssuerValidator(properties.issuer()),
+                new JwtAudienceValidator(properties.audience()),
+                maxLifetimeValidator(properties.ttl())));
+        return decoder;
+    }
+
+    /**
+     * Opting out of deferred loading writes the CSRF cookie on every request through the chain, including the
+     * unauthenticated one a page makes on load, so a browser always has a token before its first write.
+     */
+    private static CsrfTokenRequestAttributeHandler eagerCsrfTokenRequestHandler() {
+        CsrfTokenRequestAttributeHandler handler = new CsrfTokenRequestAttributeHandler();
+        handler.setCsrfRequestAttributeName(null);
+        return handler;
+    }
+
+    private static JwtDecoder buildMcpJwtDecoder(AccessTokenProperties properties, Environment environment) {
         int serverPort = environment.getProperty(
                 "local.server.port", Integer.class, environment.getProperty("server.port", Integer.class, 0));
         String jwkSetUri = "http://localhost:" + serverPort + "/.well-known/jwks.json";
@@ -59,11 +117,11 @@ public class SecurityConfiguration {
                 new JwtTimestampValidator(),
                 new JwtIssuerValidator(properties.issuer()),
                 new JwtAudienceValidator(properties.audience()),
-                ttlValidator(properties.ttl())));
+                maxLifetimeValidator(properties.ttl())));
         return decoder;
     }
 
-    private static OAuth2TokenValidator<Jwt> ttlValidator(Duration ttl) {
+    private static OAuth2TokenValidator<Jwt> maxLifetimeValidator(Duration ttl) {
         return token -> {
             Instant issuedAt = token.getIssuedAt();
             Instant expiresAt = token.getExpiresAt();

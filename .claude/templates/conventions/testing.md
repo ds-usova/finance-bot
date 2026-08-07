@@ -1,18 +1,30 @@
 # [Conventions](../conventions.md) > Testing Conventions
 
-What each test layer targets, and how a test in this module is written.
+What each test type targets, and how a test in this module is written.
 
-## Test Layers
+## Test Types
 
-Which packages/folders each test layer covers, so it is clear where a new test belongs.
+There are three, and what separates them is what is real and what is faked: a **unit** test mocks every
+dependency, an **integration** test uses the real thing the class talks to, and a **system** test mocks nothing
+at all.
 
-- **Unit-test targets:** `<packages holding pure logic — e.g. domain/, application/usecase/>`
-- **Integration-test targets (outbound adapters):** `<e.g. adapter/persistence/, adapter/httpclient/ — exercised
-  against real test infrastructure>`
-- **Integration-test targets (inbound adapters):** `<the inbound adapters tested as a framework slice with their
-  ports mocked, and the entry-point kind each covers — e.g. adapter/web/ (REST), adapter/messaging/ (listeners)>`
-- **System-test entry points:** `<by default the inbound adapters above, entered end to end; list only the
-  exceptions, or "same as the inbound adapters above">`
+**This section maps the module's own structure onto those three.** Nothing outside this file knows what this
+module's parts are called, so a plan cannot place a class in a test type without the mapping below. Name real
+packages, folders or roles — whatever this module actually organizes code by.
+
+- **Unit-test targets:** `<the parts holding logic worth testing in isolation — e.g. domain/, application/usecase/,
+  or src/lib/>`
+- **Integration-test targets, against infrastructure:** `<the parts that talk to a database, cache, object store,
+  broker or external API, and which real dependency each one gets — e.g. adapter/persistence/ against a
+  containerized Postgres, adapter/httpclient/ against a stub server>`
+- **Integration-test targets, against the framework:** `<the parts the framework itself calls — routing, binding,
+  serialization, validation — and the entry-point kind each covers, e.g. adapter/web/ (REST),
+  adapter/messaging/ (listeners); or "none — the module has no framework entry points">`
+- **System-test entry points:** `<what a system test enters through, end to end with nothing mocked; or "same as
+  the framework targets above">`
+
+A module that leaves this mapping blank cannot be planned: the planner would have to guess a test type from a
+package name, and that guess is wrong exactly where the module differs from the last one.
 
 ## Test Tooling
 

@@ -24,6 +24,19 @@ directory, so every path in this repo (`tools/...`, `.claude/scripts/...`, `docs
 A `cd &&` wrapper, like `git -C`, a `for` loop, or an absolute quoted path, changes the literal command string and
 breaks every allowlisted permission rule for the command that follows, forcing a manual approval every time.
 
+## Temporary files
+
+Scratch files — a sample input, a throwaway script, a file written only to try something — go in
+`build/scratch/` at the repository root. Never in a system temp directory, and never in a session scratchpad
+outside the repository.
+
+`build/` is already ignored by git, so nothing there reaches a commit.
+
+The reason is the whitelist. A command whose argument is an absolute path outside the repository is not covered
+by the permission matcher and raises an approval prompt, even when the command itself is allowlisted — the
+project's own hook stays silent there by design, since it can only refuse and never approve. A repo-relative
+path never has that problem.
+
 ## Deleting files
 
 Delete with one `git rm` naming every file, never one `rm` per file. The deletions land in the index where a

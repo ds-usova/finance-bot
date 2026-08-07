@@ -2,48 +2,63 @@
 
 The exact shape of every checklist item in a plan's **Red Phase** and **Green Phase**, and the rule for deciding
 which phase a step belongs to. Written by [`plan-task`](../commands/plan-task.md), consumed by the step agents
-`implement-plan` spawns.
+a pipeline spawns.
 
 Read this when writing or reviewing a step. The stage order, the ID scheme, the group and section structure, and
 the guardrails are the skill's; only the shape of an item is here.
 [`example-plan.md`](example-plan.md) is a complete worked plan in these formats.
 
-## Test Layer Mapping — reference, **not** a section of the plan
+## The Three Test Types — reference, **not** a section of the plan
 
-This is guidance for deciding which phase a step belongs to. Do **not** write it into the plan file: it restates
-what the module's own conventions file already defines, and a copy in every plan is one more place for the two to
-drift apart. The plan references the conventions; only the conventions describe the module's layers.
+Every step belongs to one of three types. **What separates them is what is real and what is faked**, and nothing
+else — not the architecture, not the package a class sits in.
 
-- **Unit** — classes the module's conventions file maps to the unit layer (e.g. domain entities/value objects and
-  usecase implementations of inbound ports, as mapped in the module's conventions file). Outbound ports are
-  faked/mocked; no real infrastructure, no application-framework context.
-- **Integration** — adapter classes on **both sides of the hexagon**, each tested in isolation:
-    - *Outbound adapters* (persistence, outbound HTTP clients): the test instantiates/wires only the adapter under
-      test and calls **only that adapter's own public methods** directly — never through a usecase, a port
-      default, or the full application context. Use real infrastructure as defined in the module's conventions
-      file (e.g. a containerized database for persistence adapters, an HTTP stub server for outbound HTTP
-      adapters).
-    - *Inbound adapters* (e.g. REST controllers): the test boots only the framework's **slice** for the adapter
-      under test (per the conventions file's slice-test mechanism) and **mocks the inbound port / usecase beans**
-      it delegates to. It enters through the protocol (e.g. HTTP requests via the slice test client), never by
-      calling the adapter's methods directly — validation, request binding, and error mapping live in the
-      framework machinery, not in the method body. No real infrastructure and no real usecases. This is where the
-      endpoint's request-validation matrix, binding/mapping, and status-code contract are tested.
-- **System** — the full wired application (all real adapters, real infrastructure), entered through an **inbound
-  port** the way production enters it: either via HTTP (using the module's API-level test client per conventions
-  file, against the HTTP inbound adapter), or, when there is no HTTP layer, by making the framework fire the entry
-  point itself — e.g. a test-configured schedule for a cron trigger, or a message published to the test broker for
-  a listener — and awaiting the observable outcome. Never by calling the inbound-port method directly: the trigger
-  wiring (the schedule, the queue binding) is production behaviour too, and a direct call would bypass exactly what
-  the system test exists to prove. Both forms exercise the same wiring end-to-end — only the entry point differs.
-  System tests are a **thin slice** keeping what only the fully wired application can prove: per entry
-  point, one end-to-end happy path, a representative error path originating below the inbound adapter, and any
-  cross-cutting wiring concern (bean graph, serialization config, transactions). Field-validation matrices and the
-  inbound adapter's own request/response handling belong to the adapter's integration test, not here.
+| Type            | What is real                                      | What is faked                     |
+|-----------------|---------------------------------------------------|-----------------------------------|
+| **Unit**        | the target class                                  | every dependency it is handed     |
+| **Integration** | the target class and the one thing it talks to    | everything past that one thing    |
+| **System**      | the whole application, entered as production does | nothing                           |
+
+- **Unit** — the class in isolation. Every collaborator it is given is a mock or a fake. No database, no network,
+  no filesystem, no application-framework context. What it proves is the class's own logic.
+- **Integration** — the class against the **real** thing it integrates with: a database, a cache, an object
+  store, an HTTP API, a message broker, or the application framework's own machinery. One real dependency per
+  step, and only the class under test wired to it — never reached through some other class, and never the whole
+  application. What it proves is that the two actually fit: the query runs, the payload maps, the framework binds
+  and validates as expected.
+
+  A stub server standing in for a third-party HTTP API counts as real: the transport, the serialization and the
+  error handling are exercised for real, and only the far side is a stand-in. A mocked collaborator does not.
+- **System** — the fully wired application, **nothing mocked**, entered the way production enters it: an HTTP
+  request through the real endpoint, a message published to the real broker, a schedule the framework fires. Never
+  by calling an internal method directly — the trigger wiring is production behaviour too, and a direct call
+  bypasses exactly what the test exists to prove.
+
+  System tests are a **thin slice**: per entry point, one end-to-end happy path, a representative error path
+  raised from deep in the stack, and any wiring concern only the whole application can show — the object graph,
+  serialization config, transactions. Field-by-field validation belongs to the integration step for the class
+  that does the validating.
+
+**Which classes fall into which type is the module's answer, not this file's.** Its testing conventions map its
+own layers, folders or roles onto these three, and that mapping is what a step is written against. A module whose
+conventions carry no such mapping cannot be planned: ask for it before writing steps, rather than inventing one
+from the package names.
+
+Do **not** copy the mapping into the plan file. It lives in the conventions, and a second copy is one more place
+for the two to drift apart.
 
 ## Scenario-Authoring Rules
 
 These bind every Red Phase format below.
+
+**A scenario comes from the design, not from the planner.** The design's **Acceptance Scenarios** are the
+behaviour a person signed off, numbered `A1`, `A2`. Every scenario written here traces to one, and the step names
+which: `covers scenarios: A1, A3`, on the step line. A scenario the design does not carry is either a mechanical
+case the design never needed — a boundary value, a mapping detail — or a behaviour nobody agreed to. The second
+goes back to the design as a new `D` entry, never in here as an invention.
+
+**A design scenario no step names is a gap.** Check the whole set before finishing: every `A<n>` in the design is
+covered by at least one step in one of the task's plans.
 
 **Coverage balance rule.** Before listing scenarios, review the existing tests in the step's test class to
 understand what is already covered. Only list scenarios that add **new** coverage. Do NOT list scenarios that are
@@ -88,7 +103,7 @@ testing conventions own this rule; it is repeated here because it is written int
 Each item in the `TDD Unit Red Phase` section MUST follow this exact format:
 
 ```
-- [ ] RU<nn> · `<TargetClass>` · test: `<TestClass>` · covers: `method1()`, `method2()`
+- [ ] RU<nn> · `<TargetClass>` · test: `<TestClass>` · covers: `method1()`, `method2()` · scenarios: A1, A3
   - `method1()`:
     - given: [precondition]
       when: [action]
@@ -102,8 +117,7 @@ Each item in the `TDD Unit Red Phase` section MUST follow this exact format:
       then: [expected outcome]
 ```
 
-- `<TargetClass>` — a class the module's conventions file maps to the unit layer (e.g. a domain entity, value
-  object, or domain service, or a usecase class implementing an inbound port) (simple class name)
+- `<TargetClass>` — a class the module's conventions map to the unit type (simple class name)
 - `<TestClass>` — the corresponding test class (simple class name)
 - `covers:` — comma-separated list of method signatures to implement and test in this step
 - Sub-bullets — one `given / when / then` scenario per test case; each block describes one test the sub-agent must
@@ -115,23 +129,32 @@ intentional.
 **No production implementation is done in this section.** Implementation happens in a separate phase after all tests are
 written.
 Steps are intentionally small and focused — one class, one concern.
-Usecase tests fake/mock the outbound ports they depend on — they never touch real infrastructure; that belongs to the
-Integration phase.
+**Every dependency the class is handed is mocked or faked.** A test here never touches real infrastructure; that
+is what the integration type is for.
 
 **Exclusion — simple delegation**: Do NOT add a class to this section if every method under test is a simple
-delegation (e.g., a one-line usecase method that only calls an outbound port with no logic of its own — no
-conditionals, no transformations, no error handling). Such trivial pass-through changes belong in the
+delegation — a one-line method that hands its argument to a collaborator with no logic of its own, no
+conditionals, no transformations, no error handling. Such trivial pass-throughs belong in the
 **Interface-First / Build Stabilization** section instead.
 
 ## TDD Integration Red Phase Step Format
 
-Items in this section cover adapters on **both sides of the hexagon** and come in two variants. Each item MUST
-follow its variant's exact format.
+An integration step names **one class and the one real thing it talks to**. Which real thing decides the variant,
+and each item MUST follow its variant's exact format.
 
-**Outbound adapter steps** (persistence, outbound HTTP clients — real infrastructure):
+| The real dependency is                                  | Variant                     |
+|---------------------------------------------------------|-----------------------------|
+| infrastructure — a database, a cache, a store, an API   | **infrastructure steps**    |
+| the application framework itself — routing, binding, serialization, validation | **entry-point steps** |
+
+Which of a module's classes fall into either variant comes from its conventions' test-type mapping. The two
+formats differ because what a test drives differs: a class that calls out is called directly, while a class the
+framework calls is reached through the framework.
+
+**Infrastructure steps** — the class against a real database, cache, store, broker or HTTP API:
 
 ```
-- [ ] RI<nn> · `<AdapterImplClass>` · test: `<AdapterTestClass>` · covers: `method1()`, `method2()`
+- [ ] RI<nn> · `<AdapterImplClass>` · test: `<AdapterTestClass>` · covers: `method1()`, `method2()` · scenarios: A2
   - `method1()`:
     - given: [precondition]
       when: [action]
@@ -145,49 +168,51 @@ follow its variant's exact format.
       then: [expected outcome]
 ```
 
-- `<AdapterImplClass>` — the adapter implementation class per the conventions file's integration layer mapping
-  (e.g., `WidgetRepositoryAdapter`, `ExternalApiAdapter`)
-- `<AdapterTestClass>` — the corresponding integration test class (e.g., `WidgetRepositoryAdapterTest`)
-- `covers:` — comma-separated list of adapter method signatures to test in this step
+- `<TargetClass>` — the class that talks to the real dependency (e.g., `WidgetRepositoryAdapter`,
+  `ExternalApiClient`)
+- `<TestClass>` — the corresponding integration test class
+- `covers:` — comma-separated list of the class's method signatures to test in this step
 - Sub-bullets — one `given / when / then` scenario per test case; each block describes one test the sub-agent must
   write; the sub-agent derives the method name from the scenario following project naming conventions
 
-Each outbound step is the **RED phase** for integration tests: write tests that build and exercise real
-infrastructure as defined in the module's conventions file (e.g. a containerized database, an HTTP stub server),
-calling **only the adapter under test's own public methods** — never through a usecase, a port default method, or
-the full application context.
+Each infrastructure step is the **RED phase** for integration tests: write tests that build and exercise the real
+dependency as the module's conventions define it — a containerized database, a stub HTTP server, a test broker —
+calling **only the class under test's own public methods**. Never through another class, and never the whole
+application: the point is that this class and this dependency fit, and anything else in the path blurs which of
+them failed.
 
-Tests are expected to **fail at runtime** because adapter implementations are still stubs — this is intentional.
-**No adapter implementation is done in this section.**
+Tests are expected to **fail at runtime** because the implementation is still a stub — this is intentional.
+**No implementation is done in this section.**
 
-**Inbound adapter steps** (e.g. REST controllers — framework slice, mocked ports):
+**Entry-point steps** — the class the framework calls, against the framework's real machinery:
 
 ```
-- [ ] RI<nn> · `<InboundAdapterClass>` · test: `<AdapterTestClass>` · covers: `<entry point>` · mocks: `<InboundPort>`
+- [ ] RI<nn> · `<TargetClass>` · test: `<TestClass>` · covers: `<entry point>` · mocks: `<Collaborator>` · scenarios: A1
   - Happy Path:
-    - given: [mocked port behaviour]
+    - given: [what the mocked collaborator returns]
       when: [request with a valid payload]
-      then: [expected call on the mocked port and expected success response]
+      then: [expected call on the mock and expected success response]
   - Error Mapping:
-    - given: [the mocked port throws or returns an error]
+    - given: [the mocked collaborator fails]
       when: [request]
       then: [expected error status and response body]
   - Validation: `<fieldName>` — [list of constraint violations to cover]
 ```
 
-- `<InboundAdapterClass>` — the inbound adapter class (e.g., `WidgetController`)
-- `<AdapterTestClass>` — the corresponding slice test class
-- `covers:` — the entry point the adapter exposes (e.g., `POST /widgets`)
-- `mocks:` — the inbound port(s)/usecase(s) the adapter delegates to, mocked in the slice
+- `<TargetClass>` — the class the framework routes a request to (e.g., `WidgetController`)
+- `<TestClass>` — the corresponding test class, per the conventions' mechanism for booting part of the framework
+- `covers:` — the entry point it exposes (e.g., `POST /widgets`)
+- `mocks:` — what it hands the work to, mocked so that only the framework's own behaviour is under test
 - Sub-bullets — one scenario per group (Happy Path, Error Mapping, Validation); how groups are realized in test
   code and their names follow the module's conventions file
 
-Each inbound step boots only the framework's slice for the adapter under test (per the conventions file's
-slice-test mechanism), mocks the listed inbound ports, and enters through the protocol (e.g. HTTP requests via the
-slice test client) — never by calling the adapter's methods directly, since validation, request binding, and error
-mapping live in the framework machinery, not in the method body. No real infrastructure and no real usecases.
-Validation constraints come from the module's API schema, not from guesses. This step owns the endpoint's
-request-validation matrix and status-code contract; they are not repeated at system level. The same RED-phase rules
+Each entry-point step boots only as much of the framework as that entry point needs, mocks what the class
+delegates to, and enters **through the protocol** — an HTTP request, a published message, a fired schedule — never
+by calling the class's method directly. Routing, binding, validation and error mapping live in the framework, not
+in the method body, and a direct call tests none of them. No real infrastructure past the framework.
+
+Validation constraints come from the module's schema, not from guesses. This step owns the entry point's
+validation matrix and its status-code contract; they are not repeated at system level. The same RED-phase rules
 apply.
 
 ## TDD System Test Red Phase Step Format
@@ -195,7 +220,7 @@ apply.
 Each item in the `TDD System Test Red Phase` section MUST follow this exact format:
 
 ```
-- [ ] RS<nn> · `<SystemTestClass>` · covers: `<entry point>`
+- [ ] RS<nn> · `<SystemTestClass>` · covers: `<entry point>` · scenarios: A1, A4
   - Happy Path:
     - given: [preconditions]
       when: [request or invocation with valid data]
@@ -208,26 +233,24 @@ Each item in the `TDD System Test Red Phase` section MUST follow this exact form
 
 - `<SystemTestClass>` — the system test class to create (e.g., `CreateWidgetTest`, `ExportWidgetsTest`)
 - `covers:` — the entry point under test, in one of two forms:
-    - `<HTTP_METHOD> <path>` — for an inbound HTTP adapter (e.g., `POST /expenses`)
-    - `<InboundPort>.<method>()` — for a framework-fired entry point with no HTTP layer (e.g. a cron/scheduled
-      trigger such as `WidgetReportPort.generateReport()`); the notation only names the entry point — the test
-      makes the framework fire it, it never calls the method itself
+    - `<HTTP_METHOD> <path>` — where the entry point is an HTTP request (e.g., `POST /expenses`)
+    - `<Class>.<method>()` — where the framework fires the entry point itself, such as a scheduled trigger or a
+      message listener; the notation only names the entry point. The test makes the framework fire it and never
+      calls the method itself.
 - Sub-bullets — one scenario per group (Happy Path, Unhappy Path); how groups are realized in test code
   (e.g. nested test classes) and their names follow the module's conventions file; each line describes one test the
   sub-agent must write
 
-Each step is the **RED phase** for system tests: write tests that build and exercise the fully wired application
-stack with real adapters wired — using the module's API-level test client (per conventions file) for the HTTP form,
-or, for the framework-fired form, inducing the framework's own trigger (per the conventions file's trigger
-mechanism) and awaiting the observable outcome. Tests
-are expected to **fail at runtime** when the implementation is not yet complete — this is intentional.
+Each step is the **RED phase** for system tests: write tests against the fully wired application, with **nothing
+mocked** — using the module's API-level test client for the HTTP form, or inducing the framework's own trigger,
+per the conventions, and awaiting the observable outcome. Tests are expected to **fail at runtime** while the
+implementation is incomplete — this is intentional.
 **No production implementation is done in this section.**
 
-System steps are a **thin slice** (see [Test Layer Mapping](#test-layer-mapping--reference-not-a-section-of-the-plan)):
-per entry point, one end-to-end happy path and a representative error path originating below the inbound adapter.
-Do not list field-validation scenarios or the inbound adapter's own request/response handling here — those belong
-to the adapter's Integration Red Phase step. Only list scenarios not yet covered by an existing system test class
-or already owned by a lower layer.
+System steps are a **thin slice** (see [The Three Test Types](#the-three-test-types--reference-not-a-section-of-the-plan)):
+per entry point, one end-to-end happy path and a representative error path raised from deep in the stack. Do not
+list field-validation scenarios here — those belong to the entry-point integration step. Only list scenarios not
+yet covered by an existing system test class or already owned by another type.
 
 ## TDD Unit Green Phase Step Format
 
@@ -253,20 +276,20 @@ Each item in the `TDD Integration Green Phase` section MUST correspond 1-to-1 wi
 `TDD Integration Red Phase` and MUST follow this exact format:
 
 ```
-- [ ] GI<nn> · `<AdapterImplClass>` · test: `<AdapterTestClass>` · after: GU<nn>, GU<nn>
+- [ ] GI<nn> · `<TargetClass>` · test: `<TestClass>` · after: GU<nn>, GU<nn>
 ```
 
-- `<AdapterImplClass>` — the adapter implementation class to implement (same class as in the Integration Red Phase step)
-- `<AdapterTestClass>` — the integration test class whose tests must be green after this step
-- `after:` (optional) — the IDs of other green-phase steps (typically unit-phase ones) on the adapter's real
-  execution path — integration tests mock nothing, so an unmocked mapper or domain object implemented by another
-  green step is a real dependency. Same rule as the unit format: only real, unmocked collaborators, never mocked
-  ones.
+- `<TargetClass>` — the class to implement (same class as in the Integration Red Phase step)
+- `<TestClass>` — the integration test class whose tests must be green after this step
+- `after:` (optional) — the IDs of other green-phase steps whose classes sit on this one's real execution path.
+  An integration test mocks little, so a mapper or a domain object implemented by another green step is a real
+  dependency. Same rule as the unit format: only real, unmocked collaborators, never mocked ones.
 
-One step = one adapter class (either variant — an outbound adapter or an inbound one; for inbound steps the
-`covers:`/`mocks:` parts mirror the Red Phase step). The step is complete when all tests in `<AdapterTestClass>`
-pass. For an inbound-adapter step, implement only the adapter itself — request binding, mapping, validation
-wiring, error mapping — never the usecase behind it; that is a unit-phase target with its own green step.
+One step = one class, in either variant; for an entry-point step the `covers:`/`mocks:` parts mirror the Red
+Phase step. The step is complete when all tests in `<TestClass>` pass.
+
+**Implement only the class the step names.** For an entry-point step that means the binding, the mapping, the
+validation wiring and the error mapping — never what it delegates to, which has a green step of its own.
 
 ## TDD System Test Green Phase Step Format
 
@@ -278,14 +301,12 @@ Each item in the `TDD System Test Green Phase` section MUST correspond 1-to-1 wi
 ```
 
 - `<SystemTestClass>` — the system test class to verify (same class as in the System Test Red Phase step)
-- `covers:` — the entry point under test, in the same form (`<HTTP_METHOD> <path>` or `<InboundPort>.<method>()`) as
-  the System Test Red Phase step
+- `covers:` — the entry point under test, in the same form (`<HTTP_METHOD> <path>` or `<Class>.<method>()`) as the
+  System Test Red Phase step
 
 One step = one system test class. The step is complete when all tests in `<SystemTestClass>` pass.
-Fix implementation bugs in any layer — inbound adapter (REST controller, messaging handler, cron trigger, etc.),
-usecase, or outbound adapter — as needed to make the test pass. **Never modify the test class.**
+Fix implementation bugs **anywhere in the stack** as needed to make the test pass. **Never modify the test class.**
 
-An inbound adapter that has its own Integration Phase step (e.g. a REST controller) is already implemented by that
-step's green phase before this section starts. An entry point without one (e.g. a framework-fired trigger with no
-protocol-level behaviour of its own) is wired as part of making the corresponding system step pass; do not add a
-separate checklist item or section for it.
+An entry point with its own integration step is already implemented before this section starts. One without —
+a framework-fired trigger with no protocol behaviour of its own — is wired as part of making this step pass. Do
+not add a separate checklist item for it.

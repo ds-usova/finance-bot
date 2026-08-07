@@ -1,32 +1,10 @@
 # [Conventions](../conventions.md) > Agent Configuration
 
-How the coding agent commits, parallelizes work, and where its planning artifacts live.
+How the coding agent parallelizes work on this module, and which model does what.
 
 ## Version Control
 
-- Commit incrementally: yes — the agent commits intermediate changes as it goes, on whichever branch is
-  currently checked out.
-- Granularity: one commit per passed stage guardrail (stabilization, red, green, refactor, wrap-up) — not per
-  step or per wave.
-- Branch policy: the developer creates and checks out the branch manually before work starts; the agent never
-  creates, switches, or deletes branches — it commits to the current branch only. `main` is a normal choice of
-  current branch: development happens there, so a run that starts on it commits to it and asks nothing.
-- Message format: `<Prefix>: <description>` — one subject line stating what the change does, and a prefix naming
-  the kind of change:
-  - `Feature` — new or extended functionality;
-  - `Bug` — a fix for incorrect behavior;
-  - `Configuration` — build, infrastructure, or application configuration;
-  - `Test` — changes to test code only, such as tests written ahead of their implementation;
-  - `Refactor` — behavior-preserving cleanup and restructuring.
-  - `Documentation` — updates to documentation.
-
-  Add new prefixes as new kinds of change show up. The format applies from this point in the history onward;
-  earlier commits predate it.
-- Message body: usually none — the subject carries the change and the diff carries the detail. Add a few lines
-  only for what the diff cannot show: a constraint that forced the approach, or a consequence a later reader
-  would otherwise miss. Never a list of touched files or a per-file summary (that is `git show --stat`), never
-  a test count or suite status (not a property of the commit), never a restatement of the subject.
-- Squash before merging: do not squash, do not merge the changes into the main branch.
+Repository-wide, since every module shares one history: [Version Control](../../../docs/conventions/version-control.md).
 
 ## Sub-Agent Models
 
@@ -44,13 +22,17 @@ The model name is the `model` parameter of the agent-spawning tool.
 
 ## Parallelism
 
+What the machine allows across every module at once is repository-wide:
+[Parallelism](../../../docs/conventions/parallelism.md). This module's suite is the one that starts containers,
+so that file limits how it runs beside another module. Below is what is contended inside this module.
+
 Concurrent runs share the Gradle caches, `build/classes`, one Docker daemon and this machine's memory — memory
 being the scarce one. Each concurrent test run starts its **own** Postgres container and WireMock server (JVM
 singletons, not machine singletons), both on random ports, so ports are not contended. Results cannot collide:
 the runner in [Build](build.md) gives every run its own directory, and its queue protects everything else on
 that list.
 
-- Max concurrent implementation agents: **4**.
+- Max concurrent implementation agents on this module's plan: **4**.
 - Concurrent test runs: effectively **1**. Agents may all ask at once; the queue serializes them. Compiling
   queues too, writing to the same `build/classes`.
 - Treat an unexplained container-startup failure as memory pressure and rerun before debugging it as real.
@@ -60,41 +42,14 @@ Parallel agents share the working tree. An agent stays inside the files its step
 conclusions from a file another agent is writing: a broken compile or failing test in someone else's target is
 their work in progress, not a finding. Reconciling across steps is the orchestrator's job.
 
-## Plan Files
+## Follow-Up Work in a Plan
 
-- Location: a task directory under repo-root `docs/` — `docs/<n>-<task-name>/`, holding `design.md` and the
-  `plan.md` written from it. A completed task's whole directory is archived to `docs/implemented/` (see
-  [Documentation References](orientation.md#documentation-references)).
+What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md) — true of this service
+however the work was done, so it does not live here.
 
-## Post-Implementation Actions
+A plan carries one of those kinds in its **Post-Implementation Steps** group:
 
-What runs once a plan is finished — every item ticked, the guardrail green, the plan file moved to
-`docs/implemented/`. A run that ends with anything open runs none of them.
+- **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
 
-1. `tools/plan-evidence/plan-evidence.sh --plan <the archived plan>`: measures every module and writes
-   `evidence.md` and `evidence.json` into the archived plan's directory — see
-   [Evidence for a Finished Plan](../../../docs/conventions/java-build.md#evidence-for-a-finished-plan). It runs
-   first, so the commit it records is the one that closed the plan. Commit its output as
-   `Documentation: <task> implementation evidence`. A non-zero exit means the plan is not finished: report the
-   verdict rather than continuing down this list.
-2. `archive-knowledge`, given the archived plan: a document per usecase class with its collaborators on both
-   sides, the contracts with the systems around the service, and the ADRs the plan was authorized to record.
-   Commits its own output.
-
-## Post-Implementation Plan Sections
-
-What a plan lists under **Post-Implementation Steps**, and nothing else:
-
-- **ADRs** — one item per decision the developer approved for recording, as `Write ADR: <the decision, stated as a
-  fact>`. The number is not chosen in the plan; it is assigned when the ADR is written, so a rejected candidate
-  consumes none.
-
-**An ADR exists only because it was approved.** The plan raises each candidate as a numbered open question — the
-decision as a fact, and the page that holds it if no ADR is written — and only an answered `yes` becomes an item
-above. A candidate rejected, or never asked, means no ADR: nothing downstream writes one that has no item, and a
-decision discovered too late for the plan is proposed in the archiving report instead of appearing as a fact
-nobody agreed to.
-
-Screen candidates before asking, so the list is one or none rather than every decision the plan made: a rule
-statable without naming a technology, a file layout, or a type is product behaviour, and the use-case, contract,
-or domain page that owns it is the whole answer.
+The approval is a numbered open question in the plan, and only an answered `yes` becomes an item. Nothing
+downstream writes an ADR that has no item.

@@ -108,7 +108,7 @@ END {
     if (suiteCount == 0) {
         print "Result: NO TESTS RAN"
         print "Command: " command
-        print "Gradle exit code: " exitCode
+        print "Build exit code: " exitCode
         print ""
         print "No JUnit result files were produced. The build failed before the tests ran"
         print "(compilation error, missing dependency, or a broken test-runtime setup)."
@@ -121,7 +121,7 @@ END {
 
     print "Result: " verdict
     print "Command: " command
-    print "Gradle exit code: " exitCode
+    print "Build exit code: " exitCode
     printf "Totals: %d tests, %d passed, %d failed, %d skipped (%.1fs)\n", \
         totalTests, totalTests - totalFailures - totalSkipped, totalFailures, totalSkipped, totalTime
 

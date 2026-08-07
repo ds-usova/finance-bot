@@ -16,6 +16,9 @@ set -u
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 parser="$script_dir/plan-parse.awk"
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# Git prints a drive-letter path on Windows while `pwd` prints a POSIX one, and comparing a directory
+# against its parent needs both in the same spelling.
+repo_root_abs="$(cd "$repo_root" && pwd)"
 
 plan_file=""
 
@@ -28,6 +31,7 @@ Usage:
   <plugin>/scripts/plan/plan.sh tick     <ID>... [--file <plan>]
   <plugin>/scripts/plan/plan.sh block    <ID> <note> [--file <plan>]
   <plugin>/scripts/plan/plan.sh validate [--file <plan>]
+  <plugin>/scripts/plan/plan.sh task     [<task directory> | <plan>]
 
 Commands:
   status    Done/total per group, and the IDs still open.
@@ -44,12 +48,21 @@ Commands:
   validate  Duplicate IDs, items with no ID, dependencies on IDs nothing defines, cycles, placeholder
             given/when/then values, update: bullets naming a test method that is nowhere in the tree,
             and findings missing a Resolution: or an unapplied mechanical Action:.
+  task      Every plan the task holds, its done/total, and whether all of them are finished.
+            Takes the task directory, or nothing when only one task is in flight. A plan works
+            too, for a caller that has one and not the directory. Exit 0 means nothing is open
+            anywhere in the task.
 
---file defaults to the single docs/<n>-<task>/plan.md, the location and naming the conventions give
-plans in flight - a task owns a directory, holding design.md and plan.md. Archived plans under
-docs/implemented/<n>-<task>/plan.md are addressed by passing --file explicitly.
+--file defaults to the single plan in flight under docs/. A task owns a directory holding design.md
+and one plan per module it touches: plan.md for a single-module task, <module>/plan.md for each
+module of a multi-module one. Archived plans under docs/implemented/ are addressed by passing --file
+explicitly.
 
-Exit codes: 0 done - 1 nothing matched, or validate found problems - 2 bad usage.
+A multi-module task therefore has several plans in flight, and every command names the one it
+addresses - the ambiguity is reported, never guessed.
+
+Exit codes: 0 done - 1 nothing matched, validate found problems, or task found something open -
+2 bad usage.
 EOF
 }
 
@@ -79,11 +92,13 @@ resolve_plan() {
     fi
     while IFS= read -r f; do
         candidates+=("$f")
-    done < <(find "$repo_root/docs" -maxdepth 2 -name 'plan.md' -type f \
+    # maxdepth 3 so a per-module plan at <n>-<task>/<module>/plan.md is found alongside the
+    # single-module <n>-<task>/plan.md.
+    done < <(find "$repo_root/docs" -maxdepth 3 -name 'plan.md' -type f \
         -not -path '*/implemented/*' 2>/dev/null | sort)
 
     case "${#candidates[@]}" in
-        0) die "no <n>-<task>/plan.md in $repo_root/docs - pass --file <plan>" ;;
+        0) die "no <n>-<task>/plan.md or <n>-<task>/<module>/plan.md in $repo_root/docs - pass --file <plan>" ;;
         1) plan_file="${candidates[0]}" ;;
         *)
             {
@@ -97,6 +112,23 @@ resolve_plan() {
 
 item_range() {
     awk -f "$parser" -v mode=range -v want="$1" "$plan_file"
+}
+
+# A task owns one directory directly under docs/, and its plans sit either in it or one level deeper.
+# Walking up to that level is exact, where looking for a sibling design.md is not: a task may be
+# planned before its design is written, and an archived task keeps the same shape one level lower.
+task_dir_of() {
+    local dir
+    dir="$(cd "$(dirname "$1")" && pwd)"
+    while [ "$dir" != "/" ] && [ "$dir" != "$repo_root_abs" ]; do
+        local parent
+        parent="$(dirname "$dir")"
+        if [ "$parent" = "$repo_root_abs/docs" ] || [ "$parent" = "$repo_root_abs/docs/implemented" ]; then
+            break
+        fi
+        dir="$parent"
+    done
+    echo "$dir"
 }
 
 command="${1:-}"
@@ -225,6 +257,73 @@ case "$command" in
         entry="- **${id} blocked:** ${note}" \
             rewrite_plan awk -v n="$insert_at" '{ print } NR == n { print ENVIRON["entry"] }' "$plan_file"
         echo "$id left open; recorded under Open Questions / Blockers"
+        ;;
+
+    task)
+        # Given a plan, a task directory, or nothing at all: which plans the task holds, and whether
+        # every one of them is finished. A single plan cannot answer that about the task it belongs
+        # to, and archiving the directory is the decision that needs the answer.
+        if [ -n "$plan_file" ] && [ -d "$plan_file" ]; then
+            task_dir="$(cd "$plan_file" && pwd)"
+        elif [ -n "$plan_file" ]; then
+            [ -f "$plan_file" ] || die "no such plan file or task directory: $plan_file"
+            task_dir="$(task_dir_of "$plan_file")"
+        else
+            dirs=()
+            while IFS= read -r f; do
+                d="$(task_dir_of "$f")"
+                case " ${dirs[*]-} " in
+                    *" $d "*) ;;
+                    *) dirs+=("$d") ;;
+                esac
+            done < <(find "$repo_root_abs/docs" -maxdepth 3 -name 'plan.md' -type f \
+                -not -path '*/implemented/*' 2>/dev/null | sort)
+            case "${#dirs[@]}" in
+                0) die "no task directory under docs/ holds a plan - name one" ;;
+                1) task_dir="${dirs[0]}" ;;
+                *)
+                    {
+                        echo "docs/ holds ${#dirs[@]} tasks in flight - name one:"
+                        printf '  %s\n' "${dirs[@]#"$repo_root_abs/"}"
+                    } >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+
+        plans=()
+        while IFS= read -r f; do
+            plans+=("$f")
+        done < <(find "$task_dir" -maxdepth 2 -name 'plan.md' -type f | sort)
+        [ "${#plans[@]}" -gt 0 ] || die "${task_dir#"$repo_root_abs/"} holds no plan.md" 1
+
+        echo "${task_dir#"$repo_root_abs/"}"
+        unfinished=0
+        for f in "${plans[@]}"; do
+            read -r done_n total_n < <(awk -f "$parser" -v mode=items "$f" |
+                awk -F'\t' '$2 == "done" { d++ } { t++ } END { print (d + 0), (t + 0) }')
+            if [ "$total_n" -eq 0 ]; then
+                # No IDs at all: either an empty plan or one predating the format. Both are open
+                # questions, and neither is something to archive on.
+                state="no items - not in plan format"
+                unfinished=$(( unfinished + 1 ))
+            elif [ "$done_n" -eq "$total_n" ]; then
+                state="complete"
+            else
+                state="$(( total_n - done_n )) open"
+                unfinished=$(( unfinished + 1 ))
+            fi
+            printf '  %-34s %3s/%-3s  %s\n' "${f#"$task_dir/"}" "$done_n" "$total_n" "$state"
+        done
+
+        # The verdict is a fact about the plans, not a decision about the directory: what an exit 0
+        # authorizes is the calling skill's rule, not this script's.
+        if [ "$unfinished" -eq 0 ]; then
+            echo "every plan complete - nothing is open in this task"
+            exit 0
+        fi
+        echo "$unfinished of ${#plans[@]} plans still open"
+        exit 1
         ;;
 
     *)

@@ -28,9 +28,9 @@ import org.springframework.core.io.ResourceLoader;
  */
 public final class McpTokens {
 
-    private static final String KEYSTORE = "classpath:local-mcp-signing.p12";
-    private static final String KEYSTORE_PASSWORD = "changeit";
-    private static final String KEY_ALIAS = "mcp-signing";
+    private static final String KEYSTORE = SigningKeys.KEYSTORE;
+    private static final String KEYSTORE_PASSWORD = SigningKeys.KEYSTORE_PASSWORD;
+    private static final String KEY_ALIAS = SigningKeys.KEY_ALIAS;
     private static final String ISSUER = "ledger-service";
     private static final String AUDIENCE = "mcp-adapter";
     private static final Duration TTL = Duration.ofMinutes(2);
@@ -40,7 +40,11 @@ public final class McpTokens {
 
     /** The {@code mcp.token.*} configuration the test profile runs with, for a hand-built {@link AccessTokenMinter}. */
     public static AccessTokenProperties properties() {
-        return new AccessTokenProperties(KEYSTORE, KEYSTORE_PASSWORD, KEY_ALIAS, ISSUER, AUDIENCE, TTL);
+        return new AccessTokenProperties(ISSUER, AUDIENCE, TTL);
+    }
+
+    public static AccessTokenMinter minter() {
+        return new AccessTokenMinter(properties(), SigningKeys.keys());
     }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {

@@ -47,12 +47,22 @@ is still current — anything outside `docs/` is stale.
 - **The commit** it was measured on, the branch, and whether the working tree was clean. `evidence.md` and
   `evidence.json` themselves are left out of that check — a previous run leaves them uncommitted, and counting
   them would mean a re-measure could never come back verified without a commit in between.
-- **A row per module**: the runner's verdict, tests total/passed/failed/skipped, instruction and branch
-  coverage, the module's minimum, and whether the module is formatted — `clean`, `unformatted`, or `n/a` for a
-  module with no `spotlessCheck` task. Formatting is measured because it is enforced by `check`, which this
-  script never runs: it runs `test` plus the coverage tasks, so without this column a plan could be archived
-  over unformatted code and still read `VERIFIED`.
-- **The least-covered classes**, fully covered ones omitted — where the next test would go.
+- **A row per module**: the runner's verdict, tests total/passed/failed/skipped, line and branch coverage, the
+  module's minimum, and whether the module is formatted — `clean`, `unformatted`, or `n/a` for a module with no
+  formatting check. Formatting is measured because it is enforced by a gate this script never runs: it runs the
+  tests plus the coverage task, so without this column a plan could be archived over unformatted code and still
+  read `VERIFIED`.
+- **The least-covered classes**, fully covered ones omitted — where the next test would go. For an npm module
+  the row names a source file rather than a class.
+
+**Both stacks are measured the same way**, each through its own tooling:
+
+| Where the number comes from | Gradle                                          | npm                                          |
+|-----------------------------|-------------------------------------------------|----------------------------------------------|
+| The suite                   | the test runner, via `./gradlew test`           | the test runner, via the module's npm scripts |
+| Coverage                    | `jacocoTestReport.csv`                          | `coverage/coverage-summary.json`              |
+| The minimum                 | `coverageMinimum` in `gradle.properties`        | `test.coverage.thresholds.lines` in the vite config |
+| Formatting                  | `spotlessCheck`                                 | `npm run format:check`                        |
 
 `evidence.json` carries the same fields for anything that would rather not parse a table.
 
@@ -72,9 +82,13 @@ a skipped suite is the one way this file could mislead a reader who trusts it.
 ### Determinism
 
 Two runs of the same commit produce the same file apart from the `Generated` timestamp: modules are sorted,
-classes are sorted by coverage and then by name, and every number comes from JaCoCo's CSV report rather than
-from anything read off a console. `git diff` on a re-run therefore shows what changed in the code, not in the
-formatting.
+classes are sorted by coverage and then by name, and every number comes from a machine-readable report — JaCoCo's
+CSV, or the coverage summary the npm runner writes — rather than from anything read off a console. `git diff` on
+a re-run therefore shows what changed in the code, not in the formatting.
+
+`coverage-summary.awk` beside this script is what reads the npm one. It walks the JSON by counting braces rather
+than parsing JSON in general, and emits rows in the same shape the JaCoCo branch produces, so one sort and one
+table render both stacks.
 
 ## On Windows
 

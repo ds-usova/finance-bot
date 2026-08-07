@@ -40,14 +40,30 @@ spring:
           default:
             deadline: 60s
 
+token:
+  signing:
+    keystore: ${TOKEN_SIGNING_KEYSTORE:classpath:local-mcp-signing.p12}
+    keystore-password: ${TOKEN_SIGNING_KEYSTORE_PASSWORD:changeit}
+    key-alias: ${TOKEN_SIGNING_KEY_ALIAS:mcp-signing}
+
 mcp:
   token:
-    keystore: ${MCP_JWT_KEYSTORE:classpath:local-mcp-signing.p12}
-    keystore-password: ${MCP_JWT_KEYSTORE_PASSWORD:changeit}
-    key-alias: ${MCP_JWT_KEY_ALIAS:mcp-signing}
     issuer: ledger-service
     audience: mcp-adapter
     ttl: ${MCP_JWT_TTL:2m}
+
+session:
+  token:
+    issuer: ledger-service
+    audience: web-app
+    ttl: ${SESSION_JWT_TTL:7d}
+
+web:
+  session:
+    cookie-name: ${WEB_SESSION_COOKIE_NAME:fb_session}
+    secure: ${WEB_SESSION_COOKIE_SECURE:false}
+    same-site: ${WEB_SESSION_COOKIE_SAME_SITE:Lax}
+    path: /
 
 telegram:
   bot:
@@ -58,6 +74,8 @@ telegram:
       limit: 100
       timeout-seconds: 30
       sleep-millis: 100
+  login:
+    max-age: ${TELEGRAM_LOGIN_MAX_AGE:1d}
 
 management:
   endpoints:

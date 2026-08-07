@@ -47,7 +47,7 @@ function problem(msg) {
 BEGIN {
     nent = 0; nsec = 0; cur = 0; problems = 0; infence = 0
     lastcontent = 0; seen_modules = 0; grilled = 0
-    nreq = split("## Objective,## Context,## Proposed Solution,## Decisions,## Design Findings", req, ",")
+    nreq = split("## Objective,## Context,## Proposed Solution,## Acceptance Scenarios,## Decisions,## Design Findings", req, ",")
 }
 
 # A design file quotes its own entry format; bullets inside a fence are examples, not entries.
@@ -94,18 +94,20 @@ section == "## Design Findings" && /Grilled \(/ { grilled = 1 }
     next
 }
 
-cur > 0 && /^- Answer:/ {
+# Answer and Basis are nested under their entry, so the bullet is indented. A flat one is still read:
+# the indentation is a rendering rule, and an older design file must not stop parsing because of it.
+cur > 0 && /^[ \t]*- Answer:/ {
     v = $0
-    sub(/^- Answer:[ \t]*/, "", v)
+    sub(/^[ \t]*- Answer:[ \t]*/, "", v)
     nans[cur]++
     ans[cur] = trim(v)
     lastcontent = NR
     next
 }
 
-cur > 0 && /^- Basis:/ {
+cur > 0 && /^[ \t]*- Basis:/ {
     v = $0
-    sub(/^- Basis:[ \t]*/, "", v)
+    sub(/^[ \t]*- Basis:[ \t]*/, "", v)
     raw = trim(v)
     nbasis[cur]++
 

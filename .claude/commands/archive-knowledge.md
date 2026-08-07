@@ -71,6 +71,11 @@ Invariants belong here and nowhere else. A use-case page's **Rules** keeps the d
 links out for the rest: "a message is accepted only when it names a conversation and carries text" is the
 message type's rule, not the use case's.
 
+**A domain page's sections are the repository's documentation conventions', not this skill's.** Where they
+require an entity to document its lifecycle, write it from the use cases in the work list — the one that creates
+the type, the one that changes it, the one that removes it — and state the absence where nothing does. That
+sweep is what surfaces an entity nothing ever removes, or one two different use cases create.
+
 **Contract** — one per edge to a system outside the service, another service in this repository included.
 Direction is from that service's side: **in** is what it serves or receives, **out** what it calls or consumes.
 Every edge is written from both sides in the same run.
@@ -197,7 +202,7 @@ edits it.
 
 ## Stage 5 — Commit
 
-Per the module's **Version Control** policy, documentation prefix. Policy silent or against: no commit.
+Per the conventions' **Version Control** rules, documentation prefix. Silent or against: no commit.
 
 ## Report
 

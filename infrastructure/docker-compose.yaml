@@ -39,6 +39,8 @@ services:
       DB_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
       AI_CONNECTOR_GRPC_TARGET: static://ai-connector-service:1001
       TELEGRAM_BOT_TOKEN: ${FINANCE_BOT_TELEGRAM_BOT_TOKEN}
+      # The browser reaches the web app over the tunnel's HTTPS, so the session cookie must be Secure.
+      WEB_SESSION_COOKIE_SECURE: ${FINANCE_BOT_WEB_SESSION_COOKIE_SECURE:-true}
     depends_on:
       finance-postgres:
         condition: service_healthy
@@ -56,6 +58,20 @@ services:
     environment:
       OPENAI_API_KEY: ${FINANCE_BOT_OPENAI_API_KEY}
       LEDGER_MCP_URL: http://ledger-service:1000
+    networks:
+      - backend
+
+  web-app:
+    build:
+      context: ..
+      dockerfile: web-app/Dockerfile
+      args:
+        VITE_TELEGRAM_BOT_USERNAME: ${FINANCE_BOT_TELEGRAM_BOT_USERNAME}
+    container_name: finance-bot-web-app
+    ports:
+      - "1003:80"
+    depends_on:
+      - ledger-service
     networks:
       - backend
 

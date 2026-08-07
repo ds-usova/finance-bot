@@ -16,7 +16,8 @@ bot.finance
     │   ├── AbstractSystemTest    # full-application base class
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
-    │   └── McpAdapterTest        # composed annotation — MCP tool adapter tests
+    │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
+    │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
@@ -28,7 +29,10 @@ bot.finance
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
-    │   └── TelegramFixtures      # Bot API JSON bodies
+    │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
+    │   ├── SigningKeys           # the keystore configuration the test profile runs with, and the key pair it resolves to
+    │   ├── TelegramFixtures      # Bot API JSON bodies
+    │   └── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording

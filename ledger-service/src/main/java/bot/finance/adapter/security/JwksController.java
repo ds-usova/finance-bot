@@ -11,16 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class JwksController {
 
-    private final AccessTokenMinter accessTokenMinter;
+    private final TokenSigningKeys signingKeys;
 
-    public JwksController(AccessTokenMinter accessTokenMinter) {
-        this.accessTokenMinter = accessTokenMinter;
+    public JwksController(TokenSigningKeys signingKeys) {
+        this.signingKeys = signingKeys;
     }
 
     @GetMapping("/.well-known/jwks.json")
     public Map<String, Object> jwks() {
-        RSAKey jwk = new RSAKey.Builder(accessTokenMinter.publicKey())
-                .keyID(accessTokenMinter.keyId())
+        RSAKey jwk = new RSAKey.Builder(signingKeys.publicKey())
+                .keyID(signingKeys.keyId())
                 .algorithm(JWSAlgorithm.RS256)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
