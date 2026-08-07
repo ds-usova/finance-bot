@@ -139,7 +139,7 @@ Every step below is a unit test: this module's [Testing Conventions](../../../we
 map all three of its layers — client, component and page — onto the unit type, because each fakes everything the
 code under test depends on.
 
-- [ ] RU01 · `client` · test: `client.test.ts` · covers: `request()` · scenarios: A20
+- [x] RU01 · `client` · test: `client.test.ts` · covers: `request()` · scenarios: A20
     - `request()`:
         - given: a 400 answering a JSON body carrying a message
           when: request() is called
@@ -155,7 +155,7 @@ code under test depends on.
           body, which is what the filter chain writes; keep its status assertion and add one that the message is
           the wording the client synthesizes, so it becomes the regression pinning the fallback rather than a
           second scenario saying the same thing
-- [ ] RU02 · `session` · test: `session.test.ts` · covers: `createSession()`, `readSession()`, `deleteSession()` · scenarios: A17
+- [x] RU02 · `session` · test: `session.test.ts` · covers: `createSession()`, `readSession()`, `deleteSession()` · scenarios: A17
     - update: the `'opens a session by posting the payload as JSON'` case asserts the path is `/api/session`;
       change it to `/api/v1/session` (D36).
     - update: the other three cases target the same constant; they assert the method rather than the path, so they
@@ -164,7 +164,7 @@ code under test depends on.
         - given: a stubbed fetch answering a session body
           when: readSession() is called
           then: the request goes to `/api/v1/session`, and the answered value is typed as the generated Session
-- [ ] RU03 · `expenses` · test: `expenses.test.ts` · covers: `listExpenses()`, `listCategories()`, `listGroupings()` · scenarios: A1, A2, A3, A13, A14, A20
+- [x] RU03 · `expenses` · test: `expenses.test.ts` · covers: `listExpenses()`, `listCategories()`, `listGroupings()` · scenarios: A1, A2, A3, A13, A14, A20
     - `listExpenses()`:
         - given: a filter with no field set
           when: listExpenses() is called
@@ -190,7 +190,7 @@ code under test depends on.
         - given: a stubbed fetch answering two groupings
           when: listGroupings() is called
           then: the request goes to `/api/v1/groupings` and both groupings are returned
-- [ ] RU04 · `AuthProvider` · test: `AuthContext.test.tsx` · covers: `sessionExpired()` · scenarios: A19
+- [x] RU04 · `AuthProvider` · test: `AuthContext.test.tsx` · covers: `sessionExpired()` · scenarios: A19
     - update: the `Probe` helper renders a button per context action; add one for `sessionExpired`, so the new
       action is exercised the way `signIn` and `signOut` already are.
     - `sessionExpired()`:
@@ -200,7 +200,7 @@ code under test depends on.
         - given: a provider that has settled on an authenticated session
           when: sessionExpired is called
           then: no DELETE is issued, unlike signing out — the session is already gone and there is nothing to end
-- [ ] RU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the rendered list · scenarios: A1
+- [x] RU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the rendered list · scenarios: A1
     - the rendered list:
         - given: a page holding one PENDING and one RECORDED entry, and a lookup answering each category's name
           when: the list is rendered
@@ -218,7 +218,7 @@ code under test depends on.
         - given: a page whose total exceeds its items
           when: the list is rendered
           then: it says how many of the total are being shown
-- [ ] RU06 · `ExpenseFilters` · test: `ExpenseFilters.test.tsx` · covers: the filter controls · scenarios: A2, A3
+- [x] RU06 · `ExpenseFilters` · test: `ExpenseFilters.test.tsx` · covers: the filter controls · scenarios: A2, A3
     - the filter controls:
         - given: the groupings and categories the ledger answered, and an empty filter
           when: the controls are rendered
@@ -242,7 +242,7 @@ code under test depends on.
         - given: the controls rendered
           when: the period control is read
           then: its label says the days narrow when a row was recorded, not when the money was spent (D27)
-- [ ] RU07 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the route's composition · scenarios: A19, A20
+- [x] RU07 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the route's composition · scenarios: A19, A20
     - the route's composition:
         - given: the mocked api answers a page, the groupings and the categories
           when: the page is rendered
@@ -329,7 +329,38 @@ adds none of its own.
   against. GU05 and GU06 replace those declarations outright.
 
 - **B2:** ST03 names no heading for `ExpensesPage`, and no Red scenario names one either. Stabilization chose
-  `Expenses`; RU07 pins whatever it asserts.
+  `Expenses`; RU07 pinned that wording, so the question is closed.
+
+- **B3:** RU01 treats `client.ts` as a stub, but it is working code from the sign-in feature that already
+  synthesizes its wording unconditionally. Only the first of its three scenarios can be red; the other two pass
+  as written. They stay as the regression pins for the fallback — the role the plan already assigns the 401 case
+  — rather than being reworked, so the red exit check expects two passes there.
+
+- **B4:** The plan names no wording, markup or accessible names for the new components, so the red tests pinned
+  them and GU05, GU06 and GU07 must satisfy exactly these:
+  - `ExpenseList` is a table, one `role="row"` per entry, each row's accessible name carrying its description.
+    An amount in minor units renders as a decimal (`1250` → `12.50`) with the currency shown separately.
+    The empty state matches `/no expenses/i` and the partial-page summary matches `/2 of 7/`.
+  - `ExpenseFilters` renders a `select` per filter, with accessible names `Grouping`, `Category` and `Status`,
+    and two date inputs labelled `Recorded from` and `Recorded to` — the two names are what carry D27. Category
+    and grouping options carry the id as their value, status options carry `PENDING`/`RECORDED`, and both
+    selects carry a blank option for the cleared state.
+  - `ExpensesPage` renders a failure as `role="alert"` carrying the `ApiError`'s message, the idiom `LoginPage`
+    already uses, and a `button` named `Sign out`.
+
+- **B5:** RU06's third scenario — no category outside the chosen grouping stays selected — is only reachable by
+  `ExpenseFilters` calling back with `categoryId` dropped, since the selection lives in a prop. The test asserts
+  that callback, and GU06 has no other way to satisfy it. Its "rather than by a second call" is asserted as
+  `onChange` never firing when a grouping is chosen, a grouping not being part of `ExpenseFilter` (D5).
+
+- **B6:** RU05's merchant scenario names no element a test may query, and the conventions forbid test ids. The
+  test pins what is observable: the row still renders its other fields, no `null` or `undefined` leaks into it,
+  and a sibling row does show its merchant. Whether an empty merchant cell is acceptable is left unpinned.
+
+- **B7:** Tooling gap, unrelated to this plan's diff. `web-app/package.json` has no `typecheck` script, so the
+  only route to `tsc --noEmit` is `npm run build`, whose `prebuild` regenerates the generated tree and whose
+  `vite build` writes `dist/` — shared artifacts several agents contend for. A `"typecheck": "tsc --noEmit"`
+  script without the `generate:api` pre-hook would give a step agent a side-effect-free check.
 
 ## Review Findings
 

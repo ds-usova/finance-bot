@@ -53,10 +53,45 @@ describe('the API client', () => {
   it('surfaces a refusal as an ApiError carrying the status', async () => {
     stubFetch(new Response('', { status: 401 }));
 
-    await expect(request('/api/session')).rejects.toMatchObject({
+    const rejection = request('/api/session');
+
+    await expect(rejection).rejects.toMatchObject({
       name: 'ApiError',
       status: 401,
     });
+    await expect(rejection).rejects.toThrow('GET /api/session answered 401');
+  });
+
+  it('reports the message the ledger sent, rather than a status code of its own', async () => {
+    stubFetch(jsonResponse({ message: 'from must not be after to' }, 400));
+
+    const rejection = request('/api/v1/expenses');
+
+    await expect(rejection).rejects.toMatchObject({ name: 'ApiError', status: 400 });
+    await expect(rejection).rejects.toThrow('from must not be after to');
+  });
+
+  it('reports its own wording when the body is not JSON', async () => {
+    stubFetch(
+      new Response('<html>Service Unavailable</html>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    );
+
+    const rejection = request('/api/v1/expenses');
+
+    await expect(rejection).rejects.toMatchObject({ name: 'ApiError', status: 503 });
+    await expect(rejection).rejects.toThrow('GET /api/v1/expenses answered 503');
+  });
+
+  it('reports its own wording when the JSON body names no message', async () => {
+    stubFetch(jsonResponse({ detail: 'nothing the page can read' }, 400));
+
+    const rejection = request('/api/v1/expenses');
+
+    await expect(rejection).rejects.toMatchObject({ name: 'ApiError', status: 400 });
+    await expect(rejection).rejects.toThrow('GET /api/v1/expenses answered 400');
   });
 
   it('answers with null for a no-content response rather than failing to parse it', async () => {
