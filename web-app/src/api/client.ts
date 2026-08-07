@@ -29,12 +29,24 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   const response = await fetch(path, { ...init, method, headers, credentials: 'include' });
 
   if (!response.ok) {
-    throw new ApiError(response.status, `${method} ${path} answered ${response.status}`);
+    const reported = await readProblemMessage(response);
+    throw new ApiError(
+      response.status,
+      reported ?? `${method} ${path} answered ${response.status}`,
+    );
   }
   if (response.status === 204) {
     return null;
   }
   return (await response.json()) as T;
+}
+
+async function readProblemMessage(response: Response): Promise<string | null> {
+  const body: unknown = await response.json().catch(() => null);
+  if (typeof body !== 'object' || body === null || !('message' in body)) {
+    return null;
+  }
+  return typeof body.message === 'string' ? body.message : null;
 }
 
 export function readCookie(name: string): string | null {

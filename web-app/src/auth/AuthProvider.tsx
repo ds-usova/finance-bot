@@ -37,8 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sessionExpired = useCallback(() => {
-    // TODO RU04/GU04: set the state to anonymous and drop the session, issuing no DELETE — the session the
-    // ledger refused is already gone, so there is nothing left to end.
+    setState({ status: 'anonymous', session: null });
   }, []);
 
   const value = useMemo(

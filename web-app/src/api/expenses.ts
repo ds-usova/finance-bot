@@ -1,3 +1,4 @@
+import { request } from './client';
 import type { components } from './generated/ledger-api';
 
 export type Expense = components['schemas']['Expense'];
@@ -16,18 +17,40 @@ export type ExpenseFilter = {
   offset?: number;
 };
 
+const EXPENSES_PATH = '/api/v1/expenses';
+const CATEGORIES_PATH = '/api/v1/categories';
+const GROUPINGS_PATH = '/api/v1/groupings';
+
 export async function listExpenses(filter: ExpenseFilter): Promise<ExpensePage> {
-  // builds the query string from the filter's set fields — and only those — and requests
-  // GET /api/v1/expenses, returning the answered page as it stands and letting an ApiError reach the caller
-  throw new Error(`not implemented: listExpenses(${JSON.stringify(filter)})`);
+  return get<ExpensePage>(EXPENSES_PATH, {
+    status: filter.status,
+    categoryId: filter.categoryId,
+    from: filter.from,
+    to: filter.to,
+    limit: filter.limit,
+    offset: filter.offset,
+  });
 }
 
 export async function listCategories(groupingId?: number): Promise<Category[]> {
-  // requests GET /api/v1/categories, carrying groupingId as the only query parameter when one is given
-  throw new Error(`not implemented: listCategories(${String(groupingId)})`);
+  return get<Category[]>(CATEGORIES_PATH, { groupingId });
 }
 
 export async function listGroupings(): Promise<Grouping[]> {
-  // requests GET /api/v1/groupings with no query string, returning every grouping the ledger answered
-  throw new Error('not implemented: listGroupings()');
+  return get<Grouping[]>(GROUPINGS_PATH, {});
+}
+
+async function get<T>(
+  path: string,
+  values: Record<string, string | number | undefined>,
+): Promise<T> {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(values)) {
+    if (value !== undefined) {
+      query.set(name, String(value));
+    }
+  }
+  const search = query.toString();
+  // `request` answers null only for a 204, which a read never sends.
+  return (await request<T>(search ? `${path}?${search}` : path)) as T;
 }

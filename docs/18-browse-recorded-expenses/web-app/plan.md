@@ -284,13 +284,13 @@ code under test depends on.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `client` · test: `client.test.ts`
-- [ ] GU02 · `session` · test: `session.test.ts` · after: GU01
-- [ ] GU03 · `expenses` · test: `expenses.test.ts` · after: GU01
-- [ ] GU04 · `AuthProvider` · test: `AuthContext.test.tsx`
-- [ ] GU05 · `ExpenseList` · test: `ExpenseList.test.tsx`
-- [ ] GU06 · `ExpenseFilters` · test: `ExpenseFilters.test.tsx`
-- [ ] GU07 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU05, GU06
+- [x] GU01 · `client` · test: `client.test.ts`
+- [x] GU02 · `session` · test: `session.test.ts` · after: GU01
+- [x] GU03 · `expenses` · test: `expenses.test.ts` · after: GU01
+- [x] GU04 · `AuthProvider` · test: `AuthContext.test.tsx`
+- [x] GU05 · `ExpenseList` · test: `ExpenseList.test.tsx`
+- [x] GU06 · `ExpenseFilters` · test: `ExpenseFilters.test.tsx`
+- [x] GU07 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU05, GU06
 
 `GU05` and `GU06` add their components' rules to `src/styles.css`, which is the module's one stylesheet; `GU07`
 adds none of its own.
@@ -361,6 +361,17 @@ adds none of its own.
   only route to `tsc --noEmit` is `npm run build`, whose `prebuild` regenerates the generated tree and whose
   `vite build` writes `dist/` — shared artifacts several agents contend for. A `"typecheck": "tsc --noEmit"`
   script without the `generate:api` pre-hook would give a step agent a side-effect-free check.
+
+- **B8:** The red-phase commit took one path outside this module. `git commit` with no pathspec commits the whole
+  index, and the concurrent `ledger-service` pipeline had already staged a `git rm` of
+  `ledger-service/src/main/java/bot/finance/adapter/web/SessionResponse.java`, so that deletion landed in this
+  module's commit. Nothing was lost — the deletion is the one that pipeline intended, and it is now in history
+  once rather than twice — but the commit's scope is wrong against
+  [Committing While Another Module Is Being Worked](../../conventions/version-control.md). Not rewritten: a reset
+  would race the other pipeline's next commit. Every later commit in this run names its paths explicitly.
+
+- **B9:** GU07 clears the failure banner when a later listing succeeds. No scenario asks for it, and none forbids
+  it; without it a non-401 message would stay on screen after a filter change had already recovered.
 
 ## Review Findings
 
