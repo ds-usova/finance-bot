@@ -373,6 +373,21 @@ adds none of its own.
 - **B9:** GU07 clears the failure banner when a later listing succeeds. No scenario asks for it, and none forbids
   it; without it a non-401 message would stay on screen after a filter change had already recovered.
 
+- **B10:** Confirmed bug the suite does not cover, found by the refactor pass and reproduced with a scratch test.
+  `ExpensesPage`'s listing effect has no cancellation, so a slow read overwrites the answer to a newer filter: the
+  unfiltered read is still in flight when a category is chosen, the filtered read answers first, the unfiltered
+  read answers second, and the page ends showing the filter the person has already left. The same window lets a
+  stale `401` call `sessionExpired` after a later read has succeeded, signing the person out on a filter change.
+  `AuthProvider` already guards its one read with a `cancelled` flag, so the module has the idiom. Not fixed here —
+  it changes observable behaviour and no scenario covers it, which makes it a plan gap rather than a refactor.
+
+- **B11:** Two opportunities outside this plan's diff, left for a later change.
+  - `ExpensesPage` and `LoginPage` render a failure identically. An `ErrorBanner` in `components/` is the
+    conventions' extraction target, but it needs `LoginPage.tsx`, which this plan never touched.
+  - Vitest's default `include` collects `**/*.test.tsx` from the module root and its default `exclude` does not
+    name `build/`, so a scratch test placed where the repository conventions put scratch files is silently added
+    to the module's suite. One `test.exclude` entry in `vite.config.ts` would close it.
+
 ## Review Findings
 
 - **F1:** Deleting `HomePage` removed the application's only sign-out control, and no step replaced it.

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { ApiError, request } from './client';
 
 describe('the API client', () => {
@@ -10,19 +11,6 @@ describe('the API client', () => {
     vi.unstubAllGlobals();
     document.cookie = 'XSRF-TOKEN=; path=/; max-age=0';
   });
-
-  function stubFetch(response: Response) {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response);
-    vi.stubGlobal('fetch', fetchMock);
-    return fetchMock;
-  }
-
-  function jsonResponse(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   it('sends cookies on every request, so the session cookie reaches the ledger', async () => {
     const fetchMock = stubFetch(jsonResponse({ externalId: '42' }));

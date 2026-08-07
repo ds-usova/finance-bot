@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { jsonResponse, stubFetch } from './testing/fetchStub';
 import { aCategory, aGrouping, anExpense, anExpensePage } from './testing/fixtures';
 
 describe('the wired application', () => {
@@ -8,17 +9,6 @@ describe('the wired application', () => {
     vi.unstubAllGlobals();
     window.history.pushState({}, '', '/');
   });
-
-  function stubSession(response: Response) {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response));
-  }
-
-  function jsonResponse(body: unknown) {
-    return new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   // A signed-in visitor costs four reads, and a body can only be consumed once, so each call is answered
   // by the path it asked for, with a Response built on the spot.
@@ -43,7 +33,7 @@ describe('the wired application', () => {
   }
 
   it('sends a visitor with no session to the sign-in page', async () => {
-    stubSession(new Response(null, { status: 401 }));
+    stubFetch(new Response(null, { status: 401 }));
 
     render(<App />);
 

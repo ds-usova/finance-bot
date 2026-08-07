@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { aCategory, aGrouping, anExpense, anExpensePage } from '../testing/fixtures';
 import { listCategories, listExpenses, listGroupings } from './expenses';
 
@@ -6,19 +7,6 @@ describe('the expense calls', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
-
-  function stubFetch(response: Response) {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response);
-    vi.stubGlobal('fetch', fetchMock);
-    return fetchMock;
-  }
-
-  function jsonResponse(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   function requestedUrl(fetchMock: ReturnType<typeof stubFetch>) {
     return new URL(String(fetchMock.mock.calls[0]?.[0]), 'http://localhost');

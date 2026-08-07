@@ -1,4 +1,5 @@
 import type { Category, Expense, ExpensePage, Grouping } from '../api/expenses';
+import type { AuthContextValue } from '../auth/authContext';
 
 export function anExpense(overrides: Partial<Expense> = {}): Expense {
   return {
@@ -41,6 +42,17 @@ export function aGrouping(overrides: Partial<Grouping> = {}): Grouping {
   return {
     id: 100,
     name: 'Everyday',
+    ...overrides,
+  };
+}
+
+export function anAuthContext(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
+  return {
+    status: 'authenticated',
+    session: { externalId: '42' },
+    signIn: async () => {},
+    signOut: async () => {},
+    sessionExpired: () => {},
     ...overrides,
   };
 }

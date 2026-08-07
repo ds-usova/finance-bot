@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import type { components } from './generated/ledger-api';
 import { createSession, deleteSession, readSession } from './session';
 
@@ -6,19 +7,6 @@ describe('the session calls', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
-
-  function stubFetch(response: Response) {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response);
-    vi.stubGlobal('fetch', fetchMock);
-    return fetchMock;
-  }
-
-  function jsonResponse(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   it('opens a session by posting the payload as JSON', async () => {
     const fetchMock = stubFetch(jsonResponse({ externalId: '42' }));

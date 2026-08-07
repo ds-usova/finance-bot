@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
-import { aCategory, aGrouping, anExpense, anExpensePage } from '../testing/fixtures';
+import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
 
 vi.mock('../api/expenses', () => ({
@@ -22,14 +22,7 @@ const categories = [aCategory({ id: 10, name: 'Groceries', groupingId: 100 })];
 const groupings = [aGrouping({ id: 100, name: 'Everyday' })];
 
 function renderPage(context: Partial<AuthContextValue> = {}) {
-  const value: AuthContextValue = {
-    status: 'authenticated',
-    session: { externalId: '987654321' },
-    signIn: async () => {},
-    signOut: async () => {},
-    sessionExpired: () => {},
-    ...context,
-  };
+  const value = anAuthContext({ session: { externalId: '987654321' }, ...context });
 
   return render(
     <AuthContext.Provider value={value}>

@@ -3,16 +3,15 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import type { AuthStatus, TelegramAuthPayload } from '../auth/types';
+import { anAuthContext } from '../testing/fixtures';
 import { LoginPage } from './LoginPage';
 
 function renderLogin(status: AuthStatus, signIn: AuthContextValue['signIn']) {
-  const value: AuthContextValue = {
+  const value = anAuthContext({
     status,
     session: status === 'authenticated' ? { externalId: '42' } : null,
     signIn,
-    signOut: async () => {},
-    sessionExpired: () => {},
-  };
+  });
 
   return render(
     <AuthContext.Provider value={value}>
