@@ -1,0 +1,30 @@
+get:
+  operationId: listExpenses
+  tags:
+    - expenses
+  parameters:
+    - $ref: '../components/parameters/paging.yaml#/Limit'
+    - $ref: '../components/parameters/paging.yaml#/Offset'
+    - $ref: '../components/parameters/expense-filters.yaml#/StatusFilter'
+    - $ref: '../components/parameters/expense-filters.yaml#/CategoryIdFilter'
+    - $ref: '../components/parameters/expense-filters.yaml#/FromFilter'
+    - $ref: '../components/parameters/expense-filters.yaml#/ToFilter'
+  responses:
+    '200':
+      description: A page of expenses, newest first.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/expense.yaml#/ExpensePage'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      description: The session names no user row.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/problem.yaml#/Problem'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

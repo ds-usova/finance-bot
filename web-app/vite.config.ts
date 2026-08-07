@@ -24,7 +24,13 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       // main.tsx mounts the app and types.ts declares types; neither holds behaviour to cover.
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/auth/types.ts', 'src/**/*.test.{ts,tsx}'],
+      exclude: [
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'src/auth/types.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/api/generated/**',
+      ],
       thresholds: {
         lines: 80,
         statements: 80,

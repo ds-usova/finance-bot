@@ -52,6 +52,7 @@ class CleanArchitectureTest {
                     "io.grpc..",
                     "com.google.protobuf..",
                     "bot.finance.ai..",
+                    "bot.finance.api..",
                     "io.modelcontextprotocol..")
             .allowEmptyShould(true);
 

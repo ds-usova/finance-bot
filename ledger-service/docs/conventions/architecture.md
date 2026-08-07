@@ -74,8 +74,8 @@ The first is enforced below; the second by review. How a command is named is enf
 - Protocol Buffers schema: repo-root `proto/<snake_case_name>.proto`, shared by every module that speaks the
   contract and added to this build as an extra proto source directory. Generated Java lands in
   `build/generated/sources/proto/main/`, never edited or committed.
-- API schema file: none yet — intended `src/main/resources/schemas/api.yaml`, to be confirmed with the first
-  contract.
+- API schema: repo-root `openapi/ledger-api.yaml`, layered under `openapi/paths/` and `openapi/components/`.
+  Generated Java lands in `build/generated/sources/openapi/`, never edited or committed.
 - Manual `.http` request files: none yet — intended `ledger-service/docs/requests/`.
 
 ## Architecture Enforcement
@@ -86,8 +86,9 @@ The first is enforced below; the second by review. How a command is named is enf
 - Rules:
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,
-    `bot.finance.ai..` — the generated schema's own package — and `io.modelcontextprotocol..` banned from
-    `domain`/`application`; each new external-service library joins the list as its adapter lands;
+    `bot.finance.ai..` — the generated gRPC schema's own package — `bot.finance.api..` — the generated OpenAPI
+    schema's own package — and `io.modelcontextprotocol..` banned from `domain`/`application`; each new
+    external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
     `Whisper`, `Postgres`, `AiConnector`, `Grpc`, `Proto`, `Mcp` or `Jwt`; the list grows the same way;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;

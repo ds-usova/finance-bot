@@ -1,0 +1,57 @@
+ExpenseStatus:
+  type: string
+  enum:
+    - PENDING
+    - RECORDED
+
+Expense:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    status:
+      $ref: '#/ExpenseStatus'
+    categoryId:
+      type: integer
+      format: int64
+    description:
+      type: string
+    merchant:
+      type: [string, "null"]
+    amountMinorUnits:
+      type: integer
+      format: int64
+    currency:
+      type: string
+    createdAt:
+      type: string
+      format: date-time
+  required:
+    - id
+    - status
+    - categoryId
+    - description
+    - amountMinorUnits
+    - currency
+    - createdAt
+
+ExpensePage:
+  type: object
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/Expense'
+    limit:
+      type: integer
+    offset:
+      type: integer
+    total:
+      type: integer
+      format: int64
+  required:
+    - items
+    - limit
+    - offset
+    - total

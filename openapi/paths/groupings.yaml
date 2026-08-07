@@ -1,0 +1,23 @@
+get:
+  operationId: listGroupings
+  tags:
+    - groupings
+  responses:
+    '200':
+      description: Every grouping, unpaged.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../components/schemas/category.yaml#/Grouping'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      description: The session names no user row.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/problem.yaml#/Problem'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

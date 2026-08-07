@@ -3,6 +3,7 @@ FROM eclipse-temurin:25-jdk AS build
 WORKDIR /repo
 
 COPY proto ./proto
+COPY openapi ./openapi
 COPY ledger-service/gradlew ledger-service/gradlew.bat ledger-service/build.gradle ledger-service/settings.gradle ledger-service/gradle.properties ./ledger-service/
 COPY ledger-service/gradle ./ledger-service/gradle
 COPY ledger-service/src ./ledger-service/src

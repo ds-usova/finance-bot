@@ -4,6 +4,7 @@ WORKDIR /repo/web-app
 COPY web-app/package.json web-app/package-lock.json ./
 RUN npm ci
 COPY web-app/ ./
+COPY openapi /repo/openapi
 ARG VITE_TELEGRAM_BOT_USERNAME
 ENV VITE_TELEGRAM_BOT_USERNAME=$VITE_TELEGRAM_BOT_USERNAME
 RUN npm run build

@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: Ledger API
+  version: 1.0.0
+servers:
+  - url: /
+tags:
+  - name: expenses
+  - name: categories
+  - name: groupings
+  - name: session
+paths:
+  /api/v1/expenses:
+    $ref: './paths/expenses.yaml'
+  /api/v1/categories:
+    $ref: './paths/categories.yaml'
+  /api/v1/groupings:
+    $ref: './paths/groupings.yaml'
+  /api/v1/session:
+    $ref: './paths/session.yaml'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: fb_session

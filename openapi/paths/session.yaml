@@ -1,0 +1,53 @@
+post:
+  operationId: signIn
+  tags:
+    - session
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas/session.yaml#/TelegramLoginPayload'
+  responses:
+    '200':
+      description: The session was opened.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/session.yaml#/Session'
+    '401':
+      description: The sign-in was not accepted.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/problem.yaml#/Problem'
+    '403':
+      description: The request carried no CSRF token.
+    '503':
+      description: The user could not be stored.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/problem.yaml#/Problem'
+get:
+  operationId: currentSession
+  tags:
+    - session
+  responses:
+    '200':
+      description: The session that is open.
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/session.yaml#/Session'
+    '401':
+      description: No valid session was presented.
+delete:
+  operationId: signOut
+  tags:
+    - session
+  responses:
+    '204':
+      description: The session was closed.
+    '403':
+      description: The request carried no CSRF token.

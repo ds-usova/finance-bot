@@ -21,11 +21,11 @@ overwrite each other's results.
 
 ## Module Tasks
 
-| Task             | Command                   |
-|------------------|---------------------------|
-| Format           | `npm run format`          |
-| Coverage         | `npm run verify:coverage` |
-| Contract codegen | none is wired             |
+| Task             | Command                                                   |
+|------------------|-----------------------------------------------------------|
+| Format           | `npm run format`                                          |
+| Coverage         | `npm run verify:coverage`                                 |
+| Contract codegen | `npm run generate:api`, reading `openapi/ledger-api.yaml` |
 
 ## Docker
 

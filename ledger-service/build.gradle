@@ -5,6 +5,7 @@ plugins {
     id "org.springframework.boot" version "$springBootVersion"
     id "io.spring.dependency-management" version "$springDependencyManagementVersion"
     id "com.google.protobuf" version "$protobufGradlePluginVersion"
+    id "org.openapi.generator" version "$openApiGeneratorVersion"
 }
 
 group = "bot.finance"
@@ -21,10 +22,15 @@ repositories {
     mavenCentral()
 }
 
+def openApiOutputDir = layout.buildDirectory.dir("generated/sources/openapi")
+
 sourceSets {
     main {
         proto {
             srcDir("$rootDir/../proto")
+        }
+        java {
+            srcDir(openApiOutputDir.map { it.dir("src/main/java") })
         }
     }
 }
@@ -47,6 +53,22 @@ protobuf {
     }
 }
 
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "$rootDir/../openapi/ledger-api.yaml"
+    outputDir = openApiOutputDir
+    apiPackage = "bot.finance.api"
+    modelPackage = "bot.finance.api.model"
+    configOptions = [
+        interfaceOnly: "true",
+        useTags: "true"
+    ]
+}
+
+tasks.named("compileJava") {
+    dependsOn tasks.named("openApiGenerate")
+}
+
 dependencies {
     implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
     implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"
@@ -63,6 +85,7 @@ dependencies {
 
     implementation "io.swagger.core.v3:swagger-annotations:${swaggerAnnotationsVersion}"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    implementation "org.openapitools:jackson-databind-nullable:${jacksonDatabindNullableVersion}"
 
     // Database
     implementation "org.flywaydb:flyway-database-postgresql"
@@ -109,7 +132,7 @@ jacoco {
 // The report and the rule share one filter, so a reported percentage is the one being enforced.
 def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
-        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "**/*Application.class"])
+        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "bot/finance/api/**", "**/*Application.class"])
     }))
 }
 

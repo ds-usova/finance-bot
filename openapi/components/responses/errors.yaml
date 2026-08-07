@@ -1,0 +1,16 @@
+BadRequest:
+  description: The request could not be processed as sent.
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/problem.yaml#/Problem'
+
+Unauthorized:
+  description: No valid session was presented.
+
+ServiceUnavailable:
+  description: The store could not be reached.
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/problem.yaml#/Problem'

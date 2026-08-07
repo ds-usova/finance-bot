@@ -1,0 +1,11 @@
+Session:
+  type: object
+  properties:
+    externalId:
+      type: string
+  required:
+    - externalId
+
+TelegramLoginPayload:
+  type: object
+  additionalProperties: true

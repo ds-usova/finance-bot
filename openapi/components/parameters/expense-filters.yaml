@@ -1,0 +1,30 @@
+StatusFilter:
+  name: status
+  in: query
+  required: false
+  schema:
+    $ref: '../schemas/expense.yaml#/ExpenseStatus'
+
+CategoryIdFilter:
+  name: categoryId
+  in: query
+  required: false
+  schema:
+    type: integer
+    format: int64
+
+FromFilter:
+  name: from
+  in: query
+  required: false
+  schema:
+    type: string
+    format: date
+
+ToFilter:
+  name: to
+  in: query
+  required: false
+  schema:
+    type: string
+    format: date

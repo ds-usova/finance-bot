@@ -1,0 +1,30 @@
+Category:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    name:
+      type: string
+    groupingId:
+      type: integer
+      format: int64
+    groupingName:
+      type: string
+  required:
+    - id
+    - name
+    - groupingId
+    - groupingName
+
+Grouping:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    name:
+      type: string
+  required:
+    - id
+    - name
