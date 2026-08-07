@@ -5,14 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bot.finance.adapter.persistence.CategoryEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
-import bot.finance.common.fixtures.TelegramLoginPayloads;
+import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -26,16 +25,13 @@ import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 /**
  * Covers {@code GET /api/v1/expenses} end to end against the fully wired application, entered the way a browser
- * does: signing in over the real sign-in endpoint and carrying the session cookie it set. The bot token below is
- * the {@code telegram.bot.token} the {@code test} profile already configures by default, so this class needs no
- * {@code @TestPropertySource} override.
+ * does: signing in over the real sign-in endpoint and carrying the session cookie it set. It triggers no poll-loop
+ * scenario, so it signs with the {@code test} profile's own bot token and needs no {@code @TestPropertySource}
+ * override.
  */
 class BrowseExpensesSystemTest extends AbstractSystemTest {
 
-    private static final String BOT_TOKEN = "default-test-token";
-    private static final String SESSION_COOKIE = "fb_session";
-    private static final String CSRF_COOKIE = "XSRF-TOKEN";
-    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+    private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
 
     @Autowired
     private UserEntityRepository userEntityRepository;
@@ -115,7 +111,9 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
                     .isEqualTo(categoryId);
 
             // then: the total counts every row the person has
-            assertThat(response.jsonPath().getInt("total")).as("total row count").isEqualTo(2);
+            assertThat(response.jsonPath().getInt("total"))
+                    .as("total row count")
+                    .isEqualTo(2);
         }
     }
 
@@ -138,24 +136,6 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
     }
 
     private Response signIn(String externalId) {
-        return postSignIn(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId));
-    }
-
-    /** The token the unauthenticated read hands out, which a browser gets on page load. */
-    private String freshCsrfToken() {
-        return RestAssured.given().when().get("/api/v1/session").getCookie(CSRF_COOKIE);
-    }
-
-    private Response postSignIn(Map<String, String> payload) {
-        String csrfToken = freshCsrfToken();
-
-        RequestSpecification request = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(payload);
-        Response response = request.when().post("/api/v1/session");
-        logResponse(response);
-        return response;
+        return BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId);
     }
 }

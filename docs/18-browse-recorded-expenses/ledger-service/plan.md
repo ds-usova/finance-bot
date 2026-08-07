@@ -752,6 +752,20 @@ No **ADRs** section: Q1 was answered `no`, so this change records none.
   its comment. The fix is module-wide, so it turned RS02's test green too — GS02 therefore needed no work of its
   own. Worth knowing: this was latent before this change and would have hit any later system test that signs in.
 
+- **B5 (refactor finding, left for a follow-up):** `WebExceptionHandler.onIllegalArgument` catches *every*
+  `IllegalArgumentException` raised under `bot.finance.adapter.web` and answers 400 with the fixed message
+  `"status must be PENDING or RECORDED"`. Today the only reachable source is `ExpenseStatus.valueOf` in
+  `ExpenseWebMapper`, so no failing case could be constructed and this is unverified — but it is a catch-all
+  wearing a specific message, and the next `IllegalArgumentException` to appear anywhere in that package would be
+  reported to the caller as a status problem rather than a 500. Narrowing it needs a scenario this plan does not
+  carry, so it is recorded rather than fixed.
+
+- **B6 (process note, already resolved):** none of the three plan commits was Spotless-formatted, so
+  `spotlessCheck` — which runs as part of `check` — would have failed on `WebExceptionHandler`, `ExpenseFilterTest`
+  and `ExpenseWebMapperTest` among others. The refactor pass reformatted eleven files and the tree is clean now.
+  No step in the plan owned formatting, and no stage guardrail runs `check`, which is why it went unnoticed until
+  the last pass.
+
 - **Q1:** [Follow-Up Work](../../conventions/follow-up.md) writes an ADR only for a decision approved for
   recording. The one candidate this change raises is D1 — the specification lives at `openapi/` at the repository
   root, shared by both modules, generated into each build and never committed — which mirrors

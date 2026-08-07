@@ -12,9 +12,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 /**
  * The {@code @ActiveProfiles}/{@code @Import} block a {@code @WebMvcTest} slice needs to boot the security
- * filter chain, the signing keys and the session token minter - what {@code SessionControllerTest} wrote out by
- * hand before this existed. {@code @WebMvcTest} stays on each test class, since it names the controller under
- * test.
+ * filter chain, the signing keys and the session token minter. {@code @WebMvcTest} stays on each test class,
+ * since it names the controller under test.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

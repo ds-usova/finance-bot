@@ -33,4 +33,12 @@ public class JsonUtils {
             throw new UncheckedIOException("Failed to parse JSON resource: " + fileName, e);
         }
     }
+
+    public static JsonNode readJson(String json) {
+        try {
+            return MAPPER.readTree(json);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to parse JSON", e);
+        }
+    }
 }

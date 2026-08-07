@@ -56,9 +56,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public List<CurrencyTotal> totalsByCurrency(long userId, SpendingPeriod period) {
-        Instant from = period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant toExclusive =
-                period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant from = periodStart(period);
+        Instant toExclusive = periodEndExclusive(period);
 
         try {
             return expenseEntityRepository.totalsByCurrency(userId, from, toExclusive).stream()
@@ -109,7 +108,9 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     }
 
     private static Instant periodStart(SpendingPeriod period) {
-        return period == null ? null : period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+        return period == null
+                ? null
+                : period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     private static Instant periodEndExclusive(SpendingPeriod period) {

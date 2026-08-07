@@ -79,8 +79,8 @@ class BrowseGroupingsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when no user row is stored under the caller's external id - then throws "
-                + "EntityNotFoundException")
+        @DisplayName(
+                "when no user row is stored under the caller's external id - then throws " + "EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 

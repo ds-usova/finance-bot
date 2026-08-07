@@ -11,9 +11,9 @@ import bot.finance.application.dto.BrowseCategoriesCommand;
 import bot.finance.application.dto.CategoryEntry;
 import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.common.boot.WebAdapterTest;
-import bot.finance.common.fixtures.SessionTokens;
+import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -37,10 +37,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class CategoriesControllerTest {
 
     private static final String PATH = "/api/v1/categories";
-    private static final String SESSION_COOKIE = "fb_session";
     private static final String EXTERNAL_ID = "223344556";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,7 +68,7 @@ class CategoriesControllerTest {
             verify(browseCategoriesPort).browse(command.capture());
             assertThat(command.getValue().groupingId()).isNull();
 
-            JsonNode items = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+            JsonNode items = JsonUtils.readJson(result.getResponse().getContentAsString());
             assertThat(items).hasSize(3);
             assertThat(items.get(0).get("name").asText()).isEqualTo("Supermarkets");
             assertThat(items.get(0).get("groupingId").asLong()).isEqualTo(100L);
@@ -102,7 +99,7 @@ class CategoriesControllerTest {
                     .andExpect(status().isOk())
                     .andReturn();
 
-            assertThat(OBJECT_MAPPER.readTree(result.getResponse().getContentAsString()))
+            assertThat(JsonUtils.readJson(result.getResponse().getContentAsString()))
                     .isEmpty();
         }
     }
@@ -125,6 +122,6 @@ class CategoriesControllerTest {
     }
 
     private static Cookie sessionCookie() {
-        return new Cookie(SESSION_COOKIE, SessionTokens.tokenFor(EXTERNAL_ID));
+        return BrowserSessions.cookieFor(EXTERNAL_ID);
     }
 }

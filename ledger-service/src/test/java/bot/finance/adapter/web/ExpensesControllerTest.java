@@ -13,7 +13,7 @@ import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
-import bot.finance.common.fixtures.SessionTokens;
+import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
@@ -50,7 +50,6 @@ import org.springframework.test.web.servlet.MvcResult;
 class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
-    private static final String SESSION_COOKIE = "fb_session";
     private static final String EXTERNAL_ID = "778899001";
 
     @Autowired
@@ -164,8 +163,10 @@ class ExpensesControllerTest {
         void whenFromAndToAreAWellFormedPair_thenTheyBindToAPeriodCarryingBothDays() throws Exception {
             when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 50, 0, 0));
 
-            mockMvc.perform(
-                    get(PATH).cookie(sessionCookie()).param("from", "2026-02-01").param("to", "2026-02-14"));
+            mockMvc.perform(get(PATH)
+                    .cookie(sessionCookie())
+                    .param("from", "2026-02-01")
+                    .param("to", "2026-02-14"));
 
             ArgumentCaptor<BrowseExpensesCommand> command = ArgumentCaptor.forClass(BrowseExpensesCommand.class);
             verify(browseExpensesPort).browse(command.capture());
@@ -217,6 +218,6 @@ class ExpensesControllerTest {
     }
 
     private static Cookie sessionCookie() {
-        return new Cookie(SESSION_COOKIE, SessionTokens.tokenFor(EXTERNAL_ID));
+        return BrowserSessions.cookieFor(EXTERNAL_ID);
     }
 }

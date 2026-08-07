@@ -16,6 +16,7 @@ import bot.finance.adapter.telegram.TelegramLoginVerifier;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.common.boot.WebAdapterTest;
+import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.SessionTokens;
 import bot.finance.domain.model.User;
 import jakarta.servlet.http.Cookie;
@@ -37,7 +38,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SessionControllerTest {
 
     private static final String EXTERNAL_ID = "987654321";
-    private static final String SESSION_COOKIE = "fb_session";
     private static final String PAYLOAD_JSON =
             """
             {"id":"987654321","first_name":"Ada","auth_date":"1785000000","hash":"cafebabe"}""";
@@ -75,7 +75,7 @@ class SessionControllerTest {
             String setCookie = setCookieHeaderOf(
                     mockMvc.perform(signInRequest()).andExpect(status().isOk()).andReturn());
 
-            assertThat(setCookie).startsWith(SESSION_COOKIE + "=");
+            assertThat(setCookie).startsWith(BrowserSessions.COOKIE_NAME + "=");
             assertThat(setCookie).contains("HttpOnly");
             assertThat(setCookie).contains("Path=/");
             assertThat(setCookie).contains("SameSite=Lax");
@@ -150,7 +150,7 @@ class SessionControllerTest {
         @Test
         @DisplayName("when the request carries a valid session cookie - then it answers with that cookie's subject")
         void whenTheRequestCarriesAValidSessionCookie_thenItAnswersWithThatCookiesSubject() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/v1/session").cookie(sessionCookieFor(EXTERNAL_ID)))
+            MvcResult result = mockMvc.perform(get("/api/v1/session").cookie(BrowserSessions.cookieFor(EXTERNAL_ID)))
                     .andExpect(status().isOk())
                     .andReturn();
 
@@ -174,7 +174,7 @@ class SessionControllerTest {
         @Test
         @DisplayName("when the cookie carries a token this service did not sign - then it is refused")
         void whenTheCookieCarriesATokenThisServiceDidNotSign_thenItIsRefused() throws Exception {
-            mockMvc.perform(get("/api/v1/session").cookie(new Cookie(SESSION_COOKIE, "not.a.token")))
+            mockMvc.perform(get("/api/v1/session").cookie(new Cookie(BrowserSessions.COOKIE_NAME, "not.a.token")))
                     .andExpect(status().isUnauthorized());
         }
     }
@@ -195,13 +195,14 @@ class SessionControllerTest {
         }
 
         @Test
-        @DisplayName("when no session cookie is present - then the delete still clears the cookie and the body is empty")
+        @DisplayName(
+                "when no session cookie is present - then the delete still clears the cookie and the body is empty")
         void whenNoSessionCookieIsPresent_thenTheDeleteStillClearsTheCookie() throws Exception {
             MvcResult result = mockMvc.perform(delete("/api/v1/session").with(csrf()))
                     .andExpect(status().isNoContent())
                     .andReturn();
 
-            assertThat(setCookieHeaderOf(result)).startsWith(SESSION_COOKIE + "=;");
+            assertThat(setCookieHeaderOf(result)).startsWith(BrowserSessions.COOKIE_NAME + "=;");
             assertThat(result.getResponse().getContentAsString()).isEmpty();
         }
     }
@@ -245,10 +246,6 @@ class SessionControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PAYLOAD_JSON);
-    }
-
-    private static Cookie sessionCookieFor(String externalId) {
-        return new Cookie(SESSION_COOKIE, SessionTokens.tokenFor(externalId));
     }
 
     private static String setCookieHeaderOf(MvcResult result) {

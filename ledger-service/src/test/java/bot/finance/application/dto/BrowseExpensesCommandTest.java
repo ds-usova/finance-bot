@@ -32,8 +32,7 @@ class BrowseExpensesCommandTest {
         @Test
         @DisplayName("when the userId is absent - then throws InvalidUserException")
         void whenUserIdIsAbsent_thenThrowsInvalidUserException() {
-            assertThatThrownBy(() -> new BrowseExpensesCommand(null, FILTER))
-                    .isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(() -> new BrowseExpensesCommand(null, FILTER)).isInstanceOf(InvalidUserException.class);
         }
 
         @Test

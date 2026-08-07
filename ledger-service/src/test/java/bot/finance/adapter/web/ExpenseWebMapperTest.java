@@ -93,8 +93,7 @@ class ExpenseWebMapperTest {
         @DisplayName("when a limit above the maximum is given - then throws InvalidExpenseFilterException, never a "
                 + "filter carrying a clamped limit")
         void whenLimitIsAboveMaximum_thenThrowsInvalidExpenseFilterException() {
-            assertThatThrownBy(
-                            () -> ExpenseWebMapper.toFilter(ExpenseFilter.MAX_LIMIT + 1, 0, null, null, null, null))
+            assertThatThrownBy(() -> ExpenseWebMapper.toFilter(ExpenseFilter.MAX_LIMIT + 1, 0, null, null, null, null))
                     .isInstanceOf(InvalidExpenseFilterException.class);
         }
     }

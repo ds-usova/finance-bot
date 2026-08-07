@@ -76,7 +76,8 @@ class BrowseCategoriesUseCaseTest {
             long differentUserId = 42L;
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(differentUserId, EXTERNAL_ID)));
-            when(categoryRepository.findAllForUser(differentUserId, GROUPING_ID)).thenReturn(List.of());
+            when(categoryRepository.findAllForUser(differentUserId, GROUPING_ID))
+                    .thenReturn(List.of());
 
             useCase.browse(newCommand(GROUPING_ID));
 
@@ -98,13 +99,12 @@ class BrowseCategoriesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when no user row is stored under the caller's external id - then throws "
-                + "EntityNotFoundException")
+        @DisplayName(
+                "when no user row is stored under the caller's external id - then throws " + "EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> useCase.browse(newCommand(null)))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> useCase.browse(newCommand(null))).isInstanceOf(EntityNotFoundException.class);
 
             verifyNoInteractions(categoryRepository);
         }

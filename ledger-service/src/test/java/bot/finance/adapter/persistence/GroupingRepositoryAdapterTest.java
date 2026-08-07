@@ -333,19 +333,17 @@ class GroupingRepositoryAdapterTest {
                     .isEqualTo(frameworkException);
         }
 
-        // findAllForUser() has no repository method to stub yet - its @Query method is added in
-        // the green phase - so the mock is given a default answer that throws for whichever call
-        // the finished implementation ends up making.
+        // A default answer that throws for any call, rather than a stub on one method, so the
+        // scenario stays about the failure surfacing and not about which query the adapter runs.
         @Test
         @DisplayName(
                 "when findAllForUser() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
         void
                 whenFindAllForUserHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            CategoryEntityRepository throwingRepository =
-                    mock(CategoryEntityRepository.class, invocation -> {
-                        throw frameworkException;
-                    });
+            CategoryEntityRepository throwingRepository = mock(CategoryEntityRepository.class, invocation -> {
+                throw frameworkException;
+            });
             GroupingRepositoryAdapter throwingAdapter = new GroupingRepositoryAdapter(throwingRepository);
 
             assertThatThrownBy(() -> throwingAdapter.findAllForUser(1L))

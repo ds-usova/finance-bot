@@ -47,9 +47,8 @@ public class SessionController implements SessionApi {
 
     @Override
     public ResponseEntity<CurrentSession200Response> signIn(Map<String, Object> requestBody) {
-        // TODO: the generated interface types the body as a map of Object - TelegramLoginPayload declares
-        // additionalProperties with no properties of its own - so each value is rendered with String.valueOf
-        // into the Map<String, String> the verifier takes, and that signature is unchanged
+        // The schema declares additionalProperties with no properties of its own, so the generated interface
+        // types the body as a map of Object; each value is rendered with String.valueOf for the verifier.
         Map<String, String> telegramLoginPayload = new LinkedHashMap<>();
         requestBody.forEach((key, value) -> telegramLoginPayload.put(key, String.valueOf(value)));
         String externalId = loginVerifier.verify(telegramLoginPayload, Instant.now());
@@ -65,8 +64,6 @@ public class SessionController implements SessionApi {
 
     @Override
     public ResponseEntity<CurrentSession200Response> currentSession() {
-        // TODO: the generated interface wraps the body in a ResponseEntity, unlike the plain SessionResponse
-        // this returned before
         return ResponseEntity.ok(new CurrentSession200Response(
                 AuthenticatedCaller.authenticatedUserId().externalId()));
     }

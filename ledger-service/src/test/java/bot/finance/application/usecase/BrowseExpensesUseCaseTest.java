@@ -124,8 +124,7 @@ class BrowseExpensesUseCaseTest {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
             ExpenseFilter filter = newFilter();
-            PersistenceFailedException failure =
-                    new PersistenceFailedException("read failed", new RuntimeException());
+            PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(expenseRepository.findPage(USER_ID, filter)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.browse(newCommand(filter))).isSameAs(failure);

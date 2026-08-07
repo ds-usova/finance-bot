@@ -12,13 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
-import bot.finance.common.fixtures.SessionTokens;
+import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -46,10 +46,7 @@ class WebExceptionHandlerTest {
 
     private static final String EXPENSES_PATH = "/api/v1/expenses";
     private static final String CATEGORIES_PATH = "/api/v1/categories";
-    private static final String SESSION_COOKIE = "fb_session";
     private static final String EXTERNAL_ID = "445566778";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Autowired
     private MockMvc mockMvc;
@@ -297,20 +294,19 @@ class WebExceptionHandlerTest {
 
     private String assertSingleJsonMessage(MvcResult result) throws Exception {
         assertThat(result.getResponse().getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
-        JsonNode body = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+        JsonNode body = JsonUtils.readJson(result.getResponse().getContentAsString());
         assertThat(body.size()).isEqualTo(1);
         assertThat(body.has("message")).isTrue();
         return body.get("message").asText();
     }
 
     private String messageOf(MvcResult result) throws Exception {
-        return OBJECT_MAPPER
-                .readTree(result.getResponse().getContentAsString())
+        return JsonUtils.readJson(result.getResponse().getContentAsString())
                 .get("message")
                 .asText();
     }
 
     private static Cookie sessionCookie() {
-        return new Cookie(SESSION_COOKIE, SessionTokens.tokenFor(EXTERNAL_ID));
+        return BrowserSessions.cookieFor(EXTERNAL_ID);
     }
 }

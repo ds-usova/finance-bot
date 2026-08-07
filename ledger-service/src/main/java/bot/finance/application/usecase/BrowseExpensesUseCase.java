@@ -43,6 +43,7 @@ public class BrowseExpensesUseCase implements BrowseExpensesPort {
                 command.filter(),
                 entries.size());
 
-        return new ExpensePage(entries, command.filter().limit(), command.filter().offset(), total);
+        return new ExpensePage(
+                entries, command.filter().limit(), command.filter().offset(), total);
     }
 }

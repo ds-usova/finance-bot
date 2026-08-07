@@ -19,8 +19,7 @@ public final class CategoryWebMapper {
     }
 
     private static ListCategories200ResponseInner toCategory(CategoryEntry entry) {
-        return new ListCategories200ResponseInner(
-                entry.id(), entry.name(), entry.groupingId(), entry.groupingName());
+        return new ListCategories200ResponseInner(entry.id(), entry.name(), entry.groupingId(), entry.groupingName());
     }
 
     private static ListGroupings200ResponseInner toGrouping(GroupingEntry entry) {

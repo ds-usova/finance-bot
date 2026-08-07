@@ -48,7 +48,9 @@ public class WebExceptionHandler {
     @ExceptionHandler(InvalidSpendingPeriodException.class)
     public ResponseEntity<Map<String, String>> onInvalidSpendingPeriod(InvalidSpendingPeriodException e) {
         logger.warn("rejected a request: {}", e.getMessage());
-        return problem(HttpStatus.BAD_REQUEST, "from and to must both be given, as a YYYY-MM-DD day, with from no later than to");
+        return problem(
+                HttpStatus.BAD_REQUEST,
+                "from and to must both be given, as a YYYY-MM-DD day, with from no later than to");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -59,7 +61,8 @@ public class WebExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, String>> onConstraintViolation(ConstraintViolationException e) {
-        ConstraintViolation<?> violation = e.getConstraintViolations().iterator().next();
+        ConstraintViolation<?> violation =
+                e.getConstraintViolations().iterator().next();
         String name = lastPathSegment(violation.getPropertyPath().toString());
         String bound = violation.getMessage();
 

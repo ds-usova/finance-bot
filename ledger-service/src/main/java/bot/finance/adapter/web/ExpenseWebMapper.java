@@ -50,7 +50,8 @@ public final class ExpenseWebMapper {
     private static ListExpenses200ResponseItemsInner toItem(ExpenseEntry entry) {
         ListExpenses200ResponseItemsInner item = new ListExpenses200ResponseItemsInner(
                 entry.id(),
-                ListExpenses200ResponseItemsInner.StatusEnum.valueOf(entry.status().name()),
+                ListExpenses200ResponseItemsInner.StatusEnum.valueOf(
+                        entry.status().name()),
                 entry.categoryId(),
                 entry.description(),
                 entry.money().minorUnits(),

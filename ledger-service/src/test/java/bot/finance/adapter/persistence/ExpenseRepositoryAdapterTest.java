@@ -522,20 +522,20 @@ class ExpenseRepositoryAdapterTest {
         void whenCalledWithEachStatus_thenOnlyThatKindComesBackEachTime() {
             long userId = storedUserId("find-page-status-filter-user");
             long categoryId = storedGroupingId(userId, "Dining");
-            storedExpenseAt(userId, categoryId, "Recorded", 100, "USD", Instant.now().minusSeconds(60));
-            storedProposalAt(userId, categoryId, "Pending", 200, "USD", Instant.now().minusSeconds(30));
+            storedExpenseAt(
+                    userId, categoryId, "Recorded", 100, "USD", Instant.now().minusSeconds(60));
+            storedProposalAt(
+                    userId, categoryId, "Pending", 200, "USD", Instant.now().minusSeconds(30));
 
             List<ExpenseEntry> pending = adapter.findPage(
                     userId, new ExpenseFilter(ExpenseStatus.PENDING, null, null, ExpenseFilter.DEFAULT_LIMIT, 0));
             List<ExpenseEntry> recorded = adapter.findPage(
                     userId, new ExpenseFilter(ExpenseStatus.RECORDED, null, null, ExpenseFilter.DEFAULT_LIMIT, 0));
 
-            assertThat(pending)
-                    .singleElement()
-                    .satisfies(entry -> assertThat(entry.status()).isEqualTo(ExpenseStatus.PENDING));
-            assertThat(recorded)
-                    .singleElement()
-                    .satisfies(entry -> assertThat(entry.status()).isEqualTo(ExpenseStatus.RECORDED));
+            assertThat(pending).singleElement().satisfies(entry -> assertThat(entry.status())
+                    .isEqualTo(ExpenseStatus.PENDING));
+            assertThat(recorded).singleElement().satisfies(entry -> assertThat(entry.status())
+                    .isEqualTo(ExpenseStatus.RECORDED));
         }
 
         @Test
@@ -557,12 +557,10 @@ class ExpenseRepositoryAdapterTest {
             storedExpenseAt(userId, categoryId, "Just before", 300, "USD", justBeforeFirstDay);
             storedExpenseAt(userId, categoryId, "Day after", 400, "USD", dayAfterLastDayMidnight);
 
-            List<ExpenseEntry> page = adapter.findPage(
-                    userId, new ExpenseFilter(null, null, period, ExpenseFilter.DEFAULT_LIMIT, 0));
+            List<ExpenseEntry> page =
+                    adapter.findPage(userId, new ExpenseFilter(null, null, period, ExpenseFilter.DEFAULT_LIMIT, 0));
 
-            assertThat(page)
-                    .extracting(ExpenseEntry::description)
-                    .containsExactlyInAnyOrder("First day", "Last day");
+            assertThat(page).extracting(ExpenseEntry::description).containsExactlyInAnyOrder("First day", "Last day");
         }
 
         @Test
@@ -619,8 +617,7 @@ class ExpenseRepositoryAdapterTest {
                     Instant.now());
 
             List<ExpenseEntry> forSecondUsersOwnCategory = adapter.findPage(
-                    secondUserId,
-                    new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+                    secondUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
             List<ExpenseEntry> forFirstUserWithSecondUsersCategory = adapter.findPage(
                     firstUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
 
@@ -652,7 +649,8 @@ class ExpenseRepositoryAdapterTest {
     class CountMatching {
 
         @Test
-        @DisplayName("when called with an unnarrowed filter - then the answer is every row the user has, across both tables")
+        @DisplayName(
+                "when called with an unnarrowed filter - then the answer is every row the user has, across both tables")
         void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothTables() {
             long userId = storedUserId("count-matching-unnarrowed-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -687,7 +685,13 @@ class ExpenseRepositoryAdapterTest {
             long userId = storedUserId("count-matching-ignores-paging-user");
             long categoryId = storedGroupingId(userId, "Shopping");
             for (int i = 0; i < 5; i++) {
-                storedExpenseAt(userId, categoryId, "Expense " + i, 100, "USD", Instant.now().minusSeconds(i));
+                storedExpenseAt(
+                        userId,
+                        categoryId,
+                        "Expense " + i,
+                        100,
+                        "USD",
+                        Instant.now().minusSeconds(i));
             }
 
             long count = adapter.countMatching(userId, new ExpenseFilter(null, null, null, 2, 3));
@@ -704,8 +708,7 @@ class ExpenseRepositoryAdapterTest {
             storedExpenseAt(secondUserId, secondUsersCategoryId, "Second user's expense", 100, "USD", Instant.now());
 
             long forSecondUsersOwnCategory = adapter.countMatching(
-                    secondUserId,
-                    new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+                    secondUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
             long forFirstUserWithSecondUsersCategory = adapter.countMatching(
                     firstUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
 
@@ -795,18 +798,16 @@ class ExpenseRepositoryAdapterTest {
                     .isEqualTo(frameworkException);
         }
 
-        // findPage() and countMatching() have no repository method to stub yet - their @Query
-        // methods are added in the green phase - so the mock is given a default answer that
-        // throws for whichever call the finished implementation ends up making.
+        // A default answer that throws for any call, rather than a stub on one method, so the
+        // scenario stays about the failure surfacing and not about which query the adapter runs.
         @Test
         @DisplayName(
                 "when findPage() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
         void whenFindPageHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            ExpenseEntityRepository throwingRepository =
-                    mock(ExpenseEntityRepository.class, invocation -> {
-                        throw frameworkException;
-                    });
+            ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
+                throw frameworkException;
+            });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
@@ -822,10 +823,9 @@ class ExpenseRepositoryAdapterTest {
         void
                 whenCountMatchingHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            ExpenseEntityRepository throwingRepository =
-                    mock(ExpenseEntityRepository.class, invocation -> {
-                        throw frameworkException;
-                    });
+            ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
+                throw frameworkException;
+            });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 

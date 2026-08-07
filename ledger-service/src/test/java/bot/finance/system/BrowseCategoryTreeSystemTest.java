@@ -3,12 +3,11 @@ package bot.finance.system;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.boot.AbstractSystemTest;
-import bot.finance.common.fixtures.TelegramLoginPayloads;
+import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.domain.value.Grouping;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,16 +21,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 /**
  * Covers {@code GET /api/v1/categories} and {@code GET /api/v1/groupings} end to end against the fully wired
  * application, entered the way a browser does: signing in over the real sign-in endpoint, which also seeds the
- * signed-in person's default category tree ({@link Grouping#defaults()}). The bot token below is the
- * {@code telegram.bot.token} the {@code test} profile already configures by default, so this class needs no
- * {@code @TestPropertySource} override.
+ * signed-in person's default category tree ({@link Grouping#defaults()}). It triggers no poll-loop scenario, so it
+ * signs with the {@code test} profile's own bot token and needs no {@code @TestPropertySource} override.
  */
 class BrowseCategoryTreeSystemTest extends AbstractSystemTest {
 
-    private static final String BOT_TOKEN = "default-test-token";
-    private static final String SESSION_COOKIE = "fb_session";
-    private static final String CSRF_COOKIE = "XSRF-TOKEN";
-    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+    private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
 
     @BeforeEach
     void configureRestAssured() {
@@ -51,8 +46,9 @@ class BrowseCategoryTreeSystemTest extends AbstractSystemTest {
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
             List<Grouping> defaults = Grouping.defaults();
             int expectedGroupingCount = defaults.size();
-            int expectedCategoryCount =
-                    defaults.stream().mapToInt(grouping -> grouping.categories().size()).sum();
+            int expectedCategoryCount = defaults.stream()
+                    .mapToInt(grouping -> grouping.categories().size())
+                    .sum();
 
             Response groupingsResponse = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)
@@ -65,9 +61,8 @@ class BrowseCategoryTreeSystemTest extends AbstractSystemTest {
             List<Map<String, Object>> groupings = groupingsResponse.jsonPath().getList("");
             assertThat(groupings).as("every grouping, unpaged").hasSize(expectedGroupingCount);
             Map<Long, String> groupingNamesById = groupings.stream()
-                    .collect(Collectors.toMap(
-                            grouping -> ((Number) grouping.get("id")).longValue(),
-                            grouping -> (String) grouping.get("name")));
+                    .collect(Collectors.toMap(grouping -> ((Number) grouping.get("id")).longValue(), grouping ->
+                            (String) grouping.get("name")));
 
             Response categoriesResponse = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)
@@ -81,15 +76,17 @@ class BrowseCategoryTreeSystemTest extends AbstractSystemTest {
             assertThat(categories).as("every category, unpaged").hasSize(expectedCategoryCount);
 
             // then: each category names its grouping's id and name
-            assertThat(categories).as("every category names its grouping's id and name").allSatisfy(category -> {
-                long groupingId = ((Number) category.get("groupingId")).longValue();
-                assertThat(groupingNamesById)
-                        .as("category's groupingId resolves to a seeded grouping")
-                        .containsKey(groupingId);
-                assertThat(category.get("groupingName"))
-                        .as("category's groupingName matches the seeded grouping's name")
-                        .isEqualTo(groupingNamesById.get(groupingId));
-            });
+            assertThat(categories)
+                    .as("every category names its grouping's id and name")
+                    .allSatisfy(category -> {
+                        long groupingId = ((Number) category.get("groupingId")).longValue();
+                        assertThat(groupingNamesById)
+                                .as("category's groupingId resolves to a seeded grouping")
+                                .containsKey(groupingId);
+                        assertThat(category.get("groupingName"))
+                                .as("category's groupingName matches the seeded grouping's name")
+                                .isEqualTo(groupingNamesById.get(groupingId));
+                    });
         }
     }
 
@@ -110,24 +107,6 @@ class BrowseCategoryTreeSystemTest extends AbstractSystemTest {
     }
 
     private Response signIn(String externalId) {
-        return postSignIn(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId));
-    }
-
-    /** The token the unauthenticated read hands out, which a browser gets on page load. */
-    private String freshCsrfToken() {
-        return RestAssured.given().when().get("/api/v1/session").getCookie(CSRF_COOKIE);
-    }
-
-    private Response postSignIn(Map<String, String> payload) {
-        String csrfToken = freshCsrfToken();
-
-        RequestSpecification request = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(payload);
-        Response response = request.when().post("/api/v1/session");
-        logResponse(response);
-        return response;
+        return BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId);
     }
 }

@@ -20,7 +20,8 @@ class ExpenseFilterTest {
 
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.ExpenseFilterTest#validLimits")
-        @DisplayName("when limit is 1 or MAX_LIMIT and offset is zero - then the filter carries the values it was given")
+        @DisplayName(
+                "when limit is 1 or MAX_LIMIT and offset is zero - then the filter carries the values it was given")
         void whenLimitIsOneOrMaxLimitAndOffsetIsZero_thenTheFilterCarriesTheValuesItWasGiven(int limit) {
             ExpenseFilter filter = new ExpenseFilter(ExpenseStatus.PENDING, 7L, null, limit, 0);
 
@@ -32,8 +33,10 @@ class ExpenseFilterTest {
 
         @ParameterizedTest
         @MethodSource("bot.finance.domain.value.ExpenseFilterTest#invalidLimits")
-        @DisplayName("when limit breaks its bound - then throws InvalidExpenseFilterException naming the limit and the bound")
-        void whenLimitBreaksItsBound_thenThrowsInvalidExpenseFilterExceptionNamingLimitAndBound(int limit, String bound) {
+        @DisplayName(
+                "when limit breaks its bound - then throws InvalidExpenseFilterException naming the limit and the bound")
+        void whenLimitBreaksItsBound_thenThrowsInvalidExpenseFilterExceptionNamingLimitAndBound(
+                int limit, String bound) {
             assertThatThrownBy(() -> new ExpenseFilter(null, null, null, limit, 0))
                     .isInstanceOf(InvalidExpenseFilterException.class)
                     .hasMessageContaining("limit")

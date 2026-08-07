@@ -11,10 +11,10 @@ import bot.finance.application.dto.BrowseGroupingsCommand;
 import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.port.BrowseGroupingsPort;
 import bot.finance.common.boot.WebAdapterTest;
-import bot.finance.common.fixtures.SessionTokens;
+import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.domain.value.AuthenticatedUserId;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -37,10 +37,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class GroupingsControllerTest {
 
     private static final String PATH = "/api/v1/groupings";
-    private static final String SESSION_COOKIE = "fb_session";
     private static final String EXTERNAL_ID = "334455667";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Autowired
     private MockMvc mockMvc;
@@ -55,8 +52,7 @@ class GroupingsControllerTest {
         @Test
         @DisplayName("when the request carries a valid session cookie - then the port is called with a command "
                 + "carrying the cookie's subject, and the response is 200 with both groupings, unpaged")
-        void whenValidSessionCookie_thenPortCalledWithCookiesSubjectAndResponseIs200WithBothUnpaged()
-                throws Exception {
+        void whenValidSessionCookie_thenPortCalledWithCookiesSubjectAndResponseIs200WithBothUnpaged() throws Exception {
             when(browseGroupingsPort.browse(any()))
                     .thenReturn(List.of(new GroupingEntry(1L, "Groceries"), new GroupingEntry(2L, "Housing")));
 
@@ -68,7 +64,7 @@ class GroupingsControllerTest {
             verify(browseGroupingsPort).browse(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
 
-            JsonNode items = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+            JsonNode items = JsonUtils.readJson(result.getResponse().getContentAsString());
             assertThat(items).hasSize(2);
             assertThat(items.get(0).get("name").asText()).isEqualTo("Groceries");
             assertThat(items.get(1).get("name").asText()).isEqualTo("Housing");
@@ -83,12 +79,12 @@ class GroupingsControllerTest {
                     .andExpect(status().isOk())
                     .andReturn();
 
-            assertThat(OBJECT_MAPPER.readTree(result.getResponse().getContentAsString()))
+            assertThat(JsonUtils.readJson(result.getResponse().getContentAsString()))
                     .isEmpty();
         }
     }
 
     private static Cookie sessionCookie() {
-        return new Cookie(SESSION_COOKIE, SessionTokens.tokenFor(EXTERNAL_ID));
+        return BrowserSessions.cookieFor(EXTERNAL_ID);
     }
 }

@@ -27,7 +27,8 @@ bot.finance
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
-    │   ├── JsonUtils             # loads JSON fixtures from src/test/resources
+    │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
     │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
