@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.CurrencyTotal;
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
@@ -18,6 +19,8 @@ import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseFilter;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.SpendingPeriod;
@@ -489,6 +492,228 @@ class ExpenseRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("finding a page of expenses and proposals")
+    class FindPage {
+
+        @Test
+        @DisplayName(
+                "when called with an unnarrowed filter - then both kinds come back in one list, newest first, each carrying the status of the table it came from")
+        void whenCalledWithUnnarrowedFilter_thenBothKindsComeBackNewestFirstCarryingSourceTableStatus() {
+            long userId = storedUserId("find-page-both-kinds-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            Instant earlier = Instant.now().minusSeconds(120);
+            Instant later = Instant.now().minusSeconds(60);
+            storedExpenseAt(userId, categoryId, "Recorded expense", 100, "USD", earlier);
+            storedProposalAt(userId, categoryId, "Pending proposal", 200, "USD", later);
+
+            List<ExpenseEntry> page = adapter.findPage(userId, unnarrowedFilter());
+
+            assertThat(page).hasSize(2);
+            assertThat(page.get(0).status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(page.get(0).description()).isEqualTo("Pending proposal");
+            assertThat(page.get(1).status()).isEqualTo(ExpenseStatus.RECORDED);
+            assertThat(page.get(1).description()).isEqualTo("Recorded expense");
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a status of PENDING, and separately of RECORDED - then only that kind comes back each time")
+        void whenCalledWithEachStatus_thenOnlyThatKindComesBackEachTime() {
+            long userId = storedUserId("find-page-status-filter-user");
+            long categoryId = storedGroupingId(userId, "Dining");
+            storedExpenseAt(userId, categoryId, "Recorded", 100, "USD", Instant.now().minusSeconds(60));
+            storedProposalAt(userId, categoryId, "Pending", 200, "USD", Instant.now().minusSeconds(30));
+
+            List<ExpenseEntry> pending = adapter.findPage(
+                    userId, new ExpenseFilter(ExpenseStatus.PENDING, null, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+            List<ExpenseEntry> recorded = adapter.findPage(
+                    userId, new ExpenseFilter(ExpenseStatus.RECORDED, null, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+
+            assertThat(pending)
+                    .singleElement()
+                    .satisfies(entry -> assertThat(entry.status()).isEqualTo(ExpenseStatus.PENDING));
+            assertThat(recorded)
+                    .singleElement()
+                    .satisfies(entry -> assertThat(entry.status()).isEqualTo(ExpenseStatus.RECORDED));
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a from and to spanning some rows and excluding others - then only the rows inside come back, the last day included, the boundary taken at UTC")
+        void whenCalledWithDateRange_thenOnlyRowsInsideComeBackWithLastDayIncludedAtUtcBoundary() {
+            long userId = storedUserId("find-page-date-range-user");
+            long categoryId = storedGroupingId(userId, "Travel");
+            SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
+            Instant firstDayMidnight =
+                    period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant lastDayLastSecond =
+                    period.to().atTime(23, 59, 59).atZone(ZoneOffset.UTC).toInstant();
+            Instant justBeforeFirstDay = firstDayMidnight.minus(1, ChronoUnit.MICROS);
+            Instant dayAfterLastDayMidnight =
+                    period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            storedExpenseAt(userId, categoryId, "First day", 100, "USD", firstDayMidnight);
+            storedExpenseAt(userId, categoryId, "Last day", 200, "USD", lastDayLastSecond);
+            storedExpenseAt(userId, categoryId, "Just before", 300, "USD", justBeforeFirstDay);
+            storedExpenseAt(userId, categoryId, "Day after", 400, "USD", dayAfterLastDayMidnight);
+
+            List<ExpenseEntry> page = adapter.findPage(
+                    userId, new ExpenseFilter(null, null, period, ExpenseFilter.DEFAULT_LIMIT, 0));
+
+            assertThat(page)
+                    .extracting(ExpenseEntry::description)
+                    .containsExactlyInAnyOrder("First day", "Last day");
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a limit, then again with the same limit and an offset of one page - then the second page continues the first and repeats no row from it")
+        void whenCalledWithLimitThenSameLimitWithOffsetOfOnePage_thenSecondPageContinuesFirstRepeatingNoRow() {
+            long userId = storedUserId("find-page-pagination-user");
+            long categoryId = storedGroupingId(userId, "Shopping");
+            Instant base = Instant.now().minusSeconds(300);
+            storedExpenseAt(userId, categoryId, "First", 100, "USD", base);
+            storedExpenseAt(userId, categoryId, "Second", 200, "USD", base.plusSeconds(60));
+            storedExpenseAt(userId, categoryId, "Third", 300, "USD", base.plusSeconds(120));
+
+            List<ExpenseEntry> firstPage = adapter.findPage(userId, new ExpenseFilter(null, null, null, 2, 0));
+            List<ExpenseEntry> secondPage = adapter.findPage(userId, new ExpenseFilter(null, null, null, 2, 2));
+
+            assertThat(firstPage).hasSize(2);
+            assertThat(secondPage).hasSize(1);
+            List<Long> firstIds = firstPage.stream().map(ExpenseEntry::id).toList();
+            List<Long> secondIds = secondPage.stream().map(ExpenseEntry::id).toList();
+            assertThat(secondIds).doesNotContainAnyElementsOf(firstIds);
+        }
+
+        @Test
+        @DisplayName(
+                "when called with an offset beyond the stored rows - then an empty list comes back rather than the last page again")
+        void whenCalledWithOffsetBeyondStoredRows_thenEmptyListComesBackRatherThanLastPageAgain() {
+            long userId = storedUserId("find-page-offset-overflow-user");
+            long categoryId = storedGroupingId(userId, "Utilities");
+            storedExpenseAt(userId, categoryId, "Only expense", 100, "USD", Instant.now());
+
+            List<ExpenseEntry> withinRange = adapter.findPage(userId, unnarrowedFilter());
+            List<ExpenseEntry> beyondRange =
+                    adapter.findPage(userId, new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 10));
+
+            assertThat(withinRange).hasSize(1);
+            assertThat(beyondRange).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a category id belonging to another user - then an empty list comes back, because every arm is scoped by the resolved user id")
+        void whenCalledWithCategoryIdBelongingToAnotherUser_thenEmptyListComesBackScopedByResolvedUserId() {
+            long firstUserId = storedUserId("find-page-cross-user-first-user");
+            long secondUserId = storedUserId("find-page-cross-user-second-user");
+            long secondUsersCategoryId = storedGroupingId(secondUserId, "Second User Category");
+            storedExpenseAt(secondUserId, secondUsersCategoryId, "Second user's expense", 100, "USD", Instant.now());
+            storedExpenseAt(
+                    firstUserId,
+                    storedGroupingId(firstUserId, "First User Category"),
+                    "First user's expense",
+                    200,
+                    "USD",
+                    Instant.now());
+
+            List<ExpenseEntry> forSecondUsersOwnCategory = adapter.findPage(
+                    secondUserId,
+                    new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+            List<ExpenseEntry> forFirstUserWithSecondUsersCategory = adapter.findPage(
+                    firstUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+
+            assertThat(forSecondUsersOwnCategory).hasSize(1);
+            assertThat(forFirstUserWithSecondUsersCategory).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when two rows share a created_at, one in each table - then the order between them is the same on every call, so a page boundary is deterministic")
+        void whenTwoRowsShareCreatedAtOneInEachTable_thenOrderIsTheSameOnEveryCall() {
+            long userId = storedUserId("find-page-tie-break-user");
+            long categoryId = storedGroupingId(userId, "Entertainment");
+            Instant sharedInstant = Instant.now().minusSeconds(10);
+            storedExpenseAt(userId, categoryId, "Recorded tie", 100, "USD", sharedInstant);
+            storedProposalAt(userId, categoryId, "Pending tie", 200, "USD", sharedInstant);
+
+            List<ExpenseEntry> firstCall = adapter.findPage(userId, unnarrowedFilter());
+            List<ExpenseEntry> secondCall = adapter.findPage(userId, unnarrowedFilter());
+
+            assertThat(firstCall).hasSize(2);
+            assertThat(firstCall.stream().map(ExpenseEntry::id).toList())
+                    .isEqualTo(secondCall.stream().map(ExpenseEntry::id).toList());
+        }
+    }
+
+    @Nested
+    @DisplayName("counting expenses and proposals matching a filter")
+    class CountMatching {
+
+        @Test
+        @DisplayName("when called with an unnarrowed filter - then the answer is every row the user has, across both tables")
+        void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothTables() {
+            long userId = storedUserId("count-matching-unnarrowed-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            storedExpenseAt(userId, categoryId, "First", 100, "USD", Instant.now());
+            storedExpenseAt(userId, categoryId, "Second", 200, "USD", Instant.now());
+            storedProposalAt(userId, categoryId, "Third", 300, "USD", Instant.now());
+
+            long count = adapter.countMatching(userId, unnarrowedFilter());
+
+            assertThat(count).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("when called with a status of PENDING - then only the proposals are counted")
+        void whenCalledWithStatusPending_thenOnlyProposalsAreCounted() {
+            long userId = storedUserId("count-matching-status-user");
+            long categoryId = storedGroupingId(userId, "Dining");
+            storedExpenseAt(userId, categoryId, "Recorded one", 100, "USD", Instant.now());
+            storedExpenseAt(userId, categoryId, "Recorded two", 200, "USD", Instant.now());
+            storedProposalAt(userId, categoryId, "Pending one", 300, "USD", Instant.now());
+
+            long count = adapter.countMatching(
+                    userId, new ExpenseFilter(ExpenseStatus.PENDING, null, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+
+            assertThat(count).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a filter whose limit and offset would return one page - then the answer ignores the limit and the offset, so a page can say how many rows the filter matches")
+        void whenFilterCarriesLimitAndOffset_thenAnswerIgnoresThem() {
+            long userId = storedUserId("count-matching-ignores-paging-user");
+            long categoryId = storedGroupingId(userId, "Shopping");
+            for (int i = 0; i < 5; i++) {
+                storedExpenseAt(userId, categoryId, "Expense " + i, 100, "USD", Instant.now().minusSeconds(i));
+            }
+
+            long count = adapter.countMatching(userId, new ExpenseFilter(null, null, null, 2, 3));
+
+            assertThat(count).isEqualTo(5);
+        }
+
+        @Test
+        @DisplayName("when called with a category id belonging to another user - then the answer is zero")
+        void whenCalledWithCategoryIdBelongingToAnotherUser_thenAnswerIsZero() {
+            long firstUserId = storedUserId("count-matching-cross-user-first-user");
+            long secondUserId = storedUserId("count-matching-cross-user-second-user");
+            long secondUsersCategoryId = storedGroupingId(secondUserId, "Second User Category");
+            storedExpenseAt(secondUserId, secondUsersCategoryId, "Second user's expense", 100, "USD", Instant.now());
+
+            long forSecondUsersOwnCategory = adapter.countMatching(
+                    secondUserId,
+                    new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+            long forFirstUserWithSecondUsersCategory = adapter.countMatching(
+                    firstUserId, new ExpenseFilter(null, secondUsersCategoryId, null, ExpenseFilter.DEFAULT_LIMIT, 0));
+
+            assertThat(forSecondUsersOwnCategory).isEqualTo(1);
+            assertThat(forFirstUserWithSecondUsersCategory).isEqualTo(0);
+        }
+    }
+
     // The scenario below needs a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure. It constructs its own adapter over a
     // Mockito mock and calls the adapter's own public method directly - it is still the adapter
@@ -569,6 +794,46 @@ class ExpenseRepositoryAdapterTest {
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
         }
+
+        // findPage() and countMatching() have no repository method to stub yet - their @Query
+        // methods are added in the green phase - so the mock is given a default answer that
+        // throws for whichever call the finished implementation ends up making.
+        @Test
+        @DisplayName(
+                "when findPage() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void whenFindPageHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            ExpenseEntityRepository throwingRepository =
+                    mock(ExpenseEntityRepository.class, invocation -> {
+                        throw frameworkException;
+                    });
+            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
+            ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
+
+            assertThatThrownBy(() -> throwingAdapter.findPage(1L, filter))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when countMatching() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenCountMatchingHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            ExpenseEntityRepository throwingRepository =
+                    mock(ExpenseEntityRepository.class, invocation -> {
+                        throw frameworkException;
+                    });
+            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
+            ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
+
+            assertThatThrownBy(() -> throwingAdapter.countMatching(1L, filter))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
     }
 
     private long storedUserId(String externalId) {
@@ -622,5 +887,28 @@ class ExpenseRepositoryAdapterTest {
                 currencyCode,
                 null,
                 createdAt);
+    }
+
+    private ExpenseProposalEntity storedProposalAt(
+            long userId,
+            long categoryId,
+            String description,
+            long amountMinorUnits,
+            String currencyCode,
+            Instant createdAt) {
+        return ExpenseProposalRowUtils.storedProposal(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                description,
+                null,
+                amountMinorUnits,
+                currencyCode,
+                MessageReference.newReference().value(),
+                createdAt);
+    }
+
+    private ExpenseFilter unnarrowedFilter() {
+        return new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
     }
 }

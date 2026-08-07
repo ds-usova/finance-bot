@@ -6,12 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.CategoryEntry;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.PersistenceFailedException;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -161,6 +163,98 @@ class CategoryRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("finding all of a user's categories")
+    class FindAllForUser {
+
+        @Test
+        @DisplayName(
+                "when called with no grouping id - then every category comes back, each naming its grouping's id and name")
+        void whenCalledWithNoGroupingId_thenEveryCategoryComesBackNamingItsGroupingIdAndName() {
+            long userId = storedUserId("find-all-categories-no-grouping-user");
+            long homeGroupingId = storedGroupingId(userId, "Home");
+            long workGroupingId = storedGroupingId(userId, "Work");
+            long rentCategoryId = storedCategoryId(userId, homeGroupingId, "Rent");
+            long suppliesCategoryId = storedCategoryId(userId, workGroupingId, "Supplies");
+
+            List<CategoryEntry> categories = adapter.findAllForUser(userId, null);
+
+            assertThat(categories)
+                    .containsExactlyInAnyOrder(
+                            new CategoryEntry(rentCategoryId, "Rent", homeGroupingId, "Home"),
+                            new CategoryEntry(suppliesCategoryId, "Supplies", workGroupingId, "Work"));
+        }
+
+        @Test
+        @DisplayName("when called with one grouping's id - then only that grouping's categories come back")
+        void whenCalledWithOneGroupingsId_thenOnlyThatGroupingsCategoriesComeBack() {
+            long userId = storedUserId("find-all-categories-one-grouping-user");
+            long homeGroupingId = storedGroupingId(userId, "Home");
+            long workGroupingId = storedGroupingId(userId, "Work");
+            long rentCategoryId = storedCategoryId(userId, homeGroupingId, "Rent");
+            storedCategoryId(userId, workGroupingId, "Supplies");
+
+            List<CategoryEntry> categories = adapter.findAllForUser(userId, homeGroupingId);
+
+            assertThat(categories)
+                    .singleElement()
+                    .satisfies(entry -> assertThat(entry.id()).isEqualTo(rentCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when called with a grouping id belonging to another user, and separately one that names no grouping at all - then an empty list comes back, and nothing is thrown")
+        void whenCalledWithAnotherUsersGroupingIdAndWithUnknownGroupingId_thenEmptyListComesBackAndNothingThrown() {
+            long userId = storedUserId("find-all-categories-bad-grouping-ids-user");
+            long groupingId = storedGroupingId(userId, "Home");
+            storedCategoryId(userId, groupingId, "Rent");
+            long otherUserId = storedUserId("find-all-categories-bad-grouping-ids-other-user");
+            long otherUsersGroupingId = storedGroupingId(otherUserId, "Other");
+
+            List<CategoryEntry> ownCategories = adapter.findAllForUser(userId, null);
+            List<CategoryEntry> withOtherUsersGrouping = adapter.findAllForUser(userId, otherUsersGroupingId);
+            List<CategoryEntry> withUnknownGrouping = adapter.findAllForUser(userId, 999_999_999L);
+
+            assertThat(ownCategories).hasSize(1);
+            assertThat(withOtherUsersGrouping).isEmpty();
+            assertThat(withUnknownGrouping).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when called for the first of two users, the second owning their own categories - then none of the other user's categories appears")
+        void whenCalledForFirstOfTwoUsers_thenNoneOfSecondUsersCategoriesAppears() {
+            long firstUserId = storedUserId("find-all-categories-first-user");
+            long secondUserId = storedUserId("find-all-categories-second-user");
+            long firstGroupingId = storedGroupingId(firstUserId, "First Grouping");
+            long firstCategoryId = storedCategoryId(firstUserId, firstGroupingId, "First Category");
+            long secondGroupingId = storedGroupingId(secondUserId, "Second Grouping");
+            storedCategoryId(secondUserId, secondGroupingId, "Second Category");
+
+            List<CategoryEntry> categories = adapter.findAllForUser(firstUserId, null);
+
+            assertThat(categories)
+                    .singleElement()
+                    .satisfies(entry -> assertThat(entry.id()).isEqualTo(firstCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when called for a user with a grouping and no categories under it - then the grouping row itself is not answered as a category")
+        void whenGroupingHasNoCategories_thenGroupingRowItselfIsNotAnsweredAsACategory() {
+            long userId = storedUserId("find-all-categories-empty-grouping-user");
+            long populatedGroupingId = storedGroupingId(userId, "Populated");
+            long populatedCategoryId = storedCategoryId(userId, populatedGroupingId, "Category");
+            storedGroupingId(userId, "Empty Grouping");
+
+            List<CategoryEntry> categories = adapter.findAllForUser(userId, null);
+
+            assertThat(categories)
+                    .singleElement()
+                    .satisfies(entry -> assertThat(entry.id()).isEqualTo(populatedCategoryId));
+        }
+    }
+
     // These scenarios need a store that misbehaves in a way the healthy containerized Postgres
     // cannot be made to: an outright database failure. They construct their own adapter over a
     // Mockito mock and call the adapter's own public method directly - it is still the adapter
@@ -199,6 +293,27 @@ class CategoryRepositoryAdapterTest {
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.existsByUserIdAndName(1L, "Groceries"))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        // findAllForUser() has no repository method to stub yet - its @Query method is added in
+        // the green phase - so the mock is given a default answer that throws for whichever call
+        // the finished implementation ends up making.
+        @Test
+        @DisplayName(
+                "when findAllForUser() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenFindAllForUserHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            CategoryEntityRepository throwingRepository =
+                    mock(CategoryEntityRepository.class, invocation -> {
+                        throw frameworkException;
+                    });
+            CategoryRepositoryAdapter throwingAdapter = new CategoryRepositoryAdapter(throwingRepository);
+
+            assertThatThrownBy(() -> throwingAdapter.findAllForUser(1L, null))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

@@ -15,7 +15,6 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,7 +53,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when the session is read before signing in - then 401, and a CSRF cookie is handed out anyway")
         void whenTheSessionIsReadBeforeSigningIn_then401AndACsrfCookieIsHandedOutAnyway() {
-            Response response = RestAssured.given().when().get("/api/session");
+            Response response = RestAssured.given().when().get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
@@ -64,7 +63,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("RS03: retargets every RestAssured call in this class onto /api/v1/session")
         @DisplayName("when a genuine Login Widget payload is posted - then 200, a session cookie, and an app_user row")
         void whenAGenuineLoginWidgetPayloadIsPosted_then200ASessionCookieAndAnAppUserRow() {
             String externalId = "web-session-new-user";
@@ -78,7 +76,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("RS03: retargets every RestAssured call in this class onto /api/v1/session")
         @DisplayName("when the same user signs in twice - then the second sign-in stores no second user")
         void whenTheSameUserSignsInTwice_thenTheSecondSignInStoresNoSecondUser() {
             String externalId = "web-session-returning-user";
@@ -119,11 +116,29 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .contentType(ContentType.JSON)
                     .body(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId))
                     .when()
-                    .post("/api/session");
+                    .post("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when a sign-in is posted to the retired /api/session - then 401 before any endpoint is reached")
+        void whenASignInIsPostedToTheRetiredApiSession_then401BeforeAnyEndpointIsReached() {
+            String externalId = "web-session-retired-path-user";
+            String csrfToken = freshCsrfToken();
+
+            Response response = RestAssured.given()
+                    .contentType(ContentType.JSON)
+                    .cookie(CSRF_COOKIE, csrfToken)
+                    .header(CSRF_HEADER, csrfToken)
+                    .body(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId))
+                    .when()
+                    .post("/api/session");
+            logResponse(response);
+
+            response.then().statusCode(401);
         }
     }
 
@@ -132,7 +147,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
     class UseSession {
 
         @Test
-        @Disabled("RS03: retargets every RestAssured call in this class onto /api/v1/session")
         @DisplayName("when the session is read with the cookie the sign-in set - then 200 with the signed-in id")
         void whenTheSessionIsReadWithTheCookieTheSignInSet_then200WithTheSignedInId() {
             String externalId = "web-session-read-user";
@@ -141,7 +155,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
             Response response = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .when()
-                    .get("/api/session");
+                    .get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(200);
@@ -149,7 +163,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("RS03: retargets every RestAssured call in this class onto /api/v1/session")
         @DisplayName("when the session is deleted - then reading it with the same cookie value no longer works")
         void whenTheSessionIsDeleted_thenReadingItWithTheSameCookieValueNoLongerWorks() {
             String externalId = "web-session-sign-out-user";
@@ -161,7 +174,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .cookie(CSRF_COOKIE, csrfToken)
                     .header(CSRF_HEADER, csrfToken)
                     .when()
-                    .delete("/api/session");
+                    .delete("/api/v1/session");
             logResponse(signOut);
 
             signOut.then().statusCode(204);
@@ -201,7 +214,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
             String mcpToken = McpTokens.tokenFor(accessTokenMinter, externalId);
 
             Response response =
-                    RestAssured.given().cookie(SESSION_COOKIE, mcpToken).when().get("/api/session");
+                    RestAssured.given().cookie(SESSION_COOKIE, mcpToken).when().get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
@@ -232,7 +245,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
 
     /** The token the unauthenticated read hands out, which a browser gets on page load. */
     private String freshCsrfToken() {
-        return RestAssured.given().when().get("/api/session").getCookie(CSRF_COOKIE);
+        return RestAssured.given().when().get("/api/v1/session").getCookie(CSRF_COOKIE);
     }
 
     private Response postSignIn(Map<String, String> payload) {
@@ -243,7 +256,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                 .cookie(CSRF_COOKIE, csrfToken)
                 .header(CSRF_HEADER, csrfToken)
                 .body(payload);
-        Response response = request.when().post("/api/session");
+        Response response = request.when().post("/api/v1/session");
         logResponse(response);
         return response;
     }

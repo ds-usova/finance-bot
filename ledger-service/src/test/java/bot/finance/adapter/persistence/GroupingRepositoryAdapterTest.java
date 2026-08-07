@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
@@ -213,6 +214,67 @@ class GroupingRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("finding all of a user's groupings")
+    class FindAllForUser {
+
+        @Test
+        @DisplayName(
+                "when called for a user whose default tree was seeded - then every grouping comes back, unpaged, each carrying its id and name")
+        void whenCalledForUserWithDefaultTreeSeeded_thenEveryGroupingComesBackCarryingIdAndName() {
+            long userId = storedUserId("find-all-groupings-default-tree-user");
+            long homeId = storedGroupingId(userId, "Home");
+            long workId = storedGroupingId(userId, "Work");
+            storedCategoryId(userId, homeId, "Rent");
+            storedCategoryId(userId, workId, "Supplies");
+
+            List<GroupingEntry> groupings = adapter.findAllForUser(userId);
+
+            assertThat(groupings)
+                    .containsExactlyInAnyOrder(new GroupingEntry(homeId, "Home"), new GroupingEntry(workId, "Work"));
+        }
+
+        @Test
+        @DisplayName(
+                "when called for a user with a grouping holding no categories - then that grouping comes back too, unlike findNamesWithCategories(), which exists to hide it from the extraction prompt")
+        void whenGroupingHoldsNoCategories_thenThatGroupingComesBackToo() {
+            long userId = storedUserId("find-all-groupings-empty-grouping-user");
+            long populatedId = storedGroupingId(userId, "Populated");
+            storedCategoryId(userId, populatedId, "Category");
+            long emptyId = storedGroupingId(userId, "Empty");
+
+            List<GroupingEntry> groupings = adapter.findAllForUser(userId);
+
+            assertThat(groupings)
+                    .containsExactlyInAnyOrder(
+                            new GroupingEntry(populatedId, "Populated"), new GroupingEntry(emptyId, "Empty"));
+        }
+
+        @Test
+        @DisplayName(
+                "when called for the first of two users, the second owning their own groupings - then none of them appears")
+        void whenCalledForFirstOfTwoUsers_thenNoneOfSecondUsersGroupingsAppears() {
+            long firstUserId = storedUserId("find-all-groupings-first-user");
+            long secondUserId = storedUserId("find-all-groupings-second-user");
+            long firstGroupingId = storedGroupingId(firstUserId, "First Grouping");
+            storedGroupingId(secondUserId, "Second Grouping");
+
+            List<GroupingEntry> groupings = adapter.findAllForUser(firstUserId);
+
+            assertThat(groupings).containsExactly(new GroupingEntry(firstGroupingId, "First Grouping"));
+        }
+
+        @Test
+        @DisplayName("when called for a user with no rows at all - then an empty list comes back rather than null")
+        void whenUserHasNoRowsAtAll_thenEmptyListComesBackRatherThanNull() {
+            long userId = storedUserId("find-all-groupings-no-rows-user");
+
+            List<GroupingEntry> groupings = adapter.findAllForUser(userId);
+
+            assertThat(groupings).isNotNull().isEmpty();
+        }
+    }
+
     // These scenarios need a store that misbehaves in a way the healthy containerized Postgres
     // cannot be made to: an outright database failure. They construct their own adapter over a
     // Mockito mock and call the adapter's own public method directly - it is still the adapter
@@ -266,6 +328,27 @@ class GroupingRepositoryAdapterTest {
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findNamesWithCategories(1L))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        // findAllForUser() has no repository method to stub yet - its @Query method is added in
+        // the green phase - so the mock is given a default answer that throws for whichever call
+        // the finished implementation ends up making.
+        @Test
+        @DisplayName(
+                "when findAllForUser() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
+        void
+                whenFindAllForUserHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            CategoryEntityRepository throwingRepository =
+                    mock(CategoryEntityRepository.class, invocation -> {
+                        throw frameworkException;
+                    });
+            GroupingRepositoryAdapter throwingAdapter = new GroupingRepositoryAdapter(throwingRepository);
+
+            assertThatThrownBy(() -> throwingAdapter.findAllForUser(1L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

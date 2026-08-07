@@ -329,7 +329,7 @@ union's cross-table ordering (D42).
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ExpenseFilter` · test: `ExpenseFilterTest` · covers: `ExpenseFilter()` · scenarios: A7
+- [x] RU01 · `ExpenseFilter` · test: `ExpenseFilterTest` · covers: `ExpenseFilter()` · scenarios: A7
     - `ExpenseFilter()`:
         - given: a limit of 1, a limit of MAX_LIMIT, and an offset of zero
           when: the filter is constructed with each
@@ -343,7 +343,7 @@ union's cross-table ordering (D42).
         - given: a null status, a null categoryId and a null period
           when: the filter is constructed with a valid limit and offset
           then: it is accepted, because every narrowing dimension is optional
-- [ ] RU02 · `BrowseExpensesCommand` · test: `BrowseExpensesCommandTest` · covers: `BrowseExpensesCommand()`
+- [x] RU02 · `BrowseExpensesCommand` · test: `BrowseExpensesCommandTest` · covers: `BrowseExpensesCommand()`
     - `BrowseExpensesCommand()`:
         - given: an authenticated user id and a filter
           when: the command is constructed
@@ -351,7 +351,7 @@ union's cross-table ordering (D42).
         - given: a null user id, and separately a null filter
           when: the command is constructed with each
           then: the construction is refused rather than a command with a hole in it being handed to the use case
-- [ ] RU03 · `BrowseCategoriesCommand` · test: `BrowseCategoriesCommandTest` · covers: `BrowseCategoriesCommand()` · scenarios: A14
+- [x] RU03 · `BrowseCategoriesCommand` · test: `BrowseCategoriesCommandTest` · covers: `BrowseCategoriesCommand()` · scenarios: A14
     - `BrowseCategoriesCommand()`:
         - given: an authenticated user id and a grouping id
           when: the command is constructed
@@ -362,7 +362,7 @@ union's cross-table ordering (D42).
         - given: a null user id
           when: the command is constructed
           then: the construction is refused
-- [ ] RU04 · `BrowseGroupingsCommand` · test: `BrowseGroupingsCommandTest` · covers: `BrowseGroupingsCommand()`
+- [x] RU04 · `BrowseGroupingsCommand` · test: `BrowseGroupingsCommandTest` · covers: `BrowseGroupingsCommand()`
     - `BrowseGroupingsCommand()`:
         - given: an authenticated user id
           when: the command is constructed
@@ -370,7 +370,7 @@ union's cross-table ordering (D42).
         - given: a null user id
           when: the command is constructed
           then: the construction is refused
-- [ ] RU05 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · covers: `browse()` · scenarios: A1, A10, A11
+- [x] RU05 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · covers: `browse()` · scenarios: A1, A10, A11
     - `browse()`:
         - given: a stored user and a repository answering a page of entries and a total
           when: browse() is called with a filter
@@ -385,7 +385,7 @@ union's cross-table ordering (D42).
         - given: a repository that fails the read with PersistenceFailedException
           when: browse() is called
           then: the exception reaches the caller unchanged, rather than being answered as an empty page
-- [ ] RU06 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · covers: `browse()` · scenarios: A14, A21, A22
+- [x] RU06 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · covers: `browse()` · scenarios: A14, A21, A22
     - `browse()`:
         - given: a stored user and a repository answering three categories
           when: browse() is called with no grouping id
@@ -399,7 +399,7 @@ union's cross-table ordering (D42).
         - given: no user row for the caller's external id
           when: browse() is called
           then: EntityNotFoundException is thrown
-- [ ] RU07 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · covers: `browse()` · scenarios: A13, A21
+- [x] RU07 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · covers: `browse()` · scenarios: A13, A21
     - `browse()`:
         - given: a stored user and a repository answering the seeded groupings
           when: browse() is called
@@ -410,7 +410,7 @@ union's cross-table ordering (D42).
         - given: no user row for the caller's external id
           when: browse() is called
           then: EntityNotFoundException is thrown
-- [ ] RU08 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toFilter()`, `toResponse()` · scenarios: A1, A3, A7, A8
+- [x] RU08 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toFilter()`, `toResponse()` · scenarios: A1, A3, A7, A8
     - `toFilter()`:
         - given: every query parameter absent
           when: toFilter() is called
@@ -435,7 +435,7 @@ union's cross-table ordering (D42).
         - given: an entry with no merchant
           when: toResponse() is called
           then: the response omits the merchant rather than carrying an empty string
-- [ ] RU09 · `CategoryWebMapper` · test: `CategoryWebMapperTest` · covers: `toCategories()`, `toGroupings()` · scenarios: A13
+- [x] RU09 · `CategoryWebMapper` · test: `CategoryWebMapperTest` · covers: `toCategories()`, `toGroupings()` · scenarios: A13
     - `toCategories()`:
         - given: two category entries under different groupings
           when: toCategories() is called
@@ -450,7 +450,7 @@ union's cross-table ordering (D42).
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `findPage()`, `countMatching()` · scenarios: A1, A2, A3, A4, A5, A12
+- [x] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `findPage()`, `countMatching()` · scenarios: A1, A2, A3, A4, A5, A12
     - `findPage()`:
         - given: a user with recorded expenses and pending proposals stored at different instants
           when: findPage() is called with an unnarrowed filter
@@ -493,7 +493,7 @@ union's cross-table ordering (D42).
         - given: an adapter built over a mocked entity repository that fails the read
           when: countMatching() is called
           then: PersistenceFailedException is thrown carrying the failure as its cause
-- [ ] RI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers: `findAllForUser()` · scenarios: A13, A14, A22
+- [x] RI02 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers: `findAllForUser()` · scenarios: A13, A14, A22
     - `findAllForUser()`:
         - given: a user with categories under two groupings
           when: findAllForUser() is called with no grouping id
@@ -514,7 +514,7 @@ union's cross-table ordering (D42).
           when: findAllForUser() is called
           then: PersistenceFailedException is thrown carrying the failure as its cause, which is what the 503
           A16 asks for rests on — in the `WithAMockedStore` nested class the test class already carries
-- [ ] RI03 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findAllForUser()` · scenarios: A13
+- [x] RI03 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findAllForUser()` · scenarios: A13
     - `findAllForUser()`:
         - given: a user whose default tree was seeded
           when: findAllForUser() is called
@@ -533,7 +533,7 @@ union's cross-table ordering (D42).
           when: findAllForUser() is called
           then: PersistenceFailedException is thrown carrying the failure as its cause, in the `WithAMockedStore`
           nested class the test class already carries
-- [ ] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `GET /api/v1/expenses` · mocks: `BrowseExpensesPort` · scenarios: A1, A6, A7, A8
+- [x] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `GET /api/v1/expenses` · mocks: `BrowseExpensesPort` · scenarios: A1, A6, A7, A8
     - Happy Path:
         - given: the mocked port answers a page of two entries with a total
           when: the request is made with a valid session cookie and no query parameters
@@ -552,7 +552,7 @@ union's cross-table ordering (D42).
       `HandlerMethodValidationException`, and the advice's existing `@ExceptionHandler(Exception.class)` claims
       every unmapped one and answers 500 (D25). Asserting a 400 here would make this step wait on GI07, which
       waits on this one.
-- [ ] RI05 · `CategoriesController` · test: `CategoriesControllerTest` · covers: `GET /api/v1/categories` · mocks: `BrowseCategoriesPort` · scenarios: A13, A14, A22
+- [x] RI05 · `CategoriesController` · test: `CategoriesControllerTest` · covers: `GET /api/v1/categories` · mocks: `BrowseCategoriesPort` · scenarios: A13, A14, A22
     - Happy Path:
         - given: the mocked port answers three categories
           when: the request is made with a valid session cookie and no grouping id
@@ -566,7 +566,7 @@ union's cross-table ordering (D42).
           then: the response is 200 with an empty array, never 404
     - Validation: `groupingId` — a number binds and reaches the port as the command's grouping id. The 400 a
       non-numeric one answers is `WebExceptionHandler`'s, and RI07 owns it, for the reason RI04 gives.
-- [ ] RI06 · `GroupingsController` · test: `GroupingsControllerTest` · covers: `GET /api/v1/groupings` · mocks: `BrowseGroupingsPort` · scenarios: A13
+- [x] RI06 · `GroupingsController` · test: `GroupingsControllerTest` · covers: `GET /api/v1/groupings` · mocks: `BrowseGroupingsPort` · scenarios: A13
     - Happy Path:
         - given: the mocked port answers two groupings
           when: the request is made with a valid session cookie
@@ -575,7 +575,7 @@ union's cross-table ordering (D42).
         - given: the mocked port answers an empty list
           when: the request is made
           then: the response is 200 with an empty array
-- [ ] RI07 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the advice over `GET /api/v1/expenses` and `GET /api/v1/categories` · mocks: `BrowseExpensesPort`, `BrowseCategoriesPort` · scenarios: A6, A7, A8, A10, A11, A16
+- [x] RI07 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the advice over `GET /api/v1/expenses` and `GET /api/v1/categories` · mocks: `BrowseExpensesPort`, `BrowseCategoriesPort` · scenarios: A6, A7, A8, A10, A11, A16
     - Validation: every refusal the two entry points answer, each asserting 400 and a body whose message names
       the parameter that was refused, with the port never called — `limit` zero, negative, above the maximum, and
       not a number; `offset` negative and not a number; `status` a word that is neither PENDING nor RECORDED;
@@ -605,7 +605,7 @@ union's cross-table ordering (D42).
 
       The advice's two existing 401 handlers are left alone and are not re-asserted here: `SessionControllerTest`
       already pins both, and RI08 keeps those assertions unchanged.
-- [ ] RI08 · `SessionController` · test: `SessionControllerTest` · covers: `POST`, `GET`, `DELETE /api/v1/session` · mocks: `TelegramLoginVerifier`, `InitializeUserPort` · scenarios: A17
+- [x] RI08 · `SessionController` · test: `SessionControllerTest` · covers: `POST`, `GET`, `DELETE /api/v1/session` · mocks: `TelegramLoginVerifier`, `InitializeUserPort` · scenarios: A17
     - update: every request builder in the class targets `/api/session`; retarget all of them to
       `/api/v1/session`, adopt the `@WebAdapterTest` annotation from ST16 in place of the hand-written
       `@ActiveProfiles`/`@Import` block, and leave every assertion as it stands — the statuses, the bodies and the
@@ -630,7 +630,7 @@ union's cross-table ordering (D42).
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses` · scenarios: A1, A9
+- [x] RS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses` · scenarios: A1, A9
     - Happy Path:
         - given: a person signed in over the real sign-in endpoint, with recorded expenses and pending proposals
           seeded against their user row and one of their seeded categories
@@ -641,7 +641,7 @@ union's cross-table ordering (D42).
         - given: no session cookie
           when: the list is requested
           then: the response is 401 and no row is read
-- [ ] RS02 · `BrowseCategoryTreeSystemTest` · covers: `GET /api/v1/categories` and `GET /api/v1/groupings` · scenarios: A13, A15
+- [x] RS02 · `BrowseCategoryTreeSystemTest` · covers: `GET /api/v1/categories` and `GET /api/v1/groupings` · scenarios: A13, A15
     - Happy Path:
         - given: a person signed in over the real sign-in endpoint, whose default category tree was seeded by that
           sign-in
@@ -652,7 +652,7 @@ union's cross-table ordering (D42).
         - given: no session cookie
           when: either list is requested
           then: the response is 401
-- [ ] RS03 · `WebSessionSystemTest` · covers: `POST /api/v1/session` · scenarios: A17, A18
+- [x] RS03 · `WebSessionSystemTest` · covers: `POST /api/v1/session` · scenarios: A17, A18
     - update: every RestAssured call in the class targets `/api/session`; retarget all of them to
       `/api/v1/session`, including the CSRF-token helper that reads a token from the unauthenticated session read,
       and leave every assertion as it stands.
@@ -723,6 +723,14 @@ No **ADRs** section: Q1 was answered `no`, so this change records none.
   the one ST13 asks for, so nothing is wrong with the tree — only the commit it landed in names the wrong module.
   Recorded rather than reverted: rewriting another pipeline's commit while it is still running is worse than the
   mislabelling.
+
+- **B2 (plan ambiguity, settled in the red phase):** ST05 and the "What a box cannot carry" table say the three
+  browse commands *refuse* a null `userId` and a null `filter`, but name no exception type — unlike ST03, which
+  names `InvalidExpenseFilterException` outright. The module carries two precedents: `CreateExpenseProposalCommand`
+  throws `InvalidUserException` for a null `AuthenticatedUserId`, while `ListCategoriesCommand` and
+  `SummarizeSpendingCommand` throw a command-specific one. RU02–RU04 settled it as `InvalidUserException` for
+  every null `userId` and `InvalidExpenseFilterException` for `BrowseExpensesCommand`'s null `filter`, and the
+  red tests now pin both, so the green phase has no choice left to make.
 
 - **Q1:** [Follow-Up Work](../../conventions/follow-up.md) writes an ADR only for a decision approved for
   recording. The one candidate this change raises is D1 — the specification lives at `openapi/` at the repository
