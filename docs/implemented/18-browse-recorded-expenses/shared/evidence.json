@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/18-browse-recorded-expenses/shared/plan.md",
+  "commit": "c2d2c1d",
+  "branch": "feature/frontend-init",
+  "workingTree": "clean",
+  "generated": "2026-08-07T23:49:53Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 83, "passed": 83, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 818, "passed": 818, "failed": 0, "skipped": 0, "instructions": "98.9%", "branches": "97.1%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 66, "passed": 66, "failed": 0, "skipped": 0, "instructions": "99.5%", "branches": "95.0%", "minimum": "80%", "format": "clean"}
+  ]
+}
