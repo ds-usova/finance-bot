@@ -44,6 +44,10 @@ system and direction**, not a single pair of inbound and outbound boxes.
 A reader then sees what a change to one partner system reaches, which is the question a component diagram is read
 to answer.
 
+**One diagram per subject.** Two groups of components with no arrow between them are two diagrams, whatever put
+them in the same change. Each is read on its own screen, and a reader looking for one of them is not made to
+scan the other. A component belonging to neither — a filter chain, an exception handler — is drawn in neither.
+
 **A layer boundary splits by the kind of type it holds** when one box would otherwise carry a mixed crowd — a use
 case, its command, the read model it answers and the port it calls, all in `application`.
 
