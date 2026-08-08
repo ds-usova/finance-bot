@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -20,6 +21,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // Scratch files live under build/. Vitest's default exclude names a `build.config.*` file, never the
+    // directory, so a throwaway test written there would otherwise join the suite.
+    exclude: [...configDefaults.exclude, 'build/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],

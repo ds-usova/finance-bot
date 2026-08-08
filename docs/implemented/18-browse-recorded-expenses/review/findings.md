@@ -38,6 +38,6 @@ design ever named. The [evidence](evidence.md) beside this file covers the rest.
   now holds the `role="alert"` paragraph and both pages render it. The extraction needed `LoginPage.tsx`, which
   sat outside this task's diff, which is why the refactor pass could only record it. `web-app/plan.md · B11`.
 
-- **A scratch test in `build/` joins the module's suite** — Vitest's default `include` collects `**/*.test.tsx`
-  from the module root, and its default `exclude` does not name `build/`, which is where the repository
-  conventions put scratch files. One `test.exclude` entry in `vite.config.ts` closes it. `web-app/plan.md · B11`.
+- ~~**A scratch test in `build/` joins the module's suite**~~ — resolved. `vite.config.ts` now sets
+  `test.exclude` to Vitest's own defaults plus `build/**`. Confirmed both ways with a throwaway test under
+  `build/scratch/`: collected before the entry, not collected after. `web-app/plan.md · B11`.
