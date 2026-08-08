@@ -98,6 +98,8 @@ Every Java module formats with Spotless and `palantirJavaFormat`, on one version
 part of `check`, so a build fails on unformatted code rather than leaving it to review. The `spotlessApply`
 command is in each module's own [Build](../../ledger-service/docs/conventions/build.md) page.
 
+**Apply it on every change to Java sources, before the change is committed.**
+
 Palantir's parser predates the unnamed variable: a lambda parameter written `_` fails the format task rather
 than being reformatted. Name it.
 
