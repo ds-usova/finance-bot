@@ -1,18 +1,11 @@
 # Browse recorded expenses
 
+- **At:** `/`, behind the route guard
 - **In:** a signed-in person · a filter they set (optional)
 - **Out:** a page of their expenses, newest first, and the category tree the filter offers
 - **Why:** everything the bot recorded, and everything still awaiting a decision, is visible in one place
 
 *Implemented by the expenses page, the expense list, the filter controls and the expenses client.*
-
-## What the Page Shows
-
-| Part                | Holds                                                                                                                                   |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| An entry            | its description, its merchant when it has one, its category's name, its amount with its currency, and whether it is pending or recorded |
-| The summary         | how many entries of the total are on screen, when the total is larger                                                                   |
-| The filter controls | a grouping, a category, a status, and a recorded-from and a recorded-to day                                                             |
 
 ## Collaborators
 
@@ -24,21 +17,16 @@
 
 ## Rules
 
-- Opening the page reads three things: the listing, the categories and the groupings.
-- Changing a filter reads the listing again. The categories and the groupings are read once.
+- Opening the page reads the listing, the categories and the groupings. Changing a filter reads the listing
+  again; the tree is read once.
 - A filter field left unset is not sent, so the ledger applies its own default for it.
-- The period narrows by when a row was recorded, not when the money was spent. The two controls say so by name.
-- A row names its category from the category list, matched by id.
-- A category the list does not answer leaves that row's category blank.
-- Choosing a grouping narrows the categories offered, from the tree already held.
-- A grouping is not a listing filter, and never reaches the ledger.
-- Clearing the grouping offers every category again.
-- A category outside the chosen grouping is dropped from the filter.
+- The period narrows by when a row was recorded, not when the money was spent.
+- A row is named from the category list, matched by id. A category the list does not answer leaves it blank.
+- A grouping narrows the categories offered, from the tree already held. It is not a listing filter and never
+  reaches the ledger; a category outside the chosen one is dropped.
 - The listing is read with the ledger's own page size, and no control moves past the first page.
-- A refusal for want of a session drops the session to anonymous, from the listing, the categories and the groupings alike.
-- That is distinct from signing out, which ends a session still open and tells the ledger so. An expiry tells it nothing.
-- The person reaches the sign-in page without a reload.
-- Ending a session is reachable from this page.
+- A refusal for want of a session drops the session to anonymous, from any of the three reads. That is distinct
+  from signing out, which ends a session still open and tells the ledger so. An expiry tells it nothing.
 
 ## Outcomes
 
@@ -99,12 +87,14 @@ end
 @startuml C3-BrowseRecordedExpenses-Components
 !include <C4/C4_Component>
 
+AddElementTag("page", $bgColor="#4C6EF5", $fontColor="#FFFFFF", $borderColor="#2F4BB5")
+
 Person(user, "Person", "Signed in, browsing their expenses")
 System_Ext(ledger, "Ledger Service", "Answers the listing and the category tree")
 
 Container_Boundary(webApp, "Web App") {
   Component(routeGuard, "Route guard", "React", "Keeps the page behind an open session")
-  Component(expensesPage, "Expenses page", "React", "Reads what the ledger holds and composes it")
+  Component(expensesPage, "Expenses page", "React", "Reads what the ledger holds and composes it", $tags="page")
   Component(expenseList, "Expense list", "React", "Renders a row per entry")
   Component(expenseFilters, "Filter controls", "React", "Offers the grouping, the category, the status and the period")
   Component(authContext, "Session state", "React context", "Holds who is signed in")

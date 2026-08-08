@@ -38,14 +38,15 @@ Every request carries cookies. None is a write, so none carries the CSRF token.
 
 ## When the Call Fails
 
-- The reported wording is the ledger's own, read from the message its response body carries.
-- A body that is empty or is not JSON leaves the wording this module synthesizes from the method, the path and
-  the status.
-- A refusal for want of a session carries no body, so it always reads as the synthesized wording — which nobody
-  sees, because the page treats it as an expired session instead.
-- A network failure is reported in the browser's own words, not the ledger's.
-- Every other refusal is reported as it came, and what is already on screen stays.
-- Nothing is retried. A person who wants another attempt changes a filter or reloads.
+| The failure               | What the person gets                                                        |
+|---------------------------|-----------------------------------------------------------------------------|
+| A refusal carrying a body | the ledger's own wording, from the body's message                           |
+| A body empty or not JSON  | wording this module synthesizes from the method, the path and the status    |
+| No session                | nothing: the page treats it as an expired session and sends them to sign in |
+| The network               | the browser's own words, never the ledger's                                 |
+| Any other refusal         | the wording as it came, with whatever is already on screen left in place    |
+
+Nothing is retried. A person who wants another attempt changes a filter or reloads.
 
 ## Compatibility
 

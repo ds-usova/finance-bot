@@ -34,3 +34,4 @@ src/
 ## Diagrams
 
 Component and flow diagrams follow the [repository-wide diagram conventions](../../../docs/conventions/diagrams.md).
+This module colours its route components; see [Writing Documentation](documentation.md#diagram-colour).

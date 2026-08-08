@@ -19,16 +19,18 @@ bot and someone who has only ever used this page are the same user.
 @startuml C3-WebApp-Components
 !include <C4/C4_Component>
 
+AddElementTag("page", $bgColor="#4C6EF5", $fontColor="#FFFFFF", $borderColor="#2F4BB5")
+
 Person(user, "Person", "Signs in with their Telegram account and browses their ledger")
 System_Ext(telegram, "Telegram", "Signs the payload identifying the user")
 System_Ext(ledger, "Ledger Service", "Holds the browser session, and answers what the ledger contains")
 
 Container_Boundary(webApp, "Web App") {
-  Component(loginPage, "Sign-in page", "React", "Offers the Telegram widget and reports a refused sign-in")
+  Component(loginPage, "Sign-in page", "React", "Offers the Telegram widget and reports a refused sign-in", $tags="page")
   Component(loginButton, "Telegram login button", "React", "Embeds Telegram's widget and receives the signed payload")
   Component(authContext, "Session state", "React context", "Holds who is signed in and what is still unknown")
   Component(routeGuard, "Route guard", "React", "Keeps a page behind an open session")
-  Component(expensesPage, "Expenses page", "React", "Composes the list and the filter, and signs out")
+  Component(expensesPage, "Expenses page", "React", "Composes the list and the filter, and signs out", $tags="page")
   Component(expenseList, "Expense list", "React", "Renders one page of entries, each named from the tree")
   Component(expenseFilters, "Filter controls", "React", "Offers the tree and the narrowing a listing accepts")
   Component(apiClient, "Ledger client", "TypeScript", "Calls the ledger with cookies and the CSRF token")

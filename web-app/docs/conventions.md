@@ -11,6 +11,8 @@ style, and testing at once.
 - [Architecture & Layering](conventions/architecture.md) — directory structure, dependency rules, diagram format.
 - [Testing Conventions](conventions/testing.md) — test layers, test tooling, naming conventions, testing style.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
+- [Writing Documentation](conventions/documentation.md) — what a use-case page leaves to the screen, how a
+  failure is tabled, and the colour a route carries.
 - [Build](conventions/build.md) — this module's commands, coverage minimum and container build.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what it earns.
 - [Agent Configuration](conventions/agent.md) — commit behavior, parallelism, and the permissions this module's

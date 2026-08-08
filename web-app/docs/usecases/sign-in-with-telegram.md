@@ -1,5 +1,6 @@
 # Sign in with Telegram
 
+- **At:** `/login`, and the session state every other route reads
 - **In:** a person, and the Telegram account they use for the bot
 - **Out:** a browser session held for that person
 - **Why:** the ledger's data belongs to a Telegram user, so a browser has to prove it is one
@@ -11,7 +12,7 @@
 | Direction | Collaborator                                             | Through                                                   | For                                           |
 |-----------|----------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------|
 | in        | A person's browser                                       | the sign-in page                                          | starting a session                            |
-| in        | [Browse recorded expenses](browse-recorded-expenses.md)  | [the expenses page](browse-recorded-expenses.md)          | ending a session, and dropping an expired one |
+| in        | Every page behind the route guard                        | the session state                                         | ending a session, and dropping an expired one |
 | out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in  |
 | out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session       |
 
