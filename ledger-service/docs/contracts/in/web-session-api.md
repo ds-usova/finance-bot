@@ -1,12 +1,15 @@
 # A person signing in from a browser — the session API (HTTP)
 
 A person opens the web app, signs in with their Telegram account, and the browser holds a session for as long as
-it lasts. This is the boundary a browser reaches the ledger through. One thing crosses it: proof from Telegram
-that the person at the keyboard is a particular Telegram user.
+it lasts. This is the boundary a browser signs in through. One thing crosses it: proof from Telegram that the
+person at the keyboard is a particular Telegram user.
+
+What that session then admits is [the browse API](web-browse-api.md), a separate interface on the same
+transport.
 
 - **Counterpart:** [the Web App](../../../../web-app/docs/contracts/out/ledger-session-api.md), running in a
   person's browser
-- **Transport:** HTTP under `/api`, on the service's own port, reached from the same origin as the page
+- **Transport:** HTTP under `/api/v1`, on the service's own port, reached from the same origin as the page
 - **Schema:** [`openapi/paths/session.yaml`](../../../../openapi/paths/session.yaml) and
   [`openapi/components/schemas/session.yaml`](../../../../openapi/components/schemas/session.yaml)
 
@@ -159,7 +162,7 @@ what it means.
 | The signature does not match the fields sent                              | 401, naming only that the sign-in was not accepted |
 | The sign-in carries no hash, no id, or no readable `auth_date`            | 401, the same way                                  |
 | The sign-in is older than `TELEGRAM_LOGIN_MAX_AGE`, or dated ahead        | 401, the same way                                  |
-| A write carries no CSRF token                                             | refused before the request reaches the endpoint    |
+| A write carries no CSRF token                                             | 403, before the request reaches the endpoint       |
 | The session is read with no cookie, or with one this service did not sign | 401                                                |
 | The user cannot be stored                                                 | 503, naming no table, constraint or stack frame    |
 | Anything else                                                             | 500, saying the request could not be completed     |
@@ -178,3 +181,6 @@ browser sends back whatever it was given.
 
 Adding an operation under `/api` costs a browser nothing. Moving the session to an identity provider outside this
 service would change where a token is minted, not what the browser sends.
+
+The unversioned `/api/session` is gone. It is no longer served, and a request to it is refused by the filter
+chain with a 401 rather than a 404. Every path under `/api` now carries the version.

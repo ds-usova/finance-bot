@@ -20,12 +20,17 @@ server in tests. The gRPC client comes from Spring Boot's own `spring-boot-start
 Spring gRPC;
 **APIs exposed**: an MCP server endpoint over HTTP, built on Spring AI's MCP server and reachable only with a
 token this service issues and validates itself — see
-[Agent acting for a user — the expense proposal tool](../contracts/in/mcp.md); and a session API under `/api`
+[Agent acting for a user — the expense proposal tool](../contracts/in/mcp.md); and an HTTP API under `/api/v1`
 for the browser client, on a filter chain of its own, reachable with a cookie this service issues and validates
-itself — see [A person signing in from a browser](../contracts/in/web-session-api.md);
-**Contract-first codegen**: **yes** — the repo-root `proto/` schema is the contract with the AI Connector
-Service, and the `com.google.protobuf` Gradle plugin generates the message classes and client stubs into
-`build/generated/sources/proto/main/` (see [File Locations](architecture.md#file-locations)).
+itself — a session API, see [A person signing in from a browser](../contracts/in/web-session-api.md), and the
+reads behind it, see
+[A person browsing their ledger from a browser](../contracts/in/web-browse-api.md);
+**Contract-first codegen**: **yes**, on two schemas, both at the repository root and neither committed as
+generated source. The `proto/` schema is the contract with the AI Connector Service, and the
+`com.google.protobuf` Gradle plugin generates the message classes and client stubs into
+`build/generated/sources/proto/main/`. The `openapi/` specification is the contract with the browser client,
+shared with `web-app`, and the `org.openapi.generator` plugin generates one endpoint interface per tag into
+`build/generated/sources/openapi/` (see [File Locations](architecture.md#file-locations)).
 
 ## Documentation References
 
@@ -43,6 +48,8 @@ conventions, the conventions win.
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
   supplies, and what breaks without them.
+- Manual requests: [`docs/requests/`](../requests/) — one `.http` file per HTTP boundary this service exposes,
+  for driving an endpoint by hand against a running service.
 - ADRs / design decisions: [`docs/adr/`](../adr/) — decisions the code cannot explain by itself, whose
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.

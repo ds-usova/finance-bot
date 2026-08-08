@@ -25,8 +25,9 @@ the page's first request.
 
 ## What It Does With the Answer
 
-- **A session opened**: the external id is held in memory for as long as the tab lives, and the shell is shown.
-  The cookie itself is never read — it cannot be, and nothing here needs to.
+- **A session opened**: the external id is held in memory for as long as the tab lives, and
+  [the expenses page](../../usecases/browse-recorded-expenses.md) is shown. The cookie itself is never read — it
+  cannot be, and nothing here needs to.
 - **A session read**: the same, without a sign-in.
 - **A session read that is refused**: treated as nobody being signed in, not as an error. This is the ordinary
   answer on a first visit.

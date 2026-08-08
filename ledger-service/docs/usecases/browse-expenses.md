@@ -1,0 +1,138 @@
+# Browse a person's expenses
+
+- **In:** the identity of the authenticated caller · an [expense filter](../domain/expense-filter.md)
+- **Out:** one page of entries, newest first, with the page size and offset applied and how many rows the filter
+  matches
+- **Why:** it is how a signed-in person sees everything the ledger holds for them in one list
+
+*Implemented by `BrowseExpensesUseCase`.*
+
+## What a page holds
+
+| Kind     | An entry is this when                      | Read from        |
+|----------|--------------------------------------------|------------------|
+| Recorded | the spending is already in the ledger      | stored expenses  |
+| Pending  | a proposal is still waiting for a decision | stored proposals |
+
+- Both kinds carry the same parts, and the [status](../domain/expense-status.md) is what tells them apart.
+- An id identifies an entry only together with its status; the two kinds number their rows separately.
+- No entry carries a category name or a grouping — [the category listing](browse-categories.md) resolves those.
+- No amount is totalled here. The count is of rows, not of money.
+
+## Collaborators
+
+| Direction | Collaborator                                                                           | Through                                                                           | For                                                                            |
+|-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | showing a signed-in person their spending, newest first                        |
+| out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, reading the page, and counting what the filter matches |
+
+## Rules
+
+- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
+  The request never names whose expenses it is.
+- Only the caller's own rows are reachable, and no part of the filter widens that.
+- A category belonging to somebody else matches nothing rather than being refused.
+- The [filter](../domain/expense-filter.md) holds together before anything is read. One that does not reaches no
+  store.
+- Recorded spending and pending proposals are answered as one list, newest first.
+- Entries sharing an instant keep the same order on every call, so a page boundary is stable.
+- The days of a [spending period](../domain/spending-period.md) are taken at UTC, and the last day counts whole.
+- An entry is dated by when its row was recorded, not by when the money was spent. Accepting a proposal re-dates
+  it to the moment it was accepted.
+- The page and the total are two reads, not one snapshot. A row stored between them makes the two disagree by one.
+- A proposal accepted between two page reads moves to the top of the list, so it can be seen twice or not at all.
+- Nothing is stored, created or changed.
+
+## Outcomes
+
+| Outcome          | When                                                           | Result                                                             |
+|------------------|----------------------------------------------------------------|--------------------------------------------------------------------|
+| Page answered    | the identity names a stored user                               | the matching entries, with the page size, the offset and the total |
+| Empty page       | the filter matches nothing, or the offset is past the last row | no entries, and the real total                                     |
+| Request rejected | the request names no identity, or no filter                    | the request is refused — nothing is looked up                      |
+| Filter rejected  | the page size is out of bounds, or the offset is negative      | invalid expense filter, naming the bound — nothing is looked up    |
+| Identity unknown | nothing is stored under the identity                           | the request is rejected and nothing is listed                      |
+| Storage failed   | the store cannot be reached                                    | the failure reaches the caller                                     |
+
+## Components
+
+```plantuml
+@startuml C3-Component-BrowseExpenses
+!include <C4/C4_Component>
+
+AddElementTag("dbExternal", $bgColor="#d68910", $fontColor="#ffffff", $borderColor="#8f5c0a")
+AddElementTag("webExternal", $bgColor="#2874a6", $fontColor="#ffffff", $borderColor="#1b4f72")
+AddElementTag("portIn", $bgColor="#16a085", $fontColor="#ffffff", $borderColor="#0e6655", $legendText="inbound port (interface)")
+AddElementTag("portOut", $bgColor="#7f8c8d", $fontColor="#ffffff", $borderColor="#566573", $legendText="outbound port (interface)")
+AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1b2631", $legendText="application core")
+AddRelTag("implements", $lineStyle="dashed")
+
+System_Ext(browser, "A signed-in person's browser", "The web app's page", $tags="webExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses and expense proposals", $tags="dbExternal")
+
+Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
+  Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid session cookie", $tags="webExternal")
+  Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the filter off the query and the caller off the session", $tags="webExternal")
+  Component(browsePort, "Browse Expenses Port", "Interface", "Inbound port", $tags="portIn")
+  Component(browseService, "Browse a Person's Expenses Use Case", "Plain Java", "Resolves the user, reads the page, and counts the matches", $tags="core")
+  Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Checks if user exists", $tags="dbExternal")
+  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads one page across both stores, and counts what the filter matches", $tags="dbExternal")
+}
+
+Rel(browser, accessControl, "Asks for a page of expenses", "HTTP, session cookie")
+Rel_D(accessControl, endpoint, "Admits the call, with the caller's identity")
+Rel_D(endpoint, browsePort, "Invokes")
+Rel_L(browseService, browsePort, "Implements", $tags="implements")
+Rel_R(browseService, userRepositoryPort, "Resolves the identity through")
+Rel_R(browseService, expenseRepositoryPort, "Reads the page and the total through")
+Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
+Rel_L(expenseRepositoryAdapter, expenseRepositoryPort, "Implements", $tags="implements")
+Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
+Rel_R(expenseRepositoryAdapter, db, "SQL", "JDBC")
+
+Lay_D(userRepositoryPort, expenseRepositoryPort)
+Lay_D(userRepositoryAdapter, expenseRepositoryAdapter)
+
+SHOW_LEGEND()
+@enduml
+```
+
+## Flow
+
+```plantuml
+@startuml BrowseExpenses-Activity
+start
+:a signed-in person asks for a page of their expenses;
+if (the request names no identity, or no filter?) then (yes)
+  :the request is refused — nothing is looked up;
+  stop
+endif
+if (the page size or the offset is out of bounds?) then (yes)
+  :invalid expense filter, naming the bound;
+  stop
+endif
+:look the identity up in the database;
+if (the read fails?) then (yes)
+  :storage failed;
+  stop
+endif
+if (the identity names a stored user?) then (no)
+  :identity unknown;
+  stop
+endif
+:read one page of their expenses and proposals from the database, newest first;
+if (the read fails?) then (yes)
+  :storage failed;
+  stop
+endif
+:count how many of their rows the filter matches;
+if (the read fails?) then (yes)
+  :storage failed;
+  stop
+endif
+:answer the entries, the page size, the offset and the total;
+stop
+@enduml
+```

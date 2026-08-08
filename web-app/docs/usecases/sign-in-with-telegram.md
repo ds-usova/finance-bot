@@ -8,16 +8,17 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                             | Through                                                   | For                                          |
-|-----------|----------------------------------------------------------|-----------------------------------------------------------|----------------------------------------------|
-| in        | A person's browser                                       | the sign-in page                                          | starting and ending a session                |
-| out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in |
-| out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session      |
+| Direction | Collaborator                                             | Through                                                   | For                                           |
+|-----------|----------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------|
+| in        | A person's browser                                       | the sign-in page                                          | starting a session                            |
+| in        | [Browse recorded expenses](browse-recorded-expenses.md)  | [the expenses page](browse-recorded-expenses.md)          | ending a session, and dropping an expired one |
+| out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in  |
+| out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session       |
 
 ## Rules
 
 - The page asks the ledger who is signed in **before** it decides what to show, and shows neither the sign-in
-  nor the shell while that answer is outstanding.
+  nor the expenses page while that answer is outstanding.
 - A refused read means nobody is signed in. It is not an error.
 - The widget's payload is forwarded unchanged. Nothing here inspects it, and nothing here decides whether it is
   genuine — that is the ledger's, and only the ledger holds the bot token.
@@ -27,13 +28,13 @@
 
 ## Outcomes
 
-| Outcome           | When                                      | Result                                                      |
-|-------------------|-------------------------------------------|-------------------------------------------------------------|
-| Already signed in | the session read on load succeeds         | the shell is shown, with no sign-in step                    |
-| Signed in         | the widget's payload is accepted          | the shell is shown, and the session is held for the tab     |
-| Sign-in refused   | the payload is rejected or the call fails | the sign-in page says so and offers the widget again        |
-| Not signed in     | the session read is refused               | the sign-in page is shown                                   |
-| Signed out        | the sign-out control is used              | the sign-in page is shown, and the ledger clears the cookie |
+| Outcome           | When                                              | Result                                                          |
+|-------------------|---------------------------------------------------|-----------------------------------------------------------------|
+| Already signed in | the session read on load succeeds                 | the expenses page is shown, with no sign-in step                |
+| Signed in         | the widget's payload is accepted                  | the expenses page is shown, and the session is held for the tab |
+| Sign-in refused   | the payload is rejected or the call fails         | the sign-in page says so and offers the widget again            |
+| Not signed in     | the session read is refused                       | the sign-in page is shown                                       |
+| Signed out        | the sign-out control on the expenses page is used | the sign-in page is shown, and the ledger clears the cookie     |
 
 ## Flow
 
@@ -52,7 +53,7 @@ Auth -> Ledger : read the session
 alt a session is already open
   Ledger --> Auth : the external id
   Auth --> Page : signed in
-  Page --> User : the shell
+  Page --> User : the expenses page
 else nobody is signed in
   Ledger --> Auth : refused
   Auth --> Page : anonymous
@@ -66,7 +67,7 @@ else nobody is signed in
   alt accepted
     Ledger --> Auth : the external id + the session cookie
     Auth --> Page : signed in
-    Page --> User : the shell
+    Page --> User : the expenses page
   else refused
     Ledger --> Auth : refused
     Auth --> Page : the sign-in failed
