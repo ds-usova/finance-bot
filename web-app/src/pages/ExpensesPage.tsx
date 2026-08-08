@@ -10,6 +10,7 @@ import {
   type Grouping,
 } from '../api/expenses';
 import { useAuth } from '../auth/useAuth';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 
@@ -64,11 +65,7 @@ export function ExpensesPage() {
           Sign out
         </button>
       </header>
-      {failure && (
-        <p className="error" role="alert">
-          {failure}
-        </p>
-      )}
+      {failure && <ErrorBanner message={failure} />}
       <ExpenseFilters
         groupings={groupings}
         categories={categories}

@@ -35,9 +35,9 @@ design ever named. The [evidence](evidence.md) beside this file covers the rest.
   filter change. `AuthProvider` already guards its one read with a `cancelled` flag, so the module has the idiom.
   Left because fixing it changes observable behaviour no scenario covers. `web-app/plan.md · B10`.
 
-- **`ExpensesPage` and `LoginPage` render a failure identically** — an `ErrorBanner` in `components/` is what the
-  conventions' extraction rule points at, but it needs `LoginPage.tsx`, which this task never touched.
-  `web-app/plan.md · B11`.
+- ~~**`ExpensesPage` and `LoginPage` render a failure identically**~~ — resolved. `ErrorBanner` in `components/`
+  now holds the `role="alert"` paragraph and both pages render it. The extraction needed `LoginPage.tsx`, which
+  sat outside this task's diff, which is why the refactor pass could only record it. `web-app/plan.md · B11`.
 
 - **A scratch test in `build/` joins the module's suite** — Vitest's default `include` collects `**/*.test.tsx`
   from the module root, and its default `exclude` does not name `build/`, which is where the repository
