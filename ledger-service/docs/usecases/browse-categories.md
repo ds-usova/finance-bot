@@ -23,9 +23,6 @@
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | naming the category on each listed expense, and filling the filter        |
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their categories with their groupings |
 
-A [grouping](../domain/grouping.md) is named here by its stored id. [The MCP listing](list-categories.md) takes a
-name instead, and the two are not interchangeable. A grouping is never answered as a category of itself.
-
 ## Outcomes
 
 | Outcome           | When                                                                 | Result                                        |

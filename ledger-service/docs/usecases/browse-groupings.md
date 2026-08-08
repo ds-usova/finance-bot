@@ -23,7 +23,6 @@
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their groupings          |
 
 A [grouping](../domain/grouping.md) holding no categories is answered too.
-[The turn answering a message](handle-incoming-message.md) hides one; this listing does not.
 
 ## Outcomes
 

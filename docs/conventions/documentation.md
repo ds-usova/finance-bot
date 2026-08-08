@@ -66,6 +66,10 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
   rule that survives that search is usually a **Prerequisite** or a sentence under the section it qualifies.
 - **Outcomes is a table** of condition and result, and it is the section that earns its length. It is the one
   place a reader learns what the use case answers when things go wrong.
+- **The page documents this use case and no other.** Never contrast it with a sibling — "the MCP listing takes a
+  name instead", "the turn answering a message hides one". Whoever reads this page came for this use case, the
+  comparison is a second copy of the other one's behaviour, and it rots when that one changes. Naming another use
+  case as a **Collaborator**, or pointing at where an id gets its name, is a link and not a description.
 
 ## A Domain Page
 
