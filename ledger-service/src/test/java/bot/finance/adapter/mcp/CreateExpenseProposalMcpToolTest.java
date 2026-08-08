@@ -81,6 +81,27 @@ class CreateExpenseProposalMcpToolTest {
                 McpRequests.createExpenseProposal(category, grouping, description, merchant, amount, currencyCode));
     }
 
+    /**
+     * Stubs the port to answer a proposal stored under {@code reference}, then calls create_expense_proposal for
+     * Restaurants-under-Dining - what the happy-path scenarios arrange from.
+     */
+    private Response postAcceptedProposal(String token, MessageReference reference) {
+        ExpenseProposal stored = ExpenseProposal.stored(
+                4242L,
+                99L,
+                3L,
+                "lunch with the team",
+                Optional.of("Trattoria Roma"),
+                new Money(1599L, CurrencyCode.of("EUR")),
+                reference,
+                CREATED_AT,
+                CREATED_AT);
+        when(createExpenseProposalPort.create(any())).thenReturn(stored);
+
+        return postCreateExpenseProposal(
+                token, "Restaurants", "Dining", "lunch with the team", "Trattoria Roma", "15.99", "EUR");
+    }
+
     private Response postMcp(String token, String body) {
         return RestAssured.given()
                 .port(port)
@@ -100,36 +121,24 @@ class CreateExpenseProposalMcpToolTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when create_expense_proposal is called - then the port receives a command carrying the token's subject as its identity and the result carries the stored proposal")
-        void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenSubjectAndResultCarriesStoredProposal() {
+        @DisplayName("when create_expense_proposal is called - then the port receives the token's subject and the "
+                + "grouping name")
+        void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenSubjectAndGroupingName() {
             String externalId = "user-42";
-            ExpenseProposal stored = ExpenseProposal.stored(
-                    4242L,
-                    99L,
-                    3L,
-                    "lunch with the team",
-                    Optional.of("Trattoria Roma"),
-                    new Money(1599L, CurrencyCode.of("EUR")),
-                    MessageReference.newReference(),
-                    CREATED_AT,
-                    CREATED_AT);
-            when(createExpenseProposalPort.create(any())).thenReturn(stored);
 
-            Response response = postCreateExpenseProposal(
-                    token(externalId),
-                    "Restaurants",
-                    "Dining",
-                    "lunch with the team",
-                    "Trattoria Roma",
-                    "15.99",
-                    "EUR");
+            postAcceptedProposal(token(externalId), MessageReference.newReference());
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
             verify(createExpenseProposalPort).create(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
             assertThat(command.getValue().groupingName()).isEqualTo("Dining");
+        }
+
+        @Test
+        @DisplayName("when create_expense_proposal is called - then the result carries the stored proposal")
+        void whenCreateExpenseProposalIsCalled_thenResultCarriesStoredProposal() {
+            Response response = postAcceptedProposal(token("user-42"), MessageReference.newReference());
 
             String body = response.getBody().asString();
             assertThat(body)
@@ -143,26 +152,13 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when create_expense_proposal is called - then the port receives a command carrying the token's mrf claim as its message reference and the token's subject as its identity")
-        void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenMrfClaimAsMessageReferenceAndSubjectAsIdentity() {
+        @DisplayName("when the caller token carries an mrf claim - then the port receives it as the command's "
+                + "message reference")
+        void whenTokenCarriesMrfClaim_thenPortReceivesItAsTheCommandsMessageReference() {
             String externalId = "user-43";
             MessageReference reference = MessageReference.newReference();
-            String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
-            ExpenseProposal stored = ExpenseProposal.stored(
-                    4343L,
-                    99L,
-                    3L,
-                    "lunch with the team",
-                    Optional.of("Trattoria Roma"),
-                    new Money(1599L, CurrencyCode.of("EUR")),
-                    reference,
-                    CREATED_AT,
-                    CREATED_AT);
-            when(createExpenseProposalPort.create(any())).thenReturn(stored);
 
-            postCreateExpenseProposal(
-                    token, "Restaurants", "Dining", "lunch with the team", "Trattoria Roma", "15.99", "EUR");
+            postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, externalId, reference), reference);
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
@@ -178,8 +174,8 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName(
-                "when the port throws InvalidExpenseProposalException - then the tool error names the field at fault and nothing about the store")
-        void whenPortThrowsInvalidExpenseProposalException_thenToolErrorNamesFieldAtFaultAndNothingAboutStore() {
+                "when the port throws InvalidExpenseProposalException - then the tool error names the field at fault")
+        void whenPortThrowsInvalidExpenseProposalException_thenToolErrorNamesFieldAtFault() {
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new InvalidExpenseProposalException("description must be present"));
 
@@ -208,8 +204,8 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the currency code is unusable so mapping throws InvalidMoneyException - then the tool error names an invalid request and the port is untouched")
+        @DisplayName("when the currency code is unusable - then the tool error names an invalid request and the "
+                + "port is untouched")
         void whenCurrencyCodeUnusable_thenToolErrorNamesInvalidRequestAndPortUntouched() {
             Response response =
                     postCreateExpenseProposal(token("user-3"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "ZZZ");
@@ -263,8 +259,8 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws PersistenceFailedException - then the tool error says the proposal could not be stored, naming no table, constraint or stack frame")
+        @DisplayName("when the port throws PersistenceFailedException - then the tool error says the proposal "
+                + "could not be stored")
         void whenPortThrowsPersistenceFailedException_thenToolErrorSaysNotStoredNamingNoInternals() {
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new PersistenceFailedException(
@@ -284,8 +280,8 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws a RuntimeException outside the failure table - then a generic tool error is returned rather than an exception reaching the transport")
+        @DisplayName("when the port throws a RuntimeException outside the failure table - then a generic tool "
+                + "error is returned")
         void whenPortThrowsUnrecognizedRuntimeException_thenGenericToolErrorReturned() {
             String secretMessage = "connection pool exhausted on host db-primary-7";
             when(createExpenseProposalPort.create(any())).thenThrow(new RuntimeException(secretMessage));
@@ -298,9 +294,9 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws any failure - then a WARN line is logged carrying the failure kind and neither the arguments nor the token")
-        void whenPortThrowsAnyFailure_thenWarnLineLogsFailureKindWithoutArgumentsOrToken() {
+        @DisplayName("when the port throws any failure - then the logged failure names its kind and leaks no "
+                + "argument or token")
+        void whenPortThrowsAnyFailure_thenLoggedFailureNamesItsKindAndLeaksNoArgumentOrToken() {
             String secretCategory = "SecretCategory123";
             String secretDescription = "SecretDescription123";
             String secretMerchant = "SecretMerchant123";
@@ -378,9 +374,9 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when amount cannot be bound to its String type at all - then the framework's own binding failure is reported and the port is never called")
-        void whenAmountCannotBeBoundToString_thenFrameworksOwnBindingFailureReportedAndPortNeverCalled() {
+        @DisplayName("when amount cannot be bound to its String type at all - then the call is refused and the "
+                + "port is never called")
+        void whenAmountCannotBeBoundToString_thenCallIsRefusedAndPortNeverCalled() {
             String body =
                     """
                     {
@@ -409,8 +405,8 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName(
-                "when the amount is sent as a JSON number rather than the schema's string - then the tool error is refused before the method runs and no amount is recorded")
-        void whenAmountIsSentAsJsonNumber_thenToolErrorIsRefusedAndPortNeverCalled() {
+                "when the amount is sent as a JSON number - then the call is refused and the port is never " + "called")
+        void whenAmountIsSentAsJsonNumber_thenCallIsRefusedAndPortNeverCalled() {
             String body =
                     """
                     {
@@ -473,9 +469,9 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when grouping is absent from the call - then the framework's own JSON-schema rejection names the missing grouping and the port is never called")
-        void whenGroupingAbsent_thenFrameworkSchemaRejectionNamesMissingGroupingAndPortNeverCalled() {
+        @DisplayName("when grouping is absent from the call - then the rejection names the missing grouping and "
+                + "the port is never called")
+        void whenGroupingAbsent_thenRejectionNamesMissingGroupingAndPortNeverCalled() {
             String body =
                     """
                     {

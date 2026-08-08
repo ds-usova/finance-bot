@@ -134,10 +134,9 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the poll loop picks up a text message asking what was spent - then the batch is "
-                + "confirmed, the extraction request carries today's date, and the reply lists one line per "
-                + "currency with only the in-period totals and no button markup")
-        void whenPollLoopPicksUpSpendingQuestion_thenBatchConfirmedAndReplyListsInPeriodTotalsOnly() {
+        @DisplayName("when the poll loop picks up a text message asking what was spent - then the reply reports "
+                + "the in-period totals")
+        void whenPollLoopPicksUpSpendingQuestion_thenReplyReportsTheInPeriodTotals() {
             // then: the message is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)

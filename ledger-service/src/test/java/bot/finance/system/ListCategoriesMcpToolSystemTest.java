@@ -59,10 +59,9 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when tools/call list_categories is posted naming Groceries - then the response is a "
-                + "non-error result whose text names Groceries and carries exactly its three seeded categories, "
-                + "sorted by name")
-        void whenToolCallNamesGrouping_thenResponseNamesGroupingAndListsCategoriesSortedByName() {
+        @DisplayName("when tools/call list_categories is posted naming a grouping - then its seeded categories "
+                + "are listed, sorted by name")
+        void whenToolCallNamesGrouping_thenSeededCategoriesAreListedSortedByName() {
             User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 
@@ -90,9 +89,9 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when tools/call list_categories names a category rather than a grouping - Supermarkets - "
-                + "then the response is a tool error saying it is a category, not a grouping")
-        void whenToolCallNamesCategory_thenResponseIsToolErrorSayingItIsACategoryNotAGrouping() {
+        @DisplayName("when tools/call list_categories names a category rather than a grouping - then the tool "
+                + "error says so")
+        void whenToolCallNamesCategory_thenToolErrorSaysItIsACategoryNotAGrouping() {
             User user = seedUserWithDefaultCategories("list-categories-unhappy-path-user");
             String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
 

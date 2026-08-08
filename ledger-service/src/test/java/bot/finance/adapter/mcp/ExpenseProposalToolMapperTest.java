@@ -36,10 +36,9 @@ class ExpenseProposalToolMapperTest {
     class ToCommand {
 
         @Test
-        @DisplayName("when the request carries every argument and an identity - then returns a command carrying that "
-                + "identity, the category names, the description, the merchant, and a Money built from the "
-                + "minor units and the currency code")
-        void whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsCommandCarryingThatIdentityAndFields() {
+        @DisplayName("when the request carries every argument and an identity - then returns the command those "
+                + "arguments map onto")
+        void whenRequestCarriesEveryArgumentAndAnIdentity_thenReturnsTheCommandTheyMapOnto() {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", "15.00", "EUR");
 
@@ -72,7 +71,7 @@ class ExpenseProposalToolMapperTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("blankGroupings")
         @DisplayName("when the request's grouping is null, empty, or whitespace only - then throws "
-                + "InvalidExpenseProposalException with the message \"expense proposal request has no grouping\"")
+                + "InvalidExpenseProposalException")
         void whenGroupingIsNullOrBlank_thenThrowsInvalidExpenseProposalException(String description, String grouping) {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
@@ -139,8 +138,7 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request's amount is absent - then throws InvalidExpenseProposalException, so an "
-                + "absent amount is never read as zero")
+        @DisplayName("when the request's amount is absent - then throws InvalidExpenseProposalException")
         void whenAmountIsAbsent_thenThrowsInvalidExpenseProposalException() {
             CreateExpenseProposalToolRequest request = requestWith(null, "EUR");
 
@@ -150,10 +148,9 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request's amount is \"7200\" and its currencyCode is \"HUF\" - then the returned "
-                + "command's money carries 720000 minor units and HUF")
-        void
-                whenAmountIsSevenThousandTwoHundredAndCurrencyIsHuf_thenCommandMoneyCarriesSevenHundredTwentyThousandMinorUnitsAndHuf() {
+        @DisplayName("when the request's amount is \"7200\" in \"HUF\" - then the command's money carries 720000 "
+                + "minor units")
+        void whenAmountIsSevenThousandTwoHundredInHuf_thenCommandMoneyCarriesTheScaledMinorUnits() {
             CreateExpenseProposalToolRequest request = requestWith("7200", "HUF");
 
             CreateExpenseProposalCommand command =
@@ -163,8 +160,8 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request's amount is \"  12.50  \", with surrounding whitespace - then the returned "
-                + "command's money carries 1250 minor units, so the text is stripped before it is read")
+        @DisplayName("when the request's amount has surrounding whitespace - then the command's money carries the "
+                + "stripped text's minor units")
         void whenAmountHasSurroundingWhitespace_thenCommandMoneyCarriesMinorUnitsFromTheStrippedText() {
             CreateExpenseProposalToolRequest request = requestWith("  12.50  ", "EUR");
 
@@ -176,9 +173,9 @@ class ExpenseProposalToolMapperTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("malformedAmounts")
-        @DisplayName("when the request's amount is a form the description never offered - then throws "
-                + "InvalidExpenseProposalException naming the accepted form")
-        void whenAmountIsAFormTheDescriptionNeverOffered_thenThrowsInvalidExpenseProposalExceptionNamingTheAcceptedForm(
+        @DisplayName(
+                "when the request's amount is a form never offered - then throws " + "InvalidExpenseProposalException")
+        void whenAmountIsAFormNeverOffered_thenThrowsInvalidExpenseProposalException(
                 String description, String amount) {
             CreateExpenseProposalToolRequest request = requestWith(amount, "EUR");
 
@@ -203,9 +200,8 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request's amount is \"0\" and its currencyCode is \"EUR\" - then the returned "
-                + "command's money carries zero minor units")
-        void whenAmountIsZeroAndCurrencyIsEur_thenCommandMoneyCarriesZeroMinorUnits() {
+        @DisplayName("when the request's amount is \"0\" - then the command's money carries zero minor units")
+        void whenAmountIsZero_thenCommandMoneyCarriesZeroMinorUnits() {
             CreateExpenseProposalToolRequest request = requestWith("0", "EUR");
 
             CreateExpenseProposalCommand command =
@@ -227,11 +223,9 @@ class ExpenseProposalToolMapperTest {
     class ToResponse {
 
         @Test
-        @DisplayName(
-                "when a stored proposal carries a merchant and the category name it was filed under - then returns "
-                        + "a response carrying the proposal's id, that category name, the description, the "
-                        + "merchant, the amount as text, the currency code and the created-at instant")
-        void whenStoredProposalCarriesMerchantAndCategoryName_thenReturnsResponseCarryingThoseFields() {
+        @DisplayName("when a stored proposal carries a merchant and the category it was filed under - then returns "
+                + "the response they map onto")
+        void whenStoredProposalCarriesMerchantAndCategoryName_thenReturnsTheResponseTheyMapOnto() {
             Instant createdAt = Instant.parse("2026-01-01T10:00:00Z");
             ExpenseProposal proposal = ExpenseProposal.stored(
                     1L,

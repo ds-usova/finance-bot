@@ -65,10 +65,9 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when tools/call summarize_spending is posted with a first and last day - then the response "
-                + "is a non-error result carrying that period and no amount, and one spending_query row is stored "
-                + "for that user under that reference holding both days")
-        void whenToolCallNamesAPeriod_thenResponseCarriesThePeriodAndOneSpendingQueryRowIsWritten() {
+        @DisplayName("when tools/call summarize_spending is posted with a first and last day - then that period "
+                + "is answered and recorded")
+        void whenToolCallNamesAPeriod_thenThatPeriodIsAnsweredAndRecorded() {
             String externalId = "summarize-spending-happy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
             MessageReference reference = MessageReference.newReference();
@@ -108,10 +107,9 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when tools/call summarize_spending is posted with a last day before the first - then the "
-                + "response is a tool error saying the period ends before it starts, and no spending_query row "
-                + "exists for that user")
-        void whenLastDayIsBeforeFirst_thenResponseIsToolErrorAndNoRowIsWritten() {
+        @DisplayName("when summarize_spending is posted with a last day before the first - then the period is "
+                + "refused and nothing recorded")
+        void whenLastDayIsBeforeFirst_thenNothingIsRecordedAndPeriodIsRefused() {
             String externalId = "summarize-spending-unhappy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
             String token = McpTokens.tokenFor(accessTokenMinter, externalId);
