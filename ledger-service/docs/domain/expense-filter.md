@@ -4,14 +4,17 @@ How much of a person's spending one listing asks for — which rows are wanted, 
 
 ## Invariants
 
-- A page size of at least 1 and at most 100.
-- A page size above the maximum is refused, never trimmed down to it.
-- 50 is the page size a caller who names none is given.
-- An offset of zero or more.
-- Every narrowing dimension is optional, and each is optional on its own: a status, a category, a period.
-- A [spending period](spending-period.md) is both days or neither, and the last day counts whole.
-- A filter narrowing to rows nobody has is a valid filter.
-- A refusal names the part at fault and the bound it broke.
+| Part         | Bound                                        |
+|--------------|----------------------------------------------|
+| `limit`      | `1..100`, default `50`                       |
+| `offset`     | `>= 0`, default `0`                          |
+| `status`     | optional                                     |
+| `categoryId` | optional                                     |
+| `period`     | optional; both days or neither, last counted |
+
+- Over `limit`'s maximum is refused, never trimmed to it.
+- Matching nothing is valid.
+- A refusal names the part and the bound.
 
 ## Made of / held by
 

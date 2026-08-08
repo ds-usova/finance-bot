@@ -60,6 +60,13 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
 A page under `docs/domain/` carries **Invariants** and **Made of / held by**. An **entity** — a type with
 identity, whose page describes something the store keeps rows of — carries one more section.
 
+- **An invariant is a bound, not a sentence.** Name the part, state the bound, stop: `limit` — `1..100`, default
+  `50`. "A page size of at least 1 and at most 100" says the same thing and has to be read word by word to get
+  there. `PENDING | RECORDED` beats "two values and no others", `PENDING -> RECORDED only` beats a sentence about
+  what never happens.
+- **Prose is for the invariant that has no symbol** — what the type refuses to be, and what a reader would
+  otherwise get wrong. Three of those under a table of bounds is a full page.
+
 - **`## Lifecycle`, on every entity page.** A table of what brings the entity into being, what changes it, and
   what removes it, each naming the use case that does it. Where nothing does, the row says so: "never changed"
   and "never removed except with its user" are facts a reader needs and cannot infer.

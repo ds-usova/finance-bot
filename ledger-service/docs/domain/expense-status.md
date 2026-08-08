@@ -4,11 +4,10 @@ Whether a piece of spending is already in the ledger, or still waiting for its u
 
 ## Invariants
 
-- Two values and no others: pending, and recorded.
+- `PENDING | RECORDED`, and no others.
+- `PENDING -> RECORDED` only. Never the reverse.
 - Which one a row carries is which table holds it, never a stored column
   ([ADR 0012](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- A row moving from pending to recorded is a row moving between tables.
-- Nothing moves the other way: a recorded expense never becomes pending again.
 
 ## Made of / held by
 
