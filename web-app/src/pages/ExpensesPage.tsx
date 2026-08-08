@@ -16,7 +16,7 @@ import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
 
 export function ExpensesPage() {
-  const { signOut, sessionExpired } = useAuth();
+  const { sessionExpired } = useAuth();
   const [filter, setFilter] = useState<ExpenseFilter>({});
   const [page, setPage] = useState<ExpensePage | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -69,18 +69,7 @@ export function ExpensesPage() {
   const narrow = (next: ExpenseFilter) => setFilter({ ...next, offset: undefined });
 
   return (
-    <main>
-      <header>
-        <h1>Expenses</h1>
-        <button
-          type="button"
-          onClick={() => {
-            void signOut();
-          }}
-        >
-          Sign out
-        </button>
-      </header>
+    <>
       {failure && <ErrorBanner message={failure} />}
       <ExpenseFilters
         groupings={groupings}
@@ -94,6 +83,6 @@ export function ExpensesPage() {
           <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
         </>
       )}
-    </main>
+    </>
   );
 }

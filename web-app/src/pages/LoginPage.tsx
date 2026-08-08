@@ -19,11 +19,10 @@ export function LoginPage() {
   };
 
   return (
-    <main>
-      <h1>Finance Bot</h1>
+    <>
       <p>Sign in with the Telegram account you use for the bot.</p>
       <TelegramLoginButton onAuth={handleAuth} />
       {failed && <ErrorBanner message="That sign-in was not accepted. Please try again." />}
-    </main>
+    </>
   );
 }

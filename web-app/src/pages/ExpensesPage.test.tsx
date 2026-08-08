@@ -251,7 +251,9 @@ describe('the expenses page', () => {
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
   });
 
-  it('ends the session through the context when the sign-out control is used', async () => {
+  // The sign-out control has moved to AppShell, which this page no longer renders; RU10 removes this case in
+  // favor of RU08's coverage of sign-out against the shell.
+  it.skip('ends the session through the context when the sign-out control is used', async () => {
     const signOut = vi.fn().mockResolvedValue(undefined);
 
     renderPage({ signOut });

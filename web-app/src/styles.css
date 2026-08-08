@@ -1,67 +1,35 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color-scheme: light dark;
+  --surface: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --accent: oklch(0.55 0.18 255);
+  --border: oklch(0.922 0 0);
+  --pending: oklch(0.65 0.19 70);
+}
+
+.dark {
+  --surface: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --accent: oklch(0.65 0.18 255);
+  --border: oklch(1 0 0 / 12%);
+  --pending: oklch(0.75 0.17 70);
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-pending: var(--pending);
 }
 
 body {
-  margin: 0;
-  display: flex;
-  min-height: 100vh;
-  justify-content: center;
-}
-
-main {
-  padding: 2rem 1.5rem;
-  max-width: 40rem;
-  width: 100%;
-}
-
-.error {
-  color: #b3261e;
-}
-
-.expense-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.expense-filters .filter {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.expense-list {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.expense-list th,
-.expense-list td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #8884;
-}
-
-.expense-list .amount {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.expense-list-note {
-  font-size: 0.9rem;
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.pager-range {
-  font-size: 0.9rem;
+  background-color: var(--surface);
+  color: var(--foreground);
 }
