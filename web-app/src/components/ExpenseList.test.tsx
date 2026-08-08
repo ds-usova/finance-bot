@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpenseList } from './ExpenseList';
 
@@ -94,6 +94,20 @@ describe('the expense list', () => {
     const row = screen.getByRole('row', { name: /stamps/ });
     expect(row).toHaveTextContent('5.00');
     expect(row).not.toHaveTextContent(/null|undefined/);
+  });
+
+  it('tells two entries apart when a recorded one and a pending one carry the same id', () => {
+    const complaints = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const recorded = anExpense({ id: 1, status: 'RECORDED', description: 'lunch' });
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+
+    render(<ExpenseList page={anExpensePage([recorded, pending])} categoryNames={categoryNames} />);
+
+    expect(screen.getByRole('row', { name: /lunch/ })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /taxi/ })).toBeInTheDocument();
+    expect(complaints).not.toHaveBeenCalled();
+
+    complaints.mockRestore();
   });
 
   it('says there is nothing to show when the page holds no entries', () => {

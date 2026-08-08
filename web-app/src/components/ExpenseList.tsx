@@ -29,7 +29,7 @@ export function ExpenseList({ page, categoryNames }: ExpenseListProps) {
       </thead>
       <tbody>
         {page.items.map((expense) => (
-          <tr key={expense.id}>
+          <tr key={`${expense.status}-${expense.id}`}>
             <td>{expense.description}</td>
             <td>{expense.merchant}</td>
             <td>{categoryNames.get(expense.categoryId)}</td>
