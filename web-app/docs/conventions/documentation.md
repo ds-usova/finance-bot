@@ -36,9 +36,16 @@ The route components — everything in `pages/` — carry a tag of their own, so
 route enters. Declare it in the preamble and tag each page:
 
 ```plantuml
+@startuml
+!include <C4/C4_Component>
+
 AddElementTag("page", $bgColor="#4C6EF5", $fontColor="#FFFFFF", $borderColor="#2F4BB5")
 
-Component(expensesPage, "Expenses page", "React", "…", $tags="page")
+Container_Boundary(webApp, "Web App") {
+  Component(expensesPage, "Expenses page", "React", "Composes the list and the filter", $tags="page")
+  Component(expenseList, "Expense list", "React", "Renders a row per entry")
+}
+@enduml
 ```
 
 In a plan's diagram the `new` tag from
