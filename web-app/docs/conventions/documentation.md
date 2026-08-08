@@ -39,7 +39,7 @@ route enters. Declare it in the preamble and tag each page:
 @startuml
 !include <C4/C4_Component>
 
-AddElementTag("page", $bgColor="#4C6EF5", $fontColor="#FFFFFF", $borderColor="#2F4BB5")
+AddElementTag("page", $bgColor="#E8590C", $fontColor="#FFFFFF", $borderColor="#A93E08")
 
 Container_Boundary(webApp, "Web App") {
   Component(expensesPage, "Expenses page", "React", "Composes the list and the filter", $tags="page")

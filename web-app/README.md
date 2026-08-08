@@ -19,7 +19,7 @@ bot and someone who has only ever used this page are the same user.
 @startuml C3-WebApp-Components
 !include <C4/C4_Component>
 
-AddElementTag("page", $bgColor="#4C6EF5", $fontColor="#FFFFFF", $borderColor="#2F4BB5")
+AddElementTag("page", $bgColor="#E8590C", $fontColor="#FFFFFF", $borderColor="#A93E08")
 
 Person(user, "Person", "Signs in with their Telegram account and browses their ledger")
 System_Ext(telegram, "Telegram", "Signs the payload identifying the user")
