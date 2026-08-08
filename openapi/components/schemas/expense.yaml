@@ -8,9 +8,7 @@ ExpenseStatus:
 
 Expense:
   type: object
-  description: >-
-    One row of a person's spending. Pending and recorded rows come from two stores that number their rows
-    independently, so `id` identifies a row only together with `status`.
+  description: One entry of a person's spending, pending or recorded.
   properties:
     id:
       type: integer

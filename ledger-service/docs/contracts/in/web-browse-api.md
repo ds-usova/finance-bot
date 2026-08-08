@@ -28,28 +28,14 @@ What the specification cannot say.
 
 - **Every read is scoped to the signed-in person.** No operation takes a user identifier, and no parameter widens
   that scope. An id belonging to somebody else matches nothing rather than being refused.
-- **The expense listing appends two stores.** Pending and recorded are two tables, not a column
-  ([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)), which is why an `id`
-  identifies a row only together with its `status`.
-- `from` and `to` are whole days taken at UTC. A person east or west of UTC sees the day boundary shifted by
-  their own offset.
-- Accepting a proposal re-dates it to the moment it was accepted, so a row can appear on two pages or on none.
-- **Reads carry no CSRF token and need none.** The chain still hands out the token cookie on them, which is what
+- **Reads carry no CSRF token and need none.** They still hand out the token cookie, which is what
   [the session API](web-session-api.md)'s writes require.
-- Every read is repeatable and stores nothing. A refusal reads nothing either.
+- Every read is repeatable and stores nothing.
 
 ## Compatibility
 
 The specification is shared. This service generates its endpoints from it and the browser generates its response
 types from the same file, so one change reaches both at build time and neither side owns it.
 
-The maximum page size is written twice — the [expense filter](../../domain/expense-filter.md) and the `limit`
-parameter in the specification. The two have to agree, or a request the browser believes is legal is refused
-here.
-
 Adding a filter parameter or a field on an entry costs a browser nothing. Removing a parameter, narrowing a
 bound, or turning an optional field required breaks the page.
-
-The specification declares no shared component names, so the name this service generates for each response type
-is derived from the operation and status code that first reaches it. Reordering the paths renames them, which
-breaks this module's build rather than any caller.
