@@ -86,9 +86,6 @@ the work and the tree it measures is clean. It measures every module, not only t
 runs once for the task however many plans the task holds. Its own output is then committed with
 `Documentation: <task> implementation evidence`.
 
-`review/findings.md` sits beside it — what the task knowingly left open, written before the archive. The two
-answer the same question from opposite sides.
-
 An exit code other than 0 means the plan is not finished after all: the evidence says which module, and whether
 it was a failing test, coverage below the minimum, or a suite that skipped.
 
