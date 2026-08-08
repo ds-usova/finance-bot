@@ -6,12 +6,12 @@ design ever named. The [evidence](evidence.md) beside this file covers the rest.
 
 ## ledger-service
 
-- **`WebExceptionHandler.onIllegalArgument` is a catch-all wearing a specific message** — it answers 400 with
-  `"status must be PENDING or RECORDED"` to every `IllegalArgumentException` raised under
-  `bot.finance.adapter.web`. Today the only source that reaches it is `ExpenseStatus.valueOf` in
-  `ExpenseWebMapper`, so no failing case can be constructed; the next one to appear anywhere in that package is
-  reported to the caller as a status problem rather than a 500. Narrowing it needs a scenario the plan never
-  carried. `ledger-service/plan.md · B5`.
+- ~~**`WebExceptionHandler.onIllegalArgument` is a catch-all wearing a specific message**~~ — resolved, by
+  removing the handler rather than narrowing it. `ExpenseWebMapper` translates the one `IllegalArgumentException`
+  a caller could provoke — `ExpenseStatus.valueOf` on an unknown status — into `InvalidExpenseFilterException`,
+  which was already mapped to 400. Every other `IllegalArgumentException` under `bot.finance.adapter.web` now
+  falls to the 500 handler, which is what a defect deserves. The wire message is unchanged.
+  `ledger-service/plan.md · B5`.
 
 ## web-app
 

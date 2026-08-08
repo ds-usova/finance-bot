@@ -70,16 +70,6 @@ public class WebExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, name + " " + bound);
     }
 
-    /**
-     * The generated endpoint interfaces bind {@code status} as a plain {@code String}, so an unrecognized value
-     * surfaces as {@code ExpenseStatus.valueOf} refusing it rather than as a binding failure.
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> onIllegalArgument(IllegalArgumentException e) {
-        logger.warn("rejected a request: {}", e.getMessage());
-        return problem(HttpStatus.BAD_REQUEST, "status must be PENDING or RECORDED");
-    }
-
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> onEntityNotFound(EntityNotFoundException e) {
         logger.warn("rejected a request: {}", e.getMessage());

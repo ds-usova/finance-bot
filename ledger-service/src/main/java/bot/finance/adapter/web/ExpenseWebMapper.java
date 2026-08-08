@@ -4,6 +4,7 @@ import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.api.model.ListExpenses200ResponseItemsInner;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
@@ -17,7 +18,7 @@ public final class ExpenseWebMapper {
 
     public static ExpenseFilter toFilter(
             Integer limit, Integer offset, String status, Long categoryId, LocalDate from, LocalDate to) {
-        ExpenseStatus parsedStatus = status == null ? null : ExpenseStatus.valueOf(status);
+        ExpenseStatus parsedStatus = toStatus(status);
         SpendingPeriod period = toPeriod(from, to);
 
         return new ExpenseFilter(
@@ -34,6 +35,18 @@ public final class ExpenseWebMapper {
                 page.limit(),
                 page.offset(),
                 page.total());
+    }
+
+    private static ExpenseStatus toStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+
+        try {
+            return ExpenseStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidExpenseFilterException("status must be PENDING or RECORDED");
+        }
     }
 
     private static SpendingPeriod toPeriod(LocalDate from, LocalDate to) {

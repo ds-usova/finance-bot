@@ -96,6 +96,15 @@ class ExpenseWebMapperTest {
             assertThatThrownBy(() -> ExpenseWebMapper.toFilter(ExpenseFilter.MAX_LIMIT + 1, 0, null, null, null, null))
                     .isInstanceOf(InvalidExpenseFilterException.class);
         }
+
+        @Test
+        @DisplayName("when a status no constant matches is given - then throws InvalidExpenseFilterException, never "
+                + "an IllegalArgumentException the caller cannot be told apart from a defect")
+        void whenStatusMatchesNoConstant_thenThrowsInvalidExpenseFilterException() {
+            assertThatThrownBy(() -> ExpenseWebMapper.toFilter(null, null, "FOO", null, null, null))
+                    .isInstanceOf(InvalidExpenseFilterException.class)
+                    .hasMessageContaining("status");
+        }
     }
 
     @Nested
