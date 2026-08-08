@@ -21,8 +21,8 @@ class CallerTokenMcpRequestCustomizerTest {
     class Customize {
 
         @Test
-        @DisplayName(
-                "when the transport context holds the turn's token, scheme included - then the built request carries it as the Authorization header, byte for byte")
+        @DisplayName("when the transport context holds the turn's token - then the built request carries it as "
+                + "the Authorization header")
         void whenContextHoldsToken_thenBuiltRequestCarriesItAsAuthorizationHeader() {
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create("https://ledger.local/mcp"));
             McpTransportContext context = McpTransportContext.create(

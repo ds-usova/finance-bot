@@ -54,8 +54,8 @@ class IntentExtractionGrpcServiceTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"EUR", "eur"})
-        @DisplayName(
-                "when the request carries a default currency in any casing - then the command holds it as a present, upper-cased currency code")
+        @DisplayName("when the request carries a default currency in any casing - then the command holds it "
+                + "upper-cased")
         void whenRequestCarriesDefaultCurrencyInAnyCasing_thenCommandHoldsItAsPresentUpperCasedCurrencyCode(
                 String defaultCurrency) {
             authenticatedStub()
@@ -72,10 +72,9 @@ class IntentExtractionGrpcServiceTest {
         }
 
         @Test
-        @DisplayName(
-                "when a request carrying a text, two category groupings and a catch-all among them arrives - then the port is called with a command whose category groupings hold both names in order and that catch-all, and the RPC answers an empty response")
-        void
-                whenRequestCarriesTextAndTwoCategoryGroupings_thenPortReceivesOrderedGroupingsAndCatchAllAndResponseIsEmpty() {
+        @DisplayName("when the request carries two groupings and a catch-all - then the port receives them in "
+                + "order with that catch-all")
+        void whenRequestCarriesTextAndTwoCategoryGroupings_thenPortReceivesOrderedGroupingsAndCatchAll() {
             List<String> categoryGroupings = List.of("Food", "Insurance");
             String catchAllGrouping = "Insurance";
 
@@ -90,9 +89,8 @@ class IntentExtractionGrpcServiceTest {
         }
 
         @Test
-        @DisplayName(
-                "when a tokened request carries a valid YYYY-MM-DD current_date - then the port receives a command holding that date as a LocalDate and the RPC answers an empty response")
-        void whenRequestCarriesValidCurrentDate_thenCommandHoldsItAsLocalDateAndResponseIsEmpty() {
+        @DisplayName("when the request carries a valid current_date - then the port receives it as a LocalDate")
+        void whenRequestCarriesValidCurrentDate_thenCommandHoldsItAsLocalDate() {
             String currentDate = "2026-01-15";
 
             ExtractIntentsResponse response =
@@ -124,8 +122,8 @@ class IntentExtractionGrpcServiceTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws an unrecognized RuntimeException - then the RPC fails with status UNKNOWN and its message does not appear in the description")
+        @DisplayName("when the port throws an unrecognized RuntimeException - then the RPC fails with UNKNOWN and "
+                + "leaks no message")
         void whenPortThrowsUnrecognizedRuntimeException_thenFailsWithUnknownAndMessageAbsent() {
             String secretMessage = "sensitive internal detail";
             doThrow(new RuntimeException(secretMessage))

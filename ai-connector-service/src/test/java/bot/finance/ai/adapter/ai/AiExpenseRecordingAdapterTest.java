@@ -78,6 +78,45 @@ class AiExpenseRecordingAdapterTest {
     }
 
     /**
+     * The body of the first chat-completion request of a turn the provider answers with text only — what the
+     * scenarios about the outgoing request read from.
+     */
+    private JsonNode chatRequestBody(Optional<CurrencyCode> assumedCurrency) {
+        McpLedgerStubs.stubCreateExpenseProposalAccepted();
+        WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
+
+        record(CALLER_TOKEN_1, assumedCurrency);
+
+        List<LoggedRequest> chatRequests = CapturedRequestUtils.chatCompletionRequests();
+        assertThat(chatRequests).isNotEmpty();
+        return CapturedRequestUtils.body(chatRequests.get(0));
+    }
+
+    /** A turn where the provider looks a grouping up under {@code call-list-1}, then records, both accepted. */
+    private static void stubLookupThenProposalTurn() {
+        McpLedgerStubs.stubCreateExpenseProposalAccepted();
+        McpLedgerStubs.stubListCategoriesAnswering(LOOKUP_GROUPING, List.of("Lunch"));
+        WireMockStubs.stubChatCompletionSequence(
+                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
+                        "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
+                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
+                ChatCompletionFixtures.textResponse("recorded"));
+    }
+
+    /** A turn where the ledger refuses the first proposal under {@code call-1} and accepts the corrected one. */
+    private static void stubRefusedThenCorrectedTurn() {
+        McpLedgerStubs.stubCreateExpenseProposalRefusedThenAccepted();
+        String correctedArguments =
+                """
+                {"category":"Travel","grouping":"Insurance","description":"cab",\
+                "amount":"20.00","currencyCode":"EUR"}""";
+        WireMockStubs.stubChatCompletionSequence(
+                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
+                ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", correctedArguments)),
+                ChatCompletionFixtures.textResponse("recorded"));
+    }
+
+    /**
      * The content the request carried back to the provider as the result of the tool call {@code toolCallId}, or
      * an empty string if it carried none.
      */
@@ -114,11 +153,9 @@ class AiExpenseRecordingAdapterTest {
     class Record {
 
         @Test
-        @DisplayName("when the provider answers one create_expense_proposal tool call and the ledger accepts it, "
-                + "with a caller token held for the turn - then the ledger receives exactly one tool call carrying "
-                + "the model's arguments, every request on the wire carries that token as Authorization, and the "
-                + "call returns without throwing")
-        void whenOneAcceptedToolCallWithCallerToken_thenLedgerReceivesItEveryRequestCarriesTokenAndNoExceptionThrown() {
+        @DisplayName("when the provider answers one create_expense_proposal call - then the ledger receives the "
+                + "model's arguments")
+        void whenProviderAnswersOneAcceptedToolCall_thenLedgerReceivesTheModelsArguments() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
@@ -133,6 +170,18 @@ class AiExpenseRecordingAdapterTest {
             assertThat(arguments.get("description").asText()).isEqualTo("lunch");
             assertThat(arguments.get("amount").asText()).isEqualTo("15.00");
             assertThat(arguments.get("currencyCode").asText()).isEqualTo("EUR");
+        }
+
+        @Test
+        @DisplayName("when a caller token is held for the turn - then every request to the ledger carries it as "
+                + "Authorization")
+        void whenCallerTokenHeldForTheTurn_thenEveryLedgerRequestCarriesItAsAuthorization() {
+            McpLedgerStubs.stubCreateExpenseProposalAccepted();
+            WireMockStubs.stubChatCompletionSequence(
+                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", LUNCH_ARGUMENTS)),
+                    ChatCompletionFixtures.textResponse("recorded"));
+
+            recordInEuros(CALLER_TOKEN_1);
 
             List<LoggedRequest> mcpRequests = CapturedRequestUtils.mcpRequests();
             assertThat(mcpRequests).isNotEmpty();
@@ -166,23 +215,20 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when record() is called with labels, a text and an assumed currency - then the provider's "
-                + "request carries record-expenses.st verbatim as the system message, and a user message holding "
-                + "the current date, the labels, the currency code and the text; its tool schema names "
-                + "create_expense_proposal, list_categories and summarize_spending with the arguments each ledger "
-                + "tool declares")
-        void whenCalledWithLabelsTextAndCurrency_thenRequestCarriesSystemPromptUserMessageAndToolSchema() {
-            McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
-
-            recordInEuros(CALLER_TOKEN_1);
-
-            List<LoggedRequest> chatRequests = CapturedRequestUtils.chatCompletionRequests();
-            assertThat(chatRequests).isNotEmpty();
-            JsonNode body = CapturedRequestUtils.body(chatRequests.get(0));
+        @DisplayName("when record() is called - then the provider's request carries record-expenses.st verbatim "
+                + "as the system message")
+        void whenCalled_thenSystemMessageIsTheRecordExpensesPromptVerbatim() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
 
             assertThat(CapturedRequestUtils.messageContent(body, "system"))
                     .isEqualTo(JsonUtils.readJsonResourceAsString(SYSTEM_PROMPT_RESOURCE));
+        }
+
+        @Test
+        @DisplayName("when record() is called - then the user message holds the current date, the labels, the "
+                + "currency and the text")
+        void whenCalledWithLabelsTextAndCurrency_thenUserMessageHoldsDateLabelsCurrencyAndText() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
 
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
             assertThat(userMessage)
@@ -195,6 +241,13 @@ class AiExpenseRecordingAdapterTest {
                     .contains(TEXT)
                     .contains("sending that same grouping with it")
                     .doesNotContain(">");
+        }
+
+        @Test
+        @DisplayName("when record() is called - then the tool schema names the three ledger tools with the "
+                + "arguments each declares")
+        void whenCalled_thenToolSchemaNamesTheLedgerToolsAndTheirArguments() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
 
             JsonNode tools = body.get("tools");
             assertThat(tools)
@@ -224,17 +277,10 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider first calls list_categories, then create_expense_proposal, and the "
-                + "ledger answers both - then both tool calls reach the ledger under the turn's caller token, and "
-                + "the lookup's answer reaches the provider as that call's result")
-        void whenProviderListsCategoriesThenCreatesProposal_thenBothCallsReachLedgerAndLookupAnswerReachesProvider() {
-            McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            McpLedgerStubs.stubListCategoriesAnswering(LOOKUP_GROUPING, List.of("Lunch"));
-            WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall(
-                            "call-list-1", ChatCompletionFixtures.LedgerTool.LIST_CATEGORIES, lookupArguments())),
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-2", LUNCH_ARGUMENTS)),
-                    ChatCompletionFixtures.textResponse("recorded"));
+        @DisplayName("when the provider calls two ledger tools in one turn - then both calls reach the ledger "
+                + "under the turn's token")
+        void whenProviderListsCategoriesThenCreatesProposal_thenBothCallsReachLedgerUnderTheTurnsToken() {
+            stubLookupThenProposalTurn();
 
             assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
 
@@ -245,6 +291,15 @@ class AiExpenseRecordingAdapterTest {
             assertThat(listCategoriesCalls.get(0).getHeader("Authorization")).isEqualTo(CALLER_TOKEN_1);
             assertThat(createExpenseProposalCalls.get(0).getHeader("Authorization"))
                     .isEqualTo(CALLER_TOKEN_1);
+        }
+
+        @Test
+        @DisplayName("when the ledger answers a list_categories call - then its answer reaches the provider as "
+                + "that call's result")
+        void whenLedgerAnswersListCategories_thenAnswerReachesProviderAsThatCallsResult() {
+            stubLookupThenProposalTurn();
+
+            recordInEuros(CALLER_TOKEN_1);
 
             assertThat(CapturedRequestUtils.chatCompletionRequests())
                     .anyMatch(
@@ -252,11 +307,9 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the ledger answers a list_categories call with an isError result, and the provider "
-                + "then corrects the grouping and records the expense - then the call returns without throwing "
-                + "and the create call still reaches the ledger")
-        void
-                whenLedgerRefusesListCategoriesThenProviderCorrectsAndRecords_thenReturnsWithoutThrowingAndCreateCallReachesLedger() {
+        @DisplayName("when a list_categories call is refused and the provider records anyway - then the create "
+                + "call reaches the ledger")
+        void whenLedgerRefusesListCategoriesThenProviderCorrectsAndRecords_thenCreateCallReachesLedger() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             McpLedgerStubs.stubListCategoriesRefused();
             WireMockStubs.stubChatCompletionSequence(
@@ -271,18 +324,10 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when no assumed currency is given - then the user message says an amount with no currency "
-                + "is left unrecorded, and names no currency code")
+        @DisplayName("when no assumed currency is given - then the user message names no currency code and says "
+                + "the amount goes unrecorded")
         void whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode() {
-            McpLedgerStubs.stubCreateExpenseProposalAccepted();
-            WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
-
-            record(CALLER_TOKEN_1, Optional.empty());
-
-            List<LoggedRequest> chatRequests = CapturedRequestUtils.chatCompletionRequests();
-            assertThat(chatRequests).isNotEmpty();
-            String userMessage =
-                    CapturedRequestUtils.messageContent(CapturedRequestUtils.body(chatRequests.get(0)), "user");
+            String userMessage = CapturedRequestUtils.messageContent(chatRequestBody(Optional.empty()), "user");
             assertThat(userMessage).contains("unrecorded");
 
             String userMessageWithoutTodayLine = userMessage
@@ -293,33 +338,31 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the ledger answers the first tool call with a tool error result, then accepts the "
-                + "corrected one - then the refusal text reaches the provider as that tool call's result, the "
-                + "second tool call is made, and the call returns without throwing")
-        void
-                whenLedgerRefusesFirstToolCallThenAcceptsCorrected_thenRefusalReachesProviderSecondCallMadeAndNoExceptionThrown() {
-            McpLedgerStubs.stubCreateExpenseProposalRefusedThenAccepted();
-            String correctedArguments =
-                    """
-                    {"category":"Travel","grouping":"Insurance","description":"cab",\
-                    "amount":"20.00","currencyCode":"EUR"}""";
-            WireMockStubs.stubChatCompletionSequence(
-                    ChatCompletionFixtures.toolCallResponse(ChatCompletionFixtures.toolCall("call-1", CAB_ARGUMENTS)),
-                    ChatCompletionFixtures.toolCallResponse(
-                            ChatCompletionFixtures.toolCall("call-2", correctedArguments)),
-                    ChatCompletionFixtures.textResponse("recorded"));
+        @DisplayName("when the ledger refuses the first tool call and accepts the corrected one - then both tool "
+                + "calls reach the ledger")
+        void whenLedgerRefusesFirstToolCallThenAcceptsCorrected_thenBothToolCallsReachLedger() {
+            stubRefusedThenCorrectedTurn();
 
             assertThatCode(() -> recordInEuros(CALLER_TOKEN_1)).doesNotThrowAnyException();
 
             assertThat(CapturedRequestUtils.toolCallRequests()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("when the ledger refuses the first tool call - then the refusal text reaches the provider as "
+                + "that call's result")
+        void whenLedgerRefusesFirstToolCall_thenRefusalTextReachesProviderAsThatCallsResult() {
+            stubRefusedThenCorrectedTurn();
+
+            recordInEuros(CALLER_TOKEN_1);
+
             assertThat(CapturedRequestUtils.chatCompletionRequests())
                     .anyMatch(
                             request -> toolResultContent(request, "call-1").contains("categories named Travel exist"));
         }
 
         @Test
-        @DisplayName("when the ledger refuses the same expense twice - then the call returns without throwing and "
-                + "no proposal is recorded for that expense")
+        @DisplayName("when the ledger refuses the same expense twice - then the call returns without throwing")
         void whenLedgerRefusesSameExpenseTwice_thenReturnsWithoutThrowing() {
             McpLedgerStubs.stubCreateExpenseProposalRefusedTwice();
             WireMockStubs.stubChatCompletionSequence(
@@ -331,8 +374,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when two turns run in succession under different caller tokens, against one long-lived "
-                + "client - then each turn's tool call carries its own token, and neither carries the other's")
+        @DisplayName("when two turns run under different caller tokens - then each tool call carries its own "
+                + "turn's token")
         void whenTwoTurnsRunWithDifferentCallerTokens_thenEachToolCallCarriesOnlyItsOwnToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
@@ -369,7 +412,7 @@ class AiExpenseRecordingAdapterTest {
 
         @Test
         @DisplayName("when the provider responds 500 - then it throws ExpenseRecordingFailedException, not a "
-                + "Spring AI or HTTP-client exception")
+                + "Spring AI exception")
         void whenProviderRespondsServerError_thenThrowsExpenseRecordingFailedException() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionServerError();
@@ -396,10 +439,9 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider calls summarize_spending and the ledger accepts it - then that tool call "
-                + "reaches the ledger under the turn's caller token, carrying the first and last day the provider "
-                + "asked for")
-        void whenProviderCallsSummarizeSpendingAndLedgerAccepts_thenLedgerReceivesItUnderCallerTokenWithAskedPeriod() {
+        @DisplayName("when the provider calls summarize_spending - then the call reaches the ledger with the "
+                + "period asked for")
+        void whenProviderCallsSummarizeSpending_thenLedgerReceivesItWithTheAskedPeriod() {
             String from = "2026-07-27";
             String to = "2026-08-02";
             McpLedgerStubs.stubSummarizeSpendingAccepted(from, to);
