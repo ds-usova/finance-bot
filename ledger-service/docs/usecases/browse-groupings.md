@@ -1,11 +1,19 @@
 # Browse a person's groupings
 
-- **In:** the identity of the authenticated caller
-- **Out:** their groupings, each by id and name, ordered by name
+- **In**
+  - the identity of the authenticated caller
+- **Out**
+  - their groupings, whole and unpaged, ordered by name
+  - each by id and name
 - **Why:** it is the top of the tree a browser offers as a filter, and the source of the id
   [the category listing](browse-categories.md) narrows by
 
 *Implemented by `BrowseGroupingsUseCase`.*
+
+## Prerequisites
+
+- The caller is authenticated. The request never names whose groupings they are.
+- A user is stored under that identity.
 
 ## Collaborators
 
@@ -14,17 +22,8 @@
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | offering the person's groupings as a way to narrow the tree  |
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their groupings          |
 
-## Rules
-
-- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
-  The request never names whose groupings they are.
-- Only the caller's own [groupings](../domain/grouping.md) are reachable, and nothing widens that.
-- A grouping holding no categories is answered too. [The turn answering a message](handle-incoming-message.md)
-  hides one; this listing does not.
-- A grouping is answered by its stored id and its name.
-- The answer is the whole list. Nothing is paged and nothing is capped.
-- Ordered by name.
-- Nothing is stored, created or changed.
+A [grouping](../domain/grouping.md) holding no categories is answered too.
+[The turn answering a message](handle-incoming-message.md) hides one; this listing does not.
 
 ## Outcomes
 

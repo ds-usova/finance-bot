@@ -55,6 +55,18 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
   not one of those homes: it carries how an agent works this repository, not what the repository's documents
   must look like.
 
+## A Use-Case Page
+
+- **In and Out are lists**, one item per thing that goes in or comes out. Never one line with the items separated
+  by a symbol: a reader counts them by scanning, and a fourth item makes the line wrap into prose.
+- **Prerequisites, not Rules.** What must already hold for the use case to run — the caller is authenticated, a
+  user is stored under that identity — one line each. Two or three is a full section.
+- **A Rules section is where a page goes wrong.** It fills with what the flow diagram draws, what **Outcomes**
+  already tables, and what a contract or a domain page owns. Before writing a rule, look for it in those three; a
+  rule that survives that search is usually a **Prerequisite** or a sentence under the section it qualifies.
+- **Outcomes is a table** of condition and result, and it is the section that earns its length. It is the one
+  place a reader learns what the use case answers when things go wrong.
+
 ## A Domain Page
 
 A page under `docs/domain/` carries **Invariants** and **Made of / held by**. An **entity** — a type with

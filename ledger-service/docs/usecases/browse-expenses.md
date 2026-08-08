@@ -1,11 +1,19 @@
 # Browse a person's expenses
 
-- **In:** the identity of the authenticated caller · an [expense filter](../domain/expense-filter.md)
-- **Out:** one page of entries, newest first, with the page size and offset applied and how many rows the filter
-  matches
+- **In**
+  - the identity of the authenticated caller
+  - an [expense filter](../domain/expense-filter.md)
+- **Out**
+  - one page of entries, newest first, with the page size and the offset applied
+  - how many rows the filter matches
 - **Why:** it is how a signed-in person sees everything the ledger holds for them in one list
 
 *Implemented by `BrowseExpensesUseCase`.*
+
+## Prerequisites
+
+- The caller is authenticated. The request never names whose expenses it is.
+- A user is stored under that identity.
 
 ## What a page holds
 
@@ -14,10 +22,8 @@
 | Recorded | the spending is already in the ledger      | stored expenses  |
 | Pending  | a proposal is still waiting for a decision | stored proposals |
 
-- Both kinds carry the same parts, and the [status](../domain/expense-status.md) is what tells them apart.
-- An id identifies an entry only together with its status; the two kinds number their rows separately.
-- No entry carries a category name or a grouping — [the category listing](browse-categories.md) resolves those.
-- No amount is totalled here. The count is of rows, not of money.
+Both kinds carry the same parts, and the [status](../domain/expense-status.md) tells them apart. A category
+arrives as an id; [the category listing](browse-categories.md) names it.
 
 ## Collaborators
 
@@ -25,23 +31,6 @@
 |-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | showing a signed-in person their spending, newest first                        |
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, reading the page, and counting what the filter matches |
-
-## Rules
-
-- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
-  The request never names whose expenses it is.
-- Only the caller's own rows are reachable, and no part of the filter widens that.
-- A category belonging to somebody else matches nothing rather than being refused.
-- The [filter](../domain/expense-filter.md) holds together before anything is read. One that does not reaches no
-  store.
-- Recorded spending and pending proposals are answered as one list, newest first.
-- Entries sharing an instant keep the same order on every call, so a page boundary is stable.
-- The days of a [spending period](../domain/spending-period.md) are taken at UTC, and the last day counts whole.
-- An entry is dated by when its row was recorded, not by when the money was spent. Accepting a proposal re-dates
-  it to the moment it was accepted.
-- The page and the total are two reads, not one snapshot. A row stored between them makes the two disagree by one.
-- A proposal accepted between two page reads moves to the top of the list, so it can be seen twice or not at all.
-- Nothing is stored, created or changed.
 
 ## Outcomes
 

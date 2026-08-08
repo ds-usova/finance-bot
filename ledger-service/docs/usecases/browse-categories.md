@@ -1,11 +1,20 @@
 # Browse a person's categories
 
-- **In:** the identity of the authenticated caller · a grouping, by id (optional)
-- **Out:** their categories, each naming its own id and name and its grouping's id and name
+- **In**
+  - the identity of the authenticated caller
+  - a grouping, by id (optional)
+- **Out**
+  - their categories, whole and unpaged, ordered by grouping name then by their own
+  - each carrying its own id and name, and its grouping's
 - **Why:** it is what lets a browser put a name to the category an expense is filed under, and offer the
   categories a filter may choose between
 
 *Implemented by `BrowseCategoriesUseCase`.*
+
+## Prerequisites
+
+- The caller is authenticated. The request never names whose categories they are.
+- A user is stored under that identity.
 
 ## Collaborators
 
@@ -14,20 +23,8 @@
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | naming the category on each listed expense, and filling the filter        |
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their categories with their groupings |
 
-## Rules
-
-- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
-  The request never names whose categories they are.
-- Only the caller's own [categories](../domain/category.md) are reachable, and the grouping filter does not widen
-  that.
-- A [grouping](../domain/grouping.md) is named here by its stored id.
-  [The MCP listing](list-categories.md) takes a name instead, and the two are not interchangeable.
-- A grouping id naming no grouping of theirs answers an empty list. It is not a rejection.
-- A grouping is never answered as a category of itself.
-- Every category names its grouping's id and its grouping's name.
-- The answer is the whole list. Nothing is paged and nothing is capped.
-- Ordered by grouping name, then by category name.
-- Nothing is stored, created or changed.
+A [grouping](../domain/grouping.md) is named here by its stored id. [The MCP listing](list-categories.md) takes a
+name instead, and the two are not interchangeable. A grouping is never answered as a category of itself.
 
 ## Outcomes
 
