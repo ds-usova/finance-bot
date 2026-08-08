@@ -67,8 +67,7 @@ class ExpenseWebMapperTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("oneSidedPeriods")
-        @DisplayName("when a from is given with no to, or a to is given with no from - then throws "
-                + "InvalidSpendingPeriodException, because a period is both days or neither")
+        @DisplayName("when only one of from and to is given - then throws InvalidSpendingPeriodException")
         void whenPeriodHasOnlyOneDay_thenThrowsInvalidSpendingPeriodException(
                 String description, LocalDate from, LocalDate to) {
             assertThatThrownBy(() -> ExpenseWebMapper.toFilter(null, null, null, null, from, to))

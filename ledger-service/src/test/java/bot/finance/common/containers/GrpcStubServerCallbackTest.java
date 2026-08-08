@@ -49,8 +49,8 @@ class GrpcStubServerCallbackTest {
     class ArmMcpCallbacks {
 
         @Test
-        @DisplayName("when extractIntents is called with two callbacks armed - then it posts both armed bodies to "
-                + "<baseUrl>/mcp in the order they were armed, forwarding the authorization header it received")
+        @DisplayName("when two callbacks are armed - then extractIntents posts both to /mcp in order, under the "
+                + "caller's authorization")
         void whenExtractIntentsIsCalledWithCallbacksArmed_thenPostsArmedBodiesInOrderForwardingAuthorizationHeader()
                 throws IOException {
             AtomicReference<String> receivedAuthorization = new AtomicReference<>();
