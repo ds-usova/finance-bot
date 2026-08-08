@@ -7,26 +7,22 @@ Where things are and what the module is built from.
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
 `src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
 
-**Language / framework**: Java 25, Spring Boot;
+| What                         | This module                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+| Language / framework         | Java 25, Spring Boot                                                        |
+| Database, messaging, caching | none of any: the service holds no state                                     |
+| Exposed interface            | gRPC only, on a Netty transport                                             |
+| Services consumed            | an OpenAI-compatible chat-completions API, through Spring AI's `ChatClient` |
+| Contract-first codegen       | the `.proto` schema is the contract                                         |
 
-**Database**: none — the service holds no state. 
+Two things the table cannot carry:
 
-**Messaging / event broker**: none;
-
-**Caching**: none;
-
-**Exposed interface**: **gRPC only**. The service contract is the Protocol Buffers schema (see
-[File Locations](architecture.md#file-locations)); the gRPC server comes from Spring Boot's own
-`spring-boot-starter-grpc-server`, which wraps Spring gRPC on a Netty transport. 
-
-**External services consumed**: an OpenAI-compatible chat-completions API, reached through **Spring AI**'s
-`ChatClient`. Spring AI owns the transport, the request/response shape, and the JSON-schema-based structured
-output; the service supplies the model name, the prompt, and the target record. The provider is addressed
-through `spring.ai.openai.base-url`, which is what lets tests point the whole client at a stub server;
-
-**Contract-first codegen**: **yes** — the `.proto` schema is the contract, and the `com.google.protobuf` Gradle
-plugin generates the message classes and the service base class into `build/generated/sources/proto/`. Generated
-sources are never edited or committed; changing the contract means changing the `.proto`.
+- **Spring AI owns the exchange** — the transport, the request and response shape, and the JSON-schema-based
+  structured output. This service supplies the model name, the prompt and the target record. The provider is
+  addressed through `spring.ai.openai.base-url`, which is what lets a test point the whole client at a stub
+  server.
+- **Generated sources are never edited or committed.** Changing the contract means changing the `.proto`; its
+  location and the generator's output path are in [File Locations](architecture.md#file-locations).
 
 ## Documentation References
 
