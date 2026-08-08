@@ -87,7 +87,7 @@ end
 @startuml C3-BrowseRecordedExpenses-Components
 !include <C4/C4_Component>
 
-AddElementTag("page", $bgColor="#E8590C", $fontColor="#FFFFFF", $borderColor="#A93E08")
+AddElementTag("page", $bgColor="#D6336C", $fontColor="#FFFFFF", $borderColor="#A61E4D")
 
 Person(user, "Person", "Signed in, browsing their expenses")
 System_Ext(ledger, "Ledger Service", "Answers the listing and the category tree")
