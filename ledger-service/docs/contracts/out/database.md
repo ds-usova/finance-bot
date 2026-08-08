@@ -94,14 +94,9 @@ Indexes beyond the constraints above:
 
 - **A `category` row with no parent is a grouping.** That is the only thing telling a grouping from a category
   carrying the same name.
-- `expense_proposal.message_reference` is the [message](../../domain/message-reference.md) that produced the row.
-  `expense.message_reference` is the message whose report the user confirmed, and is empty for an expense no
-  message produced.
-- A reference lives in `expense_proposal` or in `expense`, never both, so which table holds it answers whether
-  the report was resolved
+- `message_reference` is a [message](../../domain/message-reference.md), in all three tables that carry one.
+- **A reference is in `expense_proposal` or in `expense`, never both.** No constraint enforces it
   ([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- `spending_query` holds the questions whose answers have not yet reached their user. Nothing updates a row; it
-  is read and then deleted. Rows a failed delivery leaves behind stay until that user is removed.
 - `user_id` cascades on delete everywhere. `category_id` does not: a category cannot be removed while an expense
   or a proposal references it.
 
