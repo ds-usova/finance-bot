@@ -106,8 +106,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         return status == null ? null : status.name();
     }
 
-    // A filter with no period narrows nothing, and the query reads a null bound as absent. Unpacking that is
-    // the adapter's; what a period's days mean as instants is the period's own.
     private static Instant periodStart(SpendingPeriod period) {
         return period == null ? null : period.startInstant();
     }

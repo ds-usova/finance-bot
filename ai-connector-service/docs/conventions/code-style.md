@@ -103,6 +103,9 @@ scaffolding, needless complexity, import hygiene) applies; the points below prio
 - **Extraction targets**: shared test helpers go to the shared test package, and get listed there (see
   [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes into the proto mapper
   or onto the value object that owns the data, never into a new helper beside the service implementation.
+- **Misplaced behaviour is moved, not counted.** A private static method taking a domain object and reading only
+  its own fields belongs on that type ([Domain](#domain)). Moving it is a relocation, not an extraction, so the
+  threshold below does not apply: one occurrence is enough.
 - **Leave alone**: generated sources — a change there means a change to the schema that produced them; the
   field numbers of an already-released message, never renumbered or reused; `package-info.java` files.
 - **Thresholds**: extract only when logic repeats in 2+ classes; keep methods under one screen; otherwise use
