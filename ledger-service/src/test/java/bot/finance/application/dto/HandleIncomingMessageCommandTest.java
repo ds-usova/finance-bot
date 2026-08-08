@@ -20,8 +20,7 @@ class HandleIncomingMessageCommandTest {
     class HandleIncomingMessageCommandConstructor {
 
         @Test
-        @DisplayName(
-                "when the user external id, the conversation id, the inbound message id and the text are non-blank - then all four components are readable unchanged")
+        @DisplayName("when every component is non-blank - then all four read back unchanged")
         void whenAllFourComponentsAreNonBlank_thenAllFourComponentsAreReadableUnchanged() {
             HandleIncomingMessageCommand message = new HandleIncomingMessageCommand("42", "555", "1", "lunch 12 euro");
 
@@ -33,8 +32,7 @@ class HandleIncomingMessageCommandTest {
 
         @ParameterizedTest(name = "userExternalId={0}, conversationId={1}, inboundMessageId={2}, text={3}")
         @MethodSource("invalidComponents")
-        @DisplayName(
-                "when the user external id, the conversation id, the inbound message id or the text is null or blank - then throws InvalidIncomingMessageException")
+        @DisplayName("when any component is null or blank - then throws InvalidIncomingMessageException")
         void whenAnyComponentIsNullOrBlank_thenThrowsInvalidIncomingMessageException(
                 String userExternalId, String conversationId, String inboundMessageId, String text) {
             assertThatThrownBy(() ->

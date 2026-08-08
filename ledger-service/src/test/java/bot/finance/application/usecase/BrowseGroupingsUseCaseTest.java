@@ -47,8 +47,8 @@ class BrowseGroupingsUseCaseTest {
     class Browse {
 
         @Test
-        @DisplayName("when a stored user and a repository answering the seeded groupings - then every grouping "
-                + "is answered, unpaged, each carrying its id and name")
+        @DisplayName("when the repository answers the seeded groupings - then every grouping is answered with "
+                + "its id and name")
         void whenRepositoryAnswersSeededGroupings_thenEveryGroupingIsAnsweredWithIdAndName() {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
@@ -65,8 +65,8 @@ class BrowseGroupingsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user's database id differs from the caller's external id - then the "
-                + "repository is asked with that stored id, never the external id")
+        @DisplayName("when the stored user's id differs from the external id - then the repository is asked with "
+                + "that stored id")
         void whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdNotExternalId() {
             long differentUserId = 42L;
             when(userRepository.findByExternalId(EXTERNAL_ID))

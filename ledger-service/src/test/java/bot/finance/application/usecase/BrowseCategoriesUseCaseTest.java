@@ -48,8 +48,8 @@ class BrowseCategoriesUseCaseTest {
     class Browse {
 
         @Test
-        @DisplayName("when a stored user and a repository answering three categories - then all three are "
-                + "answered, each carrying its grouping's id and name")
+        @DisplayName("when the repository answers three categories - then all three are answered, each with its "
+                + "grouping")
         void whenRepositoryAnswersThreeCategories_thenAllThreeAreAnsweredWithGroupingIdAndName() {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
@@ -69,9 +69,8 @@ class BrowseCategoriesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user's database id differs from the caller's external id and a grouping id "
-                + "is given - then the repository is asked with that stored id and the grouping id, never the "
-                + "external id")
+        @DisplayName("when the stored user's id differs from the external id - then the repository is asked with "
+                + "that stored id")
         void whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdAndGroupingId() {
             long differentUserId = 42L;
             when(userRepository.findByExternalId(EXTERNAL_ID))
@@ -85,9 +84,8 @@ class BrowseCategoriesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the given grouping id names no grouping of the stored user's - then an empty list is "
-                + "answered and nothing is thrown")
-        void whenGroupingIdNamesNoGroupingOfCaller_thenEmptyListIsAnsweredAndNothingThrown() {
+        @DisplayName("when the grouping id names no grouping of the stored user's - then an empty list is answered")
+        void whenGroupingIdNamesNoGroupingOfCaller_thenEmptyListIsAnswered() {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
             long unknownGroupingId = 999L;

@@ -25,8 +25,8 @@ class SpendingQueryTest {
     class NewQueryFactory {
 
         @Test
-        @DisplayName(
-                "when a positive user id, a period, a reference and an instant are given - then every component reads back unchanged and the entity carries no id")
+        @DisplayName("when every field is given - then every component reads back unchanged and the entity "
+                + "carries no id")
         void whenAllFieldsAreGiven_thenEveryComponentReadsBackUnchangedAndEntityCarriesNoId() {
             Instant now = Instant.parse("2026-07-27T10:15:30Z");
 
@@ -80,8 +80,8 @@ class SpendingQueryTest {
     class StoredFactory {
 
         @Test
-        @DisplayName(
-                "when a database id and every other field are given - then the entity carries that id and every other component reads back unchanged")
+        @DisplayName("when a database id and every other field are given - then the entity carries that id and "
+                + "every field unchanged")
         void whenDatabaseIdAndEveryOtherFieldAreGiven_thenEntityCarriesThatIdAndEveryOtherComponentUnchanged() {
             Instant createdAt = Instant.parse("2026-07-27T10:15:30Z");
 

@@ -93,8 +93,8 @@ class SpendingPeriodTest {
         }
 
         @Test
-        @DisplayName(
-                "when to precedes from, both well-formed - then throws InvalidSpendingPeriodException saying the period ends before it starts")
+        @DisplayName("when to precedes from - then throws InvalidSpendingPeriodException saying it ends before "
+                + "it starts")
         void whenToPrecedesFromBothWellFormed_thenThrowsInvalidSpendingPeriodExceptionSayingEndsBeforeItStarts() {
             assertThatThrownBy(() -> SpendingPeriod.of("2026-07-27", "2026-07-20"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)
@@ -119,8 +119,8 @@ class SpendingPeriodTest {
     class AsInstants {
 
         @Test
-        @DisplayName("when the period is read as instants - then it starts at the first day's UTC midnight and "
-                + "ends at the midnight after the last day")
+        @DisplayName("when the period is read as instants - then it spans the first day's UTC midnight to the "
+                + "midnight after the last day")
         void whenPeriodIsReadAsInstants_thenItSpansFromFirstMidnightToTheMidnightAfterTheLastDay() {
             SpendingPeriod period = SpendingPeriod.of("2026-01-05", "2026-01-07");
 

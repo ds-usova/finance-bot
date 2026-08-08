@@ -34,9 +34,8 @@ class SpendingSummaryTest {
         }
 
         @Test
-        @DisplayName("when a mutable totals list handed to the constructor is modified afterwards - "
-                + "then totals() is unchanged and unmodifiable")
-        void whenMutableTotalsListIsModifiedAfterConstruction_thenTotalsIsUnchangedAndUnmodifiable() {
+        @DisplayName("when the mutable list a summary was built from is modified - then totals() is unchanged")
+        void whenMutableTotalsListIsModifiedAfterConstruction_thenTotalsIsUnchanged() {
             CurrencyTotal eur = new CurrencyTotal(new Money(500, new CurrencyCode("EUR")), 2);
             List<CurrencyTotal> mutableTotals = new ArrayList<>(List.of(eur));
 
@@ -44,6 +43,15 @@ class SpendingSummaryTest {
             mutableTotals.add(new CurrencyTotal(new Money(1000, new CurrencyCode("USD")), 1));
 
             assertThat(summary.totals()).containsExactly(eur);
+        }
+
+        @Test
+        @DisplayName("when a summary is built from a totals list - then totals() is unmodifiable")
+        void whenSummaryIsBuiltFromATotalsList_thenTotalsIsUnmodifiable() {
+            CurrencyTotal eur = new CurrencyTotal(new Money(500, new CurrencyCode("EUR")), 2);
+
+            SpendingSummary summary = new SpendingSummary(PERIOD, List.of(eur));
+
             assertThatThrownBy(() -> summary.totals().add(eur)).isInstanceOf(UnsupportedOperationException.class);
         }
 

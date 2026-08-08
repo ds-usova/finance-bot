@@ -62,8 +62,8 @@ class BrowseExpensesUseCaseTest {
     class Browse {
 
         @Test
-        @DisplayName("when a stored user and a repository answering a page of entries and a total - then the "
-                + "answered page carries those entries, the total, and the filter's limit and offset")
+        @DisplayName("when the repository answers a page and a total - then the answered page carries them and "
+                + "the filter's paging")
         void whenRepositoryAnswersPageAndTotal_thenAnsweredPageCarriesEntriesTotalLimitAndOffset() {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
@@ -88,9 +88,8 @@ class BrowseExpensesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user's database id differs from the caller's external id - then the "
-                + "repository is asked for the page and the count with that stored id and the same filter, never "
-                + "the external id")
+        @DisplayName(
+                "when the stored user's id differs from the external id - then both reads receive that " + "stored id")
         void whenStoredUserIdDiffersFromExternalId_thenBothReadsReceiveStoredUserIdNotExternalId() {
             long differentUserId = 42L;
             when(userRepository.findByExternalId(EXTERNAL_ID))
@@ -106,8 +105,8 @@ class BrowseExpensesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when no user row is stored under the caller's external id - then throws "
-                + "EntityNotFoundException and the expense repository is never read")
+        @DisplayName("when no user is stored under the caller's external id - then throws EntityNotFoundException "
+                + "and nothing is read")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryUntouched() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
@@ -118,8 +117,8 @@ class BrowseExpensesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the expense repository raises PersistenceFailedException reading the page - then the "
-                + "exception reaches the caller unchanged rather than being answered as an empty page")
+        @DisplayName("when the expense repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
         void whenExpenseRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             when(userRepository.findByExternalId(EXTERNAL_ID))
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));

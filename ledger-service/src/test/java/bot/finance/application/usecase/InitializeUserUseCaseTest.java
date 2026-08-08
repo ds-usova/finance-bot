@@ -43,31 +43,46 @@ class InitializeUserUseCaseTest {
         useCase = new InitializeUserUseCase(userRepository, loggerFactory);
     }
 
+    /** Answers nothing for the external id, and returns the user the repository would have created. */
+    private User stubNoStoredUser() {
+        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+        User createdUser = User.stored(1L, EXTERNAL_ID);
+        when(userRepository.create(any(), any())).thenReturn(createdUser);
+        return createdUser;
+    }
+
     @Nested
     @DisplayName("initializing a user")
     class Initialize {
 
         @Test
-        @DisplayName("when no user is stored for the external id - then the repository creates a user carrying that "
-                + "external id and Grouping.defaults(), and the created user is returned")
-        void whenNoUserExistsForExternalId_thenRepositoryCreatesUserWithDefaultsAndReturnsIt() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
-            User createdUser = User.stored(1L, EXTERNAL_ID);
-            when(userRepository.create(any(), any())).thenReturn(createdUser);
+        @DisplayName("when no user is stored for the external id - then a user carrying it and "
+                + "Grouping.defaults() is created")
+        void whenNoUserExistsForExternalId_thenUserIsCreatedWithThatExternalIdAndDefaults() {
+            stubNoStoredUser();
 
-            User result = useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
+            useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
 
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             ArgumentCaptor<List<Grouping>> groupingsCaptor = ArgumentCaptor.forClass(List.class);
             verify(userRepository).create(userCaptor.capture(), groupingsCaptor.capture());
             assertThat(userCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
             assertThat(groupingsCaptor.getValue()).isEqualTo(Grouping.defaults());
+        }
+
+        @Test
+        @DisplayName("when the repository creates the user - then that user is returned")
+        void whenRepositoryCreatesTheUser_thenThatUserIsReturned() {
+            User createdUser = stubNoStoredUser();
+
+            User result = useCase.initialize(new InitializeUserCommand(EXTERNAL_ID));
+
             assertThat(result).isSameAs(createdUser);
         }
 
         @Test
-        @DisplayName("when a user is already stored for the external id - then that user is returned and the "
-                + "repository is never asked to create anything")
+        @DisplayName(
+                "when a user is already stored for the external id - then it is returned and nothing is " + "created")
         void whenUserAlreadyExistsForExternalId_thenReturnsStoredUserWithoutCreating() {
             User storedUser = User.stored(1L, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
@@ -88,8 +103,8 @@ class InitializeUserUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the repository raises PersistenceFailedException while creating - then the "
-                + "exception reaches the caller unchanged and is not swallowed or retried")
+        @DisplayName("when the repository raises PersistenceFailedException while creating - then it reaches the "
+                + "caller unchanged")
         void whenRepositoryRaisesPersistenceFailedExceptionOnCreate_thenExceptionPropagatesUnchanged() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
             PersistenceFailedException failure =

@@ -60,18 +60,53 @@ class CreateExpenseUseCaseTest {
                 EXTERNAL_ID, CATEGORY_ID, "coffee", Optional.of("Starbucks"), new Money(500, CurrencyCode.of("USD")));
     }
 
+    private void stubStoredUser() {
+        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+    }
+
+    private Expense capturedExpense() {
+        ArgumentCaptor<Expense> expenseCaptor = ArgumentCaptor.forClass(Expense.class);
+        verify(expenseRepository).create(expenseCaptor.capture());
+        return expenseCaptor.getValue();
+    }
+
     @Nested
     @DisplayName("creating an expense")
     class Create {
 
         @Test
-        @DisplayName("when a user is stored under the command's external id and the clock is fixed at a known "
-                + "instant - then the expense repository stores an expense carrying that user's database id and "
-                + "the command's category id, description, merchant and money, with both timestamps equal to the "
-                + "clock's instant, and the stored expense is returned")
-        void whenUserExistsForExternalId_thenRepositoryStoresExpenseWithResolvedUserIdAndClockInstant() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+        @DisplayName("when a user is stored under the external id - then the expense carries that user's id and "
+                + "the command's fields")
+        void whenUserExistsForExternalId_thenExpenseCarriesStoredUserIdAndCommandFields() {
+            stubStoredUser();
+
+            useCase.create(newExpense());
+
+            Expense stampedExpense = capturedExpense();
+            assertThat(stampedExpense.userId()).isEqualTo(USER_ID);
+            assertThat(stampedExpense.categoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(stampedExpense.description()).isEqualTo("coffee");
+            assertThat(stampedExpense.merchant()).contains("Starbucks");
+            assertThat(stampedExpense.money()).isEqualTo(new Money(500, CurrencyCode.of("USD")));
+        }
+
+        @Test
+        @DisplayName("when the clock is fixed at a known instant - then the expense is stamped with it, created "
+                + "and updated")
+        void whenClockIsFixedAtAKnownInstant_thenExpenseIsStampedWithIt() {
+            stubStoredUser();
+
+            useCase.create(newExpense());
+
+            Expense stampedExpense = capturedExpense();
+            assertThat(stampedExpense.createdAt()).isEqualTo(FIXED_INSTANT);
+            assertThat(stampedExpense.updatedAt()).isEqualTo(FIXED_INSTANT);
+        }
+
+        @Test
+        @DisplayName("when the expense repository stores the expense - then it is returned to the caller")
+        void whenExpenseRepositoryStoresTheExpense_thenItIsReturnedToTheCaller() {
+            stubStoredUser();
             Expense createdExpense = Expense.stored(
                     10L,
                     USER_ID,
@@ -85,23 +120,13 @@ class CreateExpenseUseCaseTest {
 
             Expense result = useCase.create(newExpense());
 
-            ArgumentCaptor<Expense> expenseCaptor = ArgumentCaptor.forClass(Expense.class);
-            verify(expenseRepository).create(expenseCaptor.capture());
-            Expense stampedExpense = expenseCaptor.getValue();
-            assertThat(stampedExpense.userId()).isEqualTo(USER_ID);
-            assertThat(stampedExpense.categoryId()).isEqualTo(CATEGORY_ID);
-            assertThat(stampedExpense.description()).isEqualTo("coffee");
-            assertThat(stampedExpense.merchant()).contains("Starbucks");
-            assertThat(stampedExpense.money()).isEqualTo(new Money(500, CurrencyCode.of("USD")));
-            assertThat(stampedExpense.createdAt()).isEqualTo(FIXED_INSTANT);
-            assertThat(stampedExpense.updatedAt()).isEqualTo(FIXED_INSTANT);
             assertThat(result).isSameAs(createdExpense);
         }
 
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws "
-                + "EntityNotFoundException naming \"user\" and the expense repository is untouched")
-        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryIsUntouched() {
+                + "EntityNotFoundException naming \"user\"")
+        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -123,11 +148,10 @@ class CreateExpenseUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a user is stored and the expense repository raises PersistenceFailedException - then "
-                + "the exception reaches the caller unchanged and is not swallowed or retried")
+        @DisplayName("when the expense repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
         void whenExpenseRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            stubStoredUser();
             PersistenceFailedException failure =
                     new PersistenceFailedException("insert failed", new RuntimeException());
             when(expenseRepository.create(any())).thenThrow(failure);
@@ -138,10 +162,9 @@ class CreateExpenseUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the user repository raises PersistenceFailedException while resolving the identity - "
-                + "then the exception reaches the caller unchanged and the expense repository is untouched")
-        void
-                whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndExpenseRepositoryUntouched() {
+        @DisplayName("when the user repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
+        void whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenThrow(failure);

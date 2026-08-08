@@ -231,8 +231,7 @@ class ResolveProposalsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a user is stored, discard answers 2 and acknowledge throws "
-                + "MessageDeliveryFailedException - then that exception propagates")
+        @DisplayName("when acknowledge throws MessageDeliveryFailedException - then it propagates")
         void whenAcknowledgeThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
             stubStoredUser();
             when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(2);

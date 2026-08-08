@@ -36,6 +36,8 @@ class SummarizeSpendingUseCaseTest {
     private static final String EXTERNAL_ID = "555";
     private static final long USER_ID = 1L;
     private static final Instant FIXED_INSTANT = Instant.parse("2026-08-05T00:00:00Z");
+    private static final SpendingPeriod EXPECTED_PERIOD =
+            new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
 
     private UserRepository userRepository;
     private SpendingQueryRepository spendingQueryRepository;
@@ -54,6 +56,19 @@ class SummarizeSpendingUseCaseTest {
         return new SummarizeSpendingCommand(new AuthenticatedUserId(EXTERNAL_ID), reference, from, to);
     }
 
+    /** Stores a user under {@code userId}, and answers the query the use case writes for EXPECTED_PERIOD. */
+    private void stubStoredUserAndCreatedQuery(long userId, MessageReference reference) {
+        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(userId, EXTERNAL_ID)));
+        when(spendingQueryRepository.create(any()))
+                .thenReturn(SpendingQuery.stored(9L, userId, EXPECTED_PERIOD, reference, FIXED_INSTANT));
+    }
+
+    private SpendingQuery capturedQuery() {
+        ArgumentCaptor<SpendingQuery> captor = ArgumentCaptor.forClass(SpendingQuery.class);
+        verify(spendingQueryRepository).create(captor.capture());
+        return captor.getValue();
+    }
+
     @Nested
     @DisplayName("summarizing a period")
     class Summarize {
@@ -69,9 +84,8 @@ class SummarizeSpendingUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the command's written dates do not make a period - then throws "
-                + "InvalidSpendingPeriodException and neither repository is touched")
-        void whenWrittenDatesDoNotMakeAPeriod_thenThrowsInvalidSpendingPeriodExceptionAndRepositoriesUntouched() {
+        @DisplayName("when the written dates do not make a period - then throws InvalidSpendingPeriodException")
+        void whenWrittenDatesDoNotMakeAPeriod_thenThrowsInvalidSpendingPeriodException() {
             SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "not-a-date", "2026-08-05");
 
             assertThatThrownBy(() -> useCase.summarize(command)).isInstanceOf(InvalidSpendingPeriodException.class);
@@ -81,9 +95,8 @@ class SummarizeSpendingUseCaseTest {
         }
 
         @Test
-        @DisplayName("when nothing is stored under the command's external id - then throws "
-                + "EntityNotFoundException and the spending query repository is never called")
-        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndSpendingQueryRepositoryUntouched() {
+        @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
+        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
             SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "2026-08-01", "2026-08-05");
 
@@ -93,50 +106,43 @@ class SummarizeSpendingUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user and a well-formed period are given - then the stored query carries "
-                + "that user's stored id, the command's reference, the parsed period and the fixed clock's "
-                + "instant, and the answer is that same period")
-        void whenStoredUserAndWellFormedPeriod_thenStoredQueryCarriesUserReferencePeriodAndClockInstant() {
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+        @DisplayName("when a well-formed period is given - then the stored query carries the user, reference, "
+                + "period and instant")
+        void whenWellFormedPeriod_thenStoredQueryCarriesUserReferencePeriodAndClockInstant() {
             MessageReference reference = MessageReference.newReference();
-            SpendingPeriod expectedPeriod =
-                    new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
-            when(spendingQueryRepository.create(any()))
-                    .thenReturn(SpendingQuery.stored(9L, USER_ID, expectedPeriod, reference, FIXED_INSTANT));
-            SummarizeSpendingCommand command = newCommand(reference, "2026-07-27", "2026-08-02");
+            stubStoredUserAndCreatedQuery(USER_ID, reference);
 
-            SpendingPeriod answer = useCase.summarize(command);
+            useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
 
-            ArgumentCaptor<SpendingQuery> captor = ArgumentCaptor.forClass(SpendingQuery.class);
-            verify(spendingQueryRepository).create(captor.capture());
-            SpendingQuery stored = captor.getValue();
+            SpendingQuery stored = capturedQuery();
             assertThat(stored.userId()).isEqualTo(USER_ID);
             assertThat(stored.messageReference()).isEqualTo(reference);
-            assertThat(stored.period()).isEqualTo(expectedPeriod);
+            assertThat(stored.period()).isEqualTo(EXPECTED_PERIOD);
             assertThat(stored.createdAt()).isEqualTo(FIXED_INSTANT);
-            assertThat(answer).isEqualTo(expectedPeriod);
         }
 
         @Test
-        @DisplayName("when the stored user's id differs from the external id on the command - then the stored "
-                + "query carries that stored user's id")
+        @DisplayName("when the period is well-formed - then the answer is that same period")
+        void whenPeriodIsWellFormed_thenTheAnswerIsThatSamePeriod() {
+            MessageReference reference = MessageReference.newReference();
+            stubStoredUserAndCreatedQuery(USER_ID, reference);
+
+            SpendingPeriod answer = useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
+
+            assertThat(answer).isEqualTo(EXPECTED_PERIOD);
+        }
+
+        @Test
+        @DisplayName(
+                "when the stored user's id differs from the external id - then the stored query carries " + "that id")
         void whenStoredUsersIdDiffersFromExternalId_thenStoredQueryCarriesStoredUsersId() {
             long differentUserId = 42L;
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(differentUserId, EXTERNAL_ID)));
             MessageReference reference = MessageReference.newReference();
-            SpendingPeriod expectedPeriod =
-                    new SpendingPeriod(LocalDate.parse("2026-07-27"), LocalDate.parse("2026-08-02"));
-            when(spendingQueryRepository.create(any()))
-                    .thenReturn(SpendingQuery.stored(9L, differentUserId, expectedPeriod, reference, FIXED_INSTANT));
-            SummarizeSpendingCommand command = newCommand(reference, "2026-07-27", "2026-08-02");
+            stubStoredUserAndCreatedQuery(differentUserId, reference);
 
-            useCase.summarize(command);
+            useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
 
-            ArgumentCaptor<SpendingQuery> captor = ArgumentCaptor.forClass(SpendingQuery.class);
-            verify(spendingQueryRepository).create(captor.capture());
-            assertThat(captor.getValue().userId()).isEqualTo(differentUserId);
+            assertThat(capturedQuery().userId()).isEqualTo(differentUserId);
         }
 
         @Test

@@ -43,8 +43,7 @@ class EntityTest {
         }
 
         @Test
-        @DisplayName(
-                "when two instances of different subclasses carry the same id - then they are not equal, the concrete class is part of the identity")
+        @DisplayName("when two instances of different subclasses carry the same id - then they are not equal")
         void whenTwoInstancesOfDifferentSubclassesCarrySameId_thenTheyAreNotEqual() {
             StoredThing first = new StoredThing(1L);
             OtherThing second = new OtherThing(1L);
@@ -65,8 +64,8 @@ class EntityTest {
         }
 
         @Test
-        @DisplayName(
-                "when an instance with an absent id is compared with another of the same subclass carrying an id, in both directions - then they are not equal")
+        @DisplayName("when an instance with an absent id is compared with one carrying an id, both ways - then "
+                + "they are not equal")
         void whenInstanceWithAbsentIdIsComparedWithInstanceCarryingId_thenTheyAreNotEqual() {
             StoredThing withoutId = new StoredThing(null);
             StoredThing withId = new StoredThing(1L);
@@ -100,8 +99,8 @@ class EntityTest {
         }
 
         @Test
-        @DisplayName(
-                "when an instance has an absent id - then its hash code, taken twice, both equal System.identityHashCode of that instance")
+        @DisplayName("when an instance has an absent id - then its hash code is System.identityHashCode, and does "
+                + "not change")
         void whenInstanceHasAbsentId_thenHashCodeEqualsIdentityHashCode() {
             StoredThing thing = new StoredThing(null);
 

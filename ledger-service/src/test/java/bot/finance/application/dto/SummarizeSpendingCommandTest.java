@@ -19,8 +19,7 @@ class SummarizeSpendingCommandTest {
     class SummarizeSpendingCommandConstructor {
 
         @Test
-        @DisplayName("when an authenticated user id, a reference and two written dates are present - "
-                + "then every component reads back unchanged")
+        @DisplayName("when every component is present - then every component reads back unchanged")
         void whenUserIdReferenceAndDatesArePresent_thenEveryComponentReadsBackUnchanged() {
             AuthenticatedUserId userId = new AuthenticatedUserId("user-external-id");
             MessageReference reference = MessageReference.newReference();
