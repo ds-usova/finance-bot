@@ -52,29 +52,39 @@ class CategoriesControllerTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the request carries a valid session cookie and no grouping id - then the port is "
-                + "called with a command carrying no grouping id, and the response is 200 with all three "
-                + "categories, each naming its grouping's id and name")
-        void whenNoGroupingId_thenPortCalledWithNoGroupingIdAndResponseIs200WithAllThree() throws Exception {
-            when(browseCategoriesPort.browse(any()))
-                    .thenReturn(List.of(
-                            new CategoryEntry(1L, "Supermarkets", 100L, "Groceries"),
-                            new CategoryEntry(2L, "Fuel", 200L, "Auto"),
-                            new CategoryEntry(3L, "Rent", 300L, "Housing")));
-
-            MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()))
-                    .andExpect(status().isOk())
-                    .andReturn();
+        @DisplayName("when the request carries no grouping id - then the port is called with a command carrying none")
+        void whenNoGroupingId_thenPortCalledWithCommandCarryingNoGroupingId() throws Exception {
+            browseWithNoGroupingId();
 
             ArgumentCaptor<BrowseCategoriesCommand> command = ArgumentCaptor.forClass(BrowseCategoriesCommand.class);
             verify(browseCategoriesPort).browse(command.capture());
             assertThat(command.getValue().groupingId()).isNull();
+        }
+
+        @Test
+        @DisplayName("when the port answers three categories - then the response is 200 with all three, each "
+                + "naming its grouping")
+        void whenPortAnswersThreeCategories_thenResponseIs200WithAllThree() throws Exception {
+            MvcResult result = browseWithNoGroupingId();
 
             JsonNode items = JsonUtils.readJson(result.getResponse().getContentAsString());
             assertThat(items).hasSize(3);
             assertThat(items.get(0).get("name").asText()).isEqualTo("Supermarkets");
             assertThat(items.get(0).get("groupingId").asLong()).isEqualTo(100L);
             assertThat(items.get(0).get("groupingName").asText()).isEqualTo("Groceries");
+        }
+
+        /** A GET carrying a valid session cookie and no grouping id, the port answering three categories. */
+        private MvcResult browseWithNoGroupingId() throws Exception {
+            when(browseCategoriesPort.browse(any()))
+                    .thenReturn(List.of(
+                            new CategoryEntry(1L, "Supermarkets", 100L, "Groceries"),
+                            new CategoryEntry(2L, "Fuel", 200L, "Auto"),
+                            new CategoryEntry(3L, "Rent", 300L, "Housing")));
+
+            return mockMvc.perform(get(PATH).cookie(sessionCookie()))
+                    .andExpect(status().isOk())
+                    .andReturn();
         }
 
         @Test

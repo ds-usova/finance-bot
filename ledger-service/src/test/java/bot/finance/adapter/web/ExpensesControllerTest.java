@@ -68,15 +68,10 @@ class ExpensesControllerTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when the request carries a valid session cookie and no query parameters - then the port is "
-                + "called with a filter carrying the defaults and no narrowing, and the response is 200 with the page")
-        void whenNoQueryParameters_thenPortIsCalledWithDefaultFilterAndResponseIs200WithPage() throws Exception {
-            ExpensePage page = new ExpensePage(List.of(firstEntry(), secondEntry()), 50, 0, 2L);
-            when(browseExpensesPort.browse(any())).thenReturn(page);
-
-            MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()))
-                    .andExpect(status().isOk())
-                    .andReturn();
+        @DisplayName("when the request carries no query parameters - then the port is called with a filter "
+                + "carrying the defaults")
+        void whenNoQueryParameters_thenPortIsCalledWithDefaultFilter() throws Exception {
+            browseWithNoParameters();
 
             ArgumentCaptor<BrowseExpensesCommand> command = ArgumentCaptor.forClass(BrowseExpensesCommand.class);
             verify(browseExpensesPort).browse(command.capture());
@@ -86,6 +81,13 @@ class ExpensesControllerTest {
             assertThat(filter.status()).isNull();
             assertThat(filter.categoryId()).isNull();
             assertThat(filter.period()).isNull();
+        }
+
+        @Test
+        @DisplayName("when the port answers a page - then the response is 200 with the page's items, limit, "
+                + "offset and total")
+        void whenPortAnswersAPage_thenResponseIs200WithThePage() throws Exception {
+            MvcResult result = browseWithNoParameters();
 
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getList("items")).hasSize(2);
@@ -94,9 +96,19 @@ class ExpensesControllerTest {
             assertThat(json.getLong("total")).isEqualTo(2L);
         }
 
+        /** A GET carrying a valid session cookie and no query parameters, the port answering a page of two. */
+        private MvcResult browseWithNoParameters() throws Exception {
+            ExpensePage page = new ExpensePage(List.of(firstEntry(), secondEntry()), 50, 0, 2L);
+            when(browseExpensesPort.browse(any())).thenReturn(page);
+
+            return mockMvc.perform(get(PATH).cookie(sessionCookie()))
+                    .andExpect(status().isOk())
+                    .andReturn();
+        }
+
         @Test
-        @DisplayName("when the request carries a status, a category id, a from, a to, a limit and an offset - then "
-                + "the port is called with a filter carrying every one of them")
+        @DisplayName("when the request carries every query parameter - then the port is called with a filter "
+                + "carrying all of them")
         void whenEveryParameterIsGiven_thenPortIsCalledWithFilterCarryingAllOfThem() throws Exception {
             when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 30, 5, 0));
 
@@ -313,8 +325,8 @@ class ExpensesControllerTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName("when the port throws InvalidExpenseFilterException - then the response is 400, and the "
-                + "message names the parameter and the bound it broke")
+        @DisplayName("when the port throws InvalidExpenseFilterException - then the response is 400 carrying the "
+                + "exception's message")
         void whenPortThrowsInvalidExpenseFilterException_thenResponseIs400NamingParameterAndBound() throws Exception {
             String exceptionMessage = "limit must be between 1 and 100";
             when(browseExpensesPort.browse(any())).thenThrow(new InvalidExpenseFilterException(exceptionMessage));
@@ -327,8 +339,8 @@ class ExpensesControllerTest {
         }
 
         @Test
-        @DisplayName("when the port throws InvalidSpendingPeriodException - then the response is 400, and the "
-                + "message names the period as from and to")
+        @DisplayName("when the port throws InvalidSpendingPeriodException - then the response is 400 naming from "
+                + "and to")
         void whenPortThrowsInvalidSpendingPeriodException_thenResponseIs400NamingFromAndTo() throws Exception {
             when(browseExpensesPort.browse(any()))
                     .thenThrow(new InvalidSpendingPeriodException("Period ends before it starts"));

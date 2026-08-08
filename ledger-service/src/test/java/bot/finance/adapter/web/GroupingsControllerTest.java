@@ -51,23 +51,34 @@ class GroupingsControllerTest {
 
         @Test
         @DisplayName("when the request carries a valid session cookie - then the port is called with a command "
-                + "carrying the cookie's subject, and the response is 200 with both groupings, unpaged")
-        void whenValidSessionCookie_thenPortCalledWithCookiesSubjectAndResponseIs200WithBothUnpaged() throws Exception {
-            when(browseGroupingsPort.browse(any()))
-                    .thenReturn(List.of(new GroupingEntry(1L, "Groceries"), new GroupingEntry(2L, "Housing")));
-
-            MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()))
-                    .andExpect(status().isOk())
-                    .andReturn();
+                + "carrying its subject")
+        void whenValidSessionCookie_thenPortCalledWithCommandCarryingTheCookiesSubject() throws Exception {
+            browseWithSessionCookie();
 
             ArgumentCaptor<BrowseGroupingsCommand> command = ArgumentCaptor.forClass(BrowseGroupingsCommand.class);
             verify(browseGroupingsPort).browse(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+        }
+
+        @Test
+        @DisplayName("when the port answers two groupings - then the response is 200 with both, unpaged")
+        void whenPortAnswersTwoGroupings_thenResponseIs200WithBothUnpaged() throws Exception {
+            MvcResult result = browseWithSessionCookie();
 
             JsonNode items = JsonUtils.readJson(result.getResponse().getContentAsString());
             assertThat(items).hasSize(2);
             assertThat(items.get(0).get("name").asText()).isEqualTo("Groceries");
             assertThat(items.get(1).get("name").asText()).isEqualTo("Housing");
+        }
+
+        /** A GET carrying a valid session cookie, the port answering two groupings. */
+        private MvcResult browseWithSessionCookie() throws Exception {
+            when(browseGroupingsPort.browse(any()))
+                    .thenReturn(List.of(new GroupingEntry(1L, "Groceries"), new GroupingEntry(2L, "Housing")));
+
+            return mockMvc.perform(get(PATH).cookie(sessionCookie()))
+                    .andExpect(status().isOk())
+                    .andReturn();
         }
 
         @Test

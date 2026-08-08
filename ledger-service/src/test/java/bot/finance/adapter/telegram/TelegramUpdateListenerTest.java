@@ -176,9 +176,8 @@ class TelegramUpdateListenerTest {
         }
 
         @Test
-        @DisplayName(
-                "when resolve throws PersistenceFailedException - then a follow-up poll still confirms the batch so the loop is not stalled")
-        void whenResolveThrowsPersistenceFailedException_thenBatchIsStillConfirmedSoTheLoopIsNotStalled() {
+        @DisplayName("when resolve throws PersistenceFailedException - then a follow-up poll still confirms the batch")
+        void whenResolveThrowsPersistenceFailedException_thenBatchIsStillConfirmed() {
             doThrow(new PersistenceFailedException("simulated persistence failure", new RuntimeException()))
                     .when(resolveProposalsPort)
                     .resolve(any());
@@ -211,8 +210,8 @@ class TelegramUpdateListenerTest {
         }
 
         @Test
-        @DisplayName(
-                "when a batch mixing a text and a voice update is polled - then only the text update is handled and the whole batch is confirmed")
+        @DisplayName("when a batch mixes a text and a voice update - then only the text is handled and the batch "
+                + "is confirmed")
         void whenBatchMixingTextAndVoiceUpdateIsPolled_thenOnlyTextUpdateIsHandledAndWholeBatchIsConfirmed() {
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,

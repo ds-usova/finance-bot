@@ -32,9 +32,9 @@ class TelegramUpdateMapperTest {
     class ToHandleIncomingMessageCommand {
 
         @Test
-        @DisplayName(
-                "when the update carries a from id, a chat id, a message id and non-blank text - then returns a command built from those four components")
-        void whenUpdateCarriesFromIdChatIdMessageIdAndNonBlankText_thenReturnsCommandBuiltFromThoseFourComponents() {
+        @DisplayName("when the update carries a from, a chat, a message id and text - then returns a command built "
+                + "from them")
+        void whenUpdateCarriesFromIdChatIdMessageIdAndNonBlankText_thenReturnsCommandBuiltFromThem() {
             Update update = BotUtils.parseUpdate(
                     TelegramFixtures.textMessageUpdate(UPDATE_ID, USER_ID, CHAT_ID, "lunch 12 euro"));
 

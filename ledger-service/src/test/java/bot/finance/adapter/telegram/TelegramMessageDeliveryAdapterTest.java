@@ -148,7 +148,7 @@ class TelegramMessageDeliveryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called over a bot WireMock answers sendMessage with a non-OK envelope for - then throws MessageDeliveryFailedException")
+                "when sendMessage is answered with a non-OK envelope - then throws " + "MessageDeliveryFailedException")
         void whenSendMessageAnsweredWithNonOkEnvelope_thenThrowsMessageDeliveryFailedException() {
             telegramFailsSendMessage(DELIVERY_TOKEN, 400, "simulated sendMessage failure");
             TurnReport report = recordedReportWithTwoSummaries();
@@ -158,10 +158,9 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called over a bot pointed at an address that refuses the connection - then throws MessageDeliveryFailedException carrying the client exception as its cause")
-        void
-                whenBotIsPointedAtRefusingAddress_thenThrowsMessageDeliveryFailedExceptionCarryingClientExceptionAsCause() {
+        @DisplayName("when the bot's address refuses the connection - then throws with the client exception as its "
+                + "cause")
+        void whenBotIsPointedAtRefusingAddress_thenThrowsCarryingClientExceptionAsCause() {
             TurnReport report = recordedReportWithTwoSummaries();
             TelegramMessageDeliveryAdapter adapter = adapterOver(refusingBot());
 

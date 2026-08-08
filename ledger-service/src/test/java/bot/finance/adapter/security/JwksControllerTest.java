@@ -31,16 +31,13 @@ class JwksControllerTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when the endpoint is requested with no token - then it returns 200 with a JWK Set carrying the signing key's public half and key id")
+        @DisplayName("when the endpoint is requested with no token - then it returns 200 with a JWK Set carrying "
+                + "the signing key")
         void whenRequestedWithNoToken_thenReturnsJwkSetWithSigningPublicKeyAndKeyId() throws Exception {
             RSAKey expectedJwk = new RSAKey.Builder(SigningKeys.keys().publicKey()).build();
 
-            MvcResult result = mockMvc.perform(get("/.well-known/jwks.json"))
-                    .andExpect(status().isOk())
-                    .andReturn();
+            JsonPath json = jwkSet();
 
-            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getList("keys")).hasSize(1);
             assertThat(json.getString("keys[0].kty")).isEqualTo("RSA");
             assertThat(json.getString("keys[0].alg")).isEqualTo("RS256");
@@ -50,8 +47,21 @@ class JwksControllerTest {
                     .isEqualTo(expectedJwk.getModulus().toString());
             assertThat(json.getString("keys[0].e"))
                     .isEqualTo(expectedJwk.getPublicExponent().toString());
-            Map<String, Object> jwk = json.getMap("keys[0]");
+        }
+
+        @Test
+        @DisplayName("when the JWK Set is published - then the key it carries has no private half")
+        void whenTheJwkSetIsPublished_thenTheKeyItCarriesHasNoPrivateHalf() throws Exception {
+            Map<String, Object> jwk = jwkSet().getMap("keys[0]");
+
             assertThat(jwk).doesNotContainKey("d");
+        }
+
+        private JsonPath jwkSet() throws Exception {
+            MvcResult result = mockMvc.perform(get("/.well-known/jwks.json"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return JsonPath.from(result.getResponse().getContentAsString());
         }
     }
 }

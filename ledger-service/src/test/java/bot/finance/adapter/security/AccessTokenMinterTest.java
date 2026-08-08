@@ -29,20 +29,30 @@ class AccessTokenMinterTest {
     class Mint {
 
         @Test
-        @DisplayName(
-                "when mint() is called and the token is parsed - then it carries sub, iss, aud, iat, exp at the configured ttl after iat, and a jti")
+        @DisplayName("when mint() is called - then the token carries the configured subject, issuer, audience "
+                + "and a jti")
         void whenMintIsCalledAndTheTokenIsParsed_thenItCarriesTheExpectedClaims() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
-
-            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
+            JWTClaimsSet claims = mintedClaims();
 
             assertThat(claims.getSubject()).isEqualTo(USER_EXTERNAL_ID);
             assertThat(claims.getIssuer()).isEqualTo(properties.issuer());
             assertThat(claims.getAudience()).containsExactly(properties.audience());
             assertThat(claims.getJWTID()).isNotBlank();
+        }
+
+        @Test
+        @DisplayName("when mint() is called - then the token expires the configured ttl after it was issued")
+        void whenMintIsCalled_thenTheTokenExpiresTheConfiguredTtlAfterItWasIssued() throws ParseException {
+            JWTClaimsSet claims = mintedClaims();
+
             Instant issuedAt = claims.getIssueTime().toInstant();
             Instant expiresAt = claims.getExpirationTime().toInstant();
             assertThat(Duration.between(issuedAt, expiresAt)).isEqualTo(properties.ttl());
+        }
+
+        private JWTClaimsSet mintedClaims() throws ParseException {
+            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            return SignedJWT.parse(token).getJWTClaimsSet();
         }
 
         @Test
@@ -59,8 +69,8 @@ class AccessTokenMinterTest {
         }
 
         @Test
-        @DisplayName(
-                "when mint() is called and the token's header is read - then the algorithm is RS256 and the signature verifies against the keystore's public key")
+        @DisplayName("when mint() is called - then the token is signed RS256 and verifies against the keystore's "
+                + "public key")
         void whenMintIsCalledAndTheTokenHeaderIsRead_thenTheAlgorithmIsRs256AndTheSignatureVerifies() throws Exception {
             String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
 

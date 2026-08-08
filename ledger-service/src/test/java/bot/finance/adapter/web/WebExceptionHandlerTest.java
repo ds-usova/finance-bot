@@ -66,8 +66,8 @@ class WebExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("when the port throws PersistenceFailedException - then the response is 503, naming the "
-                + "request rather than the session and naming no table, statement or stack frame")
+        @DisplayName("when the port throws PersistenceFailedException - then the response is 503, naming no "
+                + "session, table or constraint")
         void whenPortThrowsPersistenceFailedException_thenResponseIs503NamingRequestNotSessionOrInternals()
                 throws Exception {
             when(browseExpensesPort.browse(any()))
@@ -85,8 +85,8 @@ class WebExceptionHandlerTest {
         }
 
         @Test
-        @DisplayName("when the port throws an exception nothing else maps - then the response is 500, naming the "
-                + "request rather than the session")
+        @DisplayName("when the port throws an exception nothing else maps - then the response is 500, naming no "
+                + "session or cause")
         void whenPortThrowsUnmappedException_thenResponseIs500NamingRequestNotSession() throws Exception {
             String secretMessage = "connection pool exhausted on host db-primary-7";
             when(browseExpensesPort.browse(any())).thenThrow(new RuntimeException(secretMessage));

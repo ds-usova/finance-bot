@@ -30,13 +30,16 @@ import org.openapitools.jackson.nullable.JsonNullable;
 
 class ExpenseWebMapperTest {
 
+    private static final Instant FIRST_CREATED_AT = Instant.parse("2026-01-01T10:00:00Z");
+
+    private static final Instant SECOND_CREATED_AT = Instant.parse("2026-01-02T08:30:00Z");
+
     @Nested
     @DisplayName("building a filter from the list-expenses query parameters")
     class ToFilter {
 
         @Test
-        @DisplayName("when every query parameter is absent - then the filter carries a limit of 50, an offset of "
-                + "zero, and no status, category or period")
+        @DisplayName("when every query parameter is absent - then the filter carries the defaults and no narrowing")
         void whenEveryQueryParameterIsAbsent_thenFilterCarriesDefaultsAndNoOptionalFields() {
             ExpenseFilter filter = ExpenseWebMapper.toFilter(null, null, null, null, null, null);
 
@@ -48,8 +51,7 @@ class ExpenseWebMapperTest {
         }
 
         @Test
-        @DisplayName("when a status, a category id, a from and a to, a limit and an offset are given - then each "
-                + "lands on the filter, and the period carries the two days as given")
+        @DisplayName("when every query parameter is given - then each lands on the filter, the two days as a period")
         void whenEveryFieldIsGiven_thenEachLandsOnTheFilterAndThePeriodCarriesTheTwoDays() {
             LocalDate from = LocalDate.of(2026, 1, 1);
             LocalDate to = LocalDate.of(2026, 1, 31);
@@ -90,16 +92,15 @@ class ExpenseWebMapperTest {
         }
 
         @Test
-        @DisplayName("when a limit above the maximum is given - then throws InvalidExpenseFilterException, never a "
-                + "filter carrying a clamped limit")
+        @DisplayName("when a limit above the maximum is given - then throws InvalidExpenseFilterException")
         void whenLimitIsAboveMaximum_thenThrowsInvalidExpenseFilterException() {
             assertThatThrownBy(() -> ExpenseWebMapper.toFilter(ExpenseFilter.MAX_LIMIT + 1, 0, null, null, null, null))
                     .isInstanceOf(InvalidExpenseFilterException.class);
         }
 
         @Test
-        @DisplayName("when a status no constant matches is given - then throws InvalidExpenseFilterException, never "
-                + "an IllegalArgumentException the caller cannot be told apart from a defect")
+        @DisplayName("when a status no constant matches is given - then throws InvalidExpenseFilterException naming "
+                + "the parameter")
         void whenStatusMatchesNoConstant_thenThrowsInvalidExpenseFilterException() {
             assertThatThrownBy(() -> ExpenseWebMapper.toFilter(null, null, "FOO", null, null, null))
                     .isInstanceOf(InvalidExpenseFilterException.class)
@@ -112,31 +113,10 @@ class ExpenseWebMapperTest {
     class ToResponse {
 
         @Test
-        @DisplayName("when a page of two entries, one PENDING and one RECORDED, with a total larger than the page "
-                + "is given - then every field of each entry is mapped, the statuses survive, and the limit, "
-                + "offset and total are the page's own")
-        void whenPageHasTwoEntriesWithDifferentStatuses_thenEveryFieldIsMappedAndPageMetadataIsCarried() {
-            Instant firstCreatedAt = Instant.parse("2026-01-01T10:00:00Z");
-            Instant secondCreatedAt = Instant.parse("2026-01-02T08:30:00Z");
-            ExpenseEntry first = new ExpenseEntry(
-                    ExpenseStatus.PENDING,
-                    1L,
-                    10L,
-                    "Milk",
-                    Optional.of("Corner Shop"),
-                    new Money(1500L, CurrencyCode.of("EUR")),
-                    firstCreatedAt);
-            ExpenseEntry second = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    2L,
-                    20L,
-                    "Bus ticket",
-                    Optional.of("City Transit"),
-                    new Money(350L, CurrencyCode.of("EUR")),
-                    secondCreatedAt);
-            ExpensePage page = new ExpensePage(List.of(first, second), 20, 0, 57L);
-
-            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+        @DisplayName("when a page of two entries, one PENDING and one RECORDED, is given - then every field of "
+                + "each entry is mapped")
+        void whenPageHasTwoEntriesWithDifferentStatuses_thenEveryFieldIsMapped() {
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(pageOfTwoEntries());
 
             assertThat(response.getItems()).hasSize(2);
             ListExpenses200ResponseItemsInner firstItem = response.getItems().get(0);
@@ -147,7 +127,7 @@ class ExpenseWebMapperTest {
             assertThat(firstItem.getMerchant()).isEqualTo(JsonNullable.of("Corner Shop"));
             assertThat(firstItem.getAmountMinorUnits()).isEqualTo(1500L);
             assertThat(firstItem.getCurrency()).isEqualTo("EUR");
-            assertThat(firstItem.getCreatedAt().toInstant()).isEqualTo(firstCreatedAt);
+            assertThat(firstItem.getCreatedAt().toInstant()).isEqualTo(FIRST_CREATED_AT);
             ListExpenses200ResponseItemsInner secondItem = response.getItems().get(1);
             assertThat(secondItem.getId()).isEqualTo(2L);
             assertThat(secondItem.getStatus()).isEqualTo(ListExpenses200ResponseItemsInner.StatusEnum.RECORDED);
@@ -156,10 +136,39 @@ class ExpenseWebMapperTest {
             assertThat(secondItem.getMerchant()).isEqualTo(JsonNullable.of("City Transit"));
             assertThat(secondItem.getAmountMinorUnits()).isEqualTo(350L);
             assertThat(secondItem.getCurrency()).isEqualTo("EUR");
-            assertThat(secondItem.getCreatedAt().toInstant()).isEqualTo(secondCreatedAt);
+            assertThat(secondItem.getCreatedAt().toInstant()).isEqualTo(SECOND_CREATED_AT);
+        }
+
+        @Test
+        @DisplayName("when a page carries a total larger than itself - then the response carries the page's own "
+                + "limit, offset and total")
+        void whenPageTotalIsLargerThanThePage_thenResponseCarriesThePagesOwnMetadata() {
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(pageOfTwoEntries());
+
             assertThat(response.getLimit()).isEqualTo(20);
             assertThat(response.getOffset()).isZero();
             assertThat(response.getTotal()).isEqualTo(57L);
+        }
+
+        /** A page of two entries, one PENDING and one RECORDED, whose total is larger than the page itself. */
+        private static ExpensePage pageOfTwoEntries() {
+            ExpenseEntry first = new ExpenseEntry(
+                    ExpenseStatus.PENDING,
+                    1L,
+                    10L,
+                    "Milk",
+                    Optional.of("Corner Shop"),
+                    new Money(1500L, CurrencyCode.of("EUR")),
+                    FIRST_CREATED_AT);
+            ExpenseEntry second = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    2L,
+                    20L,
+                    "Bus ticket",
+                    Optional.of("City Transit"),
+                    new Money(350L, CurrencyCode.of("EUR")),
+                    SECOND_CREATED_AT);
+            return new ExpensePage(List.of(first, second), 20, 0, 57L);
         }
 
         @Test

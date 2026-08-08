@@ -19,7 +19,7 @@ class CategoryWebMapperTest {
 
         @Test
         @DisplayName("when two category entries under different groupings are given - then each response carries "
-                + "its id, name, grouping id and grouping name, in the order given")
+                + "its fields, in order")
         void whenTwoEntriesUnderDifferentGroupings_thenEachResponseCarriesItsFieldsInOrder() {
             CategoryEntry first = new CategoryEntry(1L, "Groceries", 10L, "Food");
             CategoryEntry second = new CategoryEntry(2L, "Transit", 20L, "Travel");

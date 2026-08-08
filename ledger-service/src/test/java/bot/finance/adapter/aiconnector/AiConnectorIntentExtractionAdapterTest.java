@@ -44,13 +44,34 @@ class AiConnectorIntentExtractionAdapterTest {
         GrpcStubServer.reset();
     }
 
+    private static IntentExtractionRequest requestFor(String userExternalId, MessageReference reference) {
+        return new IntentExtractionRequest(
+                "spent 15 on milk",
+                List.of("Groceries"),
+                "Groceries",
+                Optional.of(CurrencyCode.of("USD")),
+                userExternalId,
+                reference,
+                CURRENT_DATE);
+    }
+
+    /** The claims of the bearer token the metadata of the last extraction call carried. */
+    private static JWTClaimsSet bearerClaims() throws ParseException {
+        Metadata metadata = GrpcStubServer.lastExtractionMetadata();
+        assertThat(metadata).isNotNull();
+        String authorizationHeader = metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+        assertThat(authorizationHeader).startsWith("Bearer ");
+        return SignedJWT.parse(authorizationHeader.substring("Bearer ".length()))
+                .getJWTClaimsSet();
+    }
+
     @Nested
     @DisplayName("extracting intents")
     class Extract {
 
         @Test
-        @DisplayName("when the stub server answers an empty response - then returns without throwing, and the request "
-                + "the server received carries the text, categories and default currency")
+        @DisplayName("when extract is called - then the server receives the text, the groupings and the default "
+                + "currency")
         void whenStubServerAnswersEmptyResponse_thenReturnsAndServerReceivedRequestFields() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
@@ -72,77 +93,44 @@ class AiConnectorIntentExtractionAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when extract is called with a request carrying a current date - then the request the server received carries that date as current_date written YYYY-MM-DD")
+        @DisplayName("when the request carries a current date - then the server receives it as current_date "
+                + "written YYYY-MM-DD")
         void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "spent 15 on milk",
-                    List.of("Groceries"),
-                    "Groceries",
-                    Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id",
-                    MessageReference.newReference(),
-                    CURRENT_DATE);
 
-            adapter.extract(request);
+            adapter.extract(requestFor("user-external-id", MessageReference.newReference()));
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
         }
 
         @Test
-        @DisplayName(
-                "when extract is called - then the call's metadata carries authorization: Bearer <jwt>, whose sub claim is the request's userExternalId")
+        @DisplayName("when extract is called - then the metadata carries a bearer token whose sub claim is the "
+                + "userExternalId")
         void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "spent 15 on milk",
-                    List.of("Groceries"),
-                    "Groceries",
-                    Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id-77",
-                    MessageReference.newReference(),
-                    CURRENT_DATE);
 
-            adapter.extract(request);
+            adapter.extract(requestFor("user-external-id-77", MessageReference.newReference()));
 
-            Metadata metadata = GrpcStubServer.lastExtractionMetadata();
-            assertThat(metadata).isNotNull();
-            String authorizationHeader =
-                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
-            assertThat(authorizationHeader).startsWith("Bearer ");
-            String token = authorizationHeader.substring("Bearer ".length());
-            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
-            assertThat(claims.getSubject()).isEqualTo("user-external-id-77");
+            assertThat(bearerClaims().getSubject()).isEqualTo("user-external-id-77");
         }
 
         @Test
-        @DisplayName(
-                "when extract is called with a request carrying a known message reference - then the bearer token's mrf claim equals that reference's UUID text, and the request the server received carries no field for it")
-        void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaimAndProtoRequestHasNoFieldForIt()
-                throws ParseException {
+        @DisplayName("when the request carries a message reference - then the bearer token's mrf claim is that "
+                + "reference's UUID text")
+        void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaim() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             MessageReference reference = MessageReference.newReference();
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "spent 15 on milk",
-                    List.of("Groceries"),
-                    "Groceries",
-                    Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id",
-                    reference,
-                    CURRENT_DATE);
 
-            adapter.extract(request);
+            adapter.extract(requestFor("user-external-id", reference));
 
-            Metadata metadata = GrpcStubServer.lastExtractionMetadata();
-            assertThat(metadata).isNotNull();
-            String authorizationHeader =
-                    metadata.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
-            String token = authorizationHeader.substring("Bearer ".length());
-            JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
-            assertThat(claims.getStringClaim("mrf")).isEqualTo(reference.value().toString());
+            assertThat(bearerClaims().getStringClaim("mrf"))
+                    .isEqualTo(reference.value().toString());
+        }
 
+        @Test
+        @DisplayName("when the generated request is described - then it declares no field for the message reference")
+        void whenGeneratedRequestIsDescribed_thenItDeclaresNoFieldForTheMessageReference() {
             assertThat(ExtractIntentsRequest.getDescriptor().findFieldByName("message_reference"))
                     .isNull();
         }
@@ -151,11 +139,9 @@ class AiConnectorIntentExtractionAdapterTest {
         @EnumSource(
                 value = Status.Code.class,
                 names = {"INVALID_ARGUMENT", "UNAVAILABLE", "FAILED_PRECONDITION", "UNAUTHENTICATED"})
-        @DisplayName(
-                "when the stub server fails the call - then throws IntentExtractionFailedException carrying the StatusRuntimeException as its cause and naming the status")
-        void
-                whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionCarryingStatusRuntimeExceptionAsCauseAndNamingStatus(
-                        Status.Code code) {
+        @DisplayName("when the stub server fails the call - then throws IntentExtractionFailedException naming the "
+                + "status")
+        void whenStubServerFailsCall_thenThrowsIntentExtractionFailedExceptionNamingTheStatus(Status.Code code) {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "connector unavailable",
