@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
-import { listCategories, listExpenses, listGroupings } from '../api/expenses';
+import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
@@ -20,6 +20,25 @@ const listGroupingsMock = vi.mocked(listGroupings);
 const page = anExpensePage([anExpense({ description: 'lunch', categoryId: 10 })]);
 const categories = [aCategory({ id: 10, name: 'Groceries', groupingId: 100 })];
 const groupings = [aGrouping({ id: 100, name: 'Everyday' })];
+
+/** A read the test settles itself, so a slower one can be made to answer after a faster one. */
+function inFlight() {
+  let answer!: (page: ExpensePage) => void;
+  let refuse!: (error: unknown) => void;
+  const promise = new Promise<ExpensePage>((resolve, reject) => {
+    answer = resolve;
+    refuse = reject;
+  });
+  return { promise, answer, refuse };
+}
+
+async function chooseGroceries() {
+  const categoryControl = await screen.findByRole('combobox', { name: /category/i });
+  await userEvent.selectOptions(
+    categoryControl,
+    await within(categoryControl).findByRole('option', { name: /Groceries/ }),
+  );
+}
 
 function renderPage(context: Partial<AuthContextValue> = {}) {
   const value = anAuthContext({ session: { externalId: '987654321' }, ...context });
@@ -188,6 +207,41 @@ describe('the expenses page', () => {
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
     expect(listExpensesMock.mock.lastCall?.[0].offset).toBeUndefined();
+  });
+
+  it('leaves the newer answer standing when a read the filter has moved on from answers last', async () => {
+    const left = inFlight();
+    listExpensesMock
+      .mockReturnValueOnce(left.promise)
+      .mockResolvedValueOnce(anExpensePage([anExpense({ id: 2, description: 'taxi' })]));
+
+    renderPage();
+    await chooseGroceries();
+    await screen.findByText('taxi');
+
+    await act(async () => {
+      left.answer(anExpensePage([anExpense({ id: 1, description: 'lunch' })]));
+    });
+
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+  });
+
+  it('does not end the session over a refusal to a read the filter has moved on from', async () => {
+    const left = inFlight();
+    listExpensesMock.mockReturnValueOnce(left.promise).mockResolvedValueOnce(page);
+    const sessionExpired = vi.fn();
+
+    renderPage({ sessionExpired });
+    await chooseGroceries();
+    await screen.findByText('lunch');
+
+    await act(async () => {
+      left.refuse(new ApiError(401, 'no session'));
+    });
+
+    expect(sessionExpired).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('offers no pager when the listing answers everything the filter matches', async () => {

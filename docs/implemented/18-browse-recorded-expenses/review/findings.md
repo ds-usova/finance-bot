@@ -28,12 +28,11 @@ design ever named. The [evidence](evidence.md) beside this file covers the rest.
   [the use case](../../../../web-app/docs/usecases/browse-recorded-expenses.md); no plan item, since the design
   settled offset paging as a decision and no scenario asked for the control.
 
-- **A slow read overwrites the answer to a newer filter** — `ExpensesPage`'s listing effect has no cancellation.
-  The unfiltered read is still in flight when a category is chosen, the filtered read answers first, the
-  unfiltered read answers second, and the page ends showing the filter the person has already left. The same
-  window lets a stale `401` call `sessionExpired` after a later read has succeeded, signing the person out on a
-  filter change. `AuthProvider` already guards its one read with a `cancelled` flag, so the module has the idiom.
-  Left because fixing it changes observable behaviour no scenario covers. `web-app/plan.md · B10`.
+- ~~**A slow read overwrites the answer to a newer filter**~~ — resolved. The listing effect now returns a
+  cleanup that sets a `cancelled` flag, the same idiom `AuthProvider` uses, and neither the answer nor the
+  refusal of a cancelled read touches state. So a stale `401` no longer calls `sessionExpired` after a later read
+  has succeeded. The refactor pass could only record it, since a fix changes observable behaviour and that pass
+  preserves it. `web-app/plan.md · B10`.
 
 - ~~**`ExpensesPage` and `LoginPage` render a failure identically**~~ — resolved. `ErrorBanner` in `components/`
   now holds the `role="alert"` paragraph and both pages render it. The extraction needed `LoginPage.tsx`, which

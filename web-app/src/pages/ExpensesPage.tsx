@@ -35,12 +35,24 @@ export function ExpensesPage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     listExpenses(filter)
       .then((answered) => {
-        setPage(answered);
-        setFailure(null);
+        if (!cancelled) {
+          setPage(answered);
+          setFailure(null);
+        }
       })
-      .catch(report);
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          report(error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [filter, report]);
 
   useEffect(() => {

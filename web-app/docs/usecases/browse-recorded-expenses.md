@@ -26,6 +26,8 @@
   reaches the ledger; a category outside the chosen one is dropped.
 - The listing is read with the ledger's own page size. Paging steps by the size it answered with.
 - Changing a filter returns to the first page.
+- Only the newest listing read reaches the screen. A slower one answering after its filter was left is dropped,
+  and so is its refusal.
 - A refusal for want of a session drops the session to anonymous, from any of the three reads. That is distinct
   from signing out, which ends a session still open and tells the ledger so. An expiry tells it nothing.
 
