@@ -404,8 +404,7 @@ class CreateExpenseProposalMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the amount is sent as a JSON number - then the call is refused and the port is never called")
+        @DisplayName("when the amount is sent as a JSON number - then the call is refused and the port is never called")
         void whenAmountIsSentAsJsonNumber_thenCallIsRefusedAndPortNeverCalled() {
             String body =
                     """
