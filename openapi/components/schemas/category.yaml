@@ -1,5 +1,7 @@
 Category:
   type: object
+  description: >-
+    One category of the person's tree, carrying the grouping it is filed under so a caller needs no second lookup.
   properties:
     id:
       type: integer
@@ -16,9 +18,15 @@ Category:
     - name
     - groupingId
     - groupingName
+  example:
+    id: 42
+    name: Supermarkets
+    groupingId: 100
+    groupingName: Groceries
 
 Grouping:
   type: object
+  description: The top level of the person's tree. A grouping holding no categories is still one.
   properties:
     id:
       type: integer
@@ -28,3 +36,6 @@ Grouping:
   required:
     - id
     - name
+  example:
+    id: 100
+    name: Groceries

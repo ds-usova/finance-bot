@@ -1,32 +1,44 @@
 ExpenseStatus:
   type: string
+  description: >-
+    Whether the row is a proposal still awaiting a decision or an expense already recorded.
   enum:
     - PENDING
     - RECORDED
 
 Expense:
   type: object
+  description: >-
+    One row of a person's spending. Pending and recorded rows come from two stores that number their rows
+    independently, so `id` identifies a row only together with `status`.
   properties:
     id:
       type: integer
       format: int64
+      description: Unique within this row's `status`, and not across it.
     status:
       $ref: '#/ExpenseStatus'
     categoryId:
       type: integer
       format: int64
+      description: The category as an id. Its name and its grouping come from the categories list.
     description:
       type: string
+      description: What was bought.
     merchant:
       type: [string, "null"]
+      description: Who it was bought from, where that is known.
     amountMinorUnits:
       type: integer
       format: int64
+      description: The amount in the currency's minor units, never a fraction.
     currency:
       type: string
+      description: The ISO 4217 code of that currency, which fixes how many minor units make a unit.
     createdAt:
       type: string
       format: date-time
+      description: When the row was recorded, not when the money was spent. Accepting a proposal re-dates it.
   required:
     - id
     - status
@@ -35,9 +47,20 @@ Expense:
     - amountMinorUnits
     - currency
     - createdAt
+  example:
+    id: 12
+    status: RECORDED
+    categoryId: 42
+    description: Groceries
+    merchant: Corner Shop
+    amountMinorUnits: 1250
+    currency: EUR
+    createdAt: '2026-01-14T09:31:00Z'
 
 ExpensePage:
   type: object
+  description: >-
+    One page of the filter's matches, newest first. Two rows sharing an instant keep the same order on every call.
   properties:
     items:
       type: array
@@ -45,13 +68,39 @@ ExpensePage:
         $ref: '#/Expense'
     limit:
       type: integer
+      description: The page size that was applied.
     offset:
       type: integer
+      description: The offset that was applied.
     total:
       type: integer
       format: int64
+      description: >-
+        How many rows the filter matches, ignoring the page. Read separately from `items`, so a row stored between
+        the two makes them disagree by one.
   required:
     - items
     - limit
     - offset
     - total
+  example:
+    items:
+      - id: 12
+        status: RECORDED
+        categoryId: 42
+        description: Groceries
+        merchant: Corner Shop
+        amountMinorUnits: 1250
+        currency: EUR
+        createdAt: '2026-01-14T09:31:00Z'
+      - id: 7
+        status: PENDING
+        categoryId: 43
+        description: Taxi
+        merchant: null
+        amountMinorUnits: 900
+        currency: EUR
+        createdAt: '2026-01-13T18:02:00Z'
+    limit: 20
+    offset: 0
+    total: 138

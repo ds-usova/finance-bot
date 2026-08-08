@@ -1,5 +1,9 @@
 get:
   operationId: listExpenses
+  summary: List one page of the signed-in person's recorded expenses and pending proposals.
+  description: >-
+    Every parameter is optional and each narrows on its own. The listing is scoped to the signed-in person: no
+    parameter widens it, and none names whose ledger it is.
   tags:
     - expenses
   parameters:
@@ -21,10 +25,6 @@ get:
     '401':
       $ref: '../components/responses/errors.yaml#/Unauthorized'
     '404':
-      description: The session names no user row.
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas/problem.yaml#/Problem'
+      $ref: '../components/responses/errors.yaml#/NotFound'
     '503':
       $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

@@ -1,16 +1,35 @@
 BadRequest:
-  description: The request could not be processed as sent.
+  description: >-
+    A parameter is outside its bounds, of the wrong type, or contradicts another. The message names the parameter
+    at fault and the bound it broke. Nothing is read: a request refused here fetches no row.
   content:
     application/json:
       schema:
         $ref: '../schemas/problem.yaml#/Problem'
+      example:
+        message: limit must be at most 100
 
 Unauthorized:
-  description: No valid session was presented.
+  description: >-
+    No session cookie was presented, or one this service did not sign. Written by the filter chain before any
+    endpoint or error mapping runs, which is why it carries no body.
 
-ServiceUnavailable:
-  description: The store could not be reached.
+NotFound:
+  description: >-
+    The session is valid but the user row it names is gone. The message says only that the caller is unknown.
   content:
     application/json:
       schema:
         $ref: '../schemas/problem.yaml#/Problem'
+      example:
+        message: the caller is unknown
+
+ServiceUnavailable:
+  description: >-
+    The store could not be reached. The message names no table, statement or stack frame.
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/problem.yaml#/Problem'
+      example:
+        message: the service is temporarily unable to complete the request

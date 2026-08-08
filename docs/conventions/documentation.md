@@ -13,6 +13,16 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
   only this service's own side: what it sends and when, what it does with the answer, and how it behaves when
   the call fails. Listing the other side's fields, their types, or their validation rules is the duplication
   this rule exists to stop.
+- **Where a schema exists, it is the contract, and the page links it.** An OpenAPI or proto file already states
+  every parameter, every field, every type and every bound. A page that repeats them is a second copy that no
+  build checks, so it is wrong the first time the schema moves. The page carries the tags, the operations, who
+  implements each, and the link.
+- **A failure belongs in the schema too.** A response's `description` says what raises it and what the message
+  names; a table of conditions in prose says the same thing where no generator, no client and no documentation
+  browser will ever read it.
+- **An example goes in the schema, as an `example`.** It is then an artifact — validated against its own schema,
+  rendered by every viewer, and available to a caller writing against the API. A JSON block pasted into a
+  markdown page is checked by nobody.
 - **Do not repeat within a document either.** If a rule appears in a section, a diagram label, and a step
   description, keep the one place a reader will look and drop the rest.
 - **Prose never restates a diagram.** A page carrying a component diagram does not also narrate which class calls,

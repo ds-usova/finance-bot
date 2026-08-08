@@ -1,10 +1,11 @@
 get:
   operationId: listGroupings
+  summary: List the signed-in person's groupings. Takes nothing.
   tags:
     - groupings
   responses:
     '200':
-      description: Every grouping, unpaged.
+      description: Every grouping, unpaged, ordered by name.
       content:
         application/json:
           schema:
@@ -14,10 +15,6 @@ get:
     '401':
       $ref: '../components/responses/errors.yaml#/Unauthorized'
     '404':
-      description: The session names no user row.
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas/problem.yaml#/Problem'
+      $ref: '../components/responses/errors.yaml#/NotFound'
     '503':
       $ref: '../components/responses/errors.yaml#/ServiceUnavailable'
