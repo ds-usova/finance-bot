@@ -5,8 +5,9 @@ if ($c -notmatch "(?i)evidence\.(md|json)") {
     return
 }
 
-# Naming an evidence file to stage, commit, or inspect it is fine - those cannot change its content.
-if ($c -match "(?i)^\s*git\s+(add|commit|diff|show|log|status|restore)\b") {
+# Naming an evidence file to stage, commit, move, or inspect it is fine - none of those can change
+# its content, and a file that moved still records the run that produced it.
+if ($c -match "(?i)^\s*git\s+(add|commit|diff|mv|show|log|status|restore)\b") {
     return
 }
 

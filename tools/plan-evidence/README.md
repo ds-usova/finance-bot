@@ -1,7 +1,8 @@
 # The Evidence Writer
 
 `tools/plan-evidence/plan-evidence.sh` measures a finished plan and writes `evidence.md` and `evidence.json`
-next to it — the record that the suite was green, coverage was met and the code was formatted at a named commit.
+into its task's `review/` folder — the record that the suite was green, coverage was met and the code was
+formatted at a named commit.
 
 ## Why it exists
 
@@ -10,8 +11,11 @@ by whoever did the work restates their own conclusion, in prose that differs eve
 since moved on. The evidence file replaces that: every number in it comes from a run this script performed, on
 the commit it names, in a format two plans share.
 
-The file is committed alongside the plan, so a plan archived six months ago still carries what its suite looked
-like the day it closed, long after the build directory that produced those numbers was cleaned.
+The file is committed with the task, so a task archived six months ago still carries what its suite looked like
+the day it closed, long after the build directory that produced those numbers was cleaned.
+
+It sits in `review/` beside the task's `findings.md`, which is the other half of the same question: the findings
+say what the task knowingly left open, the evidence says that everything else was measured and green.
 
 ## Usage
 
@@ -19,22 +23,26 @@ Run it with bash, from the **repository root** (on Windows, a Git Bash prompt):
 
 ```
 tools/plan-evidence/plan-evidence.sh --plan docs/implemented/15-a-task/plan.md
-tools/plan-evidence/plan-evidence.sh --plan docs/15-a-task/plan.md --module ledger-service
+tools/plan-evidence/plan-evidence.sh --plan docs/implemented/18-a-task/shared/plan.md
 tools/plan-evidence/plan-evidence.sh --plan docs/implemented/15-a-task/plan.md --verify
 ```
 
-| Option             | Meaning                                                                              |
-|--------------------|--------------------------------------------------------------------------------------|
-| `--plan <path>`    | Required. The plan file; the evidence is written into its directory.                 |
-| `--module <name>`  | Module to measure; repeatable. Default: every module in the repository.              |
-| `--verify`         | Measure nothing; report whether the evidence beside the plan still describes `HEAD`. |
-| `--wait <seconds>` | Passed to the test runner's queue. Default 900.                                      |
+| Option             | Meaning                                                                           |
+|--------------------|-----------------------------------------------------------------------------------|
+| `--plan <path>`    | Required. The plan file; the evidence goes to its task's `review/`.               |
+| `--module <name>`  | Module to measure; repeatable. Default: every module in the repository.           |
+| `--verify`         | Measure nothing; report whether the evidence in `review/` still describes `HEAD`. |
+| `--wait <seconds>` | Passed to the test runner's queue. Default 900.                                   |
 
 Exit codes: **0** verified, **1** not verified — a failure, coverage below the minimum, unformatted code, an
 unclean tree, or (with `--verify`) evidence that has gone stale — **2** the run never started.
 
 Every module is measured by default because *the plan is finished* is a claim about the whole tree. A plan that
 touched one module still passes or fails on what it did to the other.
+
+**A task is measured once, not once per plan**, for the same reason. Whichever of its plans is named, the script
+walks up to the task directory — one level, when a `design.md` sits there — and writes into the `review/` folder
+the whole task shares.
 
 `--verify` does not demand that `HEAD` be the exact commit recorded. Committing the evidence moves `HEAD` by
 itself, and so does every documentation commit after it, so a run whose commits since have touched only `docs/`
@@ -57,12 +65,12 @@ is still current — anything outside `docs/` is stale.
 
 **Both stacks are measured the same way**, each through its own tooling:
 
-| Where the number comes from | Gradle                                          | npm                                          |
-|-----------------------------|-------------------------------------------------|----------------------------------------------|
-| The suite                   | the test runner, via `./gradlew test`           | the test runner, via the module's npm scripts |
-| Coverage                    | `jacocoTestReport.csv`                          | `coverage/coverage-summary.json`              |
-| The minimum                 | `coverageMinimum` in `gradle.properties`        | `test.coverage.thresholds.lines` in the vite config |
-| Formatting                  | `spotlessCheck`                                 | `npm run format:check`                        |
+| Where the number comes from | Gradle                                   | npm                                                 |
+|-----------------------------|------------------------------------------|-----------------------------------------------------|
+| The suite                   | the test runner, via `./gradlew test`    | the test runner, via the module's npm scripts       |
+| Coverage                    | `jacocoTestReport.csv`                   | `coverage/coverage-summary.json`                    |
+| The minimum                 | `coverageMinimum` in `gradle.properties` | `test.coverage.thresholds.lines` in the vite config |
+| Formatting                  | `spotlessCheck`                          | `npm run format:check`                              |
 
 `evidence.json` carries the same fields for anything that would rather not parse a table.
 
@@ -105,9 +113,9 @@ cannot survive either check is not evidence of anything.
 The agent's permissions narrow the ways it could be written by something other than this script — `Edit` and
 `Write` on `evidence.md` and `evidence.json` are denied outright, and a `PreToolUse` hook
 (`.claude/scripts/hooks/deny-evidence-write.ps1`) rejects a shell command that names one, unless the command is a
-`git` verb that only stages, commits or reads it. That closes the routes an agent would actually take. It is not a
-security boundary: the file is in the repository, and anyone with an editor can change it. The SHA is what makes
-the change detectable.
+`git` verb that only stages, commits, moves or reads it. That closes the routes an agent would actually take. It
+is not a security boundary: the file is in the repository, and anyone with an editor can change it. The SHA is
+what makes the change detectable.
 
 **It measures the tree, not the plan.** It cannot tell that the tests it ran are the tests the plan asked for,
 or that a passing suite covers the behaviour the plan describes. Whether the right tests exist is what the plan's

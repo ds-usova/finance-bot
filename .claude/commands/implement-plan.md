@@ -14,11 +14,11 @@ gates before anything starts, the seam that crosses modules, the pipelines, and 
 
 **Three levels, and each only coordinates the one below.**
 
-| Level | Who                               | Owns                                                    |
-|-------|-----------------------------------|---------------------------------------------------------|
-| task  | this skill                        | the gates, the seam, the pipelines, finishing the task  |
-| plan  | `implement-plan-module`, one each | one plan's stages, guardrails and ticks                 |
-| step  | the step agents it spawns         | one class, one test class, one refactor pass            |
+| Level | Who                               | Owns                                                   |
+|-------|-----------------------------------|--------------------------------------------------------|
+| task  | this skill                        | the gates, the seam, the pipelines, finishing the task |
+| plan  | `implement-plan-module`, one each | one plan's stages, guardrails and ticks                |
+| step  | the step agents it spawns         | one class, one test class, one refactor pass           |
 
 **Point a sub-agent at the rule; do not restate it.** A rule the repository writes down is passed as the file
 that owns it, named so the agent reads it there — never as a remembered version of what that file says, which is
@@ -28,13 +28,14 @@ inventories drawn from the tree: read them, never recall them.
 ## Input Resolution
 
 A task owns a directory: `docs/<n>-<task-name>/`, holding the `design.md`, one plan per module, and — where
-anything crosses between them — a `shared/plan.md`.
+anything crosses between them — a `shared/plan.md`. Phase 3 adds a `review/` folder to it: what the task left
+open, and the evidence that everything else was measured.
 
-| Invoked with       | The task directory is                                        |
-|--------------------|--------------------------------------------------------------|
-| a task directory   | the one given                                                |
-| a plan file        | `plan.sh task <that plan>` prints it, and every plan in it   |
-| nothing            | the plan referenced in the conversation, else ask            |
+| Invoked with     | The task directory is                                      |
+|------------------|------------------------------------------------------------|
+| a task directory | the one given                                              |
+| a plan file      | `plan.sh task <that plan>` prints it, and every plan in it |
+| nothing          | the plan referenced in the conversation, else ask          |
 
 **A single plan is a task of one plan.** It takes exactly the phases below, and its one pipeline is spawned the
 same way. Nothing here has a special case for it, because a plan file cannot tell you whether a sibling exists
@@ -130,17 +131,40 @@ When every pipeline has returned:
 1. **Ask `plan.sh task docs/<n>-<task-name>/`.** It lists every plan the directory holds and exits 0 only when
    all of them are complete, `shared/plan.md` included. Anything else: leave the directory in place and summarize
    what is open. The phases end here.
-2. **Archive**, on exit 0 and on nothing else: move the **whole task directory** — every `plan.md`, the
-   `design.md` they link, and anything else the task accumulated — into `docs/implemented/`. Moving the directory
-   rather than the files keeps every link inside it working.
-3. **Commit** per the Version Control policy. This is where its **squash-before-archiving** setting applies.
-4. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
+2. **Write `review/findings.md`** — everything the task leaves open, from every plan at once. A person reading it
+   learns what they are inheriting without opening a plan.
+
+   Each plan's **Open Questions / Blockers** is the source. Lift what is **still open** — a confirmed defect no
+   scenario covered, a gap the design never named, an inconsistency the change left behind. A blocker the run
+   settled stays in its plan as that plan's history and never appears here; so does a question already answered.
+
+   ```
+   # Review: <task name>
+
+   <One line: what the task delivered, and that everything below is open.>
+
+   ## <module>
+
+   - **<what is wrong>** — where it is, what it does, and why the task left it. Name the plan item it came from.
+   ```
+
+   One `##` per plan that has something open, module plans and `shared/plan.md` alike, in the order the task
+   directory lists them. A plan with nothing open gets no heading. **A task with nothing open still gets the
+   file**, carrying one line that says so — a missing file and a clean task must never look the same.
+
+   Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
+   land in.
+3. **Archive**, on exit 0 and on nothing else: move the **whole task directory** — every `plan.md`, the
+   `design.md` they link, `review/`, and anything else the task accumulated — into `docs/implemented/`. Moving the
+   directory rather than the files keeps every link inside it working.
+4. **Commit** per the Version Control policy. This is where its **squash-before-archiving** setting applies.
+5. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
    change is complete — a measurement, a documentation pass. Follow the conventions index to wherever they say
    it, and run that list in its order, passing each entry the archived plan. An entry listed by several affected
    modules runs once. Each states its own commit behaviour.
 
-**Only this level can do any of it.** A pipeline sees one plan, so it can neither tell that the task is finished
-nor hand an archived plan to a step that needs one.
+**Only this level can do any of it.** A pipeline sees one plan, so it can neither tell that the task is finished,
+nor collect what the other plans left open, nor hand an archived plan to a step that needs one.
 
 ## Version Control
 
@@ -158,4 +182,5 @@ refusal it does not cover rather than improvising a retry.
 
 - One line per phase as it starts, and one per pipeline as it returns.
 - A pipeline's own progress is its report, not yours to relay in full.
-- Final summary: what each plan finished, every blocker still open, and whether the task was archived.
+- Final summary: what each plan finished, whether the task was archived, and a pointer to `review/findings.md`
+  rather than a second copy of what it says.

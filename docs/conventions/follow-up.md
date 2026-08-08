@@ -9,11 +9,11 @@ module that differs says so in its own section file.
 ## What Runs
 
 1. `tools/plan-evidence/plan-evidence.sh --plan <the finished work>` — measures every module and writes
-   `evidence.md` and `evidence.json` beside the work it measures; see
-   [Evidence for a Finished Plan](java-build.md#evidence-for-a-finished-plan). It runs **first**, so the commit
-   it records is the one that closed the work. Commit its output as
-   `Documentation: <name> implementation evidence`. A non-zero exit means the work is not finished: report the
-   verdict rather than continuing down this list.
+   `evidence.md` and `evidence.json` into the task's `review/` folder; see
+   [Evidence for a Finished Plan](java-build.md#evidence-for-a-finished-plan). It runs **once for the task**,
+   whichever of its plans is named, and **first**, so the commit it records is the one that closed the work.
+   Commit its output as `Documentation: <name> implementation evidence`. A non-zero exit means the work is not
+   finished: report the verdict rather than continuing down this list.
 2. `archive-knowledge`, given the finished work — a document per use case with its collaborators on both sides,
    the contracts with the systems around the service, and the ADRs the work was authorized to record. Commits its
    own output.

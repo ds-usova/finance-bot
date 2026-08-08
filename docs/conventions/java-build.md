@@ -72,7 +72,7 @@ Where it is worth running: at the end of a change, once every step of it is impl
 
 ## Evidence for a Finished Plan
 
-A finished plan carries `evidence.md` and `evidence.json` beside it, written by
+A finished task carries `evidence.md` and `evidence.json` in its `review/` folder, written by
 [`tools/plan-evidence/plan-evidence.sh`](../../tools/plan-evidence/README.md) — the verdict, the commit it was
 measured on, and a row per module with its test counts, its coverage against the minimum, and whether it is
 formatted:
@@ -81,9 +81,13 @@ formatted:
 tools/plan-evidence/plan-evidence.sh --plan docs/implemented/<n>-<task>/plan.md
 ```
 
-It runs **after the plan directory is archived and committed**, so the commit it names is the one that finished
-the work and the tree it measures is clean. It measures every module, not only the ones the plan touched. Its own
-output is then committed with `Documentation: <task> implementation evidence`.
+It runs **after the task directory is archived and committed**, so the commit it names is the one that finished
+the work and the tree it measures is clean. It measures every module, not only the ones the plan touched, and it
+runs once for the task however many plans the task holds. Its own output is then committed with
+`Documentation: <task> implementation evidence`.
+
+`review/findings.md` sits beside it — what the task knowingly left open, written before the archive. The two
+answer the same question from opposite sides.
 
 An exit code other than 0 means the plan is not finished after all: the evidence says which module, and whether
 it was a failing test, coverage below the minimum, or a suite that skipped.

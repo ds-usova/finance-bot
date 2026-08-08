@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Produces the evidence file that a finished plan's test suite, coverage and formatting were actually
-# measured, next to the plan itself. Every number in it comes from a run this script performed.
+# measured, in the task's review folder. Every number in it comes from a run this script performed.
 #
 # See tools/plan-evidence/README.md for what the evidence proves and where that stops.
 
@@ -26,18 +26,16 @@ Usage:
   tools/plan-evidence/plan-evidence.sh --plan docs/15-a-task/web-app/plan.md --module web-app
 
 Options:
-  --plan <path>     Required. The plan file. evidence.md and evidence.json are written beside it.
-                    A task spanning several modules holds one plan each, at <n>-<task>/<module>/plan.md;
-                    run this once per plan, scoping it with --module to that plan's own module, so each
-                    module's evidence sits beside the plan that claims it.
+  --plan <path>     Required. The plan file. evidence.md and evidence.json are written into the
+                    review/ folder of the task that plan belongs to, whether the task holds one plan
+                    or one per module — the evidence is the task's, so it is written once, not once
+                    per plan.
   --module <name>   Module to measure; may be repeated. Default: every module in the repository —
                     Gradle and npm alike, told apart by the wrapper or package.json in its
                     directory — because "the plan is finished" is a claim about the whole tree,
                     not one module.
-                    For a per-module plan, name that module: the whole-tree claim belongs to the
-                    archiving guardrail, which runs once for the task rather than once per plan.
-  --verify          Measure nothing. Read the evidence already beside the plan and report whether it
-                    still describes HEAD. Use it to detect an evidence file that has gone stale or
+  --verify          Measure nothing. Read the evidence in the task's review folder and report whether
+                    it still describes HEAD. Use it to detect an evidence file that has gone stale or
                     was edited by hand.
   --wait <seconds>  Passed to the test runner's queue. Default 900.
 
@@ -75,8 +73,18 @@ fi
 
 plan_dir="$(cd "$(dirname "$plan_abs")" && pwd)"
 plan_rel="${plan_abs#"$repo_root/"}"
-evidence_md="$plan_dir/evidence.md"
-evidence_json="$plan_dir/evidence.json"
+
+# The evidence belongs to the task, not to one of its plans. A task spanning several modules holds a
+# plan each under <n>-<task>/<module>/, and all of them are covered by one measurement of the whole
+# tree. The design file one level up is what tells that layout from a single-plan task.
+if [ -f "$plan_dir/../design.md" ]; then
+    task_dir="$(cd "$plan_dir/.." && pwd)"
+else
+    task_dir="$plan_dir"
+fi
+review_dir="$task_dir/review"
+evidence_md="$review_dir/evidence.md"
+evidence_json="$review_dir/evidence.json"
 
 head_sha="$(git -C "$repo_root" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
 branch="$(git -C "$repo_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")"
@@ -96,7 +104,7 @@ dirty_count="$(git -C "$repo_root" status --porcelain 2>/dev/null \
 # would mean the check that evidence is stale could quietly replace the stale evidence.
 if [ "$verify" = "1" ]; then
     if [ ! -f "$evidence_md" ]; then
-        echo "No evidence beside the plan: $evidence_md"
+        echo "No evidence in the task's review folder: $evidence_md"
         echo "Generate it with the same command without --verify."
         exit 1
     fi
@@ -304,8 +312,10 @@ else
 fi
 
 generated="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-task_name="$(basename "$plan_dir")"
+task_name="$(basename "$task_dir")"
 module_list="$(printf '%s ' "${modules[@]}")"
+
+mkdir -p "$review_dir"
 
 {
     echo "# Implementation Evidence — $task_name"
