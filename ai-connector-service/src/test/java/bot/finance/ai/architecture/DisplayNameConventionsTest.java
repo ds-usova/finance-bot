@@ -5,7 +5,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchIgnore;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
@@ -29,12 +28,6 @@ class DisplayNameConventionsTest {
 
     private static final int MAX_LENGTH = 120;
 
-    /**
-     * Off until the names it finds are dealt with: 25 of this module's test methods overrun, the longest at 376
-     * characters. An overrun is a test proving several things at once, so most of those want splitting rather
-     * than a shorter name - work nobody has scheduled. Remove the annotation once they are.
-     */
-    @ArchIgnore(reason = "25 existing overruns; enabling this is a cleanup of its own")
     @ArchTest
     static final ArchRule aTestMethodsDisplayNameStaysUnderTheLimit = methods()
             .that()
