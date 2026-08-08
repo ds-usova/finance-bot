@@ -42,8 +42,8 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user's id, a grouping and the name of a category stored under it - then answers a StoredCategory carrying that row's id and name")
-        void whenCalledForAStoredCategoryUnderThatGrouping_thenAnswersStoredCategoryCarryingIdAndName() {
+                "when a category of that name is stored under the grouping - then answers a StoredCategory with its id and name")
+        void whenCalledForAStoredCategoryUnderThatGrouping_thenAnswersStoredCategoryWithIdAndName() {
             long userId = storedUserId("supermarkets-category-user");
             long groupingId = storedGroupingId(userId, "Groceries");
             long categoryId = storedCategoryId(userId, groupingId, "Supermarkets");
@@ -58,8 +58,8 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with the first of two groupings holding a category of the same name and that name - then answers the row filed under the first grouping")
-        void whenCalledForFirstOfTwoGroupingsSharingACategoryName_thenAnswersRowFiledUnderFirstGrouping() {
+                "when two groupings hold a category of the same name - then answers the one filed under the grouping given")
+        void whenTwoGroupingsShareACategoryName_thenAnswersTheOneFiledUnderTheGroupingGiven() {
             long userId = storedUserId("shared-category-name-user");
             long firstGroupingId = storedGroupingId(userId, "Home");
             long secondGroupingId = storedGroupingId(userId, "Work");
@@ -88,9 +88,8 @@ class CategoryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with the first of two users' id and the second user's grouping of the same name holding a category of the same name - then answers nothing")
-        void whenCalledWithFirstUserIdAndSecondUsersGrouping_thenAnswersNothing() {
+        @DisplayName("when the grouping given belongs to another user - then answers nothing")
+        void whenGroupingGivenBelongsToAnotherUser_thenAnswersNothing() {
             long firstUserId = storedUserId("first-cross-user");
             long secondUserId = storedUserId("second-cross-user");
             storedGroupingId(firstUserId, "Shared Grouping");
@@ -106,7 +105,7 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user's id, a grouping and the name of that user's own parentless row - then answers nothing, since a grouping is not a category under another grouping")
+                "when the name given is that user's own parentless row - then answers nothing, a grouping is not a category")
         void whenNameNamesAParentlessRow_thenAnswersNothing() {
             long userId = storedUserId("parentless-row-user");
             storedGroupingId(userId, "Travel");
@@ -201,27 +200,29 @@ class CategoryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a grouping id belonging to another user, and separately one that names no grouping at all - then an empty list comes back, and nothing is thrown")
-        void whenCalledWithAnotherUsersGroupingIdAndWithUnknownGroupingId_thenEmptyListComesBackAndNothingThrown() {
-            long userId = storedUserId("find-all-categories-bad-grouping-ids-user");
-            long groupingId = storedGroupingId(userId, "Home");
-            storedCategoryId(userId, groupingId, "Rent");
-            long otherUserId = storedUserId("find-all-categories-bad-grouping-ids-other-user");
+        @DisplayName("when the grouping id given belongs to another user - then an empty list comes back")
+        void whenCalledWithAnotherUsersGroupingId_thenEmptyListComesBack() {
+            long userId = storedUserWithOneCategory("find-all-categories-other-users-grouping-user");
+            long otherUserId = storedUserId("find-all-categories-other-users-grouping-other-user");
             long otherUsersGroupingId = storedGroupingId(otherUserId, "Other");
 
-            List<CategoryEntry> ownCategories = adapter.findAllForUser(userId, null);
-            List<CategoryEntry> withOtherUsersGrouping = adapter.findAllForUser(userId, otherUsersGroupingId);
-            List<CategoryEntry> withUnknownGrouping = adapter.findAllForUser(userId, 999_999_999L);
+            List<CategoryEntry> categories = adapter.findAllForUser(userId, otherUsersGroupingId);
 
-            assertThat(ownCategories).hasSize(1);
-            assertThat(withOtherUsersGrouping).isEmpty();
-            assertThat(withUnknownGrouping).isEmpty();
+            assertThat(categories).isEmpty();
         }
 
         @Test
-        @DisplayName(
-                "when called for the first of two users, the second owning their own categories - then none of the other user's categories appears")
+        @DisplayName("when the grouping id given names no grouping at all - then an empty list comes back")
+        void whenCalledWithUnknownGroupingId_thenEmptyListComesBack() {
+            long userId = storedUserWithOneCategory("find-all-categories-unknown-grouping-user");
+
+            List<CategoryEntry> categories = adapter.findAllForUser(userId, 999_999_999L);
+
+            assertThat(categories).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when another user owns categories too - then none of theirs appears")
         void whenCalledForFirstOfTwoUsers_thenNoneOfSecondUsersCategoriesAppears() {
             long firstUserId = storedUserId("find-all-categories-first-user");
             long secondUserId = storedUserId("find-all-categories-second-user");
@@ -237,8 +238,7 @@ class CategoryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for a user with a grouping and no categories under it - then the grouping row itself is not answered as a category")
+        @DisplayName("when a grouping holds no categories - then the grouping row itself is not answered as a category")
         void whenGroupingHasNoCategories_thenGroupingRowItselfIsNotAnsweredAsACategory() {
             long userId = storedUserId("find-all-categories-empty-grouping-user");
             long populatedGroupingId = storedGroupingId(userId, "Populated");
@@ -249,6 +249,17 @@ class CategoryRepositoryAdapterTest {
 
             assertThat(categories).singleElement().satisfies(entry -> assertThat(entry.id())
                     .isEqualTo(populatedCategoryId));
+        }
+
+        /**
+         * A user owning exactly one category, read back through the adapter so that an empty answer to a
+         * narrowed call is the grouping id being rejected and not the user having nothing to find.
+         */
+        private long storedUserWithOneCategory(String externalId) {
+            long userId = storedUserId(externalId);
+            storedCategoryId(userId, storedGroupingId(userId, "Home"), "Rent");
+            assertThat(adapter.findAllForUser(userId, null)).hasSize(1);
+            return userId;
         }
     }
 
@@ -266,9 +277,8 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when findByGroupingAndName() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenFindByGroupingAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when findByGroupingAndName() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindByGroupingAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedCategoryEntityRepository.findByUserIdAndParentIdAndName(any(), any(), any()))
                     .thenThrow(frameworkException);
@@ -282,9 +292,8 @@ class CategoryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when existsByUserIdAndName() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenExistsByUserIdAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when existsByUserIdAndName() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenExistsByUserIdAndNameHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedCategoryEntityRepository.existsByUserIdAndNameAndParentIdIsNotNull(any(), any()))
                     .thenThrow(frameworkException);
@@ -299,9 +308,8 @@ class CategoryRepositoryAdapterTest {
         // scenario stays about the failure surfacing and not about which query the adapter runs.
         @Test
         @DisplayName(
-                "when findAllForUser() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenFindAllForUserHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when findAllForUser() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindAllForUserHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             CategoryEntityRepository throwingRepository = mock(CategoryEntityRepository.class, invocation -> {
                 throw frameworkException;

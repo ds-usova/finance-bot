@@ -63,9 +63,8 @@ class UserRepositoryAdapterConcurrencyTest {
 
         @Test
         @DisplayName(
-                "when two threads race to create a user under the same external id - then both calls return the same user, neither throws, and exactly one user row owning exactly 97 category rows exists afterwards")
-        void whenTwoThreadsRaceOnTheSameExternalId_thenBothReturnTheSameUserAndOnlyOneRowSetIsWritten()
-                throws Exception {
+                "when two threads race on the same external id - then one user is created and both calls return it")
+        void whenTwoThreadsRaceOnTheSameExternalId_thenOneUserIsCreatedAndBothCallsReturnIt() throws Exception {
             List<Future<User>> results = runConcurrently(
                     () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Grouping.defaults()),
                     () -> adapter.create(User.newUser(SAME_EXTERNAL_ID), Grouping.defaults()));
@@ -84,8 +83,8 @@ class UserRepositoryAdapterConcurrencyTest {
 
         @Test
         @DisplayName(
-                "when two threads race to create users under different external ids - then both users are stored, each owning its own 97 category rows")
-        void whenTwoThreadsRaceOnDifferentExternalIds_thenBothUsersAreStoredEachOwningItsOwnCategoryRows()
+                "when two threads race on different external ids - then both users are stored with their own category rows")
+        void whenTwoThreadsRaceOnDifferentExternalIds_thenBothUsersAreStoredWithTheirOwnCategoryRows()
                 throws Exception {
             List<Future<User>> results = runConcurrently(
                     () -> adapter.create(User.newUser(EXTERNAL_ID_A), Grouping.defaults()),

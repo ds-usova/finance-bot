@@ -91,8 +91,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category, and an unstored expense with no merchant - then the row's merchant column is null and the returned expense's merchant is empty")
-        void whenCalledWithNoMerchant_thenRowMerchantColumnIsNullAndReturnedExpenseMerchantIsEmpty() {
+                "when the expense carries no merchant - then the stored row and the returned expense both carry none")
+        void whenCalledWithNoMerchant_thenStoredRowAndReturnedExpenseBothCarryNoMerchant() {
             long userId = storedUserId("no-merchant-expense-user");
             long categoryId = storedGroupingId(userId, "Utilities");
             Expense expense = Expense.newExpense(
@@ -113,8 +113,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an expense stamped with an instant carrying nanosecond precision and the row is read back - then both timestamps equal that instant truncated to microseconds")
-        void whenInstantCarriesNanosecondPrecision_thenReadBackTimestampsAreTruncatedToMicroseconds() {
+                "when the expense is stamped with nanosecond precision - then its timestamps are truncated to microseconds")
+        void whenInstantCarriesNanosecondPrecision_thenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("nanosecond-expense-user");
             long categoryId = storedGroupingId(userId, "Dining");
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
@@ -139,8 +139,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a description exactly 500 characters long - then the row is written and carries the whole description")
+        @DisplayName("when the description is exactly 500 characters long - then the row carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-user");
             long categoryId = storedGroupingId(userId, "Boundary");
@@ -163,8 +162,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a description 501 characters long - then throws InvalidExpenseException before anything is written, so no expense row exists afterwards")
-        void whenDescriptionIs501Characters_thenThrowsInvalidExpenseExceptionBeforeWritingAnything() {
+                "when the description is 501 characters long - then throws InvalidExpenseException and writes nothing")
+        void whenDescriptionIs501Characters_thenThrowsInvalidExpenseExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-description-user");
             long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(501);
@@ -182,8 +181,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a merchant exactly 255 characters long - then the row is written and carries the whole merchant")
+        @DisplayName("when the merchant is exactly 255 characters long - then the row carries the whole merchant")
         void whenMerchantIsExactly255Characters_thenRowIsWrittenAndCarriesWholeMerchant() {
             long userId = storedUserId("boundary-merchant-user");
             long categoryId = storedGroupingId(userId, "Boundary");
@@ -206,8 +204,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a merchant 256 characters long - then throws InvalidExpenseException before anything is written")
-        void whenMerchantIs256Characters_thenThrowsInvalidExpenseExceptionBeforeWritingAnything() {
+                "when the merchant is 256 characters long - then throws InvalidExpenseException and writes nothing")
+        void whenMerchantIs256Characters_thenThrowsInvalidExpenseExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-merchant-user");
             long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(256);
@@ -226,7 +224,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an expense whose category id is positive and names no stored category - then throws EntityNotFoundException whose entityType() is \"category\", not PersistenceFailedException")
+                "when the category id names no stored category - then throws EntityNotFoundException for the category")
         void whenCategoryIdNamesNoStoredCategory_thenThrowsEntityNotFoundExceptionForCategory() {
             long userId = storedUserId("unknown-category-user");
             long unknownCategoryId = 999_999_999L;
@@ -245,8 +243,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with an expense whose user id is positive and names no stored user - then throws EntityNotFoundException whose entityType() is \"user\"")
+        @DisplayName("when the user id names no stored user - then throws EntityNotFoundException for the user")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
             long categoryId = storedGroupingId(storedUserId("category-owner-for-unknown-user"), "Category");
@@ -265,9 +262,8 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for two expenses of two different stored users, each with its own stored category - then each user owns exactly its own row, and neither references the other's")
-        void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRowWithNoCrossReference() {
+        @DisplayName("when two users each have an expense created - then each owns exactly its own row")
+        void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRow() {
             long firstUserId = storedUserId("first-expense-user");
             long firstCategoryId = storedGroupingId(firstUserId, "First Category");
             long secondUserId = storedUserId("second-expense-user");
@@ -369,7 +365,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when a stored user has four EUR expenses and one HUF expense inside the period - then returns one total per currency, ordered by currency code, with no currency added to another")
+                "when four EUR and one HUF expense fall inside the period - then returns one total per currency, ordered by code")
         void whenFourEurExpensesAndOneHufExpenseInsidePeriod_thenReturnsOneTotalPerCurrencyOrderedByCode() {
             long userId = storedUserId("totals-mixed-currency-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -392,8 +388,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when expenses fall at the period's first day 00:00:00 UTC and last day 23:59:59 UTC - then both are counted")
+        @DisplayName("when expenses fall on the period's first and last day - then both are counted")
         void whenExpensesFallOnFirstAndLastDayBounds_thenBothAreCounted() {
             long userId = storedUserId("totals-inclusive-bounds-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -414,8 +409,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when expenses fall one microsecond before the period's first day and at 00:00:00 UTC on the day after its last - then neither is counted")
+        @DisplayName("when expenses fall just outside the period's bounds - then neither is counted")
         void whenExpensesFallJustOutsidePeriodBounds_thenNeitherIsCounted() {
             long userId = storedUserId("totals-exclusive-bounds-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -434,7 +428,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when two stored users each have an expense inside the period - then only the requested user's expense is counted")
+                "when two users each have an expense inside the period - then only the requested user's is counted")
         void whenTwoUsersHaveExpensesInsidePeriod_thenOnlyRequestedUsersExpenseCounted() {
             long firstUserId = storedUserId("totals-two-users-first-user");
             long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
@@ -498,8 +492,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an unnarrowed filter - then both kinds come back in one list, newest first, each carrying the status of the table it came from")
-        void whenCalledWithUnnarrowedFilter_thenBothKindsComeBackNewestFirstCarryingSourceTableStatus() {
+                "when the filter is unnarrowed - then both kinds come back in one list, newest first, each with its status")
+        void whenCalledWithUnnarrowedFilter_thenBothKindsComeBackNewestFirstEachWithItsStatus() {
             long userId = storedUserId("find-page-both-kinds-user");
             long categoryId = storedGroupingId(userId, "Groceries");
             Instant earlier = Instant.now().minusSeconds(120);
@@ -540,8 +534,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a from and to spanning some rows and excluding others - then only the rows inside come back, the last day included, the boundary taken at UTC")
-        void whenCalledWithDateRange_thenOnlyRowsInsideComeBackWithLastDayIncludedAtUtcBoundary() {
+                "when the filter carries a from and a to - then only the rows inside come back, the last day included")
+        void whenCalledWithDateRange_thenOnlyRowsInsideComeBackWithLastDayIncluded() {
             long userId = storedUserId("find-page-date-range-user");
             long categoryId = storedGroupingId(userId, "Travel");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
@@ -565,8 +559,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a limit, then again with the same limit and an offset of one page - then the second page continues the first and repeats no row from it")
-        void whenCalledWithLimitThenSameLimitWithOffsetOfOnePage_thenSecondPageContinuesFirstRepeatingNoRow() {
+                "when a second page is asked for at an offset of one page - then it continues the first, repeating no row")
+        void whenSecondPageAskedForAtOffsetOfOnePage_thenItContinuesTheFirstRepeatingNoRow() {
             long userId = storedUserId("find-page-pagination-user");
             long categoryId = storedGroupingId(userId, "Shopping");
             Instant base = Instant.now().minusSeconds(300);
@@ -586,7 +580,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an offset beyond the stored rows - then an empty list comes back rather than the last page again")
+                "when the offset is beyond the stored rows - then an empty list comes back, not the last page again")
         void whenCalledWithOffsetBeyondStoredRows_thenEmptyListComesBackRatherThanLastPageAgain() {
             long userId = storedUserId("find-page-offset-overflow-user");
             long categoryId = storedGroupingId(userId, "Utilities");
@@ -601,9 +595,8 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a category id belonging to another user - then an empty list comes back, because every arm is scoped by the resolved user id")
-        void whenCalledWithCategoryIdBelongingToAnotherUser_thenEmptyListComesBackScopedByResolvedUserId() {
+        @DisplayName("when the category id belongs to another user - then an empty list comes back")
+        void whenCalledWithCategoryIdBelongingToAnotherUser_thenEmptyListComesBack() {
             long firstUserId = storedUserId("find-page-cross-user-first-user");
             long secondUserId = storedUserId("find-page-cross-user-second-user");
             long secondUsersCategoryId = storedGroupingId(secondUserId, "Second User Category");
@@ -627,7 +620,7 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when two rows share a created_at, one in each table - then the order between them is the same on every call, so a page boundary is deterministic")
+                "when two rows share a created_at, one in each table - then the order between them is the same on every call")
         void whenTwoRowsShareCreatedAtOneInEachTable_thenOrderIsTheSameOnEveryCall() {
             long userId = storedUserId("find-page-tie-break-user");
             long categoryId = storedGroupingId(userId, "Entertainment");
@@ -649,8 +642,7 @@ class ExpenseRepositoryAdapterTest {
     class CountMatching {
 
         @Test
-        @DisplayName(
-                "when called with an unnarrowed filter - then the answer is every row the user has, across both tables")
+        @DisplayName("when the filter is unnarrowed - then the answer is every row the user has, across both tables")
         void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothTables() {
             long userId = storedUserId("count-matching-unnarrowed-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -679,8 +671,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a filter whose limit and offset would return one page - then the answer ignores the limit and the offset, so a page can say how many rows the filter matches")
+        @DisplayName("when the filter carries a limit and an offset - then the answer ignores both")
         void whenFilterCarriesLimitAndOffset_thenAnswerIgnoresThem() {
             long userId = storedUserId("count-matching-ignores-paging-user");
             long categoryId = storedGroupingId(userId, "Shopping");
@@ -731,9 +722,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException, not EntityNotFoundException, carrying the framework exception as its cause")
-        void
-                whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when create() hits a non-constraint failure - then throws PersistenceFailedException, not EntityNotFoundException")
+        void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionNotEntityNotFound() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseEntityRepository.save(any())).thenThrow(frameworkException);
             Expense expense = Expense.newExpense(
@@ -748,9 +738,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when create() hits a foreign key constraint violation naming neither of expense's own foreign keys - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenCreateHitsConstraintViolationNamingNeitherForeignKey_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when create() hits a constraint violation naming neither of its foreign keys - then throws PersistenceFailedException")
+        void whenCreateHitsConstraintViolationNamingNeitherForeignKey_thenThrowsPersistenceFailedException() {
             SQLException sqlException = new SQLException(
                     "ERROR: insert or update on table \"expense\" violates foreign key constraint \"some_other_table_fkey\"",
                     "23503");
@@ -768,9 +757,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when countByMessageReference() hits a database failure - then throws PersistenceFailedException, never EntityNotFoundException")
-        void
-                whenCountByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when countByMessageReference() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenCountByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseEntityRepository.countByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
@@ -784,9 +772,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when totalsByCurrency() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenTotalsByCurrencyHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when totalsByCurrency() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenTotalsByCurrencyHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseEntityRepository.totalsByCurrency(any(), any(), any()))
                     .thenThrow(frameworkException);
@@ -801,9 +788,8 @@ class ExpenseRepositoryAdapterTest {
         // A default answer that throws for any call, rather than a stub on one method, so the
         // scenario stays about the failure surfacing and not about which query the adapter runs.
         @Test
-        @DisplayName(
-                "when findPage() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenFindPageHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when findPage() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindPageHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
                 throw frameworkException;
@@ -819,9 +805,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when countMatching() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenCountMatchingHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when countMatching() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenCountMatchingHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
                 throw frameworkException;

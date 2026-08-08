@@ -81,8 +81,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category, and an unstored proposal with no merchant - then the row's merchant column is null and the returned proposal's merchant is empty")
-        void whenCalledWithNoMerchant_thenRowMerchantColumnIsNullAndReturnedProposalMerchantIsEmpty() {
+                "when the proposal carries no merchant - then the stored row and the returned proposal both carry none")
+        void whenCalledWithNoMerchant_thenStoredRowAndReturnedProposalBothCarryNoMerchant() {
             long userId = storedUserId("no-merchant-proposal-user");
             long categoryId = storedGroupingId(userId, "Utilities");
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -104,8 +104,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a proposal stamped with an instant carrying nanosecond precision and the row is read back - then both timestamps equal that instant truncated to microseconds")
-        void whenInstantCarriesNanosecondPrecision_thenReadBackTimestampsAreTruncatedToMicroseconds() {
+                "when the proposal is stamped with nanosecond precision - then its timestamps are truncated to microseconds")
+        void whenInstantCarriesNanosecondPrecision_thenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("nanosecond-proposal-user");
             long categoryId = storedGroupingId(userId, "Dining");
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
@@ -131,8 +131,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a description exactly 500 characters long - then the row is written and carries the whole description")
+        @DisplayName("when the description is exactly 500 characters long - then the row carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-proposal-user");
             long categoryId = storedGroupingId(userId, "Boundary");
@@ -156,8 +155,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a description 501 characters long - then throws InvalidExpenseProposalException before anything is written, so no proposal row exists afterwards")
-        void whenDescriptionIs501Characters_thenThrowsInvalidExpenseProposalExceptionBeforeWritingAnything() {
+                "when the description is 501 characters long - then throws InvalidExpenseProposalException and writes nothing")
+        void whenDescriptionIs501Characters_thenThrowsInvalidExpenseProposalExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-description-proposal-user");
             long categoryId = storedGroupingId(userId, "Boundary");
             String description = "a".repeat(501);
@@ -176,8 +175,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a merchant exactly 255 characters long - then the row is written and carries the whole merchant")
+        @DisplayName("when the merchant is exactly 255 characters long - then the row carries the whole merchant")
         void whenMerchantIsExactly255Characters_thenRowIsWrittenAndCarriesWholeMerchant() {
             long userId = storedUserId("boundary-merchant-proposal-user");
             long categoryId = storedGroupingId(userId, "Boundary");
@@ -201,8 +199,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a merchant 256 characters long - then throws InvalidExpenseProposalException before anything is written")
-        void whenMerchantIs256Characters_thenThrowsInvalidExpenseProposalExceptionBeforeWritingAnything() {
+                "when the merchant is 256 characters long - then throws InvalidExpenseProposalException and writes nothing")
+        void whenMerchantIs256Characters_thenThrowsInvalidExpenseProposalExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-merchant-proposal-user");
             long categoryId = storedGroupingId(userId, "Boundary");
             String merchant = "a".repeat(256);
@@ -222,7 +220,7 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a proposal whose category id is positive and names no stored category - then throws EntityNotFoundException whose entityType() is \"category\", not PersistenceFailedException")
+                "when the category id names no stored category - then throws EntityNotFoundException for the category")
         void whenCategoryIdNamesNoStoredCategory_thenThrowsEntityNotFoundExceptionForCategory() {
             long userId = storedUserId("unknown-category-proposal-user");
             long unknownCategoryId = 999_999_999L;
@@ -242,8 +240,7 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a proposal whose user id is positive and names no stored user - then throws EntityNotFoundException whose entityType() is \"user\"")
+        @DisplayName("when the user id names no stored user - then throws EntityNotFoundException for the user")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
             long categoryId = storedGroupingId(storedUserId("category-owner-for-unknown-proposal-user"), "Category");
@@ -263,9 +260,8 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called for two proposals of two different stored users, each with its own stored category - then each user owns exactly its own row, and neither references the other's")
-        void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRowWithNoCrossReference() {
+        @DisplayName("when two users each have a proposal created - then each owns exactly its own row")
+        void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRow() {
             long firstUserId = storedUserId("first-proposal-user");
             long firstCategoryId = storedGroupingId(firstUserId, "First Category");
             long secondUserId = storedUserId("second-proposal-user");
@@ -305,8 +301,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user, a stored category and a proposal carrying a message reference - then the written row's message_reference column equals that reference's UUID")
-        void whenCalledWithMessageReference_thenRowMessageReferenceColumnEqualsGivenReferenceUuid() {
+                "when the proposal carries a message reference - then the row's message_reference column holds its UUID")
+        void whenCalledWithMessageReference_thenRowMessageReferenceColumnHoldsItsUuid() {
             long userId = storedUserId("message-reference-proposal-user");
             long categoryId = storedGroupingId(userId, "Category");
             MessageReference reference = MessageReference.newReference();
@@ -388,8 +384,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with one of two references a user's proposals were stored under - then only that reference's proposals come back")
-        void whenUserHasProposalsUnderTwoReferences_thenOnlyRequestedReferencesProposalsComeBack() {
+                "when a user's proposals were stored under two references - then only the one asked for comes back")
+        void whenUserHasProposalsUnderTwoReferences_thenOnlyTheOneAskedForComesBack() {
             long userId = storedUserId("summary-two-references-user");
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
@@ -678,10 +674,8 @@ class ExpenseProposalRepositoryAdapterTest {
     class Discard {
 
         @Test
-        @DisplayName(
-                "when two proposals share a reference and a third does not - then only those two are removed, and none becomes an expense")
-        void
-                whenTwoProposalsStoredUnderReferenceAndAThirdUnderAnother_thenReturnsTwoDeletesThemAndLeavesThirdProposal() {
+        @DisplayName("when two proposals share a reference and a third does not - then only those two are discarded")
+        void whenTwoProposalsShareAReference_thenOnlyThoseTwoAreDiscarded() {
             long userId = storedUserId("discard-two-proposals-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
             MessageReference reference = MessageReference.newReference();
@@ -782,9 +776,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException, not EntityNotFoundException, carrying the framework exception as its cause")
-        void
-                whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when create() hits a non-constraint failure - then throws PersistenceFailedException, not EntityNotFoundException")
+        void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionNotEntityNotFound() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.save(any())).thenThrow(frameworkException);
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -805,9 +798,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when create() hits a foreign key constraint violation naming neither of expense_proposal's own foreign keys - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenCreateHitsConstraintViolationNamingNeitherForeignKey_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when create() hits a constraint violation naming neither of its foreign keys - then throws PersistenceFailedException")
+        void whenCreateHitsConstraintViolationNamingNeitherForeignKey_thenThrowsPersistenceFailedException() {
             SQLException sqlException = new SQLException(
                     "ERROR: insert or update on table \"expense_proposal\" violates foreign key constraint \"some_other_table_fkey\"",
                     "23503");
@@ -831,9 +823,8 @@ class ExpenseProposalRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when findSummariesByMessageReference() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenFindSummariesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when findSummariesByMessageReference() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindSummariesHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.findSummariesByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
@@ -845,9 +836,8 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when accept() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenAcceptHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when accept() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenAcceptHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.accept(any(), any(), any()))
                     .thenThrow(frameworkException);
@@ -859,9 +849,8 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when discard() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when discard() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.discard(any(), any())).thenThrow(frameworkException);
 
