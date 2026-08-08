@@ -23,6 +23,11 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
 - **An example goes in the schema, as an `example`.** It is then an artifact — validated against its own schema,
   rendered by every viewer, and available to a caller writing against the API. A JSON block pasted into a
   markdown page is checked by nobody.
+- **A store's contract page documents the schema, not the statements run against it.** Tables, columns, indexes
+  and what a column means; never a row per query. A query list grows with every use case, duplicates what those
+  pages already say, and is the section that goes stale first.
+- **No query plan.** Which index a read leads with, what is a lookup and what is a sort, how a page is cut — none
+  of it is the interface, and all of it changes under a version upgrade nobody documents.
 - **Do not repeat within a document either.** If a rule appears in a section, a diagram label, and a step
   description, keep the one place a reader will look and drop the rest.
 - **Prose never restates a diagram.** A page carrying a component diagram does not also narrate which class calls,

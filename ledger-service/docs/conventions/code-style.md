@@ -97,6 +97,9 @@ Applies across all layers.
   interfaces with derived or `@Query` methods.
 - An outbound adapter translates every runtime exception its infrastructure raises into a domain exception; no
   framework type crosses an outbound port.
+- **A date-bounded read converts its days to instants in Java and binds them as parameters.** Never cast a `DATE`
+  to a timestamp in SQL, where the session's time zone decides the result. A
+  [spending period](../domain/spending-period.md) answers both bounds itself.
 
 ## Refactoring Conventions
 
