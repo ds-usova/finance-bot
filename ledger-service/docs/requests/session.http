@@ -1,0 +1,32 @@
+### A person signing in from a browser — POST, GET, DELETE /api/v1/session
+# What each operation takes, answers and refuses:
+# ../contracts/in/web-session-api.md
+
+@host = http://localhost:1000
+# Set from the XSRF-TOKEN cookie the "read the session" request below returns; every write needs it.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+# Set from the fb_session cookie the sign-in response sets.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### Sign in — opens a session. The body is exactly what the Telegram Login Widget hands the page, hash
+### included; paste a real payload rather than editing these fields, since the hash covers every one of them.
+POST {{host}}/api/v1/session
+Content-Type: application/json
+Cookie: XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "id": "123456789",
+  "auth_date": "1700000000",
+  "hash": "the-widget's-hash-over-every-other-field"
+}
+
+### Read the session — answers who the browser is signed in as. Run this once, unauthenticated, to obtain the
+### XSRF-TOKEN cookie the sign-in above needs; a read itself needs no CSRF token.
+GET {{host}}/api/v1/session
+Cookie: fb_session={{sessionCookie}}
+
+### End the session — clears it, whether or not one was open.
+DELETE {{host}}/api/v1/session
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}

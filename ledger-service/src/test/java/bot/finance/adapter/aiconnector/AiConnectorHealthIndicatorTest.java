@@ -31,14 +31,22 @@ class AiConnectorHealthIndicatorTest {
     class HealthCheck {
 
         @Test
-        @DisplayName(
-                "when the stub server reports SERVING for the empty service name - then the status is UP, and the check the server received named the empty service")
-        void whenStubServerReportsServing_thenStatusIsUpAndCheckNamedEmptyService() {
+        @DisplayName("when the stub server reports SERVING - then the status is UP")
+        void whenStubServerReportsServing_thenStatusIsUp() {
             GrpcStubServer.reportServingStatus(HealthCheckResponse.ServingStatus.SERVING);
 
             Health health = healthIndicator.health();
 
             assertThat(health.getStatus()).isEqualTo(org.springframework.boot.health.contributor.Status.UP);
+        }
+
+        @Test
+        @DisplayName("when health is checked - then the check the server received names the empty service")
+        void whenHealthIsChecked_thenCheckTheServerReceivedNamesTheEmptyService() {
+            GrpcStubServer.reportServingStatus(HealthCheckResponse.ServingStatus.SERVING);
+
+            healthIndicator.health();
+
             assertThat(GrpcStubServer.lastHealthCheckRequest().getService()).isEmpty();
         }
 
@@ -46,8 +54,8 @@ class AiConnectorHealthIndicatorTest {
         @EnumSource(
                 value = HealthCheckResponse.ServingStatus.class,
                 names = {"NOT_SERVING", "UNKNOWN", "SERVICE_UNKNOWN"})
-        @DisplayName(
-                "when the stub server reports a non-SERVING status for the empty service name - then the status is DOWN and the detail carries the returned serving status")
+        @DisplayName("when the stub server reports a non-SERVING status - then the status is DOWN and the detail "
+                + "names it")
         void whenStubServerReportsNonServingStatus_thenStatusIsDownAndDetailCarriesServingStatus(
                 HealthCheckResponse.ServingStatus servingStatus) {
             GrpcStubServer.reportServingStatus(servingStatus);

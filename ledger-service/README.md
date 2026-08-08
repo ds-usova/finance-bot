@@ -17,11 +17,16 @@ C3 is below. Package structure is in the
 - [Create an expense proposal](docs/usecases/create-an-expense-proposal.md)
 - [List a grouping's categories](docs/usecases/list-categories.md)
 - [Summarize spending over a period](docs/usecases/summarize-spending.md)
+- [Browse a person's expenses](docs/usecases/browse-expenses.md)
+- [Browse a person's categories](docs/usecases/browse-categories.md)
+- [Browse a person's groupings](docs/usecases/browse-groupings.md)
 
 ### Contracts
 
 - [Telegram — incoming messages](docs/contracts/in/telegram-updates.md) (inbound)
 - [Agent acting for a user — the ledger's tools](docs/contracts/in/mcp.md) (inbound)
+- [A person signing in from a browser — the session API](docs/contracts/in/web-session-api.md) (inbound)
+- [A person browsing their ledger from a browser — the browse API](docs/contracts/in/web-browse-api.md) (inbound)
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
@@ -29,6 +34,7 @@ C3 is below. Package structure is in the
 ### Running It
 
 - [Configuration](docs/configuration.md) — the environment variables a deployment supplies.
+- [Manual requests](docs/requests/) — one `.http` file per HTTP boundary, for driving an endpoint by hand.
 
 ### C3 — Component
 

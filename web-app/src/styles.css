@@ -20,3 +20,48 @@ main {
 .error {
   color: #b3261e;
 }
+
+.expense-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.expense-filters .filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.expense-list {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.expense-list th,
+.expense-list td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #8884;
+}
+
+.expense-list .amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-list-note {
+  font-size: 0.9rem;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pager-range {
+  font-size: 0.9rem;
+}

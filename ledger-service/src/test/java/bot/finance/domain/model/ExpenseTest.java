@@ -24,9 +24,9 @@ class ExpenseTest {
     class NewExpenseFactory {
 
         @Test
-        @DisplayName(
-                "when a user id, a category id, a description, a merchant, a money and an instant are given - then returns an expense carrying all of them, with no database id, and with both timestamps equal to that instant")
-        void whenAllFieldsAreGiven_thenReturnsExpenseCarryingThemWithNoDatabaseIdAndBothTimestampsEqualToInstant() {
+        @DisplayName("when every field is given - then returns an expense carrying them all, unstored and stamped "
+                + "with that instant")
+        void whenAllFieldsAreGiven_thenReturnsExpenseCarryingThemUnstoredAndStampedWithThatInstant() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
             Expense expense = Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, now);
@@ -114,8 +114,8 @@ class ExpenseTest {
     class StoredFactory {
 
         @Test
-        @DisplayName(
-                "when a database id and every other field are given, with a created_at earlier than its updated_at - then returns an expense carrying all of them, each timestamp unchanged")
+        @DisplayName("when a database id and every other field are given - then returns an expense carrying them "
+                + "all, timestamps unchanged")
         void whenDatabaseIdAndEveryOtherFieldAreGiven_thenReturnsExpenseCarryingAllWithTimestampsUnchanged() {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
             Instant updatedAt = Instant.parse("2026-07-29T11:15:30Z");
@@ -136,10 +136,8 @@ class ExpenseTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
-        @DisplayName(
-                "when a database id and a blank description are given, with every other field valid - then throws InvalidExpenseException")
-        void whenDatabaseIdAndBlankDescriptionAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseException(
-                String description) {
+        @DisplayName("when a database id and a blank description are given - then throws InvalidExpenseException")
+        void whenDatabaseIdAndBlankDescriptionAreGiven_thenThrowsInvalidExpenseException(String description) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
             assertThatThrownBy(

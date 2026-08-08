@@ -1,17 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import { AuthContext, type AuthContextValue } from './authContext';
+import { anAuthContext } from '../testing/fixtures';
+import { AuthContext } from './authContext';
 import { RequireAuth } from './RequireAuth';
 import type { AuthStatus } from './types';
 
 function renderAt(status: AuthStatus) {
-  const value: AuthContextValue = {
+  const value = anAuthContext({
     status,
     session: status === 'authenticated' ? { externalId: '42' } : null,
-    signIn: async () => {},
-    signOut: async () => {},
-  };
+  });
 
   return render(
     <AuthContext.Provider value={value}>

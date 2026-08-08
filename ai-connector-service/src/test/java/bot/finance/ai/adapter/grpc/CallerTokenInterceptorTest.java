@@ -78,9 +78,9 @@ class CallerTokenInterceptorTest {
             verify(extractIntentsPort, never()).extractIntents(any());
         }
 
+        /** The refusal is scoped to {@code IntentExtractionService}, so the health service answers unauthenticated. */
         @Test
-        @DisplayName(
-                "when the health service is checked with no authorization header - then it succeeds, since the refusal is scoped to IntentExtractionService")
+        @DisplayName("when the health service is checked with no authorization header - then it succeeds")
         void whenHealthServiceCheckedWithNoAuthorizationHeader_thenSucceeds() {
             HealthCheckResponse response = healthStub.check(HealthCheckRequest.getDefaultInstance());
 

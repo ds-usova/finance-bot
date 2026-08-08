@@ -34,6 +34,7 @@ node_modules/
 /web-app/coverage/
 /web-app/.env
 /web-app/.env*.local
+/web-app/src/api/generated/
 .vite/
 *.tsbuildinfo
 

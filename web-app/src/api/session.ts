@@ -1,7 +1,7 @@
 import type { Session, TelegramAuthPayload } from '../auth/types';
 import { request } from './client';
 
-const SESSION_PATH = '/api/session';
+const SESSION_PATH = '/api/v1/session';
 
 export async function createSession(payload: TelegramAuthPayload): Promise<Session> {
   const session = await request<Session>(SESSION_PATH, {

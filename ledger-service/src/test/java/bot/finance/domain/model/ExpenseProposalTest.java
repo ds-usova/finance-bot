@@ -26,9 +26,9 @@ class ExpenseProposalTest {
     class NewExpenseProposalFactory {
 
         @Test
-        @DisplayName(
-                "when a user id, a category id, a description, a merchant, a money, a message reference and an instant are given - then returns a proposal carrying all of them, with no database id, and with both timestamps equal to that instant")
-        void whenAllFieldsAreGiven_thenReturnsProposalCarryingThemWithNoDatabaseIdAndBothTimestampsEqualToInstant() {
+        @DisplayName("when every field is given - then returns a proposal carrying them all, unstored and stamped "
+                + "with that instant")
+        void whenAllFieldsAreGiven_thenReturnsProposalCarryingThemUnstoredAndStampedWithThatInstant() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -135,8 +135,8 @@ class ExpenseProposalTest {
     class StoredFactory {
 
         @Test
-        @DisplayName(
-                "when a database id and every other field are given, with a created_at earlier than its updated_at - then returns a proposal carrying all of them, each timestamp unchanged")
+        @DisplayName("when a database id and every other field are given - then returns a proposal carrying them "
+                + "all, timestamps unchanged")
         void whenDatabaseIdAndEveryOtherFieldAreGiven_thenReturnsProposalCarryingAllWithTimestampsUnchanged() {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
             Instant updatedAt = Instant.parse("2026-07-29T11:15:30Z");
@@ -158,11 +158,9 @@ class ExpenseProposalTest {
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
-        @DisplayName(
-                "when a database id and a blank description are given, with every other field valid - then throws InvalidExpenseProposalException")
-        void
-                whenDatabaseIdAndBlankDescriptionAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseProposalException(
-                        String description) {
+        @DisplayName("when a database id and a blank description are given - then throws "
+                + "InvalidExpenseProposalException")
+        void whenDatabaseIdAndBlankDescriptionAreGiven_thenThrowsInvalidExpenseProposalException(String description) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
             assertThatThrownBy(() -> ExpenseProposal.stored(
@@ -209,10 +207,9 @@ class ExpenseProposalTest {
         }
 
         @Test
-        @DisplayName(
-                "when a database id and an absent message reference are given, with every other field valid - then throws InvalidExpenseProposalException")
-        void
-                whenDatabaseIdAndAbsentMessageReferenceAreGivenWithEveryOtherFieldValid_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when a database id and an absent message reference are given - then throws "
+                + "InvalidExpenseProposalException")
+        void whenDatabaseIdAndAbsentMessageReferenceAreGiven_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
             assertThatThrownBy(() -> ExpenseProposal.stored(

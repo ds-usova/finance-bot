@@ -1,0 +1,12 @@
+Problem:
+  type: object
+  description: >-
+    The body every refusal but the 401 carries. One field, and never a stack frame, a statement or a table name.
+  properties:
+    message:
+      type: string
+      description: What went wrong, in words a caller can show a person.
+  required:
+    - message
+  example:
+    message: status must be PENDING or RECORDED

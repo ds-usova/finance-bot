@@ -62,8 +62,8 @@ class LedgerToolFailureProcessorTest {
         }
 
         @Test
-        @DisplayName("when the cause is a plain RuntimeException wrapping an McpTransportException - then "
-                + "rethrows, because the chain is walked rather than the direct cause matched")
+        @DisplayName("when the cause is a RuntimeException wrapping an McpTransportException - then it rethrows, "
+                + "walking the chain")
         void whenCauseIsRuntimeExceptionWrappingMcpTransportException_thenRethrowsBecauseChainIsWalked() {
             McpTransportException transportException = new McpTransportException("initialization failed");
             RuntimeException wrapper = new RuntimeException("lifecycle initialization failed", transportException);

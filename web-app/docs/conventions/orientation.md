@@ -23,6 +23,7 @@ context, styling is one hand-written stylesheet, and fetching is the module's ow
 | System                | Direction | Through                                                                         |
 |-----------------------|-----------|---------------------------------------------------------------------------------|
 | Ledger Service        | out       | [`contracts/out/ledger-session-api.md`](../contracts/out/ledger-session-api.md) |
+| Ledger Service        | out       | [`contracts/out/ledger-browse-api.md`](../contracts/out/ledger-browse-api.md)   |
 | Telegram Login Widget | in        | A script the sign-in page embeds, which calls back with a signed payload        |
 
 ## What Cannot Be Exercised Locally

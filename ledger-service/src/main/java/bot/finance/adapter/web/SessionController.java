@@ -5,26 +5,23 @@ import bot.finance.adapter.security.SessionTokenMinter;
 import bot.finance.adapter.security.SessionTokenProperties;
 import bot.finance.adapter.security.WebSessionProperties;
 import bot.finance.adapter.telegram.TelegramLoginVerifier;
+import bot.finance.api.SessionApi;
+import bot.finance.api.model.CurrentSession200Response;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/session")
-public class SessionController {
+public class SessionController implements SessionApi {
 
     private final TelegramLoginVerifier loginVerifier;
     private final InitializeUserPort initializeUserPort;
@@ -48,8 +45,12 @@ public class SessionController {
         this.logger = loggerFactory.getLogger(SessionController.class);
     }
 
-    @PostMapping
-    public ResponseEntity<SessionResponse> signIn(@RequestBody Map<String, String> telegramLoginPayload) {
+    @Override
+    public ResponseEntity<CurrentSession200Response> signIn(Map<String, Object> requestBody) {
+        // The schema declares additionalProperties with no properties of its own, so the generated interface
+        // types the body as a map of Object; each value is rendered with String.valueOf for the verifier.
+        Map<String, String> telegramLoginPayload = new LinkedHashMap<>();
+        requestBody.forEach((key, value) -> telegramLoginPayload.put(key, String.valueOf(value)));
         String externalId = loginVerifier.verify(telegramLoginPayload, Instant.now());
 
         initializeUserPort.initialize(new InitializeUserCommand(externalId));
@@ -58,15 +59,16 @@ public class SessionController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie(token, sessionTtl))
-                .body(new SessionResponse(externalId));
+                .body(new CurrentSession200Response(externalId));
     }
 
-    @GetMapping
-    public SessionResponse currentSession() {
-        return new SessionResponse(AuthenticatedCaller.authenticatedUserId().externalId());
+    @Override
+    public ResponseEntity<CurrentSession200Response> currentSession() {
+        return ResponseEntity.ok(new CurrentSession200Response(
+                AuthenticatedCaller.authenticatedUserId().externalId()));
     }
 
-    @DeleteMapping
+    @Override
     public ResponseEntity<Void> signOut() {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie("", Duration.ZERO))

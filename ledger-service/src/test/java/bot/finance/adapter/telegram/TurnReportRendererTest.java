@@ -41,10 +41,9 @@ class TurnReportRendererTest {
     class Render {
 
         @Test
-        @DisplayName(
-                "when a RECORDED report carries two summaries, one with a merchant and one without - then opens with the plural count and lists one bullet per summary in order")
-        void
-                whenRecordedReportCarriesTwoSummariesOneWithMerchantOneWithout_thenOpensWithPluralCountAndListsOneBulletPerSummaryInOrder() {
+        @DisplayName("when a RECORDED report carries two proposal summaries - then the text is the plural count "
+                + "and one bullet each")
+        void whenRecordedReportCarriesTwoSummaries_thenTextIsThePluralCountAndOneBulletEach() {
             ProposalSummary withMerchant =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary withoutMerchant =
@@ -108,9 +107,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a PARTIAL report carries one summary - then opens with the may-be-incomplete text and carries that summary's bullet below it")
-        void whenPartialReportCarriesOneSummary_thenOpensWithMayBeIncompleteTextAndCarriesBulletBelowIt() {
+        @DisplayName("when a PARTIAL report carries one summary - then the text is the may-be-incomplete line and "
+                + "its bullet")
+        void whenPartialReportCarriesOneSummary_thenTextIsTheMayBeIncompleteLineAndItsBullet() {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report = new TurnReport(
@@ -126,9 +125,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a RECORDED report carries enough summaries that the bullets would exceed 4000 characters - then the text is cut at 4000 characters and ends with the omitted-count line")
-        void whenRecordedReportExceeds4000Characters_thenTextIsCutAt4000CharactersAndEndsWithOmittedCountLine() {
+        @DisplayName("when a RECORDED report's bullets exceed 4000 characters - then the text is cut and ends with "
+                + "the omitted count")
+        void whenRecordedReportExceeds4000Characters_thenTextIsCutAndEndsWithTheOmittedCount() {
             int summaryCount = 200;
             List<ProposalSummary> summaries = IntStream.range(0, summaryCount)
                     .mapToObj(i -> new ProposalSummary(
@@ -158,11 +157,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a RECORDED report's bullets would exceed 4000 characters and its last bullet is shorter than "
-                        + "the omitted-count line - then the text is still cut at 4000 characters")
-        void
-                whenLastBulletIsShorterThanOmittedCountLineAndBulletsExceed4000Characters_thenTextIsStillCutAt4000Characters() {
+        @DisplayName("when the last bullet is shorter than the omitted-count line - then the text is still cut at "
+                + "4000 characters")
+        void whenLastBulletIsShorterThanOmittedCountLine_thenTextIsStillCutAt4000Characters() {
             List<ProposalSummary> summaries = new ArrayList<>(IntStream.range(0, 48)
                     .mapToObj(i -> new ProposalSummary(
                             "Groceries", "Food", "d".repeat(31), Optional.of("Rewe supermarket"), new Money(4230, EUR)))
@@ -177,8 +174,8 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a summary's description contains * and _ - then those characters appear literally in the rendered bullet, with no escaping applied")
+        @DisplayName("when a summary's description contains * and _ - then those characters appear literally, "
+                + "unescaped")
         void whenSummaryDescriptionContainsAsteriskAndUnderscore_thenThoseCharactersAppearLiterallyWithNoEscaping() {
             ProposalSummary summary = new ProposalSummary(
                     "Groceries", "Food", "weekly *shop_ trip", Optional.empty(), new Money(4230, EUR));
@@ -192,9 +189,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when an ANSWERED report carries one summary with two currency totals, one of them a single expense - then the text is exactly the design's summary block")
-        void whenAnsweredReportCarriesOneSummaryWithTwoCurrencyTotals_thenTextIsExactlyTheDesignsSummaryBlock() {
+        @DisplayName("when an ANSWERED report carries one summary with two currency totals - then the text is the "
+                + "summary block")
+        void whenAnsweredReportCarriesOneSummaryWithTwoCurrencyTotals_thenTextIsTheSummaryBlock() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             CurrencyTotal eurTotal = new CurrencyTotal(new Money(12050, EUR), 4);
             CurrencyTotal hufTotal = new CurrencyTotal(new Money(720000, CurrencyCode.of("HUF")), 1);
@@ -213,9 +210,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when an ANSWERED report carries a summary with no totals - then the text reports nothing is recorded between the period's dates")
-        void whenAnsweredReportCarriesSummaryWithNoTotals_thenTextReportsNothingIsRecordedBetweenTheDates() {
+        @DisplayName("when an ANSWERED report's summary has no totals - then the text says nothing is recorded in "
+                + "the period")
+        void whenAnsweredReportCarriesSummaryWithNoTotals_thenTextSaysNothingIsRecordedInThePeriod() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of());
             TurnReport report = new TurnReport(
@@ -227,8 +224,8 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a summary's period runs from 27 Jul 2026 to 2 Aug 2026 and the JVM's default locale is non-English - then the dates read in English regardless")
+        @DisplayName("when the JVM's default locale is non-English - then a summary's period dates still read in "
+                + "English")
         void whenSummaryPeriodIsRenderedWithNonEnglishDefaultLocale_thenDatesReadInEnglish() {
             Locale previousDefault = Locale.getDefault();
             try {
@@ -252,8 +249,7 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when an ANSWERED report carries two summaries - then both blocks appear, in the report's own order, separated so a reader can tell them apart")
+        @DisplayName("when an ANSWERED report carries two summaries - then both blocks appear in order, separated")
         void whenAnsweredReportCarriesTwoSummaries_thenBothBlocksAppearInOrderSeparated() {
             SpendingPeriod firstPeriod = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary firstSummary =
@@ -280,9 +276,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a RECORDED report carries one summary and two proposals - then the summary block comes first and the recorded-proposal header and its bullets follow it")
-        void whenRecordedReportCarriesSummaryAndTwoProposals_thenSummaryBlockPrecedesRecordedHeaderAndBullets() {
+        @DisplayName("when a RECORDED report carries a summary and two proposals - then the summary block precedes "
+                + "the recorded bullets")
+        void whenRecordedReportCarriesSummaryAndTwoProposals_thenSummaryBlockPrecedesRecordedBullets() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary withMerchant =
@@ -311,9 +307,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a PARTIAL report carries one summary and one proposal - then the summary block comes first, then the may-be-incomplete line and the proposal bullet")
-        void whenPartialReportCarriesSummaryAndOneProposal_thenSummaryBlockPrecedesMayBeIncompleteLineAndBullet() {
+        @DisplayName("when a PARTIAL report carries a summary and one proposal - then the summary block precedes "
+                + "the may-be-incomplete line")
+        void whenPartialReportCarriesSummaryAndOneProposal_thenSummaryBlockPrecedesMayBeIncompleteLine() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary proposal =
@@ -339,9 +335,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a NOTHING_IDENTIFIED report carries one summary - then the summary block comes first and the no-expense-identified text follows it")
-        void whenNothingIdentifiedReportCarriesSummary_thenSummaryBlockPrecedesNoExpenseIdentifiedText() {
+        @DisplayName("when a NOTHING_IDENTIFIED report carries one summary - then the summary block precedes the "
+                + "no-expense text")
+        void whenNothingIdentifiedReportCarriesSummary_thenSummaryBlockPrecedesNoExpenseText() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
@@ -384,9 +380,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a RECORDED report's summaries and proposals together exceed 4000 characters - then every summary line is intact and the proposal list is what trims, ending with its omitted-count line")
-        void whenRecordedReportSummariesAndProposalsExceed4000Characters_thenSummaryLinesSurviveAndProposalListTrims() {
+        @DisplayName("when a RECORDED report's summaries and proposals exceed 4000 characters - then the proposal "
+                + "list is what trims")
+        void whenRecordedReportSummariesAndProposalsExceed4000Characters_thenProposalListIsWhatTrims() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             int proposalCount = 200;
@@ -425,10 +421,8 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when an ANSWERED report's summary blocks alone exceed 4000 characters - then whole periods are dropped from the oldest and the text ends with the omitted-periods line")
-        void
-                whenAnsweredReportSummaryBlocksAloneExceed4000Characters_thenOldestPeriodsDropAndTextEndsWithOmittedPeriodsLine() {
+        @DisplayName("when an ANSWERED report's summary blocks exceed 4000 characters - then the oldest periods drop")
+        void whenAnsweredReportSummaryBlocksExceed4000Characters_thenOldestPeriodsDrop() {
             int summaryCount = 150;
             DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
             List<SpendingSummary> summaries = IntStream.range(0, summaryCount)
@@ -545,8 +539,7 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when an ANSWERED report carries summaries and no proposal - then returns empty, since the buttons resolve proposals and there are none")
+        @DisplayName("when an ANSWERED report carries summaries and no proposal - then returns empty")
         void whenAnsweredReportCarriesSummariesAndNoProposal_thenReturnsEmpty() {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
@@ -559,9 +552,9 @@ class TurnReportRendererTest {
         }
 
         @Test
-        @DisplayName(
-                "when a RECORDED report carries both a summary and a proposal - then returns the same one-row, two-button markup it does today")
-        void whenRecordedReportCarriesSummaryAndProposal_thenReturnsSameOneRowTwoButtonMarkup() {
+        @DisplayName("when a RECORDED report carries both a summary and a proposal - then returns the one-row, "
+                + "two-button markup")
+        void whenRecordedReportCarriesSummaryAndProposal_thenReturnsTheOneRowTwoButtonMarkup() {
             MessageReference reference = MessageReference.newReference();
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));

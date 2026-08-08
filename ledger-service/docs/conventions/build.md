@@ -16,7 +16,12 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 - Coverage report (JaCoCo): `ledger-service/gradlew -p ledger-service test jacocoTestReport`
 - Reformat to style (Spotless): `ledger-service/gradlew -p ledger-service spotlessApply`
 - Check formatting (Spotless): `ledger-service/gradlew -p ledger-service spotlessCheck` — runs as part of `check`
-- Contract codegen: none is wired.
+- Contract codegen: `ledger-service/gradlew -p ledger-service openApiGenerate`, reading `openapi/ledger-api.yaml`
+  — runs automatically before `compileJava`.
+
+The specification declares no shared component names, so the generator derives each response type's name from the
+operation and status code that first reaches it. Reordering the paths renames the classes and breaks this
+module's build; no caller notices.
 
 ## Docker
 

@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -20,11 +21,21 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // Scratch files live under build/. Vitest's default exclude names a `build.config.*` file, never the
+    // directory, so a throwaway test written there would otherwise join the suite.
+    exclude: [...configDefaults.exclude, 'build/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       // main.tsx mounts the app and types.ts declares types; neither holds behaviour to cover.
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/auth/types.ts', 'src/**/*.test.{ts,tsx}'],
+      exclude: [
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'src/auth/types.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/api/generated/**',
+        'src/testing/**',
+      ],
       thresholds: {
         lines: 80,
         statements: 80,

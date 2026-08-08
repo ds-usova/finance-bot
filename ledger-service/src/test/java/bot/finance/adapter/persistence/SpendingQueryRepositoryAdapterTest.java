@@ -47,8 +47,8 @@ class SpendingQueryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a stored user and a query over a one-week period - then the row holds what was given and the returned entity carries a generated id")
-        void whenCalledWithStoredUser_thenRowWrittenWithGivenFieldsAndReturnedEntityCarriesGeneratedId() {
+                "when a query over a one-week period is created - then the row holds what was given and the entity carries its id")
+        void whenCalledWithStoredUser_thenRowHoldsWhatWasGivenAndEntityCarriesItsId() {
             long userId = storedUserId("spending-query-create-user");
             MessageReference reference = MessageReference.newReference();
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
@@ -69,8 +69,7 @@ class SpendingQueryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with a query whose user id names no stored user - then throws EntityNotFoundException naming the user")
+        @DisplayName("when the user id names no stored user - then throws EntityNotFoundException for the user")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
             SpendingQuery query = SpendingQuery.newQuery(
@@ -91,8 +90,7 @@ class SpendingQueryRepositoryAdapterTest {
     class FindPeriodsByMessageReference {
 
         @Test
-        @DisplayName(
-                "when two rows under one reference carry the same period, written at different instants - then that period is answered once")
+        @DisplayName("when two rows under one reference carry the same period - then it is answered once")
         void whenTwoRowsCarrySamePeriod_thenPeriodAnsweredOnce() {
             long userId = storedUserId("spending-query-duplicate-period-user");
             MessageReference reference = MessageReference.newReference();
@@ -109,8 +107,8 @@ class SpendingQueryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when three rows under one reference carry three different periods, written out of order - then all three are answered, oldest first by the instant they were written")
-        void whenThreeRowsCarryThreeDifferentPeriods_thenAllThreeAnsweredOldestFirst() {
+                "when three rows under one reference carry three periods out of order - then all three come back oldest first")
+        void whenThreeRowsCarryThreeDifferentPeriods_thenAllThreeComeBackOldestFirst() {
             long userId = storedUserId("spending-query-three-periods-user");
             MessageReference reference = MessageReference.newReference();
             SpendingPeriod first = new SpendingPeriod(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7));
@@ -127,9 +125,8 @@ class SpendingQueryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when rows under two different references exist for the same user - then only the requested reference's periods are answered")
-        void whenTwoReferencesExistForSameUser_thenOnlyRequestedReferencesPeriodsAnswered() {
+        @DisplayName("when a user has rows under two references - then only the one asked for is answered")
+        void whenTwoReferencesExistForSameUser_thenOnlyTheOneAskedForIsAnswered() {
             long userId = storedUserId("spending-query-two-references-user");
             MessageReference reference = MessageReference.newReference();
             MessageReference otherReference = MessageReference.newReference();
@@ -253,9 +250,8 @@ class SpendingQueryRepositoryAdapterTest {
                 new SpendingQueryRepositoryAdapter(mockedSpendingQueryEntityRepository);
 
         @Test
-        @DisplayName(
-                "when create() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenCreateHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when create() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenCreateHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedSpendingQueryEntityRepository.save(any())).thenThrow(frameworkException);
             SpendingQuery query = SpendingQuery.newQuery(
@@ -272,9 +268,8 @@ class SpendingQueryRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when findPeriodsByMessageReference() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenFindPeriodsByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when findPeriodsByMessageReference() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindPeriodsByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedSpendingQueryEntityRepository.findPeriodsByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
@@ -286,9 +281,8 @@ class SpendingQueryRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when discard() hits a database failure - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when discard() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedSpendingQueryEntityRepository.discard(any(), any())).thenThrow(frameworkException);
 

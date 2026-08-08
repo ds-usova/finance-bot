@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -92,8 +93,8 @@ class SpendingPeriodTest {
         }
 
         @Test
-        @DisplayName(
-                "when to precedes from, both well-formed - then throws InvalidSpendingPeriodException saying the period ends before it starts")
+        @DisplayName("when to precedes from - then throws InvalidSpendingPeriodException saying it ends before "
+                + "it starts")
         void whenToPrecedesFromBothWellFormed_thenThrowsInvalidSpendingPeriodExceptionSayingEndsBeforeItStarts() {
             assertThatThrownBy(() -> SpendingPeriod.of("2026-07-27", "2026-07-20"))
                     .isInstanceOf(InvalidSpendingPeriodException.class)
@@ -110,6 +111,38 @@ class SpendingPeriodTest {
             assertThat(decadeWide.to()).isEqualTo(LocalDate.parse("2026-01-01"));
             assertThat(future.from()).isEqualTo(LocalDate.parse("2099-01-01"));
             assertThat(future.to()).isEqualTo(LocalDate.parse("2099-01-08"));
+        }
+    }
+
+    @Nested
+    @DisplayName("reading a period as a half-open range of instants")
+    class AsInstants {
+
+        @Test
+        @DisplayName("when the period is read as instants - then it spans the first day's UTC midnight to the "
+                + "midnight after the last day")
+        void whenPeriodIsReadAsInstants_thenItSpansFromFirstMidnightToTheMidnightAfterTheLastDay() {
+            SpendingPeriod period = SpendingPeriod.of("2026-01-05", "2026-01-07");
+
+            assertThat(period.startInstant()).isEqualTo(Instant.parse("2026-01-05T00:00:00Z"));
+            assertThat(period.endInstantExclusive()).isEqualTo(Instant.parse("2026-01-08T00:00:00Z"));
+        }
+
+        @Test
+        @DisplayName("when the period is a single day - then the range still covers that whole day")
+        void whenPeriodIsASingleDay_thenTheRangeStillCoversThatWholeDay() {
+            SpendingPeriod oneDay = SpendingPeriod.of("2026-01-05", "2026-01-05");
+
+            assertThat(oneDay.startInstant()).isEqualTo(Instant.parse("2026-01-05T00:00:00Z"));
+            assertThat(oneDay.endInstantExclusive()).isEqualTo(Instant.parse("2026-01-06T00:00:00Z"));
+        }
+
+        @Test
+        @DisplayName("when the last day is a month end - then the range ends on the first of the next month")
+        void whenLastDayIsAMonthEnd_thenTheRangeEndsOnTheFirstOfTheNextMonth() {
+            SpendingPeriod february = SpendingPeriod.of("2026-02-01", "2026-02-28");
+
+            assertThat(february.endInstantExclusive()).isEqualTo(Instant.parse("2026-03-01T00:00:00Z"));
         }
     }
 

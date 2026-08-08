@@ -109,17 +109,17 @@ class MoneyTest {
         }
 
         @Test
-        @DisplayName(
-                "when the amount is 12.505 EUR, more precise than the currency - then throws InvalidMoneyException naming the amount, the currency and its decimal places")
-        void whenAmountIsMorePreciseThanCurrency_thenThrowsInvalidMoneyExceptionNamingAmountCurrencyAndDecimalPlaces() {
+        @DisplayName("when the amount is more precise than the currency - then throws InvalidMoneyException "
+                + "naming the decimal places")
+        void whenAmountIsMorePreciseThanCurrency_thenThrowsInvalidMoneyExceptionNamingTheDecimalPlaces() {
             assertThatThrownBy(() -> Money.ofMajorUnits(new BigDecimal("12.505"), CurrencyCode.of("EUR")))
                     .isInstanceOf(InvalidMoneyException.class)
                     .hasMessage("12.505 is more precise than EUR, which has 2 decimal places");
         }
 
         @Test
-        @DisplayName(
-                "when the amount's minor units exceed Long.MAX_VALUE - then throws InvalidMoneyException saying it is too large, never ArithmeticException")
+        @DisplayName("when the amount's minor units exceed Long.MAX_VALUE - then throws InvalidMoneyException "
+                + "saying it is too large")
         void whenMinorUnitsOverflowLong_thenThrowsInvalidMoneyExceptionSayingAmountTooLarge() {
             assertThatThrownBy(() -> Money.ofMajorUnits(new BigDecimal("999999999999999999"), CurrencyCode.of("EUR")))
                     .isInstanceOf(InvalidMoneyException.class)
@@ -127,8 +127,7 @@ class MoneyTest {
         }
 
         @Test
-        @DisplayName(
-                "when the amount is -1.00 EUR - then throws InvalidMoneyException, since the canonical constructor's non-negative rule still holds")
+        @DisplayName("when the amount is -1.00 EUR - then throws InvalidMoneyException")
         void whenAmountIsNegative_thenThrowsInvalidMoneyException() {
             assertThatThrownBy(() -> Money.ofMajorUnits(new BigDecimal("-1.00"), CurrencyCode.of("EUR")))
                     .isInstanceOf(InvalidMoneyException.class);

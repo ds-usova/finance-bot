@@ -1,0 +1,33 @@
+get:
+  operationId: listCategories
+  tags:
+    - categories
+  summary: List the signed-in person's categories, each naming its grouping.
+  parameters:
+    - name: groupingId
+      in: query
+      required: false
+      description: >-
+        Narrows to one grouping. A grouping belonging to somebody else matches nothing and is not a refusal.
+        Refused with 400 naming `groupingId` when it is not a number.
+      schema:
+        type: integer
+        format: int64
+      example: 100
+  responses:
+    '200':
+      description: Every category, unpaged, ordered by grouping name and then by their own.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../components/schemas/category.yaml#/Category'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

@@ -17,6 +17,7 @@ bot.finance
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
+    │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
     │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     ├── rows                  # seeds a table's rows and reads them back, one class per table
@@ -26,7 +27,8 @@ bot.finance
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
-    │   ├── JsonUtils             # loads JSON fixtures from src/test/resources
+    │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
     │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
@@ -132,6 +134,13 @@ would inherit the first's advanced state. Give each new class a token constant i
 - A nested class named after the type under test shadows its import, so `@Nested class Widget` inside
   `WidgetTest` would make `new Widget(...)` resolve to the test class. Name it for the role instead:
   `WidgetConstructor`.
+- **A shared component's test carries only what is shared.** An exception advice, a filter, a converter: its test
+  holds what holds for every caller. What one caller alone can produce goes to that caller's test class — its
+  query parameters, its validation matrix, the exceptions only its own types raise. The reason is deletion:
+  retiring an endpoint should take its whole contract with it, out of one file. The other way round, ten
+  endpoints' validation rules end up in one class that belongs to none of them.
+- **Entering a shared component needs some caller.** Pick one, and say in the class javadoc that nothing in the
+  test asserts anything about it. `WebExceptionHandlerTest` goes through `ExpensesController` on those terms.
 - `@ParameterizedTest` when one behaviour spans several values (enum cases, validation matrices, null-handling).
   Never duplicate a case as both a parameterized entry and a one-off test.
 - AssertJ only — never JUnit `assertEquals`/`assertTrue`. RestAssured response specs are fine for HTTP-level
@@ -142,6 +151,8 @@ would inherit the first's advanced state. Give each new class a token constant i
   fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
   one behaviour they add up to. It never cites a plan step or a design decision by number either — the scenario a
   step agent works from carries those, and they name nothing once the plan is archived.
+  `DisplayNameConventionsTest` in `bot.finance.architecture` asserts both halves. The shape is enforced; the
+  length is `@ArchIgnore`d until the names that already overrun are dealt with, and the reason says how many.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
   internally, assert what must hold whichever route it takes — *no proposal is stored at the wrong scale* — never

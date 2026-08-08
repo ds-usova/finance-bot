@@ -22,23 +22,21 @@ class TurnReportTest {
     private static final SpendingSummary SUMMARY =
             new SpendingSummary(new SpendingPeriod(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5)), List.of());
 
+    private static TurnReport recordedReport(MessageReference reference) {
+        return new TurnReport(
+                "conversation-1", "message-1", ReportOutcome.RECORDED, List.of(PROPOSAL), List.of(SUMMARY), reference);
+    }
+
     @Nested
     @DisplayName("constructing a turn report")
     class TurnReportConstructor {
 
         @Test
-        @DisplayName("when a conversation id, inbound message id, outcome, proposal list, summary list and "
-                + "reference are present - then every component reads back unchanged and both lists are unmodifiable")
-        void whenEveryComponentIsPresent_thenEveryComponentReadsBackUnchangedAndBothListsAreUnmodifiable() {
+        @DisplayName("when every component is present - then every component reads back unchanged")
+        void whenEveryComponentIsPresent_thenEveryComponentReadsBackUnchanged() {
             MessageReference reference = MessageReference.newReference();
 
-            TurnReport report = new TurnReport(
-                    "conversation-1",
-                    "message-1",
-                    ReportOutcome.RECORDED,
-                    List.of(PROPOSAL),
-                    List.of(SUMMARY),
-                    reference);
+            TurnReport report = recordedReport(reference);
 
             assertThat(report.conversationId()).isEqualTo("conversation-1");
             assertThat(report.inboundMessageId()).isEqualTo("message-1");
@@ -46,6 +44,14 @@ class TurnReportTest {
             assertThat(report.proposals()).containsExactly(PROPOSAL);
             assertThat(report.summaries()).containsExactly(SUMMARY);
             assertThat(report.reference()).isEqualTo(reference);
+        }
+
+        @Test
+        @DisplayName(
+                "when a report is built from proposal and summary lists - then both lists read back " + "unmodifiable")
+        void whenReportIsBuiltFromProposalAndSummaryLists_thenBothListsReadBackUnmodifiable() {
+            TurnReport report = recordedReport(MessageReference.newReference());
+
             assertThatThrownBy(() -> report.proposals().add(PROPOSAL))
                     .isInstanceOf(UnsupportedOperationException.class);
             assertThatThrownBy(() -> report.summaries().add(SUMMARY)).isInstanceOf(UnsupportedOperationException.class);
@@ -80,8 +86,8 @@ class TurnReportTest {
         }
 
         @Test
-        @DisplayName("when mutable proposal and summary lists handed to the constructor are modified afterwards - "
-                + "then proposals() and summaries() are unchanged")
+        @DisplayName("when the mutable lists a report was built from are modified - then proposals() and "
+                + "summaries() are unchanged")
         void whenMutableProposalAndSummaryListsAreModifiedAfterConstruction_thenProposalsAndSummariesAreUnchanged() {
             List<ProposalSummary> mutableProposals = new ArrayList<>(List.of(PROPOSAL));
             List<SpendingSummary> mutableSummaries = new ArrayList<>(List.of(SUMMARY));

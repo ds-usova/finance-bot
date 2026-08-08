@@ -22,8 +22,8 @@ class IntentProtoMapperTest {
     class ToProtoRequest {
 
         @Test
-        @DisplayName("when the request carries text, three groupings, and default currency EUR - then the "
-                + "generated request carries the text, the groupings in order, and default_currency EUR")
+        @DisplayName("when the request carries text, three groupings and default currency EUR - then the generated "
+                + "request carries them all")
         void whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
@@ -63,8 +63,7 @@ class IntentProtoMapperTest {
         }
 
         @Test
-        @DisplayName(
-                "when the request carries a current date - then the generated request carries it as " + "current_date")
+        @DisplayName("when the request carries a current date - then the generated request carries it as current_date")
         void whenRequestCarriesCurrentDate_thenGeneratedRequestCarriesItAsCurrentDate() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",

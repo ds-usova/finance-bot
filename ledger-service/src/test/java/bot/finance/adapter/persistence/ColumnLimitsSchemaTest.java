@@ -30,7 +30,7 @@ class ColumnLimitsSchemaTest {
 
         @Test
         @DisplayName(
-                "when the migrated schema's character_maximum_length is read for app_user.external_id - then it equals ColumnLimits.EXTERNAL_ID")
+                "when the migrated width of app_user.external_id is read - then it equals ColumnLimits.EXTERNAL_ID")
         void whenMigratedColumnWidthRead_thenEqualsExternalIdConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "app_user", "external_id");
@@ -44,8 +44,7 @@ class ColumnLimitsSchemaTest {
     class CategoryName {
 
         @Test
-        @DisplayName(
-                "when the migrated schema's character_maximum_length is read for category.name - then it equals ColumnLimits.CATEGORY_NAME")
+        @DisplayName("when the migrated width of category.name is read - then it equals ColumnLimits.CATEGORY_NAME")
         void whenMigratedColumnWidthRead_thenEqualsCategoryNameConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "category", "name");
@@ -59,8 +58,7 @@ class ColumnLimitsSchemaTest {
     class Description {
 
         @Test
-        @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense.description - then it equals ColumnLimits.DESCRIPTION")
+        @DisplayName("when the migrated width of expense.description is read - then it equals ColumnLimits.DESCRIPTION")
         void whenMigratedColumnWidthRead_thenEqualsDescriptionConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "description");
@@ -74,8 +72,7 @@ class ColumnLimitsSchemaTest {
     class Merchant {
 
         @Test
-        @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense.merchant - then it equals ColumnLimits.MERCHANT")
+        @DisplayName("when the migrated width of expense.merchant is read - then it equals ColumnLimits.MERCHANT")
         void whenMigratedColumnWidthRead_thenEqualsMerchantConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "merchant");
@@ -90,7 +87,7 @@ class ColumnLimitsSchemaTest {
 
         @Test
         @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense.currency_code - then it equals ColumnLimits.CURRENCY_CODE")
+                "when the migrated width of expense.currency_code is read - then it equals ColumnLimits.CURRENCY_CODE")
         void whenMigratedColumnWidthRead_thenEqualsCurrencyCodeConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense", "currency_code");
@@ -105,7 +102,7 @@ class ColumnLimitsSchemaTest {
 
         @Test
         @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense_proposal.description - then it equals ColumnLimits.DESCRIPTION")
+                "when the migrated width of expense_proposal.description is read - then it equals ColumnLimits.DESCRIPTION")
         void whenMigratedColumnWidthRead_thenEqualsDescriptionConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "description");
@@ -120,7 +117,7 @@ class ColumnLimitsSchemaTest {
 
         @Test
         @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense_proposal.merchant - then it equals ColumnLimits.MERCHANT")
+                "when the migrated width of expense_proposal.merchant is read - then it equals ColumnLimits.MERCHANT")
         void whenMigratedColumnWidthRead_thenEqualsMerchantConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "merchant");
@@ -135,7 +132,7 @@ class ColumnLimitsSchemaTest {
 
         @Test
         @DisplayName(
-                "when the migrated schema's character_maximum_length is read for expense_proposal.currency_code - then it equals ColumnLimits.CURRENCY_CODE")
+                "when the migrated width of expense_proposal.currency_code is read - then it equals ColumnLimits.CURRENCY_CODE")
         void whenMigratedColumnWidthRead_thenEqualsCurrencyCodeConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "currency_code");

@@ -36,7 +36,7 @@ class MessageReferenceTest {
 
         @Test
         @DisplayName("when of is called with the canonical text of a UUID - then the value equals that UUID and "
-                + "round-trips through of(reference.value().toString())")
+                + "round-trips")
         void whenCalledWithCanonicalUuidText_thenValueEqualsUuidAndRoundTrips() {
             UUID uuid = UUID.randomUUID();
 

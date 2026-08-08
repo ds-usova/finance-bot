@@ -1,7 +1,7 @@
 # Web App
 
-The browser client. A person signs in with the Telegram account they use for the bot, and lands in an
-authenticated shell.
+The browser client. A person signs in with the Telegram account they use for the bot, and lands on a list of
+everything the ledger holds for them.
 
 The identity is a Telegram user id. Someone who has only ever talked to the
 bot and someone who has only ever used this page are the same user.
@@ -9,7 +9,9 @@ bot and someone who has only ever used this page are the same user.
 - [Conventions](docs/conventions.md) — how this module is structured, tested, styled and built.
 - [Configuration](docs/configuration.md) — every setting and its default.
 - [Sign in with Telegram](docs/usecases/sign-in-with-telegram.md) — what the sign-in does.
-- [Ledger session API](docs/contracts/out/ledger-session-api.md) — what it sends the ledger.
+- [Browse recorded expenses](docs/usecases/browse-recorded-expenses.md) — what the list behind it does.
+- [Ledger session API](docs/contracts/out/ledger-session-api.md) — what it sends the ledger to hold a session.
+- [Ledger browse API](docs/contracts/out/ledger-browse-api.md) — what it sends the ledger to fill the list.
 
 ## Components
 
@@ -17,28 +19,36 @@ bot and someone who has only ever used this page are the same user.
 @startuml C3-WebApp-Components
 !include <C4/C4_Component>
 
-Person(user, "Person", "Signs in with their Telegram account")
+AddElementTag("page", $bgColor="#A85C74", $fontColor="#FFFFFF", $borderColor="#7E4457")
+
+Person(user, "Person", "Signs in with their Telegram account and browses their ledger")
 System_Ext(telegram, "Telegram", "Signs the payload identifying the user")
-System_Ext(ledger, "Ledger Service", "Opens, answers and ends the browser session")
+System_Ext(ledger, "Ledger Service", "Holds the browser session, and answers what the ledger contains")
 
 Container_Boundary(webApp, "Web App") {
-  Component(loginPage, "Sign-in page", "React", "Offers the Telegram widget and reports a refused sign-in")
+  Component(loginPage, "Sign-in page", "React", "Offers the Telegram widget and reports a refused sign-in", $tags="page")
   Component(loginButton, "Telegram login button", "React", "Embeds Telegram's widget and receives the signed payload")
   Component(authContext, "Session state", "React context", "Holds who is signed in and what is still unknown")
   Component(routeGuard, "Route guard", "React", "Keeps a page behind an open session")
-  Component(homePage, "Home page", "React", "The authenticated shell")
-  Component(apiClient, "Session client", "TypeScript", "Calls the ledger with cookies and the CSRF token")
+  Component(expensesPage, "Expenses page", "React", "Composes the list and the filter, and signs out", $tags="page")
+  Component(expenseList, "Expense list", "React", "Renders one page of entries, each named from the tree")
+  Component(expenseFilters, "Filter controls", "React", "Offers the tree and the narrowing a listing accepts")
+  Component(apiClient, "Ledger client", "TypeScript", "Calls the ledger with cookies and the CSRF token")
 }
 
-Rel(user, loginPage, "Opens")
-Rel_D(loginPage, loginButton, "Shows")
+Rel_D(user, loginPage, "Opens")
+Rel_R(loginPage, loginButton, "Shows")
 Rel_R(loginButton, telegram, "Embeds the widget", "HTTPS")
 Rel_L(telegram, loginButton, "Returns the signed payload")
-Rel_U(loginButton, authContext, "Hands the payload to the sign-in")
-Rel_R(authContext, apiClient, "Opens, reads and ends the session")
-Rel_R(apiClient, ledger, "Session requests", "HTTPS, same origin")
+Rel(loginButton, authContext, "Hands the payload to the sign-in")
+Rel_D(authContext, apiClient, "Opens, reads and ends the session")
+Rel_R(apiClient, ledger, "Session and browse requests", "HTTPS, same origin")
 Rel_D(routeGuard, authContext, "Asks whether a session is open")
-Rel_R(routeGuard, homePage, "Admits")
+Rel(routeGuard, expensesPage, "Admits")
+Rel_D(expensesPage, expenseList, "Renders")
+Rel_D(expensesPage, expenseFilters, "Renders")
+Rel_R(expensesPage, apiClient, "Reads the expenses and the tree through")
+Rel_R(expensesPage, authContext, "Drops to anonymous on a refused read")
 
 SHOW_LEGEND()
 @enduml

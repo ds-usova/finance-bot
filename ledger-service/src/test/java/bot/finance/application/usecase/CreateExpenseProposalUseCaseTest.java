@@ -90,21 +90,57 @@ class CreateExpenseProposalUseCaseTest {
                 MESSAGE_REFERENCE);
     }
 
+    /** Stores a user and answers the command's grouping name. */
+    private StoredGrouping stubResolvedGrouping() {
+        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+        StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
+        when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
+        return storedGrouping;
+    }
+
+    /** Stores a user, answers the command's grouping name and answers a category under it. */
+    private StoredGrouping stubResolvedGroupingAndCategory() {
+        StoredGrouping storedGrouping = stubResolvedGrouping();
+        when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
+                .thenReturn(Optional.of(new StoredCategory(CATEGORY_ID, "Groceries")));
+        return storedGrouping;
+    }
+
+    private ExpenseProposal capturedProposal() {
+        ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
+        verify(expenseProposalRepository).create(proposalCaptor.capture());
+        return proposalCaptor.getValue();
+    }
+
     @Nested
     @DisplayName("creating an expense proposal")
     class Create {
 
         @Test
-        @DisplayName("when a stored user, a grouping answered for the command's grouping name, and a category "
-                + "answered under it - then the proposal handed to the proposal repository carries that category's "
-                + "id, and the category repository received the user's stored id and that grouping")
-        void whenUserExistsForExternalId_thenRepositoryStoresProposalWithResolvedUserIdAndClockInstant() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
-            when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
-            when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
-                    .thenReturn(Optional.of(new StoredCategory(CATEGORY_ID, "Groceries")));
+        @DisplayName("when a grouping and a category are answered - then the proposal carries that category's id")
+        void whenGroupingAndCategoryAreAnswered_thenProposalCarriesThatCategorysId() {
+            stubResolvedGroupingAndCategory();
+
+            useCase.create(newExpenseProposal());
+
+            assertThat(capturedProposal().categoryId()).isEqualTo(CATEGORY_ID);
+        }
+
+        @Test
+        @DisplayName("when a grouping is answered - then the category is looked up under the user's stored id "
+                + "and that grouping")
+        void whenGroupingIsAnswered_thenCategoryIsLookedUpUnderStoredUserIdAndThatGrouping() {
+            StoredGrouping storedGrouping = stubResolvedGroupingAndCategory();
+
+            useCase.create(newExpenseProposal());
+
+            verify(categoryRepository).findByGroupingAndName(USER_ID, storedGrouping, "Groceries");
+        }
+
+        @Test
+        @DisplayName("when the proposal repository stores the proposal - then it is returned to the caller")
+        void whenProposalRepositoryStoresTheProposal_thenItIsReturnedToTheCaller() {
+            stubResolvedGroupingAndCategory();
             ExpenseProposal createdProposal = ExpenseProposal.stored(
                     10L,
                     USER_ID,
@@ -119,17 +155,13 @@ class CreateExpenseProposalUseCaseTest {
 
             ExpenseProposal result = useCase.create(newExpenseProposal());
 
-            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
-            verify(expenseProposalRepository).create(proposalCaptor.capture());
-            assertThat(proposalCaptor.getValue().categoryId()).isEqualTo(CATEGORY_ID);
-            verify(categoryRepository).findByGroupingAndName(USER_ID, storedGrouping, "Groceries");
             assertThat(result).isSameAs(createdProposal);
         }
 
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws "
-                + "EntityNotFoundException naming \"user\" and the proposal repository is untouched")
-        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndProposalRepositoryIsUntouched() {
+                + "EntityNotFoundException naming \"user\"")
+        void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -155,15 +187,10 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a user is stored and the proposal repository raises PersistenceFailedException - then "
-                + "the exception reaches the caller unchanged and is not swallowed or retried")
+        @DisplayName("when the proposal repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
         void whenProposalRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
-            when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
-            when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
-                    .thenReturn(Optional.of(new StoredCategory(CATEGORY_ID, "Groceries")));
+            stubResolvedGroupingAndCategory();
             PersistenceFailedException failure =
                     new PersistenceFailedException("insert failed", new RuntimeException());
             when(expenseProposalRepository.create(any())).thenThrow(failure);
@@ -174,10 +201,9 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the user repository raises PersistenceFailedException while resolving the identity - "
-                + "then the exception reaches the caller unchanged and the proposal repository is untouched")
-        void
-                whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
+        @DisplayName("when the user repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
+        void whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenThrow(failure);
@@ -190,11 +216,9 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user and groupingRepository.findByUserIdAndName answers nothing - then throws "
-                + "InvalidGroupingException naming the grouping as not stored for this user, and neither the "
-                + "category repository nor the proposal repository is touched")
-        void
-                whenGroupingRepositoryAnswersNothing_thenThrowsInvalidGroupingExceptionAndCategoryAndProposalRepositoriesUntouched() {
+        @DisplayName("when the grouping repository answers nothing - then throws InvalidGroupingException naming "
+                + "the grouping")
+        void whenGroupingRepositoryAnswersNothing_thenThrowsInvalidGroupingExceptionNamingTheGrouping() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.empty());
@@ -209,15 +233,10 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user, a grouping answered, and categoryRepository.findByGroupingAndName "
-                + "answers nothing - then throws InvalidCategoryException naming both the category name and the "
-                + "grouping, and the proposal repository is untouched")
-        void
-                whenCategoryRepositoryAnswersNothing_thenThrowsInvalidCategoryExceptionNamingCategoryAndGroupingAndProposalRepositoryUntouched() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
-            when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
+        @DisplayName("when the category repository answers nothing - then throws InvalidCategoryException naming "
+                + "the category and grouping")
+        void whenCategoryRepositoryAnswersNothing_thenThrowsInvalidCategoryExceptionNamingCategoryAndGrouping() {
+            StoredGrouping storedGrouping = stubResolvedGrouping();
             when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
                     .thenReturn(Optional.empty());
 
@@ -230,11 +249,9 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when a stored user and groupingRepository.findByUserIdAndName raises "
-                + "PersistenceFailedException - then the exception reaches the caller unchanged and the proposal "
-                + "repository is untouched")
-        void
-                whenGroupingRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
+        @DisplayName("when the grouping repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
+        void whenGroupingRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
             PersistenceFailedException failure =
@@ -247,32 +264,21 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the command carries a message reference - then the proposal handed to the proposal "
-                + "repository carries that same reference")
+        @DisplayName(
+                "when the command carries a message reference - then the stored proposal carries that " + "reference")
         void whenCommandCarriesMessageReference_thenProposalRepositoryReceivesProposalWithThatReference() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
-            when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
-            when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
-                    .thenReturn(Optional.of(new StoredCategory(CATEGORY_ID, "Groceries")));
+            stubResolvedGroupingAndCategory();
 
             useCase.create(newExpenseProposal());
 
-            ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
-            verify(expenseProposalRepository).create(proposalCaptor.capture());
-            assertThat(proposalCaptor.getValue().messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(capturedProposal().messageReference()).isEqualTo(MESSAGE_REFERENCE);
         }
 
         @Test
-        @DisplayName("when the category repository raises PersistenceFailedException while resolving the name - "
-                + "then the exception reaches the caller unchanged and the proposal repository is untouched")
-        void
-                whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchangedAndProposalRepositoryUntouched() {
-            User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
-            StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
-            when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
+        @DisplayName("when the category repository raises PersistenceFailedException - then it reaches the caller "
+                + "unchanged")
+        void whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
+            StoredGrouping storedGrouping = stubResolvedGrouping();
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))

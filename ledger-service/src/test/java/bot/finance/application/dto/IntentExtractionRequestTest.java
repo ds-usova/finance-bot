@@ -24,6 +24,17 @@ class IntentExtractionRequestTest {
 
     private static final LocalDate CURRENT_DATE = LocalDate.of(2026, 8, 5);
 
+    private static IntentExtractionRequest requestWithTwoGroupings() {
+        return new IntentExtractionRequest(
+                "lunch 12 euro",
+                List.of("groceries", "transport"),
+                "transport",
+                Optional.empty(),
+                "user-external-id",
+                MessageReference.newReference(),
+                CURRENT_DATE);
+    }
+
     @Nested
     @DisplayName("constructing an intent extraction request")
     class IntentExtractionRequestConstructor {
@@ -46,25 +57,23 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when text, two groupings, a catch-all among them, an empty currency and a non-blank "
-                + "external id are valid - then every component reads back unchanged and category groupings is "
-                + "unmodifiable")
-        void
-                whenTextTwoGroupingsCatchAllEmptyCurrencyAndUserExternalIdAreValid_thenEveryComponentReadsBackUnchangedAndCategoryGroupingsIsUnmodifiable() {
-            IntentExtractionRequest request = new IntentExtractionRequest(
-                    "lunch 12 euro",
-                    List.of("groceries", "transport"),
-                    "transport",
-                    Optional.empty(),
-                    "user-external-id",
-                    MessageReference.newReference(),
-                    CURRENT_DATE);
+        @DisplayName("when text, two groupings, an empty currency and an external id are valid - then every "
+                + "component reads back unchanged")
+        void whenEveryComponentIsValid_thenEveryComponentReadsBackUnchanged() {
+            IntentExtractionRequest request = requestWithTwoGroupings();
 
             assertThat(request.text()).isEqualTo("lunch 12 euro");
             assertThat(request.categoryGroupings()).containsExactly("groceries", "transport");
             assertThat(request.catchAllGrouping()).isEqualTo("transport");
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userExternalId()).isEqualTo("user-external-id");
+        }
+
+        @Test
+        @DisplayName("when the request is built from a list of groupings - then categoryGroupings() is unmodifiable")
+        void whenRequestIsBuiltFromAListOfGroupings_thenCategoryGroupingsIsUnmodifiable() {
+            IntentExtractionRequest request = requestWithTwoGroupings();
+
             assertThatThrownBy(() -> request.categoryGroupings().add("utilities"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
@@ -232,9 +241,8 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when text, groupings, currency, external id and a message reference are valid - "
-                + "then messageReference reads back unchanged")
-        void whenTextCategoriesCurrencyExternalIdAndMessageReferenceAreValid_thenMessageReferenceReadsBackUnchanged() {
+        @DisplayName("when a request carries a message reference - then messageReference() reads back unchanged")
+        void whenRequestCarriesAMessageReference_thenMessageReferenceReadsBackUnchanged() {
             MessageReference messageReference = MessageReference.newReference();
 
             IntentExtractionRequest request = new IntentExtractionRequest(

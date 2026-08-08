@@ -1,6 +1,6 @@
-export type Session = {
-  externalId: string;
-};
+import type { components } from '../api/generated/ledger-api';
+
+export type Session = components['schemas']['Session'];
 
 /** What the Login Widget hands the page. Its exact field set is Telegram's, and it may grow. */
 export type TelegramAuthPayload = Record<string, string | number>;

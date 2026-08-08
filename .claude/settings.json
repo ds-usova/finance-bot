@@ -41,7 +41,6 @@
       "Bash(git check-ignore:*)",
       "Bash(docker info:*)",
       "Bash(bash -n:*)",
-      "Bash(gawk --posix:*)",
       "Bash(ls:*)",
       "Bash(mkdir:*)",
       "Bash(wc:*)",

@@ -45,8 +45,8 @@ class GroupingTest {
         }
 
         @Test
-        @DisplayName(
-                "when the record is constructed with a mutable category list and the source list is then modified - then the grouping's categories are unchanged")
+        @DisplayName("when the mutable list a grouping was built from is modified - then the grouping's categories "
+                + "are unchanged")
         void whenSourceListIsModifiedAfterConstruction_thenGroupingCategoriesAreUnchanged() {
             List<Category> source = new ArrayList<>(List.of(new Category("Rent")));
 
@@ -62,8 +62,8 @@ class GroupingTest {
     class Of {
 
         @Test
-        @DisplayName(
-                "when of() is called with a name and three category names - then returns a grouping with that name whose categories carry those names, in the order given")
+        @DisplayName("when of() is called with a name and three category names - then returns a grouping carrying "
+                + "them in order")
         void whenOfIsCalledWithNameAndThreeCategoryNames_thenReturnsGroupingWithCategoriesInOrder() {
             Grouping grouping = Grouping.of("Housing", "Rent", "Mortgage", "HOA");
 
@@ -72,8 +72,8 @@ class GroupingTest {
         }
 
         @Test
-        @DisplayName(
-                "when of() is called with a name and no category names - then returns a grouping with that name and an empty category list")
+        @DisplayName("when of() is called with a name and no category names - then returns a grouping with no "
+                + "categories")
         void whenOfIsCalledWithNameAndNoCategoryNames_thenReturnsGroupingWithEmptyCategoryList() {
             Grouping grouping = Grouping.of("Housing");
 
@@ -155,8 +155,8 @@ class GroupingTest {
         }
 
         @Test
-        @DisplayName(
-                "when defaults() is called - then the grouping named Housing carries exactly Rent, Mortgage, HOA, Property Tax, Home Insurance, Repairs, Furniture, in that order")
+        @DisplayName("when defaults() is called - then the grouping named Housing carries its seven categories, "
+                + "in order")
         void whenDefaultsIsCalled_thenHousingCarriesItsSevenCategoriesInOrder() {
             Grouping housing = groupingNamed(Grouping.defaults(), "Housing");
 

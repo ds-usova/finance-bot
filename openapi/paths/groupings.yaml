@@ -1,0 +1,20 @@
+get:
+  operationId: listGroupings
+  summary: List the signed-in person's groupings. Takes nothing.
+  tags:
+    - groupings
+  responses:
+    '200':
+      description: Every grouping, unpaged, ordered by name.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../components/schemas/category.yaml#/Grouping'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

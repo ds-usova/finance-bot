@@ -27,6 +27,12 @@ import java.util.List;
 public final class TelegramTestBot {
 
     /**
+     * The {@code telegram.bot.token} the {@code test} profile configures, shared by every class that declares no
+     * {@code @TestPropertySource} override of its own because it triggers no poll-loop scenario.
+     */
+    public static final String PROFILE_DEFAULT_TOKEN = "default-test-token";
+
+    /**
      * Token owned by {@code TelegramUpdateListenerTest}.
      */
     public static final String LISTENER_TOKEN = "listener-test-token";

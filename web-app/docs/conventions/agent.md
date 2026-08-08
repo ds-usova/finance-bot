@@ -6,20 +6,20 @@ How the coding agent works this module, and what it cannot exercise here.
 
 Repository-wide, since every module shares one history: [Version Control](../../../docs/conventions/version-control.md).
 
-## Permissions
+## Sub-Agent Models
 
-Every command in this module is an npm invocation, and the project's permission hook refuses what
-`.claude/settings.json` does not name. `permissions.allow` therefore carries:
+Delegated work splits by how much judgment it needs, on the same terms as this repository's other modules:
 
-```
-Bash(npm ci:*)
-Bash(npm install:*)
-Bash(npm run:*)
-Bash(npx tsc:*)
-Edit(web-app/**)
-```
+- **Deciding work — the strongest model** (`opus`): planning a task, reviewing a plan, and the refactor pass over
+  a finished diff. These choose what gets built and judge finished work against the conventions, so a weak call
+  here is inherited by every step downstream and costs more than the model does.
+- **Executing work — a cheaper model** (`sonnet`): the stabilization agent and every red- and green-phase step
+  agent. Such an agent is handed one target, its scenarios and these conventions, and writes code against them —
+  the decisions were made in the plan, and the stage guardrails catch what it gets wrong.
+- The orchestrator, and anything not listed above, runs on whatever model the session runs on.
 
-Without them nothing in this module can be installed, built, tested, or verified.
+Nothing about a browser module argues for a different split: a component and its test are executing work in the
+same sense a use case and its test are.
 
 ## Parallelism
 

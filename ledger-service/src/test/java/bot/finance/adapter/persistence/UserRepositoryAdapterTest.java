@@ -50,8 +50,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when a user row is stored under the external id - then returns the user carrying its generated database id and its external id")
-        void whenUserRowStoredUnderExternalId_thenReturnsUserCarryingGeneratedIdAndExternalId() {
+                "when a user row is stored under the external id - then returns that user with its id and external id")
+        void whenUserRowStoredUnderExternalId_thenReturnsThatUserWithItsIdAndExternalId() {
             UserEntity stored = userEntityRepository.save(new UserEntity(null, "existing-external-id"));
 
             Optional<User> found = adapter.findByExternalId("existing-external-id");
@@ -75,9 +75,8 @@ class UserRepositoryAdapterTest {
     class Create {
 
         @Test
-        @DisplayName(
-                "when called with an unstored user and Grouping.defaults() - then the user row is written and the returned user carries its generated database id")
-        void whenCalledWithUnstoredUserAndDefaultCategories_thenUserRowWrittenAndReturnedUserCarriesGeneratedId() {
+        @DisplayName("when called with an unstored user - then the returned user carries its generated database id")
+        void whenCalledWithUnstoredUser_thenReturnedUserCarriesGeneratedId() {
             User user = User.newUser("new-user-external-id");
 
             User createdUser = adapter.create(user, Grouping.defaults());
@@ -88,8 +87,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an unstored user and Grouping.defaults() - then 97 category rows exist for that user, 20 with no parent and each remaining row pointing at the row of the group it belongs to, matching the tree by name")
-        void whenCalledWithUnstoredUserAndDefaultCategories_thenCategoryTreeIsWrittenMatchingByName() {
+                "when called with Grouping.defaults() - then the whole category tree is written, each child under its group")
+        void whenCalledWithDefaultCategories_thenCategoryTreeIsWrittenMatchingByName() {
             User user = User.newUser("category-tree-external-id");
 
             User createdUser = adapter.create(user, Grouping.defaults());
@@ -98,8 +97,7 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when called with an unstored user carrying an already-stored external id - then returns that user and writes no categories")
+        @DisplayName("when the external id is already stored - then returns that user and writes no categories")
         void whenCalledWithAlreadyStoredExternalId_thenReturnsThatUserAndWritesNoCategories() {
             UserEntity stored = userEntityRepository.save(new UserEntity(null, "duplicate-external-id"));
             User duplicateUser = User.newUser("duplicate-external-id");
@@ -113,8 +111,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an external id exactly 255 characters long - then the user is written and returned with its generated id")
-        void whenExternalIdIsExactly255Characters_thenUserIsWrittenAndReturnedWithGeneratedId() {
+                "when the external id is exactly 255 characters long - then the user comes back with it and a generated id")
+        void whenExternalIdIsExactly255Characters_thenUserComesBackWithItAndAGeneratedId() {
             String externalId = "a".repeat(255);
             User user = User.newUser(externalId);
 
@@ -126,8 +124,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with an external id 256 characters long - then throws InvalidUserException before anything is written, so no user row exists afterwards")
-        void whenExternalIdIs256Characters_thenThrowsInvalidUserExceptionBeforeWritingAnything() {
+                "when the external id is 256 characters long - then throws InvalidUserException and writes nothing")
+        void whenExternalIdIs256Characters_thenThrowsInvalidUserExceptionAndWritesNothing() {
             String externalId = "a".repeat(256);
             User user = User.newUser(externalId);
 
@@ -138,8 +136,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a catalogue whose grouping name is exactly 100 characters long - then the tree is written and that grouping's row carries the whole name")
-        void whenGroupingNameIsExactly100Characters_thenTreeIsWrittenAndGroupingRowCarriesWholeName() {
+                "when a grouping name is exactly 100 characters long - then that grouping's row carries the whole name")
+        void whenGroupingNameIsExactly100Characters_thenGroupingRowCarriesWholeName() {
             String groupingName = "a".repeat(100);
             Grouping tree = Grouping.of(groupingName, "Boundary Child");
             User user = User.newUser("boundary-grouping-external-id");
@@ -155,8 +153,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a category tree whose child name is exactly 100 characters long - then the tree is written and that child's row carries the whole name")
-        void whenChildNameIsExactly100Characters_thenTreeIsWrittenAndChildRowCarriesWholeName() {
+                "when a category name is exactly 100 characters long - then that category's row carries the whole name")
+        void whenChildNameIsExactly100Characters_thenChildRowCarriesWholeName() {
             String childName = "a".repeat(100);
             Grouping tree = Grouping.of("boundary-group", childName);
             User user = User.newUser("boundary-child-external-id");
@@ -172,8 +170,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a category tree whose child name is 101 characters long - then throws InvalidCategoryException before anything is written, so no user row exists afterwards")
-        void whenChildNameIs101Characters_thenThrowsInvalidCategoryExceptionBeforeWritingAnything() {
+                "when a category name is 101 characters long - then throws InvalidCategoryException and writes nothing")
+        void whenChildNameIs101Characters_thenThrowsInvalidCategoryExceptionAndWritesNothing() {
             String childName = "a".repeat(101);
             Grouping tree = Grouping.of("boundary-group-2", childName);
             String externalId = "overlong-child-external-id";
@@ -186,8 +184,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called with a category tree whose group name is 101 characters long - then throws InvalidGroupingException before anything is written, groupings are checked as well as categories")
-        void whenGroupingNameIs101Characters_thenThrowsInvalidGroupingExceptionBeforeWritingAnything() {
+                "when a grouping name is 101 characters long - then throws InvalidGroupingException and writes nothing")
+        void whenGroupingNameIs101Characters_thenThrowsInvalidGroupingExceptionAndWritesNothing() {
             String groupName = "a".repeat(101);
             Grouping tree = Grouping.of(groupName, "Valid Child");
             String externalId = "overlong-group-external-id";
@@ -200,8 +198,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when called for two users one after the other - then each user owns its own 97 category rows and neither user's rows reference the other's")
-        void whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsWithNoCrossReferences() {
+                "when called for two users one after the other - then each owns its own category rows, sharing none")
+        void whenCalledForTwoUsers_thenEachOwnsItsOwnCategoryRowsSharingNone() {
             User firstCreatedUser = adapter.create(User.newUser("first-user-external-id"), Grouping.defaults());
             User secondCreatedUser = adapter.create(User.newUser("second-user-external-id"), Grouping.defaults());
 
@@ -237,9 +235,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when the database is unreachable - then findByExternalId() throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenDatabaseIsUnreachable_thenFindByExternalIdThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+                "when the database is unreachable - then findByExternalId() throws PersistenceFailedException wrapping it")
+        void whenDatabaseIsUnreachable_thenFindByExternalIdThrowsPersistenceFailedExceptionWrappingIt() {
             DataAccessResourceFailureException frameworkException =
                     new DataAccessResourceFailureException("connection refused");
             when(mockedUserEntityRepository.findByExternalId("unreachable-external-id"))
@@ -252,10 +249,8 @@ class UserRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when create() hits a database failure that is not a constraint violation - then throws PersistenceFailedException carrying the framework exception as its cause")
-        void
-                whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionCarryingFrameworkExceptionAsCause() {
+        @DisplayName("when create() hits a non-constraint failure - then throws PersistenceFailedException wrapping it")
+        void whenCreateHitsNonConstraintDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedUserEntityRepository.insertIfAbsent(any())).thenThrow(frameworkException);
             User user = User.newUser("non-constraint-failure-external-id");
@@ -268,8 +263,8 @@ class UserRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when the store hands generated group ids back in an order that does not match the input - then each child still pairs to the right group by name")
-        void whenGroupOrderIsNotPreserved_thenChildrenStillPairToTheRightGroupByName() {
+                "when the store hands generated group ids back out of input order - then each child still pairs by name")
+        void whenGroupOrderIsNotPreserved_thenChildrenStillPairByName() {
             when(mockedUserEntityRepository.insertIfAbsent(any())).thenReturn(Optional.of(1L));
 
             Grouping first = Grouping.of("First", "First Child");

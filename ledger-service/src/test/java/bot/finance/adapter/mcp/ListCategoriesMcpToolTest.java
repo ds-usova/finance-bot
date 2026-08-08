@@ -64,6 +64,12 @@ class ListCategoriesMcpToolTest {
         return postMcp(token, McpRequests.listCategories(grouping));
     }
 
+    /** Stubs the port to answer {@code categories}, then calls list_categories as {@code externalId}. */
+    private Response listCategoriesAnswering(String externalId, String grouping, List<String> categories) {
+        when(listCategoriesPort.list(any())).thenReturn(categories);
+        return postListCategories(token(externalId), grouping);
+    }
+
     private Response postMcp(String token, String body) {
         return RestAssured.given()
                 .port(port)
@@ -83,18 +89,25 @@ class ListCategoriesMcpToolTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when list_categories is called - then the port receives a command carrying the token's subject and the grouping name, and the result carries the grouping and its categories")
-        void whenListCategoriesIsCalled_thenPortReceivesTokenSubjectAndGroupingNameAndResultCarriesBoth() {
+        @DisplayName("when list_categories is called - then the port receives the token's subject and the "
+                + "grouping name")
+        void whenListCategoriesIsCalled_thenPortReceivesTokenSubjectAndGroupingName() {
             String externalId = "user-42";
-            when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets", "Markets", "Household Supplies"));
 
-            Response response = postListCategories(token(externalId), "Groceries");
+            listCategoriesAnswering(externalId, "Groceries", List.of("Supermarkets", "Markets", "Household Supplies"));
 
             ArgumentCaptor<ListCategoriesCommand> command = ArgumentCaptor.forClass(ListCategoriesCommand.class);
             verify(listCategoriesPort).list(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
             assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
+        }
+
+        @Test
+        @DisplayName("when the port answers a grouping's categories - then the result carries the grouping and "
+                + "every category")
+        void whenPortAnswersCategories_thenResultCarriesGroupingAndEveryCategory() {
+            Response response = listCategoriesAnswering(
+                    "user-42", "Groceries", List.of("Supermarkets", "Markets", "Household Supplies"));
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
@@ -109,9 +122,7 @@ class ListCategoriesMcpToolTest {
         @DisplayName(
                 "when the port answers an empty list - then the result is a non-error carrying an empty categories array")
         void whenPortAnswersEmptyList_thenResultIsNonErrorCarryingEmptyCategoriesArray() {
-            when(listCategoriesPort.list(any())).thenReturn(List.of());
-
-            Response response = postListCategories(token("user-43"), "Miscellaneous");
+            Response response = listCategoriesAnswering("user-43", "Miscellaneous", List.of());
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
@@ -119,8 +130,7 @@ class ListCategoriesMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the caller token carries no mrf claim - then the categories are still answered, since the tool reads no message reference")
+        @DisplayName("when the caller token carries no mrf claim - then the categories are still answered")
         void whenTokenCarriesNoMrfClaim_thenCategoriesAreStillAnswered() {
             String token = McpTokens.noReferenceToken("user-44");
             when(listCategoriesPort.list(any())).thenReturn(List.of("Supermarkets"));
@@ -152,8 +162,8 @@ class ListCategoriesMcpToolTest {
 
         @Test
         @DisplayName(
-                "when the port throws InvalidGroupingException - then the tool error carries that exception's message bare, as InvalidCategoryException's is")
-        void whenPortThrowsInvalidGroupingException_thenToolErrorCarriesThatExceptionsMessageBare() {
+                "when the port throws InvalidGroupingException - then the tool error carries that exception's message")
+        void whenPortThrowsInvalidGroupingException_thenToolErrorCarriesThatExceptionsMessage() {
             String exceptionMessage = "no grouping named Fictional is stored for this user";
             when(listCategoriesPort.list(any())).thenThrow(new InvalidGroupingException(exceptionMessage));
 
@@ -175,8 +185,8 @@ class ListCategoriesMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws EntityNotFoundException - then the tool error says the user is unknown, carrying neither the external id nor anything else from the exception")
+        @DisplayName("when the port throws EntityNotFoundException - then the tool error says the user is unknown, "
+                + "naming no external id")
         void whenPortThrowsEntityNotFoundException_thenToolErrorSaysUserIsUnknownWithoutExternalId() {
             when(listCategoriesPort.list(any()))
                     .thenThrow(new EntityNotFoundException("User", "no user stored for external id user-000123"));
@@ -190,8 +200,8 @@ class ListCategoriesMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws PersistenceFailedException - then the tool error says the categories could not be read, naming neither the table nor the constraint")
+        @DisplayName("when the port throws PersistenceFailedException - then the tool error says the categories "
+                + "could not be read")
         void whenPortThrowsPersistenceFailedException_thenToolErrorSaysNotReadNamingNoInternals() {
             when(listCategoriesPort.list(any()))
                     .thenThrow(new PersistenceFailedException(
@@ -209,8 +219,8 @@ class ListCategoriesMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws a RuntimeException outside the failure table - then a generic tool error is returned rather than an exception reaching the transport")
+        @DisplayName("when the port throws a RuntimeException outside the failure table - then a generic tool "
+                + "error is returned")
         void whenPortThrowsUnrecognizedRuntimeException_thenGenericToolErrorReturned() {
             String secretMessage = "connection pool exhausted on host db-primary-7";
             when(listCategoriesPort.list(any())).thenThrow(new RuntimeException(secretMessage));
@@ -222,9 +232,9 @@ class ListCategoriesMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws any failure - then a WARN line is logged naming the failure kind, and no line other than the debug received-call trace carries the grouping name or the token")
-        void whenPortThrowsAnyFailure_thenWarnLineLogsFailureKindWithoutGroupingNameOrToken() {
+        @DisplayName("when the port throws any failure - then the logged failure names its kind and leaks no "
+                + "grouping or token")
+        void whenPortThrowsAnyFailure_thenLoggedFailureNamesItsKindAndLeaksNoGroupingOrToken() {
             String secretGrouping = "SecretGrouping123";
             String secretExternalId = "secret-user-123";
             when(listCategoriesPort.list(any())).thenThrow(new InvalidCategoryException("category is unknown"));

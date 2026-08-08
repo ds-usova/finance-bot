@@ -1,14 +1,16 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.CurrencyTotal;
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
+import bot.finance.domain.value.ExpenseFilter;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -53,9 +55,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public List<CurrencyTotal> totalsByCurrency(long userId, SpendingPeriod period) {
-        Instant from = period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant toExclusive =
-                period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant from = periodStart(period);
+        Instant toExclusive = periodEndExclusive(period);
 
         try {
             return expenseEntityRepository.totalsByCurrency(userId, from, toExclusive).stream()
@@ -65,6 +66,52 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             throw new PersistenceFailedException(
                     "failed to total expenses by currency for user " + userId + " and period " + period, e);
         }
+    }
+
+    @Override
+    public List<ExpenseEntry> findPage(long userId, ExpenseFilter filter) {
+        try {
+            return expenseEntityRepository
+                    .findPage(
+                            userId,
+                            statusName(filter.status()),
+                            filter.categoryId(),
+                            periodStart(filter.period()),
+                            periodEndExclusive(filter.period()),
+                            filter.limit(),
+                            filter.offset())
+                    .stream()
+                    .map(ExpenseEntryProjection::toExpenseEntry)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find expense page for user " + userId, e);
+        }
+    }
+
+    @Override
+    public long countMatching(long userId, ExpenseFilter filter) {
+        try {
+            return expenseEntityRepository.countMatching(
+                    userId,
+                    statusName(filter.status()),
+                    filter.categoryId(),
+                    periodStart(filter.period()),
+                    periodEndExclusive(filter.period()));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to count expenses for user " + userId, e);
+        }
+    }
+
+    private static String statusName(ExpenseStatus status) {
+        return status == null ? null : status.name();
+    }
+
+    private static Instant periodStart(SpendingPeriod period) {
+        return period == null ? null : period.startInstant();
+    }
+
+    private static Instant periodEndExclusive(SpendingPeriod period) {
+        return period == null ? null : period.endInstantExclusive();
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

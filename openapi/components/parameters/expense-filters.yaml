@@ -1,0 +1,46 @@
+StatusFilter:
+  name: status
+  in: query
+  required: false
+  description: >-
+    Narrows to pending proposals or to recorded expenses. Refused with 400 naming `status` and the two accepted
+    values when it is anything else.
+  schema:
+    $ref: '../schemas/expense.yaml#/ExpenseStatus'
+  example: RECORDED
+
+CategoryIdFilter:
+  name: categoryId
+  in: query
+  required: false
+  description: >-
+    Narrows to one category. A category belonging to somebody else matches nothing and is not a refusal. Refused
+    with 400 naming `categoryId` when it is not a number.
+  schema:
+    type: integer
+    format: int64
+  example: 42
+
+FromFilter:
+  name: from
+  in: query
+  required: false
+  description: >-
+    The first day counted, by when a row was recorded rather than when the money was spent. Whole days taken at
+    UTC. Given with `to` or not at all. Refused with 400 naming the day at fault when it is not a `YYYY-MM-DD`
+    day, and with 400 naming both when its partner is missing or when `to` falls before it.
+  schema:
+    type: string
+    format: date
+  example: '2026-01-01'
+
+ToFilter:
+  name: to
+  in: query
+  required: false
+  description: >-
+    The last day counted, on the same terms as `from`, and counted itself.
+  schema:
+    type: string
+    format: date
+  example: '2026-01-31'

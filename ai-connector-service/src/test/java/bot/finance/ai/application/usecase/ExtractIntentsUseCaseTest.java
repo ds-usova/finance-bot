@@ -80,8 +80,8 @@ class ExtractIntentsUseCaseTest {
     class ExtractIntents {
 
         @Test
-        @DisplayName("when a command carries three grouping names and a catch-all - then the port receives that "
-                + "text, those names in the command's order, that catch-all, and the command's currency")
+        @DisplayName("when a command carries grouping names and a catch-all - then the port receives the "
+                + "command's values unchanged")
         void whenCommandCarriesThreeGroupingNamesAndACatchAll_thenPortReceivesThemPassedThrough() {
             List<String> categoryGroupings = List.of("Food", "Travel", "Other");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Other", CURRENT_DATE);
@@ -137,8 +137,8 @@ class ExtractIntentsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the port returns normally - then one INFO line is logged, naming how many groupings "
-                + "were offered and carrying nothing from the message text")
+        @DisplayName("when the port returns normally - then one INFO line is logged, naming the grouping count "
+                + "and no message text")
         void whenPortReturnsNormally_thenOneInfoLineLoggedNamingCategoryCountAndCarryingNothingFromText() {
             List<String> categoryGroupings = List.of("Food", "Travel");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);

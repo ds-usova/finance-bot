@@ -5,7 +5,9 @@ the session.
 
 - **Counterpart:** [the ledger's session API](../../../../ledger-service/docs/contracts/in/web-session-api.md),
   which owns what each request takes and answers with
-- **Transport:** HTTP under `/api`, on the same origin as the page
+- **Specification:** [`openapi/ledger-api.yaml`](../../../../openapi/ledger-api.yaml), from which this module
+  generates the types it declares the calls against
+- **Transport:** HTTP on `/api/v1/session`, on the same origin as the page
 
 ## What It Sends, and When
 
@@ -23,8 +25,9 @@ the page's first request.
 
 ## What It Does With the Answer
 
-- **A session opened**: the external id is held in memory for as long as the tab lives, and the shell is shown.
-  The cookie itself is never read — it cannot be, and nothing here needs to.
+- **A session opened**: the external id is held in memory for as long as the tab lives, and
+  [the expenses page](../../usecases/browse-recorded-expenses.md) is shown. The cookie itself is never read — it
+  cannot be, and nothing here needs to.
 - **A session read**: the same, without a sign-in.
 - **A session read that is refused**: treated as nobody being signed in, not as an error. This is the ordinary
   answer on a first visit.

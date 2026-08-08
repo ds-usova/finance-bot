@@ -81,9 +81,9 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.system.McpAuthenticationSystemTest#publishedTools")
-        @DisplayName(
-                "when tools/list is posted with a valid token - then 200 lists the tool with exactly its own arguments and required arguments, and no identity argument among them")
-        void whenToolsListIsPostedWithValidToken_thenEachPublishedToolIsListedWithItsArgumentsAndNoIdentityArgument(
+        @DisplayName("when tools/list is posted with a valid token - then each tool is listed with exactly its "
+                + "own arguments")
+        void whenToolsListIsPostedWithValidToken_thenEachToolIsListedWithExactlyItsOwnArguments(
                 String toolName, List<String> expectedArguments, List<String> expectedRequiredArguments) {
             String externalId = "mcp-auth-tools-list-user-" + toolName;
             UserRowUtils.storedUserId(userEntityRepository, externalId);
@@ -113,8 +113,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName(
-                "when tools/list is posted with a valid token - then create_expense_proposal publishes amount as a string, so a number is never accepted for it")
+        @DisplayName("when tools/list is posted with a valid token - then create_expense_proposal publishes "
+                + "amount as a string")
         void whenToolsListIsPostedWithValidToken_thenAmountIsPublishedAsAString() {
             String externalId = "mcp-auth-amount-type-user";
             UserRowUtils.storedUserId(userEntityRepository, externalId);
@@ -137,8 +137,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.system.McpAuthenticationSystemTest#rejectedTokens")
-        @DisplayName(
-                "when tools/call create_expense_proposal is posted with a rejected token - then 401 with no tool result and no expense_proposal row written")
+        @DisplayName("when tools/call is posted with a rejected token - then 401 with no tool result and no row "
+                + "written")
         void whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten(
                 String scenario, String token, String externalId) {
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);

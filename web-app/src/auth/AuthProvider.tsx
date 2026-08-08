@@ -36,7 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'anonymous', session: null });
   }, []);
 
-  const value = useMemo(() => ({ ...state, signIn, signOut }), [state, signIn, signOut]);
+  const sessionExpired = useCallback(() => {
+    setState({ status: 'anonymous', session: null });
+  }, []);
+
+  const value = useMemo(
+    () => ({ ...state, signIn, signOut, sessionExpired }),
+    [state, signIn, signOut, sessionExpired],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

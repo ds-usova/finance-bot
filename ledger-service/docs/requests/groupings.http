@@ -1,0 +1,10 @@
+### Groupings — GET /api/v1/groupings
+# Every grouping the signed-in person has, unpaged. Needs an open session; no CSRF token, since it is a read.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see session.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### Every grouping, unpaged.
+GET {{host}}/api/v1/groupings
+Cookie: fb_session={{sessionCookie}}

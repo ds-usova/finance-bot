@@ -70,6 +70,16 @@ class SummarizeSpendingMcpToolTest {
         return postMcp(token, McpRequests.summarizeSpending(from, to));
     }
 
+    /**
+     * Stubs the port to accept {@code from}..{@code to}, then calls summarize_spending as {@code externalId} under
+     * a token carrying {@code reference} as its mrf claim.
+     */
+    private Response postAcceptedSummary(String externalId, MessageReference reference, String from, String to) {
+        when(summarizeSpendingPort.summarize(any()))
+                .thenReturn(new SpendingPeriod(LocalDate.parse(from), LocalDate.parse(to)));
+        return postSummarizeSpending(tokenWithReference(externalId, reference), from, to);
+    }
+
     private Response postMcp(String token, String body) {
         return RestAssured.given()
                 .port(port)
@@ -89,17 +99,15 @@ class SummarizeSpendingMcpToolTest {
     class HappyPath {
 
         @Test
-        @DisplayName(
-                "when summarize_spending is called with a first and last day under a valid token carrying an mrf claim - then the port receives the token's identity, message reference and both written days, and the result carries the accepted period with no amount")
-        void whenSummarizeSpendingIsCalled_thenPortReceivesIdentityReferenceAndDaysAndResultCarriesAcceptedPeriod() {
+        @DisplayName("when summarize_spending is called - then the port receives the token's identity, its "
+                + "reference and both written days")
+        void whenSummarizeSpendingIsCalled_thenPortReceivesIdentityReferenceAndBothDays() {
             String externalId = "user-101";
             MessageReference reference = MessageReference.newReference();
             String from = "2026-07-27";
             String to = "2026-08-02";
-            when(summarizeSpendingPort.summarize(any()))
-                    .thenReturn(new SpendingPeriod(LocalDate.parse(from), LocalDate.parse(to)));
 
-            Response response = postSummarizeSpending(tokenWithReference(externalId, reference), from, to);
+            postAcceptedSummary(externalId, reference, from, to);
 
             ArgumentCaptor<SummarizeSpendingCommand> command = ArgumentCaptor.forClass(SummarizeSpendingCommand.class);
             verify(summarizeSpendingPort).summarize(command.capture());
@@ -107,6 +115,15 @@ class SummarizeSpendingMcpToolTest {
             assertThat(command.getValue().reference()).isEqualTo(reference);
             assertThat(command.getValue().from()).isEqualTo(from);
             assertThat(command.getValue().to()).isEqualTo(to);
+        }
+
+        @Test
+        @DisplayName("when the port accepts the period - then the result carries that period and no amount")
+        void whenPortAcceptsThePeriod_thenResultCarriesThatPeriodAndNoAmount() {
+            String from = "2026-07-27";
+            String to = "2026-08-02";
+
+            Response response = postAcceptedSummary("user-101", MessageReference.newReference(), from, to);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
@@ -135,8 +152,8 @@ class SummarizeSpendingMcpToolTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.adapter.mcp.SummarizeSpendingMcpToolTest#invalidRequestFailures")
-        @DisplayName("when the port throws InvalidSpendingQueryException or InvalidUserException - "
-                + "then the tool error names an invalid request")
+        @DisplayName("when the port throws InvalidSpendingQueryException or InvalidUserException - then the tool "
+                + "error names it invalid")
         void whenPortThrowsInvalidRequestFailure_thenToolErrorNamesInvalidRequest(
                 String description, RuntimeException failure) {
             when(summarizeSpendingPort.summarize(any())).thenThrow(failure);
@@ -148,8 +165,8 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws EntityNotFoundException - then the tool error says the user is unknown, carrying neither the external id nor anything else from the exception")
+        @DisplayName("when the port throws EntityNotFoundException - then the tool error says the user is unknown, "
+                + "naming no external id")
         void whenPortThrowsEntityNotFoundException_thenToolErrorSaysUserIsUnknownWithoutExternalId() {
             when(summarizeSpendingPort.summarize(any()))
                     .thenThrow(new EntityNotFoundException("User", "no user stored for external id user-000456"));
@@ -163,8 +180,8 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws PersistenceFailedException - then the tool error says the summary could not be recorded, naming neither the table nor the constraint")
+        @DisplayName("when the port throws PersistenceFailedException - then the tool error says the summary could "
+                + "not be recorded")
         void whenPortThrowsPersistenceFailedException_thenToolErrorSaysNotRecordedNamingNoInternals() {
             when(summarizeSpendingPort.summarize(any()))
                     .thenThrow(new PersistenceFailedException(
@@ -196,8 +213,8 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws a RuntimeException outside the failure table - then the catch-all tool error is returned rather than an exception reaching the transport")
+        @DisplayName("when the port throws a RuntimeException outside the failure table - then the catch-all tool "
+                + "error is returned")
         void whenPortThrowsUnrecognizedRuntimeException_thenCatchAllToolErrorReturnedWithoutSecretMessage() {
             String secretMessage = "connection pool exhausted on host db-primary-9";
             when(summarizeSpendingPort.summarize(any())).thenThrow(new RuntimeException(secretMessage));
@@ -209,9 +226,9 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when the port throws any failure - then a WARN line names the failure's class and message, and no line other than the debug received-call trace carries the token")
-        void whenPortThrowsAnyFailure_thenWarnLineNamesFailureWithoutLeakingToken() {
+        @DisplayName("when the port throws any failure - then the logged failure names its class and message, "
+                + "leaking no token")
+        void whenPortThrowsAnyFailure_thenLoggedFailureNamesItsClassAndMessageLeakingNoToken() {
             String failureMessage = "spending query is invalid";
             when(summarizeSpendingPort.summarize(any())).thenThrow(new InvalidSpendingQueryException(failureMessage));
             String issuedToken = token("user-secret-77");
@@ -236,8 +253,8 @@ class SummarizeSpendingMcpToolTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.adapter.mcp.SummarizeSpendingMcpToolTest#blankDayCases")
-        @DisplayName("when from or to is blank - then the written value reaches the port unchanged and "
-                + "the tool error carries InvalidSpendingPeriodException's own message")
+        @DisplayName("when from or to is blank - then the written value reaches the port unchanged and the tool "
+                + "error carries its message")
         void whenFromOrToIsBlank_thenValueReachesPortUnchangedAndToolErrorCarriesExceptionMessage(
                 String description, String from, String to) {
             String exceptionMessage = "the period must carry both a first and a last day";
@@ -256,9 +273,9 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when from is absent from the call - then the framework's own JSON-schema rejection names the missing from and the port is never called")
-        void whenFromAbsent_thenFrameworkSchemaRejectionNamesMissingFromAndPortNeverCalled() {
+        @DisplayName("when from is absent from the call - then the rejection names the missing from and the port "
+                + "is never called")
+        void whenFromAbsent_thenRejectionNamesMissingFromAndPortNeverCalled() {
             String body =
                     """
                     {
@@ -282,9 +299,9 @@ class SummarizeSpendingMcpToolTest {
         }
 
         @Test
-        @DisplayName(
-                "when to is absent from the call - then the framework's own JSON-schema rejection names the missing to and the port is never called")
-        void whenToAbsent_thenFrameworkSchemaRejectionNamesMissingToAndPortNeverCalled() {
+        @DisplayName("when to is absent from the call - then the rejection names the missing to and the port is "
+                + "never called")
+        void whenToAbsent_thenRejectionNamesMissingToAndPortNeverCalled() {
             String body =
                     """
                     {

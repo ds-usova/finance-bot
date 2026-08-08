@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.common.boot.AbstractSystemTest;
+import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramLoginPayloads;
@@ -12,7 +13,6 @@ import bot.finance.common.stubs.TelegramTestBot;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,9 +30,9 @@ import org.springframework.test.context.TestPropertySource;
 class WebSessionSystemTest extends AbstractSystemTest {
 
     private static final String BOT_TOKEN = TelegramTestBot.WEB_SESSION_TOKEN;
-    private static final String SESSION_COOKIE = "fb_session";
-    private static final String CSRF_COOKIE = "XSRF-TOKEN";
-    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+    private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
+    private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
+    private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
 
     @Autowired
     private AccessTokenMinter accessTokenMinter;
@@ -53,7 +53,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when the session is read before signing in - then 401, and a CSRF cookie is handed out anyway")
         void whenTheSessionIsReadBeforeSigningIn_then401AndACsrfCookieIsHandedOutAnyway() {
-            Response response = RestAssured.given().when().get("/api/session");
+            Response response = RestAssured.given().when().get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
@@ -116,7 +116,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .contentType(ContentType.JSON)
                     .body(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId))
                     .when()
-                    .post("/api/session");
+                    .post("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
@@ -137,7 +137,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
             Response response = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .when()
-                    .get("/api/session");
+                    .get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(200);
@@ -156,7 +156,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .cookie(CSRF_COOKIE, csrfToken)
                     .header(CSRF_HEADER, csrfToken)
                     .when()
-                    .delete("/api/session");
+                    .delete("/api/v1/session");
             logResponse(signOut);
 
             signOut.then().statusCode(204);
@@ -196,7 +196,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
             String mcpToken = McpTokens.tokenFor(accessTokenMinter, externalId);
 
             Response response =
-                    RestAssured.given().cookie(SESSION_COOKIE, mcpToken).when().get("/api/session");
+                    RestAssured.given().cookie(SESSION_COOKIE, mcpToken).when().get("/api/v1/session");
             logResponse(response);
 
             response.then().statusCode(401);
@@ -222,24 +222,14 @@ class WebSessionSystemTest extends AbstractSystemTest {
     }
 
     private Response signIn(String externalId) {
-        return postSignIn(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId));
+        return BrowserSessions.signIn(BOT_TOKEN, externalId);
     }
 
-    /** The token the unauthenticated read hands out, which a browser gets on page load. */
     private String freshCsrfToken() {
-        return RestAssured.given().when().get("/api/session").getCookie(CSRF_COOKIE);
+        return BrowserSessions.csrfToken();
     }
 
     private Response postSignIn(Map<String, String> payload) {
-        String csrfToken = freshCsrfToken();
-
-        RequestSpecification request = RestAssured.given()
-                .contentType(ContentType.JSON)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(payload);
-        Response response = request.when().post("/api/session");
-        logResponse(response);
-        return response;
+        return BrowserSessions.postSignIn(payload);
     }
 }

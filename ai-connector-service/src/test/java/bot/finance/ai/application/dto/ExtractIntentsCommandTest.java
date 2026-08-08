@@ -31,9 +31,9 @@ class ExtractIntentsCommandTest {
     class Construction {
 
         @Test
-        @DisplayName("when non-blank text, category groupings, a catch-all among them, and an empty currency are "
-                + "given - then the command exposes every component unchanged and the groupings are unmodifiable")
-        void whenNonBlankTextAndCategoryList_thenCommandExposesBoth() {
+        @DisplayName("when a text, groupings, a catch-all and an empty currency are given - then the command "
+                + "exposes each unchanged")
+        void whenNonBlankTextAndCategoryList_thenCommandExposesEachComponentUnchanged() {
             ExtractIntentsCommand command = new ExtractIntentsCommand(
                     TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);
 
@@ -41,6 +41,15 @@ class ExtractIntentsCommandTest {
             assertThat(command.categoryGroupings()).containsExactlyElementsOf(CATEGORY_GROUPINGS);
             assertThat(command.catchAllGrouping()).isEqualTo(CATCH_ALL_GROUPING);
             assertThat(command.defaultCurrency()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when the command's category groupings list is modified - then it throws "
+                + "UnsupportedOperationException")
+        void whenCommandsCategoryGroupingsModified_thenThrowsUnsupportedOperationException() {
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE);
+
             assertThatThrownBy(() -> command.categoryGroupings().add("New"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
@@ -94,9 +103,9 @@ class ExtractIntentsCommandTest {
         }
 
         @Test
-        @DisplayName("when a mutable category groupings list used to construct the command is modified afterwards "
-                + "- then the command's list is unchanged, and attempting to modify the command's own list throws")
-        void whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchangedAndOwnListImmutable() {
+        @DisplayName("when the list used to construct the command is modified afterwards - then the command's own "
+                + "list is unchanged")
+        void whenMutableCategoryListModifiedAfterConstruction_thenCommandListUnchanged() {
             List<String> mutable = new ArrayList<>(List.of("Food", "Travel"));
 
             ExtractIntentsCommand command =
@@ -104,8 +113,6 @@ class ExtractIntentsCommandTest {
             mutable.add("Other");
 
             assertThat(command.categoryGroupings()).containsExactly("Food", "Travel");
-            assertThatThrownBy(() -> command.categoryGroupings().add("Other"))
-                    .isInstanceOf(UnsupportedOperationException.class);
         }
 
         private static Stream<List<String>> categoryGroupingsWithInvalidElement() {

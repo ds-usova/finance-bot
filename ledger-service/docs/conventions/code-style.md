@@ -97,6 +97,9 @@ Applies across all layers.
   interfaces with derived or `@Query` methods.
 - An outbound adapter translates every runtime exception its infrastructure raises into a domain exception; no
   framework type crosses an outbound port.
+- **A date-bounded read converts its days to instants in Java and binds them as parameters.** Never cast a `DATE`
+  to a timestamp in SQL, where the session's time zone decides the result. A
+  [spending period](../domain/spending-period.md) answers both bounds itself.
 
 ## Refactoring Conventions
 
@@ -109,6 +112,9 @@ scaffolding, needless complexity, import hygiene) applies; the points below prio
 - **Extraction targets**: shared test helpers go to the shared test package, and get listed there (see
   [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes onto the type that owns
   the data, not into a new helper class.
+- **Misplaced behaviour is moved, not counted.** A private static method taking a domain object and reading only
+  its own fields belongs on that type ([Domain](#domain)). Moving it is a relocation, not an extraction, so the
+  threshold below does not apply: one occurrence is enough.
 - **Leave alone**: an applied migration — never edit one, always add a new one; `package-info.java` files;
   anything generated.
 - **Thresholds**: extract only when logic repeats in 2+ classes; keep methods under one screen; otherwise use

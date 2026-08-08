@@ -57,7 +57,7 @@ System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio f
 System_Ext(aiProvider, "AI Provider", "LLM used for expense extraction")
 
 System_Boundary(financeBot, "Finance Bot") {
-  Container(webApp, "Web App", "TypeScript, React, nginx", "Signs a user in with Telegram and serves the authenticated shell")
+  Container(webApp, "Web App", "TypeScript, React, nginx", "Signs a user in with Telegram and lists the expenses and proposals the ledger holds for them")
   Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates expense capture: coordinates transcription and AI extraction, then persists and confirms the result")
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts voice message audio into a text transcript")
   Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
@@ -69,7 +69,7 @@ Rel_L(telegram, user, "Delivers confirmation reply", "Telegram app")
 
 Rel_D(webUser, webApp, "Signs in and browses", "HTTPS")
 Rel(webApp, telegram, "Embeds the sign-in widget", "HTTPS")
-Rel_D(webApp, ledger, "Opens, reads and ends a browser session", "REST/HTTPS, same origin")
+Rel_D(webApp, ledger, "Holds a browser session, and reads the expenses and categories behind it", "REST/HTTPS, same origin")
 
 Rel_L(ledger, telegram, "Polls updates, downloads audio", "Telegram Bot API")
 Rel_R(ledger, telegram, "Sends confirmation reply", "Telegram Bot API")
@@ -89,7 +89,7 @@ SHOW_LEGEND()
 
 | Container             | Stack                        | Responsibility                                   | Docs                                     | Ports |
 |-----------------------|------------------------------|--------------------------------------------------|------------------------------------------|-------|
-| Web App               | TypeScript, React, nginx     | Telegram sign-in and the authenticated shell     | [README](web-app/README.md)              | 1003  |
+| Web App               | TypeScript, React, nginx     | Telegram sign-in and browsing the ledger         | [README](web-app/README.md)              | 1003  |
 | Ledger Service        | Java, Spring Boot            | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)       | 1000  |
 | Transcription Service | Python, FasterWhisper        | Speech-to-text                                   | -                                        | -     |
 | AI Connector Service  | Java, Spring Boot, Spring AI | Structured expense extraction from text          | [README](ai-connector-service/README.md) | 1001  |

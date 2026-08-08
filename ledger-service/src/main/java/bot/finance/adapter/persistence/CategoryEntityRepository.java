@@ -26,4 +26,26 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
             ORDER BY c.name
             """)
     List<String> findNonEmptyGroupingNames(@Param("userId") Long userId);
+
+    @Query(
+            """
+            SELECT c.id AS id, c.name AS name, g.id AS grouping_id, g.name AS grouping_name
+            FROM category c
+            JOIN category g ON g.id = c.parent_id
+            WHERE c.user_id = :userId
+              AND (CAST(:groupingId AS BIGINT) IS NULL OR c.parent_id = :groupingId)
+            ORDER BY g.name, c.name
+            """)
+    List<CategoryEntryProjection> findCategoryEntriesForUser(
+            @Param("userId") Long userId, @Param("groupingId") Long groupingId);
+
+    @Query(
+            """
+            SELECT id, name
+            FROM category
+            WHERE user_id = :userId
+              AND parent_id IS NULL
+            ORDER BY name
+            """)
+    List<GroupingEntryProjection> findGroupingEntriesForUser(@Param("userId") Long userId);
 }

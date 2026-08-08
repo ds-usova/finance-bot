@@ -48,10 +48,9 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when a tokened request with a text and the default known categories arrives - then the RPC "
-                + "answers an empty response, and the ledger received one tool call carrying the provider's "
-                + "arguments under the request's own token")
-        void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesOneToolCallUnderToken() {
+        @DisplayName("when a tokened request arrives - then the RPC answers empty and the ledger receives the "
+                + "tool call under that token")
+        void whenTokenedRequestArrives_thenRpcAnswersEmptyAndLedgerReceivesOneToolCallUnderToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             WireMockStubs.stubChatCompletionSequence(
                     ChatCompletionFixtures.toolCallResponse(
@@ -76,10 +75,9 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when a tokened request carrying grouping names and a catch-all arrives - then the RPC "
-                + "answers an empty response, the ledger received both calls under the request's own token, and "
-                + "the lookup carried the grouping name the provider asked for")
-        void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesBothToolCallsUnderToken() {
+        @DisplayName("when the provider looks up categories and then records - then both calls reach the ledger "
+                + "under the request's token")
+        void whenProviderLooksUpCategoriesThenRecords_thenBothToolCallsReachLedgerUnderToken() {
             McpLedgerStubs.stubCreateExpenseProposalAccepted();
             McpLedgerStubs.stubListCategoriesAnswering(GROUPING, List.of("Lunch"));
             WireMockStubs.stubChatCompletionSequence(
@@ -111,10 +109,9 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when a tokened request carrying a current date arrives - then the RPC answers an empty "
-                + "response and the ledger received the summarize_spending call under the request's own token, "
-                + "carrying the days the provider asked for")
-        void whenTokenedRequestArrives_thenRpcAnswersEmptyResponseAndLedgerReceivesSummarizeSpendingCallUnderToken() {
+        @DisplayName("when the provider asks to summarize spending - then that call reaches the ledger under the "
+                + "request's token")
+        void whenProviderAsksToSummarizeSpending_thenThatCallReachesLedgerUnderToken() {
             String from = "2026-08-01";
             String to = RequestFixtures.DEFAULT_CURRENT_DATE;
             McpLedgerStubs.stubSummarizeSpendingAccepted(from, to);
@@ -160,8 +157,8 @@ class ExtractIntentsSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @DisplayName("when a request carrying no authorization metadata arrives - then it fails with UNAUTHENTICATED "
-                + "and the provider is never called")
+        @DisplayName("when a request carries no authorization metadata - then it fails with UNAUTHENTICATED, the "
+                + "provider never called")
         void whenRequestCarriesNoAuthorizationMetadata_thenFailsWithUnauthenticatedAndProviderNeverCalled() {
             assertThatThrownBy(() -> intentExtractionStub.extractIntents(RequestFixtures.request()))
                     .isInstanceOf(StatusRuntimeException.class)

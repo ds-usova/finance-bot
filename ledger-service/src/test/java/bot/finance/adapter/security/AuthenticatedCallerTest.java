@@ -30,8 +30,8 @@ class AuthenticatedCallerTest {
     class AuthenticatedUserIdMethod {
 
         @Test
-        @DisplayName("when the security context holds a validated token whose subject is an external id"
-                + " - then returns an AuthenticatedUserId carrying that subject")
+        @DisplayName("when the token's subject is an external id - then returns an AuthenticatedUserId carrying "
+                + "that subject")
         void whenContextHoldsValidatedTokenWithExternalIdSubject_thenReturnsAuthenticatedUserIdCarryingThatSubject() {
             SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithSubject("ext-123")));
 
@@ -80,7 +80,7 @@ class AuthenticatedCallerTest {
     class MessageReferenceMethod {
 
         @Test
-        @DisplayName("when the security context holds a validated token whose mrf claim is a UUID's canonical text"
+        @DisplayName("when the token's mrf claim is a UUID's canonical text"
                 + " - then returns a MessageReference carrying that UUID")
         void whenContextHoldsValidatedTokenWithUuidMrfClaim_thenReturnsMessageReferenceCarryingThatUuid() {
             UUID reference = UUID.randomUUID();
@@ -103,8 +103,7 @@ class AuthenticatedCallerTest {
         }
 
         @Test
-        @DisplayName("when the security context holds a validated token whose mrf claim is not a UUID"
-                + " - then throws InvalidIncomingMessageException")
+        @DisplayName("when the token's mrf claim is not a UUID - then throws InvalidIncomingMessageException")
         void whenContextHoldsValidatedTokenWithNonUuidMrfClaim_thenThrowsInvalidIncomingMessageException() {
             SecurityContextHolder.getContext()
                     .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim("not-a-uuid")));
@@ -114,11 +113,15 @@ class AuthenticatedCallerTest {
         }
 
         @Test
-        @DisplayName("when the security context holds no authentication, or one that is not a validated token"
-                + " - then throws InvalidUserException")
-        void whenContextHoldsNoValidatedToken_thenThrowsInvalidUserException() {
+        @DisplayName("when the security context holds no authentication - then throws InvalidUserException")
+        void whenContextHoldsNoAuthentication_thenThrowsInvalidUserException() {
             assertThatThrownBy(AuthenticatedCaller::messageReference).isInstanceOf(InvalidUserException.class);
+        }
 
+        @Test
+        @DisplayName("when the security context holds an authentication that is not a validated token"
+                + " - then throws InvalidUserException")
+        void whenContextHoldsAuthenticationThatIsNotAValidatedToken_thenThrowsInvalidUserException() {
             SecurityContextHolder.getContext()
                     .setAuthentication(new UsernamePasswordAuthenticationToken("user", "password"));
 

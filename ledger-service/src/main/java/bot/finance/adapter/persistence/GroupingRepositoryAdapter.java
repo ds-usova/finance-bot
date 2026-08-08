@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -44,6 +45,17 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
             return categoryEntityRepository.findNonEmptyGroupingNames(userId);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
+        }
+    }
+
+    @Override
+    public List<GroupingEntry> findAllForUser(long userId) {
+        try {
+            return categoryEntityRepository.findGroupingEntriesForUser(userId).stream()
+                    .map(GroupingEntryProjection::toGroupingEntry)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find groupings for user " + userId, e);
         }
     }
 }

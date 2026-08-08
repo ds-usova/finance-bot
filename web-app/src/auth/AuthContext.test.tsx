@@ -17,7 +17,7 @@ const createSessionMock = vi.mocked(createSession);
 const deleteSessionMock = vi.mocked(deleteSession);
 
 function Probe() {
-  const { status, session, signIn, signOut } = useAuth();
+  const { status, session, signIn, signOut, sessionExpired } = useAuth();
   return (
     <div>
       <p>status: {status}</p>
@@ -27,6 +27,9 @@ function Probe() {
       </button>
       <button type="button" onClick={() => void signOut()}>
         sign out
+      </button>
+      <button type="button" onClick={() => sessionExpired()}>
+        session expired
       </button>
     </div>
   );
@@ -92,6 +95,27 @@ describe('the auth provider', () => {
 
     await waitFor(() => expect(screen.getByText('status: anonymous')).toBeInTheDocument());
     expect(deleteSessionMock).toHaveBeenCalledOnce();
+  });
+
+  it('becomes anonymous and drops the session once the ledger refuses it', async () => {
+    readSessionMock.mockResolvedValue({ externalId: '42' });
+
+    renderProbe();
+    await waitFor(() => expect(screen.getByText('status: authenticated')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'session expired' }));
+
+    await waitFor(() => expect(screen.getByText('status: anonymous')).toBeInTheDocument());
+    expect(screen.getByText('id: none')).toBeInTheDocument();
+  });
+
+  it('ends an expired session without a DELETE, because there is nothing left to end', async () => {
+    readSessionMock.mockResolvedValue({ externalId: '42' });
+
+    renderProbe();
+    await waitFor(() => expect(screen.getByText('status: authenticated')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'session expired' }));
+
+    expect(deleteSessionMock).not.toHaveBeenCalled();
   });
 });
 
