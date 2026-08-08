@@ -11,6 +11,8 @@
     "generate:api": "openapi-typescript ../openapi/ledger-api.yaml -o src/api/generated/ledger-api.d.ts",
     "prebuild": "npm run generate:api",
     "build": "tsc --noEmit && vite build",
+    "pretypecheck": "npm run generate:api",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest",
     "pretest:run": "npm run generate:api",
