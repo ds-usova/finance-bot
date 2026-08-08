@@ -633,9 +633,8 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the stored user's id differs from the external id - then both reads carry that id and "
-                + "the reference")
-        void whenStoredUsersIdDiffersFromExternalId_thenBothReadsCarryThatIdAndTheReference() {
+        @DisplayName("when the stored user's id differs from the external id - then both reads carry that stored id")
+        void whenStoredUsersIdDiffersFromExternalId_thenBothReadsCarryThatStoredId() {
             long differentUserId = 42L;
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
