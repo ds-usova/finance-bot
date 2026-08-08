@@ -1,7 +1,9 @@
 package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
@@ -20,6 +22,16 @@ public record SpendingPeriod(LocalDate from, LocalDate to) {
         if (to.isBefore(from)) {
             throw new InvalidSpendingPeriodException("Period ends before it starts");
         }
+    }
+
+    /** The moment the first day begins. A written day is a UTC day wherever the product reads one. */
+    public Instant startInstant() {
+        return from.atStartOfDay(ZoneOffset.UTC).toInstant();
+    }
+
+    /** The moment the day after the last one begins, so a period is the half-open range between the two. */
+    public Instant endInstantExclusive() {
+        return to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     public static SpendingPeriod of(String from, String to) {

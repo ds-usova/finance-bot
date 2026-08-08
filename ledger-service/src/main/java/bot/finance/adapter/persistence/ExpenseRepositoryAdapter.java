@@ -11,7 +11,6 @@ import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -107,16 +106,14 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         return status == null ? null : status.name();
     }
 
+    // A filter with no period narrows nothing, and the query reads a null bound as absent. Unpacking that is
+    // the adapter's; what a period's days mean as instants is the period's own.
     private static Instant periodStart(SpendingPeriod period) {
-        return period == null
-                ? null
-                : period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
+        return period == null ? null : period.startInstant();
     }
 
     private static Instant periodEndExclusive(SpendingPeriod period) {
-        return period == null
-                ? null
-                : period.to().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return period == null ? null : period.endInstantExclusive();
     }
 
     private static RuntimeException classify(Expense expense, RuntimeException e) {

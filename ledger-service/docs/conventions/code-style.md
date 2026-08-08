@@ -109,6 +109,9 @@ scaffolding, needless complexity, import hygiene) applies; the points below prio
 - **Extraction targets**: shared test helpers go to the shared test package, and get listed there (see
   [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes onto the type that owns
   the data, not into a new helper class.
+- **Misplaced behaviour is moved, not counted.** A private static method taking a domain object and reading only
+  its own fields belongs on that type ([Domain](#domain)). Moving it is a relocation, not an extraction, so the
+  threshold below does not apply: one occurrence is enough.
 - **Leave alone**: an applied migration — never edit one, always add a new one; `package-info.java` files;
   anything generated.
 - **Thresholds**: extract only when logic repeats in 2+ classes; keep methods under one screen; otherwise use
