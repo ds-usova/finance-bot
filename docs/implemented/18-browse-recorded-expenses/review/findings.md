@@ -21,10 +21,10 @@ design ever named. The [evidence](evidence.md) beside this file covers the rest.
   KWD one ten times too large. The response already carries the currency beside the amount, so nothing is missing
   from it. No plan item: every scenario used the fixture's currency.
 
-- **Nothing reaches the second page** — `ExpensesPage.tsx` sends neither `limit` nor `offset` and renders no
-  pager, so a person sees the first 50 expenses and no more. The API carries both parameters
-  (`openapi/components/parameters/paging.yaml`) and the envelope carries `total`, which `ExpenseList` already
-  puts on screen as `Showing 50 of 138.` — the count is visible with no control to act on it. Recorded on
+- ~~**Nothing reaches the second page**~~ — resolved. `Pager` in `components/` renders the way on and the way
+  back, stepping by the `limit` the ledger answered with rather than one the page chose. `ExpensesPage` holds the
+  offset in the filter it reads with, so changing a filter returns to the first page. The count moved out of
+  `ExpenseList` onto the pager, beside the control that acts on it. Recorded on
   [the use case](../../../../web-app/docs/usecases/browse-recorded-expenses.md); no plan item, since the design
   settled offset paging as a decision and no scenario asked for the control.
 

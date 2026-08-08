@@ -5,7 +5,7 @@
 - **Out:** a page of their expenses, newest first, and the category tree the filter offers
 - **Why:** everything the bot recorded, and everything still awaiting a decision, is visible in one place
 
-*Implemented by the expenses page, the expense list, the filter controls and the expenses client.*
+*Implemented by the expenses page, the expense list, the filter controls, the pager and the expenses client.*
 
 ## Collaborators
 
@@ -24,22 +24,24 @@
 - A row is named from the category list, matched by id. A category the list does not answer leaves it blank.
 - A grouping narrows the categories offered, from the tree already held. It is not a listing filter and never
   reaches the ledger; a category outside the chosen one is dropped.
-- The listing is read with the ledger's own page size, and no control moves past the first page.
+- The listing is read with the ledger's own page size. Paging steps by the size it answered with.
+- Changing a filter returns to the first page.
 - A refusal for want of a session drops the session to anonymous, from any of the three reads. That is distinct
   from signing out, which ends a session still open and tells the ledger so. An expiry tells it nothing.
 
 ## Outcomes
 
-| Outcome            | When                                                    | Result                                                           |
-|--------------------|---------------------------------------------------------|------------------------------------------------------------------|
-| The list is shown  | every read is answered                                  | the entries appear newest first, and the controls offer the tree |
-| Nothing to show    | the listing answers no entries                          | the page says so in place of the list                            |
-| Part of the list   | the total is larger than the entries answered           | the page says how many of the total are on screen                |
-| The list narrows   | a filter is changed                                     | the listing is read again with it                                |
-| Sent to sign in    | any of the three reads is refused for want of a session | the sign-in page is shown, with no reload                        |
-| Failure reported   | a read fails for any other reason                       | the failure is shown, and whatever is on screen stays            |
-| Categories unnamed | only the category read failed                           | the entries still list, each with its category blank             |
-| Signed out         | the sign-out control is used                            | the sign-in page is shown, and the ledger clears the cookie      |
+| Outcome            | When                                                    | Result                                                            |
+|--------------------|---------------------------------------------------------|-------------------------------------------------------------------|
+| The list is shown  | every read is answered                                  | the entries appear newest first, and the controls offer the tree  |
+| Nothing to show    | the listing answers no entries                          | the page says so in place of the list                             |
+| Part of the list   | the total is larger than the entries answered           | the page names which of them are on screen, and offers the way on |
+| Another page       | the way on or back is used                              | the listing is read again at the new offset                       |
+| The list narrows   | a filter is changed                                     | the listing is read again with it, from the first page            |
+| Sent to sign in    | any of the three reads is refused for want of a session | the sign-in page is shown, with no reload                         |
+| Failure reported   | a read fails for any other reason                       | the failure is shown, and whatever is on screen stays             |
+| Categories unnamed | only the category read failed                           | the entries still list, each with its category blank              |
+| Signed out         | the sign-out control is used                            | the sign-in page is shown, and the ledger clears the cookie       |
 
 ## Flow
 
@@ -97,6 +99,7 @@ Container_Boundary(webApp, "Web App") {
   Component(expensesPage, "Expenses page", "React", "Reads what the ledger holds and composes it", $tags="page")
   Component(expenseList, "Expense list", "React", "Renders a row per entry")
   Component(expenseFilters, "Filter controls", "React", "Offers the grouping, the category, the status and the period")
+  Component(pager, "Pager", "React", "Steps by the page size the ledger applied")
   Component(authContext, "Session state", "React context", "Holds who is signed in")
   Component(expensesClient, "Expenses client", "TypeScript", "Calls the listing, the categories and the groupings")
 }
@@ -106,6 +109,7 @@ Rel_R(routeGuard, expensesPage, "Admits")
 Rel_D(routeGuard, authContext, "Asks whether a session is open")
 Rel_D(expensesPage, expenseList, "Renders")
 Rel_D(expensesPage, expenseFilters, "Renders")
+Rel_D(expensesPage, pager, "Renders")
 Rel_D(expensesPage, authContext, "Reports an expired session to")
 Rel_R(expensesPage, expensesClient, "Reads through")
 Rel_R(expensesClient, ledger, "Browse requests", "HTTPS, same origin")

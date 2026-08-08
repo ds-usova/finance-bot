@@ -142,6 +142,61 @@ describe('the expenses page', () => {
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
   });
 
+  it('reads the page after the one on screen when the pager steps forward, keeping the filter', async () => {
+    const firstPage = anExpensePage([anExpense({ description: 'lunch', categoryId: 10 })], {
+      limit: 1,
+      offset: 0,
+      total: 3,
+    });
+    listExpensesMock.mockResolvedValue(firstPage);
+    renderPage();
+    await screen.findByText('lunch');
+
+    const categoryControl = screen.getByRole('combobox', { name: /category/i });
+    await userEvent.selectOptions(
+      categoryControl,
+      within(categoryControl).getByRole('option', { name: /Groceries/ }),
+    );
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+    await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    expect(listExpensesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 1, categoryId: 10 }),
+    );
+  });
+
+  it('returns to the first page when the filter changes', async () => {
+    listExpensesMock.mockResolvedValue(
+      anExpensePage([anExpense({ description: 'lunch', categoryId: 10 })], {
+        limit: 1,
+        offset: 0,
+        total: 3,
+      }),
+    );
+    renderPage();
+    await screen.findByText('lunch');
+    await userEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+
+    const categoryControl = screen.getByRole('combobox', { name: /category/i });
+    await userEvent.selectOptions(
+      categoryControl,
+      within(categoryControl).getByRole('option', { name: /Groceries/ }),
+    );
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
+    expect(listExpensesMock.mock.lastCall?.[0].offset).toBeUndefined();
+  });
+
+  it('offers no pager when the listing answers everything the filter matches', async () => {
+    renderPage();
+    await screen.findByText('lunch');
+
+    expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+  });
+
   it('ends the session through the context when the sign-out control is used', async () => {
     const signOut = vi.fn().mockResolvedValue(undefined);
 

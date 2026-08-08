@@ -101,15 +101,4 @@ describe('the expense list', () => {
 
     expect(screen.getByText(/no expenses/i)).toBeInTheDocument();
   });
-
-  it('says how many of the total are being shown when the total exceeds the entries', () => {
-    const page = anExpensePage(
-      [anExpense({ id: 1, description: 'lunch' }), anExpense({ id: 2, description: 'taxi' })],
-      { total: 7 },
-    );
-
-    render(<ExpenseList page={page} categoryNames={categoryNames} />);
-
-    expect(screen.getByText(/2 of 7/)).toBeInTheDocument();
-  });
 });

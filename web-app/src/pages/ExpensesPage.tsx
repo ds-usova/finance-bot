@@ -13,6 +13,7 @@ import { useAuth } from '../auth/useAuth';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
+import { Pager } from '../components/Pager';
 
 export function ExpensesPage() {
   const { signOut, sessionExpired } = useAuth();
@@ -52,6 +53,9 @@ export function ExpensesPage() {
     [categories],
   );
 
+  // A narrower filter matches other rows, so the offset the previous one reached means nothing under it.
+  const narrow = (next: ExpenseFilter) => setFilter({ ...next, offset: undefined });
+
   return (
     <main>
       <header>
@@ -70,9 +74,14 @@ export function ExpensesPage() {
         groupings={groupings}
         categories={categories}
         filter={filter}
-        onChange={setFilter}
+        onChange={narrow}
       />
-      {page && <ExpenseList page={page} categoryNames={categoryNames} />}
+      {page && (
+        <>
+          <ExpenseList page={page} categoryNames={categoryNames} />
+          <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
+        </>
+      )}
     </main>
   );
 }

@@ -16,36 +16,29 @@ export function ExpenseList({ page, categoryNames }: ExpenseListProps) {
   }
 
   return (
-    <>
-      <table className="expense-list">
-        <thead>
-          <tr>
-            <th scope="col">Description</th>
-            <th scope="col">Merchant</th>
-            <th scope="col">Category</th>
-            <th scope="col">Amount</th>
-            <th scope="col">Currency</th>
-            <th scope="col">Status</th>
+    <table className="expense-list">
+      <thead>
+        <tr>
+          <th scope="col">Description</th>
+          <th scope="col">Merchant</th>
+          <th scope="col">Category</th>
+          <th scope="col">Amount</th>
+          <th scope="col">Currency</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {page.items.map((expense) => (
+          <tr key={expense.id}>
+            <td>{expense.description}</td>
+            <td>{expense.merchant}</td>
+            <td>{categoryNames.get(expense.categoryId)}</td>
+            <td className="amount">{decimalAmount(expense.amountMinorUnits)}</td>
+            <td>{expense.currency}</td>
+            <td>{expense.status}</td>
           </tr>
-        </thead>
-        <tbody>
-          {page.items.map((expense) => (
-            <tr key={expense.id}>
-              <td>{expense.description}</td>
-              <td>{expense.merchant}</td>
-              <td>{categoryNames.get(expense.categoryId)}</td>
-              <td className="amount">{decimalAmount(expense.amountMinorUnits)}</td>
-              <td>{expense.currency}</td>
-              <td>{expense.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {page.total > page.items.length && (
-        <p className="expense-list-note">
-          Showing {page.items.length} of {page.total}.
-        </p>
-      )}
-    </>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -54,3 +54,14 @@ main {
 .expense-list-note {
   font-size: 0.9rem;
 }
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pager-range {
+  font-size: 0.9rem;
+}
