@@ -151,6 +151,8 @@ would inherit the first's advanced state. Give each new class a token constant i
   fit is the signal, not the problem: the test is proving several things at once, so either split it or name the
   one behaviour they add up to. It never cites a plan step or a design decision by number either — the scenario a
   step agent works from carries those, and they name nothing once the plan is archived.
+  `DisplayNameConventionsTest` in `bot.finance.architecture` asserts both halves. The shape is enforced; the
+  length is `@ArchIgnore`d until the names that already overrun are dealt with, and the reason says how many.
 - Verify a mocked port's call and its key arguments; avoid full object-equality interaction assertions.
 - **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
   internally, assert what must hold whichever route it takes — *no proposal is stored at the wrong scale* — never
