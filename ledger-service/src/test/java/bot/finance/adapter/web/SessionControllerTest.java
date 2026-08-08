@@ -207,35 +207,6 @@ class SessionControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("Error Mapping")
-    class ErrorMapping {
-
-        @Test
-        @DisplayName("when a sign-in carrying a CSRF token is posted to the retired path - then the response is 401")
-        void whenASignInCarryingACsrfTokenIsPostedToTheRetiredPath_thenTheResponseIs401() throws Exception {
-            mockMvc.perform(post("/api/session")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(PAYLOAD_JSON))
-                    .andExpect(status().isUnauthorized());
-
-            verify(initializeUserPort, never()).initialize(any());
-        }
-
-        @Test
-        @DisplayName("when a sign-out carrying a CSRF token is deleted at the retired path - then the response is 401")
-        void whenASignOutCarryingACsrfTokenIsDeletedAtTheRetiredPath_thenTheResponseIs401() throws Exception {
-            mockMvc.perform(delete("/api/session").with(csrf())).andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        @DisplayName("when the session is read at the retired path - then the response is 401")
-        void whenTheSessionIsReadAtTheRetiredPath_thenTheResponseIs401() throws Exception {
-            mockMvc.perform(get("/api/session")).andExpect(status().isUnauthorized());
-        }
-    }
-
     private void acceptTheSignIn() {
         when(loginVerifier.verify(any(), any())).thenReturn(EXTERNAL_ID);
         when(initializeUserPort.initialize(any())).thenReturn(User.newUser(EXTERNAL_ID));

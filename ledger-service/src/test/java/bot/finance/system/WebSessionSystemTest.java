@@ -122,24 +122,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
             response.then().statusCode(401);
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
         }
-
-        @Test
-        @DisplayName("when a sign-in is posted to the retired /api/session - then 401 before any endpoint is reached")
-        void whenASignInIsPostedToTheRetiredApiSession_then401BeforeAnyEndpointIsReached() {
-            String externalId = "web-session-retired-path-user";
-            String csrfToken = freshCsrfToken();
-
-            Response response = RestAssured.given()
-                    .contentType(ContentType.JSON)
-                    .cookie(CSRF_COOKIE, csrfToken)
-                    .header(CSRF_HEADER, csrfToken)
-                    .body(TelegramLoginPayloads.signedPayload(BOT_TOKEN, externalId))
-                    .when()
-                    .post("/api/session");
-            logResponse(response);
-
-            response.then().statusCode(401);
-        }
     }
 
     @Nested

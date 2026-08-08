@@ -85,6 +85,13 @@ asserts *more* than it should; it does not find the test in some other class tha
 record, a value a message carries — search the test tree for that value and list every hit as an `update:` bullet,
 whatever class it lands in. The search term is the removed thing itself, not the classes the plan happens to touch.
 
+**What the change removed gets no scenario of its own.** A retired path, a dropped field, a command that no
+longer exists: do not list a scenario asserting that the old one now refuses. Nothing serves it any more, so the
+refusal comes from a default the change never chose — a catch-all route, a deny-by-default rule — and the test
+pins that default under the old name. What proves the removal is the scenarios on what replaced it, plus the
+`update:` bullets above that strip the old thing out of the tests that named it. A scenario like this is worth
+one release and then reads as a contract nobody agreed to.
+
 **A new call on a shared path is searched for the same way.** When the change makes an existing flow reach a
 collaborator it did not reach before — an outbound port, a new stub, a new fixture — every test that drives that
 flow needs the new arrangement, not only the tests the plan happens to name. Search the test tree for the *entry
