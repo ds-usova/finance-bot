@@ -2,6 +2,7 @@ package bot.finance.adapter.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,7 +31,8 @@ import org.springframework.test.web.servlet.MvcResult;
  * Integration test for the inbound HTTP adapter. Enters through the protocol - a MockMvc GET against
  * {@code /api/v1/categories} - never by calling {@link CategoriesController}'s method directly, since binding
  * lives in the generated {@link bot.finance.api.CategoriesApi} interface. Only {@link BrowseCategoriesPort} is
- * mocked. The 400 a non-numeric {@code groupingId} answers belongs to {@link WebExceptionHandlerTest}.
+ * mocked. It owns what this endpoint accepts and refuses; {@link WebExceptionHandlerTest} owns only the mappings
+ * every controller shares.
  */
 @WebAdapterTest
 @WebMvcTest(CategoriesController.class)
@@ -119,6 +121,24 @@ class CategoriesControllerTest {
             verify(browseCategoriesPort).browse(command.capture());
             assertThat(command.getValue().groupingId()).isEqualTo(77L);
         }
+
+        @Test
+        @DisplayName("when groupingId is not a number - then the response is 400 naming groupingId, and the port "
+                + "is never called")
+        void whenGroupingIdIsNotANumber_thenResponseIs400NamingGroupingIdAndPortNeverCalled() throws Exception {
+            MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()).param("groupingId", "abc"))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).containsIgnoringCase("groupingId");
+            verify(browseCategoriesPort, never()).browse(any());
+        }
+    }
+
+    private static String messageOf(MvcResult result) throws Exception {
+        return JsonUtils.readJson(result.getResponse().getContentAsString())
+                .get("message")
+                .asText();
     }
 
     private static Cookie sessionCookie() {

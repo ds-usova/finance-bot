@@ -134,6 +134,13 @@ would inherit the first's advanced state. Give each new class a token constant i
 - A nested class named after the type under test shadows its import, so `@Nested class Widget` inside
   `WidgetTest` would make `new Widget(...)` resolve to the test class. Name it for the role instead:
   `WidgetConstructor`.
+- **A shared component's test carries only what is shared.** An exception advice, a filter, a converter: its test
+  holds what holds for every caller. What one caller alone can produce goes to that caller's test class — its
+  query parameters, its validation matrix, the exceptions only its own types raise. The reason is deletion:
+  retiring an endpoint should take its whole contract with it, out of one file. The other way round, ten
+  endpoints' validation rules end up in one class that belongs to none of them.
+- **Entering a shared component needs some caller.** Pick one, and say in the class javadoc that nothing in the
+  test asserts anything about it. `WebExceptionHandlerTest` goes through `ExpensesController` on those terms.
 - `@ParameterizedTest` when one behaviour spans several values (enum cases, validation matrices, null-handling).
   Never duplicate a case as both a parameterized entry and a one-off test.
 - AssertJ only — never JUnit `assertEquals`/`assertTrue`. RestAssured response specs are fine for HTTP-level
