@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { anExpense, anExpensePage } from '../testing/fixtures';
 import { substituteCatalogue } from '../testing/catalogue';
+import { anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpenseList } from './ExpenseList';
 
 const categoryNames = new Map([
@@ -66,14 +66,11 @@ describe('the expense list', () => {
   });
 
   it('shows the catalogue’s substituted text for the empty state, once the catalogue is swapped', () => {
-    const restore = substituteCatalogue();
-    try {
-      render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
+    substituteCatalogue();
 
-      expect(screen.getByRole('alert')).toHaveTextContent('‹No expenses to show.›');
-    } finally {
-      restore();
-    }
+    render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('‹No expenses to show.›');
   });
 
   it('says there is nothing to show when the page holds no entries', () => {

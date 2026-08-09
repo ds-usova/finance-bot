@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
-import { relativeDay } from './expenseDays';
-import type { ExpenseDay } from './expenseDays';
+import { relativeDay, type ExpenseDay } from './expenseDays';
 
 export type ExpenseDaySectionProps = {
   day: ExpenseDay;
@@ -18,12 +17,9 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
   const locale = i18n.resolvedLanguage ?? 'en';
 
   const relative = relativeDay(day.day, new Date());
-  const dayLabel =
-    relative === 'today'
-      ? t('listing.today')
-      : relative === 'yesterday'
-        ? t('listing.yesterday')
-        : new Intl.DateTimeFormat(locale).format(new Date(`${day.day}T00:00:00Z`));
+  const dayLabel = relative
+    ? t(`listing.${relative}`)
+    : new Intl.DateTimeFormat(locale).format(new Date(`${day.day}T00:00:00Z`));
 
   return (
     <Accordion

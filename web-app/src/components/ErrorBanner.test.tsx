@@ -11,15 +11,12 @@ describe('the error banner', () => {
   });
 
   it('shows the message it was handed exactly as given, with no catalogue wording anywhere in it, even once the catalogue is swapped', () => {
-    const restore = substituteCatalogue();
-    try {
-      render(<ErrorBanner message="from must be a date" />);
+    substituteCatalogue();
 
-      const banner = screen.getByRole('alert');
-      expect(banner).toHaveTextContent('from must be a date');
-      expect(banner).not.toHaveTextContent('‹');
-    } finally {
-      restore();
-    }
+    render(<ErrorBanner message="from must be a date" />);
+
+    const banner = screen.getByRole('alert');
+    expect(banner).toHaveTextContent('from must be a date');
+    expect(banner).not.toHaveTextContent('‹');
   });
 });

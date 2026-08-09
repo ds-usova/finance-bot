@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import { en } from './en';
 
 // Initializes the default i18next instance as a side effect of import, so a component rendered on its own in
-// a test reads the same catalogue the app does. No language detector and no language control, per D2 and D16.
+// a test reads the same catalogue the app does. English is the only catalogue: no detector, no control.
 void i18next.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',

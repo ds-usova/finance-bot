@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { anExpense, anExpensePage } from '../testing/fixtures';
 import { substituteCatalogue } from '../testing/catalogue';
+import { anExpense, anExpensePage } from '../testing/fixtures';
 import { Pager } from './Pager';
 
 function aPage(overrides: { limit?: number; offset?: number; total?: number }, items = 2) {
@@ -66,15 +66,12 @@ describe('the pager', () => {
   });
 
   it('shows the catalogue’s substituted text for both controls and the range sentence, with the numbers interpolated into it', () => {
-    const restore = substituteCatalogue();
-    try {
-      render(<Pager page={aPage({ limit: 2, offset: 2, total: 6 })} onOffset={vi.fn()} />);
+    substituteCatalogue();
 
-      expect(screen.getByRole('button', { name: '‹Previous›' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '‹Next›' })).toBeInTheDocument();
-      expect(screen.getByText('‹Showing 3–4 of 6.›')).toBeInTheDocument();
-    } finally {
-      restore();
-    }
+    render(<Pager page={aPage({ limit: 2, offset: 2, total: 6 })} onOffset={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: '‹Previous›' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '‹Next›' })).toBeInTheDocument();
+    expect(screen.getByText('‹Showing 3–4 of 6.›')).toBeInTheDocument();
   });
 });

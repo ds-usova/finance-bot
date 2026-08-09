@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExpenseFilter } from '../api/expenses';
-import { aCategory, aGrouping } from '../testing/fixtures';
 import { substituteCatalogue } from '../testing/catalogue';
 import { chooseOption } from '../testing/combobox';
+import { aCategory, aGrouping } from '../testing/fixtures';
 import { ExpenseFilters } from './ExpenseFilters';
 
 const everyday = aGrouping({ id: 100, name: 'Everyday' });
@@ -203,25 +203,22 @@ describe('the filter controls', () => {
   });
 
   it('shows the catalogue’s substituted text for every label and every option', async () => {
-    const restore = substituteCatalogue();
-    try {
-      const { user } = renderFilters();
+    substituteCatalogue();
 
-      expect(screen.getByText('‹Grouping›')).toBeInTheDocument();
-      expect(screen.getByText('‹Category›')).toBeInTheDocument();
-      expect(screen.getByText('‹Status›')).toBeInTheDocument();
-      expect(screen.getByLabelText('‹Recorded from›')).toBeInTheDocument();
-      expect(screen.getByLabelText('‹Recorded to›')).toBeInTheDocument();
+    const { user } = renderFilters();
 
-      await user.click(screen.getByRole('combobox', { name: '‹Grouping›' }));
-      expect(await screen.findByRole('option', { name: '‹All›' })).toBeInTheDocument();
-      await user.keyboard('{Escape}');
+    expect(screen.getByText('‹Grouping›')).toBeInTheDocument();
+    expect(screen.getByText('‹Category›')).toBeInTheDocument();
+    expect(screen.getByText('‹Status›')).toBeInTheDocument();
+    expect(screen.getByLabelText('‹Recorded from›')).toBeInTheDocument();
+    expect(screen.getByLabelText('‹Recorded to›')).toBeInTheDocument();
 
-      await user.click(screen.getByRole('combobox', { name: '‹Status›' }));
-      expect(await screen.findByRole('option', { name: '‹Recorded›' })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: '‹Pending›' })).toBeInTheDocument();
-    } finally {
-      restore();
-    }
+    await user.click(screen.getByRole('combobox', { name: '‹Grouping›' }));
+    expect(await screen.findByRole('option', { name: '‹All›' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('combobox', { name: '‹Status›' }));
+    expect(await screen.findByRole('option', { name: '‹Recorded›' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '‹Pending›' })).toBeInTheDocument();
   });
 });

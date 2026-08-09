@@ -1,43 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { stubLocalStorage } from '../testing/localStorageStub';
+import { stubMatchMedia } from '../testing/matchMediaStub';
 import { THEME_STORAGE_KEY } from './theme';
 import { useTheme } from './useTheme';
-
-/** Mirrors `vitest.setup.ts`'s `fakeMatchMedia`, which is not exported for reuse here. */
-function stubMatchMedia(matches: boolean): void {
-  window.matchMedia = ((query: string) =>
-    ({
-      matches,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as MediaQueryList) as typeof window.matchMedia;
-}
-
-function stubLocalStorage(initial: Record<string, string> = {}) {
-  const store = new Map(Object.entries(initial));
-  const setItemSpy = vi.fn((key: string, value: string) => {
-    store.set(key, value);
-  });
-  const storage: Storage = {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: setItemSpy,
-    removeItem: (key: string) => {
-      store.delete(key);
-    },
-    clear: () => store.clear(),
-    key: (index: number) => Array.from(store.keys())[index] ?? null,
-    get length() {
-      return store.size;
-    },
-  };
-  return { storage, setItemSpy };
-}
 
 function Probe() {
   const { theme, toggleTheme } = useTheme();

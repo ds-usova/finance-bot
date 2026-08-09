@@ -95,18 +95,12 @@ describe('the shell', () => {
   });
 
   it("shows the catalogue's text for the product name, the theme control and the sign-out control", () => {
-    const restore = substituteCatalogue();
+    substituteCatalogue();
 
-    try {
-      renderShell({ status: 'authenticated', session: { externalId: '42' } });
+    renderShell({ status: 'authenticated', session: { externalId: '42' } });
 
-      expect(
-        screen.getByRole('heading', { name: `‹${en.shell.productName}›` }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: `‹${en.shell.themeToggle}›` })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: `‹${en.shell.signOut}›` })).toBeInTheDocument();
-    } finally {
-      restore();
-    }
+    expect(screen.getByRole('heading', { name: `‹${en.shell.productName}›` })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `‹${en.shell.themeToggle}›` })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `‹${en.shell.signOut}›` })).toBeInTheDocument();
   });
 });

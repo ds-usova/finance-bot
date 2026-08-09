@@ -1,8 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { anExpense } from '../testing/fixtures';
 import { substituteCatalogue } from '../testing/catalogue';
+import { anExpense } from '../testing/fixtures';
 import { ExpenseDaySection } from './ExpenseDaySection';
 import type { ExpenseDay } from './expenseDays';
 
@@ -326,46 +326,42 @@ describe('the rendered day section', () => {
   });
 
   it('shows the catalogue’s substituted text rather than a literal, once the catalogue is swapped', () => {
-    const restore = substituteCatalogue();
-    try {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-08-05T10:00:00Z'));
+    substituteCatalogue();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-05T10:00:00Z'));
 
-      const entries = [
-        anExpense({
-          id: 1,
-          status: 'RECORDED',
-          description: 'lunch',
-          amountMinorUnits: 500,
-          currency: 'EUR',
-        }),
-        anExpense({
-          id: 2,
-          status: 'PENDING',
-          description: 'taxi',
-          amountMinorUnits: 900,
-          currency: 'EUR',
-        }),
-      ];
-      const day = aDay({
-        day: '2026-08-05',
-        entries,
-        awaiting: 1,
-        totals: [{ currency: 'EUR', minorUnits: 500 }],
-      });
+    const entries = [
+      anExpense({
+        id: 1,
+        status: 'RECORDED',
+        description: 'lunch',
+        amountMinorUnits: 500,
+        currency: 'EUR',
+      }),
+      anExpense({
+        id: 2,
+        status: 'PENDING',
+        description: 'taxi',
+        amountMinorUnits: 900,
+        currency: 'EUR',
+      }),
+    ];
+    const day = aDay({
+      day: '2026-08-05',
+      entries,
+      awaiting: 1,
+      totals: [{ currency: 'EUR', minorUnits: 500 }],
+    });
 
-      render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
-      const header = screen.getByRole('button');
-      expect(header).toHaveTextContent('‹Today›');
-      expect(header).toHaveTextContent('‹1 entry awaits a decision›');
+    const header = screen.getByRole('button');
+    expect(header).toHaveTextContent('‹Today›');
+    expect(header).toHaveTextContent('‹1 entry awaits a decision›');
 
-      const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
-      expect(within(recordedItem).getByText('‹Recorded›')).toBeInTheDocument();
-      const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
-      expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
-    } finally {
-      restore();
-    }
+    const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
+    expect(within(recordedItem).getByText('‹Recorded›')).toBeInTheDocument();
+    const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
+    expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
   });
 });

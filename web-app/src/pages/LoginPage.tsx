@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TelegramLoginButton } from '../components/TelegramLoginButton';
 import type { TelegramAuthPayload } from '../auth/types';

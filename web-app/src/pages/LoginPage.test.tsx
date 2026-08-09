@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import type { AuthStatus, TelegramAuthPayload } from '../auth/types';
 import { en } from '../i18n/en';
@@ -35,13 +35,6 @@ function fireWidgetCallback(payload: TelegramAuthPayload) {
 }
 
 describe('the sign-in page', () => {
-  let restoreCatalogue: (() => void) | undefined;
-
-  afterEach(() => {
-    restoreCatalogue?.();
-    restoreCatalogue = undefined;
-  });
-
   it('offers the Telegram widget to an anonymous visitor', () => {
     renderLogin('anonymous', async () => {});
 
@@ -74,7 +67,7 @@ describe('the sign-in page', () => {
   });
 
   it('shows the catalogue’s text for the invitation offered to an anonymous visitor', () => {
-    restoreCatalogue = substituteCatalogue();
+    substituteCatalogue();
 
     renderLogin('anonymous', async () => {});
 
@@ -82,7 +75,7 @@ describe('the sign-in page', () => {
   });
 
   it('shows the catalogue’s refusal wording when the widget calls back with a sign-in the context refuses', async () => {
-    restoreCatalogue = substituteCatalogue();
+    substituteCatalogue();
     const signIn = vi.fn().mockRejectedValue(new Error('refused'));
     renderLogin('anonymous', signIn);
 
