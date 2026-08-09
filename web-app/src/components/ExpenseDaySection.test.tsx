@@ -107,7 +107,7 @@ describe('the rendered day section', () => {
     expect(header).not.toHaveTextContent('Yesterday');
   });
 
-  it('lists an entry with its description, its merchant, its category name, its Intl-formatted amount and a Recorded badge', () => {
+  it('lists a recorded entry with its description, its merchant, its category name and its Intl-formatted amount, and no status badge', () => {
     const entry = anExpense({
       id: 1,
       status: 'RECORDED',
@@ -126,7 +126,9 @@ describe('the rendered day section', () => {
     expect(item).toHaveTextContent('Corner Cafe');
     expect(item).toHaveTextContent('Groceries');
     expect(item).toHaveTextContent(amount('EUR', 1250));
-    expect(within(item).getByText('Recorded')).toBeInTheDocument();
+    // Only a proposal is badged: a recorded entry is the ordinary case and carries no label of its own.
+    expect(within(item).queryByText('Recorded')).not.toBeInTheDocument();
+    expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
   });
 
   it('keeps the header’s day, count and total but lists no entries once the person collapses it', async () => {
@@ -272,7 +274,7 @@ describe('the rendered day section', () => {
 
     const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
     const proposalItem = screen.getByRole('listitem', { name: /coffee/i });
-    expect(within(recordedItem).getByText('Recorded')).toBeInTheDocument();
+    expect(within(recordedItem).queryByText('Pending')).not.toBeInTheDocument();
     expect(within(proposalItem).getByText('Pending')).toBeInTheDocument();
   });
 
@@ -359,8 +361,6 @@ describe('the rendered day section', () => {
     expect(header).toHaveTextContent('‹Today›');
     expect(header).toHaveTextContent('‹1 entry awaits a decision›');
 
-    const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
-    expect(within(recordedItem).getByText('‹Recorded›')).toBeInTheDocument();
     const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
   });

@@ -3,33 +3,48 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --surface: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
+  --surface: oklch(0.985 0.002 265);
+  --card: oklch(1 0 0);
+  --foreground: oklch(0.16 0.01 265);
+  --muted: oklch(0.965 0.004 265);
+  --muted-foreground: oklch(0.53 0.015 265);
   --accent: oklch(0.55 0.18 255);
-  --border: oklch(0.922 0 0);
-  --pending: oklch(0.65 0.19 70);
+  --border: oklch(0.915 0.006 265);
+  --pending: oklch(0.5 0.15 295);
+  --pending-surface: oklch(0.96 0.03 295);
 }
 
 .dark {
-  --surface: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --accent: oklch(0.65 0.18 255);
-  --border: oklch(1 0 0 / 12%);
-  --pending: oklch(0.75 0.17 70);
+  --surface: oklch(0.16 0.008 265);
+  --card: oklch(0.205 0.009 265);
+  --foreground: oklch(0.97 0.002 265);
+  --muted: oklch(0.27 0.01 265);
+  --muted-foreground: oklch(0.7 0.015 265);
+  --accent: oklch(0.7 0.16 255);
+  --border: oklch(1 0 0 / 10%);
+  --pending: oklch(0.82 0.13 295);
+  --pending-surface: oklch(0.32 0.06 295);
 }
 
 @theme inline {
   --color-surface: var(--surface);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-border: var(--border);
   --color-pending: var(--pending);
+  --color-pending-surface: var(--pending-surface);
 }
 
 body {
   background-color: var(--surface);
   color: var(--foreground);
+  /* The date input's own icon is drawn by the browser, which picks its colour from this and not from the class. */
+  color-scheme: light;
+}
+
+.dark body {
+  color-scheme: dark;
 }

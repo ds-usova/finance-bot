@@ -13,7 +13,6 @@ export const en = {
     entryCount_other: '{{count}} entries',
     awaitingCount_one: '{{count}} entry awaits a decision',
     awaitingCount_other: '{{count}} entries await a decision',
-    statusRecorded: 'Recorded',
     statusPending: 'Pending',
     empty: 'No expenses to show.',
   },

@@ -69,7 +69,7 @@ export function ExpensesPage() {
   const narrow = (next: ExpenseFilter) => setFilter({ ...next, offset: undefined });
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {failure && <ErrorBanner message={failure} />}
       <ExpenseFilters
         groupings={groupings}
@@ -83,6 +83,6 @@ export function ExpensesPage() {
           <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
         </>
       )}
-    </>
+    </div>
   );
 }

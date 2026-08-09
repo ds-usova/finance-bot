@@ -87,8 +87,8 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-4">
-      <div className="flex flex-col gap-1">
+    <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3 sm:p-5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-grouping">{t('filters.grouping')}</Label>
         <Select
           value={groupingId === undefined ? ALL : String(groupingId)}
@@ -107,7 +107,7 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-category">{t('filters.category')}</Label>
         <Select
           value={filter.categoryId === undefined ? ALL : String(filter.categoryId)}
@@ -126,7 +126,7 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-status">{t('filters.status')}</Label>
         <Select value={filter.status ?? ALL} onValueChange={chooseStatus}>
           <SelectTrigger id="filter-status">
@@ -139,23 +139,29 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="filter-from">{t('filters.from')}</Label>
-        <Input
-          id="filter-from"
-          type="date"
-          value={fromValue}
-          onChange={(event) => chooseDay('from', event.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="filter-to">{t('filters.to')}</Label>
-        <Input
-          id="filter-to"
-          type="date"
-          value={toValue}
-          onChange={(event) => chooseDay('to', event.target.value)}
-        />
+      {/* One period, two days: the pair is what the ledger takes, so the two fields share a frame. */}
+      <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-surface/60 p-3 sm:col-span-3 sm:flex-row sm:items-end sm:gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <Label htmlFor="filter-from">{t('filters.from')}</Label>
+          <Input
+            id="filter-from"
+            type="date"
+            value={fromValue}
+            onChange={(event) => chooseDay('from', event.target.value)}
+          />
+        </div>
+        <span aria-hidden="true" className="hidden pb-2.5 text-muted-foreground sm:block">
+          –
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <Label htmlFor="filter-to">{t('filters.to')}</Label>
+          <Input
+            id="filter-to"
+            type="date"
+            value={toValue}
+            onChange={(event) => chooseDay('to', event.target.value)}
+          />
+        </div>
       </div>
     </div>
   );

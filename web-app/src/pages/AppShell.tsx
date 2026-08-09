@@ -13,28 +13,30 @@ export function AppShell() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <>
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h1 className="text-lg font-semibold">{t('shell.productName')}</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t('shell.themeToggle')}
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-          </Button>
-          {status === 'authenticated' && (
-            <Button variant="ghost" onClick={() => void signOut()}>
-              {t('shell.signOut')}
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
+          <h1 className="text-base font-semibold tracking-tight">{t('shell.productName')}</h1>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t('shell.themeToggle')}
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
             </Button>
-          )}
+            {status === 'authenticated' && (
+              <Button variant="ghost" onClick={() => void signOut()}>
+                {t('shell.signOut')}
+              </Button>
+            )}
+          </div>
         </div>
       </header>
-      <main>
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <Outlet />
       </main>
-    </>
+    </div>
   );
 }

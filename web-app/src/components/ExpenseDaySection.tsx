@@ -26,47 +26,53 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
       type="single"
       collapsible
       defaultValue={day.day}
-      className="rounded-md border border-border"
+      className="rounded-xl border border-border bg-card shadow-sm"
     >
       <AccordionItem value={day.day}>
-        <AccordionTrigger className="px-4">
-          <span className="font-semibold">{dayLabel}</span>
-          <span className="text-foreground/60">
-            {t('listing.entryCount', { count: day.entries.length })}
-          </span>
-          {day.totals.map((total) => (
-            <span key={total.currency} className="font-medium">
-              {formatAmount(locale, total.currency, total.minorUnits)}
+        {/* Exactly two children, so every day's header lines up: the day on the left, the money on the
+            right. A flat list of spans lets `justify-between` space them differently per day. */}
+        <AccordionTrigger className="gap-4 px-4 sm:px-5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-semibold">{dayLabel}</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {t('listing.entryCount', { count: day.entries.length })}
             </span>
-          ))}
-          {day.awaiting > 0 && (
-            <span className="text-foreground/60">
-              {t('listing.awaitingCount', { count: day.awaiting })}
-            </span>
-          )}
+            {day.awaiting > 0 && (
+              <Badge>{t('listing.awaitingCount', { count: day.awaiting })}</Badge>
+            )}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            {day.totals.map((total) => (
+              <span key={total.currency} className="font-semibold tabular-nums">
+                {formatAmount(locale, total.currency, total.minorUnits)}
+              </span>
+            ))}
+          </div>
         </AccordionTrigger>
-        <AccordionContent className="px-4">
-          <ul className="flex flex-col gap-2">
+        <AccordionContent className="px-4 pb-3 sm:px-5">
+          <ul className="flex flex-col divide-y divide-border/70 border-t border-border/70">
             {day.entries.map((entry) => {
               const categoryName = categoryNames.get(entry.categoryId);
+              const secondary = [entry.merchant, categoryName]
+                .filter((part): part is string => Boolean(part))
+                .join(' · ');
               return (
                 <li
                   key={`${entry.status}-${entry.id}`}
                   aria-label={entry.description}
-                  className="flex items-center justify-between gap-2"
+                  className="flex items-center justify-between gap-4 py-2.5"
                 >
-                  <div className="flex flex-col">
-                    <span>{entry.description}</span>
-                    {entry.merchant && <span className="text-foreground/60">{entry.merchant}</span>}
-                    {categoryName && <span className="text-foreground/60">{categoryName}</span>}
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate font-medium">{entry.description}</span>
+                    {secondary && (
+                      <span className="truncate text-xs text-muted-foreground">{secondary}</span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span>{formatAmount(locale, entry.currency, entry.amountMinorUnits)}</span>
-                    <Badge variant={entry.status === 'PENDING' ? 'pending' : 'muted'}>
-                      {entry.status === 'PENDING'
-                        ? t('listing.statusPending')
-                        : t('listing.statusRecorded')}
-                    </Badge>
+                  <div className="flex shrink-0 items-center gap-3">
+                    {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
+                    <span className="w-24 text-right tabular-nums">
+                      {formatAmount(locale, entry.currency, entry.amountMinorUnits)}
+                    </span>
                   </div>
                 </li>
               );

@@ -20,7 +20,7 @@ export function Pager({ page, onOffset }: PagerProps) {
 
   // The step is the page size the ledger applied, not one the page chose.
   return (
-    <nav className="flex items-center gap-4" aria-label="Pages">
+    <nav className="flex items-center justify-between gap-4" aria-label="Pages">
       <Button
         type="button"
         variant="outline"
@@ -30,7 +30,7 @@ export function Pager({ page, onOffset }: PagerProps) {
         {t('paging.previous')}
       </Button>
       {shown > 0 && (
-        <span className="text-sm text-foreground/60">
+        <span className="text-sm tabular-nums text-muted-foreground">
           {t('paging.range', { from: page.offset + 1, to: page.offset + shown, total: page.total })}
         </span>
       )}
