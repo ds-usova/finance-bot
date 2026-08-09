@@ -73,14 +73,14 @@ Every other command reads one plan. `task` reads the directory that holds them, 
 question about the whole task can be answered.
 
 ```
-.claude/scripts/plan/plan.sh task docs/18-browse-recorded-expenses
+.claude/scripts/plan/plan.sh task docs/18-add-widget
 ```
 
 ```
-docs/18-browse-recorded-expenses
-  ledger-service/plan.md              47/47   complete
+docs/18-add-widget
+  module-a/plan.md                    47/47   complete
   shared/plan.md                       6/6    complete
-  web-app/plan.md                     19/23   4 open
+  module-b/plan.md                    19/23   4 open
 1 of 3 plans still open
 ```
 
