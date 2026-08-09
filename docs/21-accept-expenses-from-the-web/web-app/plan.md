@@ -117,7 +117,7 @@ from each of them to it is the fan that makes the rest unreadable.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `acceptExpenses` · test: `expenses.test.ts` · covers: `acceptExpenses()` · scenarios: A16
+- [x] RU01 · `acceptExpenses` · test: `expenses.test.ts` · covers: `acceptExpenses()` · scenarios: A16
     - `acceptExpenses()`:
         - given: a CSRF cookie the ledger set
           when: acceptExpenses() is called with three ids
@@ -132,7 +132,7 @@ from each of them to it is the fan that makes the rest unreadable.
         - given: the ledger answers 401
           when: acceptExpenses() is called
           then: the rejection carries 401, so a page can tell an expiry from any other failure
-- [ ] RU02 · `expenseDays` · test: `expenseDays.test.ts` · covers: `pendingIdsOf()`, the touched-days helper,
+- [x] RU02 · `expenseDays` · test: `expenseDays.test.ts` · covers: `pendingIdsOf()`, the touched-days helper,
   the day merge · scenarios: A24, A25
     - `pendingIdsOf()`:
         - given: a day holding two pending entries and one recorded one
@@ -163,7 +163,7 @@ from each of them to it is the fan that makes the rest unreadable.
         - given: a listing answer holding nothing for a day the page still shows
           when: the merge is called
           then: that day is gone from the merged page rather than left showing entries that moved
-- [ ] RU03 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: the rendered day section ·
+- [x] RU03 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: the rendered day section ·
   scenarios: A15, A23, A25, A26
     - the entry rows:
         - given: a day mixing a pending entry and a recorded one, opened
@@ -220,7 +220,7 @@ from each of them to it is the fan that makes the rest unreadable.
           — pass the new props, and assert additionally that this row does offer one
         - update: `it('shows the catalogue’s substituted text rather than a literal, once the catalogue is swapped')`
           — pass the new props, and add the new keys the header and the row now read to what it checks
-- [ ] RU04 · `ExpenseActionBar` · test: `ExpenseActionBar.test.tsx` · covers: the action bar · scenarios: A15,
+- [x] RU04 · `ExpenseActionBar` · test: `ExpenseActionBar.test.tsx` · covers: the action bar · scenarios: A15,
   A16
     - the action bar:
         - given: nothing is ticked
@@ -243,7 +243,7 @@ from each of them to it is the fan that makes the rest unreadable.
           when: it renders with one ticked, and again with three
           then: both the singular and the plural form read as the catalogue's substituted text, so neither can
           be a literal in the component
-- [ ] RU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the expense list · scenarios: A22
+- [x] RU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the expense list · scenarios: A22
     - the expense list:
         - given: a page whose entries span two days, one ticked pending entry on the first and an unticked one
           on the second, both days opened
@@ -262,7 +262,7 @@ from each of them to it is the fan that makes the rest unreadable.
           `it('shows a day’s own figure in its heading and shows none for a day with no figure')` keep querying
           headers by `getAllByRole('button')`: Radix renders its checkbox as `<button role="checkbox">`, whose
           computed role is `checkbox`, so no day header count changes.
-- [ ] RU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the expenses page · scenarios: A16, A17,
+- [x] RU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the expenses page · scenarios: A16, A17,
   A18, A19, A22, A24
     - the expenses page:
         - given: three pending entries ticked across two days

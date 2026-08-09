@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { en } from '../i18n/en';
 import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense } from '../testing/fixtures';
@@ -177,6 +178,8 @@ describe('the rendered day section', () => {
     // Only a proposal is badged: a recorded entry is the ordinary case and carries no label of its own.
     expect(within(item).queryByText('Recorded')).not.toBeInTheDocument();
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
+    // A recorded entry is already settled, so it offers no checkbox at all.
+    expect(within(item).queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('keeps the header’s day, count and total whether it is open or closed', async () => {
@@ -502,6 +505,10 @@ describe('the rendered day section', () => {
     expect(within(item).getByText('Pending')).toBeInTheDocument();
     expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
     expect(screen.queryByText(/^status$/i)).not.toBeInTheDocument();
+    // An entry still awaiting a decision offers a checkbox, findable by its accessible name.
+    expect(
+      within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeInTheDocument();
   });
 
   it('lists a recorded entry and a proposal that share an id as two separate entries, each carrying its own badge', () => {
@@ -642,7 +649,8 @@ describe('the rendered day section', () => {
       <ExpenseDaySection
         day={day}
         categoryNames={categoryNames}
-        tickedIds={new Set()}
+        // The pending entry ticked, so the header's ticked count is exercised too.
+        tickedIds={new Set([2])}
         onTick={vi.fn()}
         onTickDay={vi.fn()}
         atBound={false}
@@ -652,10 +660,310 @@ describe('the rendered day section', () => {
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('‹Today›');
     expect(header).toHaveTextContent('‹1 entry awaits a decision›');
+    expect(header).toHaveTextContent('‹1 entry ticked›');
+    // The day's own checkbox, findable by its catalogue-substituted accessible name.
+    expect(
+      screen.getByRole('checkbox', { name: '‹Select the 1 pending entry›' }),
+    ).toBeInTheDocument();
 
     expandDays();
 
     const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
+    expect(
+      within(pendingItem).getByRole('checkbox', { name: '‹Select this entry›' }),
+    ).toBeInTheDocument();
+  });
+
+  it('carries a checkbox on a pending row, findable by its accessible name, and none on a recorded row', () => {
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const recorded = anExpense({ id: 2, status: 'RECORDED', description: 'lunch' });
+    const day = aDay({ entries: [pending, recorded], awaiting: 1, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
+    const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
+    expect(
+      within(pendingItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeInTheDocument();
+    expect(within(recordedItem).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('calls onTick with the entry’s id and false when its ticked checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onTick = vi.fn();
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={onTick}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /taxi/i });
+    const checkbox = within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel });
+    await user.click(checkbox);
+
+    expect(onTick).toHaveBeenCalledWith(1, false);
+    // Ticking an entry never opens or closes the section it sits in.
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+  });
+
+  it('calls onTick with the entry’s id and true when its unticked checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onTick = vi.fn();
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={onTick}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /taxi/i });
+    const checkbox = within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel });
+    await user.click(checkbox);
+
+    expect(onTick).toHaveBeenCalledWith(1, true);
+  });
+
+  it('calls onTickDay with only the pending ids and true when the day’s own checkbox is clicked with none ticked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const recorded = anExpense({ id: 3, status: 'RECORDED', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, recorded], awaiting: 2, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={onTickDay}
+        atBound={false}
+      />,
+    );
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 2 pending entries' });
+    await user.click(dayCheckbox);
+
+    expect(onTickDay).toHaveBeenCalledWith([1, 2], true);
+    // The day is collapsed and stays collapsed: clicking its checkbox is not clicking its header.
+    expect(screen.queryByText('a')).not.toBeInTheDocument();
+  });
+
+  it('reads the day’s checkbox as ticked when every pending entry is ticked, and calls onTickDay with those ids and false when clicked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const day = aDay({ entries: [pendingA, pendingB], awaiting: 2, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1, 2])}
+        onTick={vi.fn()}
+        onTickDay={onTickDay}
+        atBound={false}
+      />,
+    );
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 2 pending entries' });
+    expect(dayCheckbox).toBeChecked();
+
+    await user.click(dayCheckbox);
+    expect(onTickDay).toHaveBeenCalledWith([1, 2], false);
+  });
+
+  it('reads the day’s checkbox as partly ticked when one of three pending entries is ticked, and calls onTickDay with all three and true when clicked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const pendingC = anExpense({ id: 3, status: 'PENDING', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, pendingC], awaiting: 3, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={onTickDay}
+        atBound={false}
+      />,
+    );
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 3 pending entries' });
+    expect(dayCheckbox).toBePartiallyChecked();
+
+    await user.click(dayCheckbox);
+    expect(onTickDay).toHaveBeenCalledWith([1, 2, 3], true);
+  });
+
+  it('offers no day checkbox at all when the day holds no pending entry', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED', description: 'lunch' });
+    const day = aDay({
+      entries: [recorded],
+      awaiting: 0,
+      totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
+    });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('disables an unticked entry’s checkbox at the bound while leaving a ticked one live, so unticking stays possible', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound
+      />,
+    );
+    expandDays();
+
+    const tickedItem = screen.getByRole('listitem', { name: /ticked-one/i });
+    const uncheckedItem = screen.getByRole('listitem', { name: /unticked-one/i });
+    expect(
+      within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeDisabled();
+    expect(
+      within(tickedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeEnabled();
+  });
+
+  it('disables the day’s own checkbox at the bound when not every pending entry is ticked, since ticking it would carry the set past the bound', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound
+      />,
+    );
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all 2 pending entries' }),
+    ).toBeDisabled();
+  });
+
+  it('disables no checkbox when the bound is not reached', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const uncheckedItem = screen.getByRole('listitem', { name: /unticked-one/i });
+    expect(
+      within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all 2 pending entries' }),
+    ).toBeEnabled();
+  });
+
+  it('says how many are ticked, beside the count of what awaits a decision, on a collapsed day with two ticked', () => {
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const pendingC = anExpense({ id: 3, status: 'PENDING', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, pendingC], awaiting: 3, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1, 2])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+
+    const header = screen.getByRole('button');
+    expect(header).toHaveTextContent('2 entries ticked');
+    expect(header).toHaveTextContent('3 entries await a decision');
+  });
+
+  it('says nothing about ticks on a collapsed day with none ticked', () => {
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+
+    const header = screen.getByRole('button');
+    expect(header).not.toHaveTextContent(/ticked/i);
   });
 });

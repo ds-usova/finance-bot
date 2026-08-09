@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { DayTotal } from '../api/expenses';
+import { en } from '../i18n/en';
+import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpenseList } from './ExpenseList';
@@ -132,5 +134,114 @@ describe('the expense list', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('No expenses to show.');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('reads a ticked checkbox on one day and not the other, once both are opened', () => {
+    const first = anExpense({
+      id: 1,
+      status: 'PENDING',
+      description: 'coffee',
+      createdAt: '2026-08-01T09:00:00Z',
+    });
+    const second = anExpense({
+      id: 2,
+      status: 'PENDING',
+      description: 'taxi',
+      createdAt: '2026-08-02T09:00:00Z',
+    });
+
+    render(
+      <ExpenseList
+        page={anExpensePage([first, second])}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const firstItem = screen.getByRole('listitem', { name: /coffee/i });
+    const secondItem = screen.getByRole('listitem', { name: /taxi/i });
+    expect(
+      within(firstItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeChecked();
+    expect(
+      within(secondItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).not.toBeChecked();
+  });
+
+  it('calls the list’s onTick with the entry’s id and true when its unticked checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onTick = vi.fn();
+    const first = anExpense({
+      id: 1,
+      status: 'PENDING',
+      description: 'coffee',
+      createdAt: '2026-08-01T09:00:00Z',
+    });
+    const second = anExpense({
+      id: 2,
+      status: 'PENDING',
+      description: 'taxi',
+      createdAt: '2026-08-02T09:00:00Z',
+    });
+
+    render(
+      <ExpenseList
+        page={anExpensePage([first, second])}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={onTick}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
+    expandDays();
+
+    const secondItem = screen.getByRole('listitem', { name: /taxi/i });
+    const checkbox = within(secondItem).getByRole('checkbox', {
+      name: en.listing.entryCheckboxLabel,
+    });
+    await user.click(checkbox);
+
+    expect(onTick).toHaveBeenCalledWith(2, true);
+  });
+
+  it('disables every unticked checkbox on both days at the bound, leaving the ticked one live', () => {
+    const first = anExpense({
+      id: 1,
+      status: 'PENDING',
+      description: 'coffee',
+      createdAt: '2026-08-01T09:00:00Z',
+    });
+    const second = anExpense({
+      id: 2,
+      status: 'PENDING',
+      description: 'taxi',
+      createdAt: '2026-08-02T09:00:00Z',
+    });
+
+    render(
+      <ExpenseList
+        page={anExpensePage([first, second])}
+        categoryNames={categoryNames}
+        tickedIds={new Set([1])}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound
+      />,
+    );
+    expandDays();
+
+    const firstItem = screen.getByRole('listitem', { name: /coffee/i });
+    const secondItem = screen.getByRole('listitem', { name: /taxi/i });
+    expect(
+      within(firstItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeEnabled();
+    expect(
+      within(secondItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeDisabled();
   });
 });

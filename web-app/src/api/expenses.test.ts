@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
-import { aCategory, aGrouping, anExpense, anExpensePage } from '../testing/fixtures';
-import { listCategories, listExpenses, listGroupings } from './expenses';
+import { aCategory, aGrouping, anAcceptance, anExpense, anExpensePage } from '../testing/fixtures';
+import { acceptExpenses, listCategories, listExpenses, listGroupings } from './expenses';
 
 describe('the expense calls', () => {
   afterEach(() => {
@@ -88,5 +88,53 @@ describe('the expense calls', () => {
 
     await expect(listGroupings()).resolves.toEqual(groupings);
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/groupings');
+  });
+
+  describe('accepting expenses', () => {
+    beforeEach(() => {
+      document.cookie = 'XSRF-TOKEN=csrf-token-value; path=/';
+    });
+
+    afterEach(() => {
+      document.cookie = 'XSRF-TOKEN=; path=/; max-age=0';
+    });
+
+    it('posts the ids to the acceptances endpoint, carrying the CSRF header and the cookies', async () => {
+      const fetchMock = stubFetch(jsonResponse(anAcceptance()));
+
+      await acceptExpenses([1, 2, 3]);
+
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/acceptances');
+      const [, init] = fetchMock.mock.calls[0]!;
+      expect(init).toMatchObject({ method: 'POST', credentials: 'include' });
+      expect(JSON.parse(String(init?.body))).toEqual({ ids: [1, 2, 3] });
+      const headers = new Headers(init?.headers);
+      expect(headers.get('X-XSRF-TOKEN')).toBe('csrf-token-value');
+    });
+
+    it('answers both counts the ledger sent back', async () => {
+      stubFetch(jsonResponse(anAcceptance({ accepted: 2, missing: 1 })));
+
+      await expect(acceptExpenses([1, 2, 3])).resolves.toEqual({ accepted: 2, missing: 1 });
+    });
+
+    it('rejects with the message and status the ledger answered on a 503', async () => {
+      stubFetch(jsonResponse({ message: 'ledger unavailable' }, 503));
+
+      await expect(acceptExpenses([1])).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 503,
+        message: 'ledger unavailable',
+      });
+    });
+
+    it('rejects with a 401 status so a page can tell an expiry from any other failure', async () => {
+      stubFetch(new Response('', { status: 401 }));
+
+      await expect(acceptExpenses([1])).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 401,
+      });
+    });
   });
 });

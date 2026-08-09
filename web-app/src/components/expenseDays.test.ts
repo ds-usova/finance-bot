@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DayTotal } from '../api/expenses';
-import { anExpense } from '../testing/fixtures';
-import { relativeDay, toDaySections } from './expenseDays';
+import type { DayTotal, ExpensePage } from '../api/expenses';
+import { anExpense, anExpensePage } from '../testing/fixtures';
+import { mergeDay, pendingIdsOf, relativeDay, toDaySections, touchedDaysOf } from './expenseDays';
+import type { ExpenseDay } from './expenseDays';
+
+function itemsOnDay(items: ExpensePage['items'], day: string) {
+  return items.filter((item) => item.createdAt.startsWith(day));
+}
 
 describe('cutting a page into day sections', () => {
   it('cuts entries into one section per UTC day, keeping the sections and each day’s entries in the page’s order', () => {
@@ -207,5 +212,140 @@ describe('naming a day relative to now', () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe('pendingIdsOf', () => {
+  it('answers only the pending ids when a day mixes two pending entries and one recorded one', () => {
+    const pendingA = anExpense({ id: 1, status: 'PENDING' });
+    const recorded = anExpense({ id: 2, status: 'RECORDED' });
+    const pendingB = anExpense({ id: 3, status: 'PENDING' });
+    const day: ExpenseDay = {
+      day: '2026-08-01',
+      entries: [pendingA, recorded, pendingB],
+      awaiting: 2,
+      totals: [],
+    };
+
+    expect(pendingIdsOf(day)).toEqual([1, 3]);
+  });
+
+  it('answers no id when the day holds no pending entry', () => {
+    const day: ExpenseDay = {
+      day: '2026-08-01',
+      entries: [anExpense({ id: 1, status: 'RECORDED' }), anExpense({ id: 2, status: 'RECORDED' })],
+      awaiting: 0,
+      totals: [],
+    };
+
+    expect(pendingIdsOf(day)).toEqual([]);
+  });
+});
+
+describe('the touched-days helper', () => {
+  it('answers the two UTC days three ticked ids sit on, neither the day a reader’s own zone would name', () => {
+    // UTC+14: 2026-07-31T23:30:00Z is still on the 31st at UTC, but already the 1st in this zone.
+    vi.stubEnv('TZ', 'Pacific/Kiritimati');
+    try {
+      const first = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-07-31T23:30:00Z' });
+      const second = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-02T10:00:00Z' });
+      const untouched = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-03T10:00:00Z' });
+      const page = anExpensePage([first, second, untouched]);
+
+      const days = touchedDaysOf(page, [1, 2]);
+
+      expect(days).toEqual(new Set(['2026-07-31', '2026-08-02']));
+      // The reader's own zone would name the first entry's day 2026-08-01, not 2026-07-31.
+      expect(days.has('2026-08-01')).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('contributes no day and throws nothing for ids naming entries the page no longer holds', () => {
+    const page = anExpensePage([anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' })]);
+
+    expect(() => touchedDaysOf(page, [999])).not.toThrow();
+    expect(touchedDaysOf(page, [999])).toEqual(new Set());
+  });
+
+  it('answers only the pending entry’s day when a RECORDED and a PENDING entry share an id on two different UTC days', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const pending = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-02T09:00:00Z' });
+    const page = anExpensePage([recorded, pending]);
+
+    expect(touchedDaysOf(page, [1])).toEqual(new Set(['2026-08-02']));
+  });
+});
+
+describe('the day merge', () => {
+  it('replaces only the touched day’s entries and dayTotals figure, leaving the other days and limit, offset and total as the original page’s', () => {
+    const dayOneEntry = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const staleB = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-02T09:00:00Z' });
+    const staleC = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-02T10:00:00Z' });
+    const dayThreeEntry = anExpense({ id: 4, status: 'RECORDED', createdAt: '2026-08-03T09:00:00Z' });
+    const page: ExpensePage = anExpensePage([dayOneEntry, staleB, staleC, dayThreeEntry], {
+      dayTotals: [
+        { day: '2026-08-01', amounts: [{ amount: '1.00', currency: 'EUR', separator: '' }] },
+        { day: '2026-08-02', amounts: [{ amount: '99.00', currency: 'EUR', separator: '' }] },
+        { day: '2026-08-03', amounts: [{ amount: '4.00', currency: 'EUR', separator: '' }] },
+      ],
+      limit: 50,
+      offset: 20,
+      total: 4,
+    });
+
+    const freshB = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-02T09:00:00Z' });
+    const fresh: ExpensePage = anExpensePage([freshB], {
+      dayTotals: [
+        { day: '2026-08-02', amounts: [{ amount: '9.00', currency: 'EUR', separator: '' }] },
+      ],
+      limit: 10,
+      offset: 0,
+      total: 1,
+    });
+
+    const merged = mergeDay(page, '2026-08-02', fresh);
+
+    expect(itemsOnDay(merged.items, '2026-08-01')).toEqual([dayOneEntry]);
+    expect(itemsOnDay(merged.items, '2026-08-03')).toEqual([dayThreeEntry]);
+    expect(itemsOnDay(merged.items, '2026-08-02')).toEqual([freshB]);
+    expect(merged.dayTotals.find((dt) => dt.day === '2026-08-01')).toEqual(page.dayTotals[0]);
+    expect(merged.dayTotals.find((dt) => dt.day === '2026-08-03')).toEqual(page.dayTotals[2]);
+    expect(merged.dayTotals.find((dt) => dt.day === '2026-08-02')).toEqual(fresh.dayTotals[0]);
+    expect(merged.limit).toBe(page.limit);
+    expect(merged.offset).toBe(page.offset);
+    expect(merged.total).toBe(page.total);
+  });
+
+  it('carries every entry a fresh read answers for a day, even ones the original page had cut', () => {
+    const cut = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' });
+    const page = anExpensePage([cut]);
+
+    const second = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-01T10:00:00Z' });
+    const third = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-01T11:00:00Z' });
+    const fresh = anExpensePage([cut, second, third]);
+
+    const merged = mergeDay(page, '2026-08-01', fresh);
+
+    expect(itemsOnDay(merged.items, '2026-08-01')).toEqual([cut, second, third]);
+  });
+
+  it('drops a day from the merged page rather than leaving it showing entries that moved, when the fresh read holds nothing for it', () => {
+    const dayOneEntry = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const dayTwoEntry = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-02T09:00:00Z' });
+    const page = anExpensePage([dayOneEntry, dayTwoEntry], {
+      dayTotals: [
+        { day: '2026-08-01', amounts: [{ amount: '1.00', currency: 'EUR', separator: '' }] },
+      ],
+    });
+
+    const fresh = anExpensePage([], { total: 0 });
+
+    const merged = mergeDay(page, '2026-08-02', fresh);
+
+    expect(itemsOnDay(merged.items, '2026-08-02')).toEqual([]);
+    expect(merged.dayTotals.find((dt) => dt.day === '2026-08-02')).toBeUndefined();
+    expect(itemsOnDay(merged.items, '2026-08-01')).toEqual([dayOneEntry]);
   });
 });
