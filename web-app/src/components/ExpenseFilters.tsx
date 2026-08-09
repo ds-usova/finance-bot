@@ -79,13 +79,16 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
 
   return (
     <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3 sm:p-5">
-      {narrowed && (
-        <div className="flex justify-end sm:col-span-3">
+      {/* Always in the flow, whether or not it holds the reset: a row that comes and goes moves every
+          control under it the moment a filter is set. */}
+      <div className="flex min-h-9 items-center justify-between gap-4 sm:col-span-3">
+        <span className="text-sm font-medium text-muted-foreground">{t('filters.title')}</span>
+        {narrowed && (
           <Button variant="ghost" className="h-auto px-2 py-1 text-sm font-normal" onClick={reset}>
             {t('filters.reset')}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-grouping">{t('filters.grouping')}</Label>
         <Select

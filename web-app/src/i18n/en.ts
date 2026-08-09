@@ -17,6 +17,7 @@ export const en = {
     empty: 'No expenses to show.',
   },
   filters: {
+    title: 'Filters',
     grouping: 'Grouping',
     category: 'Category',
     status: 'Status',

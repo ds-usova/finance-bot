@@ -3,17 +3,18 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Nothing here is pure white and nothing is near-black: page, card and text each step back from the
-   extremes, so the light theme reads as paper rather than as a lit panel. */
+   extremes. The hue is warm — around 85, the yellow-red side — so the light theme reads as paper rather
+   than as a lit panel. The accent stays blue, which is what warm paper is a ground for. */
 :root {
-  --surface: oklch(0.965 0.005 265);
-  --card: oklch(0.992 0.003 265);
-  --foreground: oklch(0.25 0.012 265);
-  --muted: oklch(0.945 0.006 265);
-  --muted-foreground: oklch(0.46 0.015 265);
+  --surface: oklch(0.963 0.009 85);
+  --card: oklch(0.988 0.006 85);
+  --foreground: oklch(0.25 0.014 75);
+  --muted: oklch(0.942 0.012 85);
+  --muted-foreground: oklch(0.46 0.018 75);
   --accent: oklch(0.53 0.17 255);
-  --border: oklch(0.885 0.007 265);
+  --border: oklch(0.882 0.014 85);
   --pending: oklch(0.48 0.14 295);
-  --pending-surface: oklch(0.945 0.032 295);
+  --pending-surface: oklch(0.945 0.035 300);
 }
 
 .dark {
