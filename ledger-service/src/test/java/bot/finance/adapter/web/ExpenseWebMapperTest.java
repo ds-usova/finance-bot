@@ -152,27 +152,6 @@ class ExpenseWebMapperTest {
             assertThat(response.getTotal()).isEqualTo(57L);
         }
 
-        /** A page of two entries, one PENDING and one RECORDED, whose total is larger than the page itself. */
-        private static ExpensePage pageOfTwoEntries() {
-            ExpenseEntry first = new ExpenseEntry(
-                    ExpenseStatus.PENDING,
-                    1L,
-                    10L,
-                    "Milk",
-                    Optional.of("Corner Shop"),
-                    new Money(1500L, CurrencyCode.of("EUR")),
-                    FIRST_CREATED_AT);
-            ExpenseEntry second = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    2L,
-                    20L,
-                    "Bus ticket",
-                    Optional.of("City Transit"),
-                    new Money(350L, CurrencyCode.of("EUR")),
-                    SECOND_CREATED_AT);
-            return ExpensePage.of(List.of(first, second), 20, 0, 57L);
-        }
-
         @Test
         @DisplayName("when an entry has no merchant - then the response omits the merchant rather than carrying an "
                 + "empty string")
@@ -196,14 +175,7 @@ class ExpenseWebMapperTest {
         @DisplayName("when a page's one entry is in EUR - then the item's money carries the amount, the euro "
                 + "symbol and an empty separator")
         void whenEntryIsInEur_thenItemMoneyCarriesAmountCurrencyAndEmptySeparator() {
-            ExpenseEntry entry = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    4L,
-                    40L,
-                    "Lunch",
-                    Optional.empty(),
-                    new Money(1250L, CurrencyCode.of("EUR")),
-                    Instant.parse("2026-01-04T09:00:00Z"));
+            ExpenseEntry entry = recordedEntry(new Money(1250L, CurrencyCode.of("EUR")));
             ExpensePage page = ExpensePage.of(List.of(entry), 50, 0, 1L);
 
             ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
@@ -218,14 +190,7 @@ class ExpenseWebMapperTest {
         @DisplayName("when a page's one entry is in CHF - then the item's money carries the ISO code as currency "
                 + "and a separator of one space")
         void whenEntryIsInChf_thenItemMoneyCarriesIsoCodeCurrencyAndOneSpaceSeparator() {
-            ExpenseEntry entry = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    5L,
-                    40L,
-                    "Watch",
-                    Optional.empty(),
-                    new Money(124500L, CurrencyCode.of("CHF")),
-                    Instant.parse("2026-01-05T09:00:00Z"));
+            ExpenseEntry entry = recordedEntry(new Money(124500L, CurrencyCode.of("CHF")));
             ExpensePage page = ExpensePage.of(List.of(entry), 50, 0, 1L);
 
             ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
@@ -264,14 +229,7 @@ class ExpenseWebMapperTest {
         @DisplayName("when a page carries entries but no dayTotals - then the response's dayTotals is an empty "
                 + "list rather than absent")
         void whenPageCarriesEntriesButNoDayTotals_thenResponseDayTotalsIsEmptyListRatherThanAbsent() {
-            ExpenseEntry entry = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    6L,
-                    40L,
-                    "Dinner",
-                    Optional.empty(),
-                    new Money(2000L, CurrencyCode.of("EUR")),
-                    Instant.parse("2026-01-06T09:00:00Z"));
+            ExpenseEntry entry = recordedEntry(new Money(2000L, CurrencyCode.of("EUR")));
             ExpensePage page = new ExpensePage(List.of(entry), 50, 0, 1L, List.of());
 
             ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
@@ -289,6 +247,39 @@ class ExpenseWebMapperTest {
 
             assertThat(response.getItems()).isNotNull().isEmpty();
             assertThat(response.getDayTotals()).isNotNull().isEmpty();
+        }
+
+        /** A page of two entries, one PENDING and one RECORDED, whose total is larger than the page itself. */
+        private static ExpensePage pageOfTwoEntries() {
+            ExpenseEntry first = new ExpenseEntry(
+                    ExpenseStatus.PENDING,
+                    1L,
+                    10L,
+                    "Milk",
+                    Optional.of("Corner Shop"),
+                    new Money(1500L, CurrencyCode.of("EUR")),
+                    FIRST_CREATED_AT);
+            ExpenseEntry second = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    2L,
+                    20L,
+                    "Bus ticket",
+                    Optional.of("City Transit"),
+                    new Money(350L, CurrencyCode.of("EUR")),
+                    SECOND_CREATED_AT);
+            return ExpensePage.of(List.of(first, second), 20, 0, 57L);
+        }
+
+        /** A RECORDED entry carrying the given figure, whose remaining fields no test here reads. */
+        private static ExpenseEntry recordedEntry(Money money) {
+            return new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    4L,
+                    40L,
+                    "Lunch",
+                    Optional.empty(),
+                    money,
+                    Instant.parse("2026-01-04T09:00:00Z"));
         }
     }
 }

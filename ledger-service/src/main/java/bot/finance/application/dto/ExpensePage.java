@@ -26,13 +26,15 @@ public record ExpensePage(List<ExpenseEntry> items, int limit, int offset, long 
 
         List<DayTotal> dayTotals = minorUnitsByDayAndCurrency.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(Comparator.reverseOrder()))
-                .map(entry -> new DayTotal(
-                        entry.getKey(),
-                        entry.getValue().entrySet().stream()
-                                .map(currencyTotal -> new Money(currencyTotal.getValue(), currencyTotal.getKey()))
-                                .toList()))
+                .map(day -> new DayTotal(day.getKey(), toAmounts(day.getValue())))
                 .toList();
 
         return new ExpensePage(items, limit, offset, total, dayTotals);
+    }
+
+    private static List<Money> toAmounts(Map<CurrencyCode, Long> minorUnitsByCurrency) {
+        return minorUnitsByCurrency.entrySet().stream()
+                .map(currencyTotal -> new Money(currencyTotal.getValue(), currencyTotal.getKey()))
+                .toList();
     }
 }
