@@ -52,7 +52,7 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             {day.totals.map((total, index) => (
-              <span key={index} className="font-semibold tabular-nums">
+              <span key={index} className="whitespace-nowrap font-semibold tabular-nums">
                 {formatMoney(total)}
               </span>
             ))}

@@ -172,7 +172,7 @@ describe('the rendered day section', () => {
     expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 
-  it('shows a total for each currency present among the day’s recorded entries', () => {
+  it('shows one figure per currency its day was answered', () => {
     const day = aDay({
       entries: [
         anExpense({
@@ -199,7 +199,7 @@ describe('the rendered day section', () => {
     expect(header).toHaveTextContent('USD9.00');
   });
 
-  it('sums only the recorded entries into the total and says one entry awaits a decision', () => {
+  it('shows the figure its day was answered rather than one covering every entry, and says one awaits a decision', () => {
     const day = aDay({
       entries: [
         anExpense({

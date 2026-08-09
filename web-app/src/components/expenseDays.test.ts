@@ -57,7 +57,7 @@ describe('cutting a page into day sections', () => {
     }
   });
 
-  it('sums a day’s RECORDED entries into one EUR total when every entry shares that currency', () => {
+  it('carries the one figure its day was answered, whatever the entry count', () => {
     const first = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
     const second = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
     const third = anExpense({ id: 3, status: 'RECORDED', createdAt: '2026-08-01T10:00:00Z' });
@@ -87,7 +87,7 @@ describe('cutting a page into day sections', () => {
     expect(sections[0]?.totals).toEqual(dayTotal.amounts);
   });
 
-  it('sums only the RECORDED entries while still counting every entry and every one still awaiting a decision', () => {
+  it('carries the figure its day was answered while counting every entry and every one awaiting a decision', () => {
     const recordedA = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
     const recordedB = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
     const pending = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-01T10:00:00Z' });
@@ -100,22 +100,6 @@ describe('cutting a page into day sections', () => {
 
     expect(sections[0]?.totals).toEqual([{ amount: '3.00', currency: 'EUR', separator: '' }]);
     expect(sections[0]?.entries).toHaveLength(3);
-    expect(sections[0]?.awaiting).toBe(1);
-  });
-
-  it('carries no total for a day holding only an entry still awaiting a decision', () => {
-    const pending = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T08:00:00Z' });
-    // A dayTotals entry for a different day, so the empty totals below can only come from the ledger
-    // answering no element for this day — not from an incidentally empty dayTotals list.
-    const otherDayTotal: DayTotal = {
-      day: '2026-08-02',
-      amounts: [{ amount: '5.00', currency: 'EUR', separator: '' }],
-    };
-
-    const sections = toDaySections([pending], [otherDayTotal]);
-
-    expect(sections[0]?.totals).toEqual([]);
-    expect(sections[0]?.entries).toHaveLength(1);
     expect(sections[0]?.awaiting).toBe(1);
   });
 
@@ -144,6 +128,8 @@ describe('cutting a page into day sections', () => {
   it('leaves a section’s totals empty when dayTotals holds no element for its day, without touching its entries or awaiting count', () => {
     const recorded = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
     const pending = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' });
+    // A dayTotals element for a different day, so the empty totals below can only come from the ledger
+    // answering no element for this day — not from an incidentally empty dayTotals list.
     const otherDayTotal: DayTotal = {
       day: '2026-08-02',
       amounts: [{ amount: '5.00', currency: 'EUR', separator: '' }],

@@ -1,7 +1,8 @@
 # Review: Money Crosses the Browse API as Rendered Text
 
-The browse API now answers every figure as text, and the web app parses none of it. Everything below is open —
-none of it blocked the task, and none of it is scheduled.
+The browse API now answers every figure as text, and the web app parses none of it. The three `web-app` items
+below were addressed after the task closed and are marked **Resolved**; what is left carries no marking and is
+open.
 
 ## web-app
 
@@ -11,16 +12,19 @@ none of it blocked the task, and none of it is scheduled.
   entry and every one still awaiting a decision*. In `ExpenseDaySection.test.tsx`: *sums only the recorded entries
   into the total and says one entry awaits a decision* and *shows a total for each currency present among the
   day's recorded entries*. The [testing conventions](../../../web-app/docs/conventions/testing.md#naming-conventions)
-  want an `it` to state the outcome rather than the mechanism, so all four now read against that rule. Left alone
-  because RU01's and RU02's `update:` bullets quote each name verbatim, and renaming would contradict the record
-  of what those steps did. From `web-app/plan.md` B1.
+  want an `it` to state the outcome rather than the mechanism, so all four now read against that rule. From
+  `web-app/plan.md` B1. **Resolved** — all four renamed to state what they prove: that a section carries the
+  figure its day was answered. The `update:` bullets in the archived plan still quote the old names, which is
+  correct as a record of what those steps did.
 
 - **Two tests in `expenseDays.test.ts` now prove the same thing** — *carries no total for a day holding only an
   entry still awaiting a decision* and *leaves a section's totals empty when dayTotals holds no element for its
   day, without touching its entries or awaiting count*. Both put entries on one UTC day, pass a `dayTotals`
   element for another, and assert an empty `totals` beside `entries` and `awaiting`. Their one difference,
   pending-only versus recorded-plus-pending, stopped being a distinction when the lookup became a day-key lookup
-  that never reads `status`. A deletion was outside every step's scope. From `web-app/plan.md` B2.
+  that never reads `status`. A deletion was outside every step's scope. From `web-app/plan.md` B2. **Resolved** —
+  the pending-only one was deleted and the surviving one kept the comment explaining why its `dayTotals` element
+  names a different day. The suite is 146, one fewer than the task left.
 
 - **The day heading's figure spans carry no `whitespace-nowrap`, unlike the entry amount span** — so a long
   figure such as `CHF 1,245.00` can wrap inside that column at a narrow width, where
@@ -28,7 +32,9 @@ none of it blocked the task, and none of it is scheduled.
   widths checked, so nothing was wrong on screen; the asymmetry is still in the code and no test covers it,
   because width and wrapping are outside
   [what the suite can see](../../../web-app/docs/conventions/testing.md#what-the-suite-cannot-see). From
-  `web-app/plan.md` B3.
+  `web-app/plan.md` B3. **Resolved** — the heading figure span now carries `whitespace-nowrap`, matching the
+  entry amount span, so the code says what [D22](../design.md#decisions) already required. No test covers it and
+  none can; the next manual review at a narrow width is what would catch a regression.
 
 ## shared
 
