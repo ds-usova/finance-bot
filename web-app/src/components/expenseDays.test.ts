@@ -263,7 +263,9 @@ describe('the touched-days helper', () => {
   });
 
   it('contributes no day and throws nothing for ids naming entries the page no longer holds', () => {
-    const page = anExpensePage([anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' })]);
+    const page = anExpensePage([
+      anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' }),
+    ]);
 
     expect(() => touchedDaysOf(page, [999])).not.toThrow();
     expect(touchedDaysOf(page, [999])).toEqual(new Set());
@@ -283,7 +285,11 @@ describe('the day merge', () => {
     const dayOneEntry = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
     const staleB = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-02T09:00:00Z' });
     const staleC = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-02T10:00:00Z' });
-    const dayThreeEntry = anExpense({ id: 4, status: 'RECORDED', createdAt: '2026-08-03T09:00:00Z' });
+    const dayThreeEntry = anExpense({
+      id: 4,
+      status: 'RECORDED',
+      createdAt: '2026-08-03T09:00:00Z',
+    });
     const page: ExpensePage = anExpensePage([dayOneEntry, staleB, staleC, dayThreeEntry], {
       dayTotals: [
         { day: '2026-08-01', amounts: [{ amount: '1.00', currency: 'EUR', separator: '' }] },

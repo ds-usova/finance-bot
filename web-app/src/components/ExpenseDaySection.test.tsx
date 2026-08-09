@@ -853,8 +853,8 @@ describe('the rendered day section', () => {
   });
 
   it('disables an unticked entry’s checkbox at the bound while leaving a ticked one live, so unticking stays possible', () => {
-    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
-    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
     const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
 
     render(
@@ -869,8 +869,8 @@ describe('the rendered day section', () => {
     );
     expandDays();
 
-    const tickedItem = screen.getByRole('listitem', { name: /ticked-one/i });
-    const uncheckedItem = screen.getByRole('listitem', { name: /unticked-one/i });
+    const tickedItem = screen.getByRole('listitem', { name: /alpha-ticked/i });
+    const uncheckedItem = screen.getByRole('listitem', { name: /beta-unticked/i });
     expect(
       within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
     ).toBeDisabled();
@@ -880,8 +880,8 @@ describe('the rendered day section', () => {
   });
 
   it('disables the day’s own checkbox at the bound when not every pending entry is ticked, since ticking it would carry the set past the bound', () => {
-    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
-    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
     const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
 
     render(
@@ -895,14 +895,12 @@ describe('the rendered day section', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Select all 2 pending entries' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeDisabled();
   });
 
   it('disables no checkbox when the bound is not reached', () => {
-    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'ticked-one' });
-    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'unticked-one' });
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
     const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
 
     render(
@@ -917,13 +915,11 @@ describe('the rendered day section', () => {
     );
     expandDays();
 
-    const uncheckedItem = screen.getByRole('listitem', { name: /unticked-one/i });
+    const uncheckedItem = screen.getByRole('listitem', { name: /beta-unticked/i });
     expect(
       within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
     ).toBeEnabled();
-    expect(
-      screen.getByRole('checkbox', { name: 'Select all 2 pending entries' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeEnabled();
   });
 
   it('says how many are ticked, beside the count of what awaits a decision, on a collapsed day with two ticked', () => {

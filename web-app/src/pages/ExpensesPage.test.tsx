@@ -345,7 +345,9 @@ describe('the expenses page', () => {
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     expandDays();
 
-    listExpensesMock.mockResolvedValueOnce(anExpensePage([secondItem], { limit: 1, offset: 1, total: 2 }));
+    listExpensesMock.mockResolvedValueOnce(
+      anExpensePage([secondItem], { limit: 1, offset: 1, total: 2 }),
+    );
     await tickEntry(/taxi/i);
     await userEvent.click(screen.getByRole('button', { name: 'Accept 1 entry' }));
 
@@ -538,13 +540,9 @@ describe('the expenses page', () => {
     renderPage();
     await listedEntries();
 
-    await userEvent.click(
-      screen.getByRole('checkbox', { name: 'Select all 100 pending entries' }),
-    );
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all 100 pending entries' }));
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Select all 5 pending entries' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Select all 5 pending entries' })).toBeDisabled();
     expect(
       within(screen.getByRole('listitem', { name: /later 1/i })).getByRole('checkbox'),
     ).toBeDisabled();
@@ -554,10 +552,10 @@ describe('the expenses page', () => {
     await userEvent.click(action);
 
     expect(acceptExpensesMock).toHaveBeenCalledOnce();
-    expect(acceptExpensesMock.mock.calls[0][0]).toHaveLength(100);
-    expect(
-      acceptExpensesMock.mock.calls[0][0].every((id) => inBound.some((entry) => entry.id === id)),
-    ).toBe(true);
+    const [ids] = acceptExpensesMock.mock.calls[0] ?? [];
+    expect(ids).toBeDefined();
+    expect(ids).toHaveLength(100);
+    expect(ids?.every((id) => inBound.some((entry) => entry.id === id))).toBe(true);
   });
 
   it('reads back against the filter the page holds now, not the one the acceptance call left with', async () => {

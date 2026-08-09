@@ -51,29 +51,40 @@ export function relativeDay(day: string, now: Date): 'today' | 'yesterday' | nul
   return diffDays === 1 ? 'yesterday' : null;
 }
 
-// Stub: the ids of a day's PENDING entries, which is what a "select all" tick on that day can carry in one
-// call. RU02 covers a day mixing pending and recorded entries, and a day holding no pending entry at all.
+// The ids of a day's PENDING entries, which is what a "select all" tick on that day can carry in one call.
 export function pendingIdsOf(day: ExpenseDay): number[] {
-  void day;
-  return [];
+  return day.entries.filter((entry) => entry.status === 'PENDING').map((entry) => entry.id);
 }
 
-// Stub: the UTC days a set of ticked ids sits on, read against the page's own entries rather than the
-// reader's zone. An id naming no PENDING entry on the page contributes no day, and an id a RECORDED entry
-// shares with a PENDING one on another day answers only the PENDING entry's day (D1). RU02 covers these
-// cases.
+// The UTC days a set of ticked ids sits on, read against the page's own entries rather than the reader's
+// zone. An id naming no PENDING entry on the page contributes no day, and an id a RECORDED entry shares with
+// a PENDING one on another day answers only the PENDING entry's day (D1).
 export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
-  void page;
-  void ids;
-  return new Set();
+  const idSet = new Set(ids);
+  const days = new Set<string>();
+
+  for (const item of page.items) {
+    if (item.status === 'PENDING' && idSet.has(item.id)) {
+      days.add(utcDayString(new Date(item.createdAt)));
+    }
+  }
+
+  return days;
 }
 
-// Stub: merges a freshly read page back into the page on screen, replacing only the entries and the
-// dayTotals figure of the day the fresh read answered — the other days stand exactly as they were, and
-// `limit`, `offset` and `total` stay the original page's (D32). A day the fresh read answers nothing for is
-// dropped rather than left showing entries that moved. RU02 covers these cases.
+// Merges a freshly read page back into the page on screen, replacing only the entries and the dayTotals
+// figure of the day the fresh read answered — the other days stand exactly as they were, and `limit`,
+// `offset` and `total` stay the original page's (D32). A day the fresh read answers nothing for is dropped
+// rather than left showing entries that moved.
 export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): ExpensePage {
-  void day;
-  void fresh;
-  return page;
+  const otherItems = page.items.filter((item) => utcDayString(new Date(item.createdAt)) !== day);
+  const freshItems = fresh.items.filter((item) => utcDayString(new Date(item.createdAt)) === day);
+  const otherTotals = page.dayTotals.filter((dayTotal) => dayTotal.day !== day);
+  const freshTotal = fresh.dayTotals.find((dayTotal) => dayTotal.day === day);
+
+  return {
+    ...page,
+    items: [...otherItems, ...freshItems],
+    dayTotals: freshTotal ? [...otherTotals, freshTotal] : otherTotals,
+  };
 }

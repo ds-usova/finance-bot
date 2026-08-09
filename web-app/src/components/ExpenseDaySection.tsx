@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next';
 import type { RenderedMoney } from '../api/expenses';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
-import { relativeDay, type ExpenseDay } from './expenseDays';
+import { Checkbox } from './ui/checkbox';
+import { pendingIdsOf, relativeDay, type ExpenseDay } from './expenseDays';
 
 export type ExpenseDaySectionProps = {
   day: ExpenseDay;
@@ -29,14 +30,18 @@ export function ExpenseDaySection({
   onTickDay,
   atBound,
 }: ExpenseDaySectionProps) {
-  // Stub: the checkboxes GU03 adds read tickedIds, call onTick and onTickDay, and respect atBound. This pass
-  // only threads the props through so the component still type-checks.
-  void tickedIds;
-  void onTick;
-  void onTickDay;
-  void atBound;
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
+
+  const pendingIds = pendingIdsOf(day);
+  const tickedCount = pendingIds.filter((id) => tickedIds.has(id)).length;
+  const allTicked = pendingIds.length > 0 && tickedCount === pendingIds.length;
+  const dayChecked: boolean | 'indeterminate' = allTicked
+    ? true
+    : tickedCount > 0
+      ? 'indeterminate'
+      : false;
+  const dayDisabled = atBound && !allTicked;
 
   const relative = relativeDay(day.day, new Date());
   const dayLabel = relative
@@ -61,7 +66,19 @@ export function ExpenseDaySection({
         {/* Exactly two children, so every day's header lines up: the day on the left, the money on the
             right, flush with the amounts in the panel below. A flat list of spans lets `justify-between`
             space them differently per day. */}
-        <AccordionTrigger className="gap-3 px-4 sm:px-5">
+        <AccordionTrigger
+          className="gap-3 px-4 sm:px-5"
+          leading={
+            pendingIds.length > 0 && (
+              <Checkbox
+                aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}
+                checked={dayChecked}
+                disabled={dayDisabled}
+                onCheckedChange={() => onTickDay(pendingIds, !allTicked)}
+              />
+            )
+          }
+        >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-semibold">{dayLabel}</span>
             <span className="text-xs font-normal text-muted-foreground">
@@ -70,6 +87,7 @@ export function ExpenseDaySection({
             {day.awaiting > 0 && (
               <Badge>{t('listing.awaitingCount', { count: day.awaiting })}</Badge>
             )}
+            {tickedCount > 0 && <Badge>{t('listing.tickedCount', { count: tickedCount })}</Badge>}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             {day.totals.map((total, index) => (
@@ -103,6 +121,14 @@ export function ExpenseDaySection({
                     <span className="whitespace-nowrap text-right tabular-nums">
                       {formatMoney(entry.money)}
                     </span>
+                    {entry.status === 'PENDING' && (
+                      <Checkbox
+                        aria-label={t('listing.entryCheckboxLabel')}
+                        checked={tickedIds.has(entry.id)}
+                        disabled={atBound && !tickedIds.has(entry.id)}
+                        onCheckedChange={(checked) => onTick(entry.id, checked === true)}
+                      />
+                    )}
                   </div>
                 </li>
               );

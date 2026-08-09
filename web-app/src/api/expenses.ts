@@ -23,6 +23,7 @@ export type ExpenseFilter = {
 const EXPENSES_PATH = '/api/v1/expenses';
 const CATEGORIES_PATH = '/api/v1/categories';
 const GROUPINGS_PATH = '/api/v1/groupings';
+const ACCEPTANCES_PATH = '/api/v1/expenses/acceptances';
 
 export async function listExpenses(filter: ExpenseFilter): Promise<ExpensePage> {
   return get<ExpensePage>(EXPENSES_PATH, {
@@ -44,10 +45,15 @@ export async function listGroupings(): Promise<Grouping[]> {
 }
 
 export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
-  // posts the ids to /api/v1/expenses/acceptances through `request`, which carries the cookies and the CSRF
-  // token, and answers how many were accepted and how many named nothing. RU01 covers the behaviour.
-  void ids;
-  return null as unknown as Acceptance;
+  const acceptance = await request<Acceptance>(ACCEPTANCES_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!acceptance) {
+    throw new Error('the acceptance answered with no counts');
+  }
+  return acceptance;
 }
 
 async function get<T>(

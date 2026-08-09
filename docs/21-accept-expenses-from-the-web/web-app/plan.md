@@ -311,12 +311,12 @@ from each of them to it is the fan that makes the rest unreadable.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `acceptExpenses` · test: `expenses.test.ts`
-- [ ] GU02 · `expenseDays` · test: `expenseDays.test.ts`
-- [ ] GU03 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx`
-- [ ] GU04 · `ExpenseActionBar` · test: `ExpenseActionBar.test.tsx`
-- [ ] GU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · after: GU03
-- [ ] GU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU02, GU04, GU05
+- [x] GU01 · `acceptExpenses` · test: `expenses.test.ts`
+- [x] GU02 · `expenseDays` · test: `expenseDays.test.ts`
+- [x] GU03 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx`
+- [x] GU04 · `ExpenseActionBar` · test: `ExpenseActionBar.test.tsx`
+- [x] GU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · after: GU03
+- [x] GU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU02, GU04, GU05
 
 ### Post-Implementation Steps
 

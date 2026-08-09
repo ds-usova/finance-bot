@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
 import {
+  acceptExpenses,
   listCategories,
   listExpenses,
   listGroupings,
@@ -12,6 +14,7 @@ import {
 import { useAuth } from '../auth/useAuth';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseActionBar } from '../components/ExpenseActionBar';
+import { mergeDay, touchedDaysOf } from '../components/expenseDays';
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
@@ -21,6 +24,7 @@ import { Pager } from '../components/Pager';
 const ACCEPTANCE_BOUND = 100;
 
 export function ExpensesPage() {
+  const { t } = useTranslation();
   const { sessionExpired } = useAuth();
   const [filter, setFilter] = useState<ExpenseFilter>({});
   const [page, setPage] = useState<ExpensePage | null>(null);
@@ -28,6 +32,19 @@ export function ExpensesPage() {
   const [groupings, setGroupings] = useState<Grouping[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
   const [tickedIds, setTickedIds] = useState<ReadonlySet<number>>(new Set());
+  const [accepting, setAccepting] = useState(false);
+  const [missingMessage, setMissingMessage] = useState<string | null>(null);
+
+  // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
+  // not the ones the call left with (D37) — a ref rather than the closed-over state keeps them current.
+  const filterRef = useRef(filter);
+  useEffect(() => {
+    filterRef.current = filter;
+  }, [filter]);
+  const pageRef = useRef(page);
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   const report = useCallback(
     (error: unknown) => {
@@ -102,9 +119,62 @@ export function ExpensesPage() {
 
   const atBound = tickedIds.size >= ACCEPTANCE_BOUND;
 
-  // Stub: GU06 wires this to acceptExpenses, clears the ticks, and reads the touched days back with the
-  // day merge.
-  const onAccept = useCallback(() => {}, []);
+  // Re-reads the days an acceptance touched, spanning from the earliest to the latest, carrying the filter on
+  // screen now (D37) rather than the one the acceptance call left with, and merges each back into the page.
+  const rereadTouchedDays = useCallback(
+    (days: Set<string>) => {
+      if (days.size === 0) {
+        return;
+      }
+      const sorted = Array.from(days).sort();
+      const currentFilter = filterRef.current;
+
+      listExpenses({
+        status: currentFilter.status,
+        categoryId: currentFilter.categoryId,
+        from: sorted[0],
+        to: sorted[sorted.length - 1],
+        offset: undefined,
+        limit: ACCEPTANCE_BOUND,
+      })
+        .then((fresh) => {
+          const current = pageRef.current;
+          if (!current) {
+            return;
+          }
+          setPage(sorted.reduce((merged, day) => mergeDay(merged, day, fresh), current));
+        })
+        .catch(report);
+    },
+    [report],
+  );
+
+  const onAccept = useCallback(() => {
+    if (accepting || tickedIds.size === 0) {
+      return;
+    }
+    const ids = Array.from(tickedIds);
+    const currentPage = pageRef.current;
+    const days = currentPage ? touchedDaysOf(currentPage, ids) : new Set<string>();
+
+    setAccepting(true);
+    acceptExpenses(ids)
+      .then((acceptance) => {
+        setAccepting(false);
+        setTickedIds(new Set());
+        setFailure(null);
+        setMissingMessage(
+          acceptance.missing > 0
+            ? t('listing.acceptanceMissing', { count: acceptance.missing })
+            : null,
+        );
+        rereadTouchedDays(days);
+      })
+      .catch((error: unknown) => {
+        setAccepting(false);
+        report(error);
+      });
+  }, [accepting, tickedIds, rereadTouchedDays, report, t]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -115,7 +185,8 @@ export function ExpensesPage() {
         filter={filter}
         onChange={narrow}
       />
-      <ExpenseActionBar count={tickedIds.size} onAccept={onAccept} busy={false} />
+      <ExpenseActionBar count={tickedIds.size} onAccept={onAccept} busy={accepting} />
+      {missingMessage && <p className="text-sm text-muted-foreground">{missingMessage}</p>}
       {page && (
         <>
           <ExpenseList
