@@ -1,7 +1,8 @@
 package bot.finance.adapter.web;
 
+import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
-import bot.finance.api.model.ListExpenses200ResponseItemsInner;
+import bot.finance.api.model.RenderedMoney;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
@@ -11,6 +12,7 @@ import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 
 public final class ExpenseWebMapper {
 
@@ -34,7 +36,9 @@ public final class ExpenseWebMapper {
                 page.items().stream().map(ExpenseWebMapper::toItem).toList(),
                 page.limit(),
                 page.offset(),
-                page.total());
+                page.total(),
+                // TODO ledger-service GU03: map page.dayTotals() into the generated day-total models
+                List.of());
     }
 
     private static ExpenseStatus toStatus(String status) {
@@ -60,15 +64,14 @@ public final class ExpenseWebMapper {
         return new SpendingPeriod(from, to);
     }
 
-    private static ListExpenses200ResponseItemsInner toItem(ExpenseEntry entry) {
-        ListExpenses200ResponseItemsInner item = new ListExpenses200ResponseItemsInner(
+    private static Expense toItem(ExpenseEntry entry) {
+        Expense item = new Expense(
                 entry.id(),
-                ListExpenses200ResponseItemsInner.StatusEnum.valueOf(
-                        entry.status().name()),
+                bot.finance.api.model.ExpenseStatus.valueOf(entry.status().name()),
                 entry.categoryId(),
                 entry.description(),
-                entry.money().minorUnits(),
-                entry.money().currencyCode().code(),
+                // TODO ledger-service GU03: render entry.money() and carry its amount, currency and separator here
+                new RenderedMoney("", "", ""),
                 entry.createdAt().atOffset(ZoneOffset.UTC));
         entry.merchant().ifPresent(item::merchant);
 

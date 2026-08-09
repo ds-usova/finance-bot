@@ -19,7 +19,7 @@ export function ExpenseList({ page, categoryNames }: ExpenseListProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {toDaySections(page.items).map((day) => (
+      {toDaySections(page.items, page.dayTotals).map((day) => (
         <ExpenseDaySection key={day.day} day={day} categoryNames={categoryNames} />
       ))}
     </div>

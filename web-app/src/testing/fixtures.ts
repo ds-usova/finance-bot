@@ -8,8 +8,7 @@ export function anExpense(overrides: Partial<Expense> = {}): Expense {
     categoryId: 10,
     description: 'lunch',
     merchant: 'Corner Cafe',
-    amountMinorUnits: 1250,
-    currency: 'EUR',
+    money: { amount: '12.50', currency: '€', separator: '' },
     createdAt: '2026-08-01T12:00:00Z',
     ...overrides,
   };
@@ -24,6 +23,7 @@ export function anExpensePage(
     limit: 50,
     offset: 0,
     total: items.length,
+    dayTotals: [],
     ...overrides,
   };
 }

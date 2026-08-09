@@ -15,22 +15,19 @@ function threeDaysOfEntries() {
     anExpense({
       id: 1,
       description: 'coffee',
-      amountMinorUnits: 300,
-      currency: 'EUR',
+      money: { amount: '3.00', currency: 'EUR', separator: '' },
       createdAt: '2026-08-01T09:00:00Z',
     }),
     anExpense({
       id: 2,
       description: 'lunch',
-      amountMinorUnits: 500,
-      currency: 'EUR',
+      money: { amount: '5.00', currency: 'EUR', separator: '' },
       createdAt: '2026-08-02T09:00:00Z',
     }),
     anExpense({
       id: 3,
       description: 'taxi',
-      amountMinorUnits: 900,
-      currency: 'EUR',
+      money: { amount: '9.00', currency: 'EUR', separator: '' },
       createdAt: '2026-08-03T09:00:00Z',
     }),
   ];

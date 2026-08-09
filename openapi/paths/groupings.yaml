@@ -11,7 +11,7 @@ get:
           schema:
             type: array
             items:
-              $ref: '../components/schemas/category.yaml#/Grouping'
+              $ref: '../ledger-api.yaml#/components/schemas/Grouping'
     '401':
       $ref: '../components/responses/errors.yaml#/Unauthorized'
     '404':

@@ -7,20 +7,20 @@ post:
     content:
       application/json:
         schema:
-          $ref: '../components/schemas/session.yaml#/TelegramLoginPayload'
+          $ref: '../ledger-api.yaml#/components/schemas/TelegramLoginPayload'
   responses:
     '200':
       description: The session was opened.
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/session.yaml#/Session'
+            $ref: '../ledger-api.yaml#/components/schemas/Session'
     '401':
       description: The sign-in was not accepted.
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/problem.yaml#/Problem'
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
     '403':
       description: The request carried no CSRF token.
     '503':
@@ -28,7 +28,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/problem.yaml#/Problem'
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
 get:
   operationId: currentSession
   tags:
@@ -39,7 +39,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/session.yaml#/Session'
+            $ref: '../ledger-api.yaml#/components/schemas/Session'
     '401':
       description: No valid session was presented.
 delete:

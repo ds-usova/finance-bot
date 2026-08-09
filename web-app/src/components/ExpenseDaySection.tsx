@@ -8,10 +8,6 @@ export type ExpenseDaySectionProps = {
   categoryNames: Map<number, string>;
 };
 
-function formatAmount(locale: string, currency: string, minorUnits: number): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(minorUnits / 100);
-}
-
 export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
@@ -50,9 +46,10 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
+            {/* TODO web-app GU02: join currency + separator + amount, and let the amount column size to its content */}
             {day.totals.map((total) => (
               <span key={total.currency} className="font-semibold tabular-nums">
-                {formatAmount(locale, total.currency, total.minorUnits)}
+                {total.amount}
               </span>
             ))}
           </div>
@@ -78,9 +75,8 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
-                    <span className="w-24 text-right tabular-nums">
-                      {formatAmount(locale, entry.currency, entry.amountMinorUnits)}
-                    </span>
+                    {/* TODO web-app GU02: join currency + separator + amount, and let the amount column size to its content */}
+                    <span className="w-24 text-right tabular-nums">{entry.money.amount}</span>
                   </div>
                 </li>
               );
