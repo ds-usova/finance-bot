@@ -3,19 +3,16 @@ import type { RenderedMoney } from '../api/expenses';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
-import { pendingIdsOf, relativeDay, type ExpenseDay } from './expenseDays';
+import {
+  pendingIdsOf,
+  relativeDay,
+  type ExpenseDay,
+  type ExpenseTickingProps,
+} from './expenseDays';
 
-export type ExpenseDaySectionProps = {
+export type ExpenseDaySectionProps = ExpenseTickingProps & {
   day: ExpenseDay;
   categoryNames: Map<number, string>;
-  /** The ids of ticked `PENDING` entries, owned by the page. */
-  tickedIds: ReadonlySet<number>;
-  /** One entry ticked or unticked. */
-  onTick: (id: number, ticked: boolean) => void;
-  /** A whole day ticked or unticked (D18). */
-  onTickDay: (ids: number[], ticked: boolean) => void;
-  /** 100 are ticked, so every unticked checkbox is disabled (Q1). */
-  atBound: boolean;
 };
 
 function formatMoney(money: RenderedMoney): string {

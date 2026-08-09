@@ -7,6 +7,18 @@ export type ExpenseDay = {
   totals: RenderedMoney[];
 };
 
+/** What a component rendering pending entries takes to show the ticks and report a change to them. */
+export type ExpenseTickingProps = {
+  /** The ids of ticked `PENDING` entries, owned by the page. */
+  tickedIds: ReadonlySet<number>;
+  /** One entry ticked or unticked. */
+  onTick: (id: number, ticked: boolean) => void;
+  /** A whole day ticked or unticked (D18). */
+  onTickDay: (ids: number[], ticked: boolean) => void;
+  /** 100 are ticked, so every unticked checkbox is disabled (Q1). */
+  atBound: boolean;
+};
+
 function utcDayString(date: Date): string {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');

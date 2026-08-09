@@ -91,18 +91,6 @@ export function ExpensesPage() {
   // A narrower filter matches other rows, so the offset the previous one reached means nothing under it.
   const narrow = (next: ExpenseFilter) => setFilter({ ...next, offset: undefined });
 
-  const onTick = useCallback((id: number, ticked: boolean) => {
-    setTickedIds((prev) => {
-      const next = new Set(prev);
-      if (ticked) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
   const onTickDay = useCallback((ids: number[], ticked: boolean) => {
     setTickedIds((prev) => {
       const next = new Set(prev);
@@ -116,6 +104,8 @@ export function ExpensesPage() {
       return next;
     });
   }, []);
+
+  const onTick = useCallback((id: number, ticked: boolean) => onTickDay([id], ticked), [onTickDay]);
 
   const atBound = tickedIds.size >= ACCEPTANCE_BOUND;
 

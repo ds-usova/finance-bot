@@ -2,20 +2,12 @@ import { useTranslation } from 'react-i18next';
 import type { ExpensePage } from '../api/expenses';
 import { Alert } from './ui/alert';
 import { ExpenseDaySection } from './ExpenseDaySection';
-import { toDaySections } from './expenseDays';
+import { toDaySections, type ExpenseTickingProps } from './expenseDays';
 
-export type ExpenseListProps = {
+export type ExpenseListProps = ExpenseTickingProps & {
   page: ExpensePage;
   /** Each category's name by its id. A row whose category is missing renders unnamed rather than failing. */
   categoryNames: Map<number, string>;
-  /** The ids of ticked `PENDING` entries, owned by the page. */
-  tickedIds: ReadonlySet<number>;
-  /** One entry ticked or unticked. */
-  onTick: (id: number, ticked: boolean) => void;
-  /** A whole day ticked or unticked (D18). */
-  onTickDay: (ids: number[], ticked: boolean) => void;
-  /** 100 are ticked, so every unticked checkbox is disabled (Q1). */
-  atBound: boolean;
 };
 
 export function ExpenseList({

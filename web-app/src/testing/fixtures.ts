@@ -1,5 +1,12 @@
 import type { Acceptance, Category, Expense, ExpensePage, Grouping } from '../api/expenses';
 import type { AuthContextValue } from '../auth/authContext';
+import type { ExpenseDay } from '../components/expenseDays';
+
+/** The category names a listing test renders against, by id. */
+export const categoryNames = new Map([
+  [10, 'Groceries'],
+  [20, 'Transport'],
+]);
 
 export function anExpense(overrides: Partial<Expense> = {}): Expense {
   return {
@@ -24,6 +31,16 @@ export function anExpensePage(
     offset: 0,
     total: items.length,
     dayTotals: [],
+    ...overrides,
+  };
+}
+
+export function aDay(overrides: Partial<ExpenseDay> = {}): ExpenseDay {
+  return {
+    day: '2026-08-01',
+    entries: [],
+    awaiting: 0,
+    totals: [],
     ...overrides,
   };
 }

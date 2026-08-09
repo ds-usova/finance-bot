@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DayTotal, ExpensePage } from '../api/expenses';
-import { anExpense, anExpensePage } from '../testing/fixtures';
+import { aDay, anExpense, anExpensePage } from '../testing/fixtures';
 import { mergeDay, pendingIdsOf, relativeDay, toDaySections, touchedDaysOf } from './expenseDays';
-import type { ExpenseDay } from './expenseDays';
 
 function itemsOnDay(items: ExpensePage['items'], day: string) {
   return items.filter((item) => item.createdAt.startsWith(day));
@@ -220,23 +219,15 @@ describe('pendingIdsOf', () => {
     const pendingA = anExpense({ id: 1, status: 'PENDING' });
     const recorded = anExpense({ id: 2, status: 'RECORDED' });
     const pendingB = anExpense({ id: 3, status: 'PENDING' });
-    const day: ExpenseDay = {
-      day: '2026-08-01',
-      entries: [pendingA, recorded, pendingB],
-      awaiting: 2,
-      totals: [],
-    };
+    const day = aDay({ entries: [pendingA, recorded, pendingB], awaiting: 2 });
 
     expect(pendingIdsOf(day)).toEqual([1, 3]);
   });
 
   it('answers no id when the day holds no pending entry', () => {
-    const day: ExpenseDay = {
-      day: '2026-08-01',
+    const day = aDay({
       entries: [anExpense({ id: 1, status: 'RECORDED' }), anExpense({ id: 2, status: 'RECORDED' })],
-      awaiting: 0,
-      totals: [],
-    };
+    });
 
     expect(pendingIdsOf(day)).toEqual([]);
   });

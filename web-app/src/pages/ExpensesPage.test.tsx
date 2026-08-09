@@ -39,22 +39,11 @@ const page = anExpensePage([anExpense({ description: 'lunch', categoryId: 10 })]
 const categories = [aCategory({ id: 10, name: 'Groceries', groupingId: 100 })];
 const groupings = [aGrouping({ id: 100, name: 'Everyday' })];
 
-/** A read the test settles itself, so a slower one can be made to answer after a faster one. */
-function inFlight() {
-  let answer!: (page: ExpensePage) => void;
+/** A call the test settles itself, so a slower one can be made to answer after a faster one. */
+function inFlight<T>() {
+  let answer!: (value: T) => void;
   let refuse!: (error: unknown) => void;
-  const promise = new Promise<ExpensePage>((resolve, reject) => {
-    answer = resolve;
-    refuse = reject;
-  });
-  return { promise, answer, refuse };
-}
-
-/** The same, for an acceptance call the test settles itself. */
-function inFlightAcceptance() {
-  let answer!: (acceptance: Acceptance) => void;
-  let refuse!: (error: unknown) => void;
-  const promise = new Promise<Acceptance>((resolve, reject) => {
+  const promise = new Promise<T>((resolve, reject) => {
     answer = resolve;
     refuse = reject;
   });
@@ -235,7 +224,7 @@ describe('the expenses page', () => {
   });
 
   it('leaves the newer answer standing when a read the filter has moved on from answers last', async () => {
-    const left = inFlight();
+    const left = inFlight<ExpensePage>();
     listExpensesMock
       .mockReturnValueOnce(left.promise)
       .mockResolvedValueOnce(anExpensePage([anExpense({ id: 2, description: 'taxi' })]));
@@ -253,7 +242,7 @@ describe('the expenses page', () => {
   });
 
   it('does not end the session over a refusal to a read the filter has moved on from', async () => {
-    const left = inFlight();
+    const left = inFlight<ExpensePage>();
     listExpensesMock.mockReturnValueOnce(left.promise).mockResolvedValueOnce(page);
     const sessionExpired = vi.fn();
 
@@ -566,7 +555,7 @@ describe('the expenses page', () => {
       createdAt: '2026-08-05T09:00:00Z',
     });
     listExpensesMock.mockResolvedValueOnce(anExpensePage([entry]));
-    const outstanding = inFlightAcceptance();
+    const outstanding = inFlight<Acceptance>();
     acceptExpensesMock.mockReturnValueOnce(outstanding.promise);
 
     renderPage();
