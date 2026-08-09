@@ -5,9 +5,8 @@ argument-hint: [ description of the feature or task to design ]
 
 # Design Task
 
-Settle **what** the change does and **what it does when things go wrong**, and record every judgment call it makes
-as an answered decision. A design question answered here costs a paragraph; the same question answered once
-implementation steps exist rewrites them.
+Settle **what** the change does and **what it does when things go wrong**. Record every judgment call it makes as
+an answered decision.
 
 This skill produces one file and stops. It writes no checklist items, no test scenarios, and no step IDs.
 
@@ -17,19 +16,16 @@ none of them appear here.
 
 ## 1. Create the Design File
 
-A task owns a directory under the repository-root `docs/`. Create it as `docs/<number>-<task-name>/` and write
-the design inside it as `design.md` — `docs/7-create-expense/design.md`. Whatever else the task accumulates joins
-it there, so everything about one change travels as one directory.
-
-The directory carries the number and the task name; the files do not repeat them, the same way
-`docs/conventions/` holds `testing.md` rather than `conventions-testing.md`.
+A task owns a directory under the repository-root `docs/`. Create it as `docs/<number>-<task-name>/` and write the
+design inside it as `design.md` — `docs/7-create-expense/design.md`. Whatever else the task accumulates joins it
+there. The directory carries the number and the task name; the files do not repeat them.
 
 > **Numbering rule:** `<number>` is one more than the highest already in use, scanning the directory names
 > `<number>-*` in **both** `docs/` and `docs/implemented/`. The number and the task name are the change's, not
 > this file's.
 
-> **Archiving rule:** active work lives in `docs/`, completed work in `docs/implemented/`. A design is complete
-> when the work it describes is, so it is never archived here — this skill leaves the directory in `docs/`.
+> **Archiving rule:** active work lives in `docs/`, completed work in `docs/implemented/`. A design is never
+> archived here: this skill leaves the directory in `docs/`.
 
 ## 2. Read Module Conventions
 
@@ -37,15 +33,14 @@ After determining the **Affected Modules**, read `<module>/docs/conventions.md` 
 repo-root `docs/conventions.md` if it exists. The conventions give the stack, the diagram format, and the file
 locations the **Proposed Solution** has to be written in terms of.
 
-If a module has no conventions file, record a `must-decide` decision asking the user to run `init-conventions`,
-which writes one from what the repository already does. Never silently guess a module's conventions.
+If a module has no conventions file, record a `must-decide` decision asking the user to run `init-conventions`.
+Never silently guess a module's conventions.
 
 ## 3. Read What Already Exists
 
-A design written from memory of the codebase is the expensive failure mode: it invents a class that is already
-there under another name, or misses the sibling feature whose shape this one should mirror. Before writing anything,
-read the closest existing feature end to end — its domain types, its usecase, its adapters, its migration — and the
-conventions that govern them. Name it in **Context**; every later section is allowed to say "as `X` does".
+Before writing anything, read the closest existing feature end to end — its domain types, its usecase, its
+adapters, its migration — and the conventions that govern them. Name it in **Context**; every later section is
+allowed to say "as `X` does".
 
 The same holds for a contract a **library generates** rather than the code declaring — a tool or endpoint schema
 derived from a signature, a serializer's wire form, a generated client. What reaches the wire is the generator's
@@ -81,8 +76,8 @@ What needs to be achieved, and why it matters to whoever asked. A short paragrap
 
 ### Context
 
-What already exists that this change builds on or mirrors, with links to the files. The reader arriving cold learns
-here which existing feature is the model, and every "same as X" elsewhere in the file resolves against it.
+What already exists that this change builds on or mirrors, with links to the files. Every "same as X" elsewhere in
+the file resolves against it.
 
 ### Proposed Solution
 
@@ -92,13 +87,10 @@ how it behaves.
 - A database change includes the migration content in the module's migration format.
 - An API contract change includes the endpoint and schema changes.
 - **Name responsibilities, not classes.** "The read side answers a page of expenses" is this file's; which class
-  holds it, in which package, is the plan's. A design naming classes decides the layout in the document nobody
-  reviews for layout, and then the plan can only copy it.
+  holds it, in which package, is the plan's.
 
-**Order: the proposal, then the diagrams, then the details.** A reader arrives for what the change is and what
-its shape looks like. Lead with the surface it adds — the endpoints, the schema, the versioned paths — then the
-diagrams, and only then the tables. Details before diagrams make a reader scan for the picture, and a reader who
-has to hunt stops reading.
+**Order: the proposal, then the diagrams, then the details.** Details before diagrams make a reader scan for the
+picture, and a reader who has to hunt stops reading.
 
 - **What the change adds** — the API surface, the file layout, the shape of a response. Short.
 - **Diagrams** — the section below.
@@ -106,13 +98,11 @@ has to hunt stops reading.
   invariant, an exception-to-status mapping, the SQL, a build setting.
 
 **There is no closing list of files touched.** Every file the change reaches is already a box in a diagram or a
-row in a table, so a list repeating them is a third copy — and the one that goes stale first, because it mirrors
-the others instead of owning anything. A file that would appear *only* in such a list is the real finding: it
-means a config edit, a lint rule, or a document this change invalidates has no row of its own yet. Give it one.
+row in a table. A file that would appear *only* in such a list is the real finding: a config edit, a lint rule, or
+a document this change invalidates has no row of its own yet. Give it one.
 
-**The diagram owns what happens and in what order; a table owns only what fits inside a box.** A person reads a
-picture faster than any list, so the flow is drawn, never written. What a box cannot carry goes in a table
-beneath it.
+**The diagram owns what happens and in what order; a table owns only what fits inside a box.** The flow is drawn,
+never written. What a box cannot carry goes in a table beneath it.
 
 | Instead of                                                             | Write                                         |
 |------------------------------------------------------------------------|-----------------------------------------------|
@@ -138,23 +128,21 @@ stdlib, fall back to the raw URL for the same file
 (`https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml`).
 See `.claude/templates/example-design.md` for working syntax.
 
-**No class appears in any of them.** The component diagram, which is the one that draws classes, belongs to the
-plan. Here a box is a responsibility, a module, or a system.
+**No class appears in any of them.** Here a box is a responsibility, a module, or a system.
 
 What each diagram must **show**:
 
 - **Flow diagram** — always. The flow from the entry point, through the change's responsibilities, to whatever it
   calls or stores, showing every alternative branch: a validation failure, a not-found case, an outbound call
-  erroring. Every branch a **Decisions** entry settles appears, and those branches are what the red phase turns
-  into unhappy-path test scenarios. A straight-line happy path means the failure modes were never designed, and
-  the tests for them will not exist either.
+  erroring. Every branch a **Decisions** entry settles appears. A straight-line happy path means the failure modes
+  were never designed, and the red phase's unhappy-path tests will not exist either.
 
   Name each box for what it does, not for the class that will do it. "Validate the period", not
   `PeriodValidator`.
 
   Whether that is a sequence diagram (`alt`/`else`/`end` fragments) or an activity diagram is decided by the
-  repository's own diagram conventions — read them and pick, rather than defaulting to one form. A flow carrying
-  both several participants and real branching is two diagrams, not one overloaded one.
+  repository's own diagram conventions — read them and pick. A flow carrying both several participants and real
+  branching is two diagrams, not one overloaded one.
 - **Container diagram (C4 level 2)** — always. It is the design's structural picture, and the only one: the
   component diagram that draws classes belongs to the plan.
 
@@ -166,8 +154,7 @@ What each diagram must **show**:
   thing no module's own plan can draw. Where it holds one, the diagram still answers what the module reaches
   outside itself, which is where every failure mode in **Decisions** comes from.
 
-  No system-context diagram (C4 level 1). What systems exist is a property of the repository, not of one change,
-  and it is drawn where the repository documents itself.
+  No system-context diagram (C4 level 1). What systems exist is a property of the repository, not of one change.
 
 ### Acceptance Scenarios
 
@@ -190,8 +177,8 @@ bullets render as one undifferentiated list, where a reader cannot see a scenari
 **One per branch of the flow diagram**, happy path and every failure alike. A branch drawn but never accepted is
 a behaviour nobody agreed to; a scenario with no branch is a flow the diagram is missing.
 
-Numbers are assigned once and never reused, like a decision's. Every red-phase step in the plan cites the
-scenarios it covers, so a scenario no step names is a visible gap rather than a silent one.
+Numbers are assigned once and never reused. Every red-phase step in the plan cites the scenarios it covers, so a
+scenario no step names is a visible gap.
 
 **These are behaviour, never mechanics.** No class, no test class, no layer. "Then: the response is 400 with
 `PERIOD_INVALID`" is a scenario; "then `ListExpensesUseCase` throws" is a plan step.
@@ -214,7 +201,7 @@ Every judgment call the change requires, one entry each, in this exact format:
 bullets render as one undifferentiated list, where a reader cannot see an entry begin or end.
 
 Numbered `D1`, `D2`, … assigned once and never renumbered: an entry that is answered, withdrawn, or reversed keeps
-its number, so anything citing it — a commit, an ADR, another document — stays valid for the life of the change.
+its number, so anything citing it stays valid for the life of the change.
 
 **An entry exists for a question a reader could reasonably re-open.** A judgment call, a rejected alternative,
 something out of scope, something nobody has decided. What the repository plainly determines and the body plainly
@@ -225,9 +212,8 @@ states is not one: it belongs in the body, and in the **Design Findings** table 
 them.** Read them there before writing the first entry. `must-decide` is the only one that leaves `Answer:`
 empty, and it is what `settled` counts.
 
-**Answer against the repository before asking.** A design that hands back fifteen open questions is a design that
-did no work. Ask only what the repository genuinely cannot answer, and say in `Basis:` precisely what it does not
-say — so the user answers a question rather than picks from a menu.
+**Answer against the repository before asking.** Ask only what the repository genuinely cannot answer, and say in
+`Basis:` precisely what it does not say — so the user answers a question rather than picks from a menu.
 
 The design is **settled** when no entry carries `Basis: must-decide`.
 
@@ -247,8 +233,8 @@ Written from the grill's report in the next step — leave a placeholder while w
 and the design already answered. Both are in the template's own **Design Findings** section, in the shape they
 take.
 
-Both are lists, not prose, so a later reader can tell an unasked question from a considered one at a glance. A
-finding that needs a paragraph to dismiss was not dismissed, and belongs in **Decisions**.
+Both are lists, not prose. A finding that needs a paragraph to dismiss was not dismissed, and belongs in
+**Decisions**.
 
 See `.claude/templates/example-design.md` for a complete worked example of every section above.
 
@@ -264,26 +250,23 @@ Once every section above is written, spawn a grill against the design file. Use 
 | an API, a store, a message | `grill-design`   |
 | a user interface           | `grill-frontend` |
 
-**A change spanning both earns both, spawned in one message and read together.** Neither writes, so neither waits
-on the other, and the numbers are assigned here in any case. The two ask disjoint questions: a design run only
-past `grill-design` comes back clean on authorization and idempotency while nothing has asked what its screen
-does with an empty list or a name too long to fit. Where both reports do raise one thing, it is written once —
-which is this session's job on every finding anyway.
+**A change spanning both earns both, spawned in one message and read together.** The two ask disjoint questions: a
+design run only past `grill-design` comes back clean on authorization and idempotency while nothing has asked what
+its screen does with an empty list or a name too long to fit. Where both reports raise one thing, it is written
+once.
 
 Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
 produced it, and this session holds that reasoning.
 
 **A design going past a grill a second time goes back to the same agent**, with `SendMessage` to the `agentId`
-its first run answered with, saying what changed since. It keeps everything it read — the conventions, the
-sibling feature, the migrations — so it judges the new half instead of re-deriving the old one, and it knows what
-it already raised. Spawn a fresh agent only for the first pass, for a grill of a different kind, or when the
-first one is no longer reachable.
+its first run answered with, saying what changed since. It keeps everything it read, so it judges the new half
+instead of re-deriving the old one. Spawn a fresh agent only for the first pass, for a grill of a different kind,
+or when the first one is no longer reachable.
 
 ### Landing the Report
 
-**The grill writes nothing.** It reports, and this session — which wrote the design and therefore knows what is
-already in it — decides where each finding goes. Every finding lands in exactly one of three places, and never in
-two:
+**The grill writes nothing.** It reports, and this session decides where each finding goes. Every finding lands in
+exactly one of three places, and never in two:
 
 | The finding                                               | Lands as                                                        |
 |-----------------------------------------------------------|-----------------------------------------------------------------|
@@ -292,16 +275,13 @@ two:
 | neither — the answer is settled and the body carries it | one row in the **Design Findings** table                        |
 
 **The test for an entry: could a reader reasonably re-open this?** If they could, the entry is what stops them,
-and its `Basis:` says why — the user chose it, the repository forces it, it is out of scope with a trigger, or
-nobody has decided yet. If they could not, there is nothing to record beyond the body and the table row.
+and its `Basis:` says why. If they could not, there is nothing to record beyond the body and the table row.
 
-**An answer the body already carries does not become an entry.** That is the whole reason the grill reports
-rather than writes: it cannot see whether the solution section three pages up already says what it just derived,
-and this session can. An entry that restates the body is the section's own bulk, and it is bulk nobody reads.
+**An answer the body already carries does not become an entry.** The grill cannot see whether the solution section
+three pages up already says what it just derived, and this session can.
 
-Assign the `D` numbers here, past the highest already in the file — this session is the only one that knows them
-all. A finding challenging an existing entry becomes a *new* entry citing it; an existing entry is never
-rewritten, except to correct a claim a finding proved false.
+Assign the `D` numbers here, past the highest already in the file. A finding challenging an existing entry becomes
+a *new* entry citing it; an existing entry is never rewritten, except to correct a claim a finding proved false.
 
 Then run `design.sh validate` and fix what it reports.
 
@@ -313,37 +293,29 @@ Read the file's **Decisions** section back after the grill has run and act on it
   fresh context and does not know what this session has already read. An entry the code answers becomes `assumed`
   with its evidence, and the user never sees it.
 - **Ask the rest in a single round**, via `AskUserQuestion` — every remaining `must-decide` in one batch, each with
-  the options that are actually defensible and a recommendation first. A drip of one question per turn is the cost
-  this skill exists to remove.
+  the options that are actually defensible and a recommendation first.
 - **Write the answers back into the file** as `Basis: decided — [choice] (user, <date>)` with `Answer:` filled in.
   The chat answer is not the record; the file is. Anything the user's answer invalidates elsewhere in the file — a
   sequence diagram branch, a paragraph of the solution — is corrected in the same edit.
 
 **An answer that adds a subject sends the design back through step 5 before step 7.** Picking between the options
-offered is what this step is for, and it needs no second grill. Answering with something the design did not
-contain — another migration, another table, a second concern folded in — leaves a half nobody has judged, and
-that half is written by the session that is now certain it is right. Send it back to the same grill (step 5), and
-it judges what changed while keeping what it already read.
+offered needs no second grill. Answering with something the design did not contain — another migration, another
+table, a second concern folded in — leaves a half nobody has judged. Send it back to the same grill (step 5).
 
-A widened design also invalidates entries written before it. Re-read the ones the new subject touches: an entry
-claiming nothing changes is exactly the kind that goes stale, and it is cheaper to correct than to have the grill
-find.
+A widened design also invalidates entries written before it. Re-read the ones the new subject touches.
 
 ## 7. Hand Over
 
 - Present the design file.
 - **Report what the grill added and what step 6 answered from the repository** — the `D` numbers and a clause each.
-  A decision the user cannot see recorded is a decision the user cannot catch.
 - **Run `design.sh validate` and `design.sh settled`** and report what they say.
-
 - List any entry still `must-decide`, and say that the design is unfinished while any remains.
 - **Stop.** Do not plan, write code, create other files, or run build commands.
 
-**The design file is the whole handoff, and this session ends with it.** Everything a reader needs is in the file
-by construction; this session also holds what the file deliberately leaves out — a rejected alternative, a
-question the grill raised and the repository answered, a shape considered and dropped. Whoever works from the
-design next must work from the file alone, or they inherit context nobody else can see, and the gap only shows up
-when someone reads the design on its own. Starting cold is also the format's own test: a design a fresh session
-cannot work from was underspecified, which is worth discovering now rather than later.
+**The design file is the whole handoff, and this session ends with it.** This session holds what the file
+deliberately leaves out — a rejected alternative, a question the grill raised and the repository answered, a shape
+considered and dropped. Whoever works from the design next must work from the file alone, or they inherit context
+nobody else can see. Starting cold is also the format's own test: a design a fresh session cannot work from was
+underspecified.
 
 Say so when handing over, so the user knows the stop is the design's, not an unfinished job.
