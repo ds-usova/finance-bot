@@ -99,11 +99,11 @@ end
 
 What the diagrams cannot hold: a field, a signature, an invariant, a status, a setting.
 
-| A widget holds | Refuses                                       |
-|----------------|-----------------------------------------------|
-| `parentId`     | a parent that does not exist                  |
-| `name`         | blank, or already used under the same parent  |
-| `value`        | over 255 characters                           |
+| A widget holds | Refuses                                      |
+|----------------|----------------------------------------------|
+| `parentId`     | a parent that does not exist                 |
+| `name`         | blank, or already used under the same parent |
+| `value`        | over 255 characters                          |
 
 | The caller gets | When                        |
 |-----------------|-----------------------------|
@@ -155,6 +155,30 @@ One per branch of the flow above. `POST /widgets` is the only entry point.
   - Then: the response is 503, and the caller can retry the same request
 
 ## Decisions
+
+An entry exists for a question a reader could reasonably re-open. The basis says why they should not.
+
+| Basis         | Means                                                                             | `Answer:`                                                      |
+|---------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------|
+| `decided`     | the user chose between defensible options                                         | written, with the choice attributed and dated                  |
+| `deferred`    | real, but out of scope for this change                                            | written as what happens instead, plus what would bring it back |
+| `must-decide` | a product, operational, or business rule that exists nowhere yet                  | empty                                                          |
+| `assumed`     | the repository forces a guarantee the body states the mechanism for, not the rule | written, with the evidence cited in `Basis:`                   |
+
+**`assumed` is the narrow one.** Use it where the body says *what happens* and the entry says *why that is safe* —
+a concurrency guarantee, an ordering, an invariant an ADR carries. A fact the body plainly states needs no entry
+repeating it with a citation; that is a row in **Design Findings**, or nothing at all.
+
+**And it is a claim, not a hedge.** Cite the file, class, or ADR. An assumption with no evidence line is a
+`must-decide` wearing a disguise, and it will be found by the grill or, more expensively, in production.
+
+**Reading code this repository does not own is not evidence of what it does at runtime.** Where a decision turns
+on how a dependency behaves — which of its layers acts first, what it does with a value of the wrong shape — its
+source shows what code exists, not what runs. `assumed` is available only when something in the tree already
+exercises that path and what it was *observed* to produce is cited. Otherwise the entry is `deferred`, naming
+what would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
+expected answer and costs nothing: the entry records the invariant that must hold rather than the mechanism
+assumed to deliver it, and names what has to be observed before anyone can claim otherwise.
 
 - **D1:** Must a widget's `name` be unique, and what does a duplicate return?
   - Answer: Unique per parent, enforced by `idx_widget_parent_name`. A duplicate returns 409, mapped from
@@ -215,7 +239,7 @@ One per branch of the flow above. `POST /widgets` is the only entry point.
 
 Grilled (2026-07-30): contract compat, limits, observability.
 
-| Raised                                          | Answered by                                      |
-|-------------------------------------------------|--------------------------------------------------|
-| What a second create with the same name does    | D4, which the endpoint table already states      |
-| Whether the widget list needs paging            | Proposed Solution — the list is one person's tree |
+| Raised                                       | Answered by                                         |
+|----------------------------------------------|-----------------------------------------------------|
+| What a second create with the same name does | D4, which the endpoint table already states         |
+| Whether the widget list needs paging         | Proposed Solution — the list is one person's tree |

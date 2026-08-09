@@ -114,12 +114,12 @@ means a config edit, a lint rule, or a document this change invalidates has no r
 picture faster than any list, so the flow is drawn, never written. What a box cannot carry goes in a table
 beneath it.
 
-| Instead of                                                             | Write                                           |
-|------------------------------------------------------------------------|-------------------------------------------------|
-| "`FooController` calls `ListFooPort`, implemented by `ListFooUseCase`" | nothing — the plan owns every class             |
-| a port/use-case/command/answer table                                   | nothing — the plan owns every signature         |
-| "the amount is validated before anything is stored"                    | the invariant, in that field's row of a table   |
-| "the controller answers 400 when the filter is out of bounds"          | an exception/status/cause table                 |
+| Instead of                                                             | Write                                         |
+|------------------------------------------------------------------------|-----------------------------------------------|
+| "`FooController` calls `ListFooPort`, implemented by `ListFooUseCase`" | nothing — the plan owns every class         |
+| a port/use-case/command/answer table                                   | nothing — the plan owns every signature     |
+| "the amount is validated before anything is stored"                    | the invariant, in that field's row of a table |
+| "the controller answers 400 when the filter is out of bounds"          | an exception/status/cause table               |
 
 Sentence discipline, on top of the repository's documentation conventions: one claim per sentence, under 25
 words. A sentence joining two clauses with a dash, a semicolon, or a second "and" is two sentences. Reach for a
@@ -216,30 +216,18 @@ bullets render as one undifferentiated list, where a reader cannot see an entry 
 Numbered `D1`, `D2`, … assigned once and never renumbered: an entry that is answered, withdrawn, or reversed keeps
 its number, so anything citing it — a commit, an ADR, another document — stays valid for the life of the change.
 
-The four bases, and what each obliges:
+**An entry exists for a question a reader could reasonably re-open.** A judgment call, a rejected alternative,
+something out of scope, something nobody has decided. What the repository plainly determines and the body plainly
+states is not one: it belongs in the body, and in the **Design Findings** table if a grill raised it.
 
-| Basis         | Means                                                                             | `Answer:`                                                      |
-|---------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------|
-| `assumed`     | the repository already answers it — sibling code, conventions, an ADR, the schema | written, with the evidence cited in `Basis:`                   |
-| `decided`     | the user chose between defensible options                                         | written, with the choice attributed                            |
-| `deferred`    | real, but out of scope for this change                                            | written as what happens instead, plus what would bring it back |
-| `must-decide` | a product, operational, or business rule that exists nowhere yet                  | empty                                                          |
+**The four bases — `assumed`, `decided`, `deferred`, `must-decide` — and what each obliges are in
+[`.claude/templates/example-design.md`](../templates/example-design.md), beside the worked example that uses
+them.** Read them there before writing the first entry. `must-decide` is the only one that leaves `Answer:`
+empty, and it is what `settled` counts.
 
-**Answer against the repository before asking.** An `assumed` entry with cited evidence is worth more than a
-question, and a design that hands back fifteen open questions is a design that did no work. Ask only what the
-repository genuinely cannot answer, and say in `Basis:` precisely what it does not say — so the user answers a
-question rather than picks from a menu.
-
-**The `assumed` basis is a claim, not a hedge.** Cite the file, class, or ADR. An assumption with no evidence line
-is a `must-decide` wearing a disguise, and it will be found by the grill or, more expensively, in production.
-
-**Reading code this repository does not own is not evidence of what it does at runtime.** Where a decision turns
-on how a dependency behaves — which of its layers acts first, what it does with a value of the wrong shape — its
-source shows what code exists, not what runs. `assumed` is available only when something in the tree already
-exercises that path and what it was *observed* to produce is cited. Otherwise the entry is `deferred`, naming
-what would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
-expected answer and costs nothing: the entry records the invariant that must hold rather than the mechanism
-assumed to deliver it, and names what has to be observed before anyone can claim otherwise.
+**Answer against the repository before asking.** A design that hands back fifteen open questions is a design that
+did no work. Ask only what the repository genuinely cannot answer, and say in `Basis:` precisely what it does not
+say — so the user answers a question rather than picks from a menu.
 
 The design is **settled** when no entry carries `Basis: must-decide`.
 
@@ -254,23 +242,13 @@ Run `validate` before invoking the grill, and both it and `settled` again before
 
 ### Design Findings
 
-Written from the grill's report in the next step — leave a placeholder while writing the rest. It holds one line
-per grill, naming what was examined and found clear, so a later reader can tell an unasked question from a
-considered one:
+Written from the grill's report in the next step — leave a placeholder while writing the rest. It carries one
+`Grilled (<date>)` line per grill naming what was examined and found clear, then a table of what the grill raised
+and the design already answered. Both are in the template's own **Design Findings** section, in the shape they
+take.
 
-```
-Grilled (<date>): [categories with no finding, as a list of names]
-```
-
-Beneath those lines, a table of what the grill raised and the design already answered — every finding that earned
-no entry, so a reader can see it was asked:
-
-| Raised                                | Answered by                       |
-|---------------------------------------|-----------------------------------|
-| [the question, in half a line]        | [the section or entry that holds it] |
-
-Both are lists, not prose. A finding that needs a paragraph to dismiss was not dismissed, and belongs in
-**Decisions**.
+Both are lists, not prose, so a later reader can tell an unasked question from a considered one at a glance. A
+finding that needs a paragraph to dismiss was not dismissed, and belongs in **Decisions**.
 
 See `.claude/templates/example-design.md` for a complete worked example of every section above.
 
@@ -281,10 +259,10 @@ Once every section above is written, spawn a grill against the design file. Use 
 
 **Which grill depends on what the change touches**, read from each affected module's conventions:
 
-| The module serves            | Spawn            |
-|------------------------------|------------------|
-| an API, a store, a message   | `grill-design`   |
-| a user interface             | `grill-frontend` |
+| The module serves          | Spawn            |
+|----------------------------|------------------|
+| an API, a store, a message | `grill-design`   |
+| a user interface           | `grill-frontend` |
 
 **A change spanning both earns both, spawned in one message and read together.** Neither writes, so neither waits
 on the other, and the numbers are assigned here in any case. The two ask disjoint questions: a design run only
@@ -307,11 +285,15 @@ first one is no longer reachable.
 already in it — decides where each finding goes. Every finding lands in exactly one of three places, and never in
 two:
 
-| The finding                                                        | Lands as                                                        |
-|--------------------------------------------------------------------|------------------------------------------------------------------|
-| changes what the design says gets built                            | an edit to the body, and an entry only if a judgment call remains |
-| leaves a judgment call, a rejected alternative, or a deferral      | a `D` entry, in the **Decisions** format                          |
-| the repository answers, and the body already says so               | one row in the **Design Findings** table                          |
+| The finding                                               | Lands as                                                        |
+|-----------------------------------------------------------|-----------------------------------------------------------------|
+| changes what the design says gets built                   | an edit to the body, and an entry only if the test below is met |
+| leaves something a reader could reasonably re-open        | a `D` entry, in the **Decisions** format                        |
+| neither — the answer is settled and the body carries it | one row in the **Design Findings** table                        |
+
+**The test for an entry: could a reader reasonably re-open this?** If they could, the entry is what stops them,
+and its `Basis:` says why — the user chose it, the repository forces it, it is out of scope with a trigger, or
+nobody has decided yet. If they could not, there is nothing to record beyond the body and the table row.
 
 **An answer the body already carries does not become an entry.** That is the whole reason the grill reports
 rather than writes: it cannot see whether the solution section three pages up already says what it just derived,
@@ -336,6 +318,16 @@ Read the file's **Decisions** section back after the grill has run and act on it
 - **Write the answers back into the file** as `Basis: decided — [choice] (user, <date>)` with `Answer:` filled in.
   The chat answer is not the record; the file is. Anything the user's answer invalidates elsewhere in the file — a
   sequence diagram branch, a paragraph of the solution — is corrected in the same edit.
+
+**An answer that adds a subject sends the design back through step 5 before step 7.** Picking between the options
+offered is what this step is for, and it needs no second grill. Answering with something the design did not
+contain — another migration, another table, a second concern folded in — leaves a half nobody has judged, and
+that half is written by the session that is now certain it is right. Send it back to the same grill (step 5), and
+it judges what changed while keeping what it already read.
+
+A widened design also invalidates entries written before it. Re-read the ones the new subject touches: an entry
+claiming nothing changes is exactly the kind that goes stale, and it is cheaper to correct than to have the grill
+find.
 
 ## 7. Hand Over
 
