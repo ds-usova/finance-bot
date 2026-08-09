@@ -19,9 +19,13 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 - Contract codegen: `ledger-service/gradlew -p ledger-service openApiGenerate`, reading `openapi/ledger-api.yaml`
   — runs automatically before `compileJava`.
 
-The specification declares no shared component names, so the generator derives each response type's name from the
-operation and status code that first reaches it. Reordering the paths renames the classes and breaks this
-module's build; no caller notices.
+A schema named in `components/schemas` and reached from inside another schema generates under its own name —
+`Expense`, `RenderedMoney`, `DayTotal`, `ExpenseStatus`. An operation's **top-level** response schema does not:
+the generator derives that name from the operation and status code, because every operation is reached through
+an externally-`$ref`ed file under `openapi/paths/`. So `ExpensePage` is generated but unreferenced, and the
+endpoint answers `ListExpenses200Response`; the same holds for `Category`, `Grouping`, `Session` and `Problem`.
+
+Reordering the paths renames those five and breaks this module's build; no caller notices.
 
 ## Docker
 
