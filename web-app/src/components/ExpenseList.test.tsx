@@ -37,18 +37,18 @@ function threeDaysOfEntries() {
 }
 
 describe('the expense list', () => {
-  it('groups a page of entries recorded across three UTC days into three expanded sections', () => {
+  it('groups a page of entries recorded across three UTC days into three sections, all closed', () => {
     render(
       <ExpenseList page={anExpensePage(threeDaysOfEntries())} categoryNames={categoryNames} />,
     );
 
     expect(screen.getAllByRole('button')).toHaveLength(3);
-    expect(screen.getByText('coffee')).toBeInTheDocument();
-    expect(screen.getByText('lunch')).toBeInTheDocument();
-    expect(screen.getByText('taxi')).toBeInTheDocument();
+    expect(screen.queryByText('coffee')).not.toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+    expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 
-  it('collapses one section on its own, leaving the other two expanded', async () => {
+  it('opens one section on its own, leaving the other two closed', async () => {
     const user = userEvent.setup();
 
     render(
@@ -60,9 +60,9 @@ describe('the expense list', () => {
     // toDaySections orders newest first, so the first header is 2026-08-03's, holding "taxi".
     await user.click(headers[0]!);
 
-    expect(screen.queryByText('taxi')).not.toBeInTheDocument();
-    expect(screen.getByText('lunch')).toBeInTheDocument();
-    expect(screen.getByText('coffee')).toBeInTheDocument();
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+    expect(screen.queryByText('coffee')).not.toBeInTheDocument();
   });
 
   it('shows the catalogue’s substituted text for the empty state, once the catalogue is swapped', () => {

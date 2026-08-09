@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense } from '../testing/fixtures';
 import { ExpenseDaySection } from './ExpenseDaySection';
@@ -30,7 +31,7 @@ afterEach(() => {
 });
 
 describe('the rendered day section', () => {
-  it('carries the day, the entry count and the total in its header, and lists every entry, when expanded', () => {
+  it('carries the day, the entry count and the total in its header, and lists every entry once opened', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-01T15:00:00Z'));
 
@@ -73,6 +74,11 @@ describe('the rendered day section', () => {
     expect(header).toHaveTextContent('Today');
     expect(header).toHaveTextContent('3 entries');
     expect(header).toHaveTextContent(amount('EUR', 1250));
+    // The section arrives collapsed, so the header is all there is until it is opened.
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+
+    expandDays();
+
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(screen.getByText('dinner')).toBeInTheDocument();
     expect(screen.getByText('taxi')).toBeInTheDocument();
@@ -92,7 +98,7 @@ describe('the rendered day section', () => {
     expect(screen.getByRole('button')).toHaveTextContent('Yesterday');
   });
 
-  it('shows the day as a localized date through Intl once it is neither today nor yesterday', () => {
+  it('shows the day as a readable date at UTC once it is neither today nor yesterday', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-09T10:00:00Z'));
 
@@ -100,9 +106,10 @@ describe('the rendered day section', () => {
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
-    const expected = new Intl.DateTimeFormat('en').format(new Date('2026-08-01T00:00:00Z'));
+    // A fixed expected string, not the component's own Intl call repeated: built from the same expression,
+    // this would hold in a zone that dated the heading a day off the entries the section holds.
     const header = screen.getByRole('button');
-    expect(header).toHaveTextContent(expected);
+    expect(header).toHaveTextContent('Aug 1, 2026');
     expect(header).not.toHaveTextContent('Today');
     expect(header).not.toHaveTextContent('Yesterday');
   });
@@ -120,6 +127,7 @@ describe('the rendered day section', () => {
     const day = aDay({ entries: [entry], totals: [{ currency: 'EUR', minorUnits: 1250 }] });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
 
     const item = screen.getByRole('listitem', { name: /lunch/i });
     expect(item).toHaveTextContent('lunch');
@@ -131,7 +139,7 @@ describe('the rendered day section', () => {
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
   });
 
-  it('keeps the header’s day, count and total but lists no entries once the person collapses it', async () => {
+  it('keeps the header’s day, count and total whether it is open or closed', async () => {
     const user = userEvent.setup();
     const entries = [
       anExpense({ id: 1, description: 'lunch', amountMinorUnits: 500, currency: 'EUR' }),
@@ -142,6 +150,12 @@ describe('the rendered day section', () => {
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
     const header = screen.getByRole('button');
+
+    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+
+    await user.click(header);
+    expect(screen.getByText('lunch')).toBeInTheDocument();
 
     await user.click(header);
 
@@ -240,6 +254,7 @@ describe('the rendered day section', () => {
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
 
     const item = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(item).getByText('Pending')).toBeInTheDocument();
@@ -271,6 +286,7 @@ describe('the rendered day section', () => {
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
 
     const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
     const proposalItem = screen.getByRole('listitem', { name: /coffee/i });
@@ -291,6 +307,7 @@ describe('the rendered day section', () => {
     const day = aDay({ entries: [entry], totals: [{ currency: 'EUR', minorUnits: 500 }] });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
 
     const item = screen.getByRole('listitem', { name: /stamps/i });
     expect(item).toHaveTextContent('stamps');
@@ -321,6 +338,7 @@ describe('the rendered day section', () => {
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
 
     expect(screen.getByRole('listitem', { name: /coffee/i })).toHaveTextContent('Corner Cafe');
     const stampsItem = screen.getByRole('listitem', { name: /stamps/i });
@@ -360,6 +378,8 @@ describe('the rendered day section', () => {
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('‹Today›');
     expect(header).toHaveTextContent('‹1 entry awaits a decision›');
+
+    expandDays();
 
     const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();

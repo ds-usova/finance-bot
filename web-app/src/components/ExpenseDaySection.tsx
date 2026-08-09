@@ -19,13 +19,20 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
   const relative = relativeDay(day.day, new Date());
   const dayLabel = relative
     ? t(`listing.${relative}`)
-    : new Intl.DateTimeFormat(locale).format(new Date(`${day.day}T00:00:00Z`));
+    : // The day is a UTC day, so it is formatted at UTC too: without this the reader's own zone can name the
+      // heading a day off the entries it holds.
+      new Intl.DateTimeFormat(locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(`${day.day}T00:00:00Z`));
 
   return (
     <Accordion
       type="single"
       collapsible
-      defaultValue={day.day}
       className="rounded-xl border border-border bg-card shadow-sm"
     >
       <AccordionItem value={day.day}>

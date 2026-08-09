@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
+import { expandDays } from '../testing/accordion';
 import { chooseOption } from '../testing/combobox';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
@@ -37,6 +38,17 @@ async function chooseGroceries() {
   await chooseOption(/category/i, /Groceries/);
 }
 
+/** The listing arrives as closed day sections, so the first day header appearing is the read landing. */
+async function listingArrives(): Promise<HTMLElement> {
+  return screen.findByRole('button', { expanded: false });
+}
+
+/** The same wait, then every section opened, for a test that asserts on the entries themselves. */
+async function listedEntries(): Promise<void> {
+  await listingArrives();
+  expandDays();
+}
+
 function renderPage(context: Partial<AuthContextValue> = {}) {
   const value = anAuthContext({ session: { externalId: '987654321' }, ...context });
 
@@ -61,7 +73,8 @@ describe('the expenses page', () => {
   it('reads the listing, the categories and the groupings once and renders what they answered', async () => {
     renderPage();
 
-    expect(await screen.findByText('lunch')).toBeInTheDocument();
+    await listedEntries();
+    expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(listExpensesMock).toHaveBeenCalledOnce();
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
@@ -76,7 +89,7 @@ describe('the expenses page', () => {
 
   it('repeats only the listing when the filter changes, keeping the tree it already holds', async () => {
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     await chooseGroceries();
 
@@ -100,7 +113,7 @@ describe('the expenses page', () => {
       .mockResolvedValueOnce(page)
       .mockRejectedValueOnce(new ApiError(400, 'from must be a date'));
     renderPage();
-    await screen.findByText('lunch');
+    await listedEntries();
 
     await chooseGroceries();
 
@@ -148,6 +161,7 @@ describe('the expenses page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'the ledger is temporarily unavailable',
     );
+    expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
   });
@@ -160,7 +174,7 @@ describe('the expenses page', () => {
     });
     listExpensesMock.mockResolvedValue(firstPage);
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     await chooseGroceries();
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
@@ -181,7 +195,7 @@ describe('the expenses page', () => {
       }),
     );
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
 
@@ -200,7 +214,7 @@ describe('the expenses page', () => {
 
     renderPage();
     await chooseGroceries();
-    await screen.findByText('taxi');
+    await listedEntries();
 
     await act(async () => {
       left.answer(anExpensePage([anExpense({ id: 1, description: 'lunch' })]));
@@ -217,7 +231,7 @@ describe('the expenses page', () => {
 
     renderPage({ sessionExpired });
     await chooseGroceries();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     await act(async () => {
       left.refuse(new ApiError(401, 'no session'));
@@ -229,7 +243,7 @@ describe('the expenses page', () => {
 
   it('offers no pager when the listing answers everything the filter matches', async () => {
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
   });

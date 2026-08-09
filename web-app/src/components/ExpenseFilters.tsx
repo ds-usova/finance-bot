@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Category, ExpenseFilter, ExpenseStatus, Grouping } from '../api/expenses';
 import { Input } from './ui/input';
@@ -27,6 +27,15 @@ function withField<K extends keyof ExpenseFilter>(
     next[key] = value;
   }
   return next;
+}
+
+// A browser opens a date field's calendar only from its own small icon; anywhere in the field should do it.
+// `showPicker` is absent under jsdom, so the feature test keeps the tests clicking these fields working.
+function openPicker(event: MouseEvent<HTMLInputElement>) {
+  const field = event.currentTarget;
+  if ('showPicker' in field) {
+    field.showPicker();
+  }
 }
 
 function under(categories: Category[], groupingId: number | undefined): Category[] {
@@ -146,7 +155,9 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           <Input
             id="filter-from"
             type="date"
+            className="cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
             value={fromValue}
+            onClick={openPicker}
             onChange={(event) => chooseDay('from', event.target.value)}
           />
         </div>
@@ -158,7 +169,9 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           <Input
             id="filter-to"
             type="date"
+            className="cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
             value={toValue}
+            onClick={openPicker}
             onChange={(event) => chooseDay('to', event.target.value)}
           />
         </div>
