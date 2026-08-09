@@ -54,6 +54,7 @@
       "Bash(npm audit:*)",
       "Bash(npm ci:*)",
       "Bash(npm install:*)",
+      "Bash(npm ls:*)",
       "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Edit(docs/**)",
