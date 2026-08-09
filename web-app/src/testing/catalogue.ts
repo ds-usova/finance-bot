@@ -22,6 +22,12 @@ function mapStrings<T>(value: T, transform: (text: string) => string): T {
 
 const substituted: Catalogue = mapStrings(en, (text) => `‹${text}›`);
 
+// config.ts registers the catalogue by reference (`resources: { en: { translation: en } }`), and i18next's
+// ResourceStore keeps whatever object it is given rather than cloning it — so the store's English bundle is
+// the very object this module's `en` import points to. A snapshot taken here, before any substitution runs,
+// is what the restore step hands back; it never becomes the mutable object the store holds.
+const original: Catalogue = JSON.parse(JSON.stringify(en));
+
 /**
  * Swaps the `en` catalogue for one whose text is distinguishable from the English wording — every string
  * wrapped in `‹…›`, placeholders left alone so interpolation still works — so a test can prove a surface
@@ -29,8 +35,13 @@ const substituted: Catalogue = mapStrings(en, (text) => `‹${text}›`);
  * catalogue; call it once the test is done, typically from `afterEach`.
  */
 export function substituteCatalogue(): () => void {
-  i18next.addResourceBundle('en', 'translation', substituted, true, true);
+  // `deep: true` would deep-extend the bundle currently stored in the instance *in place* — and that stored
+  // bundle is the live `en` export, so it would rewrite `en` itself. `deep: false` instead builds a new
+  // object (`{ ...pack, ...resources }`) and swaps it in, leaving whatever object was stored before
+  // untouched. Both calls below pass a complete catalogue, so the shallow merge fully replaces every
+  // namespace and never leaves stale keys behind.
+  i18next.addResourceBundle('en', 'translation', substituted, false, true);
   return () => {
-    i18next.addResourceBundle('en', 'translation', en, true, true);
+    i18next.addResourceBundle('en', 'translation', original, false, true);
   };
 }

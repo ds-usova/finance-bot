@@ -1,9 +1,10 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
+import { chooseOption } from '../testing/combobox';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
 
@@ -33,11 +34,7 @@ function inFlight() {
 }
 
 async function chooseGroceries() {
-  const categoryControl = await screen.findByRole('combobox', { name: /category/i });
-  await userEvent.selectOptions(
-    categoryControl,
-    await within(categoryControl).findByRole('option', { name: /Groceries/ }),
-  );
+  await chooseOption(/category/i, /Groceries/);
 }
 
 function renderPage(context: Partial<AuthContextValue> = {}) {
@@ -69,21 +66,18 @@ describe('the expenses page', () => {
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
 
-    const groupingControl = screen.getByRole('combobox', { name: /grouping/i });
-    expect(within(groupingControl).getByRole('option', { name: /Everyday/ })).toBeInTheDocument();
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    expect(within(categoryControl).getByRole('option', { name: /Groceries/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: /grouping/i }));
+    expect(await screen.findByRole('option', { name: /Everyday/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+    expect(await screen.findByRole('option', { name: /Groceries/ })).toBeInTheDocument();
   });
 
   it('repeats only the listing when the filter changes, keeping the tree it already holds', async () => {
     renderPage();
     await screen.findByText('lunch');
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
@@ -107,11 +101,7 @@ describe('the expenses page', () => {
     renderPage();
     await screen.findByText('lunch');
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('from must be a date');
     expect(screen.getByText('lunch')).toBeInTheDocument();
@@ -171,11 +161,7 @@ describe('the expenses page', () => {
     renderPage();
     await screen.findByText('lunch');
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
@@ -198,11 +184,7 @@ describe('the expenses page', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
@@ -249,17 +231,5 @@ describe('the expenses page', () => {
     await screen.findByText('lunch');
 
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
-  });
-
-  // The sign-out control has moved to AppShell, which this page no longer renders; RU10 removes this case in
-  // favor of RU08's coverage of sign-out against the shell.
-  it.skip('ends the session through the context when the sign-out control is used', async () => {
-    const signOut = vi.fn().mockResolvedValue(undefined);
-
-    renderPage({ signOut });
-    await screen.findByText('lunch');
-    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
-
-    expect(signOut).toHaveBeenCalledOnce();
   });
 });

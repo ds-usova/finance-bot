@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { en } from './i18n/en';
 import { jsonResponse, stubFetch } from './testing/fetchStub';
 import { aCategory, aGrouping, anExpense, anExpensePage } from './testing/fixtures';
 
@@ -38,28 +39,29 @@ describe('the wired application', () => {
     render(<App />);
 
     expect(await screen.findByRole('region', { name: 'Telegram sign-in' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: en.shell.signOut })).not.toBeInTheDocument();
   });
 
-  // Asserts a level-1 heading named 'Expenses' that ExpensesPage no longer renders now the shell owns the
-  // frame; RU08 rewrites this against what the wired application shows a signed-in visitor.
-  it.skip('shows a visitor whose session is already open the expenses they recorded', async () => {
+  it('shows a visitor whose session is already open the expenses they recorded', async () => {
     stubSignedIn('987654321');
 
     render(<App />);
 
     expect(await screen.findByText('lunch')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Expenses' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: en.shell.productName }),
+    ).toBeInTheDocument();
   });
 
-  // Asserts a level-1 heading named 'Expenses' that ExpensesPage no longer renders now the shell owns the
-  // frame; RU08 rewrites this against what the wired application shows a signed-in visitor.
-  it.skip('sends an unknown address to the home route rather than showing nothing', async () => {
+  it('sends an unknown address to the home route rather than showing nothing', async () => {
     window.history.pushState({}, '', '/no-such-page');
     stubSignedIn('42');
 
     render(<App />);
 
     expect(await screen.findByText('lunch')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Expenses' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: en.shell.productName }),
+    ).toBeInTheDocument();
   });
 });
