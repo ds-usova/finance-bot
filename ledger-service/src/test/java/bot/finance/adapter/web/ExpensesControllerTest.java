@@ -98,7 +98,7 @@ class ExpensesControllerTest {
 
         /** A GET carrying a valid session cookie and no query parameters, the port answering a page of two. */
         private MvcResult browseWithNoParameters() throws Exception {
-            ExpensePage page = new ExpensePage(List.of(firstEntry(), secondEntry()), 50, 0, 2L);
+            ExpensePage page = ExpensePage.of(List.of(firstEntry(), secondEntry()), 50, 0, 2L);
             when(browseExpensesPort.browse(any())).thenReturn(page);
 
             return mockMvc.perform(get(PATH).cookie(sessionCookie()))
@@ -110,7 +110,7 @@ class ExpensesControllerTest {
         @DisplayName("when the request carries every query parameter - then the port is called with a filter "
                 + "carrying all of them")
         void whenEveryParameterIsGiven_thenPortIsCalledWithFilterCarryingAllOfThem() throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 30, 5, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), 30, 5, 0));
 
             mockMvc.perform(get(PATH)
                     .cookie(sessionCookie())
@@ -141,7 +141,7 @@ class ExpensesControllerTest {
         @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#boundaryLimits")
         @DisplayName("when limit is at either bound - then it binds and reaches the port")
         void whenLimitIsAtEitherBound_thenItBindsAndReachesThePort(String description, int limit) throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), limit, 0, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), limit, 0, 0));
 
             mockMvc.perform(get(PATH).cookie(sessionCookie()).param("limit", String.valueOf(limit)));
 
@@ -153,7 +153,7 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when offset is zero - then it binds and reaches the port")
         void whenOffsetIsZero_thenItBindsAndReachesThePort() throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 50, 0, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), 50, 0, 0));
 
             mockMvc.perform(get(PATH).cookie(sessionCookie()).param("offset", "0"));
 
@@ -166,7 +166,7 @@ class ExpensesControllerTest {
         @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#statusValues")
         @DisplayName("when status is each enum constant - then it binds to its own enum constant")
         void whenStatusIsEachEnumConstant_thenItBindsToItsOwnEnumConstant(ExpenseStatus status) throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 50, 0, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), 50, 0, 0));
 
             mockMvc.perform(get(PATH).cookie(sessionCookie()).param("status", status.name()));
 
@@ -178,7 +178,7 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when from and to are a well-formed pair - then they bind to a period carrying both days")
         void whenFromAndToAreAWellFormedPair_thenTheyBindToAPeriodCarryingBothDays() throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 50, 0, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), 50, 0, 0));
 
             mockMvc.perform(get(PATH)
                     .cookie(sessionCookie())
@@ -194,7 +194,7 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when categoryId is a number - then it binds and reaches the port")
         void whenCategoryIdIsANumber_thenItBindsAndReachesThePort() throws Exception {
-            when(browseExpensesPort.browse(any())).thenReturn(new ExpensePage(List.of(), 50, 0, 0));
+            when(browseExpensesPort.browse(any())).thenReturn(ExpensePage.of(List.of(), 50, 0, 0));
 
             mockMvc.perform(get(PATH).cookie(sessionCookie()).param("categoryId", "42"));
 

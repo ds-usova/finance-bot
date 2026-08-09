@@ -80,14 +80,14 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · Add `bot.finance.application.dto.DayTotal` — `record DayTotal(LocalDate day, List<Money> amounts)`
+- [x] ST01 · Add `bot.finance.application.dto.DayTotal` — `record DayTotal(LocalDate day, List<Money> amounts)`
   with a compact constructor stub:
   ```java
   public DayTotal {
       // orders amounts by ISO currency code and copies the list, the way SpendingSummary does
   }
   ```
-- [ ] ST02 · Add `List<DayTotal> dayTotals` to `bot.finance.application.dto.ExpensePage` as its last component,
+- [x] ST02 · Add `List<DayTotal> dayTotals` to `bot.finance.application.dto.ExpensePage` as its last component,
   and a static factory stub beside it:
   ```java
   public static ExpensePage of(List<ExpenseEntry> items, int limit, int offset, long total) {
@@ -96,9 +96,9 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
       return new ExpensePage(items, limit, offset, total, List.of());
   }
   ```
-- [ ] ST03 · In `BrowseExpensesUseCase.browse`, build the answer with `ExpensePage.of(...)` instead of the
+- [x] ST03 · In `BrowseExpensesUseCase.browse`, build the answer with `ExpensePage.of(...)` instead of the
   constructor. Nothing else in the method changes.
-- [ ] ST05 · Add `bot.finance.adapter.web.MoneyRenderer`, a stateless helper with a private constructor beside
+- [x] ST05 · Add `bot.finance.adapter.web.MoneyRenderer`, a stateless helper with a private constructor beside
   `ExpenseWebMapper`, and stub its one method. It answers the generated `bot.finance.api.model.RenderedMoney`,
   which the shared plan's component names make one type for both positions on the wire:
   ```java
@@ -109,10 +109,10 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
       return new RenderedMoney("", "", "");
   }
   ```
-- [ ] ST06 · Update the two test classes that construct an `ExpensePage` directly —
+- [x] ST06 · Update the two test classes that construct an `ExpensePage` directly —
   `ExpenseWebMapperTest.pageOfTwoEntries()` and its no-merchant test, and every `new ExpensePage(...)` in
   `ExpensesControllerTest` — to call `ExpensePage.of(...)`, and get the module back to build-green.
-- [ ] ST07 · Confirm `bot.finance.architecture.CleanArchitectureTest` still passes.
+- [x] ST07 · Confirm `bot.finance.architecture.CleanArchitectureTest` still passes.
 
 ### Red Phase
 

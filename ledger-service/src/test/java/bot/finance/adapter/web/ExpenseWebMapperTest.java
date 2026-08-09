@@ -169,7 +169,7 @@ class ExpenseWebMapperTest {
                     Optional.of("City Transit"),
                     new Money(350L, CurrencyCode.of("EUR")),
                     SECOND_CREATED_AT);
-            return new ExpensePage(List.of(first, second), 20, 0, 57L);
+            return ExpensePage.of(List.of(first, second), 20, 0, 57L);
         }
 
         @Test
@@ -184,7 +184,7 @@ class ExpenseWebMapperTest {
                     Optional.empty(),
                     new Money(400L, CurrencyCode.of("EUR")),
                     Instant.parse("2026-01-03T09:00:00Z"));
-            ExpensePage page = new ExpensePage(List.of(entry), 50, 0, 1L);
+            ExpensePage page = ExpensePage.of(List.of(entry), 50, 0, 1L);
 
             ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
 
