@@ -6,7 +6,7 @@ export function Alert({ className, ...props }: ComponentProps<'div'>) {
     <div
       role="alert"
       className={cn(
-        'w-full rounded-md border border-border bg-surface px-4 py-3 text-sm text-foreground',
+        'flex w-full items-start gap-2.5 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground',
         className,
       )}
       {...props}

@@ -39,6 +39,7 @@ export const en = {
     range: 'Showing {{from}}–{{to}} of {{total}}.',
   },
   signIn: {
+    heading: 'Sign in',
     invitation: 'Sign in with the Telegram account you use for the bot.',
     refused: 'That sign-in was not accepted. Please try again.',
   },

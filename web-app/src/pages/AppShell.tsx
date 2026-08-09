@@ -13,7 +13,7 @@ export function AppShell() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
           <h1 className="text-base font-semibold tracking-tight">{t('shell.productName')}</h1>
@@ -34,7 +34,8 @@ export function AppShell() {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+      {/* `flex-1` so a route that wants the rest of the viewport — the sign-in card — can centre in it. */}
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
         <Outlet />
       </main>
     </div>
