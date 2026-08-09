@@ -64,7 +64,7 @@ from each of them to it is the fan that makes the rest unreadable.
 | `tickedIds: ReadonlySet<number>`    | `ExpenseList`, `ExpenseDaySection`      | the ids of ticked `PENDING` entries, owned by the page      |
 | `onTick: (id: number, ticked: boolean) => void` | `ExpenseList`, `ExpenseDaySection` | one entry ticked or unticked                        |
 | `onTickDay: (ids: number[], ticked: boolean) => void` | `ExpenseList`, `ExpenseDaySection` | a whole day ticked or unticked (D18)           |
-| `atBound: boolean`                  | `ExpenseList`, `ExpenseDaySection`      | 100 are ticked, so every unticked checkbox is disabled (Q1) |
+| `tickHeadroom: number`              | `ExpenseList`, `ExpenseDaySection`      | how many more may be ticked before the 100-id bound (Q1)    |
 | `count: number`                     | `ExpenseActionBar`                      | how many are ticked; zero hides the action, never the row   |
 | `onAccept: () => void`              | `ExpenseActionBar`                      | the person accepting                                         |
 | `busy: boolean`                     | `ExpenseActionBar`                      | the call is out, so the action is disabled                  |
@@ -306,6 +306,28 @@ from each of them to it is the fan that makes the rest unreadable.
           for the file and leave what this case asserts alone
         - update: `it('repeats only the listing when the filter changes, keeping the tree it already holds')` —
           assert additionally that no acceptance call is made when nothing was ticked
+- [x] RU07 · the tick headroom · test: `ExpenseDaySection.test.tsx`, `ExpenseList.test.tsx`,
+  `ExpensesPage.test.tsx` · covers: what `B2` found the bound missing · scenarios: Q1
+    - `ExpenseDaySection`, with `tickHeadroom` in place of `atBound`:
+        - given: a day holding three unticked pending entries, with headroom for two more
+          when: it renders
+          then: the day's own checkbox is disabled, since ticking it would carry the set past the bound, and
+          each entry's own checkbox is still live
+        - given: the same day with headroom for three
+          when: it renders
+          then: the day's checkbox is live
+        - update: every case that passed `atBound` now passes `tickHeadroom` — a case that meant "the bound is
+          reached" passes `0` and a case that meant "it is not" passes a headroom larger than the day's pending
+          count. What each case asserts stays exactly as it is.
+    - `ExpenseList`, the same substitution:
+        - update: every case that passed `atBound` passes `tickHeadroom` on the same rule, asserting what it
+          already asserts. Only one does so explicitly; the rest take the render helper's default.
+    - `ExpensesPage`:
+        - given: a page whose first day holds 95 pending entries and whose second holds ten, with the first
+          day's checkbox ticked whole
+          when: the person looks at the second day
+          then: the second day's own checkbox is disabled, every one of its entries' checkboxes is still live,
+          and no acceptance call can be made carrying more than the 100 the endpoint bounds a request to (Q1)
 
 ### Green Phase
 
@@ -317,6 +339,8 @@ from each of them to it is the fan that makes the rest unreadable.
 - [x] GU04 · `ExpenseActionBar` · test: `ExpenseActionBar.test.tsx`
 - [x] GU05 · `ExpenseList` · test: `ExpenseList.test.tsx` · after: GU03
 - [x] GU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU02, GU04, GU05
+- [x] GU07 · the tick headroom · test: `ExpenseDaySection.test.tsx`, `ExpenseList.test.tsx`,
+  `ExpensesPage.test.tsx` · after: GU03, GU05, GU06
 
 ### Post-Implementation Steps
 
@@ -350,6 +374,15 @@ from each of them to it is the fan that makes the rest unreadable.
     `ExpenseDaySection.test.tsx` and `ExpenseList.test.tsx` and changed no assertion. No test was skipped or
     lost — the suite stayed at 146/146/0. `RU03` and `RU05` still own their `update:` bullets; the
     pass-them-throughout half was already done for them.
+
+- **B2:** The refactor pass found the finished code carrying the tick set past 100, which `Q1` says it never
+  does. `atBound` is `tickedIds.size >= 100`, so a day's checkbox is disabled only once the bound is *already*
+  reached, never because ticking it *would* cross it: a day of 95 ticked whole, then a second day of ten,
+  leaves 105 ticked and sends a request the ledger refuses with a 400. `RU03`'s bound scenarios only ever
+  landed on the bound, so nothing failed.
+  - Resolved in run: `atBound: boolean` becomes `tickHeadroom: number` — how many more may be ticked — and a
+    day's checkbox is disabled when its unticked pending ids outnumber the headroom. `RU07` and `GU07` carry it,
+    and the prop table above says so.
 
 ## Review Findings
 

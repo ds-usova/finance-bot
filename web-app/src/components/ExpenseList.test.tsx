@@ -16,7 +16,7 @@ function renderList(props: Partial<ExpenseListProps> & { page: ExpensePage }) {
       tickedIds={new Set()}
       onTick={vi.fn()}
       onTickDay={vi.fn()}
-      atBound={false}
+      tickHeadroom={Infinity}
       {...props}
     />,
   );
@@ -151,7 +151,7 @@ describe('the expense list', () => {
     renderList({
       page: anExpensePage(twoPendingDays()),
       tickedIds: new Set([1]),
-      atBound: true,
+      tickHeadroom: 0,
     });
     expandDays();
 

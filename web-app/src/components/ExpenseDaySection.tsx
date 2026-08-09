@@ -25,20 +25,21 @@ export function ExpenseDaySection({
   tickedIds,
   onTick,
   onTickDay,
-  atBound,
+  tickHeadroom,
 }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
 
   const pendingIds = pendingIdsOf(day);
   const tickedCount = pendingIds.filter((id) => tickedIds.has(id)).length;
+  const untickedCount = pendingIds.length - tickedCount;
   const allTicked = pendingIds.length > 0 && tickedCount === pendingIds.length;
   const dayChecked: boolean | 'indeterminate' = allTicked
     ? true
     : tickedCount > 0
       ? 'indeterminate'
       : false;
-  const dayDisabled = atBound && !allTicked;
+  const dayDisabled = untickedCount > tickHeadroom;
 
   const relative = relativeDay(day.day, new Date());
   const dayLabel = relative
@@ -122,7 +123,7 @@ export function ExpenseDaySection({
                       <Checkbox
                         aria-label={t('listing.entryCheckboxLabel')}
                         checked={tickedIds.has(entry.id)}
-                        disabled={atBound && !tickedIds.has(entry.id)}
+                        disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
                         onCheckedChange={(checked) => onTick(entry.id, checked === true)}
                       />
                     )}

@@ -16,7 +16,7 @@ function section(props: Partial<ExpenseDaySectionProps> & { day: ExpenseDay }) {
       tickedIds={new Set()}
       onTick={vi.fn()}
       onTickDay={vi.fn()}
-      atBound={false}
+      tickHeadroom={Infinity}
       {...props}
     />
   );
@@ -615,7 +615,7 @@ describe('the rendered day section', () => {
     const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
     const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
 
-    renderSection({ day, tickedIds: new Set([1]), atBound: true });
+    renderSection({ day, tickedIds: new Set([1]), tickHeadroom: 0 });
     expandDays();
 
     const tickedItem = screen.getByRole('listitem', { name: /alpha-ticked/i });
@@ -633,9 +633,39 @@ describe('the rendered day section', () => {
     const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
     const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
 
-    renderSection({ day, tickedIds: new Set([1]), atBound: true });
+    renderSection({ day, tickedIds: new Set([1]), tickHeadroom: 0 });
 
     expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeDisabled();
+  });
+
+  it('disables the day’s own checkbox when its pending count outnumbers the headroom, while each entry’s own checkbox stays live', () => {
+    const entryA = anExpense({ id: 1, status: 'PENDING', description: 'alpha' });
+    const entryB = anExpense({ id: 2, status: 'PENDING', description: 'beta' });
+    const entryC = anExpense({ id: 3, status: 'PENDING', description: 'gamma' });
+    const day = aDay({ entries: [entryA, entryB, entryC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickHeadroom: 2 });
+    expandDays();
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 3 pending entries' })).toBeDisabled();
+    for (const name of [/alpha/i, /beta/i, /gamma/i]) {
+      expect(
+        within(screen.getByRole('listitem', { name })).getByRole('checkbox', {
+          name: en.listing.entryCheckboxLabel,
+        }),
+      ).toBeEnabled();
+    }
+  });
+
+  it('leaves the day’s own checkbox live when the headroom covers its whole pending count', () => {
+    const entryA = anExpense({ id: 1, status: 'PENDING', description: 'alpha' });
+    const entryB = anExpense({ id: 2, status: 'PENDING', description: 'beta' });
+    const entryC = anExpense({ id: 3, status: 'PENDING', description: 'gamma' });
+    const day = aDay({ entries: [entryA, entryB, entryC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickHeadroom: 3 });
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 3 pending entries' })).toBeEnabled();
   });
 
   it('disables no checkbox when the bound is not reached', () => {

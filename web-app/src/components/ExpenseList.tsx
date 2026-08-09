@@ -16,7 +16,7 @@ export function ExpenseList({
   tickedIds,
   onTick,
   onTickDay,
-  atBound,
+  tickHeadroom,
 }: ExpenseListProps) {
   const { t } = useTranslation();
 
@@ -34,7 +34,7 @@ export function ExpenseList({
           tickedIds={tickedIds}
           onTick={onTick}
           onTickDay={onTickDay}
-          atBound={atBound}
+          tickHeadroom={tickHeadroom}
         />
       ))}
     </div>

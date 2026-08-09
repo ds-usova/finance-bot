@@ -107,7 +107,7 @@ export function ExpensesPage() {
 
   const onTick = useCallback((id: number, ticked: boolean) => onTickDay([id], ticked), [onTickDay]);
 
-  const atBound = tickedIds.size >= ACCEPTANCE_BOUND;
+  const tickHeadroom = ACCEPTANCE_BOUND - tickedIds.size;
 
   // Re-reads the days an acceptance touched, spanning from the earliest to the latest, carrying the filter on
   // screen now (D37) rather than the one the acceptance call left with, and merges each back into the page.
@@ -185,7 +185,7 @@ export function ExpensesPage() {
             tickedIds={tickedIds}
             onTick={onTick}
             onTickDay={onTickDay}
-            atBound={atBound}
+            tickHeadroom={tickHeadroom}
           />
           <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
         </>

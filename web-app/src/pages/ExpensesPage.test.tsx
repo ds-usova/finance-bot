@@ -547,6 +547,50 @@ describe('the expenses page', () => {
     expect(ids?.every((id) => inBound.some((entry) => entry.id === id))).toBe(true);
   });
 
+  it('disables the second day’s own checkbox once the first day’s whole tick leaves too little headroom, keeping its entries live and no call over the bound', async () => {
+    const firstDay = Array.from({ length: 95 }, (_, i) =>
+      anExpense({
+        id: i + 1,
+        description: `first ${i + 1}`,
+        status: 'PENDING',
+        createdAt: '2026-08-03T09:00:00Z',
+      }),
+    );
+    const secondDay = Array.from({ length: 10 }, (_, i) =>
+      anExpense({
+        id: 500 + i,
+        description: `second ${i + 1}`,
+        status: 'PENDING',
+        createdAt: '2026-08-05T09:00:00Z',
+      }),
+    );
+    listExpensesMock.mockResolvedValue(
+      anExpensePage([...secondDay, ...firstDay], { limit: 105, offset: 0, total: 105 }),
+    );
+    acceptExpensesMock.mockResolvedValueOnce(anAcceptance({ accepted: 95, missing: 0 }));
+
+    renderPage();
+    await listedEntries();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all 95 pending entries' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 10 pending entries' })).toBeDisabled();
+    for (let i = 1; i <= 10; i += 1) {
+      expect(
+        within(screen.getByRole('listitem', { name: new RegExp(`second ${i}$`, 'i') })).getByRole(
+          'checkbox',
+        ),
+      ).toBeEnabled();
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'Accept 95 entries' }));
+
+    expect(acceptExpensesMock).toHaveBeenCalledOnce();
+    const [ids] = acceptExpensesMock.mock.calls[0] ?? [];
+    expect(ids).toHaveLength(95);
+    expect(ids?.every((id) => firstDay.some((entry) => entry.id === id))).toBe(true);
+  });
+
   it('reads back against the filter the page holds now, not the one the acceptance call left with', async () => {
     const entry = anExpense({
       id: 25,

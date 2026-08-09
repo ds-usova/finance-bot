@@ -15,8 +15,8 @@ export type ExpenseTickingProps = {
   onTick: (id: number, ticked: boolean) => void;
   /** A whole day ticked or unticked (D18). */
   onTickDay: (ids: number[], ticked: boolean) => void;
-  /** 100 are ticked, so every unticked checkbox is disabled (Q1). */
-  atBound: boolean;
+  /** How many more entries may be ticked before the 100-id bound (Q1). */
+  tickHeadroom: number;
 };
 
 function utcDayString(date: Date): string {
