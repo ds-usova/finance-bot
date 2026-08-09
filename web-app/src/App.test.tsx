@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { en } from './i18n/en';
-import { expandDays } from './testing/accordion';
+import { expandDays, listingArrives } from './testing/accordion';
 import { jsonResponse, stubFetch } from './testing/fetchStub';
 import { aCategory, aGrouping, anExpense, anExpensePage } from './testing/fixtures';
 
@@ -49,7 +49,7 @@ describe('the wired application', () => {
     render(<App />);
 
     // The listing arrives as closed day sections, so the entry is reached by opening one.
-    await screen.findByRole('button', { expanded: false });
+    await listingArrives();
     expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(
@@ -64,7 +64,7 @@ describe('the wired application', () => {
     render(<App />);
 
     // The listing arrives as closed day sections, so the entry is reached by opening one.
-    await screen.findByRole('button', { expanded: false });
+    await listingArrives();
     expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(

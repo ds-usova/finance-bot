@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
-import { expandDays } from '../testing/accordion';
+import { expandDays, listingArrives } from '../testing/accordion';
 import { chooseOption } from '../testing/combobox';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
@@ -38,12 +38,7 @@ async function chooseGroceries() {
   await chooseOption(/category/i, /Groceries/);
 }
 
-/** The listing arrives as closed day sections, so the first day header appearing is the read landing. */
-async function listingArrives(): Promise<HTMLElement> {
-  return screen.findByRole('button', { expanded: false });
-}
-
-/** The same wait, then every section opened, for a test that asserts on the entries themselves. */
+/** The listing arriving, then every section opened, for a test that asserts on the entries themselves. */
 async function listedEntries(): Promise<void> {
   await listingArrives();
   expandDays();

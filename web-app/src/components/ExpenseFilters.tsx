@@ -1,7 +1,8 @@
-import { useState, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Category, ExpenseFilter, ExpenseStatus, Grouping } from '../api/expenses';
-import { Input } from './ui/input';
+import { PeriodFilter, type Period } from './PeriodFilter';
+import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -29,15 +30,6 @@ function withField<K extends keyof ExpenseFilter>(
   return next;
 }
 
-// A browser opens a date field's calendar only from its own small icon; anywhere in the field should do it.
-// `showPicker` is absent under jsdom, so the feature test keeps the tests clicking these fields working.
-function openPicker(event: MouseEvent<HTMLInputElement>) {
-  const field = event.currentTarget;
-  if ('showPicker' in field) {
-    field.showPicker();
-  }
-}
-
 function under(categories: Category[], groupingId: number | undefined): Category[] {
   if (groupingId === undefined) {
     return categories;
@@ -48,10 +40,6 @@ function under(categories: Category[], groupingId: number | undefined): Category
 export function ExpenseFilters({ groupings, categories, filter, onChange }: ExpenseFiltersProps) {
   const { t } = useTranslation();
   const [groupingId, setGroupingId] = useState<number | undefined>(undefined);
-  // Held locally so the field stays typeable while the pair is incomplete — the callback below only fires
-  // once both days are set or both are cleared, so the filter prop alone cannot echo a lone keystroke back.
-  const [fromValue, setFromValue] = useState(filter.from ?? '');
-  const [toValue, setToValue] = useState(filter.to ?? '');
 
   const chooseGrouping = (value: string) => {
     const chosen = value === ALL ? undefined : Number(value);
@@ -72,31 +60,32 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
     onChange(withField(filter, 'status', status));
   };
 
-  // Calls back only once the period is a complete pair or fully empty; a lone day never reaches the ledger.
-  const chooseDay = (key: 'from' | 'to', value: string) => {
-    const nextFrom = key === 'from' ? value : fromValue;
-    const nextTo = key === 'to' ? value : toValue;
-    if (key === 'from') {
-      setFromValue(value);
-    } else {
-      setToValue(value);
-    }
+  const choosePeriod = (period: Period) => {
+    onChange(withField(withField(filter, 'from', period.from), 'to', period.to));
+  };
 
-    const bothSet = nextFrom !== '' && nextTo !== '';
-    const neitherSet = nextFrom === '' && nextTo === '';
-    if (bothSet || neitherSet) {
-      onChange(
-        withField(
-          withField(filter, 'from', nextFrom === '' ? undefined : nextFrom),
-          'to',
-          nextTo === '' ? undefined : nextTo,
-        ),
-      );
-    }
+  // Everything the person set, and nothing the page holds on its own: the grouping narrows the categories
+  // offered rather than the listing, so it is reset here without ever having been part of the filter.
+  const narrowed =
+    filter.status !== undefined ||
+    filter.categoryId !== undefined ||
+    filter.from !== undefined ||
+    groupingId !== undefined;
+
+  const reset = () => {
+    setGroupingId(undefined);
+    onChange({});
   };
 
   return (
     <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3 sm:p-5">
+      {narrowed && (
+        <div className="flex justify-end sm:col-span-3">
+          <Button variant="ghost" className="h-auto px-2 py-1 text-sm font-normal" onClick={reset}>
+            {t('filters.reset')}
+          </Button>
+        </div>
+      )}
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-grouping">{t('filters.grouping')}</Label>
         <Select
@@ -148,34 +137,7 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           </SelectContent>
         </Select>
       </div>
-      {/* One period, two days: the pair is what the ledger takes, so the two fields share a frame. */}
-      <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-surface/60 p-3 sm:col-span-3 sm:flex-row sm:items-end sm:gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <Label htmlFor="filter-from">{t('filters.from')}</Label>
-          <Input
-            id="filter-from"
-            type="date"
-            className="cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
-            value={fromValue}
-            onClick={openPicker}
-            onChange={(event) => chooseDay('from', event.target.value)}
-          />
-        </div>
-        <span aria-hidden="true" className="hidden pb-2.5 text-muted-foreground sm:block">
-          –
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <Label htmlFor="filter-to">{t('filters.to')}</Label>
-          <Input
-            id="filter-to"
-            type="date"
-            className="cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
-            value={toValue}
-            onClick={openPicker}
-            onChange={(event) => chooseDay('to', event.target.value)}
-          />
-        </div>
-      </div>
+      <PeriodFilter period={{ from: filter.from, to: filter.to }} onChange={choosePeriod} />
     </div>
   );
 }

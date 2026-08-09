@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExpenseFilter } from '../api/expenses';
 import { substituteCatalogue } from '../testing/catalogue';
 import { chooseOption } from '../testing/combobox';
@@ -67,6 +67,21 @@ function statusControl(): HTMLElement {
   return screen.getByRole('combobox', { name: 'Status' });
 }
 
+function periodControl(): HTMLElement {
+  // Anchored: the control that clears the period is named "Clear the recorded period" and matches otherwise.
+  return screen.getByRole('button', { name: /^recorded period/i });
+}
+
+/** Clicks a day by its number in one of the two months the calendar shows, the first being the nearer. */
+async function chooseDay(user: ReturnType<typeof userEvent.setup>, month: 0 | 1, day: string) {
+  const grid = screen.getAllByRole('grid')[month];
+  await user.click(within(grid!).getByText(day));
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('the filter controls', () => {
   it('offers every grouping and every category it was given, each by its accessible name', async () => {
     const { user } = renderFilters();
@@ -123,14 +138,41 @@ describe('the filter controls', () => {
     });
   });
 
-  it('calls back with both days of the period entered', async () => {
-    const { onChange, user } = renderFilters();
+  it('calls back once with both days, only after the second is picked on the calendar', async () => {
+    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-01' });
 
-    await user.type(screen.getByLabelText(/recorded from/i), '2026-08-01');
-    await user.type(screen.getByLabelText(/recorded to/i), '2026-08-31');
+    await user.click(periodControl());
+    await chooseDay(user, 0, '10');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await chooseDay(user, 0, '20');
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith({ from: '2026-08-01', to: '2026-08-31' });
+    expect(onChange).toHaveBeenCalledWith({ from: '2026-08-10', to: '2026-08-20' });
+  });
+
+  it('closes the calendar and names the period it settled on', async () => {
+    const { user } = renderFilters({ from: '2026-08-01', to: '2026-08-01' });
+
+    await user.click(periodControl());
+    await chooseDay(user, 0, '10');
+    await chooseDay(user, 0, '20');
+
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(periodControl()).toHaveTextContent('Aug 10, 2026');
+    expect(periodControl()).toHaveTextContent('Aug 20, 2026');
+  });
+
+  it('sets both days at once from a preset', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-08-09T10:00:00'));
+    const { onChange, user } = renderFilters();
+
+    await user.click(periodControl());
+    await user.click(screen.getByRole('button', { name: 'This month' }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ from: '2026-08-01', to: '2026-08-09' });
   });
 
   it('calls back with the chosen category’s id', async () => {
@@ -144,51 +186,55 @@ describe('the filter controls', () => {
   it('labels the period by when a row was recorded, not by when the money was spent', () => {
     renderFilters();
 
-    expect(screen.getByLabelText(/recorded from/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/recorded to/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/spent/i)).not.toBeInTheDocument();
+    expect(periodControl()).toBeInTheDocument();
+    expect(screen.queryByText(/spent/i)).not.toBeInTheDocument();
   });
 
-  it('sends no callback at all when only the first day of the period is set', async () => {
-    const { onChange, user } = renderFilters();
+  it('names no period until one is set', () => {
+    renderFilters();
 
-    await user.type(screen.getByLabelText(/recorded from/i), '2026-08-01');
-
-    expect(onChange).not.toHaveBeenCalled();
+    expect(periodControl()).toHaveTextContent('Any time');
   });
 
-  it('sends no callback at all when only the last day of the period is set', async () => {
-    const { onChange, user } = renderFilters();
-
-    await user.type(screen.getByLabelText(/recorded to/i), '2026-08-31');
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('sends no callback when the last day is cleared from a complete period', async () => {
+  it('calls back once with neither day when the period is cleared', async () => {
     const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
 
-    await user.clear(screen.getByLabelText(/recorded to/i));
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('sends no callback when the first day is cleared from a complete period', async () => {
-    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
-
-    await user.clear(screen.getByLabelText(/recorded from/i));
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('calls back once with neither day when both days are cleared from a complete period', async () => {
-    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
-
-    await user.clear(screen.getByLabelText(/recorded from/i));
-    await user.clear(screen.getByLabelText(/recorded to/i));
+    await user.click(screen.getByRole('button', { name: /clear the recorded period/i }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith({});
+    expect(periodControl()).toHaveTextContent('Any time');
+  });
+
+  it('offers no way to clear a period that was never set', () => {
+    renderFilters();
+
+    expect(
+      screen.queryByRole('button', { name: /clear the recorded period/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears both days at once from the all-time preset', async () => {
+    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
+
+    await user.click(periodControl());
+    await user.click(screen.getByRole('button', { name: 'All time' }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({});
+  });
+
+  it('offers a reset once a filter is set, and clears every one of them', async () => {
+    const { onChange, user } = renderFilters();
+
+    expect(screen.queryByRole('button', { name: 'Reset filters' })).not.toBeInTheDocument();
+
+    await chooseOption('Status', 'Recorded');
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    expect(onChange).toHaveBeenLastCalledWith({});
+    expect(statusControl()).toHaveTextContent('All');
+    expect(screen.queryByRole('button', { name: 'Reset filters' })).not.toBeInTheDocument();
   });
 
   it('reads the status options as labels, Recorded and Pending, rather than the shouted wire value', async () => {
@@ -210,8 +256,8 @@ describe('the filter controls', () => {
     expect(screen.getByText('‹Grouping›')).toBeInTheDocument();
     expect(screen.getByText('‹Category›')).toBeInTheDocument();
     expect(screen.getByText('‹Status›')).toBeInTheDocument();
-    expect(screen.getByLabelText('‹Recorded from›')).toBeInTheDocument();
-    expect(screen.getByLabelText('‹Recorded to›')).toBeInTheDocument();
+    expect(screen.getByText('‹Recorded period›')).toBeInTheDocument();
+    expect(screen.getByText('‹Any time›')).toBeInTheDocument();
 
     await user.click(screen.getByRole('combobox', { name: '‹Grouping›' }));
     expect(await screen.findByRole('option', { name: '‹All›' })).toBeInTheDocument();
