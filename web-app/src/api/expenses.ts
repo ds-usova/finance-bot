@@ -8,6 +8,7 @@ export type Category = components['schemas']['Category'];
 export type Grouping = components['schemas']['Grouping'];
 export type RenderedMoney = components['schemas']['RenderedMoney'];
 export type DayTotal = components['schemas']['DayTotal'];
+export type Acceptance = components['schemas']['Acceptance'];
 
 /** The six query parameters the listing accepts. A field left unset is not sent, so the ledger applies its own default. */
 export type ExpenseFilter = {
@@ -40,6 +41,13 @@ export async function listCategories(groupingId?: number): Promise<Category[]> {
 
 export async function listGroupings(): Promise<Grouping[]> {
   return get<Grouping[]>(GROUPINGS_PATH, {});
+}
+
+export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
+  // posts the ids to /api/v1/expenses/acceptances through `request`, which carries the cookies and the CSRF
+  // token, and answers how many were accepted and how many named nothing. RU01 covers the behaviour.
+  void ids;
+  return null as unknown as Acceptance;
 }
 
 async function get<T>(

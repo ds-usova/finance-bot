@@ -1,4 +1,4 @@
-import type { Category, Expense, ExpensePage, Grouping } from '../api/expenses';
+import type { Acceptance, Category, Expense, ExpensePage, Grouping } from '../api/expenses';
 import type { AuthContextValue } from '../auth/authContext';
 
 export function anExpense(overrides: Partial<Expense> = {}): Expense {
@@ -42,6 +42,14 @@ export function aGrouping(overrides: Partial<Grouping> = {}): Grouping {
   return {
     id: 100,
     name: 'Everyday',
+    ...overrides,
+  };
+}
+
+export function anAcceptance(overrides: Partial<Acceptance> = {}): Acceptance {
+  return {
+    accepted: 1,
+    missing: 0,
     ...overrides,
   };
 }

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DayTotal } from '../api/expenses';
 import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense, anExpensePage } from '../testing/fixtures';
@@ -37,7 +37,14 @@ function threeDaysOfEntries() {
 describe('the expense list', () => {
   it('groups a page of entries recorded across three UTC days into three sections, all closed', () => {
     render(
-      <ExpenseList page={anExpensePage(threeDaysOfEntries())} categoryNames={categoryNames} />,
+      <ExpenseList
+        page={anExpensePage(threeDaysOfEntries())}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
     );
 
     expect(screen.getAllByRole('button')).toHaveLength(3);
@@ -50,7 +57,14 @@ describe('the expense list', () => {
     const user = userEvent.setup();
 
     render(
-      <ExpenseList page={anExpensePage(threeDaysOfEntries())} categoryNames={categoryNames} />,
+      <ExpenseList
+        page={anExpensePage(threeDaysOfEntries())}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
     );
 
     const headers = screen.getAllByRole('button');
@@ -73,6 +87,10 @@ describe('the expense list', () => {
       <ExpenseList
         page={anExpensePage(threeDaysOfEntries(), { dayTotals })}
         categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
       />,
     );
 
@@ -86,13 +104,31 @@ describe('the expense list', () => {
   it('shows the catalogue’s substituted text for the empty state, once the catalogue is swapped', () => {
     substituteCatalogue();
 
-    render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
+    render(
+      <ExpenseList
+        page={anExpensePage([], { total: 0 })}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     expect(screen.getByRole('alert')).toHaveTextContent('‹No expenses to show.›');
   });
 
   it('says there is nothing to show when the page holds no entries', () => {
-    render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
+    render(
+      <ExpenseList
+        page={anExpensePage([], { total: 0 })}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     expect(screen.getByRole('alert')).toHaveTextContent('No expenses to show.');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

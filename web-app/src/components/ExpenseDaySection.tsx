@@ -7,13 +7,34 @@ import { relativeDay, type ExpenseDay } from './expenseDays';
 export type ExpenseDaySectionProps = {
   day: ExpenseDay;
   categoryNames: Map<number, string>;
+  /** The ids of ticked `PENDING` entries, owned by the page. */
+  tickedIds: ReadonlySet<number>;
+  /** One entry ticked or unticked. */
+  onTick: (id: number, ticked: boolean) => void;
+  /** A whole day ticked or unticked (D18). */
+  onTickDay: (ids: number[], ticked: boolean) => void;
+  /** 100 are ticked, so every unticked checkbox is disabled (Q1). */
+  atBound: boolean;
 };
 
 function formatMoney(money: RenderedMoney): string {
   return `${money.currency}${money.separator}${money.amount}`;
 }
 
-export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps) {
+export function ExpenseDaySection({
+  day,
+  categoryNames,
+  tickedIds,
+  onTick,
+  onTickDay,
+  atBound,
+}: ExpenseDaySectionProps) {
+  // Stub: the checkboxes GU03 adds read tickedIds, call onTick and onTickDay, and respect atBound. This pass
+  // only threads the props through so the component still type-checks.
+  void tickedIds;
+  void onTick;
+  void onTickDay;
+  void atBound;
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
 

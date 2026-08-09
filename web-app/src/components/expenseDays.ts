@@ -1,4 +1,4 @@
-import type { DayTotal, Expense, RenderedMoney } from '../api/expenses';
+import type { DayTotal, Expense, ExpensePage, RenderedMoney } from '../api/expenses';
 
 export type ExpenseDay = {
   day: string;
@@ -49,4 +49,31 @@ export function relativeDay(day: string, now: Date): 'today' | 'yesterday' | nul
   const diffDays = Math.round((todayMs - dayMs) / 86_400_000);
 
   return diffDays === 1 ? 'yesterday' : null;
+}
+
+// Stub: the ids of a day's PENDING entries, which is what a "select all" tick on that day can carry in one
+// call. RU02 covers a day mixing pending and recorded entries, and a day holding no pending entry at all.
+export function pendingIdsOf(day: ExpenseDay): number[] {
+  void day;
+  return [];
+}
+
+// Stub: the UTC days a set of ticked ids sits on, read against the page's own entries rather than the
+// reader's zone. An id naming no PENDING entry on the page contributes no day, and an id a RECORDED entry
+// shares with a PENDING one on another day answers only the PENDING entry's day (D1). RU02 covers these
+// cases.
+export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
+  void page;
+  void ids;
+  return new Set();
+}
+
+// Stub: merges a freshly read page back into the page on screen, replacing only the entries and the
+// dayTotals figure of the day the fresh read answered — the other days stand exactly as they were, and
+// `limit`, `offset` and `total` stay the original page's (D32). A day the fresh read answers nothing for is
+// dropped rather than left showing entries that moved. RU02 covers these cases.
+export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): ExpensePage {
+  void day;
+  void fresh;
+  return page;
 }

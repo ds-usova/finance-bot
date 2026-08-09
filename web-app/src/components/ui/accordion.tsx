@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
 export const Accordion = AccordionPrimitive.Root;
@@ -9,10 +9,17 @@ export const AccordionItem = AccordionPrimitive.Item;
 export function AccordionTrigger({
   className,
   children,
+  leading,
   ...props
-}: ComponentProps<typeof AccordionPrimitive.Trigger>) {
+}: ComponentProps<typeof AccordionPrimitive.Trigger> & {
+  /** A control that must sit beside the trigger rather than inside it, since the Radix `Trigger` is itself a
+   * `<button>` and a control among its children would be a control inside a button (D43). Rendered before the
+   * trigger, over the leading gutter the entry rows below already reserve (D65). */
+  leading?: ReactNode;
+}) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex items-center gap-3">
+      {leading}
       <AccordionPrimitive.Trigger
         className={cn(
           'flex flex-1 cursor-pointer items-center justify-between gap-2 rounded-xl py-4 text-left text-sm font-medium outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-accent [&[data-state=open]>svg]:rotate-180',

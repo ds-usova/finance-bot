@@ -61,7 +61,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('Today');
@@ -82,12 +91,30 @@ describe('the rendered day section', () => {
     vi.setSystemTime(new Date('2026-08-05T10:00:00Z'));
 
     const today = aDay({ day: '2026-08-05' });
-    const { unmount } = render(<ExpenseDaySection day={today} categoryNames={categoryNames} />);
+    const { unmount } = render(
+      <ExpenseDaySection
+        day={today}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expect(screen.getByRole('button')).toHaveTextContent('Today');
     unmount();
 
     const yesterday = aDay({ day: '2026-08-04' });
-    render(<ExpenseDaySection day={yesterday} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={yesterday}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expect(screen.getByRole('button')).toHaveTextContent('Yesterday');
   });
 
@@ -97,7 +124,16 @@ describe('the rendered day section', () => {
 
     const day = aDay({ day: '2026-08-01' });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     // A fixed expected string, not the component's own Intl call repeated: built from the same expression,
     // this would hold in a zone that dated the heading a day off the entries the section holds.
@@ -121,7 +157,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /lunch/i });
@@ -155,7 +200,16 @@ describe('the rendered day section', () => {
     ];
     const day = aDay({ entries, totals: [{ amount: '12.50', currency: 'EUR', separator: '' }] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     const header = screen.getByRole('button');
 
     expect(header).toHaveTextContent('EUR12.50');
@@ -192,7 +246,16 @@ describe('the rendered day section', () => {
       ],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('EUR12.50');
@@ -225,7 +288,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('EUR8.00');
@@ -243,7 +315,16 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /vending machine/i });
@@ -259,7 +340,16 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /hotel/i });
@@ -274,7 +364,16 @@ describe('the rendered day section', () => {
       ],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('€12.50');
@@ -287,7 +386,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '1,245.00', currency: 'CHF', separator: ' ' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(within(header).getByText('CHF 1,245.00')).toBeInTheDocument();
@@ -301,7 +409,16 @@ describe('the rendered day section', () => {
       ],
     });
 
-    const { rerender } = render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    const { rerender } = render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     let header = screen.getByRole('button');
     expect(header).toHaveTextContent('€12.50');
     expect(header).toHaveTextContent('$9.00');
@@ -314,7 +431,16 @@ describe('the rendered day section', () => {
       ],
     });
 
-    rerender(<ExpenseDaySection day={updatedDay} categoryNames={categoryNames} />);
+    rerender(
+      <ExpenseDaySection
+        day={updatedDay}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     header = screen.getByRole('button');
     expect(header).toHaveTextContent('£20.00');
@@ -332,7 +458,16 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     // The heading's figure comes only from the section's totals, never from an entry's own money — so
@@ -351,7 +486,16 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /taxi/i });
@@ -381,7 +525,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
@@ -404,7 +557,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /stamps/i });
@@ -433,7 +595,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
     expandDays();
 
     expect(screen.getByRole('listitem', { name: /coffee/i })).toHaveTextContent('Corner Cafe');
@@ -467,7 +638,16 @@ describe('the rendered day section', () => {
       totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    render(
+      <ExpenseDaySection
+        day={day}
+        categoryNames={categoryNames}
+        tickedIds={new Set()}
+        onTick={vi.fn()}
+        onTickDay={vi.fn()}
+        atBound={false}
+      />,
+    );
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('‹Today›');
