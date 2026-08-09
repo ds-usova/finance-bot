@@ -132,9 +132,9 @@ touches it.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `expenseDays` · test: `expenseDays.test.ts`
-- [ ] GU02 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · after: GU01
-- [ ] GU03 · `ExpenseList` · test: `ExpenseList.test.tsx` · after: GU01, GU02
+- [x] GU01 · `expenseDays` · test: `expenseDays.test.ts`
+- [x] GU02 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · after: GU01
+- [x] GU03 · `ExpenseList` · test: `ExpenseList.test.tsx` · after: GU01, GU02
 
 `GU02` also carries what the suite cannot see: keying each day figure by its position in `amounts` rather than by
 its label, and dropping the amount column's `w-24` for a column that sizes to its content, never wraps, and stays

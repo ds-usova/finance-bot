@@ -279,9 +279,7 @@ describe('the rendered day section', () => {
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('€12.50');
     expect(header).toHaveTextContent('¥900');
-    expect(header.textContent!.indexOf('€12.50')).toBeLessThan(
-      header.textContent!.indexOf('¥900'),
-    );
+    expect(header.textContent!.indexOf('€12.50')).toBeLessThan(header.textContent!.indexOf('¥900'));
   });
 
   it('shows the day heading’s figure with a one-space separator between a code label and its digits, and no other space', () => {

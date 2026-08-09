@@ -15,17 +15,16 @@ function utcDayString(date: Date): string {
 }
 
 // Cuts the page into UTC days, newest first, each carrying its own entries in the page's order and its awaiting
-// count.
-// TODO web-app GU01: give each section the figures answered for its day
+// count and the figures dayTotals answers for its day.
 export function toDaySections(items: Expense[], dayTotals: DayTotal[]): ExpenseDay[] {
-  void dayTotals; // not read yet — see the TODO above
+  const totalsByDay = new Map(dayTotals.map((dayTotal) => [dayTotal.day, dayTotal.amounts]));
   const sections = new Map<string, ExpenseDay>();
 
   for (const item of items) {
     const day = utcDayString(new Date(item.createdAt));
     let section = sections.get(day);
     if (!section) {
-      section = { day, entries: [], awaiting: 0, totals: [] };
+      section = { day, entries: [], awaiting: 0, totals: totalsByDay.get(day) ?? [] };
       sections.set(day, section);
     }
     section.entries.push(item);

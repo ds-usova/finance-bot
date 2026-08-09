@@ -2,11 +2,16 @@ import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
 import { relativeDay, type ExpenseDay } from './expenseDays';
+import type { RenderedMoney } from '../api/expenses';
 
 export type ExpenseDaySectionProps = {
   day: ExpenseDay;
   categoryNames: Map<number, string>;
 };
+
+function formatMoney(money: RenderedMoney): string {
+  return `${money.currency}${money.separator}${money.amount}`;
+}
 
 export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
@@ -46,10 +51,9 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            {/* TODO web-app GU02: join currency + separator + amount, and let the amount column size to its content */}
-            {day.totals.map((total) => (
-              <span key={total.currency} className="font-semibold tabular-nums">
-                {total.amount}
+            {day.totals.map((total, index) => (
+              <span key={index} className="font-semibold tabular-nums">
+                {formatMoney(total)}
               </span>
             ))}
           </div>
@@ -75,8 +79,9 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
-                    {/* TODO web-app GU02: join currency + separator + amount, and let the amount column size to its content */}
-                    <span className="w-24 text-right tabular-nums">{entry.money.amount}</span>
+                    <span className="whitespace-nowrap text-right tabular-nums">
+                      {formatMoney(entry.money)}
+                    </span>
                   </div>
                 </li>
               );
