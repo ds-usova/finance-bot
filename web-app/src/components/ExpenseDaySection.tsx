@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
+import type { RenderedMoney } from '../api/expenses';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
 import { relativeDay, type ExpenseDay } from './expenseDays';
-import type { RenderedMoney } from '../api/expenses';
 
 export type ExpenseDaySectionProps = {
   day: ExpenseDay;

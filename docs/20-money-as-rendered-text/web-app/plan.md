@@ -157,6 +157,28 @@ right-aligned and last in its row.
   want recorded anyway?
   - A: No ADR.
 
+- **B1:** Four test names still describe summing, which neither `toDaySections` nor the component does any more —
+  the figures arrive through `dayTotals` and are passed through untouched. In `expenseDays.test.ts`: *sums a day's
+  RECORDED entries into one EUR total when every entry shares that currency* and *sums only the RECORDED entries
+  while still counting every entry and every one still awaiting a decision*. In `ExpenseDaySection.test.tsx`:
+  *sums only the recorded entries into the total and says one entry awaits a decision* and *shows a total for each
+  currency present among the day's recorded entries*. The
+  [testing conventions](../../../web-app/docs/conventions/testing.md#naming-conventions) want an `it` to state the
+  outcome, not the mechanism, so all four now read against that rule. Left as they are: RU01's and RU02's
+  `update:` bullets name each one verbatim, so a rename here would contradict the record of what those steps did.
+
+- **B2:** Two tests in `expenseDays.test.ts` now prove the same thing — *carries no total for a day holding only an
+  entry still awaiting a decision* and *leaves a section's totals empty when dayTotals holds no element for its
+  day, without touching its entries or awaiting count*. Both put entries on one UTC day, pass a `dayTotals`
+  element for another, and assert an empty `totals` alongside `entries` and `awaiting`. Their one difference —
+  pending-only versus recorded-plus-pending — stopped being a distinction once the lookup became a day-key lookup
+  that never reads `status`. Left in place: a deletion is outside every step's scope.
+
+- **B3:** The day heading's figure spans carry no `whitespace-nowrap`, unlike the entry amount span GU02 gave one.
+  A long figure such as `CHF 1,245.00` can therefore wrap inside that column at a narrow width. No rule in this
+  plan covers the heading column, so the code fails none — but it is A14's territory, and P01's narrowest-width
+  pass is the only place it can be seen. Folded into P01's hand-over list.
+
 ## Review Findings
 
 - **F1:** RU01's two-figures scenario was the same test as its own `update:` rework of *keeps one total per
