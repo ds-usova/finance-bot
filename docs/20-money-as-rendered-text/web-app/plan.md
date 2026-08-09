@@ -63,7 +63,7 @@ touches it.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `expenseDays` · test: `expenseDays.test.ts` · covers: `toDaySections()` · scenarios: A12, A13
+- [x] RU01 · `expenseDays` · test: `expenseDays.test.ts` · covers: `toDaySections()` · scenarios: A12, A13
     - `toDaySections()`:
         - given: entries across two UTC days and a dayTotals list holding one figure for each
           when: toDaySections() is called
@@ -87,7 +87,7 @@ touches it.
           still awaiting a decision* and assert the empty `totals` comes from the ledger answering no element for
           that day, rather than from a sum of nothing.
 
-- [ ] RU02 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: the rendered section ·
+- [x] RU02 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: the rendered section ·
   scenarios: A10, A11, A12, A13
     - the entry row:
         - given: an entry whose money is amount 900, currency ¥ and an empty separator
@@ -121,7 +121,7 @@ touches it.
           the bullet above: keep the awaiting badge and the count as they are, and assert the heading shows no
           figure because the section's `totals` is empty.
 
-- [ ] RU03 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the rendered list · scenarios: A12
+- [x] RU03 · `ExpenseList` · test: `ExpenseList.test.tsx` · covers: the rendered list · scenarios: A12
     - the list:
         - given: a page whose entries span three UTC days and whose dayTotals holds a figure for the newest and
           the oldest

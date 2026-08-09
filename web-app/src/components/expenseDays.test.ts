@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { DayTotal } from '../api/expenses';
 import { anExpense } from '../testing/fixtures';
 import { relativeDay, toDaySections } from './expenseDays';
 
@@ -56,95 +57,125 @@ describe('cutting a page into day sections', () => {
     }
   });
 
-  // TODO web-app RU01: give each section the figures answered for its day
-  it.skip('sums a day’s RECORDED entries into one EUR total when every entry shares that currency', () => {
-    const first = anExpense({
-      id: 1,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T08:00:00Z',
-      money: { amount: '1.00', currency: 'EUR', separator: '' },
-    });
-    const second = anExpense({
-      id: 2,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T09:00:00Z',
-      money: { amount: '2.00', currency: 'EUR', separator: '' },
-    });
-    const third = anExpense({
-      id: 3,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T10:00:00Z',
-      money: { amount: '3.00', currency: 'EUR', separator: '' },
-    });
+  it('sums a day’s RECORDED entries into one EUR total when every entry shares that currency', () => {
+    const first = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const second = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const third = anExpense({ id: 3, status: 'RECORDED', createdAt: '2026-08-01T10:00:00Z' });
+    const dayTotal: DayTotal = {
+      day: '2026-08-01',
+      amounts: [{ amount: '6.00', currency: 'EUR', separator: '' }],
+    };
 
-    const sections = toDaySections([first, second, third], []);
+    const sections = toDaySections([first, second, third], [dayTotal]);
 
     expect(sections[0]?.totals).toEqual([{ amount: '6.00', currency: 'EUR', separator: '' }]);
   });
 
-  // TODO web-app RU01: give each section the figures answered for its day
-  it.skip('keeps one total per currency, converting neither into the other', () => {
-    const eur = anExpense({
-      id: 1,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T08:00:00Z',
-      money: { amount: '1.00', currency: 'EUR', separator: '' },
-    });
-    const usd = anExpense({
-      id: 2,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T09:00:00Z',
-      money: { amount: '2.00', currency: 'USD', separator: '' },
-    });
-
-    const sections = toDaySections([eur, usd], []);
-
-    expect(sections[0]?.totals).toHaveLength(2);
-    expect(sections[0]?.totals).toEqual(
-      expect.arrayContaining([
+  it('keeps one total per currency, converting neither into the other', () => {
+    const eur = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const usd = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const dayTotal: DayTotal = {
+      day: '2026-08-01',
+      amounts: [
         { amount: '1.00', currency: 'EUR', separator: '' },
         { amount: '2.00', currency: 'USD', separator: '' },
-      ]),
-    );
+      ],
+    };
+
+    const sections = toDaySections([eur, usd], [dayTotal]);
+
+    expect(sections[0]?.totals).toEqual(dayTotal.amounts);
   });
 
-  // TODO web-app RU01: give each section the figures answered for its day
-  it.skip('sums only the RECORDED entries while still counting every entry and every one still awaiting a decision', () => {
-    const recordedA = anExpense({
-      id: 1,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T08:00:00Z',
-      money: { amount: '1.00', currency: 'EUR', separator: '' },
-    });
-    const recordedB = anExpense({
-      id: 2,
-      status: 'RECORDED',
-      createdAt: '2026-08-01T09:00:00Z',
-      money: { amount: '2.00', currency: 'EUR', separator: '' },
-    });
-    const pending = anExpense({
-      id: 3,
-      status: 'PENDING',
-      createdAt: '2026-08-01T10:00:00Z',
-      money: { amount: '9.99', currency: 'EUR', separator: '' },
-    });
+  it('sums only the RECORDED entries while still counting every entry and every one still awaiting a decision', () => {
+    const recordedA = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const recordedB = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-01T09:00:00Z' });
+    const pending = anExpense({ id: 3, status: 'PENDING', createdAt: '2026-08-01T10:00:00Z' });
+    const dayTotal: DayTotal = {
+      day: '2026-08-01',
+      amounts: [{ amount: '3.00', currency: 'EUR', separator: '' }],
+    };
 
-    const sections = toDaySections([recordedA, recordedB, pending], []);
+    const sections = toDaySections([recordedA, recordedB, pending], [dayTotal]);
 
     expect(sections[0]?.totals).toEqual([{ amount: '3.00', currency: 'EUR', separator: '' }]);
     expect(sections[0]?.entries).toHaveLength(3);
     expect(sections[0]?.awaiting).toBe(1);
   });
 
-  // TODO web-app RU01: give each section the figures answered for its day
-  it.skip('carries no total for a day holding only an entry still awaiting a decision', () => {
+  it('carries no total for a day holding only an entry still awaiting a decision', () => {
     const pending = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-08-01T08:00:00Z' });
+    // A dayTotals entry for a different day, so the empty totals below can only come from the ledger
+    // answering no element for this day — not from an incidentally empty dayTotals list.
+    const otherDayTotal: DayTotal = {
+      day: '2026-08-02',
+      amounts: [{ amount: '5.00', currency: 'EUR', separator: '' }],
+    };
 
-    const sections = toDaySections([pending], []);
+    const sections = toDaySections([pending], [otherDayTotal]);
 
     expect(sections[0]?.totals).toEqual([]);
     expect(sections[0]?.entries).toHaveLength(1);
     expect(sections[0]?.awaiting).toBe(1);
+  });
+
+  it('gives each section the figures dayTotals answers for its own day', () => {
+    const dayOne = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const dayTwo = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-02T08:00:00Z' });
+    const totalOne: DayTotal = {
+      day: '2026-08-01',
+      amounts: [{ amount: '12.50', currency: '€', separator: '' }],
+    };
+    const totalTwo: DayTotal = {
+      day: '2026-08-02',
+      amounts: [{ amount: '900', currency: '¥', separator: '' }],
+    };
+
+    const sections = toDaySections([dayOne, dayTwo], [totalOne, totalTwo]);
+
+    expect(sections.find((section) => section.day === '2026-08-01')?.totals).toEqual(
+      totalOne.amounts,
+    );
+    expect(sections.find((section) => section.day === '2026-08-02')?.totals).toEqual(
+      totalTwo.amounts,
+    );
+  });
+
+  it('leaves a section’s totals empty when dayTotals holds no element for its day, without touching its entries or awaiting count', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const pending = anExpense({ id: 2, status: 'PENDING', createdAt: '2026-08-01T09:00:00Z' });
+    const otherDayTotal: DayTotal = {
+      day: '2026-08-02',
+      amounts: [{ amount: '5.00', currency: 'EUR', separator: '' }],
+    };
+
+    const sections = toDaySections([recorded, pending], [otherDayTotal]);
+
+    expect(sections[0]?.totals).toEqual([]);
+    expect(sections[0]?.entries).toEqual([recorded, pending]);
+    expect(sections[0]?.awaiting).toBe(1);
+  });
+
+  it('creates no section for a dayTotals element whose day no entry falls on', () => {
+    const entry = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const orphanTotal: DayTotal = {
+      day: '2026-08-09',
+      amounts: [{ amount: '1.00', currency: 'EUR', separator: '' }],
+    };
+
+    const sections = toDaySections([entry], [orphanTotal]);
+
+    expect(sections).toHaveLength(1);
+    expect(sections.map((section) => section.day)).toEqual(['2026-08-01']);
+  });
+
+  it('gives every section an empty totals when dayTotals is empty', () => {
+    const dayOne = anExpense({ id: 1, status: 'RECORDED', createdAt: '2026-08-01T08:00:00Z' });
+    const dayTwo = anExpense({ id: 2, status: 'RECORDED', createdAt: '2026-08-02T08:00:00Z' });
+
+    const sections = toDaySections([dayOne, dayTwo], []);
+
+    expect(sections.every((section) => section.totals.length === 0)).toBe(true);
   });
 
   it('keeps a RECORDED entry and a PENDING proposal that share an id, since status is part of an entry’s identity', () => {

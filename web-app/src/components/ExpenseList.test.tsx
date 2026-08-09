@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { DayTotal } from '../api/expenses';
 import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpenseList } from './ExpenseList';
@@ -60,6 +61,26 @@ describe('the expense list', () => {
     expect(screen.getByText('taxi')).toBeInTheDocument();
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
     expect(screen.queryByText('coffee')).not.toBeInTheDocument();
+  });
+
+  it('shows a day’s own figure in its heading and shows none for a day with no figure', () => {
+    const dayTotals: DayTotal[] = [
+      { day: '2026-08-03', amounts: [{ amount: '12.34', currency: 'EUR', separator: '' }] },
+      { day: '2026-08-01', amounts: [{ amount: '56.78', currency: 'EUR', separator: '' }] },
+    ];
+
+    render(
+      <ExpenseList
+        page={anExpensePage(threeDaysOfEntries(), { dayTotals })}
+        categoryNames={categoryNames}
+      />,
+    );
+
+    const headers = screen.getAllByRole('button');
+    // toDaySections orders newest first: [0] is 2026-08-03, [1] is 2026-08-02, [2] is 2026-08-01.
+    expect(headers[0]).toHaveTextContent('EUR12.34');
+    expect(headers[2]).toHaveTextContent('EUR56.78');
+    expect(headers[1]).not.toHaveTextContent('EUR');
   });
 
   it('shows the catalogue’s substituted text for the empty state, once the catalogue is swapped', () => {

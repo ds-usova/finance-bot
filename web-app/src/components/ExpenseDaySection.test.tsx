@@ -22,17 +22,12 @@ function aDay(overrides: Partial<ExpenseDay> = {}): ExpenseDay {
   };
 }
 
-function amount(currency: string, minorUnits: number): string {
-  return new Intl.NumberFormat('en', { style: 'currency', currency }).format(minorUnits / 100);
-}
-
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe('the rendered day section', () => {
-  // TODO web-app RU02: the day heading's total is not rendered yet
-  it.skip('carries the day, the entry count and the total in its header, and lists every entry once opened', () => {
+  it('carries the day, the entry count and the total in its header, and lists every entry once opened', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-01T15:00:00Z'));
 
@@ -71,7 +66,7 @@ describe('the rendered day section', () => {
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('Today');
     expect(header).toHaveTextContent('3 entries');
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     // The section arrives collapsed, so the header is all there is until it is opened.
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
 
@@ -112,8 +107,7 @@ describe('the rendered day section', () => {
     expect(header).not.toHaveTextContent('Yesterday');
   });
 
-  // TODO web-app RU02: the entry row's amount is not rendered yet
-  it.skip('lists a recorded entry with its description, its merchant, its category name and its Intl-formatted amount, and no status badge', () => {
+  it('lists a recorded entry with its description, its merchant, its category name and the amount it was given, and no status badge', () => {
     const entry = anExpense({
       id: 1,
       status: 'RECORDED',
@@ -134,14 +128,13 @@ describe('the rendered day section', () => {
     expect(item).toHaveTextContent('lunch');
     expect(item).toHaveTextContent('Corner Cafe');
     expect(item).toHaveTextContent('Groceries');
-    expect(item).toHaveTextContent(amount('EUR', 1250));
+    expect(item).toHaveTextContent('EUR12.50');
     // Only a proposal is badged: a recorded entry is the ordinary case and carries no label of its own.
     expect(within(item).queryByText('Recorded')).not.toBeInTheDocument();
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
   });
 
-  // TODO web-app RU02: the day heading's total is not rendered yet
-  it.skip('keeps the header’s day, count and total whether it is open or closed', async () => {
+  it('keeps the header’s day, count and total whether it is open or closed', async () => {
     const user = userEvent.setup();
     const entries = [
       anExpense({
@@ -165,7 +158,7 @@ describe('the rendered day section', () => {
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
     const header = screen.getByRole('button');
 
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
 
     await user.click(header);
@@ -173,14 +166,13 @@ describe('the rendered day section', () => {
 
     await user.click(header);
 
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
     expect(screen.queryByText('dinner')).not.toBeInTheDocument();
     expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 
-  // TODO web-app RU02: the day heading's totals are not rendered yet
-  it.skip('shows a total for each currency present among the day’s recorded entries', () => {
+  it('shows a total for each currency present among the day’s recorded entries', () => {
     const day = aDay({
       entries: [
         anExpense({
@@ -203,12 +195,11 @@ describe('the rendered day section', () => {
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).toHaveTextContent(amount('EUR', 1250));
-    expect(header).toHaveTextContent(amount('USD', 900));
+    expect(header).toHaveTextContent('EUR12.50');
+    expect(header).toHaveTextContent('USD9.00');
   });
 
-  // TODO web-app RU02: the day heading's total is not rendered yet
-  it.skip('sums only the recorded entries into the total and says one entry awaits a decision', () => {
+  it('sums only the recorded entries into the total and says one entry awaits a decision', () => {
     const day = aDay({
       entries: [
         anExpense({
@@ -237,29 +228,119 @@ describe('the rendered day section', () => {
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).toHaveTextContent(amount('EUR', 800));
-    expect(header).not.toHaveTextContent(amount('EUR', 1700));
+    expect(header).toHaveTextContent('EUR8.00');
+    // 5.00 + 3.00 + 9.00 would read EUR17.00 if the pending entry were wrongly counted in.
+    expect(header).not.toHaveTextContent('EUR17.00');
     expect(header).toHaveTextContent('1 entry awaits a decision');
   });
 
-  it('shows no total and says one entry awaits a decision when the day holds only a pending entry', () => {
+  it('shows an entry’s money as amount, currency and separator joined in order, character for character', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      description: 'vending machine',
+      money: { amount: '900', currency: '¥', separator: '' },
+    });
+    const day = aDay({ entries: [entry] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /vending machine/i });
+    expect(within(item).getByText('¥900')).toBeInTheDocument();
+  });
+
+  it('shows an entry’s money with a one-space separator between a code label and its digits, and no other space', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      description: 'hotel',
+      money: { amount: '1,245.00', currency: 'CHF', separator: ' ' },
+    });
+    const day = aDay({ entries: [entry] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /hotel/i });
+    expect(within(item).getByText('CHF 1,245.00')).toBeInTheDocument();
+  });
+
+  it('shows the day heading’s figures in the order they were answered', () => {
     const day = aDay({
-      entries: [
-        anExpense({
-          id: 1,
-          status: 'PENDING',
-          description: 'taxi',
-          money: { amount: '9.00', currency: 'EUR', separator: '' },
-        }),
+      totals: [
+        { amount: '12.50', currency: '€', separator: '' },
+        { amount: '900', currency: '¥', separator: '' },
       ],
-      awaiting: 1,
-      totals: [],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).not.toHaveTextContent('€');
+    expect(header).toHaveTextContent('€12.50');
+    expect(header).toHaveTextContent('¥900');
+    expect(header.textContent!.indexOf('€12.50')).toBeLessThan(
+      header.textContent!.indexOf('¥900'),
+    );
+  });
+
+  it('shows the day heading’s figure with a one-space separator between a code label and its digits, and no other space', () => {
+    const day = aDay({
+      totals: [{ amount: '1,245.00', currency: 'CHF', separator: ' ' }],
+    });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+
+    const header = screen.getByRole('button');
+    expect(within(header).getByText('CHF 1,245.00')).toBeInTheDocument();
+  });
+
+  it('shows the figures it was last answered for a day, after a re-render replaces both', () => {
+    const day = aDay({
+      totals: [
+        { amount: '12.50', currency: '€', separator: '' },
+        { amount: '9.00', currency: '$', separator: '' },
+      ],
+    });
+
+    const { rerender } = render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    let header = screen.getByRole('button');
+    expect(header).toHaveTextContent('€12.50');
+    expect(header).toHaveTextContent('$9.00');
+
+    const updatedDay = aDay({
+      day: day.day,
+      totals: [
+        { amount: '20.00', currency: '£', separator: '' },
+        { amount: '5.00', currency: '¥', separator: '' },
+      ],
+    });
+
+    rerender(<ExpenseDaySection day={updatedDay} categoryNames={categoryNames} />);
+
+    header = screen.getByRole('button');
+    expect(header).toHaveTextContent('£20.00');
+    expect(header).toHaveTextContent('¥5.00');
+    expect(header).not.toHaveTextContent('€12.50');
+    expect(header).not.toHaveTextContent('$9.00');
+  });
+
+  it('shows no total and says one entry awaits a decision when the day holds only a pending entry', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'PENDING',
+      description: 'taxi',
+      money: { amount: '9.00', currency: 'EUR', separator: '' },
+    });
+    const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+
+    const header = screen.getByRole('button');
+    // The heading's figure comes only from the section's totals, never from an entry's own money — so
+    // with totals empty, neither half of the pending entry's money should appear in the header.
+    expect(header).not.toHaveTextContent(entry.money.currency);
+    expect(header).not.toHaveTextContent(entry.money.amount);
     expect(header).toHaveTextContent('1 entry awaits a decision');
   });
 
@@ -311,8 +392,7 @@ describe('the rendered day section', () => {
     expect(within(proposalItem).getByText('Pending')).toBeInTheDocument();
   });
 
-  // TODO web-app RU02: the entry row's amount is not rendered yet
-  it.skip('still shows the description, the merchant and the amount when the category is absent from the lookup, without leaking the id, null or undefined', () => {
+  it('still shows the description, the merchant and the amount when the category is absent from the lookup, without leaking the id, null or undefined', () => {
     const entry = anExpense({
       id: 1,
       status: 'RECORDED',
@@ -332,7 +412,7 @@ describe('the rendered day section', () => {
     const item = screen.getByRole('listitem', { name: /stamps/i });
     expect(item).toHaveTextContent('stamps');
     expect(item).toHaveTextContent('Post Office');
-    expect(item).toHaveTextContent(amount('EUR', 500));
+    expect(item).toHaveTextContent('EUR5.00');
     expect(item).not.toHaveTextContent('999');
     expect(item).not.toHaveTextContent(/null|undefined/i);
   });
