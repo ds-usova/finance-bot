@@ -295,6 +295,12 @@ which is this session's job on every finding anyway.
 Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
 produced it, and this session holds that reasoning.
 
+**A design going past a grill a second time goes back to the same agent**, with `SendMessage` to the `agentId`
+its first run answered with, saying what changed since. It keeps everything it read — the conventions, the
+sibling feature, the migrations — so it judges the new half instead of re-deriving the old one, and it knows what
+it already raised. Spawn a fresh agent only for the first pass, for a grill of a different kind, or when the
+first one is no longer reachable.
+
 ### Landing the Report
 
 **The grill writes nothing.** It reports, and this session — which wrote the design and therefore knows what is
