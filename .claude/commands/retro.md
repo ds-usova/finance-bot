@@ -6,82 +6,106 @@ argument-hint: [ optional focus, e.g. "permissions" or "the red phase" ]
 # Retro
 
 Look back over the session that just ran and write down what would make the next one faster and less interrupted.
-The output is a file of proposals; this skill changes nothing else.
 
-If an argument is given, it narrows the focus to that part of the session. Without one, the whole session is in
-scope.
+An argument narrows the focus to that part of the session. Without one, the whole session is in scope.
 
 ## 1. Gather Evidence
 
-Findings come from what the session actually did, not from a general sense of how it went. Before writing anything,
-collect:
+Findings come from what the session actually did, not from a general sense of how it went. Before writing
+anything, collect:
 
-- **Every approval the user was asked for**, and the command behind it. A prompt is a design defect somewhere —
-  in the permission rules, or in reaching for the shell where a tool would do.
+- **`docs/retro/DECISIONS.md`**, the ledger of what earlier retros settled, declined and left open. Read it
+  first, and read no other retro file. A subject with a line there is not filed again. It moves up a rung
+  because this session is new evidence, or it is dropped and its `Retros` column gains this session's number.
+  Say in the finding what is new.
+- **The previous retro's applied changes**, and whether this session exercised each one. A fix that shipped and
+  did not change the behaviour it was written for is the first finding to write up. Its next attempt starts a
+  rung above the one that failed.
+- **Every approval the user was asked for**, and the command behind it. A prompt is a defect in the permission
+  rules, or in reaching for the shell where a tool would do.
 - **Every correction the user made**, including the ones phrased as a question ("is that still going to work
-  if…?"). These are the most valuable input in the file; a correction that had to be made twice is the most
-  valuable of all.
-- **Commands that failed and were re-run** — wrong flag, wrong path, wrong platform, wrong assumption about output.
+  if…?"). These outrank every other kind of evidence, and one that had to be made twice outranks those.
+- **Commands that failed and were re-run**: wrong flag, wrong path, wrong platform, wrong assumption about output.
 - **Work that was redone**: a re-delegated sub-agent step, a file edited and then reverted, a decision reversed.
-- **`.claude/settings.local.json`** — entries added during the session are the literal record of what prompted.
+- **`.claude/settings.local.json`**. Entries added during the session are the literal record of what prompted.
 - **`git log`** for the session's commits, and the working tree, for churn a summary would smooth over.
-- If a plan ran: its `Open Questions / Blockers` and `Review Findings` — a blocker recorded mid-run is a question
+- **The task's `review/findings.md`**, if a task ran, for what the implementation left open. Each plan's
+  **Open Questions / Blockers** holds what the run settled instead, and a blocker settled mid-run is a question
   the planning stage should have asked.
 
 ## 2. What Counts as a Finding
 
 A finding must be **recurring, or expensive once**. A single wrong turn that cost half a minute is noise.
 
+**Choose the kind of fix before the file.** Take the highest rung that fits:
+
+1. **Remove the reason.** A tool is missing the option that makes the wrong form tempting. A documented command
+   cannot work as written. A permitted command is not in the allowlist. Fix that, and the rule has nothing left
+   to forbid.
+2. **Enforce it.** A hook, a deny rule, a check inside a script the workflow already runs.
+3. **Write it down.** A rule, placed by the test below.
+4. **Agent memory.** A habit of the agent that no repository file should carry.
+
+Rungs 2 and 4 divide by who pays. A mistake that costs only this operator time can live in memory. A mistake that
+can leave the repository broken for the next person belongs in a hook.
+
+**A rule that already exists and was ignored may not be restated.** It moves up a rung, or the finding is dropped.
+
+**Verify a finding against the file it blames.** Quote the line, or say the line is absent after reading it. An
+approval log says what was permitted, not what the rules lacked. Two observations that fit a theory are not
+evidence for it. Where the cause is not established, say so.
+
 Every finding **names the artifact to change** and what to put in it:
 
 | Layer                          | Owns                                                                   |
 |--------------------------------|------------------------------------------------------------------------|
 | `.claude/settings.json`        | What may run without asking, what must ask, what is denied.            |
+| `.claude/scripts/hooks/`       | A refusal that cannot be read and skipped.                             |
+| The repository's own tooling   | An option or a command that removes the reason to do it the wrong way. |
 | `.claude/commands/<skill>.md`  | Workflow — stage order, guardrails, what a sub-agent is told.          |
 | `.claude/agents/<agent>.md`    | What one sub-agent does with the context it is handed.                 |
+| Repository-wide conventions    | Facts true of the whole repository, not of one module.                 |
 | `<module>/docs/conventions.md` | Project rules the workflow reads: build commands, models, parallelism. |
 | `.claude/scripts/`             | Mechanics worth doing the same way every time.                         |
+| `.claude/templates/`           | Reference material a skill points at rather than carries.              |
 | Agent memory                   | Habits of the agent that no repo file should have to carry.            |
 
-A proposal that resolves to "be more careful" belongs to none of these layers and is not a finding — it is the
-class of suggestion that never takes effect. Rewrite it as a change to one of the five, or drop it.
+**Not a finding.** Each of these looks like one and takes effect nowhere:
 
-**Every skill the session used is in scope, not only the ones in this repository.** A skill invoked from a
-plugin, a marketplace, or anywhere else gets the same treatment: if it cost time, say so and say what would fix
-it. A skill whose file cannot be edited here still earns a finding — write what should change and where it would
-have to be raised, so the cost is visible rather than absorbed silently every session.
+- **It resolves to "be more careful."**
+- **The rule already has an owner.**
+- **It moves a label, not an outcome.** Ask what would have been different had the fix been in place.
+- **A safety net caught it, at its intended cost.**
 
-**Apply the placement test before naming the file.** Findings default to "add a sentence to the skill", which is
-how a skill reaches six hundred lines: every retro adds, none removes, and a rule added to a long file competes
-with hundreds of others for attention.
+Rewrite such a proposal as a change to one of the layers above, or drop it.
+
+**Every skill the session used is in scope**, including one invoked from a plugin or a marketplace. A skill whose
+file cannot be edited here still earns a finding: write what should change, and where it would have to be raised.
+
+**Include the agent's own mistakes**, not only tooling friction.
+
+**On rung 3, apply the placement test before naming the file.**
 
 - Does it change the **sequence** of work, or a guardrail between stages? → the skill.
 - Does it change what **one agent** does with the context handed to it? → that agent's file.
-- Is it a fact about **this repository** — its stack, its tests, its build? → module conventions.
+- Is it a fact about **this repository**, its stack, its tests, its build? → module conventions, or the
+  repository-wide ones where it holds for every module.
 - Is it a **habit of the agent** that no repository file should carry? → memory.
 
-Take the lowest row that fits. Conventions are read selectively per module and memory is one index line until
-recalled, so both cost far less standing context than a skill does. A skill edit is the last resort.
+Take the lowest row that fits. A skill edit is the last resort.
 
 **Additions to a long skill are paid for with extractions.** Past roughly 250 lines, a skill takes no new rule
-until something is extracted or merged. Reference material — format specifications, glossaries, worked examples —
-extracts cleanly to a file the skill points at; what must stay is the sequence, the guardrails, and the handoffs.
-
-Two more rules:
-
-- **Include the agent's own mistakes**, not only tooling friction. A misread instruction propagated into three
-  files is a finding, and its fix is usually a memory entry or a sharper sentence in a skill file.
-- **Do not re-file what the user has already decided against.** A rejected option is settled, not pending.
+until something is extracted or merged. Format specifications, glossaries and worked examples extract to a file
+the skill points at. The sequence, the guardrails and the handoffs stay.
 
 ## 3. Write the File
 
-Create `docs/retro/<n>-retro-<slug>.md`, where `<n>` is one more than the highest number already used by a
-`<number>-retro-*.md` file in that directory (starting at 1), and `<slug>` names what the session was about —
-`3-retro-green-phase-rework.md`.
+Create `docs/retro/<n>-retro-<slug>.md`. `<n>` is one more than the highest number prefixing any file in that
+directory, starting at 1. Count every numbered file, not only the ones spelled `-retro-`, or two files end up
+claiming one number. `<slug>` names what the session was about: `3-retro-green-phase-rework.md`.
 
-**The directory stays out of version control.** Before writing, confirm `docs/retro/` is excluded — check with
-`git check-ignore -q docs/retro`, and if it is not, add the line `docs/retro/` to `.git/info/exclude`. That file
-is per-clone and never committed, so retros stay local without the repository carrying an ignore rule for them.
+**The directory stays out of version control.** Before writing, check with `git check-ignore -q docs/retro`. If it
+is not ignored, add the line `docs/retro/` to `.git/info/exclude`, which is per-clone and never committed.
 
 Structure:
 
@@ -94,7 +118,7 @@ Structure:
 
 <Ranked list, worst first. Cost, not chronology.>
 
-## 1. <Finding>
+## 1. <Finding> · <STATUS, once it is settled>
 
 **What happened.** The evidence — the command, the message, how many times.
 
@@ -106,21 +130,29 @@ Structure:
 
 <Named, so a later change does not undo it by accident.>
 
+## Outcome
+
+<One row per finding: number, finding, layer, outcome — applied, declined, dropped or open.>
+
 ## Adoption order
 
 <Cheapest first, and what each unblocks.>
 ```
 
-Follow the repository's rules for writing docs. Rank findings by what they cost, not by how easy they are to fix,
-and keep the ranking honest — a permission prompt that fired twenty times outranks an elegant refactor of a script
-that works.
+The status word belongs in the heading as well as the table.
 
-## 4. Where This Stops
+Follow the repository's rules for writing docs. Rank findings by what they cost, not by how easy they are to fix.
 
-The retro **proposes**. It does not edit settings, skills, conventions, scripts, or memory, and it does not commit.
-End by listing the findings and asking which to apply — the answer is often "some of them", and which ones is the
-user's call.
+## 4. Propose, Then Apply
 
-If the user then asks for a change to be applied, record it in the retro file as done rather than deleting the
-finding: the file is the record of what was tried, and a finding struck through is more useful than one that
-vanished.
+The retro runs in two phases and never commits.
+
+**Propose.** Write the file. Change no settings, skill, convention, script or memory entry. End by listing the
+findings and asking which to apply.
+
+**Apply**, on request. Make the change, then stamp the finding: the status word into its heading, the outcome
+into the table. Never delete the finding or edit the problem statement above it.
+
+A finding that is settled, applied or declined, is written to `docs/retro/DECISIONS.md` in the same edit, if a
+later retro could plausibly file it again. One line, keyed by subject rather than by finding. A one-shot fix
+needs no line.
