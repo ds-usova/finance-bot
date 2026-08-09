@@ -18,6 +18,11 @@
   --pending-surface: oklch(0.945 0.035 300);
   --danger: oklch(0.5 0.17 27);
   --danger-surface: oklch(0.955 0.03 32);
+  /* The sign-in panel: a deep blue-to-violet, spanning the two hues the palette already uses rather than
+     bringing in a third. Deep in both themes, so what sits on it is light in both. */
+  --panel-from: oklch(0.5 0.16 262);
+  --panel-to: oklch(0.43 0.15 300);
+  --panel-foreground: oklch(0.985 0.012 280);
 }
 
 .dark {
@@ -34,6 +39,9 @@
   --pending-surface: oklch(0.32 0.06 295);
   --danger: oklch(0.8 0.12 27);
   --danger-surface: oklch(0.31 0.07 27);
+  --panel-from: oklch(0.34 0.11 262);
+  --panel-to: oklch(0.28 0.1 300);
+  --panel-foreground: oklch(0.97 0.01 280);
 }
 
 @theme inline {
@@ -49,6 +57,7 @@
   --color-pending-surface: var(--pending-surface);
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
+  --color-panel-foreground: var(--panel-foreground);
 }
 
 @theme {
