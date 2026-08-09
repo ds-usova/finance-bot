@@ -68,6 +68,7 @@ describe('the expenses page', () => {
 
     await userEvent.click(screen.getByRole('combobox', { name: /grouping/i }));
     expect(await screen.findByRole('option', { name: /Everyday/ })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
 
     await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
     expect(await screen.findByRole('option', { name: /Groceries/ })).toBeInTheDocument();

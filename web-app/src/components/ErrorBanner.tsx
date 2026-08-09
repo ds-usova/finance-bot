@@ -1,11 +1,9 @@
+import { Alert } from './ui/alert';
+
 export type ErrorBannerProps = {
   message: string;
 };
 
 export function ErrorBanner({ message }: ErrorBannerProps) {
-  return (
-    <p className="error" role="alert">
-      {message}
-    </p>
-  );
+  return <Alert>{message}</Alert>;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TelegramLoginButton } from '../components/TelegramLoginButton';
 import type { TelegramAuthPayload } from '../auth/types';
@@ -7,6 +8,7 @@ import { useAuth } from '../auth/useAuth';
 
 export function LoginPage() {
   const { status, signIn } = useAuth();
+  const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
 
   if (status === 'authenticated') {
@@ -20,9 +22,9 @@ export function LoginPage() {
 
   return (
     <>
-      <p>Sign in with the Telegram account you use for the bot.</p>
+      <p>{t('signIn.invitation')}</p>
       <TelegramLoginButton onAuth={handleAuth} />
-      {failed && <ErrorBanner message="That sign-in was not accepted. Please try again." />}
+      {failed && <ErrorBanner message={t('signIn.refused')} />}
     </>
   );
 }
