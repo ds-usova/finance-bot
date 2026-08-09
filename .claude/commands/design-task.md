@@ -286,9 +286,11 @@ Once every section above is written, spawn a grill against the design file. Use 
 | an API, a store, a message   | `grill-design`   |
 | a user interface             | `grill-frontend` |
 
-A change spanning both earns both, one after the other, and the second is told what the first raised so it does
-not raise it again. The two ask disjoint questions: a design run only past `grill-design` comes back clean on authorization
-and idempotency while nothing has asked what its screen does with an empty list or a name too long to fit.
+**A change spanning both earns both, spawned in one message and read together.** Neither writes, so neither waits
+on the other, and the numbers are assigned here in any case. The two ask disjoint questions: a design run only
+past `grill-design` comes back clean on authorization and idempotency while nothing has asked what its screen
+does with an empty list or a name too long to fit. Where both reports do raise one thing, it is written once —
+which is this session's job on every finding anyway.
 
 Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
 produced it, and this session holds that reasoning.
