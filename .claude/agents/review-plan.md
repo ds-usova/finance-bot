@@ -1,6 +1,7 @@
 ---
 name: review-plan
-description: Review an existing plan file against the real codebase (mechanical lint, boundary audit, test-scenario audit) and append findings to its Review Findings section. Spawn it with the plan file path; plan-task runs it automatically as its last step.
+description: Review an existing plan file against the real codebase (mechanical lint, boundary audit, test-scenario audit) and report its findings, each classified as mechanical or decision. Writes nothing; the session that spawned it records the outcome. Spawn it with the plan file path; plan-task runs it automatically as its last step.
+tools: Read, Grep, Glob, Bash
 ---
 
 # Review Plan
@@ -123,28 +124,22 @@ this section.
   exhaustive test iterates) that has no corresponding `update:` sub-bullet in the plan — step sub-agents implement
   only what is listed, so a missing `update:` bullet means the update never happens.
 
-## 3. Report Findings — Never Edit
+## 3. Report Back
 
-Report only. Do not modify production code, test code, or the plan's structure or sections — the only edit this
-skill makes to the plan file is writing its **Review Findings** section.
+This agent writes nothing. It has no file-writing tools, and the plan file is edited only by the session that
+spawned it. Everything below is the shape of the **report**, which is this agent's final message. Never touch
+production code or test code either.
 
-Append one entry per finding, in this exact format:
+Give one block per finding, numbered from `1` for this report alone. Never an `F` number: those belong to the
+plan file, and the session that owns it assigns them.
 
 ```
-- **F1:** [what's wrong or missing, with file/class/scenario reference]
-  - Resolution: mechanical | decision
-  - Action:
-
-- **F2:** [the next one]
-  - Resolution: …
+1. [what's wrong or missing, with file/class/scenario reference]
+   Resolution: mechanical | decision
+   Fix: [what to change — required for a mechanical finding, see below]
 ```
 
-**Nest `Resolution` and `Action` under the finding, and leave a blank line between findings.** Flat bullets
-render as one undifferentiated list, where a reader cannot see a finding begin or end.
-
-Findings are numbered `F1`, `F2`, … continuing past the highest number already in the section; a number is
-assigned once and never renumbered. Leave `Action:` empty — it records how the finding was resolved, and is
-written by whoever resolves it, never by this skill.
+State a finding once. A second finding that turns on the same fact says so and does not restate it.
 
 ### Classifying a finding
 
@@ -169,26 +164,19 @@ matter of taste is a `decision`.
 
 Those reshape the plan rather than correct it, and reshaping is the user's call.
 
-State the correct fix in the finding text either way. A `mechanical` finding whose text does not say what to
-change cannot be applied without guessing, which lands it back in front of the user for the wrong reason.
+State the correct fix in `Fix:` either way. A `mechanical` finding that does not say what to change cannot be
+applied without guessing, which lands it back in front of the user for the wrong reason.
 
-If nothing is wrong, still write the **Review Findings** section (or replace its placeholder, if invoked via the
-`plan-task` hook) with a single line stating no issues were found — its presence must be consistent across every
-plan, clean or not.
+If nothing is wrong, say so in one line. A review that reports nothing is indistinguishable from one that never
+ran.
 
 ## 4. Re-Reviews
 
 A plan is re-reviewed whenever it is materially edited after its first review (the `implement-plan` skill's
-plan-readiness gate triggers this). On a re-review — recognizable because **Review Findings** already contains
-entries:
+plan-readiness gate triggers this). The session says so when it spawns or resumes this agent, and the plan's
+**Review Findings** section shows what the last pass settled. On a re-review:
 
-- **Never modify or delete existing findings, their `Resolution:` lines, or their `Action:` lines** — they record
-  what was decided and what was already applied, and stay part of the plan's history even when the finding is now
-  resolved or obsolete.
-- Append a marker line `Re-review (<date>):` after the existing entries, then the new findings beneath it in the
-  same exact format, each carrying its own `Resolution:`. Judge the plan **as it now stands** — a previously
-  reported finding that still applies and was answered with a decision stands as decided; do not re-report it. A
-  `mechanical` finding whose `Action:` says it was applied is likewise settled: report only what the applied fix
-  got wrong, not the original finding again.
-- If the re-review finds nothing new, append `Re-review (<date>): no new issues.` instead — a re-review that
-  leaves no trace is indistinguishable from one that never ran.
+- Judge the plan **as it now stands**. A finding already answered with a decision stands as decided; do not
+  re-report it. One recorded as applied is likewise settled: report what the applied fix got wrong, never the
+  original finding again.
+- Raise only what is new. If nothing is, say `No new issues`.

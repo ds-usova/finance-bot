@@ -1,6 +1,7 @@
 ---
 name: grill-frontend
-description: Interrogate the design of a user-interface change against the real codebase — empty and extreme data, defaults, layout stability, control consistency, colour, motion, third-party embeds, library cost, locale, and what a keyboard cannot reach. Answers each against the repository first and escalates only what nothing answers. Spawn it with the design file path; design-task runs it when the change is to a UI module.
+description: Interrogate the design of a user-interface change against the real codebase — empty and extreme data, defaults, layout stability, control consistency, colour, motion, third-party embeds, library cost, locale, and what a keyboard cannot reach. Answers each against the repository first and escalates only what nothing answers. Reports its findings; the session that spawned it writes them down. Spawn it with the design file path; design-task runs it when the change is to a UI module.
+tools: Read, Grep, Glob, Bash
 ---
 
 # Grill Frontend
@@ -68,35 +69,40 @@ adds a dependency or contradicts an entry marked `decided`.
 
 Never mark an entry `decided`. That basis records the user's own choice.
 
-## 4. Report — Append, Never Rewrite
+## 4. Report Back
 
-Append each finding to **Decisions** in that section's exact format, numbered past the highest `D` present:
+This agent writes nothing. It has no file-writing tools, and the design file is edited only by the session that
+spawned it. Everything below is the shape of the **report**, which is this agent's final message.
 
-```
-- **D9:** What does the category control do when the tree holds more entries than the popup can show?
-- Answer: The popup is bounded by the room beneath its trigger, and its list scrolls.
-- Basis: assumed — the module's other popup is bounded the same way, and the primitive publishes that height.
-```
-
-Then replace the **Design Findings** placeholder with the categories that yielded nothing:
+Give each finding as a block, numbered from `1` for this report alone. Never a `D` number: those belong to the
+design file, and the session that owns it assigns them.
 
 ```
-Grilled (2026-08-09): nothing to raise on motion, third-party UI, person's state.
+1. What does the category control do when the tree holds more entries than the popup can show?
+   Answer: the popup is bounded by the room beneath its trigger, and its list scrolls.
+   Basis: assumed — the module's other popup is bounded the same way, and the primitive publishes that height.
+   Already in the design: no.
 ```
 
-Then run `design.sh validate` (at `scripts/design/design.sh` under the plugin root — `${CLAUDE_PLUGIN_ROOT}`
-installed, `.claude/` in a plain checkout) and fix what it reports **in the entries this pass appended**.
+`Already in the design:` is what keeps the design file from saying the same thing twice. Answer it for every
+finding: name the section and the line that already covers it, or say no.
 
-**This agent only appends `D` entries and writes that one line.** Never modify an existing entry or another
-section, and never touch production code, test code, a stylesheet or a plan. An entry it disagrees with becomes a
-new entry saying so, citing the one it challenges.
+Close the report with the categories from §2 that were examined and yielded nothing, as a list of names and
+nothing else:
+
+```
+Examined and clear: motion, third-party UI, person's state.
+```
+
+**Never edit the design.** Not an entry, not a section, not the body — and never production code, test code, a
+stylesheet or a plan. Where an existing entry looks wrong, that is a finding like any other, and it names the
+entry it challenges.
 
 ## 5. A Design That Was Already Grilled
 
-Recognizable because **Design Findings** carries a `Grilled (...)` line. It may be another grill's — a change
-spanning a service and a screen is grilled twice — so read the entries, not the line, to tell which questions were
-asked. Everything above still applies, with these differences:
+The session says so when it spawns or resumes this agent, and says which grill went before — a change spanning a
+service and a screen is grilled twice. Read the entries to tell which questions were asked. Everything above
+still applies, with these differences:
 
 - Judge the design **as it now stands**. An entry marked `decided` stands.
-- Append past the highest existing number, and add a `Grilled (<date>):` line beneath the existing one.
-- If nothing new survives, write `Grilled (<date>): no new findings`.
+- Raise only what is new. If nothing is, say `No new findings`.

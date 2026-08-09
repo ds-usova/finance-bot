@@ -213,5 +213,9 @@ One per branch of the flow above. `POST /widgets` is the only entry point.
 
 ## Design Findings
 
-Grilled (2026-07-30): nothing to raise on contract compat — the endpoint is new, so no existing caller sees a
-change.
+Grilled (2026-07-30): contract compat, limits, observability.
+
+| Raised                                          | Answered by                                      |
+|-------------------------------------------------|--------------------------------------------------|
+| What a second create with the same name does    | D4, which the endpoint table already states      |
+| Whether the widget list needs paging            | Proposed Solution — the list is one person's tree |

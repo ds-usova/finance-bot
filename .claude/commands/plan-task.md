@@ -422,8 +422,15 @@ plan is exactly that); without such a section, the default model.
 Never review the plan in this context instead — the reviewer must verify the plan's claims against the repository
 unbiased by the reasoning that produced them, and this session holds that reasoning.
 
-Merge its findings into the plan's **Review Findings** section, replacing the placeholder. Only then
-proceed to **6. Resolve the Mechanical Findings** below.
+**The reviewer writes nothing.** It reports, and this session writes its findings into the plan's **Review
+Findings** section, replacing the placeholder. Assign the `F` numbers here, past the highest already in the
+section — this session is the only one that knows them all. Carry each finding's `Resolution:` across unchanged:
+regrading the reviewer's verdict is what step 6 forbids, and it is no more allowed while transcribing it.
+
+A finding the plan already answers is written down anyway, with that answer as its `Action:`. The reviewer could
+not see it; the record of it being raised is what stops the next review raising it again.
+
+Only then proceed to **6. Resolve the Mechanical Findings** below.
 
 ## 6. Resolve the Mechanical Findings
 

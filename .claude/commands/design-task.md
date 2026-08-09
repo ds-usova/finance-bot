@@ -254,13 +254,23 @@ Run `validate` before invoking the grill, and both it and `settled` again before
 
 ### Design Findings
 
-Populated by the `grill-design` subagent in the next step — leave a placeholder while writing the rest. The grill
-appends new `D<n>` entries to **Decisions** and records here what it examined and found nothing on, so a later
-reader can tell an unasked question from a considered one:
+Written from the grill's report in the next step — leave a placeholder while writing the rest. It holds one line
+per grill, naming what was examined and found clear, so a later reader can tell an unasked question from a
+considered one:
 
 ```
-Grilled (<date>): [categories with no finding, in a line]
+Grilled (<date>): [categories with no finding, as a list of names]
 ```
+
+Beneath those lines, a table of what the grill raised and the design already answered — every finding that earned
+no entry, so a reader can see it was asked:
+
+| Raised                                | Answered by                       |
+|---------------------------------------|-----------------------------------|
+| [the question, in half a line]        | [the section or entry that holds it] |
+
+Both are lists, not prose. A finding that needs a paragraph to dismiss was not dismissed, and belongs in
+**Decisions**.
 
 See `.claude/templates/example-design.md` for a complete worked example of every section above.
 
@@ -276,15 +286,34 @@ Once every section above is written, spawn a grill against the design file. Use 
 | an API, a store, a message   | `grill-design`   |
 | a user interface             | `grill-frontend` |
 
-A change spanning both earns both, one after the other — the second sees the entries the first appended and adds
-to them. The two ask disjoint questions: a design run only past `grill-design` comes back clean on authorization
+A change spanning both earns both, one after the other, and the second is told what the first raised so it does
+not raise it again. The two ask disjoint questions: a design run only past `grill-design` comes back clean on authorization
 and idempotency while nothing has asked what its screen does with an empty list or a name too long to fit.
 
 Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
 produced it, and this session holds that reasoning.
 
-It appends its findings to **Decisions** as new entries and writes the
-**Design Findings** line.
+### Landing the Report
+
+**The grill writes nothing.** It reports, and this session — which wrote the design and therefore knows what is
+already in it — decides where each finding goes. Every finding lands in exactly one of three places, and never in
+two:
+
+| The finding                                                        | Lands as                                                        |
+|--------------------------------------------------------------------|------------------------------------------------------------------|
+| changes what the design says gets built                            | an edit to the body, and an entry only if a judgment call remains |
+| leaves a judgment call, a rejected alternative, or a deferral      | a `D` entry, in the **Decisions** format                          |
+| the repository answers, and the body already says so               | one row in the **Design Findings** table                          |
+
+**An answer the body already carries does not become an entry.** That is the whole reason the grill reports
+rather than writes: it cannot see whether the solution section three pages up already says what it just derived,
+and this session can. An entry that restates the body is the section's own bulk, and it is bulk nobody reads.
+
+Assign the `D` numbers here, past the highest already in the file — this session is the only one that knows them
+all. A finding challenging an existing entry becomes a *new* entry citing it; an existing entry is never
+rewritten, except to correct a claim a finding proved false.
+
+Then run `design.sh validate` and fix what it reports.
 
 ## 6. Put the Open Questions to the User — in One Batch
 
