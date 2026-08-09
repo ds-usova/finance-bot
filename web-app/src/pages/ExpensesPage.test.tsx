@@ -1,9 +1,11 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
+import { expandDays, listingArrives } from '../testing/accordion';
+import { chooseFromList } from '../testing/combobox';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
 
@@ -33,11 +35,13 @@ function inFlight() {
 }
 
 async function chooseGroceries() {
-  const categoryControl = await screen.findByRole('combobox', { name: /category/i });
-  await userEvent.selectOptions(
-    categoryControl,
-    await within(categoryControl).findByRole('option', { name: /Groceries/ }),
-  );
+  await chooseFromList(/^category/i, /Groceries/);
+}
+
+/** The listing arriving, then every section opened, for a test that asserts on the entries themselves. */
+async function listedEntries(): Promise<void> {
+  await listingArrives();
+  expandDays();
 }
 
 function renderPage(context: Partial<AuthContextValue> = {}) {
@@ -64,26 +68,23 @@ describe('the expenses page', () => {
   it('reads the listing, the categories and the groupings once and renders what they answered', async () => {
     renderPage();
 
-    expect(await screen.findByText('lunch')).toBeInTheDocument();
+    await listedEntries();
+    expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(listExpensesMock).toHaveBeenCalledOnce();
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
 
-    const groupingControl = screen.getByRole('combobox', { name: /grouping/i });
-    expect(within(groupingControl).getByRole('option', { name: /Everyday/ })).toBeInTheDocument();
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    expect(within(categoryControl).getByRole('option', { name: /Groceries/ })).toBeInTheDocument();
+    // Both reads reach the one list: the category is an entry in it, the grouping is the heading over it.
+    await userEvent.click(screen.getByRole('button', { name: /^category/i }));
+    expect(await screen.findByRole('option', { name: /Groceries/ })).toBeInTheDocument();
+    expect(screen.getByText('Everyday')).toBeInTheDocument();
   });
 
   it('repeats only the listing when the filter changes, keeping the tree it already holds', async () => {
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
@@ -105,13 +106,9 @@ describe('the expenses page', () => {
       .mockResolvedValueOnce(page)
       .mockRejectedValueOnce(new ApiError(400, 'from must be a date'));
     renderPage();
-    await screen.findByText('lunch');
+    await listedEntries();
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('from must be a date');
     expect(screen.getByText('lunch')).toBeInTheDocument();
@@ -157,6 +154,7 @@ describe('the expenses page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'the ledger is temporarily unavailable',
     );
+    expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
   });
@@ -169,13 +167,9 @@ describe('the expenses page', () => {
     });
     listExpensesMock.mockResolvedValue(firstPage);
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
@@ -194,15 +188,11 @@ describe('the expenses page', () => {
       }),
     );
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
 
-    const categoryControl = screen.getByRole('combobox', { name: /category/i });
-    await userEvent.selectOptions(
-      categoryControl,
-      within(categoryControl).getByRole('option', { name: /Groceries/ }),
-    );
+    await chooseGroceries();
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
@@ -217,7 +207,7 @@ describe('the expenses page', () => {
 
     renderPage();
     await chooseGroceries();
-    await screen.findByText('taxi');
+    await listedEntries();
 
     await act(async () => {
       left.answer(anExpensePage([anExpense({ id: 1, description: 'lunch' })]));
@@ -234,7 +224,7 @@ describe('the expenses page', () => {
 
     renderPage({ sessionExpired });
     await chooseGroceries();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     await act(async () => {
       left.refuse(new ApiError(401, 'no session'));
@@ -246,18 +236,8 @@ describe('the expenses page', () => {
 
   it('offers no pager when the listing answers everything the filter matches', async () => {
     renderPage();
-    await screen.findByText('lunch');
+    await listingArrives();
 
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
-  });
-
-  it('ends the session through the context when the sign-out control is used', async () => {
-    const signOut = vi.fn().mockResolvedValue(undefined);
-
-    renderPage({ signOut });
-    await screen.findByText('lunch');
-    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
-
-    expect(signOut).toHaveBeenCalledOnce();
   });
 });

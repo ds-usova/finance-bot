@@ -1,0 +1,50 @@
+/** The English catalogue. Every user-visible string the redesigned surfaces show lives here, namespaced by
+ * the surface that reads it. `i18next.d.ts` derives the key union from this file's shape. */
+export const en = {
+  shell: {
+    productName: 'Finance Bot',
+    themeToggle: 'Toggle color theme',
+    signOut: 'Sign out',
+  },
+  listing: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    entryCount_one: '{{count}} entry',
+    entryCount_other: '{{count}} entries',
+    awaitingCount_one: '{{count}} entry awaits a decision',
+    awaitingCount_other: '{{count}} entries await a decision',
+    statusPending: 'Pending',
+    empty: 'No expenses to show.',
+  },
+  filters: {
+    title: 'Filters',
+    category: 'Category',
+    searchCategories: 'Search categories',
+    noCategory: 'No category found.',
+    status: 'Status',
+    period: 'Recorded period',
+    periodAny: 'Any time',
+    periodClear: 'Clear the recorded period',
+    presetThisMonth: 'This month',
+    presetLastThirtyDays: 'Last 30 days',
+    presetThisYear: 'This year',
+    presetAllTime: 'All time',
+    reset: 'Reset filters',
+    all: 'All',
+    statusRecorded: 'Recorded',
+    statusPending: 'Pending',
+  },
+  paging: {
+    previous: 'Previous',
+    next: 'Next',
+    range: 'Showing {{from}}–{{to}} of {{total}}.',
+  },
+  signIn: {
+    heading: 'Sign in',
+    invitation: 'Sign in with the Telegram account you use for the bot.',
+    /** The browse use case's own "Why", so the panel states what the product does rather than a slogan. */
+    pitch: 'Everything the bot recorded, and everything still awaiting a decision, in one place.',
+    continueWith: 'Continue with',
+    refused: 'That sign-in was not accepted. Please try again.',
+  },
+} as const;

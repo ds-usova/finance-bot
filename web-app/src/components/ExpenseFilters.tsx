@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Category, ExpenseFilter, ExpenseStatus, Grouping } from '../api/expenses';
+import { CategoryFilter } from './CategoryFilter';
+import { PeriodFilter, type Period } from './PeriodFilter';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 export type ExpenseFiltersProps = {
   groupings: Grouping[];
@@ -9,6 +14,7 @@ export type ExpenseFiltersProps = {
 };
 
 const STATUSES: ExpenseStatus[] = ['PENDING', 'RECORDED'];
+const ALL = 'all';
 
 function withField<K extends keyof ExpenseFilter>(
   filter: ExpenseFilter,
@@ -24,28 +30,11 @@ function withField<K extends keyof ExpenseFilter>(
   return next;
 }
 
-function under(categories: Category[], groupingId: number | undefined): Category[] {
-  if (groupingId === undefined) {
-    return categories;
-  }
-  return categories.filter((category) => category.groupingId === groupingId);
-}
-
 export function ExpenseFilters({ groupings, categories, filter, onChange }: ExpenseFiltersProps) {
-  const [groupingId, setGroupingId] = useState<number | undefined>(undefined);
+  const { t } = useTranslation();
 
-  const chooseGrouping = (value: string) => {
-    const chosen = value === '' ? undefined : Number(value);
-    setGroupingId(chosen);
-    const selected = filter.categoryId;
-    const stays = under(categories, chosen).some((category) => category.id === selected);
-    if (selected !== undefined && !stays) {
-      onChange(withField(filter, 'categoryId', undefined));
-    }
-  };
-
-  const chooseCategory = (value: string) => {
-    onChange(withField(filter, 'categoryId', value === '' ? undefined : Number(value)));
+  const chooseCategory = (categoryId: number | undefined) => {
+    onChange(withField(filter, 'categoryId', categoryId));
   };
 
   const chooseStatus = (value: string) => {
@@ -53,75 +42,49 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
     onChange(withField(filter, 'status', status));
   };
 
-  const chooseDay = (key: 'from' | 'to', value: string) => {
-    onChange(withField(filter, key, value === '' ? undefined : value));
+  const choosePeriod = (period: Period) => {
+    onChange(withField(withField(filter, 'from', period.from), 'to', period.to));
+  };
+
+  const narrowed =
+    filter.status !== undefined || filter.categoryId !== undefined || filter.from !== undefined;
+
+  const reset = () => {
+    onChange({});
   };
 
   return (
-    <div className="expense-filters">
-      <div className="filter">
-        <label htmlFor="filter-grouping">Grouping</label>
-        <select
-          id="filter-grouping"
-          value={groupingId === undefined ? '' : String(groupingId)}
-          onChange={(event) => chooseGrouping(event.target.value)}
-        >
-          <option value="">All</option>
-          {groupings.map((grouping) => (
-            <option key={grouping.id} value={String(grouping.id)}>
-              {grouping.name}
-            </option>
-          ))}
-        </select>
+    <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3 sm:p-5">
+      {/* Always in the flow, whether or not it holds the reset: a row that comes and goes moves every
+          control under it the moment a filter is set. */}
+      <div className="flex min-h-9 items-center justify-between gap-4 sm:col-span-3">
+        <span className="text-sm font-medium text-muted-foreground">{t('filters.title')}</span>
+        {narrowed && (
+          <Button variant="ghost" className="h-auto px-2 py-1 text-sm font-normal" onClick={reset}>
+            {t('filters.reset')}
+          </Button>
+        )}
       </div>
-      <div className="filter">
-        <label htmlFor="filter-category">Category</label>
-        <select
-          id="filter-category"
-          value={filter.categoryId === undefined ? '' : String(filter.categoryId)}
-          onChange={(event) => chooseCategory(event.target.value)}
-        >
-          <option value="">All</option>
-          {under(categories, groupingId).map((category) => (
-            <option key={category.id} value={String(category.id)}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+      <CategoryFilter
+        groupings={groupings}
+        categories={categories}
+        categoryId={filter.categoryId}
+        onChange={chooseCategory}
+      />
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="filter-status">{t('filters.status')}</Label>
+        <Select value={filter.status ?? ALL} onValueChange={chooseStatus}>
+          <SelectTrigger id="filter-status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
+            <SelectItem value="RECORDED">{t('filters.statusRecorded')}</SelectItem>
+            <SelectItem value="PENDING">{t('filters.statusPending')}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div className="filter">
-        <label htmlFor="filter-status">Status</label>
-        <select
-          id="filter-status"
-          value={filter.status ?? ''}
-          onChange={(event) => chooseStatus(event.target.value)}
-        >
-          <option value="">All</option>
-          {STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="filter">
-        <label htmlFor="filter-from">Recorded from</label>
-        <input
-          id="filter-from"
-          type="date"
-          value={filter.from ?? ''}
-          onChange={(event) => chooseDay('from', event.target.value)}
-        />
-      </div>
-      <div className="filter">
-        <label htmlFor="filter-to">Recorded to</label>
-        <input
-          id="filter-to"
-          type="date"
-          value={filter.to ?? ''}
-          onChange={(event) => chooseDay('to', event.target.value)}
-        />
-      </div>
+      <PeriodFilter period={{ from: filter.from, to: filter.to }} onChange={choosePeriod} />
     </div>
   );
 }

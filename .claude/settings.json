@@ -54,6 +54,7 @@
       "Bash(npm audit:*)",
       "Bash(npm ci:*)",
       "Bash(npm install:*)",
+      "Bash(npm ls:*)",
       "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Edit(docs/**)",
@@ -155,6 +156,12 @@
             "if": "Bash(grep *)",
             "shell": "powershell",
             "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-grep-search.ps1')\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(git commit *)",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -Command \"& (Join-Path (git rev-parse --show-toplevel) '.claude/scripts/hooks/deny-pathspec-commit-with-untracked.ps1')\""
           },
           {
             "type": "command",

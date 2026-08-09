@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import type { AuthStatus, TelegramAuthPayload } from '../auth/types';
+import { en } from '../i18n/en';
+import { substituteCatalogue } from '../testing/catalogue';
 import { anAuthContext } from '../testing/fixtures';
 import { LoginPage } from './LoginPage';
 
@@ -37,6 +39,7 @@ describe('the sign-in page', () => {
     renderLogin('anonymous', async () => {});
 
     expect(screen.getByRole('region', { name: 'Telegram sign-in' })).toBeInTheDocument();
+    expect(screen.getByText(en.signIn.invitation)).toBeInTheDocument();
   });
 
   it('leaves for the home page once a session is open', () => {
@@ -60,6 +63,24 @@ describe('the sign-in page', () => {
 
     fireWidgetCallback({ id: 42 });
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.signIn.refused);
+  });
+
+  it('shows the catalogue’s text for the invitation offered to an anonymous visitor', () => {
+    substituteCatalogue();
+
+    renderLogin('anonymous', async () => {});
+
+    expect(screen.getByText(`‹${en.signIn.invitation}›`)).toBeInTheDocument();
+  });
+
+  it('shows the catalogue’s refusal wording when the widget calls back with a sign-in the context refuses', async () => {
+    substituteCatalogue();
+    const signIn = vi.fn().mockRejectedValue(new Error('refused'));
+    renderLogin('anonymous', signIn);
+
+    fireWidgetCallback({ id: 42 });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(`‹${en.signIn.refused}›`);
   });
 });

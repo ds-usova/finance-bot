@@ -1,9 +1,10 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 1004,
     // A tunnel presents its own hostname, which Vite refuses unless it is named here. A leading dot
@@ -34,6 +35,7 @@ export default defineConfig({
         'src/auth/types.ts',
         'src/**/*.test.{ts,tsx}',
         'src/api/generated/**',
+        'src/components/ui/**',
         'src/testing/**',
       ],
       thresholds: {

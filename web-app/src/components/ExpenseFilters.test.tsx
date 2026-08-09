@@ -1,8 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExpenseFilter } from '../api/expenses';
+import { substituteCatalogue } from '../testing/catalogue';
+import { chooseFromList, chooseOption } from '../testing/combobox';
 import { aCategory, aGrouping } from '../testing/fixtures';
 import { ExpenseFilters } from './ExpenseFilters';
 
@@ -53,68 +55,92 @@ function renderFilters(filter: ExpenseFilter = {}) {
   return { onChange, user };
 }
 
-function groupingControl(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Grouping' });
-}
-
 function categoryControl(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Category' });
+  return screen.getByRole('button', { name: /^category/i });
 }
 
 function statusControl(): HTMLElement {
   return screen.getByRole('combobox', { name: 'Status' });
 }
 
-function offeredCategoryNames(): string[] {
-  return within(categoryControl())
-    .getAllByRole('option')
-    .map((option) => option.textContent ?? '');
+function periodControl(): HTMLElement {
+  // Anchored: the control that clears the period is named "Clear the recorded period" and matches otherwise.
+  return screen.getByRole('button', { name: /^recorded period/i });
 }
 
+/** Clicks a day by its number in one of the two months the calendar shows, the first being the nearer. */
+async function chooseDay(user: ReturnType<typeof userEvent.setup>, month: 0 | 1, day: string) {
+  const grid = screen.getAllByRole('grid')[month];
+  await user.click(within(grid!).getByText(day));
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('the filter controls', () => {
-  it('offers every grouping and every category it was given, each by its accessible name', () => {
-    renderFilters();
+  it('offers every category it was given in one list, each by its accessible name', async () => {
+    const { user } = renderFilters();
 
-    const groupings = within(groupingControl());
-    expect(groupings.getByRole('option', { name: 'Everyday' })).toBeInTheDocument();
-    expect(groupings.getByRole('option', { name: 'Travel' })).toBeInTheDocument();
+    await user.click(categoryControl());
 
-    const categories = within(categoryControl());
-    expect(categories.getByRole('option', { name: 'Groceries' })).toBeInTheDocument();
-    expect(categories.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
-    expect(categories.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Groceries' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
   });
 
-  it('narrows the offered categories to the grouping chosen, without a second call', async () => {
-    const { onChange, user } = renderFilters();
+  it('heads each stretch of the list with the grouping its categories belong to', async () => {
+    const { user } = renderFilters();
 
-    await user.selectOptions(groupingControl(), String(everyday.id));
+    await user.click(categoryControl());
 
-    expect(offeredCategoryNames()).toContain('Groceries');
-    expect(offeredCategoryNames()).toContain('Rent');
-    expect(offeredCategoryNames()).not.toContain('Flights');
-    expect(onChange).not.toHaveBeenCalled();
+    await screen.findByRole('option', { name: 'Groceries' });
+    expect(screen.getByText('Everyday')).toBeInTheDocument();
+    expect(screen.getByText('Travel')).toBeInTheDocument();
+    // A heading names a stretch of the list; it is not something the person can choose.
+    expect(screen.queryByRole('option', { name: 'Everyday' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Travel' })).not.toBeInTheDocument();
   });
 
-  it('offers every category again when the grouping is cleared', async () => {
-    const { onChange, user } = renderFilters({ categoryId: flights.id });
+  it('narrows the list to what the search matches, by category name and by grouping name alike', async () => {
+    const { user } = renderFilters();
 
-    await user.selectOptions(groupingControl(), String(everyday.id));
+    await user.click(categoryControl());
+    await user.type(await screen.findByPlaceholderText('Search categories'), 'ren');
+
+    expect(screen.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Flights' })).not.toBeInTheDocument();
+
+    await user.clear(screen.getByPlaceholderText('Search categories'));
+    await user.type(screen.getByPlaceholderText('Search categories'), 'travel');
+
+    expect(screen.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Rent' })).not.toBeInTheDocument();
+  });
+
+  it('says so when the search matches no category', async () => {
+    const { user } = renderFilters();
+
+    await user.click(categoryControl());
+    await user.type(await screen.findByPlaceholderText('Search categories'), 'zzz');
+
+    expect(screen.getByText('No category found.')).toBeInTheDocument();
+  });
+
+  it('clears the category through the list’s own all entry', async () => {
+    const { onChange } = renderFilters({ categoryId: flights.id });
+
+    await chooseFromList(/^category/i, 'All');
 
     expect(onChange).toHaveBeenCalledWith({});
-
-    await user.selectOptions(groupingControl(), '');
-
-    expect(offeredCategoryNames()).toContain('Groceries');
-    expect(offeredCategoryNames()).toContain('Rent');
-    expect(offeredCategoryNames()).toContain('Flights');
-    expect(categoryControl()).toHaveValue('');
+    expect(categoryControl()).toHaveTextContent('All');
   });
 
   it('calls back with the chosen status, leaving the rest of the filter as it stood', async () => {
-    const { onChange, user } = renderFilters({ categoryId: groceries.id, from: '2026-08-01' });
+    const { onChange } = renderFilters({ categoryId: groceries.id, from: '2026-08-01' });
 
-    await user.selectOptions(statusControl(), 'RECORDED');
+    await chooseOption('Status', 'Recorded');
 
     expect(onChange).toHaveBeenCalledWith({
       categoryId: groceries.id,
@@ -123,19 +149,47 @@ describe('the filter controls', () => {
     });
   });
 
-  it('calls back with both days of the period entered', async () => {
+  it('calls back once with both days, only after the second is picked on the calendar', async () => {
+    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-01' });
+
+    await user.click(periodControl());
+    await chooseDay(user, 0, '10');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await chooseDay(user, 0, '20');
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ from: '2026-08-10', to: '2026-08-20' });
+  });
+
+  it('closes the calendar and names the period it settled on', async () => {
+    const { user } = renderFilters({ from: '2026-08-01', to: '2026-08-01' });
+
+    await user.click(periodControl());
+    await chooseDay(user, 0, '10');
+    await chooseDay(user, 0, '20');
+
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    // Both days fall in one year, so the year is carried once, at the end.
+    expect(periodControl()).toHaveTextContent('Aug 10 – Aug 20, 2026');
+  });
+
+  it('sets both days at once from a preset', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-08-09T10:00:00'));
     const { onChange, user } = renderFilters();
 
-    await user.type(screen.getByLabelText(/recorded from/i), '2026-08-01');
-    await user.type(screen.getByLabelText(/recorded to/i), '2026-08-31');
+    await user.click(periodControl());
+    await user.click(screen.getByRole('button', { name: 'This month' }));
 
-    expect(onChange).toHaveBeenLastCalledWith({ from: '2026-08-01', to: '2026-08-31' });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ from: '2026-08-01', to: '2026-08-09' });
   });
 
   it('calls back with the chosen category’s id', async () => {
-    const { onChange, user } = renderFilters();
+    const { onChange } = renderFilters();
 
-    await user.selectOptions(categoryControl(), String(groceries.id));
+    await chooseFromList(/^category/i, 'Groceries');
 
     expect(onChange).toHaveBeenCalledWith({ categoryId: groceries.id });
   });
@@ -143,8 +197,86 @@ describe('the filter controls', () => {
   it('labels the period by when a row was recorded, not by when the money was spent', () => {
     renderFilters();
 
-    expect(screen.getByLabelText(/recorded from/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/recorded to/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/spent/i)).not.toBeInTheDocument();
+    expect(periodControl()).toBeInTheDocument();
+    expect(screen.queryByText(/spent/i)).not.toBeInTheDocument();
+  });
+
+  it('names no period until one is set', () => {
+    renderFilters();
+
+    expect(periodControl()).toHaveTextContent('Any time');
+  });
+
+  it('calls back once with neither day when the period is cleared', async () => {
+    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
+
+    await user.click(screen.getByRole('button', { name: /clear the recorded period/i }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({});
+    expect(periodControl()).toHaveTextContent('Any time');
+  });
+
+  it('offers no way to clear a period that was never set', () => {
+    renderFilters();
+
+    expect(
+      screen.queryByRole('button', { name: /clear the recorded period/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears both days at once from the all-time preset', async () => {
+    const { onChange, user } = renderFilters({ from: '2026-08-01', to: '2026-08-31' });
+
+    await user.click(periodControl());
+    await user.click(screen.getByRole('button', { name: 'All time' }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({});
+  });
+
+  it('offers a reset once a filter is set, and clears every one of them', async () => {
+    const { onChange, user } = renderFilters();
+
+    expect(screen.queryByRole('button', { name: 'Reset filters' })).not.toBeInTheDocument();
+
+    await chooseOption('Status', 'Recorded');
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    expect(onChange).toHaveBeenLastCalledWith({});
+    expect(statusControl()).toHaveTextContent('All');
+    expect(screen.queryByRole('button', { name: 'Reset filters' })).not.toBeInTheDocument();
+  });
+
+  it('reads the status options as labels, Recorded and Pending, rather than the shouted wire value', async () => {
+    const { user } = renderFilters();
+
+    await user.click(statusControl());
+
+    expect(await screen.findByRole('option', { name: 'Recorded' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Pending' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'RECORDED' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'PENDING' })).not.toBeInTheDocument();
+  });
+
+  it('shows the catalogue’s substituted text for every label and every option', async () => {
+    substituteCatalogue();
+
+    const { user } = renderFilters();
+
+    expect(screen.getByText('‹Filters›')).toBeInTheDocument();
+    expect(screen.getByText('‹Category›')).toBeInTheDocument();
+    expect(screen.getByText('‹Status›')).toBeInTheDocument();
+    expect(screen.getByText('‹Recorded period›')).toBeInTheDocument();
+    expect(screen.getByText('‹Any time›')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /‹Category›/ }));
+    expect(await screen.findByPlaceholderText('‹Search categories›')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '‹All›' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('combobox', { name: '‹Status›' }));
+    expect(await screen.findByRole('option', { name: '‹Recorded›' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '‹Pending›' })).toBeInTheDocument();
   });
 });

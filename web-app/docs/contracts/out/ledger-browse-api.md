@@ -16,24 +16,29 @@ The session this module holds is a different interface on the same transport —
 
 ## What It Sends, and When
 
-| When                    | It sends                                   | Answered by                                                                        |
-|-------------------------|--------------------------------------------|------------------------------------------------------------------------------------|
-| The expenses page opens | a read of the listing, carrying no filter  | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)     |
-| The expenses page opens | a read of every category                   | [Browse categories](../../../../ledger-service/docs/usecases/browse-categories.md) |
-| The expenses page opens | a read of every grouping                   | [Browse groupings](../../../../ledger-service/docs/usecases/browse-groupings.md)   |
-| A filter is changed     | a read of the listing, carrying the filter | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)     |
+| When                                   | It sends                                   | Answered by                                                                        |
+|----------------------------------------|--------------------------------------------|------------------------------------------------------------------------------------|
+| The expenses page opens                | a read of the listing, carrying no filter  | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)     |
+| The expenses page opens                | a read of every category                   | [Browse categories](../../../../ledger-service/docs/usecases/browse-categories.md) |
+| The expenses page opens                | a read of every grouping                   | [Browse groupings](../../../../ledger-service/docs/usecases/browse-groupings.md)   |
+| A filter other than the period changes | a read of the listing, carrying the filter | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)     |
+| The period is completed or cleared     | a read of the listing, carrying the filter | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)     |
+| One day of the period is set alone     | nothing                                    | —                                                                                  |
 
 The listing carries only the filter fields that are set, so a field left unset is the ledger's default rather than
-an explicit value. The category read never narrows by grouping — this module asks for the whole tree once and
-narrows it in the page.
+an explicit value. The period is the exception: `from` and `to` go together or not at all, because the ledger
+refuses a lone day. The category read never narrows by grouping — this module asks for the whole tree once and
+holds it for the life of the page.
 
 Every request carries cookies. None is a write, so none carries the CSRF token.
 
 ## What It Does With the Answer
 
-- **The listing**: rendered as it came, in the order it came, with its total.
+- **The listing**: rendered in the order it came, cut into days in the page, with its total driving the pager.
 - **The categories**: held for the life of the page. They name each row's category and fill the category control.
-- **The groupings**: fill the grouping control, which narrows the categories offered and is never sent.
+- **The groupings**: order the sections of the category list and name their headings. A heading cannot be
+  chosen, so a grouping is never sent. Each category already carries its grouping's name; this read decides the
+  order the groupings appear in, which the categories alone do not fix.
 - Nothing is cached across page loads. A reload reads all three again.
 
 ## When the Call Fails

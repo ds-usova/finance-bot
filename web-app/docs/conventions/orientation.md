@@ -5,18 +5,21 @@ shell behind that sign-in.
 
 ## Tech Stack
 
-| Concern       | Choice                                     |
-|---------------|--------------------------------------------|
-| Language      | TypeScript, `strict`                       |
-| UI            | React 19, function components              |
-| Routing       | React Router                               |
-| Build & dev   | Vite                                       |
-| Tests         | Vitest, Testing Library, jsdom             |
-| Lint & format | ESLint, Prettier                           |
-| Served by     | nginx, which also proxies the ledger's API |
+| Concern       | Choice                                                      |
+|---------------|-------------------------------------------------------------|
+| Language      | TypeScript, `strict`                                        |
+| UI            | React 19, function components                               |
+| Routing       | React Router                                                |
+| Styling       | Tailwind CSS v4                                             |
+| UI components | shadcn/ui components, copied in as source the module owns   |
+| Strings       | `react-i18next`, one English catalogue that types every key |
+| Build & dev   | Vite                                                        |
+| Tests         | Vitest, Testing Library, jsdom                              |
+| Lint & format | ESLint, Prettier                                            |
+| Served by     | nginx, which also proxies the ledger's API                  |
 
-State management, styling and data fetching each have a deliberate answer rather than a library: state is React
-context, styling is one hand-written stylesheet, and fetching is the module's own client over `fetch`.
+State management and data fetching each have a deliberate answer rather than a library: state is React context,
+and fetching is the module's own client over `fetch`.
 
 ## Systems It Talks To
 

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense, anExpensePage } from '../testing/fixtures';
 import { Pager } from './Pager';
 
@@ -62,5 +63,15 @@ describe('the pager', () => {
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /previous/i })).toBeEnabled();
     expect(screen.queryByText(/of 6/)).not.toBeInTheDocument();
+  });
+
+  it('shows the catalogue’s substituted text for both controls and the range sentence, with the numbers interpolated into it', () => {
+    substituteCatalogue();
+
+    render(<Pager page={aPage({ limit: 2, offset: 2, total: 6 })} onOffset={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: '‹Previous›' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '‹Next›' })).toBeInTheDocument();
+    expect(screen.getByText('‹Showing 3–4 of 6.›')).toBeInTheDocument();
   });
 });

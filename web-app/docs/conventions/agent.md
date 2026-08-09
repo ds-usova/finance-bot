@@ -37,11 +37,16 @@ module, and the suite runs under jsdom without starting a container.
 
 What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md).
 
-A plan carries one of those kinds in its **Post-Implementation Steps** group:
+A plan carries these kinds in its **Post-Implementation Steps** group:
 
 - **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+- **Manual review** — one item, whenever the plan touches anything under
+  [What the Suite Cannot See](testing.md#what-the-suite-cannot-see). It starts the app and hands it over, naming
+  the screens and the states to look at. The list is the design's, recorded there by `grill-frontend`; the item
+  carries it rather than inventing it.
 
-The approval is a numbered open question in the plan, and only an answered `yes` becomes an item.
+An ADR's approval is a numbered open question in the plan, and only an answered `yes` becomes an item. A manual
+review needs no approval: the plan cannot claim a screen is right on the strength of a suite that cannot see it.
 
 ## Reaching for a Tunnel
 

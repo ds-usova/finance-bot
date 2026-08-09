@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { substituteCatalogue } from '../testing/catalogue';
 import { anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpenseList } from './ExpenseList';
 
@@ -8,111 +10,73 @@ const categoryNames = new Map([
   [20, 'Transport'],
 ]);
 
-function rowTexts(): string[] {
-  return screen.getAllByRole('row').map((row) => row.textContent ?? '');
+function threeDaysOfEntries() {
+  return [
+    anExpense({
+      id: 1,
+      description: 'coffee',
+      amountMinorUnits: 300,
+      currency: 'EUR',
+      createdAt: '2026-08-01T09:00:00Z',
+    }),
+    anExpense({
+      id: 2,
+      description: 'lunch',
+      amountMinorUnits: 500,
+      currency: 'EUR',
+      createdAt: '2026-08-02T09:00:00Z',
+    }),
+    anExpense({
+      id: 3,
+      description: 'taxi',
+      amountMinorUnits: 900,
+      currency: 'EUR',
+      createdAt: '2026-08-03T09:00:00Z',
+    }),
+  ];
 }
 
 describe('the expense list', () => {
-  it('renders a row per entry, in the order the page gives them, showing what each holds', () => {
-    const lunch = anExpense({
-      id: 1,
-      status: 'RECORDED',
-      categoryId: 10,
-      description: 'lunch',
-      amountMinorUnits: 1250,
-      currency: 'EUR',
-    });
-    const taxi = anExpense({
-      id: 2,
-      status: 'PENDING',
-      categoryId: 20,
-      description: 'taxi',
-      merchant: 'City Cabs',
-      amountMinorUnits: 900,
-      currency: 'EUR',
-    });
+  it('groups a page of entries recorded across three UTC days into three sections, all closed', () => {
+    render(
+      <ExpenseList page={anExpensePage(threeDaysOfEntries())} categoryNames={categoryNames} />,
+    );
 
-    render(<ExpenseList page={anExpensePage([lunch, taxi])} categoryNames={categoryNames} />);
-
-    const texts = rowTexts();
-    const lunchAt = texts.findIndex((text) => text.includes('lunch'));
-    const taxiAt = texts.findIndex((text) => text.includes('taxi'));
-    expect(lunchAt).toBeGreaterThanOrEqual(0);
-    expect(taxiAt).toBeGreaterThan(lunchAt);
-
-    const lunchRow = screen.getByRole('row', { name: /lunch/ });
-    expect(lunchRow).toHaveTextContent('12.50');
-    expect(lunchRow).toHaveTextContent('EUR');
-    expect(lunchRow).toHaveTextContent(/recorded/i);
-    expect(lunchRow).toHaveTextContent('Groceries');
-
-    const taxiRow = screen.getByRole('row', { name: /taxi/ });
-    expect(taxiRow).toHaveTextContent('9.00');
-    expect(taxiRow).toHaveTextContent('EUR');
-    expect(taxiRow).toHaveTextContent(/pending/i);
-    expect(taxiRow).toHaveTextContent('Transport');
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.queryByText('coffee')).not.toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+    expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 
-  it('leaves the category unnamed when the lookup does not answer it, rather than failing', () => {
-    const orphan = anExpense({
-      id: 3,
-      categoryId: 99,
-      description: 'stamps',
-      amountMinorUnits: 500,
-      currency: 'EUR',
-    });
+  it('opens one section on its own, leaving the other two closed', async () => {
+    const user = userEvent.setup();
 
-    render(<ExpenseList page={anExpensePage([orphan])} categoryNames={categoryNames} />);
+    render(
+      <ExpenseList page={anExpensePage(threeDaysOfEntries())} categoryNames={categoryNames} />,
+    );
 
-    const row = screen.getByRole('row', { name: /stamps/ });
-    expect(row).toHaveTextContent('5.00');
-    expect(row).toHaveTextContent('EUR');
-    expect(row).not.toHaveTextContent('Groceries');
-    expect(row).not.toHaveTextContent('99');
+    const headers = screen.getAllByRole('button');
+    expect(headers).toHaveLength(3);
+    // toDaySections orders newest first, so the first header is 2026-08-03's, holding "taxi".
+    await user.click(headers[0]!);
+
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+    expect(screen.queryByText('coffee')).not.toBeInTheDocument();
   });
 
-  it('renders an entry with no merchant without an empty field in its place', () => {
-    const coffee = anExpense({
-      id: 4,
-      categoryId: 10,
-      description: 'coffee',
-      merchant: 'Corner Cafe',
-      amountMinorUnits: 300,
-    });
-    const stamps = anExpense({
-      id: 5,
-      categoryId: 10,
-      description: 'stamps',
-      merchant: null,
-      amountMinorUnits: 500,
-    });
+  it('shows the catalogue’s substituted text for the empty state, once the catalogue is swapped', () => {
+    substituteCatalogue();
 
-    render(<ExpenseList page={anExpensePage([coffee, stamps])} categoryNames={categoryNames} />);
+    render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
 
-    expect(screen.getByRole('row', { name: /coffee/ })).toHaveTextContent('Corner Cafe');
-
-    const row = screen.getByRole('row', { name: /stamps/ });
-    expect(row).toHaveTextContent('5.00');
-    expect(row).not.toHaveTextContent(/null|undefined/);
-  });
-
-  it('tells two entries apart when a recorded one and a pending one carry the same id', () => {
-    const complaints = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const recorded = anExpense({ id: 1, status: 'RECORDED', description: 'lunch' });
-    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
-
-    render(<ExpenseList page={anExpensePage([recorded, pending])} categoryNames={categoryNames} />);
-
-    expect(screen.getByRole('row', { name: /lunch/ })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /taxi/ })).toBeInTheDocument();
-    expect(complaints).not.toHaveBeenCalled();
-
-    complaints.mockRestore();
+    expect(screen.getByRole('alert')).toHaveTextContent('‹No expenses to show.›');
   });
 
   it('says there is nothing to show when the page holds no entries', () => {
     render(<ExpenseList page={anExpensePage([], { total: 0 })} categoryNames={categoryNames} />);
 
-    expect(screen.getByText(/no expenses/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No expenses to show.');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
