@@ -7,8 +7,12 @@ src/
   api/          the only place fetch is called
   auth/         session state, its types and the route guard
   components/   presentational components, reusable across pages
+    ui/         the shadcn/ui components, copied in as source
+  i18n/         the i18next instance, the English catalogue and the key type derived from it
+  lib/          the class-name helper every components/ui/ component imports
   pages/        one component per route, composing the rest
   testing/      fixtures the tests share, built by hand and never imported by production code
+  theme/        the light or dark choice: resolved, applied to the document, stored
   routes.tsx    the route table
   App.tsx       the provider and router shell
   main.tsx      the mount point
@@ -22,13 +26,18 @@ src/
   nothing else in the tree.
 - **A component in `components/` is presentational.** It takes what it renders as props and calls back through
   props. It does not read the auth context.
+- **A pure helper sits in `components/` too**, beside the components that render through it. `lib/` holds one
+  thing: the class-name helper every `components/ui/` component imports.
 - **A page composes.** Reading context, calling `api/`, and deciding what to render belong to `pages/`.
+- **The shell is a page.** `pages/AppShell.tsx` is the layout element every route renders inside. It reads the
+  session to decide whether the sign-out control is shown.
 - **Session state has one owner**, the auth context. Nothing else stores who is signed in.
 
 ## Naming
 
 - A file is named for the thing it exports, in the case that thing uses: `TelegramLoginButton.tsx`,
   `useAuth.ts`, `client.ts`.
+- A file under `components/ui/` keeps the lower-case name shadcn/ui gives it: `button.tsx`, `select.tsx`.
 - A test sits beside the file it covers, as `<file>.test.ts` or `<file>.test.tsx`.
 
 ## Diagrams
