@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/19-redesign-the-web-app/plan.md",
+  "commit": "ed4c573",
+  "branch": "feature/frontend-library-update",
+  "workingTree": "clean",
+  "generated": "2026-08-09T01:02:47Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 91, "passed": 91, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 847, "passed": 847, "failed": 0, "skipped": 0, "instructions": "98.9%", "branches": "97.1%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 133, "passed": 133, "failed": 0, "skipped": 0, "instructions": "99.7%", "branches": "96.9%", "minimum": "80%", "format": "clean"}
+  ]
+}
