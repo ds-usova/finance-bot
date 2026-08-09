@@ -266,8 +266,19 @@ See `.claude/templates/example-design.md` for a complete worked example of every
 
 ## 5. Invoke the Grill Subagent
 
-Once every section above is written, spawn the **`grill-design` agent** against the design file. Use the model the
-module conventions' **Sub-Agent Models** section names for deciding work; without such a section, the default model.
+Once every section above is written, spawn a grill against the design file. Use the model the module conventions'
+**Sub-Agent Models** section names for deciding work; without such a section, the default model.
+
+**Which grill depends on what the change touches**, read from each affected module's conventions:
+
+| The module serves            | Spawn            |
+|------------------------------|------------------|
+| an API, a store, a message   | `grill-design`   |
+| a user interface             | `grill-frontend` |
+
+A change spanning both earns both, one after the other — the second sees the entries the first appended and adds
+to them. The two ask disjoint questions: a design run only past `grill-design` comes back clean on authorization
+and idempotency while nothing has asked what its screen does with an empty list or a name too long to fit.
 
 Never grill the design in this context instead — the agent must judge the file as written, not the reasoning that
 produced it, and this session holds that reasoning.
