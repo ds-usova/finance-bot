@@ -92,7 +92,9 @@ components:
             between the two makes them disagree by one.
         dayTotals:
           type: array
-          description: One element per UTC day the answered page covers, newest first.
+          description: >-
+            One element per UTC day of the answered page that recorded something, newest first. A day whose
+            entries are all pending proposals is absent rather than present and empty.
           items:
             $ref: '#/components/schemas/DayTotal'
       required:

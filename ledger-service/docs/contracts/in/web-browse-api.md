@@ -30,8 +30,6 @@ What the specification cannot say.
   that scope. An id belonging to somebody else matches nothing rather than being refused.
 - **Reads carry no CSRF token and need none.** They still hand out the token cookie, which is what
   [the session API](web-session-api.md)'s writes require.
-- **Money crosses as rendered text, and a caller parses none of it.** An entry's `money` and a day total's
-  `amounts` each arrive in parts, shown in the order `currency`, `separator`, `amount`.
 - **Rendering is English for every caller.** No locale is negotiated, and no request offers one.
 - Every read is repeatable and stores nothing.
 

@@ -26,16 +26,15 @@
 Both kinds carry the same parts, and the [status](../domain/expense-status.md) tells them apart. A category
 arrives as an id; [the category listing](browse-categories.md) names it.
 
-Every entry carries its own figure, already rendered. Money leaves as text, never as a number.
+Every entry carries its own figure, already rendered.
 
 ### The day figures
 
-- One per UTC day of the answered page that holds a recorded entry. A day holding none carries no figures at all.
-- One figure per currency within a day, ordered by currency code. Nothing is converted between currencies.
-- A pending entry carries its own figure and counts towards no day figure.
-- A figure covers the answered page alone. A day split by the page boundary is figured on each page.
+What the [specification](../../../openapi/ledger-api.yaml) does not fix:
+
+- A figure covers the answered page alone, so a day split by the page boundary is figured on each page.
 - A narrowed filter narrows the figures. A listing of one category figures that category alone.
-- Days arrive newest first.
+- A pending entry counts towards no day figure, though it carries a figure of its own.
 
 ## Collaborators
 

@@ -18,28 +18,18 @@ the expenses client.*
 
 ## Rules
 
-- Opening the page reads the listing, the categories and the groupings. Changing a filter reads the listing
-  again; the tree is read once.
-- A filter field left unset is not sent, so the ledger applies its own default for it.
-- The period is sent as a complete pair or as neither day. Setting or clearing one day on its own sends nothing.
-- The period narrows by when a row was recorded, not when the money was spent.
-- A row is named from the category list, matched by id. A category the list does not answer leaves it blank.
-- A grouping heads the stretch of categories that belong to it and cannot be chosen. It is not a listing filter
-  and never reaches the ledger; only a category does.
-- The answered page is cut into UTC days here, by the UTC day a row was recorded on.
-- A day's entry count and its awaiting badge are counted here.
-- A day's figures come from the ledger, looked up by that same UTC day key.
-- A day the ledger answered no figure for shows none.
-- A figure is shown as answered: the currency, then the separator, then the amount.
-- Nothing is inserted between the three parts, and none of them is parsed.
-- The order a day's figures appear in is the ledger's, by currency code.
-- A day split by the page boundary appears on both pages. Each part counts only its own entries.
-- The listing is read with the ledger's own page size. Paging steps by the size it answered with.
-- Changing a filter returns to the first page.
+What this page decides, rather than the ledger. What each read takes and answers is
+[the browse API](../contracts/out/ledger-browse-api.md)'s.
+
+- The answered page is cut into UTC days here, by the UTC day a row was recorded on, and each day's entry count
+  and awaiting badge are counted here. A day's figures are the ledger's, looked up by that same day key and left
+  in the order it answered them.
+- A day split by the page boundary appears on both pages, each part counting only its own entries.
+- A row is named from the category list, matched by id.
+- Paging steps by the page size the ledger answered with, never one this page chose.
 - Only the newest listing read reaches the screen. A slower one answering after its filter was left is dropped,
   and so is its refusal.
-- A refusal for want of a session drops the session to anonymous, from any of the three reads. The ledger is
-  told nothing.
+- A refusal for want of a session drops the session to anonymous. The ledger is told nothing.
 
 ## Outcomes
 

@@ -35,8 +35,7 @@ Every request carries cookies. None is a write, so none carries the CSRF token.
 ## What It Does With the Answer
 
 - **The listing**: rendered in the order it came, cut into days in the page, with its total driving the pager.
-- **Every figure**: shown as the ledger rendered it. The currency, the separator and the amount join in that
-  order, and none of the three is parsed or reformatted here.
+- **Every figure**: shown as the ledger rendered it. None of its parts is parsed or reformatted here.
 - **The day figures**: matched to the day sections by the UTC day each names. A day answered no figure shows
   none.
 - **The categories**: held for the life of the page. They name each row's category and fill the category control.
