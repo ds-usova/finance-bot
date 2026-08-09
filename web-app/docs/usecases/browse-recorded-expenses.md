@@ -10,11 +10,11 @@ the expenses client.*
 
 ## Collaborators
 
-| Direction | Collaborator                                             | Through                                                 | For                                                             |
-|-----------|----------------------------------------------------------|---------------------------------------------------------|-----------------------------------------------------------------|
-| in        | [A signed-in person's browser](sign-in-with-telegram.md) | the expenses page                                       | seeing what the ledger holds for them                           |
-| out       | [Ledger Service](../contracts/out/ledger-browse-api.md)  | [the browse API](../contracts/out/ledger-browse-api.md) | the entries, and the categories and groupings behind the filter |
-| out       | [Sign in with Telegram](sign-in-with-telegram.md)        | [the session state it owns](sign-in-with-telegram.md)   | dropping to anonymous on a refused read                         |
+| Direction | Collaborator                                             | Through                                                 | For                                                                                 |
+|-----------|----------------------------------------------------------|---------------------------------------------------------|-------------------------------------------------------------------------------------|
+| in        | [A signed-in person's browser](sign-in-with-telegram.md) | the expenses page                                       | seeing what the ledger holds for them                                               |
+| out       | [Ledger Service](../contracts/out/ledger-browse-api.md)  | [the browse API](../contracts/out/ledger-browse-api.md) | the entries, each day's figures, and the categories and groupings behind the filter |
+| out       | [Sign in with Telegram](sign-in-with-telegram.md)        | [the session state it owns](sign-in-with-telegram.md)   | dropping to anonymous on a refused read                                             |
 
 ## Rules
 
@@ -26,9 +26,14 @@ the expenses client.*
 - A row is named from the category list, matched by id. A category the list does not answer leaves it blank.
 - A grouping heads the stretch of categories that belong to it and cannot be chosen. It is not a listing filter
   and never reaches the ledger; only a category does.
-- The answered page is cut into UTC days here. The ledger is never asked to group or total by day.
-- A day's figure sums that day's recorded entries only, one figure per currency, nothing converted.
-- A day split by the page boundary appears on both pages. Each part counts and totals only its own entries.
+- The answered page is cut into UTC days here, by the UTC day a row was recorded on.
+- A day's entry count and its awaiting badge are counted here.
+- A day's figures come from the ledger, looked up by that same UTC day key.
+- A day the ledger answered no figure for shows none.
+- A figure is shown as answered: the currency, then the separator, then the amount.
+- Nothing is inserted between the three parts, and none of them is parsed.
+- The order a day's figures appear in is the ledger's, by currency code.
+- A day split by the page boundary appears on both pages. Each part counts only its own entries.
 - The listing is read with the ledger's own page size. Paging steps by the size it answered with.
 - Changing a filter returns to the first page.
 - Only the newest listing read reaches the screen. A slower one answering after its filter was left is dropped,
@@ -63,7 +68,7 @@ User -> Page : opens the app
 Page -> Ledger : read the listing, the categories and the groupings
 
 alt every read is answered
-  Ledger --> Page : the entries and the tree
+  Ledger --> Page : the entries, the day figures and the tree
   Page -> Page : cut the answered page into UTC days
   Page --> User : the day sections and the filter controls
 else a read is refused for want of a session
