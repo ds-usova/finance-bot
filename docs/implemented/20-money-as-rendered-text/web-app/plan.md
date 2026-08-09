@@ -144,7 +144,7 @@ right-aligned and last in its row.
 
 #### Manual Review
 
-- [ ] P01 · Start the app and hand it over, naming what to look at · scenarios: A14. The list is the design's
+- [x] P01 · Start the app and hand it over, naming what to look at · scenarios: A14. The list is the design's
   ([D26](../design.md#decisions)): the expenses page, at the shell's full width and at the narrowest width it
   reaches, in these states — every day collapsed on arrival; a day heading with one figure and a day heading with
   two currencies of different lengths; an expanded day holding a large amount, a small one, and a pending entry
@@ -178,7 +178,8 @@ right-aligned and last in its row.
   A long figure such as `CHF 1,245.00` can therefore wrap inside that column at a narrow width. No rule in this
   plan covers the heading column, so the code fails none — but it is A14's territory, and P01's narrowest-width
   pass is the only place it can be seen. Folded into P01's hand-over list.
-- **P01 blocked:** Awaiting human review; the app is running on port 1005. The list is D26's, plus the heading-column wrapping B3 raised.
+  - Settled by P01: the manual review passed, the heading column included, so nothing on screen was wrong at the
+    widths checked. The asymmetry with the entry amount span is still in the code and no test covers it.
 
 ## Review Findings
 
