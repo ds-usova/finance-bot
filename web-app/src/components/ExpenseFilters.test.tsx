@@ -170,8 +170,8 @@ describe('the filter controls', () => {
     await chooseDay(user, 0, '20');
 
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
-    expect(periodControl()).toHaveTextContent('Aug 10, 2026');
-    expect(periodControl()).toHaveTextContent('Aug 20, 2026');
+    // Both days fall in one year, so the year is carried once, at the end.
+    expect(periodControl()).toHaveTextContent('Aug 10 – Aug 20, 2026');
   });
 
   it('sets both days at once from a preset', async () => {

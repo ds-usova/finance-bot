@@ -76,8 +76,9 @@ export function CategoryFilter({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
+            size="field"
             aria-labelledby="filter-category-label filter-category-value"
-            className="h-9 justify-between font-normal"
+            className="font-normal"
           >
             <span id="filter-category-value" className="truncate">
               {chosen ? chosen.name : t('filters.all')}

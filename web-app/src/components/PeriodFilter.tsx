@@ -52,16 +52,19 @@ export function PeriodFilter({ period, onChange }: PeriodFilterProps) {
   // hold the first day on its own and the calendar would forget it between clicks.
   const [range, setRange] = useState<DateRange | undefined>(() => toRange(period));
 
-  const label = (day: string) =>
+  const label = (day: string, withYear: boolean) =>
     new Intl.DateTimeFormat(locale, {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
+      ...(withYear ? { year: 'numeric' as const } : {}),
     }).format(fromDay(day));
 
   const settled = period.from !== undefined && period.to !== undefined;
+  // The year is carried once when both days share it: the control stands in a third of the panel's width,
+  // and "Aug 10, 2026 – Aug 20, 2026" says the same as "Aug 10 – Aug 20, 2026" in half again the room.
+  const sameYear = period.from?.slice(0, 4) === period.to?.slice(0, 4);
   const triggerLabel = settled
-    ? `${label(period.from ?? '')} – ${label(period.to ?? '')}`
+    ? `${label(period.from ?? '', !sameYear)} – ${label(period.to ?? '', true)}`
     : t('filters.periodAny');
 
   const commit = (next: Period) => {
@@ -103,18 +106,26 @@ export function PeriodFilter({ period, onChange }: PeriodFilterProps) {
   ];
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-3">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <Label id="filter-period-label">{t('filters.period')}</Label>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
+              size="field"
               aria-labelledby="filter-period-label filter-period-value"
-              className="h-9 flex-1 justify-start gap-2 font-normal"
+              className="min-w-0 gap-2 font-normal"
             >
-              <CalendarDays aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-              <span id="filter-period-value">{triggerLabel}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                <CalendarDays
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                />
+                <span id="filter-period-value" className="truncate">
+                  {triggerLabel}
+                </span>
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="flex w-auto flex-col gap-3 sm:flex-row">
@@ -145,7 +156,12 @@ export function PeriodFilter({ period, onChange }: PeriodFilterProps) {
           </PopoverContent>
         </Popover>
         {settled && (
-          <Button variant="ghost" size="icon" aria-label={t('filters.periodClear')} onClick={clear}>
+          <Button
+            variant="ghost"
+            aria-label={t('filters.periodClear')}
+            className="h-9 w-7 shrink-0 px-0"
+            onClick={clear}
+          >
             <X aria-hidden="true" className="h-4 w-4" />
           </Button>
         )}

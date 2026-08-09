@@ -9,11 +9,13 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-accent text-surface hover:opacity-90',
-        outline: 'border border-border bg-surface hover:bg-muted',
+        outline: 'border border-border bg-surface shadow-sm hover:bg-muted',
         ghost: 'hover:bg-muted',
       },
       size: {
         default: 'h-9 px-4 py-2',
+        // The shape a form field takes, so a button that opens a list stands beside a select unnoticed.
+        field: 'h-9 w-full justify-between px-3 py-2',
         icon: 'h-9 w-9',
       },
     },
