@@ -19,7 +19,7 @@ transport.
 |------------------|--------------------------------------------------------------|------------------------------------------------------------------|
 | Open a session   | checks a Telegram sign-in and opens a browser session for it | [Initialize a new user](../../usecases/initialize-a-new-user.md) |
 | Read the session | answers who the browser is signed in as                      | the page, on load, to decide what to show                        |
-| End the session  | clears the session, whether or not one was open              | the page's sign-out control                                      |
+| End the session  | clears the session, whether or not one was open              | the app shell's sign-out control                                 |
 
 ### What opening a session takes
 

@@ -9,18 +9,20 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                             | Through                                                   | For                                           |
-|-----------|----------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------|
-| in        | A person's browser                                       | the sign-in page                                          | starting a session                            |
-| in        | Every page behind the route guard                        | the session state                                         | ending a session, and dropping an expired one |
-| out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in  |
-| out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session       |
+| Direction | Collaborator                                             | Through                                                   | For                                            |
+|-----------|----------------------------------------------------------|-----------------------------------------------------------|--------------------------------------------------|
+| in        | A person's browser                                       | the sign-in page                                          | starting a session                             |
+| in        | The app shell, on every route                            | the session state                                         | showing sign-out while signed in, and ending it |
+| in        | Every page behind the route guard                        | the session state                                         | dropping an expired session                    |
+| out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in   |
+| out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session        |
 
 ## Rules
 
 - The page asks the ledger who is signed in **before** it decides what to show, and shows neither the sign-in
   nor the expenses page while that answer is outstanding.
 - A refused read means nobody is signed in. It is not an error.
+- Sign-out is offered in the shell's header, on every route, and only while a session is open.
 - The widget's payload is forwarded unchanged. Nothing here inspects it, and nothing here decides whether it is
   genuine — that is the ledger's, and only the ledger holds the bot token.
 - The session cookie is never read by the page. It cannot be, and no code tries.
@@ -29,13 +31,13 @@
 
 ## Outcomes
 
-| Outcome           | When                                              | Result                                                          |
-|-------------------|---------------------------------------------------|-----------------------------------------------------------------|
-| Already signed in | the session read on load succeeds                 | the expenses page is shown, with no sign-in step                |
-| Signed in         | the widget's payload is accepted                  | the expenses page is shown, and the session is held for the tab |
-| Sign-in refused   | the payload is rejected or the call fails         | the sign-in page says so and offers the widget again            |
-| Not signed in     | the session read is refused                       | the sign-in page is shown                                       |
-| Signed out        | the sign-out control on the expenses page is used | the sign-in page is shown, and the ledger clears the cookie     |
+| Outcome           | When                                       | Result                                                          |
+|-------------------|--------------------------------------------|-----------------------------------------------------------------|
+| Already signed in | the session read on load succeeds          | the expenses page is shown, with no sign-in step                |
+| Signed in         | the widget's payload is accepted           | the expenses page is shown, and the session is held for the tab |
+| Sign-in refused   | the payload is rejected or the call fails  | the sign-in page says so and offers the widget again            |
+| Not signed in     | the session read is refused                | the sign-in page is shown                                       |
+| Signed out        | the sign-out control in the header is used | the sign-in page is shown, and the ledger clears the cookie     |
 
 ## Flow
 
@@ -43,6 +45,7 @@
 @startuml SignInWithTelegram-Sequence
 actor "Person" as User
 participant "Sign-in page" as Page
+participant "App shell" as Shell
 participant "Session state" as Auth
 participant "Telegram" as Telegram
 participant "Ledger" as Ledger
@@ -74,6 +77,13 @@ else nobody is signed in
     Auth --> Page : the sign-in failed
     Page --> User : try again
   end
+end
+
+group ending the session
+  User -> Shell : signs out
+  Shell -> Auth : end the session
+  Auth -> Ledger : end the session
+  Auth --> User : the sign-in page
 end
 @enduml
 ```
