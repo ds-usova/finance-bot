@@ -18,6 +18,8 @@ paths:
     $ref: './paths/groupings.yaml'
   /api/v1/session:
     $ref: './paths/session.yaml'
+  /api/v1/expenses/acceptances:
+    $ref: './paths/expense-acceptances.yaml'
 components:
   schemas:
     ExpenseStatus:
@@ -245,6 +247,44 @@ components:
         - message
       example:
         message: status must be PENDING or RECORDED
+    AcceptanceRequest:
+      type: object
+      description: Which pending entries to accept, by the ids the listing answered.
+      properties:
+        ids:
+          type: array
+          description: >-
+            The ids of `PENDING` entries to accept. Each must name one of the caller's, and a repeated id is
+            refused rather than collapsed.
+          minItems: 1
+          maxItems: 100
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+      required:
+        - ids
+      example:
+        ids: [7, 12]
+    Acceptance:
+      type: object
+      description: >-
+        What the write moved. `accepted` plus `missing` always equals the number of ids the request carried.
+      properties:
+        accepted:
+          type: integer
+          description: How many proposals became expenses.
+        missing:
+          type: integer
+          description: >-
+            How many ids named no pending proposal of the caller's — already resolved, already discarded, or not
+            theirs.
+      required:
+        - accepted
+        - missing
+      example:
+        accepted: 2
+        missing: 0
   securitySchemes:
     sessionCookie:
       type: apiKey
