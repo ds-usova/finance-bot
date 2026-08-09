@@ -26,15 +26,12 @@
 Both kinds carry the same parts, and the [status](../domain/expense-status.md) tells them apart. A category
 arrives as an id; [the category listing](browse-categories.md) names it.
 
-Every entry carries its own figure, already rendered.
-
 ### The day figures
 
 What the [specification](../../../openapi/ledger-api.yaml) does not fix:
 
-- A figure covers the answered page alone, so a day split by the page boundary is figured on each page.
+- A day split by the page boundary is figured on each page, over its own part.
 - A narrowed filter narrows the figures. A listing of one category figures that category alone.
-- A pending entry counts towards no day figure, though it carries a figure of its own.
 
 ## Collaborators
 
