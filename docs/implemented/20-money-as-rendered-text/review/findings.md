@@ -1,8 +1,7 @@
 # Review: Money Crosses the Browse API as Rendered Text
 
-The browse API now answers every figure as text, and the web app parses none of it. The three `web-app` items
-below were addressed after the task closed and are marked **Resolved**; what is left carries no marking and is
-open.
+The browse API now answers every figure as text, and the web app parses none of it. Everything below was
+addressed after the task closed and is marked **Resolved** or **Settled**. Nothing here is open.
 
 ## web-app
 
@@ -43,14 +42,14 @@ open.
   operations answer `ListExpenses200Response`, `ListCategories200ResponseInner`,
   `ListGroupings200ResponseInner`, `CurrentSession200Response` and `ListExpenses400Response`. Each is an
   operation's top-level response schema, and every operation is reached through an externally-`$ref`ed file under
-  `openapi/paths/`, which the generator names positionally whatever the component block says. Accepted rather
-  than fixed: the alternative was flattening the path files into the root document. Reordering the paths still
-  renames those five and breaks the ledger's build while no caller notices. Recorded as
-  [D33](../design.md#decisions) and in `shared/plan.md` ST22.
+  `openapi/paths/`, which the generator names positionally whatever the component block says. Recorded as
+  [D33](../design.md#decisions) and in `shared/plan.md` ST22. **Settled** — naming the five needs the path files
+  merged into the root document too, and that was ruled out, so they stay positional and nothing further is
+  attempted. Reordering the paths still renames those five and breaks the ledger's build while no caller notices.
 
 ## Not from a plan
 
-- **`ledger-service/docs/conventions/testing.md:155` says the display-name length rule is `@ArchIgnore`d.** It is
+- **`ledger-service/docs/conventions/testing.md` said the display-name length rule was `@ArchIgnore`d.** It was
   not — `DisplayNameConventionsTest.aTestMethodsDisplayNameStaysUnderTheLimit` enforces 120 characters on every
-  run, and a 169-character name failed a guardrail during this task. Pre-existing, outside every plan's scope,
-  and it costs a re-delegation each time someone trusts the page.
+  run, and a 169-character name failed a guardrail during this task. **Resolved** — the page now says the rule is
+  enforced.
