@@ -12,3 +12,15 @@ export async function chooseOption(
   await userEvent.click(screen.getByRole('combobox', { name: comboboxName }));
   await userEvent.click(await screen.findByRole('option', { name: optionName }));
 }
+
+/**
+ * The same, for a list opened from a button rather than from a `combobox` — the searchable category list,
+ * whose own `combobox` is the search field inside it and not the control that opens it.
+ */
+export async function chooseFromList(
+  triggerName: string | RegExp,
+  optionName: string | RegExp,
+): Promise<void> {
+  await userEvent.click(screen.getByRole('button', { name: triggerName }));
+  await userEvent.click(await screen.findByRole('option', { name: optionName }));
+}

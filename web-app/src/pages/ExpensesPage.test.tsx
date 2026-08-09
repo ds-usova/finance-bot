@@ -5,7 +5,7 @@ import { ApiError } from '../api/client';
 import { listCategories, listExpenses, listGroupings, type ExpensePage } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import { expandDays, listingArrives } from '../testing/accordion';
-import { chooseOption } from '../testing/combobox';
+import { chooseFromList } from '../testing/combobox';
 import { aCategory, aGrouping, anAuthContext, anExpense, anExpensePage } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
 
@@ -35,7 +35,7 @@ function inFlight() {
 }
 
 async function chooseGroceries() {
-  await chooseOption(/category/i, /Groceries/);
+  await chooseFromList(/^category/i, /Groceries/);
 }
 
 /** The listing arriving, then every section opened, for a test that asserts on the entries themselves. */
@@ -74,12 +74,10 @@ describe('the expenses page', () => {
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
 
-    await userEvent.click(screen.getByRole('combobox', { name: /grouping/i }));
-    expect(await screen.findByRole('option', { name: /Everyday/ })).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
-
-    await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+    // Both reads reach the one list: the category is an entry in it, the grouping is the heading over it.
+    await userEvent.click(screen.getByRole('button', { name: /^category/i }));
     expect(await screen.findByRole('option', { name: /Groceries/ })).toBeInTheDocument();
+    expect(screen.getByText('Everyday')).toBeInTheDocument();
   });
 
   it('repeats only the listing when the filter changes, keeping the tree it already holds', async () => {

@@ -24,8 +24,8 @@ the expenses client.*
 - The period is sent as a complete pair or as neither day. Setting or clearing one day on its own sends nothing.
 - The period narrows by when a row was recorded, not when the money was spent.
 - A row is named from the category list, matched by id. A category the list does not answer leaves it blank.
-- A grouping narrows the categories offered, from the tree already held. It is not a listing filter and never
-  reaches the ledger; a category outside the chosen one is dropped.
+- A grouping heads the stretch of categories that belong to it and cannot be chosen. It is not a listing filter
+  and never reaches the ledger; only a category does.
 - The answered page is cut into UTC days here. The ledger is never asked to group or total by day.
 - A day's figure sums that day's recorded entries only, one figure per currency, nothing converted.
 - A day split by the page boundary appears on both pages. Each part counts and totals only its own entries.
@@ -105,7 +105,7 @@ Container_Boundary(webApp, "Web App") {
   Component(expensesPage, "Expenses page", "React", "Reads what the ledger holds and composes it", $tags="page")
   Component(expenseList, "Expense list", "React", "Cuts the answered page into UTC days")
   Component(daySection, "Day section", "React", "Heads a day with its count and its spend, and lists it")
-  Component(expenseFilters, "Filter controls", "React", "Offers the grouping, the category, the status and the period")
+  Component(expenseFilters, "Filter controls", "React", "Offers the category, the status and the period")
   Component(pager, "Pager", "React", "Steps by the page size the ledger applied")
   Component(authContext, "Session state", "React context", "Holds who is signed in")
   Component(expensesClient, "Expenses client", "TypeScript", "Calls the listing, the categories and the groupings")

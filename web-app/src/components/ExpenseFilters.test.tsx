@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ExpenseFilter } from '../api/expenses';
 import { substituteCatalogue } from '../testing/catalogue';
-import { chooseOption } from '../testing/combobox';
+import { chooseFromList, chooseOption } from '../testing/combobox';
 import { aCategory, aGrouping } from '../testing/fixtures';
 import { ExpenseFilters } from './ExpenseFilters';
 
@@ -55,12 +55,8 @@ function renderFilters(filter: ExpenseFilter = {}) {
   return { onChange, user };
 }
 
-function groupingControl(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Grouping' });
-}
-
 function categoryControl(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Category' });
+  return screen.getByRole('button', { name: /^category/i });
 }
 
 function statusControl(): HTMLElement {
@@ -83,47 +79,62 @@ afterEach(() => {
 });
 
 describe('the filter controls', () => {
-  it('offers every grouping and every category it was given, each by its accessible name', async () => {
+  it('offers every category it was given in one list, each by its accessible name', async () => {
     const { user } = renderFilters();
 
-    await user.click(groupingControl());
-    expect(await screen.findByRole('option', { name: 'Everyday' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Travel' })).toBeInTheDocument();
-    await user.keyboard('{Escape}');
-
     await user.click(categoryControl());
+
     expect(await screen.findByRole('option', { name: 'Groceries' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
   });
 
-  it('narrows the offered categories to the grouping chosen, without a second call', async () => {
-    const { onChange, user } = renderFilters();
+  it('heads each stretch of the list with the grouping its categories belong to', async () => {
+    const { user } = renderFilters();
 
-    await chooseOption('Grouping', 'Everyday');
     await user.click(categoryControl());
 
-    expect(await screen.findByRole('option', { name: 'Groceries' })).toBeInTheDocument();
+    await screen.findByRole('option', { name: 'Groceries' });
+    expect(screen.getByText('Everyday')).toBeInTheDocument();
+    expect(screen.getByText('Travel')).toBeInTheDocument();
+    // A heading names a stretch of the list; it is not something the person can choose.
+    expect(screen.queryByRole('option', { name: 'Everyday' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Travel' })).not.toBeInTheDocument();
+  });
+
+  it('narrows the list to what the search matches, by category name and by grouping name alike', async () => {
+    const { user } = renderFilters();
+
+    await user.click(categoryControl());
+    await user.type(await screen.findByPlaceholderText('Search categories'), 'ren');
+
     expect(screen.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Flights' })).not.toBeInTheDocument();
-    expect(onChange).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByPlaceholderText('Search categories'));
+    await user.type(screen.getByPlaceholderText('Search categories'), 'travel');
+
+    expect(screen.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Rent' })).not.toBeInTheDocument();
   });
 
-  it('offers every category again when the grouping is cleared', async () => {
-    const { onChange, user } = renderFilters({ categoryId: flights.id });
-
-    await chooseOption('Grouping', 'Everyday');
-
-    expect(onChange).toHaveBeenCalledWith({});
-
-    await chooseOption('Grouping', 'All');
-    expect(categoryControl()).toHaveTextContent('All');
+  it('says so when the search matches no category', async () => {
+    const { user } = renderFilters();
 
     await user.click(categoryControl());
+    await user.type(await screen.findByPlaceholderText('Search categories'), 'zzz');
 
-    expect(await screen.findByRole('option', { name: 'Groceries' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Rent' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Flights' })).toBeInTheDocument();
+    expect(screen.getByText('No category found.')).toBeInTheDocument();
+  });
+
+  it('clears the category through the list’s own all entry', async () => {
+    const { onChange } = renderFilters({ categoryId: flights.id });
+
+    await chooseFromList(/^category/i, 'All');
+
+    expect(onChange).toHaveBeenCalledWith({});
+    expect(categoryControl()).toHaveTextContent('All');
   });
 
   it('calls back with the chosen status, leaving the rest of the filter as it stood', async () => {
@@ -178,7 +189,7 @@ describe('the filter controls', () => {
   it('calls back with the chosen category’s id', async () => {
     const { onChange } = renderFilters();
 
-    await chooseOption('Category', 'Groceries');
+    await chooseFromList(/^category/i, 'Groceries');
 
     expect(onChange).toHaveBeenCalledWith({ categoryId: groceries.id });
   });
@@ -253,14 +264,15 @@ describe('the filter controls', () => {
 
     const { user } = renderFilters();
 
-    expect(screen.getByText('‹Grouping›')).toBeInTheDocument();
+    expect(screen.getByText('‹Filters›')).toBeInTheDocument();
     expect(screen.getByText('‹Category›')).toBeInTheDocument();
     expect(screen.getByText('‹Status›')).toBeInTheDocument();
     expect(screen.getByText('‹Recorded period›')).toBeInTheDocument();
     expect(screen.getByText('‹Any time›')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('combobox', { name: '‹Grouping›' }));
-    expect(await screen.findByRole('option', { name: '‹All›' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /‹Category›/ }));
+    expect(await screen.findByPlaceholderText('‹Search categories›')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '‹All›' })).toBeInTheDocument();
     await user.keyboard('{Escape}');
 
     await user.click(screen.getByRole('combobox', { name: '‹Status›' }));

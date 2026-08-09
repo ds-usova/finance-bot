@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Category, ExpenseFilter, ExpenseStatus, Grouping } from '../api/expenses';
+import { CategoryFilter } from './CategoryFilter';
 import { PeriodFilter, type Period } from './PeriodFilter';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
@@ -30,29 +30,11 @@ function withField<K extends keyof ExpenseFilter>(
   return next;
 }
 
-function under(categories: Category[], groupingId: number | undefined): Category[] {
-  if (groupingId === undefined) {
-    return categories;
-  }
-  return categories.filter((category) => category.groupingId === groupingId);
-}
-
 export function ExpenseFilters({ groupings, categories, filter, onChange }: ExpenseFiltersProps) {
   const { t } = useTranslation();
-  const [groupingId, setGroupingId] = useState<number | undefined>(undefined);
 
-  const chooseGrouping = (value: string) => {
-    const chosen = value === ALL ? undefined : Number(value);
-    setGroupingId(chosen);
-    const selected = filter.categoryId;
-    const stays = under(categories, chosen).some((category) => category.id === selected);
-    if (selected !== undefined && !stays) {
-      onChange(withField(filter, 'categoryId', undefined));
-    }
-  };
-
-  const chooseCategory = (value: string) => {
-    onChange(withField(filter, 'categoryId', value === ALL ? undefined : Number(value)));
+  const chooseCategory = (categoryId: number | undefined) => {
+    onChange(withField(filter, 'categoryId', categoryId));
   };
 
   const chooseStatus = (value: string) => {
@@ -64,16 +46,10 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
     onChange(withField(withField(filter, 'from', period.from), 'to', period.to));
   };
 
-  // Everything the person set, and nothing the page holds on its own: the grouping narrows the categories
-  // offered rather than the listing, so it is reset here without ever having been part of the filter.
   const narrowed =
-    filter.status !== undefined ||
-    filter.categoryId !== undefined ||
-    filter.from !== undefined ||
-    groupingId !== undefined;
+    filter.status !== undefined || filter.categoryId !== undefined || filter.from !== undefined;
 
   const reset = () => {
-    setGroupingId(undefined);
     onChange({});
   };
 
@@ -89,44 +65,12 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
           </Button>
         )}
       </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor="filter-grouping">{t('filters.grouping')}</Label>
-        <Select
-          value={groupingId === undefined ? ALL : String(groupingId)}
-          onValueChange={chooseGrouping}
-        >
-          <SelectTrigger id="filter-grouping">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
-            {groupings.map((grouping) => (
-              <SelectItem key={grouping.id} value={String(grouping.id)}>
-                {grouping.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor="filter-category">{t('filters.category')}</Label>
-        <Select
-          value={filter.categoryId === undefined ? ALL : String(filter.categoryId)}
-          onValueChange={chooseCategory}
-        >
-          <SelectTrigger id="filter-category">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
-            {under(categories, groupingId).map((category) => (
-              <SelectItem key={category.id} value={String(category.id)}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <CategoryFilter
+        groupings={groupings}
+        categories={categories}
+        categoryId={filter.categoryId}
+        onChange={chooseCategory}
+      />
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="filter-status">{t('filters.status')}</Label>
         <Select value={filter.status ?? ALL} onValueChange={chooseStatus}>

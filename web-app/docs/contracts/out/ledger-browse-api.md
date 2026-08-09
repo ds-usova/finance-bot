@@ -28,7 +28,7 @@ The session this module holds is a different interface on the same transport —
 The listing carries only the filter fields that are set, so a field left unset is the ledger's default rather than
 an explicit value. The period is the exception: `from` and `to` go together or not at all, because the ledger
 refuses a lone day. The category read never narrows by grouping — this module asks for the whole tree once and
-narrows it in the page.
+holds it for the life of the page.
 
 Every request carries cookies. None is a write, so none carries the CSRF token.
 
@@ -36,7 +36,9 @@ Every request carries cookies. None is a write, so none carries the CSRF token.
 
 - **The listing**: rendered in the order it came, cut into days in the page, with its total driving the pager.
 - **The categories**: held for the life of the page. They name each row's category and fill the category control.
-- **The groupings**: fill the grouping control, which narrows the categories offered and is never sent.
+- **The groupings**: order the sections of the category list and name their headings. A heading cannot be
+  chosen, so a grouping is never sent. Each category already carries its grouping's name; this read decides the
+  order the groupings appear in, which the categories alone do not fix.
 - Nothing is cached across page loads. A reload reads all three again.
 
 ## When the Call Fails

@@ -18,8 +18,9 @@ export const en = {
   },
   filters: {
     title: 'Filters',
-    grouping: 'Grouping',
     category: 'Category',
+    searchCategories: 'Search categories',
+    noCategory: 'No category found.',
     status: 'Status',
     period: 'Recorded period',
     periodAny: 'Any time',
