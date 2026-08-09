@@ -178,6 +178,7 @@ right-aligned and last in its row.
   A long figure such as `CHF 1,245.00` can therefore wrap inside that column at a narrow width. No rule in this
   plan covers the heading column, so the code fails none — but it is A14's territory, and P01's narrowest-width
   pass is the only place it can be seen. Folded into P01's hand-over list.
+- **P01 blocked:** Awaiting human review; the app is running on port 1005. The list is D26's, plus the heading-column wrapping B3 raised.
 
 ## Review Findings
 
