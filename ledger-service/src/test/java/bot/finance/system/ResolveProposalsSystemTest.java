@@ -59,7 +59,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
-    private final UUID reference = UUID.randomUUID();
+    private final String reference = UUID.randomUUID().toString();
 
     @Autowired
     private UserEntityRepository userEntityRepository;
@@ -137,7 +137,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
             assertThat(expenseRows).as("expense rows for user %s", userId).hasSize(2);
             assertThat(expenseRows)
                     .as("every accepted expense carries the resolved message reference")
-                    .allSatisfy(row -> assertThat(row.messageReference()).isEqualTo(reference));
+                    .allSatisfy(row -> assertThat(row.incomingMessageId()).isEqualTo(reference));
 
             // then: the tap is answered, telling the user what it did
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(

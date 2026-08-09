@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,8 @@ class ResolveProposalsCommandTest {
         @Test
         @DisplayName("when every component is present and non-blank - then each reads back what was passed")
         void whenAllComponentsArePresent_thenEachComponentReadsBackWhatWasPassed() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
             ResolveProposalsCommand command =
                     new ResolveProposalsCommand("42", "555", "1", "abc", reference, ProposalResolution.ACCEPT);
@@ -44,7 +45,7 @@ class ResolveProposalsCommandTest {
                             "555",
                             "1",
                             "abc",
-                            MessageReference.newReference(),
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                             ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
@@ -59,7 +60,7 @@ class ResolveProposalsCommandTest {
                             conversationId,
                             "1",
                             "abc",
-                            MessageReference.newReference(),
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                             ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
@@ -74,7 +75,7 @@ class ResolveProposalsCommandTest {
                             "555",
                             reportMessageId,
                             "abc",
-                            MessageReference.newReference(),
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                             ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
@@ -89,7 +90,7 @@ class ResolveProposalsCommandTest {
                             "555",
                             "1",
                             interactionId,
-                            MessageReference.newReference(),
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                             ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
@@ -105,8 +106,13 @@ class ResolveProposalsCommandTest {
         @Test
         @DisplayName("when resolution is null - then throws InvalidIncomingMessageException")
         void whenResolutionIsNull_thenThrowsInvalidIncomingMessageException() {
-            assertThatThrownBy(() ->
-                            new ResolveProposalsCommand("42", "555", "1", "abc", MessageReference.newReference(), null))
+            assertThatThrownBy(() -> new ResolveProposalsCommand(
+                            "42",
+                            "555",
+                            "1",
+                            "abc",
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                            null))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
     }

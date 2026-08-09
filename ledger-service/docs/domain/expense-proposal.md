@@ -48,7 +48,7 @@ the reference of the message it came from, and the instants it was created and l
 
 - [User](user.md) — who the proposal is recorded against.
 - [Category](category.md) — what it is filed under, by the category's stored id.
-- [Message reference](message-reference.md) — which message produced it, and what the report answering that
+- [Incoming message id](incoming-message-id.md) — which message produced it, and what the report answering that
   message is assembled from.
 - [Money](money.md) — what was proposed, and its [currency](currency-code.md).
 - How long its text may be is checked where it is stored

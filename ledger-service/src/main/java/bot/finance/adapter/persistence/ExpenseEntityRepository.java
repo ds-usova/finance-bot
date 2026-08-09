@@ -2,7 +2,6 @@ package bot.finance.adapter.persistence;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -12,9 +11,9 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
     @Query(
             """
             SELECT count(*) FROM expense
-            WHERE user_id = :userId AND message_reference = :messageReference
+            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId
             """)
-    int countByMessageReference(@Param("userId") Long userId, @Param("messageReference") UUID messageReference);
+    int countByMessageReference(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
     @Query(
             """

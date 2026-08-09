@@ -28,7 +28,7 @@ import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.GetUpdates;
 import java.time.Duration;
@@ -136,7 +136,8 @@ class TelegramUpdateListenerTest {
         @Test
         @DisplayName("when a callback_query update is polled - then only resolve is called and the batch is confirmed")
         void whenCallbackQueryUpdateIsPolled_thenResolveIsCalledWithMappedCommandAndBatchIsConfirmed() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
                     updatesResponse(callbackQueryUpdate(
@@ -181,7 +182,8 @@ class TelegramUpdateListenerTest {
             doThrow(new PersistenceFailedException("simulated persistence failure", new RuntimeException()))
                     .when(resolveProposalsPort)
                     .resolve(any());
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
                     updatesResponse(callbackQueryUpdate(
@@ -262,7 +264,8 @@ class TelegramUpdateListenerTest {
         @DisplayName("when a batch pairs a text and a callback_query update - then each port is called exactly once")
         void
                 whenBatchPairingTextAndCallbackQueryUpdateIsPolled_thenEachPortIsCalledExactlyOnceAndWholeBatchIsConfirmed() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             telegramReturnsOnFirstPoll(
                     LISTENER_TOKEN,
                     updatesResponse(

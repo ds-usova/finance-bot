@@ -13,7 +13,7 @@ import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.SpendingQuery;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -50,7 +50,7 @@ class SpendingQueryRepositoryAdapterTest {
                 "when a query over a one-week period is created - then the row holds what was given and the entity carries its id")
         void whenCalledWithStoredUser_thenRowHoldsWhatWasGivenAndEntityCarriesItsId() {
             long userId = storedUserId("spending-query-create-user");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant now = Instant.now();
             SpendingQuery query = SpendingQuery.newQuery(userId, period, reference, now);
@@ -61,7 +61,7 @@ class SpendingQueryRepositoryAdapterTest {
             List<SpendingQueryEntity> rows = spendingQueryRowsFor(userId);
             assertThat(rows).singleElement().satisfies(row -> {
                 assertThat(row.userId()).isEqualTo(userId);
-                assertThat(row.messageReference()).isEqualTo(reference.value());
+                assertThat(row.incomingMessageId()).isEqualTo(reference.value());
                 assertThat(row.periodStart()).isEqualTo(period.from());
                 assertThat(row.periodEnd()).isEqualTo(period.to());
                 assertThat(row.createdAt()).isEqualTo(now.truncatedTo(ChronoUnit.MICROS));
@@ -75,7 +75,7 @@ class SpendingQueryRepositoryAdapterTest {
             SpendingQuery query = SpendingQuery.newQuery(
                     unknownUserId,
                     new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26)),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -93,7 +93,7 @@ class SpendingQueryRepositoryAdapterTest {
         @DisplayName("when two rows under one reference carry the same period - then it is answered once")
         void whenTwoRowsCarrySamePeriod_thenPeriodAnsweredOnce() {
             long userId = storedUserId("spending-query-duplicate-period-user");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             LocalDate from = LocalDate.of(2026, 7, 20);
             LocalDate to = LocalDate.of(2026, 7, 26);
             Instant base = Instant.now().minusSeconds(60);
@@ -110,7 +110,7 @@ class SpendingQueryRepositoryAdapterTest {
                 "when three rows under one reference carry three periods out of order - then all three come back oldest first")
         void whenThreeRowsCarryThreeDifferentPeriods_thenAllThreeComeBackOldestFirst() {
             long userId = storedUserId("spending-query-three-periods-user");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod first = new SpendingPeriod(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7));
             SpendingPeriod second = new SpendingPeriod(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 14));
             SpendingPeriod third = new SpendingPeriod(LocalDate.of(2026, 6, 15), LocalDate.of(2026, 6, 21));
@@ -128,8 +128,9 @@ class SpendingQueryRepositoryAdapterTest {
         @DisplayName("when a user has rows under two references - then only the one asked for is answered")
         void whenTwoReferencesExistForSameUser_thenOnlyTheOneAskedForIsAnswered() {
             long userId = storedUserId("spending-query-two-references-user");
-            MessageReference reference = MessageReference.newReference();
-            MessageReference otherReference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId otherReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             SpendingPeriod otherPeriod = new SpendingPeriod(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 7));
             Instant now = Instant.now().minusSeconds(30);
@@ -147,7 +148,8 @@ class SpendingQueryRepositoryAdapterTest {
         void whenTwoUsersShareReferenceValue_thenOnlyRequestedUsersPeriodAnswered() {
             long firstUserId = storedUserId("spending-query-shared-reference-first-user");
             long secondUserId = storedUserId("spending-query-shared-reference-second-user");
-            MessageReference sharedReference = MessageReference.newReference();
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod firstPeriod = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             SpendingPeriod secondPeriod = new SpendingPeriod(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 7));
             Instant now = Instant.now().minusSeconds(30);
@@ -164,8 +166,8 @@ class SpendingQueryRepositoryAdapterTest {
         void whenReferenceHasNoStoredRows_thenReturnsEmptyList() {
             long userId = storedUserId("spending-query-no-rows-user");
 
-            List<SpendingPeriod> periods =
-                    adapter.findPeriodsByMessageReference(userId, MessageReference.newReference());
+            List<SpendingPeriod> periods = adapter.findPeriodsByMessageReference(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(periods).isEmpty();
         }
@@ -183,7 +185,7 @@ class SpendingQueryRepositoryAdapterTest {
         @DisplayName("when two rows are stored under the reference - then both are removed and two is answered")
         void whenTwoRowsStoredUnderReference_thenBothRemovedAndCountAnswered() {
             long userId = storedUserId("spending-query-discard-user");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Instant now = Instant.now();
             storedQuery(userId, reference.value(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7), now);
             storedQuery(userId, reference.value(), LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 14), now);
@@ -198,8 +200,8 @@ class SpendingQueryRepositoryAdapterTest {
         @DisplayName("when another message's rows are stored for the same user - then only the named message's rows go")
         void whenAnotherMessagesRowsExist_thenOnlyTheNamedMessagesRowsGo() {
             long userId = storedUserId("spending-query-discard-other-reference-user");
-            MessageReference discarded = MessageReference.newReference();
-            MessageReference kept = MessageReference.newReference();
+            IncomingMessageId discarded = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId kept = IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod keptPeriod = new SpendingPeriod(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 7));
             Instant now = Instant.now();
             storedQuery(userId, discarded.value(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 7), now);
@@ -216,7 +218,7 @@ class SpendingQueryRepositoryAdapterTest {
         void whenTwoUsersShareReferenceValue_thenOnlyTheNamedUsersRowsGo() {
             long userId = storedUserId("spending-query-discard-first-user");
             long otherUserId = storedUserId("spending-query-discard-second-user");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 7));
             Instant now = Instant.now();
             storedQuery(userId, reference.value(), period.from(), period.to(), now);
@@ -234,7 +236,8 @@ class SpendingQueryRepositoryAdapterTest {
         void whenNoRowStoredUnderReference_thenNothingRemovedAndZeroAnswered() {
             long userId = storedUserId("spending-query-discard-nothing-user");
 
-            int discarded = adapter.discard(userId, MessageReference.newReference());
+            int discarded = adapter.discard(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(discarded).isEqualTo(0);
         }
@@ -257,7 +260,7 @@ class SpendingQueryRepositoryAdapterTest {
             SpendingQuery query = SpendingQuery.newQuery(
                     1L,
                     new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26)),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(query))
@@ -274,7 +277,8 @@ class SpendingQueryRepositoryAdapterTest {
             when(mockedSpendingQueryEntityRepository.findPeriodsByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.findPeriodsByMessageReference(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.findPeriodsByMessageReference(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -286,7 +290,8 @@ class SpendingQueryRepositoryAdapterTest {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedSpendingQueryEntityRepository.discard(any(), any())).thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.discard(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.discard(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -302,8 +307,8 @@ class SpendingQueryRepositoryAdapterTest {
     }
 
     private SpendingQueryEntity storedQuery(
-            long userId, UUID messageReference, LocalDate periodStart, LocalDate periodEnd, Instant createdAt) {
+            long userId, String incomingMessageId, LocalDate periodStart, LocalDate periodEnd, Instant createdAt) {
         return SpendingQueryRowUtils.storedQuery(
-                jdbcAggregateTemplate, userId, messageReference, periodStart, periodEnd, createdAt);
+                jdbcAggregateTemplate, userId, incomingMessageId, periodStart, periodEnd, createdAt);
     }
 }

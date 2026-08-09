@@ -5,9 +5,12 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
+import bot.finance.domain.value.ProposalIds;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public interface ExpenseProposalRepository {
 
@@ -21,15 +24,25 @@ public interface ExpenseProposalRepository {
     /**
      * @throws PersistenceFailedException if the read fails
      */
-    List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference);
+    List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference);
 
     /**
      * @throws PersistenceFailedException if the write fails
      */
-    int accept(long userId, MessageReference reference, Instant now);
+    int accept(long userId, IncomingMessageId reference, Instant now);
 
     /**
      * @throws PersistenceFailedException if the write fails
      */
-    int discard(long userId, MessageReference reference);
+    int discard(long userId, IncomingMessageId reference);
+
+    /**
+     * @throws PersistenceFailedException if the write fails
+     */
+    List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now);
+
+    /**
+     * @throws PersistenceFailedException if the read fails
+     */
+    Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids);
 }

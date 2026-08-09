@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -19,7 +19,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ExpenseProposalTest {
 
     private static final Money MONEY = new Money(1500L, CurrencyCode.of("USD"));
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE =
+            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
     @Nested
     @DisplayName("creating a new expense proposal")
@@ -40,7 +41,7 @@ class ExpenseProposalTest {
             assertThat(proposal.description()).isEqualTo("Coffee");
             assertThat(proposal.merchant()).contains("Blue Bottle");
             assertThat(proposal.money()).isEqualTo(MONEY);
-            assertThat(proposal.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(proposal.createdAt()).isEqualTo(now);
             assertThat(proposal.updatedAt()).isEqualTo(now);
         }
@@ -150,7 +151,7 @@ class ExpenseProposalTest {
             assertThat(proposal.description()).isEqualTo("Coffee");
             assertThat(proposal.merchant()).contains("Blue Bottle");
             assertThat(proposal.money()).isEqualTo(MONEY);
-            assertThat(proposal.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(proposal.createdAt()).isEqualTo(createdAt);
             assertThat(proposal.updatedAt()).isEqualTo(updatedAt);
         }

@@ -2,9 +2,10 @@ package bot.finance.application.dto;
 
 import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 
-public record SummarizeSpendingCommand(AuthenticatedUserId userId, MessageReference reference, String from, String to) {
+public record SummarizeSpendingCommand(
+        AuthenticatedUserId userId, IncomingMessageId reference, String from, String to) {
 
     public SummarizeSpendingCommand {
         if (userId == null) {

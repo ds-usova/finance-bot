@@ -41,7 +41,7 @@ outcome, no text for the user.
 - The period itself never crosses here. The connector works it out and asks for it over
   [the tool it calls back on](../in/mcp.md).
 - The credential is minted per call and names the user as its subject.
-- It also names the [message](../../domain/message-reference.md) the turn is about, so everything recorded
+- It also names the [message](../../domain/incoming-message-id.md) the turn is about, so everything recorded
   during it can be found again
   ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 - The connector forwards it untouched. Nothing riding it is part of what the schema agreed. Its whole path is

@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
@@ -22,7 +22,7 @@ class TurnReportTest {
     private static final SpendingSummary SUMMARY =
             new SpendingSummary(new SpendingPeriod(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5)), List.of());
 
-    private static TurnReport recordedReport(MessageReference reference) {
+    private static TurnReport recordedReport(IncomingMessageId reference) {
         return new TurnReport(
                 "conversation-1", "message-1", ReportOutcome.RECORDED, List.of(PROPOSAL), List.of(SUMMARY), reference);
     }
@@ -34,7 +34,8 @@ class TurnReportTest {
         @Test
         @DisplayName("when every component is present - then every component reads back unchanged")
         void whenEveryComponentIsPresent_thenEveryComponentReadsBackUnchanged() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
             TurnReport report = recordedReport(reference);
 
@@ -50,7 +51,8 @@ class TurnReportTest {
         @DisplayName(
                 "when a report is built from proposal and summary lists - then both lists read back " + "unmodifiable")
         void whenReportIsBuiltFromProposalAndSummaryLists_thenBothListsReadBackUnmodifiable() {
-            TurnReport report = recordedReport(MessageReference.newReference());
+            TurnReport report = recordedReport(
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
 
             assertThatThrownBy(() -> report.proposals().add(PROPOSAL))
                     .isInstanceOf(UnsupportedOperationException.class);
@@ -66,7 +68,7 @@ class TurnReportTest {
                     ReportOutcome.NOTHING_IDENTIFIED,
                     null,
                     List.of(SUMMARY),
-                    MessageReference.newReference());
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
 
             assertThat(report.proposals()).isEmpty();
         }
@@ -80,7 +82,7 @@ class TurnReportTest {
                     ReportOutcome.ANSWERED,
                     List.of(PROPOSAL),
                     null,
-                    MessageReference.newReference());
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
 
             assertThat(report.summaries()).isEmpty();
         }
@@ -98,7 +100,7 @@ class TurnReportTest {
                     ReportOutcome.PARTIAL,
                     mutableProposals,
                     mutableSummaries,
-                    MessageReference.newReference());
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
             mutableProposals.add(PROPOSAL);
             mutableSummaries.add(SUMMARY);
 

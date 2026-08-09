@@ -23,13 +23,14 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -85,7 +86,7 @@ class CreateExpenseProposalMcpToolTest {
      * Stubs the port to answer a proposal stored under {@code reference}, then calls create_expense_proposal for
      * Restaurants-under-Dining - what the happy-path scenarios arrange from.
      */
-    private Response postAcceptedProposal(String token, MessageReference reference) {
+    private Response postAcceptedProposal(String token, IncomingMessageId reference) {
         ExpenseProposal stored = ExpenseProposal.stored(
                 4242L,
                 99L,
@@ -126,7 +127,8 @@ class CreateExpenseProposalMcpToolTest {
         void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenSubjectAndGroupingName() {
             String externalId = "user-42";
 
-            postAcceptedProposal(token(externalId), MessageReference.newReference());
+            postAcceptedProposal(
+                    token(externalId), IncomingMessageId.of(UUID.randomUUID().toString()));
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
@@ -138,7 +140,8 @@ class CreateExpenseProposalMcpToolTest {
         @Test
         @DisplayName("when create_expense_proposal is called - then the result carries the stored proposal")
         void whenCreateExpenseProposalIsCalled_thenResultCarriesStoredProposal() {
-            Response response = postAcceptedProposal(token("user-42"), MessageReference.newReference());
+            Response response = postAcceptedProposal(
+                    token("user-42"), IncomingMessageId.of(UUID.randomUUID().toString()));
 
             String body = response.getBody().asString();
             assertThat(body)
@@ -156,14 +159,14 @@ class CreateExpenseProposalMcpToolTest {
                 + "message reference")
         void whenTokenCarriesMrfClaim_thenPortReceivesItAsTheCommandsMessageReference() {
             String externalId = "user-43";
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
 
             postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, externalId, reference), reference);
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
             verify(createExpenseProposalPort).create(command.capture());
-            assertThat(command.getValue().messageReference()).isEqualTo(reference);
+            assertThat(command.getValue().incomingMessageId()).isEqualTo(reference);
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
         }
     }

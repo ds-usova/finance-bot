@@ -5,10 +5,13 @@ import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
+import bot.finance.domain.value.ProposalIds;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +43,7 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
     }
 
     @Override
-    public List<ProposalSummary> findSummariesByMessageReference(long userId, MessageReference reference) {
+    public List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference) {
         try {
             return expenseProposalEntityRepository.findSummariesByMessageReference(userId, reference.value()).stream()
                     .map(ProposalSummaryProjection::toSummary)
@@ -55,7 +58,7 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
 
     @Override
     @Transactional
-    public int accept(long userId, MessageReference reference, Instant now) {
+    public int accept(long userId, IncomingMessageId reference, Instant now) {
         try {
             return expenseProposalEntityRepository.accept(
                     userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
@@ -67,7 +70,7 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
 
     @Override
     @Transactional
-    public int discard(long userId, MessageReference reference) {
+    public int discard(long userId, IncomingMessageId reference) {
         try {
             return expenseProposalEntityRepository.discard(userId, reference.value());
         } catch (RuntimeException e) {
@@ -75,6 +78,22 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
                     "failed to discard proposals for user " + userId + " and message reference " + reference.value(),
                     e);
         }
+    }
+
+    @Override
+    @Transactional
+    public List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now) {
+        // runs the DELETE ... RETURNING / INSERT ... RETURNING chain narrowed by user_id and id IN (:ids),
+        // over incoming_message_id, answering the incoming_message_id of every row it moved
+        return null;
+    }
+
+    @Override
+    public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
+        // runs SELECT incoming_message_id, count(*) FROM expense_proposal WHERE user_id = :userId AND
+        // incoming_message_id IN (:incomingMessageIds) GROUP BY incoming_message_id, answering the ids with a
+        // nonzero count
+        return null;
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

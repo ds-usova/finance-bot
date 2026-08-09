@@ -23,7 +23,7 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -74,7 +74,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 
-        MessageReference reference = MessageReference.newReference();
+        IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
         boolean extractionFailed = extract(command, categoryGroupings, user, reference);
 
         List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
@@ -87,12 +87,13 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         }
         messageDeliveryPort.deliver(new TurnReport(
                 command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference));
+        // the delivered report's location will be stored as a ProposalReport once ProposalReportRepository lands
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
     }
 
-    private void discardReportedPeriods(long userId, MessageReference reference, List<SpendingSummary> summaries) {
+    private void discardReportedPeriods(long userId, IncomingMessageId reference, List<SpendingSummary> summaries) {
         if (summaries.isEmpty()) {
             return;
         }
@@ -107,7 +108,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             HandleIncomingMessageCommand command,
             List<String> categoryGroupings,
             User user,
-            MessageReference reference) {
+            IncomingMessageId reference) {
         try {
             intentExtractionPort.extract(new IntentExtractionRequest(
                     command.text(),
@@ -131,7 +132,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         return designated;
     }
 
-    private List<SpendingSummary> spendingSummaries(long userId, MessageReference reference) {
+    private List<SpendingSummary> spendingSummaries(long userId, IncomingMessageId reference) {
         List<SpendingPeriod> periods = spendingQueryRepository.findPeriodsByMessageReference(userId, reference);
         return periods.stream()
                 .map(period -> new SpendingSummary(period, expenseRepository.totalsByCurrency(userId, period)))

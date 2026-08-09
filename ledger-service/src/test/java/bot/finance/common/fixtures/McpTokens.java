@@ -2,7 +2,7 @@ package bot.finance.common.fixtures;
 
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.adapter.security.AccessTokenProperties;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -34,7 +34,7 @@ public final class McpTokens {
     private static final String ISSUER = "ledger-service";
     private static final String AUDIENCE = "mcp-adapter";
     private static final Duration TTL = Duration.ofMinutes(2);
-    private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
+    private static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
 
     private McpTokens() {}
 
@@ -48,10 +48,13 @@ public final class McpTokens {
     }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {
-        return tokenFor(accessTokenMinter, externalId, MessageReference.newReference());
+        return tokenFor(
+                accessTokenMinter,
+                externalId,
+                IncomingMessageId.of(UUID.randomUUID().toString()));
     }
 
-    public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId, MessageReference reference) {
+    public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId, IncomingMessageId reference) {
         return accessTokenMinter.mint(externalId, reference);
     }
 
@@ -71,23 +74,23 @@ public final class McpTokens {
                 externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)), newReferenceText());
     }
 
-    /** A token whose {@code mrf} claim is not a parseable UUID. */
+    /** A token whose {@code imi} claim is blank, which the type refuses. */
     public static String malformedReferenceToken(String externalId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), "not-a-uuid");
+        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), "   ");
     }
 
-    /** A token carrying no {@code mrf} claim at all. */
+    /** A token carrying no {@code imi} claim at all. */
     public static String noReferenceToken(String externalId) {
         Instant issuedAt = Instant.now();
         return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
     }
 
     private static String newReferenceText() {
-        return MessageReference.newReference().value().toString();
+        return UUID.randomUUID().toString();
     }
 
-    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, String mrf) {
+    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, String imi) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .subject(subject)
@@ -96,8 +99,8 @@ public final class McpTokens {
                     .issueTime(Date.from(issuedAt))
                     .expirationTime(Date.from(expiresAt))
                     .jwtID(UUID.randomUUID().toString());
-            if (mrf != null) {
-                claims.claim(MESSAGE_REFERENCE_CLAIM, mrf);
+            if (imi != null) {
+                claims.claim(INCOMING_MESSAGE_ID_CLAIM, imi);
             }
             SignedJWT jwt = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KEY_ALIAS).build(), claims.build());

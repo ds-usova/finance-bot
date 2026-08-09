@@ -4,7 +4,7 @@ import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.SpendingQuery;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +35,7 @@ public class SpendingQueryRepositoryAdapter implements SpendingQueryRepository {
     }
 
     @Override
-    public List<SpendingPeriod> findPeriodsByMessageReference(long userId, MessageReference reference) {
+    public List<SpendingPeriod> findPeriodsByMessageReference(long userId, IncomingMessageId reference) {
         try {
             return spendingQueryEntityRepository.findPeriodsByMessageReference(userId, reference.value()).stream()
                     .sorted(Comparator.comparing(SpendingPeriodProjection::createdAt))
@@ -51,7 +51,7 @@ public class SpendingQueryRepositoryAdapter implements SpendingQueryRepository {
 
     @Override
     @Transactional
-    public int discard(long userId, MessageReference reference) {
+    public int discard(long userId, IncomingMessageId reference) {
         try {
             return spendingQueryEntityRepository.discard(userId, reference.value());
         } catch (RuntimeException e) {

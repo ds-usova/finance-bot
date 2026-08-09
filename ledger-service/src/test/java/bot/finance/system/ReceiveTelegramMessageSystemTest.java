@@ -32,7 +32,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -59,7 +58,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String CHAT_ID_STRING = String.valueOf(CHAT_ID);
     private static final String MESSAGE_TEXT = "lunch 12 euro";
     private static final String NEXT_OFFSET = "43";
-    private static final String MESSAGE_REFERENCE_CLAIM = "mrf";
+    private static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
 
     private static final String PROPOSAL_CATEGORY = "Supermarkets";
     private static final String PROPOSAL_GROUPING = "Groceries";
@@ -206,8 +205,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             String token = authorizationHeader.substring("Bearer ".length());
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
             assertThat(claims.getSubject()).as("jwt sub claim").isEqualTo(FROM_ID_STRING);
-            String messageReferenceClaim = claims.getStringClaim(MESSAGE_REFERENCE_CLAIM);
-            assertThat(messageReferenceClaim).as("jwt mrf claim").isNotNull();
+            String incomingMessageIdClaim = claims.getStringClaim(INCOMING_MESSAGE_ID_CLAIM);
+            assertThat(incomingMessageIdClaim).as("jwt imi claim").isNotNull();
 
             // then: one proposal is stored, filed under the message that produced it
             List<ExpenseProposalEntity> proposalRows = ExpenseProposalRowUtils.expenseProposalRowsFor(
@@ -218,9 +217,9 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                             storedUser.id().orElseThrow())
                     .hasSize(1);
             ExpenseProposalEntity proposalRow = proposalRows.get(0);
-            assertThat(proposalRow.messageReference())
-                    .as("stored proposal's message reference matches the bearer token's mrf claim")
-                    .isEqualTo(UUID.fromString(messageReferenceClaim));
+            assertThat(proposalRow.incomingMessageId())
+                    .as("stored proposal's incoming message id matches the bearer token's imi claim")
+                    .isEqualTo(incomingMessageIdClaim);
 
             // then: the model called the two MCP tools in order — the categories first, then the proposal
             List<String> mcpAnswers = GrpcStubServer.mcpCallbackResponses();
@@ -274,8 +273,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     buttonRow.get(0).get("callback_data").asText(),
                     buttonRow.get(1).get("callback_data").asText());
             assertThat(callbackDataValues)
-                    .as("both buttons' callback_data carry the mrf claim's message reference")
-                    .allSatisfy(callbackData -> assertThat(callbackData).endsWith(messageReferenceClaim));
+                    .as("both buttons' callback_data carry the imi claim's incoming message id")
+                    .allSatisfy(callbackData -> assertThat(callbackData).endsWith(incomingMessageIdClaim));
         }
     }
 }

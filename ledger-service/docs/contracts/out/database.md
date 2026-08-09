@@ -94,7 +94,7 @@ Indexes beyond the constraints above:
 
 - **A `category` row with no parent is a grouping.** That is the only thing telling a grouping from a category
   carrying the same name.
-- `message_reference` is a [message](../../domain/message-reference.md), in all three tables that carry one.
+- `incoming_message_id` is a [message](../../domain/incoming-message-id.md), in all three tables that carry one.
 - **A reference is in `expense_proposal` or in `expense`, never both.** No constraint enforces it
   ([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
 - `user_id` cascades on delete everywhere. `category_id` does not: a category cannot be removed while an expense

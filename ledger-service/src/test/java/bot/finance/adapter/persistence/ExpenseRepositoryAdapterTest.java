@@ -21,7 +21,7 @@ import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.SpendingPeriod;
 import java.sql.SQLException;
@@ -85,7 +85,7 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(row.merchant()).isEqualTo("Trader Joe's");
                 assertThat(row.amountMinorUnits()).isEqualTo(1500);
                 assertThat(row.currencyCode()).isEqualTo("USD");
-                assertThat(row.messageReference()).isNull();
+                assertThat(row.incomingMessageId()).isNull();
             });
         }
 
@@ -309,8 +309,9 @@ class ExpenseRepositoryAdapterTest {
         void whenTwoExpensesStoredUnderReferenceAndOneUnderAnother_thenReturnsTwo() {
             long userId = storedUserId("count-two-expenses-user");
             long categoryId = storedGroupingId(userId, "Groceries");
-            MessageReference reference = MessageReference.newReference();
-            MessageReference otherReference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId otherReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             storedExpense(userId, categoryId, "First", 100, "USD", reference.value());
             storedExpense(userId, categoryId, "Second", 200, "USD", reference.value());
             storedExpense(userId, categoryId, "Other reference", 300, "USD", otherReference.value());
@@ -325,7 +326,8 @@ class ExpenseRepositoryAdapterTest {
         void whenReferenceHasNoStoredExpenses_thenReturnsZero() {
             long userId = storedUserId("count-no-expenses-user");
 
-            int count = adapter.countByMessageReference(userId, MessageReference.newReference());
+            int count = adapter.countByMessageReference(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(count).isEqualTo(0);
         }
@@ -337,7 +339,8 @@ class ExpenseRepositoryAdapterTest {
             long categoryId = storedGroupingId(userId, "Groceries");
             storedExpense(userId, categoryId, "No message", 100, "USD", null);
 
-            int count = adapter.countByMessageReference(userId, MessageReference.newReference());
+            int count = adapter.countByMessageReference(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(count).isEqualTo(0);
         }
@@ -349,7 +352,8 @@ class ExpenseRepositoryAdapterTest {
             long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
             long secondUserId = storedUserId("count-shared-reference-second-user");
             long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
-            MessageReference sharedReference = MessageReference.newReference();
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             storedExpense(firstUserId, firstCategoryId, "First user's expense", 100, "USD", sharedReference.value());
             storedExpense(secondUserId, secondCategoryId, "Second user's expense", 200, "USD", sharedReference.value());
 
@@ -466,7 +470,7 @@ class ExpenseRepositoryAdapterTest {
                     null,
                     500,
                     "USD",
-                    MessageReference.newReference().value(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
                     insidePeriod);
 
             List<CurrencyTotal> totals = adapter.totalsByCurrency(userId, period);
@@ -763,7 +767,8 @@ class ExpenseRepositoryAdapterTest {
             when(mockedExpenseEntityRepository.countByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.countByMessageReference(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.countByMessageReference(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
                     .isInstanceOf(PersistenceFailedException.class)
                     .isNotInstanceOf(EntityNotFoundException.class)
                     .extracting(Throwable::getCause)
@@ -842,7 +847,7 @@ class ExpenseRepositoryAdapterTest {
             String description,
             long amountMinorUnits,
             String currencyCode,
-            UUID messageReference) {
+            String incomingMessageId) {
         return ExpenseRowUtils.storedExpense(
                 jdbcAggregateTemplate,
                 userId,
@@ -851,7 +856,7 @@ class ExpenseRepositoryAdapterTest {
                 null,
                 amountMinorUnits,
                 currencyCode,
-                messageReference,
+                incomingMessageId,
                 Instant.now());
     }
 
@@ -889,7 +894,7 @@ class ExpenseRepositoryAdapterTest {
                 null,
                 amountMinorUnits,
                 currencyCode,
-                MessageReference.newReference().value(),
+                IncomingMessageId.of(UUID.randomUUID().toString()).value(),
                 createdAt);
     }
 

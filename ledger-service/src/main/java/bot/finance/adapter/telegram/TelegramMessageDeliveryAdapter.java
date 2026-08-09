@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.dto.TurnReport;
 import bot.finance.application.port.Logger;
@@ -33,7 +34,7 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
     }
 
     @Override
-    public void deliver(TurnReport report) {
+    public Optional<ReportLocation> deliver(TurnReport report) {
         if (report == null) {
             throw new InvalidIncomingMessageException("report must not be null");
         }
@@ -46,6 +47,15 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         execute(request, SEND_MESSAGE).ifPresent(failure -> {
             throw failure;
         });
+        // TODO GI03: answer the chat and the message id Telegram gave the report, and nothing at all where the
+        // report carried no buttons (D41)
+        return Optional.empty();
+    }
+
+    @Override
+    public void clearButtons(ReportLocation location) {
+        // takes the keyboard off the message named by location.sentMessageId() in location.conversationId(),
+        // and leaves its text as sent
     }
 
     @Override

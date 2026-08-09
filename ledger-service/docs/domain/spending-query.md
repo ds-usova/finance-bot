@@ -42,6 +42,6 @@ The owning user's id, a [spending period](spending-period.md), the reference of 
 the instant it was recorded.
 
 - [User](user.md) — whose spending the question is about, and the only spending it can reach.
-- [Message reference](message-reference.md) — which message asked, and what the report answering that message
+- [Incoming message id](incoming-message-id.md) — which message asked, and what the report answering that message
   reads back.
 - [Database](../contracts/out/database.md) — where one is kept, and for how long.

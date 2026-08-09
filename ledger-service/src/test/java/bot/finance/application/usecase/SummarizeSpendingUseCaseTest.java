@@ -18,7 +18,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.SpendingQuery;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
 import java.time.Instant;
@@ -52,12 +52,12 @@ class SummarizeSpendingUseCaseTest {
         useCase = new SummarizeSpendingUseCase(userRepository, spendingQueryRepository, clock);
     }
 
-    private SummarizeSpendingCommand newCommand(MessageReference reference, String from, String to) {
+    private SummarizeSpendingCommand newCommand(IncomingMessageId reference, String from, String to) {
         return new SummarizeSpendingCommand(new AuthenticatedUserId(EXTERNAL_ID), reference, from, to);
     }
 
     /** Stores a user under {@code userId}, and answers the query the use case writes for EXPECTED_PERIOD. */
-    private void stubStoredUserAndCreatedQuery(long userId, MessageReference reference) {
+    private void stubStoredUserAndCreatedQuery(long userId, IncomingMessageId reference) {
         when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(userId, EXTERNAL_ID)));
         when(spendingQueryRepository.create(any()))
                 .thenReturn(SpendingQuery.stored(9L, userId, EXPECTED_PERIOD, reference, FIXED_INSTANT));
@@ -86,7 +86,8 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when the written dates do not make a period - then throws InvalidSpendingPeriodException")
         void whenWrittenDatesDoNotMakeAPeriod_thenThrowsInvalidSpendingPeriodException() {
-            SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "not-a-date", "2026-08-05");
+            SummarizeSpendingCommand command = newCommand(
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()), "not-a-date", "2026-08-05");
 
             assertThatThrownBy(() -> useCase.summarize(command)).isInstanceOf(InvalidSpendingPeriodException.class);
 
@@ -98,7 +99,8 @@ class SummarizeSpendingUseCaseTest {
         @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
             when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
-            SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "2026-08-01", "2026-08-05");
+            SummarizeSpendingCommand command = newCommand(
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()), "2026-08-01", "2026-08-05");
 
             assertThatThrownBy(() -> useCase.summarize(command)).isInstanceOf(EntityNotFoundException.class);
 
@@ -109,14 +111,15 @@ class SummarizeSpendingUseCaseTest {
         @DisplayName("when a well-formed period is given - then the stored query carries the user, reference, "
                 + "period and instant")
         void whenWellFormedPeriod_thenStoredQueryCarriesUserReferencePeriodAndClockInstant() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             stubStoredUserAndCreatedQuery(USER_ID, reference);
 
             useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
 
             SpendingQuery stored = capturedQuery();
             assertThat(stored.userId()).isEqualTo(USER_ID);
-            assertThat(stored.messageReference()).isEqualTo(reference);
+            assertThat(stored.incomingMessageId()).isEqualTo(reference);
             assertThat(stored.period()).isEqualTo(EXPECTED_PERIOD);
             assertThat(stored.createdAt()).isEqualTo(FIXED_INSTANT);
         }
@@ -124,7 +127,8 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when the period is well-formed - then the answer is that same period")
         void whenPeriodIsWellFormed_thenTheAnswerIsThatSamePeriod() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             stubStoredUserAndCreatedQuery(USER_ID, reference);
 
             SpendingPeriod answer = useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
@@ -137,7 +141,8 @@ class SummarizeSpendingUseCaseTest {
                 "when the stored user's id differs from the external id - then the stored query carries " + "that id")
         void whenStoredUsersIdDiffersFromExternalId_thenStoredQueryCarriesStoredUsersId() {
             long differentUserId = 42L;
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
             stubStoredUserAndCreatedQuery(differentUserId, reference);
 
             useCase.summarize(newCommand(reference, "2026-07-27", "2026-08-02"));
@@ -153,7 +158,8 @@ class SummarizeSpendingUseCaseTest {
                     .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
             when(spendingQueryRepository.create(any())).thenThrow(failure);
-            SummarizeSpendingCommand command = newCommand(MessageReference.newReference(), "2026-07-27", "2026-08-02");
+            SummarizeSpendingCommand command = newCommand(
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()), "2026-07-27", "2026-08-02");
 
             assertThatThrownBy(() -> useCase.summarize(command)).isSameAs(failure);
         }

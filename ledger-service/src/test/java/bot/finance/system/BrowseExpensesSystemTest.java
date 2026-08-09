@@ -76,10 +76,18 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
                     "Cafe",
                     1230L,
                     "EUR",
-                    UUID.randomUUID(),
+                    UUID.randomUUID().toString(),
                     now.minusSeconds(60));
             ExpenseProposalRowUtils.storedProposal(
-                    jdbcAggregateTemplate, userId, categoryId, "dinner", "Cafe", 2450L, "EUR", UUID.randomUUID(), now);
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "dinner",
+                    "Cafe",
+                    2450L,
+                    "EUR",
+                    UUID.randomUUID().toString(),
+                    now);
 
             Response response = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)

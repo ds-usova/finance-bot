@@ -1,6 +1,6 @@
 package bot.finance.adapter.security;
 
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -23,7 +23,7 @@ public class AccessTokenMinter {
         this.signingKeys = signingKeys;
     }
 
-    public String mint(String userExternalId, MessageReference reference) {
+    public String mint(String userExternalId, IncomingMessageId reference) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -33,7 +33,7 @@ public class AccessTokenMinter {
                 .issueTime(issuedAt)
                 .expirationTime(expiresAt)
                 .jwtID(UUID.randomUUID().toString())
-                .claim("mrf", reference.value().toString())
+                .claim("imi", reference.value())
                 .build();
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(signingKeys.keyId())

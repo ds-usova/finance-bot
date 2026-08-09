@@ -11,7 +11,7 @@ import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import org.springframework.ai.mcp.annotation.McpTool;
@@ -45,7 +45,7 @@ public class SummarizeSpendingMcpTool {
 
         try {
             AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
-            MessageReference reference = AuthenticatedCaller.messageReference();
+            IncomingMessageId reference = AuthenticatedCaller.incomingMessageId();
 
             SpendingPeriod period =
                     summarizeSpendingPort.summarize(new SummarizeSpendingCommand(userId, reference, from, to));

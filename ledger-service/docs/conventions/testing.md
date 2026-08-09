@@ -24,6 +24,7 @@ bot.finance
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
     │   ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
+    │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk

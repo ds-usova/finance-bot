@@ -7,7 +7,7 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +25,8 @@ class CreateExpenseProposalCommandTest {
     private static final String DESCRIPTION = "groceries";
     private static final Optional<String> MERCHANT = Optional.of("Trader Joe's");
     private static final Money MONEY = new Money(1000, new CurrencyCode("USD"));
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE =
+            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
     @Nested
     @DisplayName("constructing a new expense proposal")
@@ -127,7 +128,7 @@ class CreateExpenseProposalCommandTest {
             CreateExpenseProposalCommand createExpenseProposalCommand = new CreateExpenseProposalCommand(
                     USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE);
 
-            assertThat(createExpenseProposalCommand.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(createExpenseProposalCommand.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
         }
 
         @Test

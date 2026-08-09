@@ -39,7 +39,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
@@ -201,7 +201,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
+            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
             assertThat(reference).isNotNull();
 
             verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, reference);
@@ -263,7 +263,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
+            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
 
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.RECORDED);
@@ -434,7 +434,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            ArgumentCaptor<MessageReference> referenceCaptor = ArgumentCaptor.forClass(MessageReference.class);
+            ArgumentCaptor<IncomingMessageId> referenceCaptor = ArgumentCaptor.forClass(IncomingMessageId.class);
             verify(spendingQueryRepository).discard(eq(USER_ID), referenceCaptor.capture());
             verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, referenceCaptor.getValue());
         }
@@ -648,7 +648,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
+            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
 
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);

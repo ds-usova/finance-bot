@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,8 @@ class SummarizeSpendingCommandTest {
         @DisplayName("when every component is present - then every component reads back unchanged")
         void whenUserIdReferenceAndDatesArePresent_thenEveryComponentReadsBackUnchanged() {
             AuthenticatedUserId userId = new AuthenticatedUserId("user-external-id");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
             SummarizeSpendingCommand command =
                     new SummarizeSpendingCommand(userId, reference, "2026-08-01", "2026-08-05");
@@ -37,7 +38,10 @@ class SummarizeSpendingCommandTest {
         @DisplayName("when the authenticated user id is null - then throws InvalidSpendingQueryException")
         void whenUserIdIsNull_thenThrowsInvalidSpendingQueryException() {
             assertThatThrownBy(() -> new SummarizeSpendingCommand(
-                            null, MessageReference.newReference(), "2026-08-01", "2026-08-05"))
+                            null,
+                            IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                            "2026-08-01",
+                            "2026-08-05"))
                     .isInstanceOf(InvalidSpendingQueryException.class);
         }
 
@@ -54,7 +58,10 @@ class SummarizeSpendingCommandTest {
         @DisplayName("when from is null or blank - then the record is built and from is carried through unchanged")
         void whenFromIsNullOrBlank_thenTheRecordIsBuiltAndFromIsCarriedThroughUnchanged(String from) {
             SummarizeSpendingCommand command = new SummarizeSpendingCommand(
-                    new AuthenticatedUserId("user-external-id"), MessageReference.newReference(), from, "2026-08-05");
+                    new AuthenticatedUserId("user-external-id"),
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                    from,
+                    "2026-08-05");
 
             assertThat(command.from()).isEqualTo(from);
         }
@@ -64,7 +71,10 @@ class SummarizeSpendingCommandTest {
         @DisplayName("when to is null or blank - then the record is built and to is carried through unchanged")
         void whenToIsNullOrBlank_thenTheRecordIsBuiltAndToIsCarriedThroughUnchanged(String to) {
             SummarizeSpendingCommand command = new SummarizeSpendingCommand(
-                    new AuthenticatedUserId("user-external-id"), MessageReference.newReference(), "2026-08-01", to);
+                    new AuthenticatedUserId("user-external-id"),
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                    "2026-08-01",
+                    to);
 
             assertThat(command.to()).isEqualTo(to);
         }

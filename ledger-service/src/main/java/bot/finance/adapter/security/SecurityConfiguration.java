@@ -57,6 +57,8 @@ public class SecurityConfiguration {
                         .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/groupings")
                         .authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/expenses/acceptances")
+                        .authenticated()
                         .anyRequest()
                         .denyAll())
                 .oauth2ResourceServer(oauth2 ->

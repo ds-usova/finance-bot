@@ -1,9 +1,11 @@
 package bot.finance.adapter.config;
 
+import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.BrowseGroupingsPort;
 import bot.finance.application.port.CategoryRepository;
+import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ExpenseProposalRepository;
@@ -15,13 +17,17 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.UserRepository;
+import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
 import bot.finance.application.usecase.BrowseExpensesUseCase;
 import bot.finance.application.usecase.BrowseGroupingsUseCase;
+import bot.finance.application.usecase.ClearEmptiedReportsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
@@ -129,5 +135,33 @@ public class UseCaseConfiguration {
     @Bean
     BrowseGroupingsPort browseGroupingsPort(UserRepository userRepository, GroupingRepository groupingRepository) {
         return new BrowseGroupingsUseCase(userRepository, groupingRepository);
+    }
+
+    @Bean
+    AcceptExpensesPort acceptExpensesPort(
+            UserRepository userRepository,
+            ExpenseProposalRepository expenseProposalRepository,
+            ReportClearingDispatchPort reportClearingDispatchPort,
+            LoggerFactory loggerFactory) {
+        return new AcceptExpensesUseCase(
+                userRepository,
+                expenseProposalRepository,
+                reportClearingDispatchPort,
+                Clock.systemUTC(),
+                loggerFactory);
+    }
+
+    @Bean
+    ClearEmptiedReportsPort clearEmptiedReportsPort(
+            ExpenseProposalRepository expenseProposalRepository,
+            ProposalReportRepository proposalReportRepository,
+            MessageDeliveryPort messageDeliveryPort,
+            LoggerFactory loggerFactory) {
+        return new ClearEmptiedReportsUseCase(
+                expenseProposalRepository,
+                proposalReportRepository,
+                messageDeliveryPort,
+                Clock.systemUTC(),
+                loggerFactory);
     }
 }

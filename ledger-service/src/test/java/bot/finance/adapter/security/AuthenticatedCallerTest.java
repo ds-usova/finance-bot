@@ -6,9 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -76,46 +75,45 @@ class AuthenticatedCallerTest {
     }
 
     @Nested
-    @DisplayName("resolving the message reference from the security context")
-    class MessageReferenceMethod {
+    @DisplayName("resolving the incoming message id from the security context")
+    class IncomingMessageIdMethod {
 
         @Test
-        @DisplayName("when the token's mrf claim is a UUID's canonical text"
-                + " - then returns a MessageReference carrying that UUID")
-        void whenContextHoldsValidatedTokenWithUuidMrfClaim_thenReturnsMessageReferenceCarryingThatUuid() {
-            UUID reference = UUID.randomUUID();
+        @DisplayName(
+                "when the token's imi claim is present" + " - then returns an IncomingMessageId carrying that value")
+        void whenContextHoldsValidatedTokenWithImiClaim_thenReturnsIncomingMessageIdCarryingThatValue() {
+            String reference = "conversation-1:42";
             SecurityContextHolder.getContext()
-                    .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim(reference.toString())));
+                    .setAuthentication(new JwtAuthenticationToken(jwtWithImiClaim(reference)));
 
-            MessageReference messageReference = AuthenticatedCaller.messageReference();
+            IncomingMessageId incomingMessageId = AuthenticatedCaller.incomingMessageId();
 
-            assertThat(messageReference).isEqualTo(new MessageReference(reference));
+            assertThat(incomingMessageId).isEqualTo(new IncomingMessageId(reference));
         }
 
         @Test
-        @DisplayName("when the security context holds a validated token with no mrf claim"
+        @DisplayName("when the security context holds a validated token with no imi claim"
                 + " - then throws InvalidIncomingMessageException")
-        void whenContextHoldsValidatedTokenWithNoMrfClaim_thenThrowsInvalidIncomingMessageException() {
-            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithoutMrfClaim()));
+        void whenContextHoldsValidatedTokenWithNoImiClaim_thenThrowsInvalidIncomingMessageException() {
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithoutImiClaim()));
 
-            assertThatThrownBy(AuthenticatedCaller::messageReference)
+            assertThatThrownBy(AuthenticatedCaller::incomingMessageId)
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
         @Test
-        @DisplayName("when the token's mrf claim is not a UUID - then throws InvalidIncomingMessageException")
-        void whenContextHoldsValidatedTokenWithNonUuidMrfClaim_thenThrowsInvalidIncomingMessageException() {
-            SecurityContextHolder.getContext()
-                    .setAuthentication(new JwtAuthenticationToken(jwtWithMrfClaim("not-a-uuid")));
+        @DisplayName("when the token's imi claim is blank - then throws InvalidIncomingMessageException")
+        void whenContextHoldsValidatedTokenWithBlankImiClaim_thenThrowsInvalidIncomingMessageException() {
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithImiClaim("   ")));
 
-            assertThatThrownBy(AuthenticatedCaller::messageReference)
+            assertThatThrownBy(AuthenticatedCaller::incomingMessageId)
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
         @Test
         @DisplayName("when the security context holds no authentication - then throws InvalidUserException")
         void whenContextHoldsNoAuthentication_thenThrowsInvalidUserException() {
-            assertThatThrownBy(AuthenticatedCaller::messageReference).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::incomingMessageId).isInstanceOf(InvalidUserException.class);
         }
 
         @Test
@@ -125,20 +123,20 @@ class AuthenticatedCallerTest {
             SecurityContextHolder.getContext()
                     .setAuthentication(new UsernamePasswordAuthenticationToken("user", "password"));
 
-            assertThatThrownBy(AuthenticatedCaller::messageReference).isInstanceOf(InvalidUserException.class);
+            assertThatThrownBy(AuthenticatedCaller::incomingMessageId).isInstanceOf(InvalidUserException.class);
         }
 
-        private static Jwt jwtWithMrfClaim(String mrf) {
+        private static Jwt jwtWithImiClaim(String imi) {
             return Jwt.withTokenValue("token-value")
                     .header("alg", "RS256")
                     .subject("ext-123")
-                    .claim("mrf", mrf)
+                    .claim("imi", imi)
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(60))
                     .build();
         }
 
-        private static Jwt jwtWithoutMrfClaim() {
+        private static Jwt jwtWithoutImiClaim() {
             return Jwt.withTokenValue("token-value")
                     .header("alg", "RS256")
                     .subject("ext-123")

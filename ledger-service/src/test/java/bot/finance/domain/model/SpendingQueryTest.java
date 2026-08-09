@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidSpendingQueryException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,7 +18,8 @@ class SpendingQueryTest {
 
     private static final SpendingPeriod PERIOD =
             new SpendingPeriod(LocalDate.parse("2026-07-20"), LocalDate.parse("2026-07-27"));
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE =
+            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
     @Nested
     @DisplayName("creating a new spending query")
@@ -35,7 +36,7 @@ class SpendingQueryTest {
             assertThat(query.id()).isEmpty();
             assertThat(query.userId()).isEqualTo(1L);
             assertThat(query.period()).isEqualTo(PERIOD);
-            assertThat(query.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(query.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(query.createdAt()).isEqualTo(now);
         }
 
@@ -90,7 +91,7 @@ class SpendingQueryTest {
             assertThat(query.id()).contains(42L);
             assertThat(query.userId()).isEqualTo(1L);
             assertThat(query.period()).isEqualTo(PERIOD);
-            assertThat(query.messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(query.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
             assertThat(query.createdAt()).isEqualTo(createdAt);
         }
     }

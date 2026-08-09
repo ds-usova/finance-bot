@@ -4,7 +4,6 @@ import bot.finance.adapter.persistence.SpendingQueryEntity;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 public class SpendingQueryRowUtils {
@@ -21,11 +20,11 @@ public class SpendingQueryRowUtils {
     public static SpendingQueryEntity storedQuery(
             JdbcAggregateTemplate jdbcAggregateTemplate,
             long userId,
-            UUID messageReference,
+            String incomingMessageId,
             LocalDate periodStart,
             LocalDate periodEnd,
             Instant createdAt) {
         return jdbcAggregateTemplate.insert(
-                new SpendingQueryEntity(null, userId, messageReference, periodStart, periodEnd, createdAt));
+                new SpendingQueryEntity(null, userId, incomingMessageId, periodStart, periodEnd, createdAt));
     }
 }

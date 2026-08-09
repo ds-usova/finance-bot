@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bot.finance.application.dto.BrowseExpensesCommand;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
@@ -62,6 +63,9 @@ class ExpensesControllerTest {
 
     @MockitoBean
     private BrowseExpensesPort browseExpensesPort;
+
+    @MockitoBean
+    private AcceptExpensesPort acceptExpensesPort;
 
     @Nested
     @DisplayName("Happy Path")

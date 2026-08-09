@@ -13,7 +13,7 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
@@ -44,7 +44,7 @@ class AiConnectorIntentExtractionAdapterTest {
         GrpcStubServer.reset();
     }
 
-    private static IntentExtractionRequest requestFor(String userExternalId, MessageReference reference) {
+    private static IntentExtractionRequest requestFor(String userExternalId, IncomingMessageId reference) {
         return new IntentExtractionRequest(
                 "spent 15 on milk",
                 List.of("Groceries"),
@@ -80,7 +80,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                     CURRENT_DATE);
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
@@ -98,7 +98,9 @@ class AiConnectorIntentExtractionAdapterTest {
         void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id", MessageReference.newReference()));
+            adapter.extract(requestFor(
+                    "user-external-id",
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString())));
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
@@ -110,7 +112,9 @@ class AiConnectorIntentExtractionAdapterTest {
         void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id-77", MessageReference.newReference()));
+            adapter.extract(requestFor(
+                    "user-external-id-77",
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString())));
 
             assertThat(bearerClaims().getSubject()).isEqualTo("user-external-id-77");
         }
@@ -120,12 +124,12 @@ class AiConnectorIntentExtractionAdapterTest {
                 + "reference's UUID text")
         void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaim() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference =
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
             adapter.extract(requestFor("user-external-id", reference));
 
-            assertThat(bearerClaims().getStringClaim("mrf"))
-                    .isEqualTo(reference.value().toString());
+            assertThat(bearerClaims().getStringClaim("imi")).isEqualTo(reference.value());
         }
 
         @Test
@@ -149,7 +153,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
                     CURRENT_DATE);
 
             IntentExtractionFailedException thrown =

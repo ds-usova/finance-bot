@@ -125,7 +125,7 @@ participant "AI Connector" as Connector
 participant "AI Provider" as Provider
 participant "Ledger — MCP tools" as Tools
 
-Turn -> Turn : mint a token\nsubject: the user\nmrf: this message
+Turn -> Turn : mint a token\nsubject: the user\nimi: this message
 Turn -> Connector : ExtractIntents + token, as call metadata
 note right of Connector : opaque here\nnever parsed, logged or stored
 
@@ -134,7 +134,7 @@ Provider --> Connector : call a tool
 
 Connector -> Tools : the tool call + the same token, verbatim
 Tools -> Tools : validate\nsignature · algorithm · not expired\nnot future-dated · issuer · audience\nlifetime within the maximum
-Tools -> Tools : read the subject → the user\nread mrf → the message reference
+Tools -> Tools : read the subject → the user\nread imi → the incoming message id
 Tools --> Connector : the result, stored under that reference
 
 note over Connector, Tools : one token per call — no session.\nA turn making several calls makes several independent ones.
@@ -144,7 +144,7 @@ note over Connector, Tools : one token per call — no session.\nA turn making s
 - The token is a short-lived RS256 JSON Web Token, issued and validated by this service itself.
 - It names the user as its subject, `ledger-service` as its issuer, and `mcp-adapter` as its audience.
 - It carries the instant it was issued, the instant it expires, a unique id, and the
-  [message reference](../../domain/message-reference.md) of the message being handled.
+  [incoming message id](../../domain/incoming-message-id.md) of the message being handled.
 - The signing key comes from a keystore read at startup. Its public half is published, unauthenticated, at
   `/.well-known/jwks.json`.
 - A rotation is a new key in the keystore and a restart. A client re-reads the keys and needs no change.

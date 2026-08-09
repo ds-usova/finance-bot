@@ -70,7 +70,7 @@ opens with.
   never one the connector guessed.
 - The connector acts as that person for the length of the turn, on a credential minted per call
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- A [message reference](../domain/message-reference.md) is minted per message and rides that credential, so
+- An [incoming message id](../domain/incoming-message-id.md) is derived per message and rides that credential, so
   everything the turn records carries it
   ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 - Only what was recorded under this message's reference is reported, oldest first. That covers the spending it

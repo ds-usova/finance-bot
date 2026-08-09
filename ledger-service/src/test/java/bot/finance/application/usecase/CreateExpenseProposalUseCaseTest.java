@@ -28,7 +28,7 @@ import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
 import java.time.Instant;
@@ -47,7 +47,8 @@ class CreateExpenseProposalUseCaseTest {
     private static final long GROUPING_ID = 3L;
     private static final long CATEGORY_ID = 2L;
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE =
+            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
 
     private UserRepository userRepository;
     private GroupingRepository groupingRepository;
@@ -271,7 +272,7 @@ class CreateExpenseProposalUseCaseTest {
 
             useCase.create(newExpenseProposal());
 
-            assertThat(capturedProposal().messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(capturedProposal().incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
         }
 
         @Test

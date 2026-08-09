@@ -1,7 +1,7 @@
 # Resolve a reported proposal
 
 - **In:** who tapped · the conversation the report sits in · which message carries the report · which tap it is ·
-  the [message](../domain/message-reference.md) the buttons name · which of the two buttons was tapped
+  the [message](../domain/incoming-message-id.md) the buttons name · which of the two buttons was tapped
 - **Out:** an answer to the tap, and a report whose buttons are gone
 - **Why:** the spending a report lists stops being pending — it becomes the person's ledger, or it is thrown away
 
@@ -26,7 +26,7 @@
 - Confirm turns every proposal stored under that message into an expense; Delete removes them.
 - Either way it is one statement, so two taps at once resolve the report once
   ([ADR 0012](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- A confirmed expense keeps the [message](../domain/message-reference.md) that produced it.
+- A confirmed expense keeps the [message](../domain/incoming-message-id.md) that produced it.
 - Both of its timestamps are the moment of confirmation, not the moment the proposal was assembled.
 - A discarded proposal is gone, and nothing records that it existed.
 - A confirmed expense is never undone: Delete on an already confirmed report removes nothing.

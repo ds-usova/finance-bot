@@ -60,7 +60,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
                 command.description(),
                 command.merchant(),
                 command.money(),
-                command.messageReference(),
+                command.incomingMessageId(),
                 now);
         ExpenseProposal created = expenseProposalRepository.create(proposal);
         log.info(

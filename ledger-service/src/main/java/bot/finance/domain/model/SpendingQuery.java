@@ -1,7 +1,7 @@
 package bot.finance.domain.model;
 
 import bot.finance.domain.exception.InvalidSpendingQueryException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 
@@ -9,11 +9,11 @@ public final class SpendingQuery extends Entity {
 
     private final long userId;
     private final SpendingPeriod period;
-    private final MessageReference messageReference;
+    private final IncomingMessageId incomingMessageId;
     private final Instant createdAt;
 
     private SpendingQuery(
-            Long id, long userId, SpendingPeriod period, MessageReference messageReference, Instant createdAt) {
+            Long id, long userId, SpendingPeriod period, IncomingMessageId incomingMessageId, Instant createdAt) {
         super(id);
         if (userId <= 0) {
             throw new InvalidSpendingQueryException("user id must be positive");
@@ -21,26 +21,26 @@ public final class SpendingQuery extends Entity {
         if (period == null) {
             throw new InvalidSpendingQueryException("period must be present");
         }
-        if (messageReference == null) {
-            throw new InvalidSpendingQueryException("message reference must be present");
+        if (incomingMessageId == null) {
+            throw new InvalidSpendingQueryException("incoming message id must be present");
         }
         if (createdAt == null) {
             throw new InvalidSpendingQueryException("created at must be present");
         }
         this.userId = userId;
         this.period = period;
-        this.messageReference = messageReference;
+        this.incomingMessageId = incomingMessageId;
         this.createdAt = createdAt;
     }
 
     public static SpendingQuery newQuery(
-            long userId, SpendingPeriod period, MessageReference messageReference, Instant now) {
-        return new SpendingQuery(null, userId, period, messageReference, now);
+            long userId, SpendingPeriod period, IncomingMessageId incomingMessageId, Instant now) {
+        return new SpendingQuery(null, userId, period, incomingMessageId, now);
     }
 
     public static SpendingQuery stored(
-            long id, long userId, SpendingPeriod period, MessageReference messageReference, Instant createdAt) {
-        return new SpendingQuery(id, userId, period, messageReference, createdAt);
+            long id, long userId, SpendingPeriod period, IncomingMessageId incomingMessageId, Instant createdAt) {
+        return new SpendingQuery(id, userId, period, incomingMessageId, createdAt);
     }
 
     public long userId() {
@@ -51,8 +51,8 @@ public final class SpendingQuery extends Entity {
         return period;
     }
 
-    public MessageReference messageReference() {
-        return messageReference;
+    public IncomingMessageId incomingMessageId() {
+        return incomingMessageId;
     }
 
     public Instant createdAt() {

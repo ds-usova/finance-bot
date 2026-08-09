@@ -4,6 +4,7 @@ import bot.finance.adapter.telegram.TelegramLoginRejectedException;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
@@ -13,6 +14,9 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -43,6 +47,27 @@ public class WebExceptionHandler {
     public ResponseEntity<Map<String, String>> onInvalidExpenseFilter(InvalidExpenseFilterException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidExpenseAcceptanceException.class)
+    public ResponseEntity<Map<String, String>> onInvalidExpenseAcceptance(InvalidExpenseAcceptanceException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> onMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        FieldError fieldError = e.getBindingResult().getFieldErrors().get(0);
+        String message = fieldError.getField() + " " + fieldError.getDefaultMessage();
+
+        logger.warn("rejected a request: {}", message);
+        return problem(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> onHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        logger.warn("rejected a request: the body could not be read");
+        return problem(HttpStatus.BAD_REQUEST, "the request body could not be read");
     }
 
     @ExceptionHandler(InvalidSpendingPeriodException.class)

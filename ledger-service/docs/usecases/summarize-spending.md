@@ -20,7 +20,7 @@
 - The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
   The request never names whose spending it is
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- The [message reference](../domain/message-reference.md) comes off the same credential. The request never names
+- The [incoming message id](../domain/incoming-message-id.md) comes off the same credential. The request never names
   it either
   ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
 - The two written days are read into a [spending period](../domain/spending-period.md) first. A period that does

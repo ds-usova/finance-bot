@@ -3,7 +3,6 @@ package bot.finance.common.rows;
 import bot.finance.adapter.persistence.ExpenseProposalEntity;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 public class ExpenseProposalRowUtils {
@@ -25,7 +24,7 @@ public class ExpenseProposalRowUtils {
             String merchant,
             long amountMinorUnits,
             String currencyCode,
-            UUID messageReference,
+            String incomingMessageId,
             Instant createdAt) {
         return jdbcAggregateTemplate.insert(new ExpenseProposalEntity(
                 null,
@@ -35,7 +34,7 @@ public class ExpenseProposalRowUtils {
                 merchant,
                 amountMinorUnits,
                 currencyCode,
-                messageReference,
+                incomingMessageId,
                 createdAt,
                 createdAt));
     }

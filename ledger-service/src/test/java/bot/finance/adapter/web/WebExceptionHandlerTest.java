@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
@@ -47,6 +48,9 @@ class WebExceptionHandlerTest {
 
     @MockitoBean
     private BrowseExpensesPort browseExpensesPort;
+
+    @MockitoBean
+    private AcceptExpensesPort acceptExpensesPort;
 
     @Nested
     @DisplayName("Error Mapping")

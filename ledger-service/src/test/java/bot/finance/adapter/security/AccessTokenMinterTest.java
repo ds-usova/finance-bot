@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.SigningKeys;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -12,6 +12,7 @@ import com.nimbusds.jwt.SignedJWT;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,10 @@ class AccessTokenMinterTest {
     private final AccessTokenProperties properties = McpTokens.properties();
 
     private final AccessTokenMinter minter = McpTokens.minter();
+
+    private static IncomingMessageId newReference() {
+        return IncomingMessageId.of(UUID.randomUUID().toString());
+    }
 
     @Nested
     @DisplayName("minting a token")
@@ -51,7 +56,7 @@ class AccessTokenMinterTest {
         }
 
         private JWTClaimsSet mintedClaims() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String token = minter.mint(USER_EXTERNAL_ID, newReference());
             return SignedJWT.parse(token).getJWTClaimsSet();
         }
 
@@ -59,8 +64,8 @@ class AccessTokenMinterTest {
         @DisplayName(
                 "when mint() is called twice for the same external id - then the two tokens carry different jti values")
         void whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
-            String firstToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
-            String secondToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String firstToken = minter.mint(USER_EXTERNAL_ID, newReference());
+            String secondToken = minter.mint(USER_EXTERNAL_ID, newReference());
 
             String firstJti = SignedJWT.parse(firstToken).getJWTClaimsSet().getJWTID();
             String secondJti = SignedJWT.parse(secondToken).getJWTClaimsSet().getJWTID();
@@ -72,7 +77,7 @@ class AccessTokenMinterTest {
         @DisplayName("when mint() is called - then the token is signed RS256 and verifies against the keystore's "
                 + "public key")
         void whenMintIsCalledAndTheTokenHeaderIsRead_thenTheAlgorithmIsRs256AndTheSignatureVerifies() throws Exception {
-            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String token = minter.mint(USER_EXTERNAL_ID, newReference());
 
             SignedJWT signedJwt = SignedJWT.parse(token);
 
@@ -84,33 +89,32 @@ class AccessTokenMinterTest {
         @Test
         @DisplayName("when the minted token's header is read - then its kid is the alias the JWK Set publishes")
         void whenTheMintedTokenHeaderIsRead_thenItsKidIsTheAliasTheJwkSetPublishes() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+            String token = minter.mint(USER_EXTERNAL_ID, newReference());
 
             assertThat(SignedJWT.parse(token).getHeader().getKeyID()).isEqualTo(SigningKeys.KEY_ALIAS);
         }
 
         @Test
-        @DisplayName(
-                "when the minted token is parsed - then its mrf claim is that reference's UUID in canonical text form")
-        void whenTheMintedTokenIsParsed_thenItsMrfClaimIsThatReferencesUuidInCanonicalTextForm() throws ParseException {
-            MessageReference reference = MessageReference.newReference();
+        @DisplayName("when the minted token is parsed - then its imi claim is that reference's value")
+        void whenTheMintedTokenIsParsed_thenItsImiClaimIsThatReferencesValue() throws ParseException {
+            IncomingMessageId reference = newReference();
 
             String token = minter.mint(USER_EXTERNAL_ID, reference);
 
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
-            assertThat(claims.getStringClaim("mrf")).isEqualTo(reference.value().toString());
+            assertThat(claims.getStringClaim("imi")).isEqualTo(reference.value());
         }
 
         @Test
-        @DisplayName("when both tokens are parsed - then their mrf claims differ")
-        void whenBothTokensAreParsed_thenTheirMrfClaimsDiffer() throws ParseException {
-            String firstToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
-            String secondToken = minter.mint(USER_EXTERNAL_ID, MessageReference.newReference());
+        @DisplayName("when both tokens are parsed - then their imi claims differ")
+        void whenBothTokensAreParsed_thenTheirImiClaimsDiffer() throws ParseException {
+            String firstToken = minter.mint(USER_EXTERNAL_ID, newReference());
+            String secondToken = minter.mint(USER_EXTERNAL_ID, newReference());
 
-            String firstMrf = SignedJWT.parse(firstToken).getJWTClaimsSet().getStringClaim("mrf");
-            String secondMrf = SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim("mrf");
+            String firstImi = SignedJWT.parse(firstToken).getJWTClaimsSet().getStringClaim("imi");
+            String secondImi = SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim("imi");
 
-            assertThat(firstMrf).isNotEqualTo(secondMrf);
+            assertThat(firstImi).isNotEqualTo(secondImi);
         }
     }
 }
