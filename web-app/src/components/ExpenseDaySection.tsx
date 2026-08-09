@@ -37,8 +37,9 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
     >
       <AccordionItem value={day.day}>
         {/* Exactly two children, so every day's header lines up: the day on the left, the money on the
-            right. A flat list of spans lets `justify-between` space them differently per day. */}
-        <AccordionTrigger className="gap-4 px-4 sm:px-5">
+            right, flush with the amounts in the panel below. A flat list of spans lets `justify-between`
+            space them differently per day. */}
+        <AccordionTrigger className="gap-3 px-4 sm:px-5">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-semibold">{dayLabel}</span>
             <span className="text-xs font-normal text-muted-foreground">
