@@ -40,10 +40,6 @@ The runner is fixed to UTC, so an assertion about a reader in another zone prove
 zone with `vi.stubEnv('TZ', 'Pacific/Kiritimati')` and release it with `vi.unstubAllEnvs()`; `process.env.TZ`
 directly does not type-check, `@types/node` not being a dependency.
 
-**Build the expected value by hand, never from the expression under test.** A case that formats its own
-expectation with the same `Intl` call it is checking holds in every zone, including one where the screen is
-wrong.
-
 ## Test Tooling
 
 Vitest with jsdom, Testing Library, and `@testing-library/user-event` for interaction. `@testing-library/jest-dom`
@@ -63,4 +59,7 @@ matchers are registered once in `vitest.setup.ts`, which also cleans up between 
   client. Nothing reaches past that.
 - **Assert the invariant, not the mechanism.** That a write carries the CSRF header, not that a particular
   header-building helper was called.
+- **Build the expected value by hand, never from the expression under test.** A case that formats its
+  expectation with the same `Intl` call it is checking asserts only that the component called `Intl` the way the
+  test did, and passes just as happily when the output is wrong.
 - **A test owed a rework is skipped with `it.skip`, never commented out.**
