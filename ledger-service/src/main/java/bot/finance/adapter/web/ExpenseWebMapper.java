@@ -2,7 +2,7 @@ package bot.finance.adapter.web;
 
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
-import bot.finance.api.model.RenderedMoney;
+import bot.finance.application.dto.DayTotal;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
@@ -12,7 +12,6 @@ import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.List;
 
 public final class ExpenseWebMapper {
 
@@ -37,8 +36,7 @@ public final class ExpenseWebMapper {
                 page.limit(),
                 page.offset(),
                 page.total(),
-                // TODO ledger-service GU03: map page.dayTotals() into the generated day-total models
-                List.of());
+                page.dayTotals().stream().map(ExpenseWebMapper::toDayTotal).toList());
     }
 
     private static ExpenseStatus toStatus(String status) {
@@ -70,11 +68,16 @@ public final class ExpenseWebMapper {
                 bot.finance.api.model.ExpenseStatus.valueOf(entry.status().name()),
                 entry.categoryId(),
                 entry.description(),
-                // TODO ledger-service GU03: render entry.money() and carry its amount, currency and separator here
-                new RenderedMoney("", "", ""),
+                MoneyRenderer.render(entry.money()),
                 entry.createdAt().atOffset(ZoneOffset.UTC));
         entry.merchant().ifPresent(item::merchant);
 
         return item;
+    }
+
+    private static bot.finance.api.model.DayTotal toDayTotal(DayTotal dayTotal) {
+        return new bot.finance.api.model.DayTotal(
+                dayTotal.day(),
+                dayTotal.amounts().stream().map(MoneyRenderer::render).toList());
     }
 }

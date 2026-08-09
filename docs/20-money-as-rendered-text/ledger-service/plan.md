@@ -230,14 +230,14 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ExpensePage` · test: `ExpensePageTest` · after: GU04
-- [ ] GU02 · `MoneyRenderer` · test: `MoneyRendererTest`
-- [ ] GU03 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01, GU02
-- [ ] GU04 · `DayTotal` · test: `DayTotalTest`
+- [x] GU01 · `ExpensePage` · test: `ExpensePageTest` · after: GU04
+- [x] GU02 · `MoneyRenderer` · test: `MoneyRendererTest`
+- [x] GU03 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01, GU02
+- [x] GU04 · `DayTotal` · test: `DayTotalTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses`
+- [x] GS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses`
 
 ### Post-Implementation Steps
 
