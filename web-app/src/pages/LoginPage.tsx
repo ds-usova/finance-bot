@@ -23,24 +23,39 @@ export function LoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center py-6">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-            <Wallet aria-hidden="true" className="h-6 w-6" />
-          </span>
-          <h2 className="text-xl font-semibold tracking-tight">{t('signIn.heading')}</h2>
-          <p className="text-sm text-muted-foreground">{t('signIn.invitation')}</p>
-        </div>
-        {/* Telegram serves the widget in an iframe of its own, so it cannot be styled from here — only
-            given room and centred. */}
-        <div className="mt-7 flex justify-center">
-          <TelegramLoginButton onAuth={handleAuth} />
-        </div>
-        {failed && (
-          <div className="mt-6">
-            <ErrorBanner message={t('signIn.refused')} />
+      <div className="grid w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm sm:grid-cols-2">
+        {/* The brand half is hidden on a narrow screen: the shell's header already carries the name there,
+            and half a split screen on a phone is a stripe rather than a panel. */}
+        <div className="hidden flex-col justify-between gap-10 bg-accent p-8 text-accent-foreground sm:flex">
+          <div className="flex items-center gap-2">
+            <Wallet aria-hidden="true" className="h-5 w-5" />
+            <span className="font-semibold tracking-tight">{t('shell.productName')}</span>
           </div>
-        )}
+          <p className="text-lg leading-snug font-medium text-balance">{t('signIn.pitch')}</p>
+        </div>
+
+        <div className="p-8">
+          <h2 className="text-xl font-semibold tracking-tight">{t('signIn.heading')}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t('signIn.invitation')}</p>
+
+          <div className="my-7 flex items-center gap-3">
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">{t('signIn.continueWith')}</span>
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Telegram serves the widget in an iframe of its own, so it cannot be styled from here — only
+              given room and centred. */}
+          <div className="flex justify-center">
+            <TelegramLoginButton onAuth={handleAuth} />
+          </div>
+
+          {failed && (
+            <div className="mt-6">
+              <ErrorBanner message={t('signIn.refused')} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@
   --muted: oklch(0.942 0.012 85);
   --muted-foreground: oklch(0.46 0.018 75);
   --accent: oklch(0.53 0.17 255);
+  --accent-foreground: oklch(0.985 0.006 255);
   --border: oklch(0.882 0.014 85);
   --pending: oklch(0.48 0.14 295);
   --pending-surface: oklch(0.945 0.035 300);
@@ -26,6 +27,8 @@
   --muted: oklch(0.27 0.01 265);
   --muted-foreground: oklch(0.7 0.015 265);
   --accent: oklch(0.7 0.16 255);
+  /* The dark theme's accent is a light blue, so what sits on it has to be dark rather than white. */
+  --accent-foreground: oklch(0.17 0.02 255);
   --border: oklch(1 0 0 / 10%);
   --pending: oklch(0.82 0.13 295);
   --pending-surface: oklch(0.32 0.06 295);
@@ -40,6 +43,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
   --color-pending: var(--pending);
   --color-pending-surface: var(--pending-surface);

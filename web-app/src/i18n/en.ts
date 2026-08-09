@@ -41,6 +41,9 @@ export const en = {
   signIn: {
     heading: 'Sign in',
     invitation: 'Sign in with the Telegram account you use for the bot.',
+    /** The browse use case's own "Why", so the panel states what the product does rather than a slogan. */
+    pitch: 'Everything the bot recorded, and everything still awaiting a decision, in one place.',
+    continueWith: 'Continue with',
     refused: 'That sign-in was not accepted. Please try again.',
   },
 } as const;
