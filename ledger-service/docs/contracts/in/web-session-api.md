@@ -10,8 +10,9 @@ transport.
 - **Counterpart:** [the Web App](../../../../web-app/docs/contracts/out/ledger-session-api.md), running in a
   person's browser
 - **Transport:** HTTP under `/api/v1`, on the service's own port, reached from the same origin as the page
-- **Schema:** [`openapi/paths/session.yaml`](../../../../openapi/paths/session.yaml) and
-  [`openapi/components/schemas/session.yaml`](../../../../openapi/components/schemas/session.yaml)
+- **Schema:** [`openapi/paths/session.yaml`](../../../../openapi/paths/session.yaml), and the `Session` and
+  `TelegramLoginPayload` schemas under `components/schemas` in
+  [`openapi/ledger-api.yaml`](../../../../openapi/ledger-api.yaml)
 
 ## Operations
 

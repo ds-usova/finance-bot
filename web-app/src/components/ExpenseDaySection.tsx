@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { RenderedMoney } from '../api/expenses';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
 import { relativeDay, type ExpenseDay } from './expenseDays';
@@ -8,8 +9,8 @@ export type ExpenseDaySectionProps = {
   categoryNames: Map<number, string>;
 };
 
-function formatAmount(locale: string, currency: string, minorUnits: number): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(minorUnits / 100);
+function formatMoney(money: RenderedMoney): string {
+  return `${money.currency}${money.separator}${money.amount}`;
 }
 
 export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps) {
@@ -50,9 +51,9 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            {day.totals.map((total) => (
-              <span key={total.currency} className="font-semibold tabular-nums">
-                {formatAmount(locale, total.currency, total.minorUnits)}
+            {day.totals.map((total, index) => (
+              <span key={index} className="whitespace-nowrap font-semibold tabular-nums">
+                {formatMoney(total)}
               </span>
             ))}
           </div>
@@ -78,8 +79,8 @@ export function ExpenseDaySection({ day, categoryNames }: ExpenseDaySectionProps
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
-                    <span className="w-24 text-right tabular-nums">
-                      {formatAmount(locale, entry.currency, entry.amountMinorUnits)}
+                    <span className="whitespace-nowrap text-right tabular-nums">
+                      {formatMoney(entry.money)}
                     </span>
                   </div>
                 </li>

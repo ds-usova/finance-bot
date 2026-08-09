@@ -5,7 +5,7 @@ BadRequest:
   content:
     application/json:
       schema:
-        $ref: '../schemas/problem.yaml#/Problem'
+        $ref: '../../ledger-api.yaml#/components/schemas/Problem'
       example:
         message: limit must be at most 100
 
@@ -20,7 +20,7 @@ NotFound:
   content:
     application/json:
       schema:
-        $ref: '../schemas/problem.yaml#/Problem'
+        $ref: '../../ledger-api.yaml#/components/schemas/Problem'
       example:
         message: the caller is unknown
 
@@ -30,6 +30,6 @@ ServiceUnavailable:
   content:
     application/json:
       schema:
-        $ref: '../schemas/problem.yaml#/Problem'
+        $ref: '../../ledger-api.yaml#/components/schemas/Problem'
       example:
         message: the service is temporarily unable to complete the request

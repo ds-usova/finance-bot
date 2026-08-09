@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/20-money-as-rendered-text/shared/plan.md",
+  "commit": "e932fe3",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-09T18:15:00Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 91, "passed": 91, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 872, "passed": 872, "failed": 0, "skipped": 0, "instructions": "98.7%", "branches": "97.1%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 147, "passed": 147, "failed": 0, "skipped": 0, "instructions": "99.3%", "branches": "95.4%", "minimum": "80%", "format": "clean"}
+  ]
+}

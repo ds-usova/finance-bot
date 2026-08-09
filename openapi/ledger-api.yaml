@@ -19,6 +19,232 @@ paths:
   /api/v1/session:
     $ref: './paths/session.yaml'
 components:
+  schemas:
+    ExpenseStatus:
+      type: string
+      description: >-
+        Whether the row is a proposal still awaiting a decision or an expense already recorded.
+      enum:
+        - PENDING
+        - RECORDED
+    Expense:
+      type: object
+      description: One entry of a person's spending, pending or recorded.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique within this row's `status`, and not across it.
+        status:
+          $ref: '#/components/schemas/ExpenseStatus'
+        categoryId:
+          type: integer
+          format: int64
+          description: The category as an id. Its name and its grouping come from the categories list.
+        description:
+          type: string
+          description: What was bought.
+        merchant:
+          type: [string, "null"]
+          description: Who it was bought from, where that is known.
+        money:
+          $ref: '#/components/schemas/RenderedMoney'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the row was recorded, not when the money was spent. Accepting a proposal re-dates it.
+      required:
+        - id
+        - status
+        - categoryId
+        - description
+        - money
+        - createdAt
+      example:
+        id: 12
+        status: RECORDED
+        categoryId: 42
+        description: Groceries
+        merchant: Corner Shop
+        money: { amount: '12.50', currency: '€', separator: '' }
+        createdAt: '2026-01-14T09:31:00Z'
+    ExpensePage:
+      type: object
+      description: >-
+        One page of the filter's matches, newest first. Two rows sharing an instant keep the same order on every
+        call.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        limit:
+          type: integer
+          description: The page size that was applied.
+        offset:
+          type: integer
+          description: The offset that was applied.
+        total:
+          type: integer
+          format: int64
+          description: >-
+            How many rows the filter matches, ignoring the page. Read separately from `items`, so a row stored
+            between the two makes them disagree by one.
+        dayTotals:
+          type: array
+          description: >-
+            One element per UTC day of the answered page that recorded something, newest first. A day whose
+            entries are all pending proposals is absent rather than present and empty.
+          items:
+            $ref: '#/components/schemas/DayTotal'
+      required:
+        - items
+        - limit
+        - offset
+        - total
+        - dayTotals
+      example:
+        items:
+          - id: 12
+            status: RECORDED
+            categoryId: 42
+            description: Groceries
+            merchant: Corner Shop
+            money: { amount: '12.50', currency: '€', separator: '' }
+            createdAt: '2026-01-14T09:31:00Z'
+          - id: 7
+            status: PENDING
+            categoryId: 43
+            description: Taxi
+            merchant: null
+            money: { amount: '9.00', currency: '€', separator: '' }
+            createdAt: '2026-01-13T18:02:00Z'
+        limit: 20
+        offset: 0
+        total: 138
+        dayTotals:
+          - day: '2026-01-14'
+            amounts:
+              - amount: '12.50'
+                currency: '€'
+                separator: ''
+    RenderedMoney:
+      type: object
+      description: >-
+        One figure, rendered for a reader and answered in parts. A caller shows each part as given, joins them as
+        `currency` + `separator` + `amount`, and parses none of them.
+      properties:
+        amount:
+          type: string
+          description: >-
+            The digits alone, grouped and at this currency's own scale. It never carries the currency.
+        currency:
+          type: string
+          description: >-
+            The label that names this currency to an English reader. A symbol where the currency has one, and its
+            ISO 4217 code where it does not. Never a key to match on — a key is what `currencyCode` would be, and
+            nothing needs one yet.
+        separator:
+          type: string
+          description: >-
+            What goes between the label and the digits, so a caller decides nothing. Empty where the two read
+            together, a single space where they do not.
+      required:
+        - amount
+        - currency
+        - separator
+      example:
+        amount: '1,245.00'
+        currency: 'CHF'
+        separator: ' '
+    DayTotal:
+      type: object
+      description: What one UTC day of this page recorded, rendered for a reader.
+      properties:
+        day:
+          type: string
+          format: date
+          description: The UTC day the entries were recorded on.
+        amounts:
+          type: array
+          description: >-
+            That day's recorded spend within this page, one figure per currency, ordered by currency code.
+            Nothing is converted between currencies.
+          items:
+            $ref: '#/components/schemas/RenderedMoney'
+      required:
+        - day
+        - amounts
+      example:
+        day: '2026-01-14'
+        amounts:
+          - amount: '12.50'
+            currency: '€'
+            separator: ''
+    Category:
+      type: object
+      description: >-
+        One category of the person's tree, carrying the grouping it is filed under so a caller needs no second
+        lookup.
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        groupingId:
+          type: integer
+          format: int64
+        groupingName:
+          type: string
+      required:
+        - id
+        - name
+        - groupingId
+        - groupingName
+      example:
+        id: 42
+        name: Supermarkets
+        groupingId: 100
+        groupingName: Groceries
+    Grouping:
+      type: object
+      description: The top level of the person's tree. A grouping holding no categories is still one.
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+      required:
+        - id
+        - name
+      example:
+        id: 100
+        name: Groceries
+    Session:
+      type: object
+      properties:
+        externalId:
+          type: string
+      required:
+        - externalId
+    TelegramLoginPayload:
+      type: object
+      additionalProperties: true
+    Problem:
+      type: object
+      description: >-
+        The body every refusal but the 401 carries. One field, and never a stack frame, a statement or a table
+        name.
+      properties:
+        message:
+          type: string
+          description: What went wrong, in words a caller can show a person.
+      required:
+        - message
+      example:
+        message: status must be PENDING or RECORDED
   securitySchemes:
     sessionCookie:
       type: apiKey

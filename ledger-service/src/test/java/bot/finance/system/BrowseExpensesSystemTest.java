@@ -13,6 +13,8 @@ import bot.finance.common.stubs.TelegramTestBot;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -114,6 +116,53 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
             assertThat(response.jsonPath().getInt("total"))
                     .as("total row count")
                     .isEqualTo(2);
+
+            // then: each row's money is rendered, not carried as minor units
+            assertThat(response.jsonPath().getString("items[0].money.amount"))
+                    .as("the pending proposal's rendered amount")
+                    .isEqualTo("24.50");
+            assertThat(response.jsonPath().getString("items[0].money.currency"))
+                    .as("the pending proposal's rendered currency")
+                    .isEqualTo("€");
+            assertThat(response.jsonPath().getString("items[0].money.separator"))
+                    .as("the pending proposal's rendered separator")
+                    .isEmpty();
+            assertThat(response.jsonPath().getString("items[1].money.amount"))
+                    .as("the recorded expense's rendered amount")
+                    .isEqualTo("12.30");
+            assertThat(response.jsonPath().getString("items[1].money.currency"))
+                    .as("the recorded expense's rendered currency")
+                    .isEqualTo("€");
+            assertThat(response.jsonPath().getString("items[1].money.separator"))
+                    .as("the recorded expense's rendered separator")
+                    .isEmpty();
+            assertThat(items.get(0))
+                    .as("no item carries a minor-units field any more")
+                    .doesNotContainKey("amountMinorUnits");
+            assertThat(items.get(1))
+                    .as("no item carries a minor-units field any more")
+                    .doesNotContainKey("amountMinorUnits");
+
+            // then: dayTotals holds the recorded expense's UTC day alone, the pending proposal counting towards
+            // nothing
+            LocalDate recordedDay = LocalDate.ofInstant(
+                    Instant.parse(response.jsonPath().getString("items[1].createdAt")), ZoneOffset.UTC);
+            List<Map<String, Object>> dayTotals = response.jsonPath().getList("dayTotals");
+            assertThat(dayTotals)
+                    .as("one day total, for the recorded expense's day only")
+                    .hasSize(1);
+            assertThat(response.jsonPath().getString("dayTotals[0].day"))
+                    .as("the day is the recorded expense's own UTC day")
+                    .isEqualTo(recordedDay.toString());
+            assertThat(response.jsonPath().getList("dayTotals[0].amounts"))
+                    .as("one figure for the day, the pending proposal counting towards nothing")
+                    .hasSize(1);
+            assertThat(response.jsonPath().getString("dayTotals[0].amounts[0].amount"))
+                    .as("the day's total is the recorded expense's amount alone")
+                    .isEqualTo("12.30");
+            assertThat(response.jsonPath().getString("dayTotals[0].amounts[0].currency"))
+                    .as("the day's total currency")
+                    .isEqualTo("€");
         }
     }
 

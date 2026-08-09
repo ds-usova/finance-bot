@@ -6,7 +6,7 @@ StatusFilter:
     Narrows to pending proposals or to recorded expenses. Refused with 400 naming `status` and the two accepted
     values when it is anything else.
   schema:
-    $ref: '../schemas/expense.yaml#/ExpenseStatus'
+    $ref: '../../ledger-api.yaml#/components/schemas/ExpenseStatus'
   example: RECORDED
 
 CategoryIdFilter:

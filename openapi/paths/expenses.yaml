@@ -19,7 +19,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/expense.yaml#/ExpensePage'
+            $ref: '../ledger-api.yaml#/components/schemas/ExpensePage'
     '400':
       $ref: '../components/responses/errors.yaml#/BadRequest'
     '401':

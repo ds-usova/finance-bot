@@ -22,10 +22,6 @@ function aDay(overrides: Partial<ExpenseDay> = {}): ExpenseDay {
   };
 }
 
-function amount(currency: string, minorUnits: number): string {
-  return new Intl.NumberFormat('en', { style: 'currency', currency }).format(minorUnits / 100);
-}
-
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -41,31 +37,28 @@ describe('the rendered day section', () => {
         status: 'RECORDED',
         categoryId: 10,
         description: 'lunch',
-        amountMinorUnits: 500,
-        currency: 'EUR',
+        money: { amount: '5.00', currency: 'EUR', separator: '' },
       }),
       anExpense({
         id: 2,
         status: 'RECORDED',
         categoryId: 10,
         description: 'dinner',
-        amountMinorUnits: 300,
-        currency: 'EUR',
+        money: { amount: '3.00', currency: 'EUR', separator: '' },
       }),
       anExpense({
         id: 3,
         status: 'RECORDED',
         categoryId: 10,
         description: 'taxi',
-        amountMinorUnits: 450,
-        currency: 'EUR',
+        money: { amount: '4.50', currency: 'EUR', separator: '' },
       }),
     ];
     const day = aDay({
       day: '2026-08-01',
       entries,
       awaiting: 0,
-      totals: [{ currency: 'EUR', minorUnits: 1250 }],
+      totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
@@ -73,7 +66,7 @@ describe('the rendered day section', () => {
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('Today');
     expect(header).toHaveTextContent('3 entries');
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     // The section arrives collapsed, so the header is all there is until it is opened.
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
 
@@ -114,17 +107,19 @@ describe('the rendered day section', () => {
     expect(header).not.toHaveTextContent('Yesterday');
   });
 
-  it('lists a recorded entry with its description, its merchant, its category name and its Intl-formatted amount, and no status badge', () => {
+  it('lists a recorded entry with its description, its merchant, its category name and the amount it was given, and no status badge', () => {
     const entry = anExpense({
       id: 1,
       status: 'RECORDED',
       categoryId: 10,
       description: 'lunch',
       merchant: 'Corner Cafe',
-      amountMinorUnits: 1250,
-      currency: 'EUR',
+      money: { amount: '12.50', currency: 'EUR', separator: '' },
     });
-    const day = aDay({ entries: [entry], totals: [{ currency: 'EUR', minorUnits: 1250 }] });
+    const day = aDay({
+      entries: [entry],
+      totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
+    });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
     expandDays();
@@ -133,7 +128,7 @@ describe('the rendered day section', () => {
     expect(item).toHaveTextContent('lunch');
     expect(item).toHaveTextContent('Corner Cafe');
     expect(item).toHaveTextContent('Groceries');
-    expect(item).toHaveTextContent(amount('EUR', 1250));
+    expect(item).toHaveTextContent('EUR12.50');
     // Only a proposal is badged: a recorded entry is the ordinary case and carries no label of its own.
     expect(within(item).queryByText('Recorded')).not.toBeInTheDocument();
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
@@ -142,16 +137,28 @@ describe('the rendered day section', () => {
   it('keeps the header’s day, count and total whether it is open or closed', async () => {
     const user = userEvent.setup();
     const entries = [
-      anExpense({ id: 1, description: 'lunch', amountMinorUnits: 500, currency: 'EUR' }),
-      anExpense({ id: 2, description: 'dinner', amountMinorUnits: 300, currency: 'EUR' }),
-      anExpense({ id: 3, description: 'taxi', amountMinorUnits: 450, currency: 'EUR' }),
+      anExpense({
+        id: 1,
+        description: 'lunch',
+        money: { amount: '5.00', currency: 'EUR', separator: '' },
+      }),
+      anExpense({
+        id: 2,
+        description: 'dinner',
+        money: { amount: '3.00', currency: 'EUR', separator: '' },
+      }),
+      anExpense({
+        id: 3,
+        description: 'taxi',
+        money: { amount: '4.50', currency: 'EUR', separator: '' },
+      }),
     ];
-    const day = aDay({ entries, totals: [{ currency: 'EUR', minorUnits: 1250 }] });
+    const day = aDay({ entries, totals: [{ amount: '12.50', currency: 'EUR', separator: '' }] });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
     const header = screen.getByRole('button');
 
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
 
     await user.click(header);
@@ -159,87 +166,179 @@ describe('the rendered day section', () => {
 
     await user.click(header);
 
-    expect(header).toHaveTextContent(amount('EUR', 1250));
+    expect(header).toHaveTextContent('EUR12.50');
     expect(screen.queryByText('lunch')).not.toBeInTheDocument();
     expect(screen.queryByText('dinner')).not.toBeInTheDocument();
     expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 
-  it('shows a total for each currency present among the day’s recorded entries', () => {
+  it('shows one figure per currency its day was answered', () => {
     const day = aDay({
       entries: [
-        anExpense({ id: 1, description: 'lunch', amountMinorUnits: 1250, currency: 'EUR' }),
-        anExpense({ id: 2, description: 'cab', amountMinorUnits: 900, currency: 'USD' }),
+        anExpense({
+          id: 1,
+          description: 'lunch',
+          money: { amount: '12.50', currency: 'EUR', separator: '' },
+        }),
+        anExpense({
+          id: 2,
+          description: 'cab',
+          money: { amount: '9.00', currency: 'USD', separator: '' },
+        }),
       ],
       totals: [
-        { currency: 'EUR', minorUnits: 1250 },
-        { currency: 'USD', minorUnits: 900 },
+        { amount: '12.50', currency: 'EUR', separator: '' },
+        { amount: '9.00', currency: 'USD', separator: '' },
       ],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).toHaveTextContent(amount('EUR', 1250));
-    expect(header).toHaveTextContent(amount('USD', 900));
+    expect(header).toHaveTextContent('EUR12.50');
+    expect(header).toHaveTextContent('USD9.00');
   });
 
-  it('sums only the recorded entries into the total and says one entry awaits a decision', () => {
+  it('shows the figure its day was answered rather than one covering every entry, and says one awaits a decision', () => {
     const day = aDay({
       entries: [
         anExpense({
           id: 1,
           status: 'RECORDED',
           description: 'lunch',
-          amountMinorUnits: 500,
-          currency: 'EUR',
+          money: { amount: '5.00', currency: 'EUR', separator: '' },
         }),
         anExpense({
           id: 2,
           status: 'RECORDED',
           description: 'dinner',
-          amountMinorUnits: 300,
-          currency: 'EUR',
+          money: { amount: '3.00', currency: 'EUR', separator: '' },
         }),
         anExpense({
           id: 3,
           status: 'PENDING',
           description: 'taxi',
-          amountMinorUnits: 900,
-          currency: 'EUR',
+          money: { amount: '9.00', currency: 'EUR', separator: '' },
         }),
       ],
       awaiting: 1,
-      totals: [{ currency: 'EUR', minorUnits: 800 }],
+      totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).toHaveTextContent(amount('EUR', 800));
-    expect(header).not.toHaveTextContent(amount('EUR', 1700));
+    expect(header).toHaveTextContent('EUR8.00');
+    // 5.00 + 3.00 + 9.00 would read EUR17.00 if the pending entry were wrongly counted in.
+    expect(header).not.toHaveTextContent('EUR17.00');
     expect(header).toHaveTextContent('1 entry awaits a decision');
   });
 
-  it('shows no total and says one entry awaits a decision when the day holds only a pending entry', () => {
+  it('shows an entry’s money as amount, currency and separator joined in order, character for character', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      description: 'vending machine',
+      money: { amount: '900', currency: '¥', separator: '' },
+    });
+    const day = aDay({ entries: [entry] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /vending machine/i });
+    expect(within(item).getByText('¥900')).toBeInTheDocument();
+  });
+
+  it('shows an entry’s money with a one-space separator between a code label and its digits, and no other space', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      description: 'hotel',
+      money: { amount: '1,245.00', currency: 'CHF', separator: ' ' },
+    });
+    const day = aDay({ entries: [entry] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /hotel/i });
+    expect(within(item).getByText('CHF 1,245.00')).toBeInTheDocument();
+  });
+
+  it('shows the day heading’s figures in the order they were answered', () => {
     const day = aDay({
-      entries: [
-        anExpense({
-          id: 1,
-          status: 'PENDING',
-          description: 'taxi',
-          amountMinorUnits: 900,
-          currency: 'EUR',
-        }),
+      totals: [
+        { amount: '12.50', currency: '€', separator: '' },
+        { amount: '900', currency: '¥', separator: '' },
       ],
-      awaiting: 1,
-      totals: [],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
 
     const header = screen.getByRole('button');
-    expect(header).not.toHaveTextContent('€');
+    expect(header).toHaveTextContent('€12.50');
+    expect(header).toHaveTextContent('¥900');
+    expect(header.textContent!.indexOf('€12.50')).toBeLessThan(header.textContent!.indexOf('¥900'));
+  });
+
+  it('shows the day heading’s figure with a one-space separator between a code label and its digits, and no other space', () => {
+    const day = aDay({
+      totals: [{ amount: '1,245.00', currency: 'CHF', separator: ' ' }],
+    });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+
+    const header = screen.getByRole('button');
+    expect(within(header).getByText('CHF 1,245.00')).toBeInTheDocument();
+  });
+
+  it('shows the figures it was last answered for a day, after a re-render replaces both', () => {
+    const day = aDay({
+      totals: [
+        { amount: '12.50', currency: '€', separator: '' },
+        { amount: '9.00', currency: '$', separator: '' },
+      ],
+    });
+
+    const { rerender } = render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    let header = screen.getByRole('button');
+    expect(header).toHaveTextContent('€12.50');
+    expect(header).toHaveTextContent('$9.00');
+
+    const updatedDay = aDay({
+      day: day.day,
+      totals: [
+        { amount: '20.00', currency: '£', separator: '' },
+        { amount: '5.00', currency: '¥', separator: '' },
+      ],
+    });
+
+    rerender(<ExpenseDaySection day={updatedDay} categoryNames={categoryNames} />);
+
+    header = screen.getByRole('button');
+    expect(header).toHaveTextContent('£20.00');
+    expect(header).toHaveTextContent('¥5.00');
+    expect(header).not.toHaveTextContent('€12.50');
+    expect(header).not.toHaveTextContent('$9.00');
+  });
+
+  it('shows no total and says one entry awaits a decision when the day holds only a pending entry', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'PENDING',
+      description: 'taxi',
+      money: { amount: '9.00', currency: 'EUR', separator: '' },
+    });
+    const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
+
+    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+
+    const header = screen.getByRole('button');
+    // The heading's figure comes only from the section's totals, never from an entry's own money — so
+    // with totals empty, neither half of the pending entry's money should appear in the header.
+    expect(header).not.toHaveTextContent(entry.money.currency);
+    expect(header).not.toHaveTextContent(entry.money.amount);
     expect(header).toHaveTextContent('1 entry awaits a decision');
   });
 
@@ -248,8 +347,7 @@ describe('the rendered day section', () => {
       id: 1,
       status: 'PENDING',
       description: 'taxi',
-      amountMinorUnits: 900,
-      currency: 'EUR',
+      money: { amount: '9.00', currency: 'EUR', separator: '' },
     });
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
@@ -268,21 +366,19 @@ describe('the rendered day section', () => {
       status: 'RECORDED',
       description: 'lunch',
       merchant: 'Corner Cafe',
-      amountMinorUnits: 1250,
-      currency: 'EUR',
+      money: { amount: '12.50', currency: 'EUR', separator: '' },
     });
     const proposal = anExpense({
       id: 1,
       status: 'PENDING',
       description: 'coffee',
       merchant: 'Corner Cafe',
-      amountMinorUnits: 300,
-      currency: 'EUR',
+      money: { amount: '3.00', currency: 'EUR', separator: '' },
     });
     const day = aDay({
       entries: [recorded, proposal],
       awaiting: 1,
-      totals: [{ currency: 'EUR', minorUnits: 1250 }],
+      totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
@@ -301,10 +397,12 @@ describe('the rendered day section', () => {
       categoryId: 999,
       description: 'stamps',
       merchant: 'Post Office',
-      amountMinorUnits: 500,
-      currency: 'EUR',
+      money: { amount: '5.00', currency: 'EUR', separator: '' },
     });
-    const day = aDay({ entries: [entry], totals: [{ currency: 'EUR', minorUnits: 500 }] });
+    const day = aDay({
+      entries: [entry],
+      totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
+    });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
     expandDays();
@@ -312,7 +410,7 @@ describe('the rendered day section', () => {
     const item = screen.getByRole('listitem', { name: /stamps/i });
     expect(item).toHaveTextContent('stamps');
     expect(item).toHaveTextContent('Post Office');
-    expect(item).toHaveTextContent(amount('EUR', 500));
+    expect(item).toHaveTextContent('EUR5.00');
     expect(item).not.toHaveTextContent('999');
     expect(item).not.toHaveTextContent(/null|undefined/i);
   });
@@ -322,19 +420,17 @@ describe('the rendered day section', () => {
       id: 1,
       description: 'coffee',
       merchant: 'Corner Cafe',
-      amountMinorUnits: 300,
-      currency: 'EUR',
+      money: { amount: '3.00', currency: 'EUR', separator: '' },
     });
     const withoutMerchant = anExpense({
       id: 2,
       description: 'stamps',
       merchant: null,
-      amountMinorUnits: 500,
-      currency: 'EUR',
+      money: { amount: '5.00', currency: 'EUR', separator: '' },
     });
     const day = aDay({
       entries: [withMerchant, withoutMerchant],
-      totals: [{ currency: 'EUR', minorUnits: 800 }],
+      totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
@@ -355,22 +451,20 @@ describe('the rendered day section', () => {
         id: 1,
         status: 'RECORDED',
         description: 'lunch',
-        amountMinorUnits: 500,
-        currency: 'EUR',
+        money: { amount: '5.00', currency: 'EUR', separator: '' },
       }),
       anExpense({
         id: 2,
         status: 'PENDING',
         description: 'taxi',
-        amountMinorUnits: 900,
-        currency: 'EUR',
+        money: { amount: '9.00', currency: 'EUR', separator: '' },
       }),
     ];
     const day = aDay({
       day: '2026-08-05',
       entries,
       awaiting: 1,
-      totals: [{ currency: 'EUR', minorUnits: 500 }],
+      totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
     });
 
     render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);

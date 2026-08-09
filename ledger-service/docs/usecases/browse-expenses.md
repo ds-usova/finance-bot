@@ -6,6 +6,7 @@
 - **Out**
   - one page of entries, newest first, with the page size and the offset applied
   - how many rows the filter matches
+  - each UTC day's recorded spend, as figures ready to show
 - **Why:** it is how a signed-in person sees everything the ledger holds for them in one list
 
 *Implemented by `BrowseExpensesUseCase`.*
@@ -25,6 +26,13 @@
 Both kinds carry the same parts, and the [status](../domain/expense-status.md) tells them apart. A category
 arrives as an id; [the category listing](browse-categories.md) names it.
 
+### The day figures
+
+What the [specification](../../../openapi/ledger-api.yaml) does not fix:
+
+- A day split by the page boundary is figured on each page, over its own part.
+- A narrowed filter narrows the figures. A listing of one category figures that category alone.
+
 ## Collaborators
 
 | Direction | Collaborator                                                                           | Through                                                                           | For                                                                            |
@@ -34,14 +42,14 @@ arrives as an id; [the category listing](browse-categories.md) names it.
 
 ## Outcomes
 
-| Outcome          | When                                                           | Result                                                             |
-|------------------|----------------------------------------------------------------|--------------------------------------------------------------------|
-| Page answered    | the identity names a stored user                               | the matching entries, with the page size, the offset and the total |
-| Empty page       | the filter matches nothing, or the offset is past the last row | no entries, and the real total                                     |
-| Request rejected | the request names no identity, or no filter                    | the request is refused — nothing is looked up                      |
-| Filter rejected  | the page size is out of bounds, or the offset is negative      | invalid expense filter, naming the bound — nothing is looked up    |
-| Identity unknown | nothing is stored under the identity                           | the request is rejected and nothing is listed                      |
-| Storage failed   | the store cannot be reached                                    | the failure reaches the caller                                     |
+| Outcome          | When                                                           | Result                                                                                    |
+|------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Page answered    | the identity names a stored user                               | the matching entries and each day's figures, with the page size, the offset and the total |
+| Empty page       | the filter matches nothing, or the offset is past the last row | no entries, no day figures, and the real total                                            |
+| Request rejected | the request names no identity, or no filter                    | the request is refused — nothing is looked up                                             |
+| Filter rejected  | the page size is out of bounds, or the offset is negative      | invalid expense filter, naming the bound — nothing is looked up                           |
+| Identity unknown | nothing is stored under the identity                           | the request is rejected and nothing is listed                                             |
+| Storage failed   | the store cannot be reached                                    | the failure reaches the caller                                                            |
 
 ## Components
 
@@ -61,7 +69,7 @@ ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses an
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid session cookie", $tags="webExternal")
-  Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the filter off the query and the caller off the session", $tags="webExternal")
+  Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the filter and the caller, and renders every figure it answers", $tags="webExternal")
   Component(browsePort, "Browse Expenses Port", "Interface", "Inbound port", $tags="portIn")
   Component(browseService, "Browse a Person's Expenses Use Case", "Plain Java", "Resolves the user, reads the page, and counts the matches", $tags="core")
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
@@ -121,7 +129,8 @@ if (the read fails?) then (yes)
   :storage failed;
   stop
 endif
-:answer the entries, the page size, the offset and the total;
+:total the page's recorded entries by UTC day and currency;
+:answer the entries, the day figures, the page size, the offset and the total;
 stop
 @enduml
 ```

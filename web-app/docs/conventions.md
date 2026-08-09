@@ -15,8 +15,7 @@ style, and testing at once.
   failure is tabled, and the colour a route carries.
 - [Build](conventions/build.md) — this module's commands, coverage minimum and container build.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what it earns.
-- [Agent Configuration](conventions/agent.md) — commit behavior, parallelism, and the permissions this module's
-  commands need.
+- [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism.
 
 The [repository-wide conventions](../../docs/conventions.md) — how documentation is written, how diagrams are
 drawn, how an ADR lives, how a Node module is built — bind this module too, and these sections extend them.

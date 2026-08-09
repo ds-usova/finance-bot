@@ -74,8 +74,9 @@ The first is enforced below; the second by review. How a command is named is enf
 - Protocol Buffers schema: repo-root `proto/<snake_case_name>.proto`, shared by every module that speaks the
   contract and added to this build as an extra proto source directory. Generated Java lands in
   `build/generated/sources/proto/main/`, never edited or committed.
-- API schema: repo-root `openapi/ledger-api.yaml`, layered under `openapi/paths/` and `openapi/components/`.
-  Generated Java lands in `build/generated/sources/openapi/`, never edited or committed.
+- API schema: repo-root `openapi/ledger-api.yaml`, whose `components/schemas` holds every schema. Paths,
+  parameters and responses stay layered under `openapi/paths/` and `openapi/components/`. Generated Java lands in
+  `build/generated/sources/openapi/`, never edited or committed.
 - Manual `.http` request files: `ledger-service/docs/requests/`, one file per endpoint — `expenses.http`,
   `categories.http`, `groupings.http` and `session.http`.
 

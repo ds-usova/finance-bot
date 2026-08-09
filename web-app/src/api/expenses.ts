@@ -6,6 +6,8 @@ export type ExpensePage = components['schemas']['ExpensePage'];
 export type ExpenseStatus = components['schemas']['ExpenseStatus'];
 export type Category = components['schemas']['Category'];
 export type Grouping = components['schemas']['Grouping'];
+export type RenderedMoney = components['schemas']['RenderedMoney'];
+export type DayTotal = components['schemas']['DayTotal'];
 
 /** The six query parameters the listing accepts. A field left unset is not sent, so the ledger applies its own default. */
 export type ExpenseFilter = {

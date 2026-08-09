@@ -8,9 +8,10 @@ with anything still open is not complete, and none of this applies to it yet.
 The commands and tools this module puts over finished work, in order. Order matters where one reads what another
 wrote — number them. An empty list is an answer: write "none".
 
-Each entry says what it is given, what it produces, and whether it commits its own output.
+Each entry says what it is given, what it produces, and whether it commits its own output. A generic reference
+like `<module>/docs/conventions.md` is what belongs here.
 
-1. `<e.g. tools/<script>/<script>.sh --work <the finished work> — measures the module and writes its evidence
+1. `<e.g. the measurement script, given the finished work — measures the module and writes its evidence
    beside it. Commit the output as "<prefix>: <name> implementation evidence". A non-zero exit means the work is
    not finished: report the verdict rather than continuing down this list.>`
 2. `<e.g. the documentation pass, given the finished work — writes a page per behaviour it added and the contracts

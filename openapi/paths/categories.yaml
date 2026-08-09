@@ -22,7 +22,7 @@ get:
           schema:
             type: array
             items:
-              $ref: '../components/schemas/category.yaml#/Category'
+              $ref: '../ledger-api.yaml#/components/schemas/Category'
     '400':
       $ref: '../components/responses/errors.yaml#/BadRequest'
     '401':
