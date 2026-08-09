@@ -17,6 +17,15 @@ tests read best, system tests especially, being written per outcome.
 - Planned, not implemented → not written, reported.
 - Implemented, never planned → written.
 
+**A sentence about anything that crosses the wire is checked against the schema before it is written.** Quote the
+schema line that states it, or confirm the schema carries it nowhere. This is a step with an output, not a
+judgement: a field, a field's shape, an order, a required-ness and an absence are all the schema's.
+
+- The schema states it → the sentence is cut, and the page links the schema.
+- The schema does not → the sentence is written; that is what the page is for.
+- The schema states it **wrongly** → report it. Never write the true rule around a wrong schema: the page then
+  documents what the contract contradicts, and the schema stays wrong.
+
 ## Style
 
 **The reader is an analyst or a product owner.** They know the product and will never open the code. Write what

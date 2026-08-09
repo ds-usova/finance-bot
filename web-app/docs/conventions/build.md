@@ -6,7 +6,7 @@ module.
 
 | Fact              | Value                                      |
 |-------------------|--------------------------------------------|
-| Run commands from | `web-app/`                                 |
+| Run commands from | the repository root, with `--prefix web-app` |
 | Source root       | `src/`                                     |
 | Coverage minimum  | 80% lines, statements, functions, branches |
 | Coverage config   | `vite.config.ts`, `test.coverage`          |
@@ -21,12 +21,18 @@ overwrite each other's results.
 
 ## Module Tasks
 
-| Task             | Command                                                   |
-|------------------|-----------------------------------------------------------|
-| Format           | `npm run format`                                          |
-| Type check       | `npm run typecheck`                                       |
-| Coverage         | `npm run verify:coverage`                                 |
-| Contract codegen | `npm run generate:api`, reading `openapi/ledger-api.yaml` |
+| Task             | Command                                                                  |
+|------------------|--------------------------------------------------------------------------|
+| Gate             | `npm --prefix web-app run verify`                                        |
+| Lint             | `npm --prefix web-app run lint`                                          |
+| Format           | `npm --prefix web-app run format`                                        |
+| Check formatting | `npm --prefix web-app run format:check`                                  |
+| Type check       | `npm --prefix web-app run typecheck`                                     |
+| Coverage         | `npm --prefix web-app run verify:coverage`                               |
+| Contract codegen | `npm --prefix web-app run generate:api`, reading `openapi/ledger-api.yaml` |
+
+`--prefix` is what makes these runnable: every script's working directory is this module, and the repository root
+holds no `package.json`. From inside `web-app/` the flag is redundant and `npm run <task>` is the same command.
 
 `typecheck` is `tsc --noEmit` on its own. `build` runs the same check and then bundles, so a type check asked of
 `build` pays for a bundle nobody wanted.

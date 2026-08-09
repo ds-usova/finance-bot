@@ -56,6 +56,7 @@
       "Bash(npm install:*)",
       "Bash(npm ls:*)",
       "Bash(npm run:*)",
+      "Bash(npm --prefix:*)",
       "Bash(npx tsc:*)",
       "Edit(docs/**)",
       "Edit(web-app/**)",
