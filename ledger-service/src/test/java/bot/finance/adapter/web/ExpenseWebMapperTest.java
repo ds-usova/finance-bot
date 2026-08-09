@@ -6,6 +6,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
+import bot.finance.application.dto.DayTotal;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
@@ -20,7 +21,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -115,7 +115,6 @@ class ExpenseWebMapperTest {
         @Test
         @DisplayName("when a page of two entries, one PENDING and one RECORDED, is given - then every field of "
                 + "each entry is mapped")
-        @Disabled("ledger-service RU03: reworked to assert the entry's rendered money")
         void whenPageHasTwoEntriesWithDifferentStatuses_thenEveryFieldIsMapped() {
             ListExpenses200Response response = ExpenseWebMapper.toResponse(pageOfTwoEntries());
 
@@ -126,8 +125,9 @@ class ExpenseWebMapperTest {
             assertThat(firstItem.getCategoryId()).isEqualTo(10L);
             assertThat(firstItem.getDescription()).isEqualTo("Milk");
             assertThat(firstItem.getMerchant()).isEqualTo(JsonNullable.of("Corner Shop"));
-            // assertThat(firstItem.getAmountMinorUnits()).isEqualTo(1500L);
-            // assertThat(firstItem.getCurrency()).isEqualTo("EUR");
+            assertThat(firstItem.getMoney().getAmount()).isEqualTo("15.00");
+            assertThat(firstItem.getMoney().getCurrency()).isEqualTo("€");
+            assertThat(firstItem.getMoney().getSeparator()).isEqualTo("");
             assertThat(firstItem.getCreatedAt().toInstant()).isEqualTo(FIRST_CREATED_AT);
             Expense secondItem = response.getItems().get(1);
             assertThat(secondItem.getId()).isEqualTo(2L);
@@ -135,8 +135,9 @@ class ExpenseWebMapperTest {
             assertThat(secondItem.getCategoryId()).isEqualTo(20L);
             assertThat(secondItem.getDescription()).isEqualTo("Bus ticket");
             assertThat(secondItem.getMerchant()).isEqualTo(JsonNullable.of("City Transit"));
-            // assertThat(secondItem.getAmountMinorUnits()).isEqualTo(350L);
-            // assertThat(secondItem.getCurrency()).isEqualTo("EUR");
+            assertThat(secondItem.getMoney().getAmount()).isEqualTo("3.50");
+            assertThat(secondItem.getMoney().getCurrency()).isEqualTo("€");
+            assertThat(secondItem.getMoney().getSeparator()).isEqualTo("");
             assertThat(secondItem.getCreatedAt().toInstant()).isEqualTo(SECOND_CREATED_AT);
         }
 
@@ -189,6 +190,105 @@ class ExpenseWebMapperTest {
             ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
 
             assertThat(response.getItems().get(0).getMerchant()).isEqualTo(JsonNullable.undefined());
+        }
+
+        @Test
+        @DisplayName("when a page's one entry is in EUR - then the item's money carries the amount, the euro "
+                + "symbol and an empty separator")
+        void whenEntryIsInEur_thenItemMoneyCarriesAmountCurrencyAndEmptySeparator() {
+            ExpenseEntry entry = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    4L,
+                    40L,
+                    "Lunch",
+                    Optional.empty(),
+                    new Money(1250L, CurrencyCode.of("EUR")),
+                    Instant.parse("2026-01-04T09:00:00Z"));
+            ExpensePage page = ExpensePage.of(List.of(entry), 50, 0, 1L);
+
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+
+            Expense item = response.getItems().get(0);
+            assertThat(item.getMoney().getAmount()).isEqualTo("12.50");
+            assertThat(item.getMoney().getCurrency()).isEqualTo("€");
+            assertThat(item.getMoney().getSeparator()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("when a page's one entry is in CHF - then the item's money carries the ISO code as currency "
+                + "and a separator of one space")
+        void whenEntryIsInChf_thenItemMoneyCarriesIsoCodeCurrencyAndOneSpaceSeparator() {
+            ExpenseEntry entry = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    5L,
+                    40L,
+                    "Watch",
+                    Optional.empty(),
+                    new Money(124500L, CurrencyCode.of("CHF")),
+                    Instant.parse("2026-01-05T09:00:00Z"));
+            ExpensePage page = ExpensePage.of(List.of(entry), 50, 0, 1L);
+
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+
+            Expense item = response.getItems().get(0);
+            assertThat(item.getMoney().getAmount()).isEqualTo("1,245.00");
+            assertThat(item.getMoney().getCurrency()).isEqualTo("CHF");
+            assertThat(item.getMoney().getSeparator()).isEqualTo(" ");
+        }
+
+        @Test
+        @DisplayName("when a day's total holds a EUR and a JPY figure - then both render, EUR first, in the "
+                + "page's order")
+        void whenDayTotalHoldsEurAndJpyFigure_thenBothRenderInThePagesOrder() {
+            LocalDate day = LocalDate.of(2026, 1, 5);
+            DayTotal dayTotal = new DayTotal(
+                    day, List.of(new Money(1250L, CurrencyCode.of("EUR")), new Money(900L, CurrencyCode.of("JPY"))));
+            ExpensePage page = new ExpensePage(List.of(), 20, 0, 0L, List.of(dayTotal));
+
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+
+            assertThat(response.getDayTotals()).hasSize(1);
+            assertThat(response.getDayTotals().get(0).getDay()).isEqualTo(day);
+            assertThat(response.getDayTotals().get(0).getAmounts()).hasSize(2);
+            assertThat(response.getDayTotals().get(0).getAmounts().get(0).getAmount())
+                    .isEqualTo("12.50");
+            assertThat(response.getDayTotals().get(0).getAmounts().get(0).getCurrency())
+                    .isEqualTo("€");
+            assertThat(response.getDayTotals().get(0).getAmounts().get(1).getAmount())
+                    .isEqualTo("900");
+            assertThat(response.getDayTotals().get(0).getAmounts().get(1).getCurrency())
+                    .isEqualTo("¥");
+        }
+
+        @Test
+        @DisplayName("when a page carries entries but no dayTotals - then the response's dayTotals is an empty "
+                + "list rather than absent")
+        void whenPageCarriesEntriesButNoDayTotals_thenResponseDayTotalsIsEmptyListRatherThanAbsent() {
+            ExpenseEntry entry = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    6L,
+                    40L,
+                    "Dinner",
+                    Optional.empty(),
+                    new Money(2000L, CurrencyCode.of("EUR")),
+                    Instant.parse("2026-01-06T09:00:00Z"));
+            ExpensePage page = new ExpensePage(List.of(entry), 50, 0, 1L, List.of());
+
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+
+            assertThat(response.getDayTotals()).isNotNull().isEmpty();
+        }
+
+        @Test
+        @DisplayName("when a page has no entries and no dayTotals - then the response carries an empty items list "
+                + "and an empty dayTotals list")
+        void whenPageHasNoEntriesAndNoDayTotals_thenResponseCarriesEmptyItemsAndEmptyDayTotals() {
+            ExpensePage page = ExpensePage.of(List.of(), 50, 0, 0L);
+
+            ListExpenses200Response response = ExpenseWebMapper.toResponse(page);
+
+            assertThat(response.getItems()).isNotNull().isEmpty();
+            assertThat(response.getDayTotals()).isNotNull().isEmpty();
         }
     }
 }

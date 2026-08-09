@@ -118,7 +118,7 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ExpensePage` · test: `ExpensePageTest` · covers: `of()` · scenarios: A5, A6, A7, A8, A9
+- [x] RU01 · `ExpensePage` · test: `ExpensePageTest` · covers: `of()` · scenarios: A5, A6, A7, A8, A9
     - `of()`:
         - given: two RECORDED entries on the same UTC day, the 900 JPY one handed in before the 1250 EUR one
           when: of() builds the page
@@ -151,7 +151,7 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
           when: of() builds the page
           then: items, limit, offset and total are the arguments given, unchanged
 
-- [ ] RU02 · `MoneyRenderer` · test: `MoneyRendererTest` · covers: `render()` · scenarios: A1, A2, A3, A4
+- [x] RU02 · `MoneyRenderer` · test: `MoneyRendererTest` · covers: `render()` · scenarios: A1, A2, A3, A4
     - `render()`:
         - given: 1250 minor units in EUR
           when: render() is called
@@ -172,7 +172,7 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
           when: render() is called
           then: amount is still 1,245.00 and currency is still €, the default restored afterwards
 
-- [ ] RU03 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toResponse()` · scenarios: A1, A4, A5,
+- [x] RU03 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toResponse()` · scenarios: A1, A4, A5,
   A6, A8
     - `toResponse()`:
         - given: a page whose one entry is 1250 minor units in EUR
@@ -197,7 +197,7 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
           separator, the second is 350 in EUR so its parts are `3.50`, `€` and an empty separator. Nothing on the
           response names a minor-unit field any more.
 
-- [ ] RU04 · `DayTotal` · test: `DayTotalTest` · covers: the compact constructor · scenarios: A5
+- [x] RU04 · `DayTotal` · test: `DayTotalTest` · covers: the compact constructor · scenarios: A5
     - the compact constructor:
         - given: amounts handed in as a JPY figure before a EUR one
           when: a DayTotal is built
@@ -214,7 +214,7 @@ DTO above; `ExpenseWebMapper` is the only class that sees both, and it qualifies
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses` · scenarios: A1, A6
+- [x] RS01 · `BrowseExpensesSystemTest` · covers: `GET /api/v1/expenses` · scenarios: A1, A6
     - Happy Path:
         - update: `whenTheListIsRequestedWithTheSessionCookieAndNoFilter_then200WithAPageOfBothKindsNewestFirst()`
           — the method stores a 2450 EUR pending proposal and a 1230 EUR recorded expense, then asserts each
