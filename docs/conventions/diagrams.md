@@ -48,6 +48,15 @@ to answer.
 them in the same change. Each is read on its own screen, and a reader looking for one of them is not made to
 scan the other. A component belonging to neither — a filter chain, an exception handler — is drawn in neither.
 
+**Roughly a dozen boxes is the bound.** Past it a diagram grows wider than a screen and is read by scrolling,
+which is not reading. Split it by subject; where no split is available, the diagram is drawing more than one
+question and the extra question belongs elsewhere.
+
+**A relation repeated from every box in a boundary to one target is left out**, and so is the target when nothing
+else reaches it. Every component importing the same helper, or reading the same catalogue, says one thing that
+one line under the diagram says better — and drawn, it is the fan that makes the rest unreadable. Name it in the
+step or the section that creates it.
+
 **A layer boundary splits by the kind of type it holds** when one box would otherwise carry a mixed crowd — a use
 case, its command, the read model it answers and the port it calls, all in `application`.
 

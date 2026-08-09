@@ -33,6 +33,18 @@ src/
   session to decide whether the sign-out control is shown.
 - **Session state has one owner**, the auth context. Nothing else stores who is signed in.
 
+## A Copied `components/ui/` Component
+
+The registry's source is a starting point, not a finished component. Adapting it to this module's
+[Code Style](code-style.md) is the first half; the second is what the copy must carry before it is used:
+
+- **A popup that can hold a list is bounded and scrolls.** A list the data can grow is cut off at the popup's
+  edge otherwise, and the entries past the cut cannot be reached at all.
+- **A block sits on `--card`.** `--surface` is the page behind it, so a block wearing it reads as a gap.
+- **A control that stands beside another shares its shape** — height, padding, radius, surface, focus ring. A
+  button used as a field takes the field size rather than its own.
+- **A variant with no consumer is deleted.** Symmetry with the registry is not a reason to keep one.
+
 ## Naming
 
 - A file is named for the thing it exports, in the case that thing uses: `TelegramLoginButton.tsx`,
