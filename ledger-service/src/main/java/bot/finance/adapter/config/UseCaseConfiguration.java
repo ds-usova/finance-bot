@@ -160,10 +160,6 @@ public class UseCaseConfiguration {
             MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
         return new ClearEmptiedReportsUseCase(
-                expenseProposalRepository,
-                proposalReportRepository,
-                messageDeliveryPort,
-                Clock.systemUTC(),
-                loggerFactory);
+                expenseProposalRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
     }
 }

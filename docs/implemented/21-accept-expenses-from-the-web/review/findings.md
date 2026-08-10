@@ -1,21 +1,10 @@
 # Review: Accept Expenses from the Web App
 
-**Two bugs, four refactoring candidates, eight screens to look at.**
+**One bug, four refactoring candidates, eight screens to look at.**
 
 ## Bug
 
-Both were found by the archiving pass, in the same use case. `RU04` covered the counts read and neither of these.
-
-**`ledger-service` — a failed report lookup skips every message queued behind it, silently**
-
-- **Given** one acceptance emptied two messages, and the store fails on the read that finds where their reports
-  were posted
-- **When** the clearing runs
-- **Then** each message whose reports can be read has its buttons taken off, and the failure is logged
-- **Actual** the exception leaves `clear` into the dispatcher's blanket catch. The first message is not cleared,
-  no message after it is even looked at, and nothing is logged. Those reports keep live buttons
-- **Fix** one `catch` around the per-message read, as the counts read above it already has ·
-  `ClearEmptiedReportsUseCase`
+Found by the archiving pass. `RU04` covered the counts read and not this.
 
 **`ledger-service` — a message that never had a report is logged as cleared**
 

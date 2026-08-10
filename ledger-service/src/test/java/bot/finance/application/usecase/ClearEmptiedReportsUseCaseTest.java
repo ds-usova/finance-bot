@@ -22,9 +22,6 @@ import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.value.IncomingMessageId;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,9 +49,8 @@ class ClearEmptiedReportsUseCaseTest {
         expenseProposalRepository = mock(ExpenseProposalRepository.class);
         proposalReportRepository = mock(ProposalReportRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
-        Clock clock = Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC);
         useCase = new ClearEmptiedReportsUseCase(
-                expenseProposalRepository, proposalReportRepository, messageDeliveryPort, clock, loggerFactory);
+                expenseProposalRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
     }
 
     private ClearEmptiedReportsCommand commandFor(List<IncomingMessageId> messageIds) {
@@ -159,6 +155,24 @@ class ClearEmptiedReportsUseCaseTest {
 
             verifyNoInteractions(proposalReportRepository);
             verifyNoInteractions(messageDeliveryPort);
+        }
+
+        @Test
+        @DisplayName("when the report lookup fails for the first message - then the second is still cleared")
+        void whenReportLookupFailsForFirstMessage_thenSecondIsStillClearedAndNothingPropagates() {
+            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
+                    .thenReturn(Set.of());
+            when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
+                    .thenThrow(new PersistenceFailedException("read failed", new RuntimeException()));
+            ProposalReport second = reportOn(11L, MESSAGE_B, "43");
+            when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_B))
+                    .thenReturn(List.of(second));
+
+            assertThatCode(() -> useCase.clear(commandFor(List.of(MESSAGE_A, MESSAGE_B))))
+                    .doesNotThrowAnyException();
+
+            verify(messageDeliveryPort).clearButtons(new ReportLocation("777", "43"));
+            verify(messageDeliveryPort, never()).clearButtons(new ReportLocation("777", "42"));
         }
 
         @Test

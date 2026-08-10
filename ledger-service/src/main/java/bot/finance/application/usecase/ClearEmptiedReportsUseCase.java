@@ -12,7 +12,6 @@ import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.value.IncomingMessageId;
-import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 
@@ -21,19 +20,16 @@ public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
     private final ExpenseProposalRepository expenseProposalRepository;
     private final ProposalReportRepository proposalReportRepository;
     private final MessageDeliveryPort messageDeliveryPort;
-    private final Clock clock;
     private final Logger log;
 
     public ClearEmptiedReportsUseCase(
             ExpenseProposalRepository expenseProposalRepository,
             ProposalReportRepository proposalReportRepository,
             MessageDeliveryPort messageDeliveryPort,
-            Clock clock,
             LoggerFactory loggerFactory) {
         this.expenseProposalRepository = expenseProposalRepository;
         this.proposalReportRepository = proposalReportRepository;
         this.messageDeliveryPort = messageDeliveryPort;
-        this.clock = clock;
         this.log = loggerFactory.getLogger(ClearEmptiedReportsUseCase.class);
     }
 
@@ -60,7 +56,16 @@ public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
     }
 
     private void clearReportsFor(long userId, IncomingMessageId messageId) {
-        List<ProposalReport> reports = proposalReportRepository.findByIncomingMessageId(userId, messageId);
+        List<ProposalReport> reports;
+        try {
+            reports = proposalReportRepository.findByIncomingMessageId(userId, messageId);
+        } catch (PersistenceFailedException e) {
+            // Returning rather than propagating is what leaves the messages after this one still to be cleared:
+            // the caller runs on a pool thread whose only handler is a catch-all, so an escape ends the batch.
+            log.warn("failed to read where message {} was reported: {}", messageId, e.getMessage());
+            return;
+        }
+
         boolean allCleared = true;
         for (ProposalReport report : reports) {
             try {
