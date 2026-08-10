@@ -76,8 +76,12 @@ What needs to be achieved, and why it matters to whoever asked. A short paragrap
 
 ### Context
 
-What already exists that this change builds on or mirrors, with links to the files. Every "same as X" elsewhere in
-the file resolves against it.
+What already exists that this change builds on or mirrors. It is a reading list, not an argument. The grill reads
+it to find ground truth, and every "same as X" elsewhere in the file resolves against it.
+
+A table — `What exists` | `Where` | `What this change does with it` — one row per thing, one line each. `Where` is
+a link. A row that needs a paragraph is carrying a fact the **Proposed Solution** acts on, and that section owns
+it.
 
 ### Proposed Solution
 

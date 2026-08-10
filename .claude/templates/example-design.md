@@ -25,10 +25,12 @@ with its generated id. It belongs to a parent resource, which must exist.
 
 ## Context
 
-`module-a` has no widget concept yet. The closest existing shape is its parent resource — same layering, same
-persistence adapter style, same error vocabulary — and this change mirrors it throughout: an inbound port
-implemented by a use case, an outbound port implemented by a persistence adapter, a REST controller mapping between
-the transport model and the domain model.
+| What exists                         | Where                    | What this change does with it                                          |
+|-------------------------------------|--------------------------|------------------------------------------------------------------------|
+| The parent resource, the closest existing shape | `<parent-usecase-file>`  | Mirrored throughout — same layering, same adapter style, same error vocabulary |
+| The parent's persistence adapter    | `<parent-adapter-file>`  | Its failure classification is the evidence D2 rests on                 |
+| The module's API contract           | `<api-schema-file>`      | Gains `POST /widgets`                                                  |
+| The parent table and its cascade    | `<migration-file>`       | The widget table hangs off it, D10                                     |
 
 ## Proposed Solution
 
