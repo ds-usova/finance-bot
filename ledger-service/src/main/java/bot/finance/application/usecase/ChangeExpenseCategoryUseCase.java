@@ -9,7 +9,13 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.ExpenseEntryNotFoundException;
+import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
+import bot.finance.domain.model.User;
+import bot.finance.domain.value.ExpenseStatus;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.Optional;
 
 public class ChangeExpenseCategoryUseCase implements ChangeExpenseCategoryPort {
 
@@ -37,12 +43,30 @@ public class ChangeExpenseCategoryUseCase implements ChangeExpenseCategoryPort {
 
     @Override
     public ExpenseEntry change(ChangeExpenseCategoryCommand command) {
-        // resolves the caller through userRepository; refuses a categoryId categoryRepository.existsOwnedCategory
-        // does not admit, throwing InvalidExpenseCategoryChangeException naming categoryId; refiles the row in
-        // the table the command's status names - expenseRepository for RECORDED, expenseProposalRepository for
-        // PENDING - with Instant.now(clock), throwing ExpenseEntryNotFoundException when the refile answers
-        // nothing; logs the change at info with the resolved user, the status, the entry id and the category it
-        // now carries; and answers the row as it now stands
-        return null;
+        if (command == null) {
+            throw new InvalidExpenseCategoryChangeException("category change command is absent");
+        }
+
+        User user = userRepository.requireByExternalId(command.userId().externalId());
+        long userId = user.id().orElseThrow();
+        if (!categoryRepository.existsOwnedCategory(userId, command.categoryId())) {
+            throw new InvalidExpenseCategoryChangeException(
+                    "categoryId " + command.categoryId() + " is not admitted for this user");
+        }
+
+        Instant now = Instant.now(clock);
+        Optional<ExpenseEntry> refiled = command.status() == ExpenseStatus.RECORDED
+                ? expenseRepository.refile(userId, command.entryId(), command.categoryId(), now)
+                : expenseProposalRepository.refile(userId, command.entryId(), command.categoryId(), now);
+        ExpenseEntry entry =
+                refiled.orElseThrow(() -> new ExpenseEntryNotFoundException("no entry of yours carries that id"));
+
+        log.info(
+                "changed category for user {} entry {} ({}) to category {}",
+                userId,
+                entry.id(),
+                command.status(),
+                entry.categoryId());
+        return entry;
     }
 }

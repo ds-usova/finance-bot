@@ -106,10 +106,13 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Override
     @Transactional
     public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
-        // will run expenseEntityRepository.refile(userId, entryId, categoryId, now truncated to microseconds,
-        // as truncatedToMicros() does above) and map the returned RefiledEntryProjection, when present, onto an
-        // ExpenseEntry carrying RECORDED; wraps a store failure as the other methods here do
-        return Optional.empty();
+        try {
+            return expenseEntityRepository
+                    .refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS))
+                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.RECORDED));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
+        }
     }
 
     private static String statusName(ExpenseStatus status) {

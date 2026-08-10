@@ -733,7 +733,7 @@ class ExpenseRepositoryAdapterTest {
                     1500,
                     "USD",
                     null,
-                    Instant.now().minusSeconds(120));
+                    Instant.now().minusSeconds(120).truncatedTo(ChronoUnit.MICROS));
 
             Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
 
@@ -775,7 +775,8 @@ class ExpenseRepositoryAdapterTest {
         void whenCalledWithSameCategory_thenAnswerCarriesRowAndOnlyUpdatedAtMoved() {
             long userId = storedUserId("refile-same-category-user");
             long categoryId = storedGroupingId(userId, "Groceries");
-            ExpenseEntity stored = storedExpense(userId, categoryId, "Weekly shop", 1500, "USD", null);
+            Instant createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+            ExpenseEntity stored = storedExpenseAt(userId, categoryId, "Weekly shop", 1500, "USD", createdAt);
             Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
             Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), categoryId, now);
@@ -784,7 +785,7 @@ class ExpenseRepositoryAdapterTest {
             assertThat(refiled.get().categoryId()).isEqualTo(categoryId);
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
                 assertThat(row.categoryId()).isEqualTo(categoryId);
-                assertThat(row.createdAt()).isEqualTo(stored.createdAt());
+                assertThat(row.createdAt()).isEqualTo(createdAt);
                 assertThat(row.updatedAt()).isEqualTo(now);
             });
         }

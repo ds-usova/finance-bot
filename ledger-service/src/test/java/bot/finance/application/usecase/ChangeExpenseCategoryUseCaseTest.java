@@ -167,7 +167,8 @@ class ChangeExpenseCategoryUseCaseTest {
 
             assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
                     .isInstanceOf(ExpenseEntryNotFoundException.class)
-                    .hasMessageContaining(String.valueOf(ENTRY_ID))
+                    .hasMessageContaining("entry")
+                    .hasMessageNotContaining("user")
                     .hasMessageNotContaining(EXTERNAL_ID);
         }
 

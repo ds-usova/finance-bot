@@ -6,6 +6,7 @@ import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.ProposalIds;
 import java.time.Instant;
@@ -118,10 +119,14 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
     @Override
     @Transactional
     public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
-        // will run expenseProposalEntityRepository.refile(userId, entryId, categoryId, now truncated to
-        // microseconds) and map the returned RefiledEntryProjection, when present, onto an ExpenseEntry carrying
-        // PENDING; wraps a store failure as the other methods here do
-        return Optional.empty();
+        try {
+            return expenseProposalEntityRepository
+                    .refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS))
+                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.PENDING));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to refile expense proposal " + entryId + " for user " + userId, e);
+        }
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

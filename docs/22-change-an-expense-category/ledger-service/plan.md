@@ -417,22 +417,22 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `ChangeExpenseCategoryCommand` · test: `ChangeExpenseCategoryCommandTest`
-- [ ] GU02 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest`
-- [ ] GU03 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · after: GU01
+- [x] GU01 · `ChangeExpenseCategoryCommand` · test: `ChangeExpenseCategoryCommandTest`
+- [x] GU02 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest`
+- [x] GU03 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
-- [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
-- [ ] GI03 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest`
-- [ ] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
+- [x] GI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest`
+- [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
+- [x] GI03 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest`
+- [x] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
   `PATCH /api/v1/expenses/{status}/{id}` · mocks: `ChangeExpenseCategoryPort` · after: GU01, GU02
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ChangeExpenseCategorySystemTest` · covers: `PATCH /api/v1/expenses/{status}/{id}`
-- [ ] GS02 · `RefileReportedProposalSystemTest` · covers: `TelegramUpdateListener.process()`
+- [x] GS01 · `ChangeExpenseCategorySystemTest` · covers: `PATCH /api/v1/expenses/{status}/{id}`
+- [x] GS02 · `RefileReportedProposalSystemTest` · covers: `TelegramUpdateListener.process()`
 
 ### Post-Implementation Steps
 
@@ -467,6 +467,17 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
   only in the endpoint's own contract page and in `WebExceptionHandler`'s handler order. Write it?
   - A: No ADR. The endpoint's own contract page carries the two messages, which is where a reader looks for them.
     The `P` prefix keeps no gap: `P02` is the domain-page item of `Q1`.
+
+- **B1 (raised mid-run, at `GS01`):** `RU03` and `RS01` pinned the 404's message incompatibly. `RU03`'s test
+  asserted the message contains the numeric entry id; `RS01`'s asserted it reads exactly
+  `no entry of yours carries that id`, which carries no digits. No single message satisfies both, so the whole
+  stack could not go green.
+  - Resolution: `RU03`'s assertion was the over-specified one and was relaxed. Its scenario asks only that the
+    message "names the entry rather than the caller", never that it carries the id, and
+    [Testing Conventions](../../../ledger-service/docs/conventions/testing.md) has a test assert the invariant
+    rather than the mechanism. The wording `RS01` pins is the endpoint's own published contract — the `404`
+    example in `shared/plan.md` `ST01` — so it is the one a caller reads and the one the use case now composes.
+    No plan step's scenario changed.
 
 ## Review Findings
 

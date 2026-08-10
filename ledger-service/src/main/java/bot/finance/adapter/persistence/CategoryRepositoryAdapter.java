@@ -55,8 +55,11 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
 
     @Override
     public boolean existsOwnedCategory(long userId, long categoryId) {
-        // will run categoryEntityRepository.existsByIdAndUserIdAndParentIdIsNotNull(categoryId, userId), wrapping
-        // a store failure as its siblings do
-        return false;
+        try {
+            return categoryEntityRepository.existsByIdAndUserIdAndParentIdIsNotNull(categoryId, userId);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to check ownership of category " + categoryId + " for user " + userId, e);
+        }
     }
 }
