@@ -20,6 +20,8 @@ paths:
     $ref: './paths/session.yaml'
   /api/v1/expenses/acceptances:
     $ref: './paths/expense-acceptances.yaml'
+  /api/v1/expenses/{status}/{id}:
+    $ref: './paths/expense-category.yaml'
 components:
   schemas:
     ExpenseStatus:
@@ -268,6 +270,44 @@ components:
         - ids
       example:
         ids: [7, 12]
+    CategoryPatchOperation:
+      type: object
+      description: The one operation this endpoint accepts, in JSON Patch's own shape.
+      properties:
+        op:
+          type: string
+          description: Only `replace`. No other operation is accepted, `test` included.
+          enum:
+            - replace
+        path:
+          type: string
+          description: Only `/categoryId`. Nothing else on an entry is editable from any surface.
+          enum:
+            - /categoryId
+        value:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The id of a category of the caller's, filed under a grouping.
+      required:
+        - op
+        - path
+        - value
+      example:
+        op: replace
+        path: /categoryId
+        value: 42
+    CategoryPatch:
+      type: array
+      description: A JSON Patch document of exactly one operation.
+      minItems: 1
+      maxItems: 1
+      items:
+        $ref: '#/components/schemas/CategoryPatchOperation'
+      example:
+        - op: replace
+          path: /categoryId
+          value: 42
     Acceptance:
       type: object
       description: >-
