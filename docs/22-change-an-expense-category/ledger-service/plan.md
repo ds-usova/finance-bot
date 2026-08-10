@@ -438,13 +438,13 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
 
 #### Manual Request Files
 
-- [ ] P01 · Add the category change to `ledger-service/docs/requests/expenses.http`, in that file's shape: the
+- [x] P01 · Add the category change to `ledger-service/docs/requests/expenses.http`, in that file's shape: the
   session cookie, the CSRF header, a `Content-Type` of `application/json-patch+json`, and one request per status
   carrying a document of one `replace` on `/categoryId`.
 
 #### Domain Pages
 
-- [ ] P02 · Rewrite the Lifecycle row in
+- [x] P02 · Rewrite the Lifecycle row in
   [Expense](../../../ledger-service/docs/domain/expense.md) and in
   [Expense proposal](../../../ledger-service/docs/domain/expense-proposal.md) so that `Changed | never` names
   this use case instead. Nothing else on either page moves.

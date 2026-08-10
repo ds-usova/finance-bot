@@ -20,12 +20,12 @@ Two stored proposals with the same `id` are the same proposal. An unstored one e
 
 ## Lifecycle
 
-| Event    | By                                                                                | Notes                                             |
-|----------|-----------------------------------------------------------------------------------|---------------------------------------------------|
-| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)           | one per spending the model read out of a message  |
-| Changed  | never                                                                             | every field is fixed at creation                  |
-| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)         | accepted or discarded, and removed either way     |
-| Removed  | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md)     | accepted from the page, by id                     |
+| Event    | By                                                                            | Notes                                            |
+|----------|-------------------------------------------------------------------------------|--------------------------------------------------|
+| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)       | one per spending the model read out of a message |
+| Changed  | [Change an entry's category](../usecases/change-an-expense-category.md)       | its category, and nothing else                   |
+| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | accepted or discarded, and removed either way    |
+| Removed  | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | accepted from the page, by id                    |
 
 Accepting does not change a proposal's state — it removes the proposal and writes an [expense](expense.md)
 carrying the same values, in one statement
