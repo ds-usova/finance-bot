@@ -57,10 +57,8 @@ class IncomingMessageIdTest {
             assertThat(IncomingMessageId.of(reference.value())).isEqualTo(reference);
         }
 
-        // Both bound cases are ASCII, where a character is a byte, so neither tells a byte check from a
-        // character one. Pinning that difference needs a multi-byte value — 55 'a' and one 'é' is 56
-        // characters and 57 bytes. Nothing produces one: the value is two decimal ids from Telegram, or a
-        // canonical UUID from before the rename.
+        // The two cases below are ASCII, where a character is a byte, so neither tells a byte check from a
+        // character one; the multi-byte case after them is what does.
         @Test
         @DisplayName("when of is called with a value of exactly 56 bytes - then it is accepted")
         void whenCalledWithValueOfExactly56Bytes_thenItIsAccepted() {
@@ -73,6 +71,14 @@ class IncomingMessageIdTest {
         @DisplayName("when of is called with a value of 57 bytes - then InvalidIncomingMessageException is thrown")
         void whenCalledWithValueOf57Bytes_thenThrowsInvalidIncomingMessageException() {
             String value = "a".repeat(IncomingMessageId.MAX_BYTES + 1);
+
+            assertThatThrownBy(() -> IncomingMessageId.of(value)).isInstanceOf(InvalidIncomingMessageException.class);
+        }
+
+        @Test
+        @DisplayName("when of is called with 56 characters one of which is multi-byte - then it is refused")
+        void whenCalledWith56CharactersOneOfWhichIsMultiByte_thenThrowsInvalidIncomingMessageException() {
+            String value = "a".repeat(IncomingMessageId.MAX_BYTES - 1) + "é";
 
             assertThatThrownBy(() -> IncomingMessageId.of(value)).isInstanceOf(InvalidIncomingMessageException.class);
         }
