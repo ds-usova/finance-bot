@@ -265,6 +265,11 @@ installed as a plugin, under `.claude/` in a plain checkout.
       `TODO` comment at the insertion point describing what needs to be implemented there, and add the minimal
       return/change needed to get back to build-green. Do NOT replace or stub out existing functionality.
     - update immediate call sites and get the project back to build-green state before full logic implementation.
+    - **a stub's comment and a `TODO` name the work, never the step that owes it.** The green-phase agent is
+      handed its step; nothing finds its work by searching the tree for `GI02`. A module whose conventions ban
+      citing a plan step in a comment enforces that from stabilization onward, so a `TODO GI02:` fails the
+      stage guardrail that writes it. The one place a step id belongs is a disabled test's reason, which is an
+      annotation rather than a comment.
 
   **Configuration**
 
