@@ -70,7 +70,9 @@ function CategoryControl({
           aria-label={t('listing.changeCategoryLabel', { description: entry.description })}
           aria-busy={busy}
           disabled={disabled}
-          className="h-auto min-w-0 max-w-full gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
+          // Pulled left by its own horizontal padding, so the name starts on the column's edge like the cells
+          // above and below it, while the hover and focus surface keeps its padding.
+          className="-ml-1.5 h-auto min-w-0 max-w-full gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
         >
           <span className="truncate">{categoryName}</span>
           <ChevronsUpDown aria-hidden="true" className="h-3 w-3 shrink-0 opacity-50" />
@@ -191,10 +193,16 @@ export function ExpenseDaySection({
                   aria-label={entry.description}
                   className="flex flex-col gap-1.5 py-2.5"
                 >
-                  <div className="flex items-center gap-3">
-                    {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it, so a
-                        day mixing the two statuses keeps its descriptions in one column. */}
-                    <span className="flex w-4 shrink-0 items-center justify-center">
+                  {/* A grid rather than a flex row, because these are columns and have to line up down the
+                      whole day. Under flex the two trailing cells are sized by their own content — a PENDING
+                      row carries a badge where a RECORDED one carries nothing — so every row left a different
+                      amount of space for the three middle cells to divide, and no two rows agreed on where a
+                      column started. Fixed tracks for the badge and the figure make the space they leave the
+                      same on every row. Every cell is rendered whether or not it has content, for the same
+                      reason the gutter is. */}
+                  <div className="grid grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem_7rem] items-center gap-3">
+                    {/* Only a PENDING row puts a checkbox in the gutter. */}
+                    <span className="flex items-center justify-center">
                       {entry.status === 'PENDING' && (
                         <Checkbox
                           aria-label={t('listing.entryCheckboxLabel')}
@@ -204,18 +212,9 @@ export function ExpenseDaySection({
                         />
                       )}
                     </span>
-                    {/* Three columns rather than a description with a secondary line under it, so a reader
-                        scans merchants down one column and categories down another. Each cell is rendered
-                        whether or not it has content, or a row missing one would pull the rest left and the
-                        columns would stop lining up. The description takes twice the width of either, and all
-                        three truncate — the merchant first, since it is the widest and the least load-bearing. */}
-                    <span className="min-w-0 flex-[2] truncate font-medium">
-                      {entry.description}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                      {entry.merchant}
-                    </span>
-                    <span className="flex min-w-0 flex-1 items-center">
+                    <span className="truncate font-medium">{entry.description}</span>
+                    <span className="truncate text-xs text-muted-foreground">{entry.merchant}</span>
+                    <span className="flex min-w-0 items-center">
                       {categoryName && (
                         <CategoryControl
                           entry={entry}
@@ -227,12 +226,12 @@ export function ExpenseDaySection({
                         />
                       )}
                     </span>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <span className="flex justify-end">
                       {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
-                      <span className="whitespace-nowrap text-right tabular-nums">
-                        {formatMoney(entry.money)}
-                      </span>
-                    </div>
+                    </span>
+                    <span className="truncate text-right tabular-nums">
+                      {formatMoney(entry.money)}
+                    </span>
                   </div>
                   {failureMessage && <ErrorBanner message={failureMessage} />}
                 </li>
