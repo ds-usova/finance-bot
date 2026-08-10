@@ -63,7 +63,10 @@ belongs to none of them — a bucket of one is worth less than the honesty of le
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
 - **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`
-  rather than repeated in each type's test class. A rule about one type stays with that type.
+  rather than repeated in each type's test class. A rule about one type stays with that type. A rule ArchUnit
+  cannot see, because it is about text rather than about bytecode, is a source scan in that same package —
+  `CommentConventionsTest` reads `src/main/java` and `src/test/java` and names every line it refuses. It searches
+  comment lines only, so a `@Disabled` naming the step that owes its test a rework is untouched.
 
 ## Test Tooling
 

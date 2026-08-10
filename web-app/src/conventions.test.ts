@@ -8,8 +8,11 @@ const sources = import.meta.glob('./**/*.{ts,tsx}', {
   eager: true,
 }) as Record<string, string>;
 
-// A plan's own item ids and a design's decision numbers: ST01, RU03, GS01, D34, Q1, P01, B2.
 const CITATION = /\b(?:ST|RU|RI|RS|GU|GI|GS)\d{2}\b|\b[DQPB]\d{1,2}\b/;
+
+// Carried as data rather than as a comment, which the scan would read as a citation of its own, and shown in
+// the failure so it says what shape it refused.
+const EXAMPLES = 'ST01, RU03, GS01, D34, Q1, P01, B2';
 
 // Only a comment can cite one: a string literal holding something like `D5` is data, not a reference to a plan.
 function citationsIn(contents: string): string[] {
@@ -29,6 +32,9 @@ describe('the module’s own conventions', () => {
       );
 
     // Named in full rather than counted, so a failure says which comment to rewrite.
-    expect(offenders).toEqual([]);
+    expect(
+      offenders,
+      `comments citing a plan step or a decision by number, such as ${EXAMPLES}`,
+    ).toEqual([]);
   });
 });
