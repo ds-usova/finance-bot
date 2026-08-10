@@ -101,6 +101,11 @@ command is in each module's own [Build](../../ledger-service/docs/conventions/bu
 
 **Apply it on every change to Java sources, before the change is committed.**
 
+**Formatting is never a reason to run the suite again.** Spotless reorders imports and whitespace; it cannot
+change a test result. Run the suite once — before the format or after it, whichever the work needs — and never
+on both sides of it. This module's suite takes minutes and starts a container, so a second run of an unchanged
+tree is that time spent twice for an answer already known.
+
 Palantir's parser predates the unnamed variable: a lambda parameter written `_` fails the format task rather
 than being reformatted. Name it.
 

@@ -86,6 +86,14 @@ against, and each pipeline is handed its own module's.
 
 **No pipeline repeats either gate.** By the time one starts, phase 1 has changed the tree.
 
+**These figures are a measurement, not a formality, and a measurement is not repeated over an unchanged tree.**
+A guardrail that would run a module's suite when nothing under that module has been written since the last full
+run of it reads that run's figures instead. The condition is checkable: whoever is about to run knows what it
+has written. This narrows nothing and skips no stage — a guardrail still gates the commit that follows it, and
+still runs the whole suite the moment that module's files have moved. What it stops is the same suite answering
+the same question twice, which on a module whose run takes minutes and starts a container is the largest
+avoidable cost in a task.
+
 ## Phase 1 — The Seam, Alone
 
 Present only when the design named an artifact more than one module reads at build time — a schema, a generated
@@ -102,7 +110,9 @@ by its own `implement-plan-module` agent.
 - **Its exit guardrail is Stage 1's, over every module it lists** — they compile, their architecture tests pass,
   their pre-existing suites are still green, and nothing was lost. Not a bespoke compile check: a guardrail that
   only compiles proves nothing about what a regenerated contract did to behaviour that still had tests. Tell its
-  agent that its Affected Modules are all of them, not one.
+  agent that its Affected Modules are all of them, not one. A module whose files this plan never touched — one
+  that only regenerates from the artifact and compiles clean — is answered by phase 0's figures under the rule
+  above, since nothing under it has been written.
 - **A disabled test's reason names the module plan and step that owes the rework** — `module-a/plan.md · RI03`.
   That is a reference for whoever reads the skip list, not a schedule: the pipeline that owns the step clears it
   during its own red phase.
@@ -137,6 +147,11 @@ When every pipeline has returned:
    Each plan's **Open Questions / Blockers** is the source. Lift what is **still open** — a confirmed defect no
    scenario covered, a gap the design never named, an inconsistency the change left behind. A blocker the run
    settled stays in its plan as that plan's history and never appears here; so does a question already answered.
+
+   **An affected module's conventions may name something else that belongs here**, and that is read rather than
+   remembered: a module whose suite cannot see a whole class of defect leaves the list of what a person still
+   has to look at, which no step implemented and no test closed. Follow the conventions index to whatever the
+   module says its finished work leaves open.
 
    ```
    # Review: <task name>
