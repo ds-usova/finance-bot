@@ -59,29 +59,6 @@ public final class ExpenseWebMapper {
                 page.dayTotals().stream().map(ExpenseWebMapper::toDayTotal).toList());
     }
 
-    private static ExpenseStatus toStatus(String status) {
-        if (status == null) {
-            return null;
-        }
-
-        try {
-            return ExpenseStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new InvalidExpenseFilterException("status must be PENDING or RECORDED");
-        }
-    }
-
-    private static SpendingPeriod toPeriod(LocalDate from, LocalDate to) {
-        if (from == null && to == null) {
-            return null;
-        }
-        if (from == null || to == null) {
-            throw new InvalidSpendingPeriodException("A period needs both a from and a to day, or neither");
-        }
-
-        return new SpendingPeriod(from, to);
-    }
-
     public static ChangeExpenseCategoryCommand toChangeExpenseCategoryCommand(
             String status, Long id, List<CategoryPatchOperation> document, AuthenticatedUserId userId) {
         if (document.size() != 1) {
@@ -122,7 +99,30 @@ public final class ExpenseWebMapper {
         return response;
     }
 
-    public static Expense toItem(ExpenseEntry entry) {
+    private static ExpenseStatus toStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+
+        try {
+            return ExpenseStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidExpenseFilterException("status must be PENDING or RECORDED");
+        }
+    }
+
+    private static SpendingPeriod toPeriod(LocalDate from, LocalDate to) {
+        if (from == null && to == null) {
+            return null;
+        }
+        if (from == null || to == null) {
+            throw new InvalidSpendingPeriodException("A period needs both a from and a to day, or neither");
+        }
+
+        return new SpendingPeriod(from, to);
+    }
+
+    private static Expense toItem(ExpenseEntry entry) {
         Expense item = new Expense(
                 entry.id(),
                 bot.finance.api.model.ExpenseStatus.valueOf(entry.status().name()),

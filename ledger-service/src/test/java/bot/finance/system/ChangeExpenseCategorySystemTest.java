@@ -61,16 +61,9 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         void whenARecordedExpenseAndAPendingProposalAreEachPatchedToTheSecondCategory_thenBothRefileCorrectly() {
             String externalId = "change-category-happy-path-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            long userId = userEntityRepository
-                    .findByExternalId(externalId)
-                    .orElseThrow()
-                    .id();
-
-            long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
-            long firstCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
-            long secondCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Markets");
+            long userId = userIdOf(externalId);
+            long firstCategoryId = groceriesCategoryId(userId, "Supermarkets");
+            long secondCategoryId = groceriesCategoryId(userId, "Markets");
 
             Instant createdAt = Instant.now().minusSeconds(3600);
             long expenseId = ExpenseRowUtils.storedExpense(
@@ -153,16 +146,9 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         void whenTheRefiledPendingProposalIsAccepted_thenTheRecordedExpenseCarriesTheNewCategory() {
             String externalId = "change-category-accept-refiled-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            long userId = userEntityRepository
-                    .findByExternalId(externalId)
-                    .orElseThrow()
-                    .id();
-
-            long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
-            long firstCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
-            long secondCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Markets");
+            long userId = userIdOf(externalId);
+            long firstCategoryId = groceriesCategoryId(userId, "Supermarkets");
+            long secondCategoryId = groceriesCategoryId(userId, "Markets");
             long proposalId = ExpenseProposalRowUtils.storedProposal(
                             jdbcAggregateTemplate,
                             userId,
@@ -215,10 +201,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         void whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry() {
             String externalId = "change-category-missing-entry-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            long userId = userEntityRepository
-                    .findByExternalId(externalId)
-                    .orElseThrow()
-                    .id();
+            long userId = userIdOf(externalId);
             long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
             String csrfToken = BrowserSessions.csrfToken();
 
@@ -238,15 +221,9 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         void whenNoSessionCookie_then401AndTheRowStillCarriesItsOriginalCategory() {
             String externalId = "change-category-no-session-user";
             signIn(externalId);
-            long userId = userEntityRepository
-                    .findByExternalId(externalId)
-                    .orElseThrow()
-                    .id();
-            long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
-            long originalCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
-            long otherCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Markets");
+            long userId = userIdOf(externalId);
+            long originalCategoryId = groceriesCategoryId(userId, "Supermarkets");
+            long otherCategoryId = groceriesCategoryId(userId, "Markets");
             long expenseId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
@@ -280,15 +257,9 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         void whenNoCsrfToken_then403AndTheRowStillCarriesItsOriginalCategory() {
             String externalId = "change-category-no-csrf-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            long userId = userEntityRepository
-                    .findByExternalId(externalId)
-                    .orElseThrow()
-                    .id();
-            long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
-            long originalCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
-            long otherCategoryId =
-                    CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, "Markets");
+            long userId = userIdOf(externalId);
+            long originalCategoryId = groceriesCategoryId(userId, "Supermarkets");
+            long otherCategoryId = groceriesCategoryId(userId, "Markets");
             long expenseId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
@@ -321,6 +292,15 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
     private Response signIn(String externalId) {
         return BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId);
+    }
+
+    private long userIdOf(String externalId) {
+        return userEntityRepository.findByExternalId(externalId).orElseThrow().id();
+    }
+
+    private long groceriesCategoryId(long userId, String name) {
+        long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
+        return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
     }
 
     private Response patchCategory(

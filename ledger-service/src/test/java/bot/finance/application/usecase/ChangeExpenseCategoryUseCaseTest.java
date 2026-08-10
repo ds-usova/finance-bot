@@ -63,29 +63,6 @@ class ChangeExpenseCategoryUseCaseTest {
                 userRepository, categoryRepository, expenseRepository, expenseProposalRepository, clock, loggerFactory);
     }
 
-    private ChangeExpenseCategoryCommand newCommand(ExpenseStatus status) {
-        return new ChangeExpenseCategoryCommand(CALLER, status, ENTRY_ID, CATEGORY_ID);
-    }
-
-    private void stubStoredUser() {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-    }
-
-    private void stubCategoryAdmitted() {
-        when(categoryRepository.existsOwnedCategory(USER_ID, CATEGORY_ID)).thenReturn(true);
-    }
-
-    private ExpenseEntry newEntry(long categoryId) {
-        return new ExpenseEntry(
-                ExpenseStatus.RECORDED,
-                ENTRY_ID,
-                categoryId,
-                "coffee",
-                Optional.of("Starbucks"),
-                new Money(500, CurrencyCode.of("USD")),
-                FIXED_INSTANT);
-    }
-
     @Nested
     @DisplayName("changing an expense's category")
     class Change {
@@ -226,5 +203,28 @@ class ChangeExpenseCategoryUseCaseTest {
             verifyNoInteractions(expenseRepository);
             verifyNoInteractions(expenseProposalRepository);
         }
+    }
+
+    private ChangeExpenseCategoryCommand newCommand(ExpenseStatus status) {
+        return new ChangeExpenseCategoryCommand(CALLER, status, ENTRY_ID, CATEGORY_ID);
+    }
+
+    private void stubStoredUser() {
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+    }
+
+    private void stubCategoryAdmitted() {
+        when(categoryRepository.existsOwnedCategory(USER_ID, CATEGORY_ID)).thenReturn(true);
+    }
+
+    private ExpenseEntry newEntry(long categoryId) {
+        return new ExpenseEntry(
+                ExpenseStatus.RECORDED,
+                ENTRY_ID,
+                categoryId,
+                "coffee",
+                Optional.of("Starbucks"),
+                new Money(500, CurrencyCode.of("USD")),
+                FIXED_INSTANT);
     }
 }

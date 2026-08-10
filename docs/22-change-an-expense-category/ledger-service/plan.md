@@ -479,6 +479,19 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
     example in `shared/plan.md` `ST01` — so it is the one a caller reads and the one the use case now composes.
     No plan step's scenario changed.
 
+- **B2 (raised at the refactor pass):** `ST05` asked for `ExpenseWebMapper.toItem` to be made public, so that the
+  patch and the listing render an item once. The refactor pass put it back to private: both callers turned out to
+  sit in that same class, so the widened surface was never used and nothing outside `src` referenced it. The
+  step's intent — one rendering, not two — holds either way. Recorded because the code no longer reads as `ST05`
+  words it.
+
+- **B3 (raised at the refactor pass, not acted on):** `ChangeExpenseCategoryUseCaseTest`'s
+  `whenRefileAnswersRowAlreadyCarryingAdmittedCategory_thenAnswerIsThatRowAndNothingRefused` does not express the
+  condition it names — it stubs the same entry and category as the `RECORDED` happy path, so "already carries the
+  admitted category" is not actually arranged, and the two tests differ only in how they assert. Left alone: the
+  scenario is `RU03`'s and collapsing the test would change what is asserted. Worth a look if this class is
+  revisited.
+
 ## Review Findings
 
 - **F1:** RI04 declared `A13`, which it carries no scenario for, and carried a 404 scenario its line did not
