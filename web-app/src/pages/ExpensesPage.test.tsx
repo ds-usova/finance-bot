@@ -567,7 +567,9 @@ describe('the expenses page', () => {
     expect(ids).toBeDefined();
     expect(ids).toHaveLength(100);
     expect(ids?.every((id) => inBound.some((entry) => entry.id === id))).toBe(true);
-  });
+    // The bound is 100, so the case cannot be made with fewer rows, and every one of them now mounts a
+    // category control. Coverage instrumentation roughly doubles that, which crosses the 5s default.
+  }, 20000);
 
   it('disables the second day’s own checkbox once the first day’s whole tick leaves too little headroom, keeping its entries live and no call over the bound', async () => {
     const firstDay = Array.from({ length: 95 }, (_, i) =>
@@ -611,7 +613,8 @@ describe('the expenses page', () => {
     const [ids] = acceptExpensesMock.mock.calls[0] ?? [];
     expect(ids).toHaveLength(95);
     expect(ids?.every((id) => firstDay.some((entry) => entry.id === id))).toBe(true);
-  });
+    // Same 105 rows as the case above, and the same reason for the raised bound.
+  }, 20000);
 
   it('reads back against the filter the page holds now, not the one the acceptance call left with', async () => {
     const entry = anExpense({
