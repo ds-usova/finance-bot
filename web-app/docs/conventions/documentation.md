@@ -11,8 +11,8 @@ whatever the page left out. When a section is a judgement call, cut it.
 - **Name the route, do not describe the screen.** The page carries the URL it lives at. What a person sees —
   which columns a table has, what a control is labelled, where the empty state reads — is on the screen, and it is
   pinned by the component's own test. A **What the Page Shows** section is the shape this mistake takes.
-- **Rules carry only what the screen cannot show.** Which reads happen and when, what is deliberately never sent,
-  which side decides what. A rule a reader can check by opening the page is not a rule.
+- **Which reads happen and when is the out-contract's.** What the page answers is **Outcomes**. What a control
+  does is on the screen, pinned by the component's test.
 - **The diagram outranks the prose.** Where a component diagram already shows that the page composes the list and
   the filter, no sentence says it again.
 

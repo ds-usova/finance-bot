@@ -17,36 +17,6 @@
 | out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md) | [Ledger tools](../contracts/out/ledger-mcp.md)            | recording one expense                           |
 | out       | [Spending Summary Tool](../../../ledger-service/docs/usecases/summarize-spending.md)         | [Ledger tools](../contracts/out/ledger-mcp.md)            | asking for the totals over a period             |
 
-## Rules
-
-- A caller's token is required. Without one the model is never prompted.
-- The token is opaque: held for the turn, carried on every tool call, never parsed, logged or stored.
-- Spending is recorded, and a question about what was spent is answered.
-- No category is ever created, renamed or deleted.
-- The model calls the recording tool once per expense, in the order the user said them.
-- The caller's groupings are a closed set. A grouping name is never invented.
-- An expense is filed under a category the ledger answers for one of those groupings, never under a grouping
-  itself.
-- A grouping's categories are asked for before an expense is filed under it.
-- The caller designates one of the groupings as the catch-all, so every expense has somewhere to be filed.
-- An expense the ledger refuses to record is corrected against the refusal and recorded once more.
-- An expense refused a second time is left unrecorded, and the rest of the message is still recorded.
-- A refused category lookup costs the expense nothing. The grouping's name is corrected and asked again.
-- An expense whose amount, currency or category cannot be told from the message is left unrecorded.
-- An amount stated with no currency takes the assumed currency; with none assumed the expense is left
-  unrecorded.
-- The merchant is recorded when the message names one.
-- A message naming no spending is not a failure.
-- The same message handled twice records its expenses twice.
-- The day the turn runs on is required, and arrives with the request as a UTC calendar date.
-- A relative period — "today", "yesterday", "last week", "this month", "since Friday" — is worked out from that
-  day. The week starts on Monday.
-- A single day is a period whose first and last day are that same day.
-- A question about what was spent is answered by asking the ledger to summarize one period, given as its first
-  and last day.
-- No amount is ever stated back to the user here. The totals reach the user from the ledger.
-- What a turn recorded, and what a period totals, is visible in the ledger, not here.
-
 ## Outcomes
 
 | Outcome                 | When                                                                | Result                                                          |
@@ -181,3 +151,12 @@ else the request is usable
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0008: The connector hands expense recording to the model](../../../docs/adr/0008-the-connector-hands-expense-recording-to-the-model.md) —
+  why this service records nothing itself
+- [ADR 0009: The connector does not authenticate its caller](../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md) —
+  why a token is required here and verified only at the ledger
+- [ADR 0010: A message reference rides the caller token](../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md) —
+  why the request carries no message id

@@ -4,9 +4,17 @@ One purchase or payment recorded against a user, filed under a category.
 
 ## Invariants
 
-- An expense is stored or not yet stored, and carries the store's own id only once it is.
-- Two stored expenses with the same id are the same expense, whatever else differs; an expense not yet stored
-  equals only itself.
+| Field                                            | Bound                |
+|--------------------------------------------------|----------------------|
+| `id`                                             | only once stored     |
+| `userId`                                         | `> 0`                |
+| `categoryId`                                     | `> 0`                |
+| `description`                                    | mandatory, non-blank |
+| `merchant`                                       | optional             |
+| [`money`](money.md)                              | mandatory            |
+| `createdAt`, `updatedAt`                         | mandatory            |
+
+Two stored expenses with the same `id` are the same expense. An unstored one equals only itself.
 
 ## Lifecycle
 

@@ -103,20 +103,25 @@ Indexes beyond the constraints above:
 - `idx_spending_query_incoming_message` on `(user_id, incoming_message_id)`.
 - `idx_proposal_report_incoming_message` on `(user_id, incoming_message_id)`.
 
-## What a Column Means
+## What a Table Holds
 
-- **A `category` row with no parent is a grouping.** That is the only thing telling a grouping from a category
-  carrying the same name.
-- `incoming_message_id` is a [message](../../domain/incoming-message-id.md), in all four tables that carry one.
-  A value stored while the column was a `UUID` reads back as that UUID's canonical text.
-- **An incoming message id is in `expense_proposal` or in `expense`, never both.** No constraint enforces it
+| Table              | Domain                                                | A row is                                                          |
+|--------------------|-------------------------------------------------------|--------------------------------------------------------------------|
+| `app_user`         | [User](../../domain/user.md)                          | a person, under the identity Telegram knows them by                |
+| `category`         | [Grouping](../../domain/grouping.md), with no parent  | a heading spending is filed under, never spending itself           |
+| `category`         | [Category](../../domain/category.md), with a parent   | what one expense is filed under, inside its grouping               |
+| `expense`          | [Expense](../../domain/expense.md)                    | spending the person has confirmed                                  |
+| `expense_proposal` | [Expense proposal](../../domain/expense-proposal.md)  | spending read out of a message, awaiting the person's decision     |
+| `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
+| `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
+
+- A grouping and a category are the same table. The parent is what tells them apart.
+- `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all four tables
+  that carry one.
+- `proposal_report` names two different messages: `incoming_message_id` is what the person sent,
+  `sent_message_id` is what the bot sent back in `conversation_id`.
+- A proposal that becomes an expense moves table
   ([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- **`proposal_report` carries two message names, and they are different messages.** `incoming_message_id` is
-  what a person sent; `sent_message_id` is [the report](../../domain/proposal-report.md) the bot sent back about
-  it, in `conversation_id`.
-- **`proposal_report` has no unique key.** One incoming message reported twice holds a row each.
-- `user_id` cascades on delete everywhere. `category_id` does not: a category cannot be removed while an expense
-  or a proposal references it.
 
 ## Compatibility
 

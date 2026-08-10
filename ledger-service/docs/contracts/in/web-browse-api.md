@@ -22,24 +22,6 @@ same transport.
 | `categories` | `listCategories` | the person's categories, each naming its grouping, optionally under one                  | [Browse a person's categories](../../usecases/browse-categories.md)              | [Browse recorded expenses](../../../../web-app/docs/usecases/browse-recorded-expenses.md) |
 | `groupings`  | `listGroupings`  | the person's groupings                                                                   | [Browse a person's groupings](../../usecases/browse-groupings.md)                | [Browse recorded expenses](../../../../web-app/docs/usecases/browse-recorded-expenses.md) |
 
-## Semantics
-
-What the specification cannot say.
-
-- **Every operation is scoped to the signed-in person.** None takes a user identifier, and no parameter widens
-  that scope. An id belonging to somebody else matches nothing rather than being refused — on the acceptance it
-  is counted as missing, so the boundary never discloses whether a stranger's id exists.
-- **Reads carry no CSRF token and need none.** They still hand out the token cookie, which is what every write
-  on this boundary requires.
-- **The acceptance is the only write.** It carries the token from that cookie, exactly as
-  [the session API](web-session-api.md)'s writes do.
-- **An acceptance is repeatable and not idempotent in its counts.** Posting the same ids again moves nothing and
-  counts all of them as missing, which is a different answer to the same request rather than a failure.
-- **The response is written before Telegram is told anything.** Clearing the buttons on a report the acceptance
-  emptied happens afterwards, off the request thread, and a failure there never shows on this boundary.
-- **Rendering is English for every caller.** No locale is negotiated, and no request offers one.
-- Every read is repeatable and stores nothing.
-
 ## Compatibility
 
 The specification is shared. This service generates its endpoints from it and the browser generates its response

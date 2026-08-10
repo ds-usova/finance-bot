@@ -57,7 +57,7 @@ assumed default; a module naming another language gets the same diagram in it, s
 - **No clause chains.** One idea per line, no em-dash asides, no *so that*, *rather than*, *which is why*.
 - **Fragments are fine**: "Amount and category required" over "Recording an expense needs both an amount and
   a category."
-- **No worked examples** in Rules or Semantics. The rule stands alone or it is not stated clearly enough.
+- **No worked examples.** A rule stands alone or it is not stated clearly enough.
 
 ## Use-Case Documents
 
@@ -80,10 +80,6 @@ One per usecase class — the application-layer class implementing an inbound po
 | in        | <who asks for this> | <contract page> | <what they want> |
 | out       | <what this depends on — a database, an AI provider, another service> | <contract page> | <what it needs from it> |
 
-## Rules
-
-<What always holds — the constraints a caller has to know to use it correctly. One rule per bullet.>
-
 ## Outcomes
 
 | Outcome | When | Result |
@@ -95,11 +91,19 @@ One per usecase class — the application-layer class implementing an inbound po
 ...
 @enduml
 ```
+
+## References
+
+- [ADR nnnn: <the decision>](../adr/nnnn-<slug>.md) — <why a reader opens it>
+- [<Another use case>](<page>.md) — <what it answers that this page does not>
 ````
+
+**References is links, never prose.** An ADR the use case rests on, and the use case a reader needs next. A
+collaborator already in the table is not repeated here. Nothing to point at means no section.
 
 **The diagram is the flow.** It is not accompanied by a numbered restatement of itself: a step list beside a flow
 diagram is the same walk written twice, and the diagram is the readable one. A step the diagram cannot carry is
-either a rule, an outcome, or a fact another page owns — put it there.
+either an outcome or a fact another page owns — put it there.
 
 **Which form the flow takes is the diagram conventions' call, not a default.** A use case whose interest is the
 walk across collaborators is a sequence diagram; one whose interest is the branching — the same one or two
@@ -151,10 +155,10 @@ two must agree.
 
 | Operation | Purpose | Used by |          <- the use case on either side, linked when it is ours
 
-## Semantics
+## <What the schema cannot say>
 
-<What the schema cannot say: ordering, emptiness, closed sets, idempotency, units, what an absent field means.
-This section is why the file exists; the rest is links.>
+<Ordering, emptiness, closed sets, idempotency, units, what an absent field means. One section per subject,
+named after it. A table, a list or a diagram — never a paragraph.>
 
 ## Failures
 

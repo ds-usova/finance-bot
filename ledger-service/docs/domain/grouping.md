@@ -5,15 +5,13 @@ the grouping holding it.
 
 ## Invariants
 
-- A grouping has a name, and the name is not blank.
-- A grouping has a list of categories, and may hold none.
-- Every entry in that list is a category.
-- The categories are fixed once the grouping exists.
-- One grouping name is designated the catch-all — the grouping spending falls to when no other fits.
-- The catalogue every new user starts with carries a grouping under the designated name, so the two cannot
-  drift apart.
-- Nothing else stands in for the catch-all: a user's groupings that do not carry the designated name are a
-  catalogue that cannot exist, and the turn reading them ends there.
+| Field                             | Bound                              |
+|-----------------------------------|------------------------------------|
+| `name`                            | mandatory, non-blank               |
+| [`categories`](category.md)       | may be empty, fixed at construction |
+
+One name is designated the catch-all — where spending falls when no other grouping fits. Every user's catalogue
+carries a grouping under that name.
 
 ## Made of / held by
 

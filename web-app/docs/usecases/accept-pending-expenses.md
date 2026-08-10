@@ -26,30 +26,6 @@ The listing this acts on is [Browse recorded expenses](browse-recorded-expenses.
 - A session is open.
 - A listing is on screen, since every id a tick carries is read from it.
 
-## Rules
-
-What this page decides, rather than the ledger. What the acceptance takes and answers is
-[the browse API](../contracts/out/ledger-browse-api.md)'s.
-
-- A tick belongs to the page, not to a day section. Collapsing a day and opening it again leaves it standing.
-- Only an entry awaiting a decision may be ticked.
-- A recorded row reserves the same gutter and offers no tick.
-- A day's own tick covers exactly that day's entries awaiting a decision.
-- A day only partly ticked ticks the rest. Unticking a day whole is offered only once every one of them is
-  ticked.
-- A day's header names how many of its entries are ticked in place of how many await a decision.
-- No unticked tick is offered past the bound
-  [the specification](../../../openapi/ledger-api.yaml) sets on one request — an entry's and a day's alike, and
-  a day whose tick would carry the set across it is refused whole.
-- A ticked entry is never disabled, so unticking is always possible.
-- The action is offered only while something is ticked, and is disabled while the call is out. The row it
-  stands in is there either way, so nothing below it moves.
-- A call that is answered empties the ticks. A call that is refused leaves them.
-- Only the days the ticked entries sat on are read again, spanning the earliest to the latest, from the first
-  page. Every other day, and the pager's figures, stand as they were.
-- The read back carries the filter on screen when the answer arrives, not the one the call left with.
-- A day the read back answers nothing for leaves the listing, rather than standing with entries that moved.
-
 ## Outcomes
 
 | Outcome                | When                                              | Result                                                                         |
@@ -135,3 +111,10 @@ Rel_R(expensesPage, expensesClient, "Accepts and re-reads through")
 Rel_R(expensesClient, ledger, "Acceptance and browse requests", "HTTPS, same origin")
 @enduml
 ```
+
+## References
+
+- [ADR 0014: The web app and the ledger are served from one origin](../../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md) —
+  why the acceptance carries a CSRF token read from a cookie
+- [Clear the emptied reports](../../../ledger-service/docs/usecases/clear-emptied-reports.md) — what happens in
+  Telegram to a report this acceptance emptied

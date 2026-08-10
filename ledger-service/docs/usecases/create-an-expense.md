@@ -16,20 +16,6 @@ Nothing calls this use case yet.
 |-----------|--------------|----------------------------------------------------------------|--------------------------------------------------------|
 | out       | Database     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
 
-## Rules
-
-- The identity is opaque text, whatever the caller identifies a person by, present and not blank.
-- A description is present, and it is not blank.
-- A category is named by its stored id, never by name, and the id is positive: a name is unique only among its
-  siblings, so it can be ambiguous, and the caller that holds the name resolves it before calling.
-- A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
-  absent rather than rejected.
-- A money amount is present.
-- Nothing is stored, and no expense is built, when the identity names no user.
-- Both timestamps are stamped at creation, equal to each other.
-- How long its text may be is checked where it is stored
-  ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
-
 ## Outcomes
 
 | Outcome          | When                                                                                       | Result                                                                              |
@@ -111,3 +97,10 @@ else the identity is known
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0004: Column widths are checked in the persistence adapter](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) —
+  where a description or a merchant too long is refused
+- [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
+  why the caller sends a stored id rather than a category's name

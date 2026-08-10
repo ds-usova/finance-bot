@@ -18,9 +18,7 @@ was spent and asks for the summaries the message asks about.
 |--------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | Act on the message | calls the ledger's tools — one recording call per expense, one summary per question | [Record the spending a user's message names](../../usecases/extract-intents.md) |
 
-## Semantics
-
-### A turn is a loop, not a request
+## A turn is a loop, not a request
 
 - The model answers with a tool call. That call's result goes back to it as the answer.
 - The loop ends when the model answers with text instead.
@@ -28,7 +26,7 @@ was spent and asks for the summaries the message asks about.
 - The instructions ask for one retry per refused recording call, and put no limit on category lookups.
 - Nothing is cached. Nothing is retried by this service. No conversation is kept between turns.
 
-### What the two messages carry
+## What the two messages carry
 
 | Message               | Contents                                                                     |
 |-----------------------|------------------------------------------------------------------------------|
@@ -40,7 +38,7 @@ was spent and asks for the summaries the message asks about.
 - The lookup tool and the summary tool are each named once, in the per-turn message.
 - Every argument and format the model uses comes from the schemas the ledger publishes.
 
-### What the model is told to do
+## What the model is told to do
 
 - Pick a grouping, ask the ledger which categories it holds, and file the expense under one of those.
 - Send that grouping alongside the category it chose.
@@ -52,18 +50,16 @@ was spent and asks for the summaries the message asks about.
 - Ask for one summary over that period's first and last day.
 - Never state an amount of its own.
 
-Nothing rests on that last instruction alone. The model's final answer is discarded, so what a turn recorded
-and what a period totals are visible in the ledger, never in anything the provider says.
+- The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
+- No category is ever sent. The groupings travel as bare names.
 
-No category is ever sent. The groupings travel as bare names.
-
-### What a weaker model costs
+## What a weaker model costs
 
 - A model that cannot call tools answers with text and records nothing. The turn still succeeds.
 - A model that answers a question in prose, instead of asking for a summary, leaves the turn with nothing to
   report.
 
-### Cost and latency
+## Cost and latency
 
 - Every tool call is a further round trip.
 - An expense costs at least two: the lookup and the recording call.

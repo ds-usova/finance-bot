@@ -60,16 +60,15 @@ is the only code name any of it carries.
 
 **Domain** — one per type in the module's **domain layer**, entities and value objects alike, filtered to what this
 plan added or changed. The domain layer only: a command or any other application-layer carrier gets no page of its
-own, and its rules belong to the **Rules** of the use case that receives it. Each says what the type represents in the
-product's words, lists the invariants under
+own, and what it constrains belongs to the **Outcomes** of the use case that receives it. Each says what the type
+represents in the product's words, lists the invariants under
 which it refuses to exist, and names what it is made of and what holds it. A value object earns a page as much
 as an entity does: `Money` carrying minor units with the exponent from the currency, and never a binary float,
 is exactly the rule a reader cannot get from a two-line record. A type with little to say gets a short page —
 that is a fact about the type, not a reason to skip it.
 
-Invariants belong here and nowhere else. A use-case page's **Rules** keeps the decisions that use case makes and
-links out for the rest: "a message is accepted only when it names a conversation and carries text" is the
-message type's rule, not the use case's.
+Invariants belong here and nowhere else. "A message is accepted only when it names a conversation and carries
+text" is the message type's invariant, and no use-case page repeats it.
 
 **A domain page's sections are the repository's documentation conventions', not this skill's.** Where they
 require an entity to document its lifecycle, write it from the use cases in the work list — the one that creates
@@ -134,7 +133,7 @@ ADR's context, and in any proposal made in the report.
 
 **Gate — name the document that would otherwise own the fact.** Applies to each approved item as you write it, and
 to anything you are about to propose in the report. Say which existing page would hold this if the ADR did not
-exist. If the answer is a contract page's Semantics, a use-case page's Rules, or a domain page's invariants, then
+exist. If the answer is a contract page, a use-case page's Outcomes, or a domain page's invariants, then
 that page owns it and there is no ADR. An ADR records a decision about *how the system is built*; what the product
 does is documentation. A rule that can be stated without naming a technology, a file layout, or a type is not an
 ADR however consequential it is — the shape of a port's input, the type of an identifier, and which side of a
@@ -200,13 +199,30 @@ edits it.
 - Links resolve, including the relative paths out of either ADR tier — a module ADR sits one level deeper than a
   repo-root one, so the two reach a shared file by different paths.
 
-## Stage 5 — Commit
+## Stage 5 — Review and Tighten
+
+First spawn the `review-docs` agent, once per affected service, on that service's `docs/` folder. It writes
+nothing: it reports each fact written on the wrong page, with the page that owns it and the line to write there.
+
+- **You apply every move and delete**, page by page, in the shape the finding gives.
+- Answer what it escalates against the code, or carry it into the report unanswered, naming what is missing.
+- A finding you decline stays in the report with the reason.
+
+Then run the `tighten` skill on every file this run created or updated, one file per invocation. Tighten last,
+so a file is tightened once, in its final state.
+
+- Take the cuts it reports. It removes words, never rules.
+- Restore anything it dropped that no other page states. Name the restore in the report.
+- A file another stage did not touch is not tightened here.
+
+## Stage 6 — Commit
 
 Per the conventions' **Version Control** rules, documentation prefix. Silent or against: no commit.
 
 ## Report
 
-Files created and updated, by service · ADRs written, each with its one-line decision and the gate's answer ·
+Files created and updated, by service · what `review-docs` found, what you applied, and what it escalated ·
+what the tighten pass cut and what was restored · ADRs written, each with its one-line decision and the gate's answer ·
 ADRs proposed but not written, each with the page holding the fact today · configuration that changed ·
 discrepancies between plan and code · anything left unwritten, and why.
 

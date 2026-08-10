@@ -5,16 +5,15 @@ knows what to total.
 
 ## Invariants
 
-- A query is stored or not yet stored, and carries the store's own id only once it is.
-- Two stored queries with the same id are the same query, whatever else differs; a query not yet stored equals
-  only itself.
-- The owning user's id is positive.
-- A period is present.
-- The incoming message id of the message that asked is present.
-- The instant it was recorded is present.
-- A query is only ever recorded, never changed.
-- It is removed once the report carrying its period has reached the user, and not before. A report that never
-  arrived leaves its queries behind.
+| Field                                            | Bound            |
+|--------------------------------------------------|------------------|
+| `id`                                             | only once stored |
+| `userId`                                         | `> 0`            |
+| [`period`](spending-period.md)                   | mandatory        |
+| [`incomingMessageId`](incoming-message-id.md)    | mandatory        |
+| `createdAt`                                      | mandatory        |
+
+Two stored queries with the same `id` are the same query. An unstored one equals only itself.
 
 ## Lifecycle
 

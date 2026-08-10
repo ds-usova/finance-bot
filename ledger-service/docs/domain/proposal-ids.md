@@ -12,7 +12,6 @@ The pending entries one acceptance names, as the listing answered their ids.
 
 - A repeated id is refused, never collapsed.
 - Over the maximum is refused, never trimmed to it.
-- A refusal names the part and the bound.
 - Nothing here says whose ids these are. Who may accept them is settled against the caller's own rows.
 
 ## Made of / held by

@@ -15,25 +15,6 @@
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the summarize spending tool](../contracts/in/mcp.md)                       | asking about the period it read out of its caller's message            |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and recording the period against the message   |
 
-## Rules
-
-- The caller is the [authenticated user id](../domain/authenticated-user-id.md) the service already established.
-  The request never names whose spending it is
-  ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- The [incoming message id](../domain/incoming-message-id.md) comes off the same credential. The request never names
-  it either
-  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
-- The two written days are read into a [spending period](../domain/spending-period.md) first. A period that does
-  not hold together reaches no store.
-- The identity is resolved only once the period holds.
-- The period is recorded only once the identity resolves.
-- A recorded [spending query](../domain/spending-query.md) is tied to the message being handled. The turn
-  handling that message is the one that reports it.
-- No total is computed here, and nothing is read out of the ledger.
-- Amounts reach the user from [the turn](handle-incoming-message.md). They reach this caller nowhere.
-- The answer is the period that was accepted, as two days.
-- A repeat of the same request records a second query. The turn reports each distinct period once.
-
 ## Outcomes
 
 | Outcome          | When                                                                             | Result                                                             |
@@ -126,3 +107,12 @@ endif
 stop
 @enduml
 ```
+
+## References
+
+- [ADR 0007: An MCP caller is identified by a signed token, not a tool argument](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md) —
+  why the request names no person
+- [ADR 0015: A turn is named by the message that started it](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md) —
+  why the period is stored under the message that asked
+- [Act on a user's message](handle-incoming-message.md) — the turn that totals the period and puts it in front
+  of the user

@@ -16,64 +16,30 @@ report's buttons.
 | Answer a tap             | tells the tapper what their tap did, and stops the button spinning | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                         |
 | Clear a report's buttons | takes both buttons off a report, so it cannot be resolved again    | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md) · [Clear the emptied reports](../../usecases/clear-emptied-reports.md) |
 
-## Semantics
+## What Each Call Carries
 
-**Sent with a report:** the conversation to say it in · the message it answers · the text of the report — its
-totals, then whatever it proposes · the two buttons, when it lists anything to resolve.
+| Call                     | Sent with it                                                                            | Answered with                                                            |
+|--------------------------|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| Send a report            | the conversation · the message it answers · the report's text · the two buttons, when it lists anything to resolve | the conversation and message id Telegram gave it, when it carried buttons |
+| Answer a tap             | the tap · what happened, in one line                                                    | nothing                                                                  |
+| Clear a report's buttons | the conversation and the report message                                                 | nothing                                                                  |
 
-A report is addressed to the conversation the message came from, not to the person who sent it — in a group, the
-answer is read by everyone in it. It is threaded onto the message it answers, so a group reader can tell which
-message it belongs to.
+- A report is addressed to the conversation, not the sender, and threaded onto the message it answers.
+- A report whose target has been deleted is sent unthreaded rather than refused.
+- The pair Telegram answers with is [recorded](../../domain/proposal-report.md). It is the only way back to a
+  report once its proposals are gone.
+- Each button carries a payload this service writes and alone reads
+  ([incoming messages](../in/telegram-updates.md)).
+- A button stays until something clears it.
+- A report's own text is never edited.
+- A tap is answered before its buttons are cleared. The buttons are cleared for every outcome, and even when
+  answering failed. When both fail, the failure to answer is the one reported.
+- Clearing buttons that are already gone is refused rather than ignored.
+- Nothing is retried and nothing is sent twice.
+- A period's two days are written as a day, an English month and a year, under any locale.
+- No formatting markup is claimed. A description or a merchant name is shown exactly as stored.
 
-Each button carries a payload naming which button it is and which message the report was about. The service
-writes that payload and is the only reader of it
-([incoming messages](../in/telegram-updates.md)). A button stays on the message until something clears it, so a
-report can be tapped as long as it is in the chat.
-
-**Answered on a send that carried buttons:** the conversation Telegram put the report in, and the id Telegram
-gave it. That pair is [recorded](../../domain/proposal-report.md), and it is the only way back to a report once
-its proposals are gone. A send carrying no buttons answers nothing, because there is nothing to reach later.
-
-**Sent when a tap is resolved:** the tap to answer · what happened, in one line · then the conversation and the
-report message whose buttons come off.
-
-**Sent when an accepted message is emptied:** the conversation and the report message alone. Nothing is
-answered, no text is sent with it, and the report's own text is left exactly as it was. It goes only for a
-message with nothing pending left under it.
-
-The two calls go in that order: the tapper's button spins until the tap is answered, and by then the resolution
-has already happened, so the answer is true whether or not the buttons come off. The buttons are cleared for
-every outcome, and the clearing is attempted even when answering the tap failed — a resolution nobody could be
-told about still loses its buttons. When both fail, the failure to answer the tap is the one reported.
-
-Clearing buttons that are already gone is refused rather than ignored, so a repeat tap on a report that was fully
-resolved reports a delivery failure after the tapper has been answered.
-
-The report's own text is never edited. A resolved report keeps reading exactly as it was sent.
-
-A message that no longer exists is not a lost report: a report whose target has been deleted is sent unthreaded
-rather than refused.
-
-The service turns [the report](../../usecases/handle-incoming-message.md#the-report) and
-[what a tap did](../../usecases/resolve-a-reported-proposal.md#outcomes) into chat text here, at the boundary
-whose limits shape it. What the core hands over is an outcome, the periods it totalled and the proposals it
-recorded; never a rendered string, and never an amount already written out. An answer to a tap is one short line, well inside the far tighter length limit Telegram allows
-it.
-
-A report's text is written in two parts, in this order:
-
-- **The totals**, one block per period the message asked about — a header naming the two days, then one line per
-  currency with the amount and how many expenses are behind it. A period the ledger holds nothing in gets a
-  single line saying so.
-- **What the turn proposed**, under whichever of the report's own texts the outcome earned.
-
-- A period's two days are written as a day, an English month and a year. The locale the service runs under does
-  not change that.
-- No formatting markup is claimed for the text. A description or a merchant name is shown exactly as stored, and
-  nothing in it is treated as an instruction to the renderer.
-- Nothing is retried and nothing is sent twice. A report that fails is a report the user never sees.
-
-### What a user reads
+## What a user reads
 
 A message that only asked a question:
 
@@ -122,7 +88,7 @@ The rest, one line each:
 A trimmed report closes with the count it left out — `… and 3 more.` for proposals, `… and 3 more periods.`
 when the totals alone fill the limit.
 
-### What a tap answers with
+## What a tap answers with
 
 | Outcome                         | Text                                |
 |---------------------------------|-------------------------------------|

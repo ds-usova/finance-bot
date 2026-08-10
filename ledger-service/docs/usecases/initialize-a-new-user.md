@@ -41,21 +41,6 @@ A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories
 | in        | [Web App](../../../web-app/README.md)                 | [The session API](../contracts/in/web-session-api.md)                             | resolving the person signing in, on every sign-in         |
 | out       | [Database](../contracts/out/database.md)              | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their catalogue                      |
 
-## Rules
-
-- The external identity is opaque text, whatever the caller identifies a person by, present and not blank.
-- What a [user](../domain/user.md) is, and what a [grouping](../domain/grouping.md) holds, are their own rules.
-- A category name is unique under one grouping, which is why Travel is both a grouping and a category under
-  Insurance ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
-- The catalogue is fixed at release. Each user gets a copy of it at creation, and it is never re-applied: a
-  user who edits their categories diverges from it, and a changed catalogue reaches only users created
-  afterwards.
-- The catalogue names no brands, so it stays legible when a service is renamed or replaced.
-- How long an identity may be is checked where it is stored
-  ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
-- Two callers initializing the same identity at once both get the same user. One of them creates it; the other
-  is given what the first created, and no second set of categories is written.
-
 ## Outcomes
 
 | Outcome                | When                                             | Result                                                                     |
@@ -131,3 +116,10 @@ else identity is given
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
+  why the starting catalogue can carry one name twice
+- [ADR 0004: Column widths are checked in the persistence adapter](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) —
+  where an identity too long is refused

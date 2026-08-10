@@ -16,34 +16,6 @@
 | out       | [Database](../contracts/out/database.md)              | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving who tapped, moving or removing what the message proposed, counting it |
 | out       | [Telegram](../contracts/out/telegram-replies.md)      | [Outgoing replies](../contracts/out/telegram-replies.md)                          | answering the tap, and taking the buttons off the report                        |
 
-## Rules
-
-- The person is whoever sent the tap, never a value the button carries.
-- Every lookup is scoped to that person's own rows, so knowing an incoming message id grants nothing: another
-  member's tap on the same report resolves none of the owner's spending.
-- A tap names its sender, its conversation, the report message and itself, none of them blank; the message it
-  names is present, and the button is one of the two.
-- Confirm turns every proposal stored under that message into an expense; Delete removes them.
-- Either way it is one statement, so two taps at once resolve the report once
-  ([ADR 0012](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- A confirmed expense keeps the [message](../domain/incoming-message-id.md) that produced it.
-- A confirmed expense keeps the day its proposal was assembled on. Only its last-updated instant is the moment
-  of confirmation.
-- A discarded proposal is gone, and nothing records that it existed.
-- A confirmed expense is never undone: Delete on an already confirmed report removes nothing.
-- A tap whose sender is stored under no user resolves nothing, and creates no user.
-- When nothing was resolved, the expenses already stored under that message are counted — a count above zero
-  means an earlier tap succeeded and only its answer was lost.
-- Discard leaves no such trace, so a second tap on a discarded report cannot be told from a message the service
-  never reported on.
-- The count answered is what actually moved or was removed, which can exceed what the report listed.
-- The tap is answered first, then the buttons come off.
-- The buttons come off for every outcome, and even when the tap could not be answered.
-- A tap that cannot be answered is the failure reported, whether or not the buttons came off.
-- The report's own text is never rewritten, so it keeps reading as pending however it was resolved. What happened
-  is carried by the answer to the tap alone, which is not part of the conversation.
-- Every tap that reaches the use case is logged with the message, the button, the outcome and the count.
-
 ## Outcomes
 
 | Outcome            | When                                                                                 | Result                                                                                      |
@@ -160,3 +132,10 @@ else the tap is complete
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0012: A set of rows moves between tables in one statement](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md) —
+  why two taps at once resolve the report once
+- [ADR 0006: An expense proposal is a table and an entity of its own](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md) —
+  why confirming writes an expense instead of flipping a status

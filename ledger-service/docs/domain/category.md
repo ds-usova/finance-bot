@@ -5,7 +5,9 @@ itself.
 
 ## Invariants
 
-- A category has a name, and the name is not blank.
+| Field  | Bound                |
+|--------|----------------------|
+| `name` | mandatory, non-blank |
 
 ## Made of / held by
 

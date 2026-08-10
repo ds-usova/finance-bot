@@ -18,9 +18,7 @@ the day the turn runs on, and optionally the currency to assume. It decides noth
 | Extract intents | acts on what a user's message asks for, in the user's order      | here, [Record the spending a user's message names](../../usecases/extract-intents.md) · on the caller's side, [Handle an incoming message](../../../../ledger-service/docs/usecases/handle-incoming-message.md) |
 | Health check    | reports whether the server is serving, for the server as a whole | the [Ledger Service](../../../../ledger-service/docs/contracts/out/ai-connector.md), which reports it in its own health endpoint                                                                                 |
 
-## Semantics
-
-### The token
+## The token
 
 The caller mints it and the caller checks it. Its whole path is
 [the ledger's, drawn there](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
@@ -34,7 +32,7 @@ What this boundary promises about it:
 - So a caller this boundary has not authenticated records nothing, but does reach the model
   ([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
 
-### What the caller sends
+## What the caller sends
 
 | Field                    | Rule                                                                         |
 |--------------------------|------------------------------------------------------------------------------|
@@ -54,17 +52,17 @@ What this boundary promises about it:
   the future is accepted as sent.
 - Every period read out of a relative phrase is anchored on that day. The week counted from it starts on Monday.
 
-### What the answer means
+## What the answer means
 
 - A successful call answers with nothing at all.
 - No count, no per-entry outcome, no total, no text for the user.
 - It says only that the message was acted on.
 - A summary the message asked for reaches the user from the ledger, never through this boundary.
 
-### How the message is acted on
+## How the message is acted on
 
 - Only spending is recorded, and only spending is summarized
-  ([the use case's rule](../../usecases/extract-intents.md#rules)).
+  ([Record the spending a user's message names](../../usecases/extract-intents.md)).
 - A message asking for anything else records nothing and still succeeds.
 - Expenses are recorded in the order the user expressed them. Nothing is reordered or merged.
 - An expense the ledger will not record is left unrecorded. The rest of the message is still recorded.

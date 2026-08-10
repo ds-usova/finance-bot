@@ -50,32 +50,7 @@ Telegram profile.
 
 No body, and a `Set-Cookie` that clears the session cookie immediately.
 
-## Semantics
-
-- **Signing in is find-or-create.** A Telegram user signing in for the first time is stored, with the default
-  category tree; one signing in again resolves to the row already there.
-- **The identity is the same one Telegram messages carry.** A person who has used the bot and one who has only
-  used the web app are the same user, under the same external id.
-- **Every write under `/api` is CSRF-protected**, sign-in included. A browser reads the token from the
-  `XSRF-TOKEN` cookie the service sets on any safe request under `/api`, and sends it back in the
-  `X-XSRF-TOKEN` header. The unauthenticated read a page makes on load is enough to obtain one.
-- **A missing token always answers 403, whoever sent it.** The answer keys on the request, not on the caller, so
-  an unauthenticated sign-in and a signed-in person's write are refused the same way.
-- **A missing session answers 401 and never reaches the token check.** The two refusals cannot be confused: 401
-  means the session went away, 403 means the token did.
-- **The token is the second guard, not the only one.** `WEB_SESSION_COOKIE_SAME_SITE` already keeps the session
-  cookie off a cross-site write, so a forged request usually arrives with no session at all. The token covers
-  what that setting does not — a same-site subdomain, and any browser or deployment where it is relaxed.
-- **The session is stateless.** Nothing is stored server-side, so nothing has to be cleaned up and nothing is
-  shared between instances.
-- **A session cannot be revoked before it expires.** Ending it clears the browser's cookie; a copy taken
-  beforehand stays valid until `SESSION_JWT_TTL` runs out.
-- **A sign-in older than `TELEGRAM_LOGIN_MAX_AGE` is refused**, so a captured payload cannot be replayed
-  indefinitely.
-- Reading and ending a session are idempotent. Opening one repeatedly issues a new cookie each time and stores
-  no second user.
-
-### How a browser authenticates
+## How a browser authenticates
 
 The browser is a participant in its own right: it attaches cookies by destination, without being asked
 and without telling the page.
@@ -133,7 +108,7 @@ note over Browser, Api : the header is what the page had to **read** a cookie to
   key set.
 - The signing key, the lifetime, and every cookie attribute are all [configuration](../../configuration.md).
 
-### How the sign-in's signature is checked
+## How the sign-in's signature is checked
 
 The bot token is never sent anywhere. It is the key on one side of the check, and Telegram used it on the
 other:
