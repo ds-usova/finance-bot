@@ -9,8 +9,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 public final class AuthenticatedCaller {
 
-    private static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
-
     private AuthenticatedCaller() {}
 
     public static AuthenticatedUserId authenticatedUserId() {
@@ -26,7 +24,8 @@ public final class AuthenticatedCaller {
         if (!(authentication instanceof JwtAuthenticationToken jwtAuthenticationToken)) {
             throw new InvalidUserException("security context does not hold a validated token");
         }
-        String reference = jwtAuthenticationToken.getToken().getClaimAsString(INCOMING_MESSAGE_ID_CLAIM);
+        String reference =
+                jwtAuthenticationToken.getToken().getClaimAsString(AccessTokenMinter.INCOMING_MESSAGE_ID_CLAIM);
         return IncomingMessageId.of(reference);
     }
 }

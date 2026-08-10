@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccessTokenMinter {
 
+    /** Named by the class that puts it on the token, and read back by {@link AuthenticatedCaller}. */
+    static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
+
     private final AccessTokenProperties properties;
     private final TokenSigningKeys signingKeys;
 
@@ -33,7 +36,7 @@ public class AccessTokenMinter {
                 .issueTime(issuedAt)
                 .expirationTime(expiresAt)
                 .jwtID(UUID.randomUUID().toString())
-                .claim("imi", reference.value())
+                .claim(INCOMING_MESSAGE_ID_CLAIM, reference.value())
                 .build();
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(signingKeys.keyId())
