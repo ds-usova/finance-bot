@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.ProposalSummary;
@@ -20,11 +21,13 @@ import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
+import bot.finance.domain.value.ProposalIds;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -770,6 +773,289 @@ class ExpenseProposalRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("accepting proposals by id")
+    class AcceptByIds {
+
+        @Test
+        @DisplayName(
+                "when two proposals share a reported message - then both move and the answer holds that message twice")
+        void whenTwoProposalsShareReportedMessage_thenBothMoveAndAnswerHoldsMessageTwice() {
+            long userId = storedUserId("accept-by-ids-two-on-one-message-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant createdAt = Instant.now().minusSeconds(60);
+            ExpenseProposalEntity first = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "With merchant",
+                    "Trader Joe's",
+                    1500,
+                    "USD",
+                    reference.value(),
+                    createdAt);
+            ExpenseProposalEntity second = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "No merchant",
+                    null,
+                    2500,
+                    "EUR",
+                    reference.value(),
+                    createdAt);
+            Instant now = Instant.now();
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), now);
+
+            assertThat(expenseProposalRowsFor(userId)).isEmpty();
+            List<ExpenseEntity> expenseRows = expenseRowsFor(userId);
+            assertThat(expenseRows).hasSize(2);
+            assertThat(expenseRows)
+                    .anySatisfy(row -> {
+                        assertThat(row.categoryId()).isEqualTo(categoryId);
+                        assertThat(row.description()).isEqualTo("With merchant");
+                        assertThat(row.merchant()).isEqualTo("Trader Joe's");
+                        assertThat(row.amountMinorUnits()).isEqualTo(1500);
+                        assertThat(row.currencyCode()).isEqualTo("USD");
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                    })
+                    .anySatisfy(row -> {
+                        assertThat(row.categoryId()).isEqualTo(categoryId);
+                        assertThat(row.description()).isEqualTo("No merchant");
+                        assertThat(row.merchant()).isNull();
+                        assertThat(row.amountMinorUnits()).isEqualTo(2500);
+                        assertThat(row.currencyCode()).isEqualTo("EUR");
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                    });
+            assertThat(answer).containsExactlyInAnyOrder(reference, reference);
+        }
+
+        @Test
+        @DisplayName(
+                "when a single pending proposal is accepted - then it moves and keeps the message it was reported on")
+        void whenOnePendingProposalAcceptedAlone_thenItMovesAndKeepsReportedMessage() {
+            long userId = storedUserId("accept-by-ids-single-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(proposal.id())), Instant.now());
+
+            assertThat(answer).containsExactly(reference);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.incomingMessageId())
+                    .isEqualTo(reference.value()));
+        }
+
+        @Test
+        @DisplayName(
+                "when two proposals reported on two different messages are accepted together - then the answer holds each message once")
+        void whenTwoProposalsReportedOnTwoDifferentMessages_thenAnswerHoldsEachMessageOnce() {
+            long userId = storedUserId("accept-by-ids-two-messages-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId firstReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId secondReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity first = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    firstReference.value(),
+                    Instant.now().minusSeconds(30));
+            ExpenseProposalEntity second = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    secondReference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
+
+            assertThat(answer).containsExactlyInAnyOrder(firstReference, secondReference);
+        }
+
+        @Test
+        @DisplayName(
+                "when the same ids were accepted a moment earlier - then the answer is empty and no second expense row is stored")
+        void whenSameIdsAcceptedAMomentEarlier_thenAnswerIsEmptyAndNoSecondExpenseRowStored() {
+            long userId = storedUserId("accept-by-ids-repeat-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            ProposalIds ids = ProposalIds.of(List.of(proposal.id()));
+            adapter.acceptByIds(userId, ids, Instant.now());
+
+            List<IncomingMessageId> secondAnswer = adapter.acceptByIds(userId, ids, Instant.now());
+
+            assertThat(secondAnswer).isEmpty();
+            assertThat(expenseRowsFor(userId)).hasSize(1);
+        }
+
+        @Test
+        @DisplayName(
+                "when an id names another person's pending proposal - then the answer is empty and that person's row still stands")
+        void whenIdNamesAnotherPersonsProposal_thenAnswerIsEmptyAndOtherPersonsRowStillStands() {
+            long ownerUserId = storedUserId("accept-by-ids-owner-user");
+            long ownerCategoryId = storedCategoryId(ownerUserId, storedGroupingId(ownerUserId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity ownerProposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Someone else's proposal",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            long callerUserId = storedUserId("accept-by-ids-caller-user");
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(callerUserId, ProposalIds.of(List.of(ownerProposal.id())), Instant.now());
+
+            assertThat(answer).isEmpty();
+            assertThat(expenseProposalRowsFor(ownerUserId)).singleElement().satisfies(row -> assertThat(row.id())
+                    .isEqualTo(ownerProposal.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when an id names the caller's own expense rather than a proposal - then nothing is accepted or written")
+        void whenIdNamesCallersOwnExpenseRatherThanProposal_thenNothingIsAcceptedOrWritten() {
+            long userId = storedUserId("accept-by-ids-names-expense-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity existingExpense = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Already recorded",
+                    null,
+                    500,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(existingExpense.id())), Instant.now());
+
+            assertThat(answer).isEmpty();
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.id())
+                    .isEqualTo(existingExpense.id()));
+        }
+
+        @Test
+        @DisplayName("when accepting at a given instant - then the stored expense's created_at and updated_at match it")
+        void whenAcceptedAtGivenInstant_thenStoredExpenseTimestampsMatchIt() {
+            long userId = storedUserId("accept-by-ids-timestamp-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            Instant now = Instant.parse("2026-01-15T10:30:00.123456789Z");
+
+            adapter.acceptByIds(userId, ProposalIds.of(List.of(proposal.id())), now);
+
+            Instant truncated = now.truncatedTo(ChronoUnit.MICROS);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
+                assertThat(row.createdAt()).isEqualTo(truncated);
+                assertThat(row.updatedAt()).isEqualTo(truncated);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("finding which messages still hold a pending proposal")
+    class FindWithPendingProposals {
+
+        @Test
+        @DisplayName("when only one of two messages still holds a pending proposal - then only that one is answered")
+        void whenOnlyOneOfTwoMessagesStillHoldsPendingProposal_thenOnlyThatOneIsAnswered() {
+            long userId = storedUserId("pending-messages-one-empty-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId stillPending =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId emptied = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Still pending",
+                    null,
+                    100,
+                    "USD",
+                    stillPending.value(),
+                    Instant.now().minusSeconds(30));
+
+            Set<IncomingMessageId> answer = adapter.findWithPendingProposals(userId, List.of(stillPending, emptied));
+
+            assertThat(answer).containsExactly(stillPending);
+        }
+
+        @Test
+        @DisplayName(
+                "when a message's only remaining proposal belongs to another person - then it is not answered for the caller")
+        void whenMessagesOnlyRemainingProposalBelongsToAnotherPerson_thenNotAnsweredForCaller() {
+            long ownerUserId = storedUserId("pending-messages-other-owner-user");
+            long ownerCategoryId = storedCategoryId(ownerUserId, storedGroupingId(ownerUserId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Someone else's proposal",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            long callerUserId = storedUserId("pending-messages-caller-user");
+
+            Set<IncomingMessageId> answer = adapter.findWithPendingProposals(callerUserId, List.of(reference));
+
+            assertThat(answer).isEmpty();
+        }
+    }
+
     // The scenarios below need a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure, and a constraint failure naming
     // neither of expense_proposal's own foreign keys. They construct their own adapter over a
@@ -871,6 +1157,16 @@ class ExpenseProposalRepositoryAdapterTest {
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when called with an empty collection of message ids - then the answer is empty and no statement runs")
+        void whenCalledWithEmptyCollectionOfMessageIds_thenAnswerIsEmptyAndNoStatementRuns() {
+            Set<IncomingMessageId> answer = mockedAdapter.findWithPendingProposals(1L, List.of());
+
+            assertThat(answer).isEmpty();
+            verifyNoInteractions(mockedExpenseProposalEntityRepository);
         }
     }
 

@@ -322,7 +322,7 @@ to no subject.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `of(String, String)`, `of(String)` ·
+- [x] RU01 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `of(String, String)`, `of(String)` ·
   scenarios: A27, A29, A30
     - `of(String, String)`:
         - given: a conversation id and an inbound message id
@@ -369,7 +369,7 @@ to no subject.
         - update: `whenParsingPayloadRenderAcceptProduced_thenReturnsParsedCallbackCarryingAcceptAndSameReference()`
           in `ProposalCallbackDataTest` — assert the round trip over a derived value as well as over the UUID
           text an old report still carries (A29, D48)
-- [ ] RU02 · `ProposalIds` · test: `ProposalIdsTest` · covers: `of(List)` · scenarios: A6
+- [x] RU02 · `ProposalIds` · test: `ProposalIdsTest` · covers: `of(List)` · scenarios: A6
     - `of(List)`:
         - given: a list of two distinct ids above 0
           when: of() is called
@@ -382,7 +382,7 @@ to no subject.
           when: of() is called for each
           then: InvalidExpenseAcceptanceException is thrown, and its message names the field and the bound it
           broke
-- [ ] RU03 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · covers: `accept()` · scenarios: A1,
+- [x] RU03 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · covers: `accept()` · scenarios: A1,
   A3, A5, A9
     - `accept()`:
         - given: a stored user and a move that answers one id per proposal, for two ids posted
@@ -407,7 +407,7 @@ to no subject.
         - given: a null command
           when: accept() is called
           then: the module's own absent-argument exception is thrown and no port is touched
-- [ ] RU04 · `ClearEmptiedReportsUseCase` · test: `ClearEmptiedReportsUseCaseTest` · covers: `clear()` ·
+- [x] RU04 · `ClearEmptiedReportsUseCase` · test: `ClearEmptiedReportsUseCaseTest` · covers: `clear()` ·
   scenarios: A11, A12, A13, A21, A31
     - `clear()`:
         - given: one message, nothing left pending under it, and one report recorded for it
@@ -435,7 +435,7 @@ to no subject.
         - given: a command carrying no message ids
           when: clear() is called
           then: neither repository is read and nothing is sent
-- [ ] RU05 · `ExecutorReportClearingDispatcher` · test: `ExecutorReportClearingDispatcherTest` ·
+- [x] RU05 · `ExecutorReportClearingDispatcher` · test: `ExecutorReportClearingDispatcherTest` ·
   covers: `dispatch()` · scenarios: A13
     - `dispatch()`:
         - given: an executor that runs what it is handed
@@ -447,7 +447,7 @@ to no subject.
         - given: a clearing port that throws
           when: dispatch() is called and the executor runs the work
           then: nothing propagates to the caller
-- [ ] RU06 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
+- [x] RU06 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
   scenarios: A20, A27, A28
     - `handle()`:
         - given: a command naming a conversation and an inbound message
@@ -477,7 +477,7 @@ to no subject.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` ·
+- [x] RI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` ·
   covers: `acceptByIds()`, `findWithPendingProposals()` · scenarios: A1, A2, A3, A4, A5, A14
     - `acceptByIds()`:
         - given: two of the person's pending proposals, reported on one message
@@ -518,7 +518,7 @@ to no subject.
         - given: an empty collection of message ids
           when: findWithPendingProposals() is called
           then: the answer is empty and no statement is run (D20)
-- [ ] RI02 · `ProposalReportRepositoryAdapter` · test: `ProposalReportRepositoryAdapterTest` · covers:
+- [x] RI02 · `ProposalReportRepositoryAdapter` · test: `ProposalReportRepositoryAdapterTest` · covers:
   `store()`, `findByIncomingMessageId()` · scenarios: A20, A21, A31
     - `store()`:
         - given: a person and a report they were sent
@@ -541,7 +541,7 @@ to no subject.
         - given: another person's report for the same message id
           when: findByIncomingMessageId() is called for the caller
           then: it is not answered
-- [ ] RI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers:
+- [x] RI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · covers:
   `deliver()`, `clearButtons()` · scenarios: A11, A13, A20
     - `deliver()`:
         - given: a report carrying proposals, and a Telegram that accepts the send and answers the message it
@@ -559,7 +559,7 @@ to no subject.
         - given: a Telegram that refuses the edit
           when: clearButtons() is called
           then: MessageDeliveryFailedException is thrown
-- [ ] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/acceptances`
+- [x] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/acceptances`
   · mocks: `AcceptExpensesPort` · scenarios: A1, A6, A9, A10
     - Happy Path:
         - given: the mocked port answers accepted 2 and missing 0
@@ -574,7 +574,7 @@ to no subject.
       value that is not a number, and a body that is not JSON at all; each answers 400 with a `message` naming
       what was refused, and the port is never called
 
-- [ ] RI05 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the two mappings every endpoint
+- [x] RI05 · `WebExceptionHandler` · test: `WebExceptionHandlerTest` · covers: the two mappings every endpoint
   with a body shares · mocks: `AcceptExpensesPort` · scenarios: A6
     - Error Mapping:
         - given: a request body whose declared bounds are broken, so the framework raises
@@ -589,7 +589,7 @@ to no subject.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `AcceptExpensesSystemTest` · covers: `POST /api/v1/expenses/acceptances` · scenarios: A1, A7, A8,
+- [x] RS01 · `AcceptExpensesSystemTest` · covers: `POST /api/v1/expenses/acceptances` · scenarios: A1, A7, A8,
   A11
     - Happy Path:
         - given: a signed-in person, two pending proposals reported on one message, and that report's location
@@ -665,6 +665,21 @@ to no subject.
   decision goes back to the design. Confirm that a refusal is reported as a blocker rather than worked around?
   - A: Yes. A driver that refuses the shape stops the step and is reported as a blocker; the fallback is not
     taken without the design deciding it.
+
+- **B1:** Stabilization gave `HandleIncomingMessageUseCase` no `ProposalReportRepository`, though `RU06` asserts a
+  report row is stored, none is stored where the delivery answers nothing, and a row that cannot be stored does not
+  fail the turn (D63). `ST05` updated only the call site and `ST07` only added the port, so no step wired the
+  collaborator. Corrected during the red phase: the port is now a constructor dependency of the use case, wired in
+  `UseCaseConfiguration`, with the storing left to `GU06` as a stub comment.
+
+- **B2:** `RS01`'s no-CSRF-token scenario answers 500 where it should answer 403, and the cause is in
+  `SecurityConfiguration` rather than in anything this plan wrote. `AccessDeniedHandlerImpl` refuses the write with
+  `sendError(403)`, which the container forwards to `/error`; that forward matches no `securityMatcher`, so the
+  order-2 MCP chain claims it and its `anyRequest().denyAll()` denies the error page itself, and the client gets a
+  500 with the 403 already computed and thrown away. The order-1 chain's 401 path never shows it, because an entry
+  point writes the status directly instead of forwarding — which is why the existing sign-in test passes and this
+  is the first authenticated write to hit it. Left red for `GS01`, which owns production fixes across the stack;
+  the fix is a `securityMatcher` on the MCP chain, or letting `/error` through it.
 
 ## Review Findings
 

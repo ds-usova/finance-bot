@@ -16,6 +16,7 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
@@ -40,6 +41,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final Clock clock;
     private final SpendingQueryRepository spendingQueryRepository;
     private final ExpenseRepository expenseRepository;
+    private final ProposalReportRepository proposalReportRepository;
     private final Logger log;
 
     public HandleIncomingMessageUseCase(
@@ -51,6 +53,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             Clock clock,
             SpendingQueryRepository spendingQueryRepository,
             ExpenseRepository expenseRepository,
+            ProposalReportRepository proposalReportRepository,
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
@@ -60,6 +63,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.clock = clock;
         this.spendingQueryRepository = spendingQueryRepository;
         this.expenseRepository = expenseRepository;
+        this.proposalReportRepository = proposalReportRepository;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
     }
 
@@ -85,9 +89,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         if (extractionFailed) {
             log.error("intent extraction failed for message {}, outcome {}", reference, outcome);
         }
-        messageDeliveryPort.deliver(new TurnReport(
-                command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference));
-        // the delivered report's location will be stored as a ProposalReport once ProposalReportRepository lands
+        messageDeliveryPort
+                .deliver(new TurnReport(
+                        command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference))
+                .ifPresent(location -> {
+                    // store one ProposalReport for this turn's own incoming message id, carrying the
+                    // conversation and the sent message the delivery answered; a failure to store never fails
+                    // the turn
+                });
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);

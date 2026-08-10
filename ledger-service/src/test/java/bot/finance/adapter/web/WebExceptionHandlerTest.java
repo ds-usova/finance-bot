@@ -3,7 +3,9 @@ package bot.finance.adapter.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bot.finance.application.port.AcceptExpensesPort;
@@ -41,6 +43,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class WebExceptionHandlerTest {
 
     private static final String PATH = "/api/v1/expenses";
+    private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
     private static final String EXTERNAL_ID = "445566778";
 
     @Autowired
@@ -101,6 +104,40 @@ class WebExceptionHandlerTest {
 
             String message = assertSingleJsonMessage(result);
             assertThat(message).doesNotContainIgnoringCase("session").doesNotContain(secretMessage);
+        }
+
+        @Test
+        @DisplayName("when a request body's declared bounds are broken - then the response is 400 naming the "
+                + "field and the bound it broke")
+        void whenARequestBodysDeclaredBoundsAreBroken_thenResponseIs400NamingFieldAndBound() throws Exception {
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[]}"""))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String message = assertSingleJsonMessage(result);
+            assertThat(message).containsIgnoringCase("ids").contains("100");
+        }
+
+        @Test
+        @DisplayName("when a request body is not JSON at all - then the response is 400 with no stack frame in the "
+                + "message")
+        void whenARequestBodyIsNotJsonAtAll_thenResponseIs400WithNoStackFrameInMessage() throws Exception {
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("this is not JSON"))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String message = assertSingleJsonMessage(result);
+            assertThat(message).isEqualTo("the request body could not be read");
+            assertThat(message).doesNotContain("\tat ").doesNotContainIgnoringCase("exception");
         }
     }
 

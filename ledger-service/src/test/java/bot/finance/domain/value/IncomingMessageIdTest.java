@@ -1,11 +1,11 @@
 package bot.finance.domain.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,19 +16,28 @@ import org.junit.jupiter.params.provider.ValueSource;
 class IncomingMessageIdTest {
 
     @Nested
-    @DisplayName("minting a new reference")
-    class NewReference {
+    @DisplayName("deriving a reference from a conversation and its message")
+    class OfConversationAndMessage {
 
         @Test
-        @Disabled("RU01: newReference() is gone; IncomingMessageId is derived, not minted")
-        @DisplayName("when newReference() is called twice - then both carry a non-null UUID and are not equal")
-        void whenCalledTwice_thenBothCarryNonNullUuidAndAreNotEqual() {
-            // MessageReference first = MessageReference.newReference();
-            // MessageReference second = MessageReference.newReference();
-            //
-            // assertThat(first.value()).isNotNull();
-            // assertThat(second.value()).isNotNull();
-            // assertThat(first).isNotEqualTo(second);
+        @DisplayName(
+                "when of is called with a conversation id and message id - then the value joins them with a colon and is stable")
+        void whenCalledWithConversationIdAndInboundMessageId_thenValueJoinsThemWithColonAndIsStable() {
+            IncomingMessageId first = IncomingMessageId.of("conversation-1", "42");
+            IncomingMessageId second = IncomingMessageId.of("conversation-1", "42");
+
+            assertThat(first.value()).isEqualTo("conversation-1:42");
+            assertThat(first).isEqualTo(second);
+        }
+
+        @Test
+        @DisplayName("when of is called for two conversations naming the same inbound message id - then the two "
+                + "values differ")
+        void whenCalledForTwoConversationsNamingSameInboundMessageId_thenValuesDiffer() {
+            IncomingMessageId first = IncomingMessageId.of("conversation-1", "42");
+            IncomingMessageId second = IncomingMessageId.of("conversation-2", "42");
+
+            assertThat(first).isNotEqualTo(second);
         }
     }
 
@@ -37,24 +46,38 @@ class IncomingMessageIdTest {
     class Of {
 
         @Test
-        @Disabled("RU01: rewritten over the String component")
-        @DisplayName("when of is called with the canonical text of a UUID - then the value equals that UUID and "
-                + "round-trips")
+        @DisplayName("when of is called with the canonical text of a UUID - then the value is accepted and reads "
+                + "back byte for byte")
         void whenCalledWithCanonicalUuidText_thenValueEqualsUuidAndRoundTrips() {
-            UUID uuid = UUID.randomUUID();
+            String uuidText = UUID.randomUUID().toString();
 
-            IncomingMessageId reference = IncomingMessageId.of(uuid.toString());
+            IncomingMessageId reference = IncomingMessageId.of(uuidText);
 
-            assertThat(reference.value()).isEqualTo(uuid.toString());
+            assertThat(reference.value()).isEqualTo(uuidText);
             assertThat(IncomingMessageId.of(reference.value())).isEqualTo(reference);
         }
 
+        @Test
+        @DisplayName("when of is called with a value of exactly 56 bytes - then it is accepted")
+        void whenCalledWithValueOfExactly56Bytes_thenItIsAccepted() {
+            String value = "a".repeat(IncomingMessageId.MAX_BYTES);
+
+            assertThatCode(() -> IncomingMessageId.of(value)).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("when of is called with a value of 57 bytes - then InvalidIncomingMessageException is thrown")
+        void whenCalledWithValueOf57Bytes_thenThrowsInvalidIncomingMessageException() {
+            String value = "a".repeat(IncomingMessageId.MAX_BYTES + 1);
+
+            assertThatThrownBy(() -> IncomingMessageId.of(value)).isInstanceOf(InvalidIncomingMessageException.class);
+        }
+
         @ParameterizedTest
-        @Disabled("RU01: \"not-a-uuid\" is dropped from the @ValueSource, which the new type accepts")
         @NullAndEmptySource
-        @ValueSource(strings = {"   ", "not-a-uuid"})
-        @DisplayName("when of is called with null, empty, blank or a non-UUID string - then "
-                + "InvalidIncomingMessageException is thrown")
+        @ValueSource(strings = {"   "})
+        @DisplayName("when of is called with null, empty or blank text - then InvalidIncomingMessageException is "
+                + "thrown")
         void whenCalledWithInvalidText_thenThrowsInvalidIncomingMessageException(String value) {
             assertThatThrownBy(() -> IncomingMessageId.of(value)).isInstanceOf(InvalidIncomingMessageException.class);
         }
@@ -65,19 +88,17 @@ class IncomingMessageIdTest {
     class Value {
 
         @Test
-        @Disabled("RU01: the canonical constructor now takes a String, not a UUID")
-        @DisplayName("when value() is read on a reference built from a known UUID - then it returns that UUID")
+        @DisplayName("when value is read on a reference built from a known string - then it returns that string")
         void whenReadOnReferenceBuiltFromKnownUuid_thenReturnsThatUuid() {
-            // UUID uuid = UUID.randomUUID();
-            //
-            // MessageReference reference = new MessageReference(uuid);
-            //
-            // assertThat(reference.value()).isEqualTo(uuid);
+            String value = "conversation-1:42";
+
+            IncomingMessageId reference = new IncomingMessageId(value);
+
+            assertThat(reference.value()).isEqualTo(value);
         }
 
         @Test
-        @Disabled("RU01: rewritten over the String component, asserting the refusal of a null one")
-        @DisplayName("when the canonical constructor is called with a null UUID - then "
+        @DisplayName("when the canonical constructor is called with a null value - then "
                 + "InvalidIncomingMessageException is thrown")
         void whenCanonicalConstructorCalledWithNullUuid_thenThrowsInvalidIncomingMessageException() {
             assertThatThrownBy(() -> new IncomingMessageId(null)).isInstanceOf(InvalidIncomingMessageException.class);

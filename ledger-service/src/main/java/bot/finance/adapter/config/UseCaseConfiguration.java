@@ -51,6 +51,7 @@ public class UseCaseConfiguration {
             MessageDeliveryPort messageDeliveryPort,
             SpendingQueryRepository spendingQueryRepository,
             ExpenseRepository expenseRepository,
+            ProposalReportRepository proposalReportRepository,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
                 initializeUserPort,
@@ -61,6 +62,7 @@ public class UseCaseConfiguration {
                 Clock.systemUTC(),
                 spendingQueryRepository,
                 expenseRepository,
+                proposalReportRepository,
                 loggerFactory);
     }
 
