@@ -32,7 +32,7 @@ export type ExpenseCategoryChangeProps = {
   /** What the picker offers and how it is grouped; empty where the read failed. */
   categories: Category[];
   groupings: Grouping[];
-  /** The `${status}-${id}` of the row whose change is out, or nothing. */
+  /** The `entryKey` of the row whose change is out, or nothing. */
   changingKey: string | null;
   /** The ledger's own words, and the row they were refused for. */
   changeFailure: { key: string; message: string } | null;
@@ -41,6 +41,12 @@ export type ExpenseCategoryChangeProps = {
   /** A row refiled to a category the person picked. */
   onChangeCategory: (entry: Expense, categoryId: number) => void;
 };
+
+// One row's identity, both as a React key and as the row a change or a refusal names: an id is unique within
+// a status, not across the two, so a recorded entry and a proposal sharing an id stay apart.
+export function entryKey(entry: Pick<Expense, 'status' | 'id'>): string {
+  return `${entry.status}-${entry.id}`;
+}
 
 function utcDayString(date: Date): string {
   const year = date.getUTCFullYear();
@@ -61,7 +67,7 @@ export function toDaySections(items: Expense[], dayTotals: DayTotal[]): ExpenseD
   const sections = new Map<string, ExpenseDay>();
 
   for (const item of items) {
-    const day = utcDayString(new Date(item.createdAt));
+    const day = utcDayOf(item.createdAt);
     let section = sections.get(day);
     if (!section) {
       section = { day, entries: [], awaiting: 0, totals: totalsByDay.get(day) ?? [] };
@@ -106,7 +112,7 @@ export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
 
   for (const item of page.items) {
     if (item.status === 'PENDING' && idSet.has(item.id)) {
-      days.add(utcDayString(new Date(item.createdAt)));
+      days.add(utcDayOf(item.createdAt));
     }
   }
 
@@ -118,8 +124,8 @@ export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
 // `offset` and `total` stay the original page's. A day the fresh read answers nothing for is dropped
 // rather than left showing entries that moved.
 export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): ExpensePage {
-  const otherItems = page.items.filter((item) => utcDayString(new Date(item.createdAt)) !== day);
-  const freshItems = fresh.items.filter((item) => utcDayString(new Date(item.createdAt)) === day);
+  const otherItems = page.items.filter((item) => utcDayOf(item.createdAt) !== day);
+  const freshItems = fresh.items.filter((item) => utcDayOf(item.createdAt) === day);
   const otherTotals = page.dayTotals.filter((dayTotal) => dayTotal.day !== day);
   const freshTotal = fresh.dayTotals.find((dayTotal) => dayTotal.day === day);
 
@@ -130,22 +136,21 @@ export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): Ex
   };
 }
 
+// Replaces the page's own entry sharing the answered one's status and id, leaving every other entry, its own
+// position in `items`, and `limit`, `offset`, `total` and `dayTotals` exactly as the original page held them.
+// An entry the page no longer holds — its id under that status left the page some other way — answers the
+// page unchanged rather than throwing.
 export function replaceEntry(page: ExpensePage, entry: Expense): ExpensePage {
-  // replaces the page's own entry sharing the answered one's status and id, leaving every other entry, its
-  // own position in `items`, and `limit`, `offset`, `total` and `dayTotals` exactly as the original page held
-  // them. An entry the page no longer holds — its id under that status left the page some other way — answers
-  // the page unchanged rather than throwing.
+  const key = entryKey(entry);
   return {
     ...page,
-    items: page.items.map((item) =>
-      item.status === entry.status && item.id === entry.id ? entry : item,
-    ),
+    items: page.items.map((item) => (entryKey(item) === key ? entry : item)),
   };
 }
 
+// Keeps only the ids naming a PENDING entry the page still holds, since a tick names a pending entry and a
+// refile can carry one off the page the ticks were read against.
 export function ticksStillOnPage(page: ExpensePage, tickedIds: ReadonlySet<number>): Set<number> {
-  // keeps only the ids naming a PENDING entry the page still holds, since a tick names a pending entry and a
-  // refile can carry one off the page the ticks were read against
   const pendingIds = new Set(
     page.items.filter((item) => item.status === 'PENDING').map((item) => item.id),
   );

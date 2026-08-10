@@ -6,13 +6,7 @@ import { en } from '../i18n/en';
 import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { chooseFromList } from '../testing/combobox';
-import {
-  aCategory,
-  aGrouping,
-  anExpense,
-  anExpensePage,
-  categoryNames,
-} from '../testing/fixtures';
+import { aCategory, aGrouping, anExpense, anExpensePage, categoryNames } from '../testing/fixtures';
 import { ExpenseList, type ExpenseListProps } from './ExpenseList';
 
 /** The list under test, with the props a case says nothing about left inert. */

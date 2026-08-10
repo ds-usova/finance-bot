@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import {
+  entryKey,
   pendingIdsOf,
   relativeDay,
   type ExpenseCategoryChangeProps,
@@ -46,8 +47,7 @@ function CategoryControl({
   onChangeCategory,
 }: CategoryControlProps) {
   const { t } = useTranslation();
-  const key = `${entry.status}-${entry.id}`;
-  const busy = changingKey === key;
+  const busy = changingKey === entryKey(entry);
   const disabled = changingKey !== null && !busy;
 
   return (
@@ -182,10 +182,9 @@ export function ExpenseDaySection({
         <AccordionContent className="px-4 pb-3 sm:px-5">
           <ul className="flex flex-col divide-y divide-border/70 border-t border-border/70">
             {day.entries.map((entry) => {
-              const key = `${entry.status}-${entry.id}`;
+              const key = entryKey(entry);
               const categoryName = categoryNames.get(entry.categoryId);
-              const failureMessage =
-                changeFailure?.key === key ? changeFailure.message : null;
+              const failureMessage = changeFailure?.key === key ? changeFailure.message : null;
               return (
                 <li
                   key={key}

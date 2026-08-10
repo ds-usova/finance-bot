@@ -144,9 +144,9 @@ describe('the rendered day section', () => {
     // A recorded entry is already settled, so it offers no checkbox at all.
     expect(within(item).queryByRole('checkbox')).not.toBeInTheDocument();
     // The category name is now carried by a control, not by plain text beside the merchant.
-    expect(
-      within(item).getByRole('button', { name: 'Change lunch’s category' }),
-    ).toHaveTextContent('Groceries');
+    expect(within(item).getByRole('button', { name: 'Change lunch’s category' })).toHaveTextContent(
+      'Groceries',
+    );
   });
 
   it('keeps the header’s day, count and total whether it is open or closed', async () => {
@@ -803,7 +803,9 @@ describe('the rendered day section', () => {
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /stamps/i });
-    expect(within(item).getByRole('button', { name: 'Change stamps’s category' })).toBeInTheDocument();
+    expect(
+      within(item).getByRole('button', { name: 'Change stamps’s category' }),
+    ).toBeInTheDocument();
     expect(item).not.toHaveTextContent('·');
   });
 

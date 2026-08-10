@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { aCategory, aGrouping, anAcceptance, anExpense, anExpensePage } from '../testing/fixtures';
-import { acceptExpenses, changeCategory, listCategories, listExpenses, listGroupings } from './expenses';
+import {
+  acceptExpenses,
+  changeCategory,
+  listCategories,
+  listExpenses,
+  listGroupings,
+} from './expenses';
 
 describe('the expense calls', () => {
   afterEach(() => {

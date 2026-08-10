@@ -713,7 +713,10 @@ describe('the expenses page', () => {
     expandDays();
 
     changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
-    const freshTotal = { day: '2026-08-05', amounts: [{ amount: '9.00', currency: '€', separator: '' }] };
+    const freshTotal = {
+      day: '2026-08-05',
+      amounts: [{ amount: '9.00', currency: '€', separator: '' }],
+    };
     // The fresh read's own limit/offset/total are decoys, deliberately different from the narrowed page's, so
     // a pager built from them rather than from the original page would be caught.
     listExpensesMock.mockResolvedValueOnce(
@@ -832,7 +835,7 @@ describe('the expenses page', () => {
 
     await changeCategoryOnRow('lunch', /Transport/);
 
-    // A26 disables every other row's control while a change is out, so the second row's control cannot be
+    // Every other row's control is disabled while a change is out, so the second row's control cannot be
     // opened at all — that disabling is itself what keeps this to one call.
     const coffeeControl = screen.getByRole('button', { name: /change coffee/i });
     expect(coffeeControl).toBeDisabled();
@@ -967,7 +970,9 @@ describe('the expenses page', () => {
 
     await changeCategoryOnRow('lunch', /Transport/);
     const firstRefusal = await screen.findByRole('listitem', { name: /lunch/i });
-    expect(within(firstRefusal).getByText('the ledger is temporarily unavailable')).toBeInTheDocument();
+    expect(
+      within(firstRefusal).getByText('the ledger is temporarily unavailable'),
+    ).toBeInTheDocument();
 
     await changeCategoryOnRow('lunch', /Transport/);
 
