@@ -16,6 +16,7 @@ import bot.finance.common.LogCapture;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
@@ -58,7 +59,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     private static final String CHAT_ID_STRING = String.valueOf(CHAT_ID);
     private static final String MESSAGE_TEXT = "lunch 12 euro";
     private static final String NEXT_OFFSET = "43";
-    private static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
 
     private static final String PROPOSAL_CATEGORY = "Supermarkets";
     private static final String PROPOSAL_GROUPING = "Groceries";
@@ -205,7 +205,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             String token = authorizationHeader.substring("Bearer ".length());
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
             assertThat(claims.getSubject()).as("jwt sub claim").isEqualTo(FROM_ID_STRING);
-            String incomingMessageIdClaim = claims.getStringClaim(INCOMING_MESSAGE_ID_CLAIM);
+            String incomingMessageIdClaim = claims.getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM);
             assertThat(incomingMessageIdClaim).as("jwt imi claim").isNotNull();
 
             // then: one proposal is stored, filed under the message that produced it

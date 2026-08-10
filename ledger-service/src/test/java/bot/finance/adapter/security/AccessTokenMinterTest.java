@@ -98,7 +98,8 @@ class AccessTokenMinterTest {
             String token = minter.mint(USER_EXTERNAL_ID, reference);
 
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
-            assertThat(claims.getStringClaim("imi")).isEqualTo(reference.value());
+            assertThat(claims.getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM))
+                    .isEqualTo(reference.value());
         }
 
         @Test
@@ -107,8 +108,10 @@ class AccessTokenMinterTest {
             String firstToken = minter.mint(USER_EXTERNAL_ID, newIncomingMessageId());
             String secondToken = minter.mint(USER_EXTERNAL_ID, newIncomingMessageId());
 
-            String firstImi = SignedJWT.parse(firstToken).getJWTClaimsSet().getStringClaim("imi");
-            String secondImi = SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim("imi");
+            String firstImi =
+                    SignedJWT.parse(firstToken).getJWTClaimsSet().getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM);
+            String secondImi =
+                    SignedJWT.parse(secondToken).getJWTClaimsSet().getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM);
 
             assertThat(firstImi).isNotEqualTo(secondImi);
         }

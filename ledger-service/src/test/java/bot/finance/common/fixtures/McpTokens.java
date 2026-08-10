@@ -28,13 +28,19 @@ import org.springframework.core.io.ResourceLoader;
  */
 public final class McpTokens {
 
+    /**
+     * The claim's name on the wire, held here rather than taken from the production constant: the AI Connector
+     * reads it and [MCP — the ledger's tools] documents it, so a rename has to fail a test rather than travel
+     * silently into both.
+     */
+    public static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
+
     private static final String KEYSTORE = SigningKeys.KEYSTORE;
     private static final String KEYSTORE_PASSWORD = SigningKeys.KEYSTORE_PASSWORD;
     private static final String KEY_ALIAS = SigningKeys.KEY_ALIAS;
     private static final String ISSUER = "ledger-service";
     private static final String AUDIENCE = "mcp-adapter";
     private static final Duration TTL = Duration.ofMinutes(2);
-    private static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
 
     private McpTokens() {}
 

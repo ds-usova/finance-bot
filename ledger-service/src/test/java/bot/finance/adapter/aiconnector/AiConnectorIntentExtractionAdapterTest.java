@@ -11,6 +11,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
@@ -125,7 +126,8 @@ class AiConnectorIntentExtractionAdapterTest {
 
             adapter.extract(requestFor("user-external-id", reference));
 
-            assertThat(bearerClaims().getStringClaim("imi")).isEqualTo(reference.value());
+            assertThat(bearerClaims().getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM))
+                    .isEqualTo(reference.value());
         }
 
         @Test

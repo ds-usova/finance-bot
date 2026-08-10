@@ -3,6 +3,7 @@ package bot.finance.adapter.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -130,7 +131,7 @@ class AuthenticatedCallerTest {
             return Jwt.withTokenValue("token-value")
                     .header("alg", "RS256")
                     .subject("ext-123")
-                    .claim("imi", imi)
+                    .claim(McpTokens.INCOMING_MESSAGE_ID_CLAIM, imi)
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(60))
                     .build();
