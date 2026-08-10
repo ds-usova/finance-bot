@@ -1,6 +1,7 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -18,6 +19,7 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.domain.exception.InvalidProposalReportException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
@@ -143,6 +145,16 @@ class ClearEmptiedReportsUseCaseTest {
 
             verify(messageDeliveryPort).clearButtons(new ReportLocation("777", "43"));
             verify(proposalReportRepository).findByIncomingMessageId(USER_ID, MESSAGE_B);
+        }
+
+        @Test
+        @DisplayName("when the command is absent - then throws InvalidProposalReportException and no port is read")
+        void whenCommandIsAbsent_thenThrowsInvalidProposalReportExceptionAndNoPortIsRead() {
+            assertThatThrownBy(() -> useCase.clear(null)).isInstanceOf(InvalidProposalReportException.class);
+
+            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(proposalReportRepository);
+            verifyNoInteractions(messageDeliveryPort);
         }
 
         @Test

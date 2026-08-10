@@ -71,11 +71,10 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
 
     @Query(
             """
-            SELECT incoming_message_id, count(*) AS pending_count
+            SELECT DISTINCT incoming_message_id
             FROM expense_proposal
             WHERE user_id = :userId AND incoming_message_id IN (:incomingMessageIds)
-            GROUP BY incoming_message_id
             """)
-    List<PendingCountProjection> findPendingCounts(
+    List<String> findWithPendingProposals(
             @Param("userId") Long userId, @Param("incomingMessageIds") Collection<String> incomingMessageIds);
 }

@@ -1,28 +1,12 @@
 # Review: Accept Expenses from the Web App
 
-**One bug, four refactoring candidates, eight screens to look at.**
-
-## Bug
-
-Found by the archiving pass. `RU04` covered the counts read and not this.
-
-**`ledger-service` — a message that never had a report is logged as cleared**
-
-- **Given** an acceptance empties a message whose report was never recorded — one delivered before this change,
-  or one whose delivery Telegram refused
-- **When** the clearing runs for it
-- **Then** nothing is sent, and it is logged at debug, which is what D40 asks for
-- **Actual** nothing is sent, and it is logged at info as a report that was cleared. `allCleared` starts `true`
-  and the loop body never runs
-- **Fix** log the empty case at debug before the loop · `ClearEmptiedReportsUseCase`
+**Two refactoring candidates, eight screens to look at.**
 
 ## Refactoring candidate
 
 | Module           | What                                                                                                                              | Why the task left it                                                                                                                                                                |
 |------------------|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ledger-service` | `ClearEmptiedReportsCommand` validates nothing, so a null list would be an `NPE` rather than a domain refusal                     | Unreachable: its only caller always passes a non-null, non-empty list · `B4`                                                                                                       |
 | `ledger-service` | `WebExceptionHandlerTest`'s empty-array case asserts the string `100`                                                             | That is the maximum-items bound, so regenerating the schema fails it with nothing broken · `B5`                                                                                    |
-| `ledger-service` | `PendingCountProjection.pendingCount` is selected and never read                                                                  | `SELECT DISTINCT` would replace it, which is more than a behaviour-preserving pass takes on · `B6`                                                                                 |
 | `ledger-service` | `proposal_report.conversation_id` and `sent_message_id` are bounded by nothing — not the schema, not a type, not `ColumnLimits` | Raised in conversation and left as acceptable. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) is the case for closing it |
 
 ## Manual test

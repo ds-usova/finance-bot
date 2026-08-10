@@ -8,6 +8,7 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.domain.exception.InvalidProposalReportException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
@@ -35,6 +36,10 @@ public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
 
     @Override
     public void clear(ClearEmptiedReportsCommand command) {
+        if (command == null) {
+            throw new InvalidProposalReportException("clear-emptied-reports command is absent");
+        }
+
         List<IncomingMessageId> messageIds = command.incomingMessageIds();
         if (messageIds.isEmpty()) {
             return;

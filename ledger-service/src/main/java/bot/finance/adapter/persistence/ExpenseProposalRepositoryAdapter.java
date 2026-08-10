@@ -104,8 +104,8 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
         try {
             List<String> incomingMessageIds =
                     ids.stream().map(IncomingMessageId::value).toList();
-            return expenseProposalEntityRepository.findPendingCounts(userId, incomingMessageIds).stream()
-                    .map(PendingCountProjection::toIncomingMessageId)
+            return expenseProposalEntityRepository.findWithPendingProposals(userId, incomingMessageIds).stream()
+                    .map(IncomingMessageId::of)
                     .collect(Collectors.toUnmodifiableSet());
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
