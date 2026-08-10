@@ -156,16 +156,28 @@ When every pipeline has returned:
    ```
    # Review: <task name>
 
-   <One line: what the task delivered, and that everything below is open.>
+   **<the counts by section, or that nothing is open>**
 
-   ## <module>
-
-   - **<what is wrong>** — where it is, what it does, and why the task left it. Name the plan item it came from.
+   ## Critical
    ```
 
-   One `##` per plan that has something open, module plans and `shared/plan.md` alike, in the order the task
-   directory lists them. A plan with nothing open gets no heading. **A task with nothing open still gets the
-   file**, carrying one line that says so — a missing file and a clean task must never look the same.
+   **The first line is the whole file when the task is clean**: `**Nothing open.** <one clause>`. A reader who
+   sees it stops there. A missing file and a clean task must never look the same, which is why the file is
+   written either way.
+
+   Sections are these four, in this order, and a section with nothing in it is left out:
+
+   | Section                   | Holds                                          | Shape                                     |
+   |---------------------------|------------------------------------------------|-------------------------------------------|
+   | **Critical**              | fix before the next task starts                | table — what breaks · proposal · where    |
+   | **Bug**                   | real, and it can wait                          | table — what breaks · proposal · where    |
+   | **Refactoring candidate** | nothing behaves wrong                          | table — what · why the task left it       |
+   | **Manual test**           | what no test can see, so a person must look    | `- [ ]` checklist, one line each          |
+
+   **Write what a person hits, not the mechanism.** A class, a file or a plan item is the last cell of a row,
+   never the sentence: a reader decides from the first cell and opens the code only after deciding. Which module
+   a row belongs to is part of that last cell, so nothing is grouped by module — a reader triages by what it
+   costs them, not by where it lives.
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.

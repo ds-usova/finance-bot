@@ -1,52 +1,41 @@
 # Review: Accept Expenses from the Web App
 
-A person can tick pending entries on the listing and accept them in one action; the ledger moves them, clears the
-buttons on any report the acceptance emptied, and a turn is now named by the message that started it. Everything
-below is open.
+**Two bugs, four refactoring candidates, eight screens to look at.**
 
-## ledger-service
+## Bug
 
-- **A failed report lookup ends the clearing and silently skips the messages after it.**
-  `ClearEmptiedReportsUseCase` wraps `findWithPendingProposals` but not `findByIncomingMessageId`, so a
-  `PersistenceFailedException` from the second propagates out of `clear` into the dispatcher's blanket catch.
-  Every message queued behind the failing one is dropped with no line naming it. `RU04` covered the counts read
-  and not this one. Found by the archiving pass.
-- **A message with no report recorded is logged as cleared.** In the same use case `allCleared` starts `true`
-  and the loop body never runs for such a message, so the run reports a clearing that never happened. D40 asks
-  for that case at debug. Found by the archiving pass.
-- **`ClearEmptiedReportsCommand` does not validate itself** — against the convention that an inbound-port command
-  does. `ClearEmptiedReportsUseCase.clear` reads `command.incomingMessageIds()` with no null check, so a null
-  command or a null list raises `NullPointerException` rather than a domain exception. No live defect: its only
-  caller, `AcceptExpensesUseCase`, always passes a non-null, non-empty list. From `B4`.
-- **A bounds test leans on a bound the generated validator happens to name.** `WebExceptionHandlerTest`'s
-  empty-array case asserts the string `100` in the message, which is the maximum-items bound rather than
-  anything about an empty list. Regenerating the OpenAPI model could fail it with nothing broken. From `B5`.
-- **`PendingCountProjection.pendingCount` is never read.** `findPendingCounts` selects `count(*)` and the adapter
-  only asks which ids came back, so the projection and the counted column could both go in favour of
-  `SELECT DISTINCT incoming_message_id`. Skipped as more than a behaviour-preserving pass should take on. From
-  `B6`.
-- **Three tables carry `incoming_message_id` as unbounded `TEXT`, and `proposal_report` two more.** The byte
-  bound lives on `IncomingMessageId` because Postgres has no byte-width string type, which is right; but
-  `conversation_id` and `sent_message_id` are bounded nowhere — not by the schema, not by a type, not by
-  `ColumnLimits`. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)
-  exists for exactly that case. Raised in conversation and left as acceptable for now.
+| What breaks                                                                                                                                                                         | Proposal                                                                | Where                                          |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------|
+| The store fails while the clearing reads where reports were posted, so some reports keep live buttons and every message queued behind the failing one is skipped. Nothing is logged | One `catch` around the per-message read, as the counts read already has | `ClearEmptiedReportsUseCase`, `ledger-service` |
+| The log says a report was cleared for a message that never had one                                                                                                                  | Log it at debug, which is what D40 asks for                             | `ClearEmptiedReportsUseCase`, `ledger-service` |
 
-## web-app
+Both were found by the archiving pass. `RU04` covered the counts read and neither of these.
 
-- **The screens still to look at**, carried from the design's D39. The suite runs under jsdom, which lays nothing
-  out, so none of this is closed by a test:
-    - a day panel mixing a `PENDING` and a `RECORDED` row at the narrowest supported width — the reserved gutter,
-      and what the description truncates to;
-    - the action bar in both themes, empty and holding the action;
-    - the checkbox's focus ring under a keyboard alone, ticking and unticking without a pointer;
-    - a full page of pending entries with every row ticked — what the two counts do at three digits;
-    - a day header carrying its checkbox, the awaiting badge and the ticked badge at once, at the narrowest
-      supported width, including the partly ticked state;
-    - the day checkbox under a keyboard alone — whether it is reached before or after the trigger, and whether
-      the day opens by mistake;
-    - an acceptance watched from an open day section, for what replacing that day in place looks like;
-    - the section's open-and-close animation with reduced motion turned on.
+## Refactoring candidate
 
-  Five of these were looked at during the run and answered with changes — the ticks now share one column, the
-  day's tick sits over the entry rows' gutter, the row hover covers it, a day shows one badge rather than two,
-  and the accept action is outlined rather than accent-filled. The rest are unchecked.
+| What                                                                                                                              | Why the task left it                                                                                                                                                                |
+|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ClearEmptiedReportsCommand` validates nothing, so a null list would be an `NPE` rather than a domain refusal                     | Unreachable: its only caller always passes a non-null, non-empty list · `B4`                                                                                                       |
+| `WebExceptionHandlerTest`'s empty-array case asserts the string `100`                                                             | That is the maximum-items bound, so regenerating the schema fails it with nothing broken · `B5`                                                                                    |
+| `PendingCountProjection.pendingCount` is selected and never read                                                                  | `SELECT DISTINCT` would replace it, which is more than a behaviour-preserving pass takes on · `B6`                                                                                 |
+| `proposal_report.conversation_id` and `sent_message_id` are bounded by nothing — not the schema, not a type, not `ColumnLimits` | Raised in conversation and left as acceptable. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) is the case for closing it |
+
+## Manual test
+
+Carried from the design's D39. jsdom lays nothing out, so no test closes any of these.
+
+- [ ] a day mixing a `PENDING` and a `RECORDED` row, at the narrowest supported width — the reserved gutter, and
+      what the description truncates to
+- [ ] the action bar in both themes, empty and holding the action
+- [ ] the checkbox's focus ring under a keyboard alone, ticking and unticking without a pointer
+- [ ] a full page of pending entries with every row ticked — what the two counts do at three digits
+- [ ] a day header carrying its checkbox and its badge at once, at the narrowest supported width, including the
+      partly ticked state
+- [ ] the day checkbox under a keyboard alone — reached before or after the trigger, and whether the day opens
+      by mistake
+- [ ] an acceptance watched from an open day — what replacing that day in place looks like
+- [ ] the section's open-and-close animation with reduced motion turned on
+
+A first look during the run changed three of these before anyone signed them off: every tick now sits in one
+leading gutter, a day header shows one badge rather than two, and the accept action is outlined rather than
+accent-filled.
