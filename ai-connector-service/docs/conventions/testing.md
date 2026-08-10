@@ -9,7 +9,7 @@ rather than a class, so system tests live together in `bot.finance.ai.system`, o
 
 ```
 bot.finance.ai
-├── architecture    # ArchUnit dependency-rule tests
+├── architecture    # ArchUnit dependency-rule tests, and the source scans ArchUnit cannot do
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
     ├── boot                   # what a test starts, and how
