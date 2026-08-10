@@ -12,6 +12,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,17 +84,33 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
     @Override
     @Transactional
     public List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now) {
-        // runs the DELETE ... RETURNING / INSERT ... RETURNING chain narrowed by user_id and id IN (:ids),
-        // over incoming_message_id, answering the incoming_message_id of every row it moved
-        return null;
+        try {
+            return expenseProposalEntityRepository
+                    .acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS))
+                    .stream()
+                    .map(IncomingMessageId::of)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to accept proposals by id for user " + userId, e);
+        }
     }
 
     @Override
     public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
-        // runs SELECT incoming_message_id, count(*) FROM expense_proposal WHERE user_id = :userId AND
-        // incoming_message_id IN (:incomingMessageIds) GROUP BY incoming_message_id, answering the ids with a
-        // nonzero count
-        return null;
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+
+        try {
+            List<String> incomingMessageIds =
+                    ids.stream().map(IncomingMessageId::value).toList();
+            return expenseProposalEntityRepository.findPendingCounts(userId, incomingMessageIds).stream()
+                    .map(PendingCountProjection::toIncomingMessageId)
+                    .collect(Collectors.toUnmodifiableSet());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find messages with pending proposals for user " + userId, e);
+        }
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

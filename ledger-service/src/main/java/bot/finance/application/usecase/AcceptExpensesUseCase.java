@@ -1,6 +1,7 @@
 package bot.finance.application.usecase;
 
 import bot.finance.application.dto.AcceptExpensesCommand;
+import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.ExpenseProposalRepository;
@@ -8,7 +9,13 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.UserRepository;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
+import bot.finance.domain.model.User;
+import bot.finance.domain.value.IncomingMessageId;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
 
 public class AcceptExpensesUseCase implements AcceptExpensesPort {
 
@@ -33,11 +40,34 @@ public class AcceptExpensesUseCase implements AcceptExpensesPort {
 
     @Override
     public ExpenseAcceptance accept(AcceptExpensesCommand command) {
-        // resolves the caller to a stored user, moves the command's ids through
-        // ExpenseProposalRepository.acceptByIds, counts accepted against the posted ids for missing, dispatches
-        // clearing for every distinct message the move answered, and never dispatches when nothing moved. Logs
-        // one line at info per acceptance, carrying the resolved user, how many moved and how many named
-        // nothing (D17)
-        return null;
+        if (command == null) {
+            throw new InvalidExpenseAcceptanceException("accept-expenses command is absent");
+        }
+
+        User user = userRepository
+                .findByExternalId(command.userId().externalId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "user",
+                        "no user stored under external id " + command.userId().externalId()));
+        long userId = user.id().orElseThrow();
+
+        List<IncomingMessageId> movedMessages =
+                expenseProposalRepository.acceptByIds(userId, command.ids(), Instant.now(clock));
+        int accepted = movedMessages.size();
+        int missing = command.ids().ids().size() - accepted;
+        dispatchClearing(userId, movedMessages);
+
+        log.info("accepted expenses for user {}: {} accepted, {} missing", user.externalId(), accepted, missing);
+
+        return new ExpenseAcceptance(accepted, missing);
+    }
+
+    private void dispatchClearing(long userId, List<IncomingMessageId> movedMessages) {
+        if (movedMessages.isEmpty()) {
+            return;
+        }
+        List<IncomingMessageId> distinctMessages =
+                movedMessages.stream().distinct().toList();
+        reportClearingDispatchPort.dispatch(new ClearEmptiedReportsCommand(userId, distinctMessages));
     }
 }

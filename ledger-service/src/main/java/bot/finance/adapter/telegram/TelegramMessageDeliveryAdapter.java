@@ -9,12 +9,14 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import com.pengrad.telegrambot.model.request.ReplyParameters;
 import com.pengrad.telegrambot.request.AnswerCallbackQuery;
 import com.pengrad.telegrambot.request.BaseRequest;
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.BaseResponse;
+import com.pengrad.telegrambot.response.SendResponse;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -42,20 +44,30 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         SendMessage request = new SendMessage(report.conversationId(), TurnReportRenderer.render(report))
                 .replyParameters(
                         new ReplyParameters(Integer.valueOf(report.inboundMessageId())).allowSendingWithoutReply(true));
-        TurnReportRenderer.renderKeyboard(report).ifPresent(request::replyMarkup);
+        Optional<InlineKeyboardMarkup> keyboard = TurnReportRenderer.renderKeyboard(report);
+        keyboard.ifPresent(request::replyMarkup);
 
-        execute(request, SEND_MESSAGE).ifPresent(failure -> {
+        ExecutionResult<SendResponse> result = execute(request, SEND_MESSAGE);
+        result.failure().ifPresent(failure -> {
             throw failure;
         });
-        // TODO GI03: answer the chat and the message id Telegram gave the report, and nothing at all where the
-        // report carried no buttons (D41)
-        return Optional.empty();
+
+        if (keyboard.isEmpty()) {
+            return Optional.empty();
+        }
+        SendResponse response = result.response().orElseThrow();
+        return Optional.of(new ReportLocation(
+                report.conversationId(), String.valueOf(response.message().messageId())));
     }
 
     @Override
     public void clearButtons(ReportLocation location) {
-        // takes the keyboard off the message named by location.sentMessageId() in location.conversationId(),
-        // and leaves its text as sent
+        EditMessageReplyMarkup edit =
+                new EditMessageReplyMarkup(location.conversationId(), Integer.parseInt(location.sentMessageId()));
+
+        execute(edit, EDIT_MESSAGE_REPLY_MARKUP).failure().ifPresent(failure -> {
+            throw failure;
+        });
     }
 
     @Override
@@ -70,30 +82,37 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
                 new EditMessageReplyMarkup(ack.conversationId(), Integer.parseInt(ack.reportMessageId()));
 
         // the keyboard is cleared even when the answer failed, so a tapped report cannot be tapped twice
-        Optional<MessageDeliveryFailedException> answerFailure = execute(answer, ANSWER_CALLBACK_QUERY);
-        Optional<MessageDeliveryFailedException> editFailure = execute(edit, EDIT_MESSAGE_REPLY_MARKUP);
+        Optional<MessageDeliveryFailedException> answerFailure =
+                execute(answer, ANSWER_CALLBACK_QUERY).failure();
+        Optional<MessageDeliveryFailedException> editFailure =
+                execute(edit, EDIT_MESSAGE_REPLY_MARKUP).failure();
 
         answerFailure.or(() -> editFailure).ifPresent(failure -> {
             throw failure;
         });
     }
 
-    private <T extends BaseRequest<T, R>, R extends BaseResponse> Optional<MessageDeliveryFailedException> execute(
-            T request, String method) {
+    private <T extends BaseRequest<T, R>, R extends BaseResponse> ExecutionResult<R> execute(T request, String method) {
         R response;
         try {
             response = bot.execute(request);
         } catch (RuntimeException e) {
-            return Optional.of(new MessageDeliveryFailedException(
-                    "failed to send telegram %s: %s".formatted(method, e.getMessage()), e));
+            return new ExecutionResult<>(
+                    Optional.empty(),
+                    Optional.of(new MessageDeliveryFailedException(
+                            "failed to send telegram %s: %s".formatted(method, e.getMessage()), e)));
         }
 
         if (!response.isOk()) {
             log.error(
                     "telegram {} failed with error code {}: {}", method, response.errorCode(), response.description());
-            return Optional.of(new MessageDeliveryFailedException("telegram %s failed with error code %d: %s"
-                    .formatted(method, response.errorCode(), response.description())));
+            return new ExecutionResult<>(
+                    Optional.empty(),
+                    Optional.of(new MessageDeliveryFailedException("telegram %s failed with error code %d: %s"
+                            .formatted(method, response.errorCode(), response.description()))));
         }
-        return Optional.empty();
+        return new ExecutionResult<>(Optional.of(response), Optional.empty());
     }
+
+    private record ExecutionResult<R>(Optional<R> response, Optional<MessageDeliveryFailedException> failure) {}
 }

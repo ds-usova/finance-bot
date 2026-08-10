@@ -609,36 +609,36 @@ to no subject.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `IncomingMessageId` · test: `IncomingMessageIdTest`
-- [ ] GU02 · `ProposalIds` · test: `ProposalIdsTest`
-- [ ] GU03 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · after: GU01, GU02
-- [ ] GU04 · `ClearEmptiedReportsUseCase` · test: `ClearEmptiedReportsUseCaseTest` · after: GU01
-- [ ] GU05 · `ExecutorReportClearingDispatcher` · test: `ExecutorReportClearingDispatcherTest` · after: GU01
-- [ ] GU06 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01
+- [x] GU01 · `IncomingMessageId` · test: `IncomingMessageIdTest`
+- [x] GU02 · `ProposalIds` · test: `ProposalIdsTest`
+- [x] GU03 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · after: GU01, GU02
+- [x] GU04 · `ClearEmptiedReportsUseCase` · test: `ClearEmptiedReportsUseCaseTest` · after: GU01
+- [x] GU05 · `ExecutorReportClearingDispatcher` · test: `ExecutorReportClearingDispatcherTest` · after: GU01
+- [x] GU06 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01, GU02
-- [ ] GI02 · `ProposalReportRepositoryAdapter` · test: `ProposalReportRepositoryAdapterTest` · after: GU01
-- [ ] GI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU01
-- [ ] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
+- [x] GI01 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · after: GU01, GU02
+- [x] GI02 · `ProposalReportRepositoryAdapter` · test: `ProposalReportRepositoryAdapterTest` · after: GU01
+- [x] GI03 · `TelegramMessageDeliveryAdapter` · test: `TelegramMessageDeliveryAdapterTest` · after: GU01
+- [x] GI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
   `POST /api/v1/expenses/acceptances` · mocks: `AcceptExpensesPort` · after: GU02
-- [ ] GI05 · `WebExceptionHandler` · test: `WebExceptionHandlerTest`
+- [x] GI05 · `WebExceptionHandler` · test: `WebExceptionHandlerTest`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `AcceptExpensesSystemTest` · covers: `POST /api/v1/expenses/acceptances`
+- [x] GS01 · `AcceptExpensesSystemTest` · covers: `POST /api/v1/expenses/acceptances`
 
 ### Post-Implementation Steps
 
 #### Manual Request Files
 
-- [ ] P01 · Add the acceptance request to `ledger-service/docs/requests/expenses.http`, in that file's shape:
+- [x] P01 · Add the acceptance request to `ledger-service/docs/requests/expenses.http`, in that file's shape:
   the session cookie, the CSRF header, and a body carrying two ids.
 
 #### ADRs
 
-- [ ] P02 · Write ADR: a turn is named by the message that started it, not by a value minted beside it. It is
+- [x] P02 · Write ADR: a turn is named by the message that started it, not by a value minted beside it. It is
   ledger-service ADR 0015, carries `Supersedes: 0010`, and flips
   [ADR 0010](../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)'s
   `Status:` to `Superseded by ADR 0015`, touching nothing else in it (D47, Q1).
@@ -665,6 +665,10 @@ to no subject.
   decision goes back to the design. Confirm that a refusal is reported as a blocker rather than worked around?
   - A: Yes. A driver that refuses the shape stops the step and is reported as a blocker; the fallback is not
     taken without the design deciding it.
+  - Observed in `GI01`: the driver does not refuse it. The chain runs as one `@Query` without `@Modifying`,
+    written as `WITH accepted AS (DELETE … RETURNING …) INSERT … SELECT … FROM accepted RETURNING
+    incoming_message_id`, and Spring Data JDBC maps the returned column into a `List<String>` the way the
+    repository's other row-returning queries already are. The fallback is not taken and the design stands.
 
 - **B1:** Stabilization gave `HandleIncomingMessageUseCase` no `ProposalReportRepository`, though `RU06` asserts a
   report row is stored, none is stored where the delivery answers nothing, and a row that cannot be stored does not
@@ -680,6 +684,41 @@ to no subject.
   point writes the status directly instead of forwarding — which is why the existing sign-in test passes and this
   is the first authenticated write to hit it. Left red for `GS01`, which owns production fixes across the stack;
   the fix is a `securityMatcher` on the MCP chain, or letting `/error` through it.
+  - `GS01` fixed it, and found a second defect behind it: `oauth2ResourceServer()` registers a CSRF exemption for
+    every request its bearer-token resolver recognizes, which is sound for a token read off the `Authorization`
+    header and wrong here, because this service's resolver reads the session **cookie** — the one thing a forged
+    cross-site request carries by itself. Every write on `/api/**` was therefore CSRF-exempt. The exemption cannot
+    be un-registered through the DSL, so the session chain now disables `csrf()` and installs its own `CsrfFilter`
+    after authentication.
+
+- **B3 (open — needs a decision):** what a write refused for a missing CSRF token answers, which two pre-existing
+  tests and one contract do not agree on.
+  - [`web-session-api.md`](../../../ledger-service/docs/contracts/in/web-session-api.md) says **403, before the
+    request reaches the endpoint**, and `SessionControllerTest.whenTheRequestCarriesNoCsrfToken_thenTheSignInIsRefused`
+    asserts 403.
+  - `WebSessionSystemTest.whenAGenuinePayloadIsPostedWithoutACsrfToken_thenItIsRefusedAndNoUserIsStored` asserts
+    **401** — which only ever passed because B2 was turning the computed 403 into something else, so it is an
+    assertion written against the bug.
+  - `RS01` asserts **401** for a request carrying no session cookie at all, and that one is authentication, not
+    CSRF.
+  The lever `GS01` chose is whether the caller is authenticated: authenticated and refused is 403, unauthenticated
+  is 401. That satisfies both system tests and contradicts the contract and the slice test, which is why
+  `SessionControllerTest` is the one test left red. Answering the contract instead means keying on whether the path
+  is `permitAll` or `authenticated` rather than on the caller. The endpoint's documented contract is the thing that
+  should decide, and it is not this plan's to rewrite.
+  - A: A write refused for a missing CSRF token always answers **403**, whoever sent it. The answer keys on the
+    request, not on the caller: a missing token is a property of the request, so one condition keeps one meaning.
+    The contract stands unchanged and so does `SessionControllerTest` at 403; the authenticated-vs-anonymous lever
+    comes out of `csrfDeniedHandler()`. `WebSessionSystemTest`'s 401 becomes 403 — that assertion was written
+    against B2 and never described intended behaviour, so correcting it weakens nothing. `RS01`'s 401 for a
+    request carrying no session cookie at all stands: that is authentication, not CSRF, and the two keep
+    answering differently.
+  - **Resolved:** always 403. A missing CSRF token is a property of the request, not of who sent it, so one
+    condition keeps one meaning. `web-session-api.md` and `SessionControllerTest` stand unchanged.
+    `WebSessionSystemTest.whenAGenuinePayloadIsPostedWithoutACsrfToken_thenItIsRefusedAndNoUserIsStored` changes
+    from 401 to 403, which is honest: that assertion was written against B2. `RS01`'s 401 for a request carrying
+    no session cookie stands — that is authentication, not CSRF. The web-app therefore keeps 401 meaning that a
+    session went away, and nothing else.
 
 ## Review Findings
 

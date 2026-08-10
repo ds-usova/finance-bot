@@ -4,6 +4,7 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.SpendingSummary;
 import bot.finance.application.dto.TurnReport;
@@ -22,6 +23,7 @@ import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
@@ -92,14 +94,19 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         messageDeliveryPort
                 .deliver(new TurnReport(
                         command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference))
-                .ifPresent(location -> {
-                    // store one ProposalReport for this turn's own incoming message id, carrying the
-                    // conversation and the sent message the delivery answered; a failure to store never fails
-                    // the turn
-                });
+                .ifPresent(location -> storeReport(user.id().orElseThrow(), reference, location));
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
+    }
+
+    private void storeReport(long userId, IncomingMessageId reference, ReportLocation location) {
+        try {
+            proposalReportRepository.store(ProposalReport.newProposalReport(
+                    userId, reference, location.conversationId(), location.sentMessageId()));
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to store report for message {}: {}", reference, e.getMessage());
+        }
     }
 
     private void discardReportedPeriods(long userId, IncomingMessageId reference, List<SpendingSummary> summaries) {

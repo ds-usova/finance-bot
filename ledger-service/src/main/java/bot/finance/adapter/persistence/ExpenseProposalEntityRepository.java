@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -50,4 +51,31 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
             WHERE user_id = :userId AND incoming_message_id = :incomingMessageId
             """)
     int discard(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
+
+    @Query(
+            """
+            WITH accepted AS (
+                DELETE FROM expense_proposal
+                WHERE user_id = :userId AND id IN (:ids)
+                RETURNING user_id, category_id, description, merchant,
+                          amount_minor_units, currency_code, incoming_message_id
+            )
+            INSERT INTO expense (user_id, category_id, description, merchant,
+                                 amount_minor_units, currency_code, incoming_message_id, created_at, updated_at)
+            SELECT user_id, category_id, description, merchant,
+                   amount_minor_units, currency_code, incoming_message_id, :now, :now
+            FROM accepted
+            RETURNING incoming_message_id
+            """)
+    List<String> acceptByIds(@Param("userId") Long userId, @Param("ids") List<Long> ids, @Param("now") Instant now);
+
+    @Query(
+            """
+            SELECT incoming_message_id, count(*) AS pending_count
+            FROM expense_proposal
+            WHERE user_id = :userId AND incoming_message_id IN (:incomingMessageIds)
+            GROUP BY incoming_message_id
+            """)
+    List<PendingCountProjection> findPendingCounts(
+            @Param("userId") Long userId, @Param("incomingMessageIds") Collection<String> incomingMessageIds);
 }
