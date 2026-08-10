@@ -344,17 +344,10 @@ from each of them to it is the fan that makes the rest unreadable.
 
 ### Post-Implementation Steps
 
-#### Manual Review
-
-- [ ] P01 · Start the app and hand it over, naming what to look at — the list is D39's, carried rather than
-  invented: a day panel mixing a `PENDING` and a `RECORDED` row at the narrowest supported width, for the gutter
-  and what the description truncates to; the action bar in both themes, empty and holding the action; the
-  checkbox's focus ring under a keyboard alone, ticking and unticking without a pointer; a full page of pending
-  entries with every row ticked, for what the two counts do at three digits; a day header carrying its checkbox,
-  the awaiting badge and the ticked badge at once at the narrowest supported width, including the partly ticked
-  state; the day checkbox under a keyboard alone, for whether it is reached before or after the trigger and
-  whether the day opens by mistake; an acceptance watched from an open day section; and the section's
-  open-and-close animation with reduced motion turned on.
+This plan earns none. `P01` was a manual review, which
+[Agent Configuration](../../../web-app/docs/conventions/agent.md) no longer carries as a step: what a person
+still has to look at goes in the task's `review/findings.md`, and nothing waits for it. The `P` prefix keeps its
+gap.
 
 ## Open Questions / Blockers
 
