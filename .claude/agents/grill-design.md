@@ -73,6 +73,10 @@ rather than sharpen it, and reshaping is the user's call.
 
 Never mark an entry `decided`. That basis records the user's own choice and is written only when the user makes it.
 
+**The basis decides where the finding lands.** An `assumed` or `deferred` finding becomes a **Design Findings**
+row — question, answer, evidence, one clause each. A `must-decide` becomes a numbered entry under **Decisions**.
+So an answer that will not compress to a row is a sign the classification is wrong.
+
 ## 4. Report Back
 
 This agent writes nothing. It has no file-writing tools, and the design file is edited only by the session that
@@ -114,7 +118,8 @@ challenges.
 The session says so when it spawns or resumes this agent. Everything above still applies, with these
 differences:
 
-- Judge the design **as it now stands**. An entry already marked `decided` stands as decided; do not re-open it
-  because another answer looks better.
+- Judge the design **as it now stands**, reading both the **Decisions** entries and the **Design Findings** rows
+  to tell which questions were asked. An entry already marked `decided` stands as decided, and so does a row
+  whose evidence still holds; do not re-open either because another answer looks better.
 - Raise only what is new. If nothing is, say `No new findings` — a grill that reports nothing is otherwise
   indistinguishable from one that never ran.

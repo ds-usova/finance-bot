@@ -12,6 +12,10 @@ Every decision below is answered, which is what makes the design finished. An en
 same three lines with an empty `Answer:` and a `Basis: must-decide — [what the repository does not say]`; **D7**
 shows what one looks like once it has been answered.
 
+**Decisions is short on purpose.** Three entries, because three questions needed the user. The nine questions the
+repository answered are **Design Findings** rows — asked, answered and citable as `F1`…`F9`, without a reader
+having to scroll past them to find the three that matter.
+
 ---
 
 # Design: Add Widget Creation
@@ -158,29 +162,30 @@ One per branch of the flow above. `POST /widgets` is the only entry point.
 
 ## Decisions
 
-An entry exists for a question a reader could reasonably re-open. The basis says why they should not.
+This section holds the user's calls and the ones still waiting for them. Every other question the change answered
+is a **Design Findings** row.
 
-| Basis         | Means                                                                             | `Answer:`                                                      |
-|---------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------|
-| `decided`     | the user chose between defensible options                                         | written, with the choice attributed and dated                  |
-| `deferred`    | real, but out of scope for this change                                            | written as what happens instead, plus what would bring it back |
-| `must-decide` | a product, operational, or business rule that exists nowhere yet                  | empty                                                          |
-| `assumed`     | the repository forces a guarantee the body states the mechanism for, not the rule | written, with the evidence cited in `Basis:`                   |
+| Basis         | Means                                                            | Lives in        | `Answer:`                                                      |
+|---------------|--------------------------------------------------------------------|-----------------|----------------------------------------------------------------|
+| `decided`     | the user chose between defensible options                        | Decisions       | written, with the choice attributed and dated                  |
+| `must-decide` | a product, operational, or business rule that exists nowhere yet | Decisions       | empty                                                          |
+| `assumed`     | the repository determines the answer                             | Design Findings | the row's `Answer` column, one clause                          |
+| `deferred`    | real, but out of scope for this change                           | Design Findings | what happens instead, plus what would bring it back            |
 
-**`assumed` is the narrow one.** Use it where the body says *what happens* and the entry says *why that is safe* —
-a concurrency guarantee, an ordering, an invariant an ADR carries. A fact the body plainly states needs no entry
-repeating it with a citation; that is a row in **Design Findings**, or nothing at all.
+`decided` and `must-decide` are the two a person has to read, so they are the two that get a numbered entry and
+five lines. The other two are rows: asked, answered, and citable, without costing the reader a scroll.
 
-**And it is a claim, not a hedge.** Cite the file, class, or ADR. An assumption with no evidence line is a
-`must-decide` wearing a disguise, and it will be found by the grill or, more expensively, in production.
+**An `assumed` row is a claim, not a hedge.** Its `Evidence` column is a file — the class, the migration, the
+conventions page, the ADR. A row with no file to point at is a `must-decide` wearing a disguise, and it will be
+found by the grill or, more expensively, in production.
 
 **Reading code this repository does not own is not evidence of what it does at runtime.** Where a decision turns
 on how a dependency behaves — which of its layers acts first, what it does with a value of the wrong shape — its
 source shows what code exists, not what runs. `assumed` is available only when something in the tree already
-exercises that path and what it was *observed* to produce is cited. Otherwise the entry is `deferred`, naming
-what would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
-expected answer and costs nothing: the entry records the invariant that must hold rather than the mechanism
-assumed to deliver it, and names what has to be observed before anyone can claim otherwise.
+exercises that path and what it was *observed* to produce is cited. Otherwise the row is `deferred`, naming what
+would settle it. At design time the subject of the question often does not exist yet, so `deferred` is the
+expected answer and costs nothing: the row records the invariant that must hold rather than the mechanism assumed
+to deliver it, and names what has to be observed before anyone can claim otherwise.
 
 - **D1:** Must a widget's `name` be unique, and what does a duplicate return?
   - Answer: Unique per parent, enforced by `idx_widget_parent_name`. A duplicate returns 409, mapped from
@@ -188,33 +193,11 @@ assumed to deliver it, and names what has to be observed before anyone can claim
   - Basis: decided — the user chose unique-per-parent over globally unique, so two parents can each own a widget
     called "default" (2026-07-30).
 
-- **D2:** What does the caller see when the database is unavailable mid-write?
-  - Answer: `PersistenceFailedException` propagates and the controller maps it to 503. Nothing is persisted and
-    no partial row is written.
-  - Basis: assumed — the parent resource's adapter classifies every non-constraint persistence failure this way,
-    and a single-row insert has no partial state to leave behind.
-
-- **D3:** What happens when the parent id does not exist?
-  - Answer: 404, mapped from `ResourceNotFoundException`. The foreign key is what detects it — the use case does
-    not read the parent first.
-  - Basis: assumed — the module's existing endpoints report an unknown parent this way, and a read-then-insert
-    would be the race D4 rules out.
-
 - **D4:** What happens when the same widget is created twice concurrently?
   - Answer: One request wins with 200; the other's insert violates `idx_widget_parent_name` and returns the same
     409 a sequential duplicate returns.
   - Basis: decided — the user chose the unique index over a check-then-insert in the use case, so the guarantee
     survives a second service instance (2026-07-30).
-
-- **D5:** Is `POST /widgets` idempotent for a retried request?
-  - Answer: No. A retry after a successful create returns 409, not the widget created the first time.
-  - Basis: deferred — comes back if a client needs safe retries, which would mean an idempotency key on the
-    request rather than a change to this design. Nothing calls the endpoint with a retry today.
-
-- **D6:** What does the migration do to rows that already exist?
-  - Answer: Nothing — it creates the table.
-  - Basis: assumed — `widget` does not exist in `<migration-file>`'s history, so there is no data to migrate and
-    the unique index cannot fail on legacy duplicates.
 
 - **D7:** Who may create a widget under a given parent?
   - Answer: Any authenticated caller. The endpoint does not check that the caller owns the parent.
@@ -222,26 +205,21 @@ assumed to deliver it, and names what has to be observed before anyone can claim
     and nothing in the API contract implies one; the user confirmed that ownership is out of scope until the
     module has an authorization model at all (2026-07-30).
 
-- **D8:** What proves in production that a widget was created?
-  - Answer: The use case logs the widget id, the parent id and the name at INFO on success; the 409 and 404 paths
-    log at WARN with the rejected name.
-  - Basis: assumed — the module's logging convention in `module-a/docs/conventions.md`.
-
-- **D9:** Is `name` bounded, and where is the bound enforced?
-  - Answer: 255 characters, declared in the API schema and matched by the column width. The request is rejected
-    with 400 before it reaches the use case.
-  - Basis: assumed — every text column in the module carries its width in the schema so a rejection is a 400
-    rather than a persistence error.
-
-- **D10:** What happens to a widget when its parent is deleted?
-  - Answer: It is deleted with the parent, via `ON DELETE CASCADE`.
-  - Basis: assumed — the parent's other child tables cascade, and a widget has no meaning without its parent.
+Three entries, numbered D1, D4 and D7. The gaps are the questions that turned out to be rows — a number is
+assigned once and never reused, so a design's entries are rarely consecutive.
 
 ## Design Findings
 
 Grilled (2026-07-30): contract compat, limits, observability.
 
-| Raised                                       | Answered by                                         |
-|----------------------------------------------|-----------------------------------------------------|
-| What a second create with the same name does | D4, which the endpoint table already states         |
-| Whether the widget list needs paging         | Proposed Solution — the list is one person's tree |
+| #  | Question                                     | Answer                                                        | Evidence                                           |
+|----|----------------------------------------------|-----------------------------------------------------------------|------------------------------------------------------|
+| F1 | Store unavailable mid-write?                 | 503, nothing persisted, no partial row                        | `<parent-adapter-file>`, which classifies the same |
+| F2 | Parent id unknown?                           | 404, detected by the foreign key rather than a read            | the module's existing endpoints                    |
+| F3 | A retried create, after the first succeeded? | 409, not the first widget — deferred until a client needs it | an idempotency key, which nothing asks for yet     |
+| F4 | The migration meeting existing rows?         | Nothing — it creates the table                               | `<migration-file>`, which has no `widget` history  |
+| F5 | What proves a create in production?          | The id, the parent and the name at INFO; refusals at WARN      | `module-a/docs/conventions.md`                     |
+| F6 | Is `name` bounded, and where?                | 255, in the schema and matched by the column, so a 400         | `<api-schema-file>`                                |
+| F7 | A widget whose parent is deleted?            | Deleted with it                                                | `<migration-file>`, `ON DELETE CASCADE`            |
+| F8 | A second create with the same name?          | D4                                                             | the endpoint table, which already states it        |
+| F9 | Does the widget list need paging?            | No — one person's tree                                        | Proposed Solution                                  |

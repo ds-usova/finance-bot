@@ -207,9 +207,11 @@ bullets render as one undifferentiated list, where a reader cannot see an entry 
 Numbered `D1`, `D2`, … assigned once and never renumbered: an entry that is answered, withdrawn, or reversed keeps
 its number, so anything citing it stays valid for the life of the change.
 
-**An entry exists for a question a reader could reasonably re-open.** A judgment call, a rejected alternative,
-something out of scope, something nobody has decided. What the repository plainly determines and the body plainly
-states is not one: it belongs in the body, and in the **Design Findings** table if a grill raised it.
+**Only two bases live here: `decided` and `must-decide`.** This section is what the user reads. It holds the calls
+they made and the ones still waiting for them, and nothing else.
+
+An `assumed` or `deferred` question is a **Design Findings** row instead. It was still asked and still answered —
+it just needs no reader. `design.sh validate` refuses a `D` entry carrying either basis.
 
 **The four bases — `assumed`, `decided`, `deferred`, `must-decide` — and what each obliges are in
 [`.claude/templates/example-design.md`](../templates/example-design.md), beside the worked example that uses
@@ -222,9 +224,9 @@ empty, and it is what `settled` counts.
 The design is **settled** when no entry carries `Basis: must-decide`.
 
 `design.sh` checks the result: missing or out-of-order sections, duplicate IDs, an entry outside the Decisions
-section, a missing or repeated `Answer:`/`Basis:`, an unrecognized basis, a basis with nothing after it, a
-`must-decide` carrying an answer, any other basis carrying none, and a Design Findings section the grill never
-touched. `design.sh settled` answers the separate question — whether anything is still open. The script ships with
+section, an entry whose basis is `assumed` or `deferred`, a missing or repeated `Answer:`/`Basis:`, an unrecognized
+basis, a basis with nothing after it, a `must-decide` carrying an answer, any other basis carrying none, and a
+Design Findings section the grill never touched. `design.sh settled` answers the separate question — whether anything is still open. The script ships with
 these instructions at `scripts/design/design.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under
 `.claude/` in a plain checkout.
 
@@ -232,13 +234,27 @@ Run `validate` before invoking the grill, and both it and `settled` again before
 
 ### Design Findings
 
-Written from the grill's report in the next step — leave a placeholder while writing the rest. It carries one
-`Grilled (<date>)` line per grill naming what was examined and found clear, then a table of what the grill raised
-and the design already answered. Both are in the template's own **Design Findings** section, in the shape they
-take.
+Every question the change answered that needs no reader — the `assumed` and the `deferred` — plus one
+`Grilled (<date>)` line per grill naming what it examined and found clear. Leave a placeholder while writing the
+rest of the file; the grill runs in the next step and this section is written from its report.
 
-Both are lists, not prose. A finding that needs a paragraph to dismiss was not dismissed, and belongs in
-**Decisions**.
+One table, one row per question:
+
+| #  | Question | Answer | Evidence |
+|----|----------|--------|----------|
+
+- **Very short, all three columns.** A question is a clause, an answer is a clause, and evidence is a link.
+- **Evidence is a file** — the class, the migration, the conventions page, the ADR. Never an argument. A row with
+  no file to point at is a `must-decide`, not a row.
+- **A `deferred` row's answer says what happens instead**, and its evidence is what would bring it back.
+- **`F1`, `F2`, … on the same terms as a `D`:** assigned once, never renumbered, never reused. The body cites a
+  row the way it cites an entry, and a row that is answered or withdrawn keeps its number.
+
+The `F` sequence is the design's own. A plan's **Review Findings** numbers its own `F1` upward, in its own file,
+and the two never meet.
+
+A question that needs a paragraph was not settled. It is a `must-decide` in **Decisions**, and the user answers
+it.
 
 See `.claude/templates/example-design.md` for a complete worked example of every section above.
 
@@ -272,17 +288,22 @@ or when the first one is no longer reachable.
 **The grill writes nothing.** It reports, and this session decides where each finding goes. Every finding lands in
 exactly one of three places, and never in two:
 
-| The finding                                               | Lands as                                                        |
-|-----------------------------------------------------------|-----------------------------------------------------------------|
-| changes what the design says gets built                   | an edit to the body, and an entry only if the test below is met |
-| leaves something a reader could reasonably re-open        | a `D` entry, in the **Decisions** format                        |
-| neither — the answer is settled and the body carries it | one row in the **Design Findings** table                        |
+| The finding                                    | Lands as                                                          |
+|------------------------------------------------|---------------------------------------------------------------------|
+| changes what the design says gets built        | an edit to the body, plus whichever row or entry its basis calls for |
+| the grill marked it `assumed` or `deferred`    | one row in the **Design Findings** table                            |
+| the grill marked it `must-decide`              | a `D` entry, which step 6 puts to the user                          |
 
-**The test for an entry: could a reader reasonably re-open this?** If they could, the entry is what stops them,
-and its `Basis:` says why. If they could not, there is nothing to record beyond the body and the table row.
+**The basis decides the home, and the grill already assigned it.** This session re-homes a finding only by
+changing its basis — a `must-decide` the repository turns out to answer becomes a row, and an `assumed` whose
+evidence does not hold becomes an entry.
 
-**An answer the body already carries does not become an entry.** The grill cannot see whether the solution section
-three pages up already says what it just derived, and this session can.
+**An answer the body already carries is still a row.** The grill cannot see whether the solution section three
+pages up already says what it just derived, and the row is what stops the next grill deriving it again.
+
+Assign the `D` and `F` numbers here, each past the highest already in its own sequence. A finding challenging an
+existing entry or row becomes a *new* one citing it; neither is ever rewritten, except to correct a claim a
+finding proved false.
 
 Assign the `D` numbers here, past the highest already in the file. A finding challenging an existing entry becomes
 a *new* entry citing it; an existing entry is never rewritten, except to correct a claim a finding proved false.
@@ -294,8 +315,8 @@ Then run `design.sh validate` and fix what it reports.
 Read the file's **Decisions** section back after the grill has run and act on it:
 
 - **Try every `must-decide` against the repository once more** before it reaches the user. The grill works in a
-  fresh context and does not know what this session has already read. An entry the code answers becomes `assumed`
-  with its evidence, and the user never sees it.
+  fresh context and does not know what this session has already read. An entry the code answers stops being an
+  entry: it becomes a **Design Findings** row with its evidence, and the user never sees it.
 - **Ask the rest in a single round**, via `AskUserQuestion` — every remaining `must-decide` in one batch, each with
   the options that are actually defensible and a recommendation first.
 - **Write the answers back into the file** as `Basis: decided — [choice] (user, <date>)` with `Answer:` filled in.
