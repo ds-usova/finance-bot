@@ -32,9 +32,9 @@ module's build derives from them.
 
 - [x] ST01 · Add `openapi/paths/expense-category.yaml`. The `400` and `404` descriptions are written here rather
   than reused from `openapi/components/responses/errors.yaml`, because this endpoint refuses for reasons those
-  shared descriptions rule out (D25); `403` is inline and bodiless as
+  shared descriptions rule out (F22); `403` is inline and bodiless as
   `openapi/paths/expense-acceptances.yaml` already writes it. The media type is `application/json-patch+json`,
-  the first on this API that is not `application/json` (D20):
+  the first on this API that is not `application/json` (F17):
   ```yaml
   patch:
     operationId: changeExpenseCategory
@@ -207,7 +207,7 @@ module's build derives from them.
       schema.
     - The `status` path parameter is a plain `String`, as expected. Nothing in the framework refuses `ACCEPTED`,
       so the mapper is what raises the 400 of A10.
-- [x] ST05 · Drive the endpoint with `application/json-patch+json` before anything is written against it (D20).
+- [x] ST05 · Drive the endpoint with `application/json-patch+json` before anything is written against it (F17).
   The generated interface declares every operation as a `default` method answering 501, so no call site breaks and
   nothing needs stubbing. Drive it through a throwaway `@WebMvcTest(ExpensesController.class)` under
   `build/scratch/` that does **not** carry `@WebAdapterTest`: that composed annotation imports

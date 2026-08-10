@@ -1,26 +1,17 @@
 # Review: Change an Entry's Category
 
-**1 bug, 3 refactoring candidates, 8 manual checks. Nothing critical.**
+**8 manual checks. Nothing else open — the bug and all three refactoring candidates were fixed after the run.**
 
-## Bug
+## Fixed after the run
 
-**`web-app` — the citation guardrail passes a citation shape it exists to catch**
+Kept as a record of what was found and what closed it; none of it is outstanding.
 
-- **Given** `src/conventions.test.ts`, whose `CITATION` pattern covers `ST|RU|RI|RS|GU|GI|GS` followed by two
-  digits, and `[DQPB]` followed by one or two
-- **When** a comment cites an acceptance scenario by number — `A26` — and the suite runs
-- **Then** the run should fail, naming the line, as it does for `D34` or `RU03`
-- **Actual** it passes. One such citation was written during this task and was removed by hand rather than by the
-  guardrail
-- **Fix** add `A` to the alternation · `web-app/src/conventions.test.ts`
-
-## Refactoring candidate
-
-| Module | What | Why the task left it |
-|--------|------|----------------------|
-| `web-app` | `dayHeaders()` returns only collapsed headers, so no helper reaches an expanded one | A focus assertion on an open day header had to query inline. The helper is shared and outside this plan's diff · `src/testing/accordion.ts` |
-| `ledger-service` | `whenRefileAnswersRowAlreadyCarryingAdmittedCategory_thenAnswerIsThatRowAndNothingRefused` does not arrange the condition it names — it stubs the same entry and category as the `RECORDED` happy path | Collapsing it would change what a test asserts, which the refactor pass does not do · `ChangeExpenseCategoryUseCaseTest` |
-| both | The three archived plans cite `D`-numbers that no longer exist | The design was rewritten while the plans ran: its decisions now stop at `D35` and most of the rest became the `F1`–`F34` **Design Findings** table. A reader opening an archived plan hits dead citations · `docs/implemented/22-change-an-expense-category/` |
+| Module | What was wrong | What closed it |
+|--------|----------------|----------------|
+| `web-app` | `src/conventions.test.ts` let an `A`-prefixed citation through the guardrail meant to catch it — its pattern covered `[DQPB]` but not `A`, so an `A26` in a comment passed. One had been written during this task and was removed by hand | `A` added to the alternation, the test's name and failure message widened to say "acceptance scenario", and the rule itself widened in `web-app/docs/conventions/code-style.md` so the guardrail and the convention agree |
+| `web-app` | `dayHeaders()` returned only collapsed headers, so a focus assertion on an open day header had no helper and queried inline | Split into `collapsedDayHeaders()`, `openDayHeaders()` and a `dayHeaders()` that answers both; `ExpensesPage.test.tsx` now uses the helper · `src/testing/accordion.ts` |
+| `ledger-service` | `whenRefileAnswersRowAlreadyCarryingAdmittedCategory_thenAnswerIsThatRowAndNothingRefused` did not arrange the condition it named — byte for byte the `RECORDED` happy path's arrangement | Deleted. A use case cannot observe the category a row carried *before* the write, so the condition is unarrangeable at that level; it is arranged where it is observable, in `ExpenseRepositoryAdapterTest.whenCalledWithSameCategory_thenAnswerCarriesRowAndOnlyUpdatedAtMoved` |
+| both | The archived plans cited `D`-numbers the design no longer carries — it was rewritten mid-run, keeping only `D1`, `D3`, `D12`, `D34` and `D35` and moving the rest into an `F1`–`F34` table | Every citation remapped against that table across all three plans; the five surviving `D`-numbers left alone, as were the design's own cross-references to design 21 |
 
 ## Manual test
 

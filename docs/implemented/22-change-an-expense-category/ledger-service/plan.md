@@ -61,7 +61,7 @@ are left out of the diagram, which would otherwise be read by scrolling. `Securi
 | `RefiledEntryProjection`                | `id`, `categoryId`, `description`, `merchant`, `amountMinorUnits`, `currencyCode`, `createdAt` — the row the `UPDATE` answered | —                                    |
 
 `RefiledEntryProjection` carries no status: the status is the one the path named, which is what chose the table
-(D24). Its `toExpenseEntry(ExpenseStatus status)` takes it from the adapter that ran the statement.
+(F21). Its `toExpenseEntry(ExpenseStatus status)` takes it from the adapter that ran the statement.
 
 | Port                        | Gains                                                                                   |
 |-----------------------------|------------------------------------------------------------------------------------------|
@@ -70,7 +70,7 @@ are left out of the diagram, which would otherwise be read by scrolling. `Securi
 | `ExpenseRepository`         | `Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now)` |
 | `ExpenseProposalRepository` | `Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now)` |
 
-An empty `Optional` from either `refile` means no row of the caller's carried that id, which is the 404 of D7.
+An empty `Optional` from either `refile` means no row of the caller's carried that id, which is the 404 of F5.
 The two ports carry the same signature deliberately: the use case picks one by the status the path named, and
 nothing else about the call differs.
 
@@ -85,10 +85,10 @@ a grouping is admitted no more than a stranger's category is.
 
 | Exception                                | Status | Raised by                                                                        |
 |------------------------------------------|--------|----------------------------------------------------------------------------------|
-| `InvalidExpenseCategoryChangeException`  | 400    | `ChangeExpenseCategoryCommand` for its own fields; `ExpenseWebMapper` for a `status` that is neither token and for a document that is not one `replace` of `/categoryId`; `ChangeExpenseCategoryUseCase` for a `categoryId` naming no category of the caller's (D6) |
-| `MethodArgumentNotValidException`        | 400    | the generated model's declared enums, the `@Min(1)` on `id` and the `@Size(1, 1)` on the document — already mapped (D21) |
-| `HttpMessageNotReadableException`        | 400    | a body that is not JSON — already mapped (D21)                                    |
-| `ExpenseEntryNotFoundException`          | 404    | `ChangeExpenseCategoryUseCase` — no entry of the caller's under that status (D7)  |
+| `InvalidExpenseCategoryChangeException`  | 400    | `ChangeExpenseCategoryCommand` for its own fields; `ExpenseWebMapper` for a `status` that is neither token and for a document that is not one `replace` of `/categoryId`; `ChangeExpenseCategoryUseCase` for a `categoryId` naming no category of the caller's (F4) |
+| `MethodArgumentNotValidException`        | 400    | the generated model's declared enums, the `@Min(1)` on `id` and the `@Size(1, 1)` on the document — already mapped (F18) |
+| `HttpMessageNotReadableException`        | 400    | a body that is not JSON — already mapped (F18)                                    |
+| `ExpenseEntryNotFoundException`          | 404    | `ChangeExpenseCategoryUseCase` — no entry of the caller's under that status (F5)  |
 | `EntityNotFoundException`                | 404    | `UserRepository` — the session outlives its user row, answering its own fixed message |
 | `PersistenceFailedException`             | 503    | either adapter — the category read or the write failed                            |
 
@@ -104,14 +104,14 @@ being its own.
 `InvalidExpenseAcceptanceException` does, and gets a handler of its own so the caller reads the message this
 module composed rather than the fallback's generic wording. `ExpenseEntryNotFoundException` extends
 `EntityNotFoundException` and gets a handler of its own for the same reason: the base handler answers a fixed
-"the caller is unknown", which D7 makes false for this refusal, and Spring picks the more specific handler.
+"the caller is unknown", which F5 makes false for this refusal, and Spring picks the more specific handler.
 
 ## Step-by-Step Implementation Map (To-Do List)
 
 ### Stabilization
 
 The store gains nothing — no migration, no column, no index. Both tables already carry `category_id` and
-`updated_at` (D18), so this group has no **Database** section.
+`updated_at` (F15), so this group has no **Database** section.
 
 #### Interface-First / Build Stabilization
 
@@ -133,7 +133,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
   use, one `@throws` per runtime exception in the table above, and add
   `application/usecase/ChangeExpenseCategoryUseCase` implementing it as a stub. The stub body says what it will
   do: resolve the caller, refuse a `categoryId` that is not one of theirs, refile the row in the table the status
-  names, and answer the row as it now stands — plus D19's line, one at info per change carrying the resolved
+  names, and answer the row as it now stands — plus F16's line, one at info per change carrying the resolved
   user, the status, the entry id and the category it now carries.
 - [x] ST04 · Add the three port methods the table above names, each with a `@throws PersistenceFailedException`
   javadoc as its neighbours have, and stub each on its adapter with an inline comment naming the statement it
@@ -150,14 +150,14 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
   WHERE id = :id AND user_id = :userId
   RETURNING id, category_id, description, merchant, amount_minor_units, currency_code, created_at
   ```
-  `created_at` is not touched, so the entry stays on the day it appeared on (D9). The proposal statement is the
+  `created_at` is not touched, so the entry stays on the day it appeared on (F7). The proposal statement is the
   same over `expense_proposal`. A row-answering data-modifying query is a shape this module has run —
   `acceptByIds` in `ExpenseProposalEntityRepository` is one — so neither needs `@Modifying`.
 - [x] ST05 · Add to `ExpenseWebMapper`, and implement `ExpensesController.changeExpenseCategory` against them and
   the port, overriding the generated interface's `default`. The generated parameter and return types are whatever
   `shared/plan.md` ST04 read back; nothing here assumes them.
     - make the existing `private static Expense toItem(ExpenseEntry)` public, since the patch answers the same
-      shape the listing's items carry (D5) and neither should render it twice. The generator names the patch's
+      shape the listing's items carry (F3) and neither should render it twice. The generator names the patch's
       own 200 `ChangeExpenseCategory200Response` rather than reusing `Expense`, exactly as it renames
       `ExpensePage` to `ListExpenses200Response`, so add a second one-line mapping from the rendered `Expense`
       into that type. It is a field-for-field copy with no branch, which is why it is written here and earns no
@@ -370,7 +370,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
       `replace`, a `path` other than `/categoryId`, a `value` of 0, a `value` below 0, an absent `value`, and a
       body that is not JSON at all. Each answers 400 and the port is never called. Assert the status, not the
       wording, for the enum cases: which of `onHttpMessageNotReadable` and `onMethodArgumentNotValid` a rejected
-      enum value raises depends on where the generated model refuses it (D21), so the step agent observes what
+      enum value raises depends on where the generated model refuses it (F18), so the step agent observes what
       the generated code actually does before writing any message assertion. Where `shared/plan.md` ST04 read
       `status` back as a plain `String`, the bad-status cases are refused by `ExpenseWebMapper` rather than by
       the framework, and the assertion is still the status alone
@@ -536,7 +536,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
   - Resolution: decision
   - Action: resolved against the repository —
     [Step Formats](../../../.claude/templates/step-formats.md) requires a system step to carry a representative
-    error path raised from deep in the stack, which decides it. RS01 gains the 404 of D7, that being the design's
+    error path raised from deep in the stack, which decides it. RS01 gains the 404 of F5, that being the design's
     novel claim, and its line gains A7.
 
 - **F8:** A2's third clause — accepting a refiled proposal records it under the new category — was proved only

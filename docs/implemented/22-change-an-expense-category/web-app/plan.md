@@ -63,11 +63,11 @@ Rel_R(categoryPicker, command, "searches and groups with")
 | `categories: Category[]`, `groupings: Grouping[]`     | `ExpenseList`, `ExpenseDaySection`      | what the picker offers and how it is grouped; empty where the read failed |
 | `changingKey: string \| null`                          | `ExpenseList`, `ExpenseDaySection`      | the `${status}-${id}` of the row whose change is out, or nothing        |
 | `changeFailure: { key: string; message: string } \| null` | `ExpenseList`, `ExpenseDaySection`   | the ledger's own words, and the row they were refused for               |
-| `focusDay: string \| null`                             | `ExpenseList`, `ExpenseDaySection`      | the day whose header takes focus, set when a read back removed the row a person's control was on (D33) |
+| `focusDay: string \| null`                             | `ExpenseList`, `ExpenseDaySection`      | the day whose header takes focus, set when a read back removed the row a person's control was on (F30) |
 | `onChangeCategory: (entry: Expense, categoryId: number) => void` | `ExpenseList`, `ExpenseDaySection` | a row refiled to a category the person picked                    |
 | `trigger: ReactNode`                                   | `CategoryPicker`                        | the control that opens the list, rendered as the popover's own trigger  |
-| `withAll: boolean`                                     | `CategoryPicker`                        | whether an entry meaning "no category" is offered — the filter's, never a row's (D29) |
-| `width: 'trigger' \| 'own'`                            | `CategoryPicker`                        | what the popup is sized by — the trigger's width for the filter, a width of its own for a row (D29) |
+| `withAll: boolean`                                     | `CategoryPicker`                        | whether an entry meaning "no category" is offered — the filter's, never a row's (F26) |
+| `width: 'trigger' \| 'own'`                            | `CategoryPicker`                        | what the popup is sized by — the trigger's width for the filter, a width of its own for a row (F26) |
 | `searchPlaceholder: string`, `emptyText: string`       | `CategoryPicker`                        | the two strings each surface names from its own part of the catalogue   |
 
 `CategoryPicker` takes its trigger as a node rather than a variant, because the trigger is what the two surfaces
@@ -108,7 +108,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
 - [x] ST03 · Add the catalogue keys to `i18n/en.ts` under `listing`: the row control's accessible name, which
   begins with a verb and names the entry it is on rather than starting with the word *category*; the search
   placeholder the row's picker shows; and what it says when a search matches nothing. The filter keeps its own
-  `filters.searchCategories` and `filters.noCategory`, which `CategoryPicker` now takes as props (D31).
+  `filters.searchCategories` and `filters.noCategory`, which `CategoryPicker` now takes as props (F28).
 - [x] ST04 · Thread the new props through. Add `ExpenseCategoryChangeProps` to `components/expenseDays.ts` with
   the fields the table above names, add `replaceEntry` and `ticksStillOnPage` there as stubs, and export the
   existing private `utcDayString` as `utcDayOf(createdAt: string): string` so the page can name the day an
@@ -189,7 +189,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
           order
         - given: the picker opened with `withAll` false
           when: it renders
-          then: no entry meaning "no category" is offered, and every option names a real category (D29)
+          then: no entry meaning "no category" is offered, and every option names a real category (F26)
         - given: the picker opened with `withAll` true
           when: it renders
           then: that entry is offered, and choosing it answers `undefined`
@@ -206,7 +206,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
           when: the picker opens
           then: it is still offered, under a heading of its own name
 - [x] RU04 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: the rendered day section ·
-  scenarios: A16, A18, A22, A26, and D32, D33, D34
+  scenarios: A16, A18, A22, A26, and F29, F30, D34
     - the row's category control:
         - given: an open day holding a `RECORDED` row and a `PENDING` row, both filed under a named category
           when: it renders
@@ -217,7 +217,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
           then: `onChangeCategory` is called once with that row's own entry and the chosen category id
         - given: a row whose merchant is absent
           when: it renders
-          then: the control stands alone on the secondary line, with no separator before it (D32)
+          then: the control stands alone on the secondary line, with no separator before it (F29)
         - given: a row with a merchant
           when: it renders
           then: both the merchant and the control are on the secondary line, in that order
@@ -225,7 +225,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
         - given: `changingKey` naming this row
           when: it renders
           then: that row still reads its old category, its control says it is busy, and the control is still
-          focusable rather than disabled (D33)
+          focusable rather than disabled (F30)
         - given: `changingKey` naming a row on this day
           when: it renders
           then: every other row's control on this day is disabled (A26)
@@ -249,7 +249,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
         - given: `focusDay` naming this day
           when: it renders
           then: the day's header holds focus, so a keyboard person whose row left the list is not dropped to the
-          document body (D33)
+          document body (F30)
         - given: `focusDay` naming another day
           when: it renders
           then: this day's header does not take focus
@@ -258,7 +258,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
       than plain text beside the merchant
     - update: `it('still shows the description, the merchant and the amount when the category is absent from the lookup, without leaking the id, null or undefined')`
       — assert additionally that this row offers no category control at all, which is what an unnamed category
-      earns (D16)
+      earns (F13)
     - update: `it('shows the catalogue’s substituted text rather than a literal, once the catalogue is swapped')`
       — add the row control's own key to what it checks, so its label cannot be a literal in the component
     - update: every other case in `ExpenseDaySection.test.tsx` was given the new props inert by `ST04` and
@@ -281,17 +281,17 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
       about them; leave each exactly as it is. The three that count day headers with `getAllByRole('button')` do
       so with every section closed, so no row control is mounted to change the count
 - [x] RU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the expenses page · scenarios: A17, A19,
-  A20, A21, A23, A24, A25, A26, A27, and D26, D30, D33
+  A20, A21, A23, A24, A25, A26, A27, and F23, F27, F30
     - the expenses page:
         - given: an unfiltered listing of three rows on two days
           when: a row's category is changed and the ledger answers the entry
           then: one change call carries that entry and the chosen id, that row reads the new category, no
-          further listing call is made, no other row changed, and the pager reads as it did (A17, D14)
+          further listing call is made, no other row changed, and the pager reads as it did (A17, F11)
         - given: a listing narrowed to one category, holding a `RECORDED` row and a `PENDING` row filed under it
           when: either is refiled to a different category and the ledger answers
           then: one further listing call is made for the day the **answered entry** carries, spanning that day
           alone with no offset, the refiled row is gone from the list, that day's figures are the fresh read's,
-          and `limit`, `offset` and `total` are still the original page's (A21, D14)
+          and `limit`, `offset` and `total` are still the original page's (A21, F11)
         - given: a ticked `PENDING` row on an unfiltered listing
           when: its category is changed and the ledger answers
           then: the row is still ticked, the action still names it, and accepting afterwards carries its id
@@ -304,7 +304,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
           then: no change call is made at all and the row is unchanged (A24)
         - given: a change still out
           when: the person picks a category on a second row
-          then: only one change call has been made (D30)
+          then: only one change call has been made (F27)
         - given: a change the ledger answers
           when: the answer has been applied
           then: no row's control is busy or disabled, and picking a category on another row sends a second call
@@ -327,10 +327,10 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
         - given: a change out and the person narrowing the filter before the answer arrives
           when: the answer arrives
           then: the read back is made against the filter the page holds now, and an answer naming a row the page
-          no longer holds changes nothing (D26)
+          no longer holds changes nothing (F23)
         - given: a refiled row that the read back removed
           when: the answer has been applied
-          then: the day section that held it carries focus, rather than focus falling to the document body (D33)
+          then: the day section that held it carries focus, rather than focus falling to the document body (F30)
         - update: `it('reads the listing, the categories and the groupings once and renders what they answered')`
           — its `getByRole('button', { name: /^category/i })` is the filter's own trigger, queried with every day
           section open. Assert additionally that this query still finds exactly one control, so the row control's
@@ -339,7 +339,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
           assert additionally that no change call is made when no category was picked on a row
         - update: `it('still lists the expenses, with their categories unnamed, when the categories read fails')`
           — assert additionally that no row offers a category control, since there is nothing to put on a
-          trigger and nothing in the picker to choose (A22, D16)
+          trigger and nothing in the picker to choose (A22, F13)
         - update: every other case in `ExpensesPage.test.tsx` was given the mocked `changeCategory` by `ST05`
           and asserts nothing about it; leave each exactly as it is
 
@@ -357,7 +357,7 @@ control carrying `aria-haspopup`, which is what a popover trigger is.
 ### Post-Implementation Steps
 
 This plan earns none. What a person still has to look at —
-[D28](../design.md)'s eight screens and states — goes in the task's `review/findings.md` under this module's own
+[F25](../design.md)'s eight screens and states — goes in the task's `review/findings.md` under this module's own
 heading, and nothing waits for it
 ([Agent Configuration](../../../web-app/docs/conventions/agent.md#what-a-person-still-has-to-look-at)). No ADR
 candidate survives screening either: lifting the picker out of the filter is a file layout, which
@@ -374,10 +374,10 @@ No question is open on this plan.
   stabilization step kept the real parameter names and added `void` statements to keep each body a true no-op.
   The green phase drops them as it implements each body.
 
-- **RU06 · D30, a tension between two scenarios the plan did not reconcile:** A26 disables every other row's
-  control while a change is out, so D30's "the person picks a category on a second row" cannot be driven through
+- **RU06 · F27, a tension between two scenarios the plan did not reconcile:** A26 disables every other row's
+  control while a change is out, so F27's "the person picks a category on a second row" cannot be driven through
   the picker at all — the control the scenario reaches for is disabled by the behaviour the plan asks for one
-  step earlier. The invariant D30 names still holds and is asserted: the second row's control is disabled, and
+  step earlier. The invariant F27 names still holds and is asserted: the second row's control is disabled, and
   only one change call has been made. A plan carrying both scenarios should say which one the page is observed
   through.
 
@@ -395,8 +395,11 @@ No question is open on this plan.
   is open. The last is a gap in the shared helper rather than in this plan — a focus assertion on an expanded
   day header has no helper to reach for, and the case now queries inline.
 
-- **Post-Implementation Steps · a stale citation:** the section cites `D28` for "eight screens and states". The
-  design carries no `D28`; the eight are its failure table's `F25`. The list was carried from `F25`.
+- **A stale citation, found at the wrap-up and since corrected across all three plans:** the design was rewritten
+  while these plans ran. Its **Decisions** section now keeps only `D1`, `D3`, `D12`, `D34` and `D35`; everything
+  else became the `F1`–`F34` **Design Findings** table, so most `D`-citations written during planning named
+  nothing. Every one was remapped against that table — `D28` to `F25` for the eight screens and states, `D30` to
+  `F27`, `D33` to `F30`, and so on — leaving only the five that still exist.
 
 - **`src/conventions.test.ts` does not catch every citation shape**, found during the refactor pass. Its
   `CITATION` pattern covers `ST|RU|RI|RS|GU|GI|GS` followed by two digits and `[DQPB]` followed by one or two, so
