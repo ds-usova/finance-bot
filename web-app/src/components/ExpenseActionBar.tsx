@@ -2,14 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 
 export type ExpenseActionBarProps = {
-  /** How many are ticked. Zero hides the action, never the row itself (D30). */
+  /** How many are ticked. Zero hides the action, never the row itself. */
   count: number;
   onAccept: () => void;
   /** The call is out, so the action is disabled. */
   busy: boolean;
 };
 
-// The row that always stands, whether or not the action is in it (D30), holding the accept action only once
+// The row that always stands, whether or not the action is in it, holding the accept action only once
 // something is ticked, naming how many in words and disabled while the call is out.
 export function ExpenseActionBar({ count, onAccept, busy }: ExpenseActionBarProps) {
   const { t } = useTranslation();

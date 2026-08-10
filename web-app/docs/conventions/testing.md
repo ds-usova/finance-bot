@@ -63,3 +63,6 @@ matchers are registered once in `vitest.setup.ts`, which also cleans up between 
   expectation with the same `Intl` call it is checking asserts only that the component called `Intl` the way the
   test did, and passes just as happily when the output is wrong.
 - **A test owed a rework is skipped with `it.skip`, never commented out.**
+- **A rule that holds for every file is asserted once**, in `src/conventions.test.ts`, rather than repeated per
+  file. It reads the sources through `import.meta.glob` — `@types/node` is not a dependency, so `node:fs` does
+  not type-check — and names every offending line, so a failure says what to rewrite.

@@ -13,9 +13,9 @@ export type ExpenseTickingProps = {
   tickedIds: ReadonlySet<number>;
   /** One entry ticked or unticked. */
   onTick: (id: number, ticked: boolean) => void;
-  /** A whole day ticked or unticked (D18). */
+  /** A whole day ticked or unticked. */
   onTickDay: (ids: number[], ticked: boolean) => void;
-  /** How many more entries may be ticked before the 100-id bound (Q1). */
+  /** How many more entries may be ticked before the endpoint's bound on one request. */
   tickHeadroom: number;
 };
 
@@ -70,7 +70,8 @@ export function pendingIdsOf(day: ExpenseDay): number[] {
 
 // The UTC days a set of ticked ids sits on, read against the page's own entries rather than the reader's
 // zone. An id naming no PENDING entry on the page contributes no day, and an id a RECORDED entry shares with
-// a PENDING one on another day answers only the PENDING entry's day (D1).
+// a PENDING one on another day answers only the PENDING entry's day — an id is unique within a status, not
+// across the two.
 export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
   const idSet = new Set(ids);
   const days = new Set<string>();
@@ -86,7 +87,7 @@ export function touchedDaysOf(page: ExpensePage, ids: number[]): Set<string> {
 
 // Merges a freshly read page back into the page on screen, replacing only the entries and the dayTotals
 // figure of the day the fresh read answered — the other days stand exactly as they were, and `limit`,
-// `offset` and `total` stay the original page's (D32). A day the fresh read answers nothing for is dropped
+// `offset` and `total` stay the original page's. A day the fresh read answers nothing for is dropped
 // rather than left showing entries that moved.
 export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): ExpensePage {
   const otherItems = page.items.filter((item) => utcDayString(new Date(item.createdAt)) !== day);

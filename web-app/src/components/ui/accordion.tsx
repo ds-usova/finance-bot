@@ -13,8 +13,8 @@ export function AccordionTrigger({
   ...props
 }: ComponentProps<typeof AccordionPrimitive.Trigger> & {
   /** A control that must sit beside the trigger rather than inside it, since the Radix `Trigger` is itself a
-   * `<button>` and a control among its children would be a control inside a button (D43). Rendered before the
-   * trigger, over the leading gutter the entry rows below already reserve (D65). */
+   * `<button>` and a control among its children would be a control inside a button. Rendered before the
+   * trigger, over the leading gutter the entry rows below already reserve. */
   leading?: ReactNode;
 }) {
   return (

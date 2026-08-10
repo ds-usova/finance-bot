@@ -19,8 +19,8 @@ import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
 
-// The endpoint's own page-size bound (D4), and the tick set's own cap once a merged day can hold more than a
-// page's worth of pending entries (Q1).
+// How many ids the acceptance endpoint takes in one request, and so the cap on the tick set — a merged day
+// can hold more than a page's worth of pending entries, so the listing's page size does not bound it.
 const ACCEPTANCE_BOUND = 100;
 
 export function ExpensesPage() {
@@ -36,7 +36,7 @@ export function ExpensesPage() {
   const [missingMessage, setMissingMessage] = useState<string | null>(null);
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
-  // not the ones the call left with (D37) — a ref rather than the closed-over state keeps them current.
+  // not the ones the call left with — a ref rather than the closed-over state keeps them current.
   const filterRef = useRef(filter);
   useEffect(() => {
     filterRef.current = filter;
@@ -110,7 +110,7 @@ export function ExpensesPage() {
   const tickHeadroom = ACCEPTANCE_BOUND - tickedIds.size;
 
   // Re-reads the days an acceptance touched, spanning from the earliest to the latest, carrying the filter on
-  // screen now (D37) rather than the one the acceptance call left with, and merges each back into the page.
+  // screen now rather than the one the acceptance call left with, and merges each back into the page.
   const rereadTouchedDays = useCallback(
     (days: Set<string>) => {
       if (days.size === 0) {

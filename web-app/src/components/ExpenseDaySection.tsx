@@ -117,7 +117,7 @@ export function ExpenseDaySection({
                   aria-label={entry.description}
                   className="flex items-center gap-3 py-2.5"
                 >
-                  {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it (D34), so a
+                  {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it, so a
                       day mixing the two statuses keeps its descriptions in one column. */}
                   <span className="flex w-4 shrink-0 items-center justify-center">
                     {entry.status === 'PENDING' && (
