@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
@@ -1060,6 +1061,124 @@ class ExpenseProposalRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("refiling a pending proposal under another category")
+    class Refile {
+
+        @Test
+        @DisplayName(
+                "when called with another of the caller's categories - then the entry and stored row both carry the new category")
+        void whenCalledWithAnotherCategory_thenAnswersEntryWithNewCategoryAndStoredRowCarriesIt() {
+            long userId = storedUserId("refile-proposal-new-category-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseProposalEntity stored = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    originalCategoryId,
+                    "Weekly shop",
+                    "Trader Joe's",
+                    1500,
+                    "USD",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    Instant.now().minusSeconds(120));
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().categoryId()).isEqualTo(newCategoryId);
+            assertThat(refiled.get().description()).isEqualTo("Weekly shop");
+            assertThat(refiled.get().merchant()).contains("Trader Joe's");
+            assertThat(refiled.get().money()).isEqualTo(new Money(1500, CurrencyCode.of("USD")));
+            assertThat(expenseProposalRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(newCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when the proposal was already accepted - then the answer is empty and no row is written in either table")
+        void whenProposalIdWasAcceptedAMomentEarlier_thenAnswerIsEmptyAndNoRowWrittenInEitherTable() {
+            long userId = storedUserId("refile-proposal-already-accepted-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long categoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            adapter.accept(userId, reference, Instant.now());
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, proposal.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            assertThat(expenseProposalRowsFor(userId)).isEmpty();
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(categoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when called for another person's proposal - then the answer is empty and their row keeps its original category")
+        void whenCalledForAnotherPersonsProposal_thenAnswerIsEmptyAndTheirRowKeepsOriginalCategory() {
+            long ownerUserId = storedUserId("refile-proposal-cross-user-owner");
+            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            ExpenseProposalEntity ownerProposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Owner's purchase",
+                    null,
+                    100,
+                    "USD",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    Instant.now());
+            long callerUserId = storedUserId("refile-proposal-cross-user-caller");
+            long callerCategoryId = storedGroupingId(callerUserId, "Dining");
+
+            Optional<ExpenseEntry> refiled =
+                    adapter.refile(callerUserId, ownerProposal.id(), callerCategoryId, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            assertThat(expenseProposalRowsFor(ownerUserId))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.categoryId()).isEqualTo(ownerCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when the id names a recorded expense, not a proposal - then the answer is empty and the expense row is untouched")
+        void whenIdNamesCallersRecordedExpense_thenAnswerIsEmptyAndExpenseRowUntouched() {
+            long userId = storedUserId("refile-proposal-names-expense-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long categoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity expense = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Already recorded",
+                    null,
+                    500,
+                    "USD",
+                    null,
+                    Instant.now());
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, expense.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(categoryId));
+        }
+    }
+
     // The scenarios below need a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure, and a constraint failure naming
     // neither of expense_proposal's own foreign keys. They construct their own adapter over a
@@ -1171,6 +1290,19 @@ class ExpenseProposalRepositoryAdapterTest {
 
             assertThat(answer).isEmpty();
             verifyNoInteractions(mockedExpenseProposalEntityRepository);
+        }
+
+        @Test
+        @DisplayName("when refile() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenRefileHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseProposalEntityRepository.refile(any(), any(), any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.refile(1L, 1L, 1L, Instant.now()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
         }
     }
 

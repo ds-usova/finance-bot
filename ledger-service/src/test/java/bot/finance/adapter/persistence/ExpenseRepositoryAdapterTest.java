@@ -712,6 +712,155 @@ class ExpenseRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("refiling a recorded expense under another category")
+    class Refile {
+
+        @Test
+        @DisplayName(
+                "when called with another of the caller's categories - then the entry and stored row both carry the new category")
+        void whenCalledWithAnotherCategory_thenAnswersEntryWithNewCategoryAndStoredRowCarriesIt() {
+            long userId = storedUserId("refile-new-category-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity stored = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    originalCategoryId,
+                    "Weekly shop",
+                    "Trader Joe's",
+                    1500,
+                    "USD",
+                    null,
+                    Instant.now().minusSeconds(120));
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().categoryId()).isEqualTo(newCategoryId);
+            assertThat(refiled.get().description()).isEqualTo("Weekly shop");
+            assertThat(refiled.get().merchant()).contains("Trader Joe's");
+            assertThat(refiled.get().money()).isEqualTo(new Money(1500, CurrencyCode.of("USD")));
+            assertThat(refiled.get().createdAt()).isEqualTo(stored.createdAt());
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(newCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when refiling an expense created earlier - then created_at is untouched and updated_at carries the given instant")
+        void whenCalledForExpenseCreatedEarlierDay_thenCreatedAtUntouchedAndUpdatedAtCarriesInstantGiven() {
+            long userId = storedUserId("refile-earlier-day-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            Instant createdAt = Instant.now().minus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MICROS);
+            ExpenseEntity stored = storedExpenseAt(userId, originalCategoryId, "Old purchase", 1000, "USD", createdAt);
+            Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, now);
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().createdAt()).isEqualTo(createdAt);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
+                assertThat(row.createdAt()).isEqualTo(createdAt);
+                assertThat(row.updatedAt()).isEqualTo(now);
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when called with the category already filed under - then the answer carries the row and only updated_at moved")
+        void whenCalledWithSameCategory_thenAnswerCarriesRowAndOnlyUpdatedAtMoved() {
+            long userId = storedUserId("refile-same-category-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            ExpenseEntity stored = storedExpense(userId, categoryId, "Weekly shop", 1500, "USD", null);
+            Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), categoryId, now);
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().categoryId()).isEqualTo(categoryId);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
+                assertThat(row.categoryId()).isEqualTo(categoryId);
+                assertThat(row.createdAt()).isEqualTo(stored.createdAt());
+                assertThat(row.updatedAt()).isEqualTo(now);
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when called for another person's expense - then the answer is empty and their row keeps its original category")
+        void whenCalledForAnotherPersonsExpense_thenAnswerIsEmptyAndTheirRowKeepsOriginalCategory() {
+            long ownerUserId = storedUserId("refile-cross-user-owner");
+            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            ExpenseEntity ownerExpense =
+                    storedExpense(ownerUserId, ownerCategoryId, "Owner's purchase", 100, "USD", null);
+            long callerUserId = storedUserId("refile-cross-user-caller");
+            long callerCategoryId = storedGroupingId(callerUserId, "Dining");
+
+            Optional<ExpenseEntry> refiled =
+                    adapter.refile(callerUserId, ownerExpense.id(), callerCategoryId, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            assertThat(expenseRowsFor(ownerUserId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(ownerCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when the id names a pending proposal, not an expense - then the answer is empty and the proposal row is untouched")
+        void whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched() {
+            long userId = storedUserId("refile-names-proposal-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseProposalEntity proposal =
+                    storedProposalAt(userId, originalCategoryId, "Pending purchase", 500, "USD", Instant.now());
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, proposal.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            assertThat(expenseProposalRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(originalCategoryId));
+        }
+
+        @Test
+        @DisplayName(
+                "when the entry's merchant is absent - then the answered entry carries no merchant and nothing throws")
+        void whenMerchantAbsent_thenAnsweredEntryCarriesNoMerchantAndNothingThrows() {
+            long userId = storedUserId("refile-no-merchant-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity stored = storedExpense(userId, originalCategoryId, "No merchant purchase", 100, "USD", null);
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().merchant()).isEmpty();
+        }
+
+        @Test
+        @DisplayName(
+                "when the instant carries sub-microsecond precision - then the stored updated_at is truncated, not rounded")
+        void whenInstantCarriesSubMicrosecondPrecision_thenStoredUpdatedAtIsTruncatedNotRounded() {
+            long userId = storedUserId("refile-sub-microsecond-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
+            Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
+
+            adapter.refile(userId, stored.id(), newCategoryId, nanosecondInstant);
+
+            Instant truncated = nanosecondInstant.truncatedTo(ChronoUnit.MICROS);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.updatedAt())
+                    .isEqualTo(truncated));
+        }
+    }
+
     // The scenario below needs a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure. It constructs its own adapter over a
     // Mockito mock and calls the adapter's own public method directly - it is still the adapter
@@ -824,6 +973,19 @@ class ExpenseRepositoryAdapterTest {
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
         }
+
+        @Test
+        @DisplayName("when refile() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenRefileHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.refile(any(), any(), any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.refile(1L, 1L, 1L, Instant.now()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
     }
 
     private long storedUserId(String externalId) {
@@ -834,8 +996,16 @@ class ExpenseRepositoryAdapterTest {
         return CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, name);
     }
 
+    private long storedCategoryId(long userId, long parentId, String name) {
+        return CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, parentId, name);
+    }
+
     private List<ExpenseEntity> expenseRowsFor(long userId) {
         return ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+    }
+
+    private List<ExpenseProposalEntity> expenseProposalRowsFor(long userId) {
+        return ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
     }
 
     // countByMessageReference's rows have to carry a message_reference, and totalsByCurrency's an

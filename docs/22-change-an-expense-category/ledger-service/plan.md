@@ -197,7 +197,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ChangeExpenseCategoryCommand` · test: `ChangeExpenseCategoryCommandTest` · covers: the compact
+- [x] RU01 · `ChangeExpenseCategoryCommand` · test: `ChangeExpenseCategoryCommandTest` · covers: the compact
   constructor · scenarios: A9
     - the compact constructor:
         - given: a caller, a status, an entry id and a category id all within their bounds
@@ -213,7 +213,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
           when: the command is constructed for each
           then: `InvalidExpenseCategoryChangeException` is thrown, its message naming `categoryId` and the bound
           it broke
-- [ ] RU02 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toChangeExpenseCategoryCommand()` ·
+- [x] RU02 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: `toChangeExpenseCategoryCommand()` ·
   scenarios: A9
     - `toChangeExpenseCategoryCommand()`:
         - given: a document of one operation replacing `/categoryId` with 42, a `RECORDED` status and an id
@@ -235,7 +235,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
           then: `InvalidExpenseCategoryChangeException` is thrown, its message naming what was refused. The
           generated model's own enums normally refuse both before the mapper is reached; the mapper refuses them
           too so that a generator which drops an enum does not let an unimplemented operation through
-- [ ] RU03 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · covers: `change()` ·
+- [x] RU03 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · covers: `change()` ·
   scenarios: A1, A2, A4, A5, A6, A7, A13, A14
     - `change()`:
         - given: a stored user, a category the read admits, and a recorded refile answering the row as it now
@@ -273,7 +273,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
+- [x] RI01 · `CategoryRepositoryAdapter` · test: `CategoryRepositoryAdapterTest` · covers:
   `existsOwnedCategory()` · scenarios: A5, A6, A14
     - `existsOwnedCategory()`:
         - given: a category of the person's, filed under one of their groupings
@@ -292,7 +292,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
           when: existsOwnedCategory() is called
           then: `PersistenceFailedException` is thrown wrapping it, as the class's `WithAMockedStore` nested
           class already asserts for each of its other methods
-- [ ] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `refile()` · scenarios:
+- [x] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `refile()` · scenarios:
   A1, A3, A4, A7, A14
     - `refile()`:
         - given: a recorded expense of the person's, filed under one category
@@ -323,7 +323,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
           when: refile() is called
           then: `PersistenceFailedException` is thrown wrapping it, as the class's `WithAMockedStore` nested
           class already asserts for each of its other methods
-- [ ] RI03 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
+- [x] RI03 · `ExpenseProposalRepositoryAdapter` · test: `ExpenseProposalRepositoryAdapterTest` · covers:
   `refile()` · scenarios: A2, A8, A14
     - `refile()`:
         - given: a pending proposal of the person's, filed under one category
@@ -343,7 +343,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
           when: refile() is called
           then: `PersistenceFailedException` is thrown wrapping it, as the class's `WithAMockedStore` nested
           class already asserts for each of its other methods
-- [ ] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
+- [x] RI04 · `ExpensesController` · test: `ExpensesControllerTest` · covers:
   `PATCH /api/v1/expenses/{status}/{id}` · mocks: `ChangeExpenseCategoryPort` · scenarios: A7, A8, A9, A10, A14
     - Happy Path:
         - given: the mocked port answers an entry carrying the new category
@@ -377,7 +377,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `ChangeExpenseCategorySystemTest` · covers: `PATCH /api/v1/expenses/{status}/{id}` · scenarios: A1,
+- [x] RS01 · `ChangeExpenseCategorySystemTest` · covers: `PATCH /api/v1/expenses/{status}/{id}` · scenarios: A1,
   A2, A7, A11, A12
     - Happy Path:
         - given: a signed-in person with two categories under a grouping, one recorded expense and one pending
@@ -401,7 +401,7 @@ The store gains nothing — no migration, no column, no index. Both tables alrea
         - given: a valid session cookie and no CSRF token
           when: an entry is patched
           then: the response is 403 and the row still carries its original category
-- [ ] RS02 · `RefileReportedProposalSystemTest` · covers: `TelegramUpdateListener.process()` · scenarios: A15
+- [x] RS02 · `RefileReportedProposalSystemTest` · covers: `TelegramUpdateListener.process()` · scenarios: A15
     - Happy Path:
         - given: a signed-in person whose pending proposal was reported to Telegram under its old category, with
           the Bot API stubbed and that report's location recorded

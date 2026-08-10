@@ -2,6 +2,7 @@ package bot.finance.common.rows;
 
 import bot.finance.adapter.persistence.CategoryEntity;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 public class CategoryRowUtils {
@@ -18,6 +19,17 @@ public class CategoryRowUtils {
     public static long firstLeafCategoryId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId) {
         return categoryRowsFor(jdbcAggregateTemplate, userId).stream()
                 .filter(row -> row.parentId() != null)
+                .findFirst()
+                .map(CategoryEntity::id)
+                .orElseThrow();
+    }
+
+    /** The id of the user's already-seeded row with this name directly under the given parent (null for a grouping). */
+    public static long categoryIdNamed(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId, Long parentId, String name) {
+        return categoryRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row ->
+                        Objects.equals(row.parentId(), parentId) && row.name().equals(name))
                 .findFirst()
                 .map(CategoryEntity::id)
                 .orElseThrow();
