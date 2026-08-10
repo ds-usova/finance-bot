@@ -6,14 +6,16 @@ import { Checkbox } from './ui/checkbox';
 import {
   pendingIdsOf,
   relativeDay,
+  type ExpenseCategoryChangeProps,
   type ExpenseDay,
   type ExpenseTickingProps,
 } from './expenseDays';
 
-export type ExpenseDaySectionProps = ExpenseTickingProps & {
-  day: ExpenseDay;
-  categoryNames: Map<number, string>;
-};
+export type ExpenseDaySectionProps = ExpenseTickingProps &
+  ExpenseCategoryChangeProps & {
+    day: ExpenseDay;
+    categoryNames: Map<number, string>;
+  };
 
 function formatMoney(money: RenderedMoney): string {
   return `${money.currency}${money.separator}${money.amount}`;

@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
 import {
   acceptExpenses,
+  changeCategory,
   listCategories,
   listExpenses,
   listGroupings,
   type Category,
+  type Expense,
   type ExpenseFilter,
   type ExpensePage,
   type Grouping,
@@ -34,6 +36,16 @@ export function ExpensesPage() {
   const [tickedIds, setTickedIds] = useState<ReadonlySet<number>>(new Set());
   const [accepting, setAccepting] = useState(false);
   const [missingMessage, setMissingMessage] = useState<string | null>(null);
+  // Threaded down to the list and its rows; wired up to changeCategory's answer in a later step.
+  const changingKey: string | null = null;
+  const changeFailure: { key: string; message: string } | null = null;
+  const focusDay: string | null = null;
+
+  const onChangeCategory = (entry: Expense, categoryId: number) => {
+    // refiles the row through changeCategory and replaces it once the ledger answers; wired up fully in a
+    // later step
+    void changeCategory(entry, categoryId);
+  };
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
   // not the ones the call left with — a ref rather than the closed-over state keeps them current.
@@ -182,10 +194,16 @@ export function ExpensesPage() {
           <ExpenseList
             page={page}
             categoryNames={categoryNames}
+            categories={categories}
+            groupings={groupings}
             tickedIds={tickedIds}
             onTick={onTick}
             onTickDay={onTickDay}
             tickHeadroom={tickHeadroom}
+            changingKey={changingKey}
+            changeFailure={changeFailure}
+            focusDay={focusDay}
+            onChangeCategory={onChangeCategory}
           />
           <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
         </>

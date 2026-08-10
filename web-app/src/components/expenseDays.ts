@@ -1,4 +1,11 @@
-import type { DayTotal, Expense, ExpensePage, RenderedMoney } from '../api/expenses';
+import type {
+  Category,
+  DayTotal,
+  Expense,
+  ExpensePage,
+  Grouping,
+  RenderedMoney,
+} from '../api/expenses';
 
 export type ExpenseDay = {
   day: string;
@@ -19,11 +26,32 @@ export type ExpenseTickingProps = {
   tickHeadroom: number;
 };
 
+/** What a component offering a row's category to be changed takes to render the control, its picker and its
+ * busy, disabled and refused states. */
+export type ExpenseCategoryChangeProps = {
+  /** What the picker offers and how it is grouped; empty where the read failed. */
+  categories: Category[];
+  groupings: Grouping[];
+  /** The `${status}-${id}` of the row whose change is out, or nothing. */
+  changingKey: string | null;
+  /** The ledger's own words, and the row they were refused for. */
+  changeFailure: { key: string; message: string } | null;
+  /** The day whose header takes focus, set when a read back removed the row a person's control was on. */
+  focusDay: string | null;
+  /** A row refiled to a category the person picked. */
+  onChangeCategory: (entry: Expense, categoryId: number) => void;
+};
+
 function utcDayString(date: Date): string {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/** The UTC day an entry's `createdAt` sits on, the same one `toDaySections` cut the page by. */
+export function utcDayOf(createdAt: string): string {
+  return utcDayString(new Date(createdAt));
 }
 
 // Cuts the page into UTC days, newest first, each carrying its own entries in the page's order and its awaiting
@@ -100,4 +128,22 @@ export function mergeDay(page: ExpensePage, day: string, fresh: ExpensePage): Ex
     items: [...otherItems, ...freshItems],
     dayTotals: freshTotal ? [...otherTotals, freshTotal] : otherTotals,
   };
+}
+
+export function replaceEntry(page: ExpensePage, entry: Expense): ExpensePage {
+  // replaces the page's own entry sharing the answered one's status and id, leaving every other entry, its
+  // own position in `items`, and `limit`, `offset`, `total` and `dayTotals` exactly as the original page held
+  // them. An entry the page no longer holds — its id under that status left the page some other way — answers
+  // the page unchanged rather than throwing.
+  void page;
+  void entry;
+  return null as unknown as ExpensePage;
+}
+
+export function ticksStillOnPage(page: ExpensePage, tickedIds: ReadonlySet<number>): Set<number> {
+  // keeps only the ids naming a PENDING entry the page still holds, since a tick names a pending entry and a
+  // refile can carry one off the page the ticks were read against
+  void page;
+  void tickedIds;
+  return null as unknown as Set<number>;
 }

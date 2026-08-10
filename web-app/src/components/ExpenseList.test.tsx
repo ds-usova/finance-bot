@@ -13,10 +13,16 @@ function renderList(props: Partial<ExpenseListProps> & { page: ExpensePage }) {
   return render(
     <ExpenseList
       categoryNames={categoryNames}
+      categories={[]}
+      groupings={[]}
       tickedIds={new Set()}
       onTick={vi.fn()}
       onTickDay={vi.fn()}
       tickHeadroom={Infinity}
+      changingKey={null}
+      changeFailure={null}
+      focusDay={null}
+      onChangeCategory={vi.fn()}
       {...props}
     />,
   );

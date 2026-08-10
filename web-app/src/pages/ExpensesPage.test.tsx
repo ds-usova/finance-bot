@@ -28,6 +28,7 @@ vi.mock('../api/expenses', () => ({
   listCategories: vi.fn(),
   listGroupings: vi.fn(),
   acceptExpenses: vi.fn(),
+  changeCategory: vi.fn(),
 }));
 
 const listExpensesMock = vi.mocked(listExpenses);

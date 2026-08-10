@@ -24,6 +24,9 @@ export const en = {
     tickedCount_other: '{{count}} entries ticked',
     acceptanceMissing_one: '{{count}} entry had already moved on',
     acceptanceMissing_other: '{{count}} entries had already moved on',
+    changeCategoryLabel: 'Change {{description}}’s category',
+    searchCategories: 'Search categories',
+    noCategory: 'No category found.',
   },
   filters: {
     title: 'Filters',

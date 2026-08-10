@@ -13,10 +13,16 @@ function section(props: Partial<ExpenseDaySectionProps> & { day: ExpenseDay }) {
   return (
     <ExpenseDaySection
       categoryNames={categoryNames}
+      categories={[]}
+      groupings={[]}
       tickedIds={new Set()}
       onTick={vi.fn()}
       onTickDay={vi.fn()}
       tickHeadroom={Infinity}
+      changingKey={null}
+      changeFailure={null}
+      focusDay={null}
+      onChangeCategory={vi.fn()}
       {...props}
     />
   );
