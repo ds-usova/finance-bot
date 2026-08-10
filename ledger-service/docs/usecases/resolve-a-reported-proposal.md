@@ -19,7 +19,7 @@
 ## Rules
 
 - The person is whoever sent the tap, never a value the button carries.
-- Every lookup is scoped to that person's own rows, so knowing a message reference grants nothing: another
+- Every lookup is scoped to that person's own rows, so knowing an incoming message id grants nothing: another
   member's tap on the same report resolves none of the owner's spending.
 - A tap names its sender, its conversation, the report message and itself, none of them blank; the message it
   names is present, and the button is one of the two.
@@ -27,7 +27,8 @@
 - Either way it is one statement, so two taps at once resolve the report once
   ([ADR 0012](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
 - A confirmed expense keeps the [message](../domain/incoming-message-id.md) that produced it.
-- Both of its timestamps are the moment of confirmation, not the moment the proposal was assembled.
+- A confirmed expense keeps the day its proposal was assembled on. Only its last-updated instant is the moment
+  of confirmation.
 - A discarded proposal is gone, and nothing records that it existed.
 - A confirmed expense is never undone: Delete on an already confirmed report removes nothing.
 - A tap whose sender is stored under no user resolves nothing, and creates no user.

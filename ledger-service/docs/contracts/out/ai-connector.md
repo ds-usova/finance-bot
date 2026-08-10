@@ -43,7 +43,7 @@ outcome, no text for the user.
 - The credential is minted per call and names the user as its subject.
 - It also names the [message](../../domain/incoming-message-id.md) the turn is about, so everything recorded
   during it can be found again
-  ([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+  ([ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 - The connector forwards it untouched. Nothing riding it is part of what the schema agreed. Its whole path is
   [drawn where it is spent](../in/mcp.md#how-a-caller-authenticates).
 - Nothing is retried and nothing is cached. The same text sent twice is two calls.

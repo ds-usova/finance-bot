@@ -22,13 +22,13 @@
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
 - The [incoming message id](../domain/incoming-message-id.md) comes off the same credential. The request never names
   it either
-  ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 - The two written days are read into a [spending period](../domain/spending-period.md) first. A period that does
   not hold together reaches no store.
 - The identity is resolved only once the period holds.
 - The period is recorded only once the identity resolves.
-- A recorded [spending query](../domain/spending-query.md) is tied to the message being handled. The turn that
-  minted the reference is the one that reports it.
+- A recorded [spending query](../domain/spending-query.md) is tied to the message being handled. The turn
+  handling that message is the one that reports it.
 - No total is computed here, and nothing is read out of the ledger.
 - Amounts reach the user from [the turn](handle-incoming-message.md). They reach this caller nowhere.
 - The answer is the period that was accepted, as two days.
@@ -38,7 +38,7 @@
 
 | Outcome          | When                                                                             | Result                                                             |
 |------------------|------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| Period recorded  | the identity names a stored user and the two days make a period                  | the period is stored under the message reference, and answered back |
+| Period recorded  | the identity names a stored user and the two days make a period                  | the period is stored under the incoming message id, and answered back |
 | Request rejected | the request is absent, or names no identity or no message                        | invalid spending query — nothing is looked up or written           |
 | Period rejected  | a day is missing, blank or unreadable, or the last day is before the first       | invalid spending period — nothing is looked up or written          |
 | Identity unknown | nothing is stored under the identity                                             | the request is rejected and nothing is written                     |
@@ -117,7 +117,7 @@ if (the identity names a stored user?) then (no)
   :identity unknown, nothing is written;
   stop
 endif
-:record the period in the database, under the message reference;
+:record the period in the database, under the incoming message id;
 if (the write fails?) then (yes)
   :storage failed;
   stop

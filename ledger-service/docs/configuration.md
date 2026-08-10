@@ -65,3 +65,9 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   page — see [ADR 0014](../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md).
 - `TELEGRAM_LOGIN_MAX_AGE` bounds how long a captured Login Widget payload stays replayable.
 - `MCP_ENABLED=false` leaves the service running with the MCP endpoint gone. The session API is unaffected.
+- The three `REPORT_CLEARING_POOL_*` values bound the one piece of work this service does off the request thread:
+  taking the buttons off a report a web acceptance emptied
+  ([Clear the emptied reports](usecases/clear-emptied-reports.md)).
+- A clearing the pool has no room for is dropped rather than queued further or run on the request thread. Nobody
+  is waiting for it, and a report that keeps its buttons still answers truthfully when tapped. Raise
+  `REPORT_CLEARING_POOL_QUEUE_CAPACITY` where a deployment serves more than one person's chats.

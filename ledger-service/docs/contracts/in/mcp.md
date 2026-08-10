@@ -35,7 +35,7 @@ caller wants their spending totalled over.
 **There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
 message it belongs to, both come off the token and nothing else
 ([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md),
-[ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+[ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 
 ### What `create_expense_proposal` answers with
 
@@ -74,10 +74,11 @@ a total no model can restate.
 ## Semantics
 
 - Every call carries its own token. The server keeps nothing between calls, so two calls never share state.
-- Each proposal, and each period asked about, is stored under the message reference its token carries. That is
-  what lets the ledger tell the user which message produced what.
-- A proposal or summary call whose token carries no readable reference is refused, and stores nothing.
-- Listing categories never reads the reference, so a token carrying none still lists.
+- Each proposal, and each period asked about, is stored under the
+  [incoming message id](../../domain/incoming-message-id.md) its token carries. That is what lets the ledger tell
+  the user which message produced what.
+- A proposal or summary call whose token carries no readable incoming message id is refused, and stores nothing.
+- Listing categories never reads it, so a token carrying none still lists.
 - A caller reaches only their own categories and their own spending. No tool takes an identity argument, and
   every read is scoped to the token's subject.
 - A grouping and a category are both named, never identified.
@@ -135,7 +136,7 @@ Provider --> Connector : call a tool
 Connector -> Tools : the tool call + the same token, verbatim
 Tools -> Tools : validate\nsignature · algorithm · not expired\nnot future-dated · issuer · audience\nlifetime within the maximum
 Tools -> Tools : read the subject → the user\nread imi → the incoming message id
-Tools --> Connector : the result, stored under that reference
+Tools --> Connector : the result, stored under that id
 
 note over Connector, Tools : one token per call — no session.\nA turn making several calls makes several independent ones.
 @enduml
@@ -166,8 +167,8 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | A day of a period is blank, or is not written `YYYY-MM-DD`                              | a tool error naming the day at fault and the value it could not read |
 | A period's last day is before its first                                                 | a tool error saying the period ends before it starts                 |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
-| The token carries no readable message reference, on a proposal call                     | a tool error saying the proposal could not be created                |
-| The token carries no readable message reference, on a summary call                      | a tool error saying the spending could not be summarized             |
+| The token carries no readable incoming message id, on a proposal call                   | a tool error saying the proposal could not be created                |
+| The token carries no readable incoming message id, on a summary call                    | a tool error saying the spending could not be summarized             |
 | The proposal or the period cannot be stored, or the categories cannot be read           | a tool error saying so, naming no table, constraint or stack frame   |
 | Anything else                                                                           | a tool error saying the call could not be completed                  |
 
@@ -196,7 +197,7 @@ Deploying the two independently makes a rename a new tool instead.
 
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way
-([ADR 0010](../../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)). A caller
+([ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)). A caller
 that mints its own tokens instead would have to carry that claim, which the proposal and summary tools both
 refuse a call without.
 

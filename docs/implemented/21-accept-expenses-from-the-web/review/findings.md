@@ -6,6 +6,14 @@ below is open.
 
 ## ledger-service
 
+- **A failed report lookup ends the clearing and silently skips the messages after it.**
+  `ClearEmptiedReportsUseCase` wraps `findWithPendingProposals` but not `findByIncomingMessageId`, so a
+  `PersistenceFailedException` from the second propagates out of `clear` into the dispatcher's blanket catch.
+  Every message queued behind the failing one is dropped with no line naming it. `RU04` covered the counts read
+  and not this one. Found by the archiving pass.
+- **A message with no report recorded is logged as cleared.** In the same use case `allCleared` starts `true`
+  and the loop body never runs for such a message, so the run reports a clearing that never happened. D40 asks
+  for that case at debug. Found by the archiving pass.
 - **`ClearEmptiedReportsCommand` does not validate itself** — against the convention that an inbound-port command
   does. `ClearEmptiedReportsUseCase.clear` reads `command.incomingMessageIds()` with no null check, so a null
   command or a null list raises `NullPointerException` rather than a domain exception. No live defect: its only

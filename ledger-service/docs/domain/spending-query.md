@@ -10,7 +10,7 @@ knows what to total.
   only itself.
 - The owning user's id is positive.
 - A period is present.
-- The reference of the message that asked is present.
+- The incoming message id of the message that asked is present.
 - The instant it was recorded is present.
 - A query is only ever recorded, never changed.
 - It is removed once the report carrying its period has reached the user, and not before. A report that never
@@ -38,8 +38,8 @@ state Stranded #line.dashed : kept until the store is cleaned by hand
 
 ## Made of / held by
 
-The owning user's id, a [spending period](spending-period.md), the reference of the message it came from, and
-the instant it was recorded.
+The owning user's id, a [spending period](spending-period.md), the incoming message id of the message it came
+from, and the instant it was recorded.
 
 - [User](user.md) — whose spending the question is about, and the only spending it can reach.
 - [Incoming message id](incoming-message-id.md) — which message asked, and what the report answering that message

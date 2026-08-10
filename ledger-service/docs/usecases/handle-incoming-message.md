@@ -39,7 +39,7 @@ opens with.
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                                   |
 | out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                                   |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, what this message recorded, and what it spent   |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, what this message recorded and what it spent, and recording where the report landed |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                                   |
 | out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | picking up the periods that message asked about, so each can be totalled                                  |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                                   |
@@ -70,10 +70,12 @@ opens with.
   never one the connector guessed.
 - The connector acts as that person for the length of the turn, on a credential minted per call
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- An [incoming message id](../domain/incoming-message-id.md) is derived per message and rides that credential, so
+- An [incoming message id](../domain/incoming-message-id.md) names the turn and rides that credential, so
   everything the turn records carries it
-  ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
-- Only what was recorded under this message's reference is reported, oldest first. That covers the spending it
+  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
+- That id is the conversation and the message joined, so the same message handled twice files under one id and
+  one report's buttons resolve everything both attempts produced.
+- Only what was recorded under this message's id is reported, oldest first. That covers the spending it
   named and the periods it asked about alike.
 - A period asked about twice in one turn is reported once. Two different periods are two blocks, oldest first.
 - A period is totalled over that person's expenses alone. A proposal awaiting confirmation counts towards
@@ -87,6 +89,9 @@ opens with.
 - Spending recorded after the read-back has run stays stored and appears in no report.
 - Spending the model tried and failed to record is stored nowhere, so it is in no report either.
 - The report goes to the conversation the message came from, as a reply to that message.
+- A delivered report that carries buttons has [where it landed](../domain/proposal-report.md) recorded against
+  the message it is about, so those buttons can be reached again once the proposals under them are gone.
+- A report carrying no buttons records nothing: there is nothing to reach later.
 - One message is one turn: nothing is retried, and a failed turn is not replayed.
 - The user's own words reach this service's log only at debug level.
 
@@ -99,7 +104,8 @@ opens with.
 | Message rejected  | the message is absent                                                                     | invalid incoming message — nothing is looked up                                        |
 | Catch-all missing | the person's groupings do not carry the designated catch-all, or they have none           | the connector is never reached, no report is sent, and the failure reaches the caller    |
 | Storage failed    | the person cannot be resolved, their categories not read, or a read-back or a total fails | the failure reaches the caller and no report is sent                                     |
-| Delivery failed   | the report cannot be put in front of the user                                              | the failure reaches the caller; what was recorded stays recorded                         |
+| Delivery failed   | the report cannot be put in front of the user                                              | the failure reaches the caller; what was recorded stays recorded, and no location is kept |
+| Location unkept   | the report was delivered but where it landed cannot be stored                              | the turn stands; the report keeps buttons a tap still resolves                            |
 
 A failure of any kind is logged where the message was delivered, and its batch is acknowledged with the rest. A
 connector that refuses the turn or cannot be reached is not a failure here — it is what the partial and failed
@@ -134,11 +140,13 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(spendingQueryRepositoryPort, "Spending Query Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(messageDeliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
+  Component(reportRepositoryPort, "Proposal Report Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Persists users and their categories", $tags="dbExternal")
   Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
   Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Reads what a message recorded", $tags="dbExternal")
   Component(spendingQueryRepositoryAdapter, "Spending Query Repository Adapter", "Spring Data Relational", "Reads the periods a message asked about", $tags="dbExternal")
   Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Totals a user's expenses over a period, by currency", $tags="dbExternal")
+  Component(reportRepositoryAdapter, "Proposal Report Repository Adapter", "Spring Data Relational", "Records where a delivered report landed", $tags="dbExternal")
   Component(intentExtractionAdapter, "Intent Extraction Adapter", "gRPC client", "Mints a credential and calls the connector", $tags="aiExternal")
   Component(tokenMinter, "Access Token Minter", "Nimbus JOSE", "Signs a credential naming the person and the message", $tags="aiExternal")
   Component(deliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report as a reply", $tags="telegramExternal")
@@ -161,11 +169,13 @@ Rel_R(handleMessageService, proposalRepositoryPort, "Uses")
 Rel_R(handleMessageService, spendingQueryRepositoryPort, "Reads the periods asked about through")
 Rel_R(handleMessageService, expenseRepositoryPort, "Totals each period through")
 Rel_L(handleMessageService, messageDeliveryPort, "Uses")
+Rel_R(handleMessageService, reportRepositoryPort, "Records where the report landed through")
 Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
 Rel_L(groupingRepositoryAdapter, groupingRepositoryPort, "Implements", $tags="implements")
 Rel_L(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
 Rel_L(spendingQueryRepositoryAdapter, spendingQueryRepositoryPort, "Implements", $tags="implements")
 Rel_L(expenseRepositoryAdapter, expenseRepositoryPort, "Implements", $tags="implements")
+Rel_L(reportRepositoryAdapter, reportRepositoryPort, "Implements", $tags="implements")
 Rel_L(intentExtractionAdapter, intentExtractionPort, "Implements", $tags="implements")
 Rel_R(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
 Rel_D(intentExtractionAdapter, tokenMinter, "Mints with")
@@ -176,6 +186,7 @@ Rel_R(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(spendingQueryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(expenseRepositoryAdapter, db, "SQL", "JDBC")
+Rel_R(reportRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(intentExtractionAdapter, connector, "Text, groupings, today's date and a credential", "gRPC")
 Rel_U(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
@@ -186,8 +197,10 @@ Lay_D(groupingRepositoryPort, intentExtractionPort)
 Lay_D(intentExtractionPort, proposalRepositoryPort)
 Lay_D(proposalRepositoryPort, spendingQueryRepositoryPort)
 Lay_D(spendingQueryRepositoryPort, expenseRepositoryPort)
+Lay_D(expenseRepositoryPort, reportRepositoryPort)
 Lay_D(proposalRepositoryAdapter, spendingQueryRepositoryAdapter)
 Lay_D(spendingQueryRepositoryAdapter, expenseRepositoryAdapter)
+Lay_D(expenseRepositoryAdapter, reportRepositoryAdapter)
 
 SHOW_LEGEND()
 @enduml
@@ -221,17 +234,17 @@ loop each message in the batch
     else the groupings do not carry the designated catch-all
       DB --> UC : the catch-all is missing, no report
     else the groupings are read
-      UC -> UC : mint a reference for this message
+      UC -> UC : derive this message's own id
       UC -> UC : designate the catch-all grouping
       UC -> AI : the text, the grouping names, the catch-all, today's date, a credential naming the person and the message
       AI -> SS : whichever periods the message asked about
-      SS -> DB : record each period under the reference
+      SS -> DB : record each period under the message's id
       alt the turn completes
         AI --> UC : handled
       else the turn does not complete
         AI --> UC : refused, or unreachable
       end
-      UC -> DB : read what was recorded under the reference
+      UC -> DB : read what was recorded under the message's id
       alt the read-back fails
         DB --> UC : storage failed, no report
       else the read-back answers
@@ -247,7 +260,11 @@ loop each message in the batch
         alt the report cannot be delivered
           TG --> UC : delivery failed
         else the report is delivered
-          TG --> UC : delivered
+          TG --> UC : delivered, and where it landed when it carries buttons
+          UC -> DB : record where that report landed
+          alt the record fails
+            DB --> UC : log it, and carry on
+          end
           UC -> UC : log the message and the person
           TG -> RP : whichever button the user later taps
         end
