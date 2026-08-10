@@ -13,7 +13,7 @@ import {
   type ExpensePage,
 } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
-import { dayHeaders, expandDays, listingArrives } from '../testing/accordion';
+import { expandDays, listingArrives } from '../testing/accordion';
 import { chooseFromList } from '../testing/combobox';
 import {
   aCategory,
@@ -700,7 +700,9 @@ describe('the expenses page', () => {
       categoryId: 10,
       createdAt: day,
     });
-    const narrowed = anExpensePage([lunch, coffee], { limit: 50, offset: 0, total: 2 });
+    // total is set above the item count so the pager renders at all — Pager.tsx shows nothing once every
+    // item fits on the first page, which would otherwise hide the very value this case checks stays put.
+    const narrowed = anExpensePage([lunch, coffee], { limit: 50, offset: 0, total: 5 });
     listExpensesMock.mockResolvedValueOnce(page).mockResolvedValueOnce(narrowed);
     listCategoriesMock.mockResolvedValue(twoCategories);
 
@@ -709,12 +711,13 @@ describe('the expenses page', () => {
     await chooseGroceries();
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
     expandDays();
-    const pagerTextBefore = screen.getByText(/showing/i).textContent;
 
     changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
     const freshTotal = { day: '2026-08-05', amounts: [{ amount: '9.00', currency: '€', separator: '' }] };
+    // The fresh read's own limit/offset/total are decoys, deliberately different from the narrowed page's, so
+    // a pager built from them rather than from the original page would be caught.
     listExpensesMock.mockResolvedValueOnce(
-      anExpensePage([coffee], { limit: 50, offset: 0, total: 2, dayTotals: [freshTotal] }),
+      anExpensePage([coffee], { limit: 99, offset: 99, total: 99, dayTotals: [freshTotal] }),
     );
 
     await changeCategoryOnRow('lunch', /Transport/);
@@ -731,7 +734,9 @@ describe('the expenses page', () => {
     expect(screen.queryByRole('listitem', { name: /lunch/i })).not.toBeInTheDocument();
     expect(await screen.findByRole('listitem', { name: /coffee/i })).toBeInTheDocument();
     expect(await screen.findByText('€9.00')).toBeInTheDocument();
-    expect(screen.getByText(/showing/i).textContent).toEqual(pagerTextBefore);
+    // Only coffee remains, so the range's upper bound is 1 — but the total is still the narrowed page's 5,
+    // not the fresh read's decoy 99.
+    expect(screen.getByText(/showing/i).textContent).toEqual('Showing 1–1 of 5.');
   });
 
   it('keeps a ticked pending row ticked and the action naming it, and accepting afterwards carries its id, once its category is changed', async () => {
@@ -826,9 +831,15 @@ describe('the expenses page', () => {
     await listedEntries();
 
     await changeCategoryOnRow('lunch', /Transport/);
-    await changeCategoryOnRow('coffee', /Transport/);
+
+    // A26 disables every other row's control while a change is out, so the second row's control cannot be
+    // opened at all — that disabling is itself what keeps this to one call.
+    const coffeeControl = screen.getByRole('button', { name: /change coffee/i });
+    expect(coffeeControl).toBeDisabled();
+    await userEvent.click(coffeeControl);
 
     expect(changeCategoryMock).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('option', { name: /Transport/i })).not.toBeInTheDocument();
   });
 
   it('leaves every row’s control usable once the change is answered, and a further pick sends a second call', async () => {
@@ -880,7 +891,9 @@ describe('the expenses page', () => {
     const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
     expect(within(lunchRow).getByText('the ledger is temporarily unavailable')).toBeInTheDocument();
     expect(within(lunchRow).getByText('Groceries')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // The row's own message renders through the same `Alert` (role="alert") as the page's banner, so the
+    // banner staying untouched means exactly one alert exists — the row's — not zero.
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(listExpensesMock).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: /change lunch/i })).toBeEnabled();
   });
@@ -895,7 +908,10 @@ describe('the expenses page', () => {
     listExpensesMock.mockResolvedValueOnce(anExpensePage([taxi]));
     listCategoriesMock.mockResolvedValue(twoCategories);
     changeCategoryMock.mockRejectedValueOnce(new ApiError(404, 'that entry has moved on'));
-    listExpensesMock.mockResolvedValueOnce(anExpensePage([]));
+    // Held open rather than resolved immediately: the reread would otherwise empty the day and drop the row
+    // before the test ever gets to look at its message, since nothing here delays the mock's own resolution.
+    const reread = inFlight<ExpensePage>();
+    listExpensesMock.mockReturnValueOnce(reread.promise);
 
     renderPage();
     await listedEntries();
@@ -904,9 +920,17 @@ describe('the expenses page', () => {
 
     const taxiRow = await screen.findByRole('listitem', { name: /taxi/i });
     expect(within(taxiRow).getByText('that entry has moved on')).toBeInTheDocument();
-    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+    expect(listExpensesMock).toHaveBeenCalledTimes(2);
     expect(listExpensesMock).toHaveBeenLastCalledWith(
       expect.objectContaining({ from: '2026-08-04', to: '2026-08-04' }),
+    );
+
+    // Now let the reread land, so the stale row leaves as the scenario says it does.
+    await act(async () => {
+      reread.answer(anExpensePage([]));
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('listitem', { name: /taxi/i })).not.toBeInTheDocument(),
     );
   });
 
@@ -1018,6 +1042,12 @@ describe('the expenses page', () => {
     await changeCategoryOnRow('lunch', /Transport/);
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
-    await waitFor(() => expect(document.activeElement).toEqual(dayHeaders()[0]));
+    // `dayHeaders()` returns only collapsed headers; the surviving day section is expanded (it was opened by
+    // `expandDays()` above and stays that way), so its header is found the same way `dayHeaders()` finds a
+    // collapsed one, just with the opposite `expanded` value.
+    const openHeaders = screen
+      .getAllByRole('button', { expanded: true })
+      .filter((header) => !header.hasAttribute('aria-haspopup'));
+    await waitFor(() => expect(document.activeElement).toEqual(openHeaders[0]));
   });
 });

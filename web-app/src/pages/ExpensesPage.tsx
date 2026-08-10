@@ -16,7 +16,13 @@ import {
 import { useAuth } from '../auth/useAuth';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseActionBar } from '../components/ExpenseActionBar';
-import { mergeDay, touchedDaysOf } from '../components/expenseDays';
+import {
+  mergeDay,
+  replaceEntry,
+  ticksStillOnPage,
+  touchedDaysOf,
+  utcDayOf,
+} from '../components/expenseDays';
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
@@ -36,16 +42,11 @@ export function ExpensesPage() {
   const [tickedIds, setTickedIds] = useState<ReadonlySet<number>>(new Set());
   const [accepting, setAccepting] = useState(false);
   const [missingMessage, setMissingMessage] = useState<string | null>(null);
-  // Threaded down to the list and its rows; wired up to changeCategory's answer in a later step.
-  const changingKey: string | null = null;
-  const changeFailure: { key: string; message: string } | null = null;
-  const focusDay: string | null = null;
-
-  const onChangeCategory = (entry: Expense, categoryId: number) => {
-    // refiles the row through changeCategory and replaces it once the ledger answers; wired up fully in a
-    // later step
-    void changeCategory(entry, categoryId);
-  };
+  const [changingKey, setChangingKey] = useState<string | null>(null);
+  const [changeFailure, setChangeFailure] = useState<{ key: string; message: string } | null>(
+    null,
+  );
+  const [focusDay, setFocusDay] = useState<string | null>(null);
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
   // not the ones the call left with — a ref rather than the closed-over state keeps them current.
@@ -149,6 +150,79 @@ export function ExpensesPage() {
         .catch(report);
     },
     [report],
+  );
+
+  // Re-reads the single day an entry sits on, carrying the filter on screen now, merges it back into the page,
+  // drops any tick a refile carried off the page, and moves focus to that day's header when the entry named is
+  // no longer on it — the row's own control just left with it.
+  const rereadChangedDay = useCallback(
+    (entry: Expense) => {
+      const day = utcDayOf(entry.createdAt);
+      const currentFilter = filterRef.current;
+
+      listExpenses({
+        status: currentFilter.status,
+        categoryId: currentFilter.categoryId,
+        from: day,
+        to: day,
+        offset: undefined,
+        limit: ACCEPTANCE_BOUND,
+      })
+        .then((fresh) => {
+          const current = pageRef.current;
+          if (!current) {
+            return;
+          }
+          const merged = mergeDay(current, day, fresh);
+          setPage(merged);
+          setTickedIds((prev) => ticksStillOnPage(merged, prev));
+          const stillOnPage = merged.items.some(
+            (item) => item.status === entry.status && item.id === entry.id,
+          );
+          setFocusDay(stillOnPage ? null : day);
+        })
+        .catch(report);
+    },
+    [report],
+  );
+
+  const onChangeCategory = useCallback(
+    (entry: Expense, categoryId: number) => {
+      if (categoryId === entry.categoryId || changingKey !== null) {
+        return;
+      }
+      const key = `${entry.status}-${entry.id}`;
+      setChangingKey(key);
+      setChangeFailure(null);
+
+      changeCategory(entry, categoryId)
+        .then((answered) => {
+          setChangingKey(null);
+          if (filterRef.current.categoryId !== undefined) {
+            // A category filter can no longer match the row's new category, so only a fresh read tells whether
+            // it still belongs on the page.
+            rereadChangedDay(answered);
+            return;
+          }
+          setPage((current) => (current ? replaceEntry(current, answered) : current));
+        })
+        .catch((error: unknown) => {
+          setChangingKey(null);
+          if (error instanceof ApiError && error.status === 401) {
+            sessionExpired();
+            return;
+          }
+          setChangeFailure({
+            key,
+            message: error instanceof Error ? error.message : 'That change was not answered.',
+          });
+          if (error instanceof ApiError && error.status === 404) {
+            // The row has moved on under the ledger; only a fresh read can tell it apart from the page.
+            rereadChangedDay(entry);
+          }
+        });
+    },
+    [changingKey, rereadChangedDay, sessionExpired],
   );
 
   const onAccept = useCallback(() => {

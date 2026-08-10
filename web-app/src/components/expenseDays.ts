@@ -135,15 +135,19 @@ export function replaceEntry(page: ExpensePage, entry: Expense): ExpensePage {
   // own position in `items`, and `limit`, `offset`, `total` and `dayTotals` exactly as the original page held
   // them. An entry the page no longer holds — its id under that status left the page some other way — answers
   // the page unchanged rather than throwing.
-  void page;
-  void entry;
-  return null as unknown as ExpensePage;
+  return {
+    ...page,
+    items: page.items.map((item) =>
+      item.status === entry.status && item.id === entry.id ? entry : item,
+    ),
+  };
 }
 
 export function ticksStillOnPage(page: ExpensePage, tickedIds: ReadonlySet<number>): Set<number> {
   // keeps only the ids naming a PENDING entry the page still holds, since a tick names a pending entry and a
   // refile can carry one off the page the ticks were read against
-  void page;
-  void tickedIds;
-  return null as unknown as Set<number>;
+  const pendingIds = new Set(
+    page.items.filter((item) => item.status === 'PENDING').map((item) => item.id),
+  );
+  return new Set([...tickedIds].filter((id) => pendingIds.has(id)));
 }

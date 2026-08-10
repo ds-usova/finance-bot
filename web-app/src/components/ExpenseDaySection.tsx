@@ -1,7 +1,12 @@
+import { ChevronsUpDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RenderedMoney } from '../api/expenses';
+import type { Category, Expense, Grouping, RenderedMoney } from '../api/expenses';
+import { CategoryPicker } from './CategoryPicker';
+import { ErrorBanner } from './ErrorBanner';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import {
   pendingIdsOf,
@@ -21,16 +26,83 @@ function formatMoney(money: RenderedMoney): string {
   return `${money.currency}${money.separator}${money.amount}`;
 }
 
+type CategoryControlProps = {
+  entry: Expense;
+  categoryName: string;
+  categories: Category[];
+  groupings: Grouping[];
+  changingKey: string | null;
+  onChangeCategory: (entry: Expense, categoryId: number) => void;
+};
+
+/** The row's category, offered as a ghost trigger with a chevron. Busy while its own change is out, disabled
+ * while any other row's is, since one change out disables the rest of the listing rather than one row of it. */
+function CategoryControl({
+  entry,
+  categoryName,
+  categories,
+  groupings,
+  changingKey,
+  onChangeCategory,
+}: CategoryControlProps) {
+  const { t } = useTranslation();
+  const key = `${entry.status}-${entry.id}`;
+  const busy = changingKey === key;
+  const disabled = changingKey !== null && !busy;
+
+  return (
+    <CategoryPicker
+      groupings={groupings}
+      categories={categories}
+      categoryId={entry.categoryId}
+      onChange={(categoryId) => {
+        if (categoryId !== undefined) {
+          onChangeCategory(entry, categoryId);
+        }
+      }}
+      withAll={false}
+      width="own"
+      searchPlaceholder={t('listing.searchCategories')}
+      emptyText={t('listing.noCategory')}
+      trigger={
+        <Button
+          variant="ghost"
+          aria-label={t('listing.changeCategoryLabel', { description: entry.description })}
+          aria-busy={busy}
+          disabled={disabled}
+          className="h-auto gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
+        >
+          {categoryName}
+          <ChevronsUpDown aria-hidden="true" className="h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      }
+    />
+  );
+}
+
 export function ExpenseDaySection({
   day,
   categoryNames,
+  categories,
+  groupings,
   tickedIds,
   onTick,
   onTickDay,
   tickHeadroom,
+  changingKey,
+  changeFailure,
+  focusDay,
+  onChangeCategory,
 }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
+  const headerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (focusDay === day.day) {
+      headerRef.current?.focus();
+    }
+  }, [focusDay, day.day]);
 
   const pendingIds = pendingIdsOf(day);
   const tickedCount = pendingIds.filter((id) => tickedIds.has(id)).length;
@@ -67,6 +139,7 @@ export function ExpenseDaySection({
             right, flush with the amounts in the panel below. A flat list of spans lets `justify-between`
             space them differently per day. */}
         <AccordionTrigger
+          ref={headerRef}
           className="gap-3 pr-4 pl-3 sm:pr-5"
           leading={
             // The same gutter every entry row below reserves, so the day's tick sits over the column its
@@ -109,40 +182,56 @@ export function ExpenseDaySection({
         <AccordionContent className="px-4 pb-3 sm:px-5">
           <ul className="flex flex-col divide-y divide-border/70 border-t border-border/70">
             {day.entries.map((entry) => {
+              const key = `${entry.status}-${entry.id}`;
               const categoryName = categoryNames.get(entry.categoryId);
-              const secondary = [entry.merchant, categoryName]
-                .filter((part): part is string => Boolean(part))
-                .join(' · ');
+              const failureMessage =
+                changeFailure?.key === key ? changeFailure.message : null;
               return (
                 <li
-                  key={`${entry.status}-${entry.id}`}
+                  key={key}
                   aria-label={entry.description}
-                  className="flex items-center gap-3 py-2.5"
+                  className="flex flex-col gap-1.5 py-2.5"
                 >
-                  {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it, so a
-                      day mixing the two statuses keeps its descriptions in one column. */}
-                  <span className="flex w-4 shrink-0 items-center justify-center">
-                    {entry.status === 'PENDING' && (
-                      <Checkbox
-                        aria-label={t('listing.entryCheckboxLabel')}
-                        checked={tickedIds.has(entry.id)}
-                        disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
-                        onCheckedChange={(checked) => onTick(entry.id, checked === true)}
-                      />
-                    )}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-medium">{entry.description}</span>
-                    {secondary && (
-                      <span className="truncate text-xs text-muted-foreground">{secondary}</span>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
-                    <span className="whitespace-nowrap text-right tabular-nums">
-                      {formatMoney(entry.money)}
+                  <div className="flex items-center gap-3">
+                    {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it, so a
+                        day mixing the two statuses keeps its descriptions in one column. */}
+                    <span className="flex w-4 shrink-0 items-center justify-center">
+                      {entry.status === 'PENDING' && (
+                        <Checkbox
+                          aria-label={t('listing.entryCheckboxLabel')}
+                          checked={tickedIds.has(entry.id)}
+                          disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
+                          onCheckedChange={(checked) => onTick(entry.id, checked === true)}
+                        />
+                      )}
                     </span>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate font-medium">{entry.description}</span>
+                      {(entry.merchant || categoryName) && (
+                        <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
+                          {entry.merchant && <span className="truncate">{entry.merchant}</span>}
+                          {entry.merchant && categoryName && <span aria-hidden="true">·</span>}
+                          {categoryName && (
+                            <CategoryControl
+                              entry={entry}
+                              categoryName={categoryName}
+                              categories={categories}
+                              groupings={groupings}
+                              changingKey={changingKey}
+                              onChangeCategory={onChangeCategory}
+                            />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
+                      <span className="whitespace-nowrap text-right tabular-nums">
+                        {formatMoney(entry.money)}
+                      </span>
+                    </div>
                   </div>
+                  {failureMessage && <ErrorBanner message={failureMessage} />}
                 </li>
               );
             })}

@@ -58,12 +58,16 @@ export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
 }
 
 export async function changeCategory(entry: Expense, categoryId: number): Promise<Expense> {
-  // patches /api/v1/expenses/{status}/{id} through `request`, which carries the cookies and the CSRF token,
-  // with a document of one replace on /categoryId at application/json-patch+json, and answers the entry as
-  // the ledger now holds it
-  void entry;
-  void categoryId;
-  return null as unknown as Expense;
+  const patch: CategoryPatch = [{ op: 'replace', path: '/categoryId', value: categoryId }];
+  const updated = await request<Expense>(`${EXPENSES_PATH}/${entry.status}/${entry.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json-patch+json' },
+    body: JSON.stringify(patch),
+  });
+  if (!updated) {
+    throw new Error('the changed entry answered with no body');
+  }
+  return updated;
 }
 
 async function get<T>(
