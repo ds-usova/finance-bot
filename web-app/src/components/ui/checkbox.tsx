@@ -7,7 +7,11 @@ export function Checkbox({ className, ...props }: ComponentProps<typeof Checkbox
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        'flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
+        // The box is 16px because that is what reads well beside 14px text, but 16px is far too small to hit.
+        // The `before` pseudo-element carries the press out to 32px in every direction without moving anything
+        // on screen, and `z-10` puts it over whatever follows it in the DOM — beside a day's tick that is the
+        // accordion trigger, so a near miss used to open the day instead of clearing the tick.
+        'relative z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-border outline-none transition-colors before:absolute before:-inset-2 before:content-[""] focus-visible:ring-2 focus-visible:ring-accent data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

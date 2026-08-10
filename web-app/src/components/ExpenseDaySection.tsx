@@ -147,8 +147,10 @@ export function ExpenseDaySection({
           className={`gap-3 pr-4 sm:pr-5 ${pendingIds.length > 0 ? 'pl-3' : ''}`}
           leading={
             // The same gutter every entry row below reserves, so the day's tick sits over the column its
-            // entries' ticks stand in, and neither is flush with the card's edge.
-            <span className="flex w-4 shrink-0 items-center justify-center pl-4 sm:pl-5">
+            // entries' ticks stand in. The width has to cover the panel's own side padding *and* the tick
+            // column inside it — `w-4 pl-4` is a 16px box entirely filled by its padding, which centres the
+            // tick half a column to the left of every tick beneath it.
+            <span className="flex w-8 shrink-0 items-center justify-center pl-4 sm:w-9 sm:pl-5">
               {pendingIds.length > 0 && (
                 <Checkbox
                   aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}

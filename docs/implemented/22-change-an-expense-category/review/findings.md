@@ -36,3 +36,6 @@ list is the design's `F25`. Start the app, sign in, open the expenses listing.
 - [ ] A refile watched under a category filter: the row leaves, that day is replaced in place with the figures
       the fresh read answered, and the pager still reads the numbers the original page answered.
 - [ ] The picker opening and closing, and the row growing to hold a refusal, with reduced motion turned on.
+- [ ] A day's tick and its entries' ticks stand in one column, and every one of them can be hit and cleared
+      without opening the day instead — the target is 32px around a 16px box, and beside a day's tick the
+      accordion trigger begins immediately to its right.
