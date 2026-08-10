@@ -1,12 +1,11 @@
 # Review: Accept Expenses from the Web App
 
-**Two refactoring candidates, eight screens to look at.**
+**One refactoring candidate, eight screens to look at.**
 
 ## Refactoring candidate
 
 | Module           | What                                                                                                                              | Why the task left it                                                                                                                                                                |
 |------------------|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ledger-service` | `WebExceptionHandlerTest`'s empty-array case asserts the string `100`                                                             | That is the maximum-items bound, so regenerating the schema fails it with nothing broken · `B5`                                                                                    |
 | `ledger-service` | `proposal_report.conversation_id` and `sent_message_id` are bounded by nothing — not the schema, not a type, not `ColumnLimits` | Raised in conversation and left as acceptable. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) is the case for closing it |
 
 ## Manual test

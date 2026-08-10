@@ -136,8 +136,10 @@ class WebExceptionHandlerTest {
                     .andExpect(status().isBadRequest())
                     .andReturn();
 
+            // The empty list breaks the lower bound, so that is the one the message has to name. As a whole
+            // number: `contains("1")` is satisfied by the `100` the same default message prints beside it.
             String message = assertSingleJsonMessage(result);
-            assertThat(message).containsIgnoringCase("ids").contains("100");
+            assertThat(message).containsIgnoringCase("ids").matches(".*\\b1\\b.*");
         }
 
         @Test
