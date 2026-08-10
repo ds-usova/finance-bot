@@ -167,17 +167,31 @@ When every pipeline has returned:
 
    Sections are these four, in this order, and a section with nothing in it is left out:
 
-   | Section                   | Holds                                          | Shape                                     |
-   |---------------------------|------------------------------------------------|-------------------------------------------|
-   | **Critical**              | fix before the next task starts                | table — what breaks · proposal · where    |
-   | **Bug**                   | real, and it can wait                          | table — what breaks · proposal · where    |
-   | **Refactoring candidate** | nothing behaves wrong                          | table — what · why the task left it       |
-   | **Manual test**           | what no test can see, so a person must look    | `- [ ]` checklist, one line each          |
+   | Section                   | Holds                                       | Shape                                            |
+   |---------------------------|---------------------------------------------|--------------------------------------------------|
+   | **Critical**              | fix before the next task starts             | one block per defect, in the form below          |
+   | **Bug**                   | real, and it can wait                       | one block per defect, in the form below          |
+   | **Refactoring candidate** | nothing behaves wrong                       | table — module · what · why the task left it |
+   | **Manual test**           | what no test can see, so a person must look | `- [ ]` checklist, one line each                 |
 
-   **Write what a person hits, not the mechanism.** A class, a file or a plan item is the last cell of a row,
-   never the sentence: a reader decides from the first cell and opens the code only after deciding. Which module
-   a row belongs to is part of that last cell, so nothing is grouped by module — a reader triages by what it
-   costs them, not by where it lives.
+   **A defect is reported as a case, not as a description.** Whoever picks it up reproduces it before fixing it,
+   and a paragraph about a class does not tell them how:
+
+   ```
+   **`<module>` — <the symptom, in one line>**
+
+   - **Given** <the state the system is in>
+   - **When** <what happens>
+   - **Then** <what should follow>
+   - **Actual** <what follows instead>
+   - **Fix** <the proposal> · `<class or file>`
+   ```
+
+   **The module comes first** — in a defect's heading, in the first cell of a table row, and in a checklist item
+   unless every item shares one module, which the section's opening line then names. Nothing is *grouped* by
+   module: a reader triages by what a row costs them, and this tells them where to go once they have.
+
+   **Write what a person hits, not the mechanism.** The class is the last thing on the line, never the sentence.
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.

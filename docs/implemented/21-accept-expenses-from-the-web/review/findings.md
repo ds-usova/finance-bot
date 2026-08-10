@@ -4,25 +4,41 @@
 
 ## Bug
 
-| What breaks                                                                                                                                                                         | Proposal                                                                | Where                                          |
-|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------|
-| The store fails while the clearing reads where reports were posted, so some reports keep live buttons and every message queued behind the failing one is skipped. Nothing is logged | One `catch` around the per-message read, as the counts read already has | `ClearEmptiedReportsUseCase`, `ledger-service` |
-| The log says a report was cleared for a message that never had one                                                                                                                  | Log it at debug, which is what D40 asks for                             | `ClearEmptiedReportsUseCase`, `ledger-service` |
+Both were found by the archiving pass, in the same use case. `RU04` covered the counts read and neither of these.
 
-Both were found by the archiving pass. `RU04` covered the counts read and neither of these.
+**`ledger-service` — a failed report lookup skips every message queued behind it, silently**
+
+- **Given** one acceptance emptied two messages, and the store fails on the read that finds where their reports
+  were posted
+- **When** the clearing runs
+- **Then** each message whose reports can be read has its buttons taken off, and the failure is logged
+- **Actual** the exception leaves `clear` into the dispatcher's blanket catch. The first message is not cleared,
+  no message after it is even looked at, and nothing is logged. Those reports keep live buttons
+- **Fix** one `catch` around the per-message read, as the counts read above it already has ·
+  `ClearEmptiedReportsUseCase`
+
+**`ledger-service` — a message that never had a report is logged as cleared**
+
+- **Given** an acceptance empties a message whose report was never recorded — one delivered before this change,
+  or one whose delivery Telegram refused
+- **When** the clearing runs for it
+- **Then** nothing is sent, and it is logged at debug, which is what D40 asks for
+- **Actual** nothing is sent, and it is logged at info as a report that was cleared. `allCleared` starts `true`
+  and the loop body never runs
+- **Fix** log the empty case at debug before the loop · `ClearEmptiedReportsUseCase`
 
 ## Refactoring candidate
 
-| What                                                                                                                              | Why the task left it                                                                                                                                                                |
-|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ClearEmptiedReportsCommand` validates nothing, so a null list would be an `NPE` rather than a domain refusal                     | Unreachable: its only caller always passes a non-null, non-empty list · `B4`                                                                                                       |
-| `WebExceptionHandlerTest`'s empty-array case asserts the string `100`                                                             | That is the maximum-items bound, so regenerating the schema fails it with nothing broken · `B5`                                                                                    |
-| `PendingCountProjection.pendingCount` is selected and never read                                                                  | `SELECT DISTINCT` would replace it, which is more than a behaviour-preserving pass takes on · `B6`                                                                                 |
-| `proposal_report.conversation_id` and `sent_message_id` are bounded by nothing — not the schema, not a type, not `ColumnLimits` | Raised in conversation and left as acceptable. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) is the case for closing it |
+| Module           | What                                                                                                                              | Why the task left it                                                                                                                                                                |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ledger-service` | `ClearEmptiedReportsCommand` validates nothing, so a null list would be an `NPE` rather than a domain refusal                     | Unreachable: its only caller always passes a non-null, non-empty list · `B4`                                                                                                       |
+| `ledger-service` | `WebExceptionHandlerTest`'s empty-array case asserts the string `100`                                                             | That is the maximum-items bound, so regenerating the schema fails it with nothing broken · `B5`                                                                                    |
+| `ledger-service` | `PendingCountProjection.pendingCount` is selected and never read                                                                  | `SELECT DISTINCT` would replace it, which is more than a behaviour-preserving pass takes on · `B6`                                                                                 |
+| `ledger-service` | `proposal_report.conversation_id` and `sent_message_id` are bounded by nothing — not the schema, not a type, not `ColumnLimits` | Raised in conversation and left as acceptable. [ADR 0004](../../../ledger-service/docs/adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) is the case for closing it |
 
 ## Manual test
 
-Carried from the design's D39. jsdom lays nothing out, so no test closes any of these.
+All `web-app`, carried from the design's D39. jsdom lays nothing out, so no test closes any of these.
 
 - [ ] a day mixing a `PENDING` and a `RECORDED` row, at the narrowest supported width — the reserved gutter, and
       what the description truncates to
