@@ -5,7 +5,6 @@ import bot.finance.application.dto.CategoryEntry;
 import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.model.User;
 import java.util.List;
 
@@ -21,11 +20,7 @@ public class BrowseCategoriesUseCase implements BrowseCategoriesPort {
 
     @Override
     public List<CategoryEntry> browse(BrowseCategoriesCommand command) {
-        User user = userRepository
-                .findByExternalId(command.userId().externalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user",
-                        "no user stored under external id " + command.userId().externalId()));
+        User user = userRepository.requireByExternalId(command.userId().externalId());
 
         return categoryRepository.findAllForUser(user.id().orElseThrow(), command.groupingId());
     }

@@ -25,7 +25,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -59,7 +58,7 @@ class SummarizeSpendingUseCaseTest {
 
     /** Stores a user under {@code userId}, and answers the query the use case writes for EXPECTED_PERIOD. */
     private void stubStoredUserAndCreatedQuery(long userId, IncomingMessageId reference) {
-        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(userId, EXTERNAL_ID)));
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
         when(spendingQueryRepository.create(any()))
                 .thenReturn(SpendingQuery.stored(9L, userId, EXPECTED_PERIOD, reference, FIXED_INSTANT));
     }
@@ -98,7 +97,8 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-08-01", "2026-08-05");
 
             assertThatThrownBy(() -> useCase.summarize(command)).isInstanceOf(EntityNotFoundException.class);
@@ -150,8 +150,7 @@ class SummarizeSpendingUseCaseTest {
         @DisplayName("when the spending query repository raises PersistenceFailedException - then the "
                 + "exception propagates unchanged")
         void whenSpendingQueryRepositoryThrowsPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
             when(spendingQueryRepository.create(any())).thenThrow(failure);
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-07-27", "2026-08-02");

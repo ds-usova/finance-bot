@@ -8,7 +8,6 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.model.User;
 import java.util.List;
 
@@ -27,11 +26,7 @@ public class BrowseExpensesUseCase implements BrowseExpensesPort {
 
     @Override
     public ExpensePage browse(BrowseExpensesCommand command) {
-        User user = userRepository
-                .findByExternalId(command.userId().externalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user",
-                        "no user stored under external id " + command.userId().externalId()));
+        User user = userRepository.requireByExternalId(command.userId().externalId());
         long userId = user.id().orElseThrow();
 
         List<ExpenseEntry> entries = expenseRepository.findPage(userId, command.filter());

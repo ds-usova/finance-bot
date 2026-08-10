@@ -6,7 +6,6 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.model.User;
@@ -36,10 +35,7 @@ public class CreateExpenseUseCase implements CreateExpensePort {
         if (command == null) {
             throw new InvalidExpenseException("new expense command is absent");
         }
-        User user = userRepository
-                .findByExternalId(command.userExternalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user", "no user stored under external id " + command.userExternalId()));
+        User user = userRepository.requireByExternalId(command.userExternalId());
         Instant now = Instant.now(clock);
         Expense expense = Expense.newExpense(
                 user.id().orElseThrow(),

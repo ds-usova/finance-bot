@@ -9,7 +9,6 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.IncomingMessageId;
@@ -44,11 +43,7 @@ public class AcceptExpensesUseCase implements AcceptExpensesPort {
             throw new InvalidExpenseAcceptanceException("accept-expenses command is absent");
         }
 
-        User user = userRepository
-                .findByExternalId(command.userId().externalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user",
-                        "no user stored under external id " + command.userId().externalId()));
+        User user = userRepository.requireByExternalId(command.userId().externalId());
         long userId = user.id().orElseThrow();
 
         List<IncomingMessageId> movedMessages =

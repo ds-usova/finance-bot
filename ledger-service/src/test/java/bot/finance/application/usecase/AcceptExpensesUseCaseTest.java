@@ -29,7 +29,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -67,7 +66,7 @@ class AcceptExpensesUseCaseTest {
     }
 
     private void stubStoredUser() {
-        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     @Nested
@@ -142,7 +141,8 @@ class AcceptExpensesUseCaseTest {
         @Test
         @DisplayName("when no user is stored for the caller's external id - then EntityNotFoundException is thrown")
         void whenNoUserRowForCallersExternalId_thenEntityNotFoundExceptionThrownAndNothingMovedOrDispatched() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.accept(commandFor(List.of(1L))))
                     .isInstanceOf(EntityNotFoundException.class);
