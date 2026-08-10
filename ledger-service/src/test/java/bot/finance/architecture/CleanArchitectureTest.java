@@ -4,6 +4,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
+import bot.finance.domain.exception.InvalidValueException;
 import bot.finance.domain.model.Entity;
 import bot.finance.domain.value.AuthenticatedUserId;
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -95,6 +96,23 @@ class CleanArchitectureTest {
             .haveSimpleNameNotEndingWith("Test")
             .should()
             .beAssignableTo(Entity.class);
+
+    /**
+     * So a value object written later is refused as a bad request rather than answered 500: the web advice maps
+     * the root, and a new exception outside the hierarchy would fall through to its catch-all instead.
+     */
+    @ArchTest
+    static final ArchRule everyInvalidValueExceptionExtendsTheRoot = classes()
+            .that()
+            .resideInAPackage("bot.finance.domain.exception")
+            .and()
+            .haveSimpleNameStartingWith("Invalid")
+            .and()
+            .haveSimpleNameNotEndingWith("Test")
+            .and()
+            .doNotHaveSimpleName(InvalidValueException.class.getSimpleName())
+            .should()
+            .beAssignableTo(InvalidValueException.class);
 
     /**
      * Reads the port, not the {@code dto} package: {@code IntentExtractionRequest} lives in {@code dto} too and

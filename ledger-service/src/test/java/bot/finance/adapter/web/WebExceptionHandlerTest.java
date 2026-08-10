@@ -14,6 +14,7 @@ import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.Cookie;
@@ -104,6 +105,22 @@ class WebExceptionHandlerTest {
 
             String message = assertSingleJsonMessage(result);
             assertThat(message).doesNotContainIgnoringCase("session").doesNotContain(secretMessage);
+        }
+
+        @Test
+        @DisplayName("when the port throws a refused value no handler names - then the response is 400 without "
+                + "the exception's own wording")
+        void whenPortThrowsARefusedValueNoHandlerNames_thenResponseIs400WithoutTheExceptionsWording() throws Exception {
+            String internalWording = "externalId must not be absent, empty or whitespace-only";
+            when(browseExpensesPort.browse(any())).thenThrow(new InvalidMoneyException(internalWording));
+
+            MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            // A value object's message is written for whoever reads the log, so the caller is told there was a
+            // value it cannot accept and nothing more. Only a handler above this one echoes.
+            assertThat(assertSingleJsonMessage(result)).doesNotContain(internalWording);
         }
 
         @Test

@@ -8,6 +8,7 @@ import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.InvalidValueException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -93,6 +94,17 @@ public class WebExceptionHandler {
 
         logger.warn("rejected a request: {} {}", name, bound);
         return problem(HttpStatus.BAD_REQUEST, name + " " + bound);
+    }
+
+    /**
+     * The fallback for a refused value no handler above names, so a new value object answers 400 from the day it
+     * is written. The message is this module's own, never the exception's: only the handlers above it refuse
+     * with wording composed for a caller, and the rest name an internal field for a log.
+     */
+    @ExceptionHandler(InvalidValueException.class)
+    public ResponseEntity<Map<String, String>> onInvalidValue(InvalidValueException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, "the request carried a value this service cannot accept");
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
