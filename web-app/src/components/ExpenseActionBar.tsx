@@ -17,7 +17,9 @@ export function ExpenseActionBar({ count, onAccept, busy }: ExpenseActionBarProp
   return (
     <div className="flex h-10 items-center justify-end">
       {count > 0 && (
-        <Button onClick={onAccept} disabled={busy}>
+        // Outlined rather than filled: the action stands beside the listing's own badges, and a second
+        // accent-filled block there competes with them for the same attention.
+        <Button variant="outline" onClick={onAccept} disabled={busy}>
           {t('listing.acceptAction', { count })}
         </Button>
       )}

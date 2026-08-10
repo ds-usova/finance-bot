@@ -480,7 +480,6 @@ describe('the rendered day section', () => {
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('‹Today›');
-    expect(header).toHaveTextContent('‹1 entry awaits a decision›');
     expect(header).toHaveTextContent('‹1 entry ticked›');
     // The day's own checkbox, findable by its catalogue-substituted accessible name.
     expect(
@@ -683,7 +682,7 @@ describe('the rendered day section', () => {
     expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeEnabled();
   });
 
-  it('says how many are ticked, beside the count of what awaits a decision, on a collapsed day with two ticked', () => {
+  it('says how many are ticked instead of what awaits a decision, on a collapsed day with two ticked', () => {
     const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
     const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
     const pendingC = anExpense({ id: 3, status: 'PENDING', description: 'c' });
@@ -693,7 +692,8 @@ describe('the rendered day section', () => {
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('2 entries ticked');
-    expect(header).toHaveTextContent('3 entries await a decision');
+    // One badge, not two: ticking replaces what the header says rather than adding a second label beside it.
+    expect(header).not.toHaveTextContent('3 entries await a decision');
   });
 
   it('says nothing about ticks on a collapsed day with none ticked', () => {

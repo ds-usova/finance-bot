@@ -65,16 +65,20 @@ export function ExpenseDaySection({
             right, flush with the amounts in the panel below. A flat list of spans lets `justify-between`
             space them differently per day. */}
         <AccordionTrigger
-          className="gap-3 px-4 sm:px-5"
+          className="gap-3 pr-4 pl-3 sm:pr-5"
           leading={
-            pendingIds.length > 0 && (
-              <Checkbox
-                aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}
-                checked={dayChecked}
-                disabled={dayDisabled}
-                onCheckedChange={() => onTickDay(pendingIds, !allTicked)}
-              />
-            )
+            // The same gutter every entry row below reserves, so the day's tick sits over the column its
+            // entries' ticks stand in, and neither is flush with the card's edge.
+            <span className="flex w-4 shrink-0 items-center justify-center pl-4 sm:pl-5">
+              {pendingIds.length > 0 && (
+                <Checkbox
+                  aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}
+                  checked={dayChecked}
+                  disabled={dayDisabled}
+                  onCheckedChange={() => onTickDay(pendingIds, !allTicked)}
+                />
+              )}
+            </span>
           }
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
@@ -82,10 +86,15 @@ export function ExpenseDaySection({
             <span className="text-xs font-normal text-muted-foreground">
               {t('listing.entryCount', { count: day.entries.length })}
             </span>
-            {day.awaiting > 0 && (
-              <Badge>{t('listing.awaitingCount', { count: day.awaiting })}</Badge>
+            {/* One badge, not two beside each other: it names what is ticked once anything is, and what
+                awaits a decision otherwise. */}
+            {tickedCount > 0 ? (
+              <Badge>{t('listing.tickedCount', { count: tickedCount })}</Badge>
+            ) : (
+              day.awaiting > 0 && (
+                <Badge>{t('listing.awaitingCount', { count: day.awaiting })}</Badge>
+              )
             )}
-            {tickedCount > 0 && <Badge>{t('listing.tickedCount', { count: tickedCount })}</Badge>}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             {day.totals.map((total, index) => (
@@ -106,9 +115,21 @@ export function ExpenseDaySection({
                 <li
                   key={`${entry.status}-${entry.id}`}
                   aria-label={entry.description}
-                  className="flex items-center justify-between gap-4 py-2.5"
+                  className="flex items-center gap-3 py-2.5"
                 >
-                  <div className="flex min-w-0 flex-col">
+                  {/* Every row reserves the gutter and only a PENDING one puts a checkbox in it (D34), so a
+                      day mixing the two statuses keeps its descriptions in one column. */}
+                  <span className="flex w-4 shrink-0 items-center justify-center">
+                    {entry.status === 'PENDING' && (
+                      <Checkbox
+                        aria-label={t('listing.entryCheckboxLabel')}
+                        checked={tickedIds.has(entry.id)}
+                        disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
+                        onCheckedChange={(checked) => onTick(entry.id, checked === true)}
+                      />
+                    )}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{entry.description}</span>
                     {secondary && (
                       <span className="truncate text-xs text-muted-foreground">{secondary}</span>
@@ -119,14 +140,6 @@ export function ExpenseDaySection({
                     <span className="whitespace-nowrap text-right tabular-nums">
                       {formatMoney(entry.money)}
                     </span>
-                    {entry.status === 'PENDING' && (
-                      <Checkbox
-                        aria-label={t('listing.entryCheckboxLabel')}
-                        checked={tickedIds.has(entry.id)}
-                        disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
-                        onCheckedChange={(checked) => onTick(entry.id, checked === true)}
-                      />
-                    )}
                   </div>
                 </li>
               );

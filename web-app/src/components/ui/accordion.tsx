@@ -18,11 +18,13 @@ export function AccordionTrigger({
   leading?: ReactNode;
 }) {
   return (
-    <AccordionPrimitive.Header className="flex items-center gap-3">
+    // The hover layer is the header's, not the trigger's: a leading control sits outside the trigger, so a
+    // highlight painted by the trigger alone stops short of it and the row reads as two pieces.
+    <AccordionPrimitive.Header className="flex items-center rounded-xl transition-colors hover:bg-muted/50">
       {leading}
       <AccordionPrimitive.Trigger
         className={cn(
-          'flex flex-1 cursor-pointer items-center justify-between gap-2 rounded-xl py-4 text-left text-sm font-medium outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-accent [&[data-state=open]>svg]:rotate-180',
+          'flex flex-1 cursor-pointer items-center justify-between gap-2 rounded-xl py-4 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent [&[data-state=open]>svg]:rotate-180',
           className,
         )}
         {...props}
