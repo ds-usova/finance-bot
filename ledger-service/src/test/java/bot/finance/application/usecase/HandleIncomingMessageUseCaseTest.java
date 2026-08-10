@@ -18,6 +18,7 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.SpendingSummary;
 import bot.finance.application.dto.TurnReport;
@@ -29,6 +30,7 @@ import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
@@ -36,10 +38,11 @@ import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
@@ -60,6 +63,7 @@ class HandleIncomingMessageUseCaseTest {
     private static final String EXTERNAL_ID = "555";
     private static final String CONVERSATION_ID = "777";
     private static final String INBOUND_MESSAGE_ID = "1";
+    private static final String SENT_MESSAGE_ID = "999";
     private static final String TEXT = "spent 12 on coffee";
 
     private Logger log;
@@ -71,6 +75,7 @@ class HandleIncomingMessageUseCaseTest {
     private Clock clock;
     private SpendingQueryRepository spendingQueryRepository;
     private ExpenseRepository expenseRepository;
+    private ProposalReportRepository proposalReportRepository;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -86,9 +91,11 @@ class HandleIncomingMessageUseCaseTest {
         clock = Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC);
         spendingQueryRepository = mock(SpendingQueryRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
+        proposalReportRepository = mock(ProposalReportRepository.class);
         when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any()))
                 .thenReturn(List.of());
         when(expenseRepository.totalsByCurrency(anyLong(), any())).thenReturn(List.of());
+        when(messageDeliveryPort.deliver(any())).thenReturn(Optional.empty());
         useCase = new HandleIncomingMessageUseCase(
                 initializeUserPort,
                 groupingRepository,
@@ -98,6 +105,7 @@ class HandleIncomingMessageUseCaseTest {
                 clock,
                 spendingQueryRepository,
                 expenseRepository,
+                proposalReportRepository,
                 loggerFactory);
     }
 
@@ -193,19 +201,19 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when handle is called - then the reference it mints reaches both read-backs")
-        void whenHandleIsCalled_thenTheReferenceItMintsReachesBothReadBacks() {
+        @DisplayName("when handle is called - then the reference derived from the command reaches both read-backs")
+        void whenHandleIsCalled_thenTheDerivedReferenceReachesBothReadBacks() {
             stubKnownUserAndGroupings();
             when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
-            assertThat(reference).isNotNull();
+            IncomingMessageId derivedReference = IncomingMessageId.of(CONVERSATION_ID, INBOUND_MESSAGE_ID);
+            assertThat(capturedExtractionRequest().incomingMessageId()).isEqualTo(derivedReference);
 
-            verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, reference);
-            verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, reference);
+            verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, derivedReference);
+            verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, derivedReference);
         }
 
         @Test
@@ -263,7 +271,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
+            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
 
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.RECORDED);
@@ -420,6 +428,55 @@ class HandleIncomingMessageUseCaseTest {
             doThrow(failure).when(messageDeliveryPort).deliver(any(TurnReport.class));
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
+
+            verifyNoInteractions(proposalReportRepository);
+        }
+
+        @Test
+        @DisplayName(
+                "when delivery answers a location - then one report row is stored for the turn's own message " + "id")
+        void whenDeliveryAnswersALocation_thenOneReportRowIsStoredForTheTurnsOwnMessageId() {
+            stubKnownUserAndGroupings();
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+            ReportLocation location = new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID);
+            when(messageDeliveryPort.deliver(any())).thenReturn(Optional.of(location));
+
+            useCase.handle(newCommand());
+
+            ArgumentCaptor<ProposalReport> reportCaptor = ArgumentCaptor.forClass(ProposalReport.class);
+            verify(proposalReportRepository).store(reportCaptor.capture());
+            ProposalReport stored = reportCaptor.getValue();
+            assertThat(stored.userId()).isEqualTo(USER_ID);
+            assertThat(stored.incomingMessageId()).isEqualTo(IncomingMessageId.of(CONVERSATION_ID, INBOUND_MESSAGE_ID));
+            assertThat(stored.conversationId()).isEqualTo(CONVERSATION_ID);
+            assertThat(stored.sentMessageId()).isEqualTo(SENT_MESSAGE_ID);
+        }
+
+        @Test
+        @DisplayName("when delivery answers nothing - then no report row is stored and the turn still succeeds")
+        void whenDeliveryAnswersNothing_thenNoReportRowIsStoredAndTurnStillSucceeds() {
+            stubKnownUserAndGroupings();
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+
+            assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
+
+            verifyNoInteractions(proposalReportRepository);
+        }
+
+        @Test
+        @DisplayName("when the report row cannot be stored - then the turn still succeeds and nothing propagates")
+        void whenReportRowCannotBeStored_thenTurnStillSucceedsAndNothingPropagates() {
+            stubKnownUserAndGroupings();
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+            ReportLocation location = new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID);
+            when(messageDeliveryPort.deliver(any())).thenReturn(Optional.of(location));
+            when(proposalReportRepository.store(any()))
+                    .thenThrow(new PersistenceFailedException("store failed", new RuntimeException()));
+
+            assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
         }
 
         @Test
@@ -434,7 +491,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            ArgumentCaptor<MessageReference> referenceCaptor = ArgumentCaptor.forClass(MessageReference.class);
+            ArgumentCaptor<IncomingMessageId> referenceCaptor = ArgumentCaptor.forClass(IncomingMessageId.class);
             verify(spendingQueryRepository).discard(eq(USER_ID), referenceCaptor.capture());
             verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, referenceCaptor.getValue());
         }
@@ -454,6 +511,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatThrownBy(() -> useCase.handle(newCommand())).isInstanceOf(MessageDeliveryFailedException.class);
 
             verify(spendingQueryRepository, never()).discard(anyLong(), any());
+            verifyNoInteractions(proposalReportRepository);
         }
 
         @Test
@@ -648,7 +706,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            MessageReference reference = capturedExtractionRequest().messageReference();
+            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
 
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);

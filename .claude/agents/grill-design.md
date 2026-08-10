@@ -1,6 +1,7 @@
 ---
 name: grill-design
-description: Interrogate a design file against the real codebase for the gaps a design forgets — failure modes, retries, concurrency, data edges, compatibility, lifecycle, observability, authorization, limits, and unwritten business invariants. Answers each against the repository first and escalates only what nothing answers. Spawn it with the design file path; design-task runs it automatically as its last step.
+description: Interrogate a design file against the real codebase for the gaps a design forgets — failure modes, retries, concurrency, data edges, compatibility, lifecycle, observability, authorization, limits, and unwritten business invariants. Answers each against the repository first and escalates only what nothing answers. Reports its findings; the session that spawned it writes them down. Spawn it with the design file path; design-task runs it automatically as its last step.
+tools: Read, Grep, Glob, Bash
 ---
 
 # Grill Design
@@ -72,44 +73,48 @@ rather than sharpen it, and reshaping is the user's call.
 
 Never mark an entry `decided`. That basis records the user's own choice and is written only when the user makes it.
 
-## 4. Report — Append, Never Rewrite
+## 4. Report Back
 
-Append each finding to the design file's **Decisions** section as a new entry, in that section's exact format,
-numbered past the highest `D` already present:
+This agent writes nothing. It has no file-writing tools, and the design file is edited only by the session that
+spawned it. Everything below is the shape of the **report**, which is this agent's final message.
 
-```
-- **D7:** What does the caller see when the database is unavailable mid-write?
-- Answer: The adapter's persistence failure propagates; nothing is stored and no partial row is written.
-- Basis: assumed — the sibling resource's adapter classifies every non-constraint persistence failure this way,
-  and a single-row insert leaves no partial state.
-```
-
-Then replace the **Design Findings** placeholder with the categories examined that yielded nothing:
+Give each finding as a block, numbered from `1` for this report alone. Never a `D` number: those belong to the
+design file, and the session that owns it assigns them.
 
 ```
-Grilled (2026-07-30): nothing to raise on authorization, limits, contract compat.
+1. What does the caller see when the database is unavailable mid-write?
+   Answer: the adapter's persistence failure propagates; nothing is stored and no partial row is written.
+   Basis: assumed — the sibling resource's adapter classifies every non-constraint persistence failure this
+   way, and a single-row insert leaves no partial state.
+   Already in the design: no.
 ```
 
-That line is the difference between a question nobody asked and a question asked and answered — the next reader
+`Already in the design:` is what keeps the design file from saying the same thing twice. Answer it for every
+finding: name the section and the line that already covers it, or say no. The session decides what to do with
+that, and it can only decide well if the question was asked.
+
+State a finding once. A second finding that turns on the same fact says so and does not restate it.
+
+Close the report with the categories from §2 that were examined and yielded nothing, as a list of names and
+nothing else:
+
+```
+Examined and clear: authorization, limits, contract compat.
+```
+
+That list is the difference between a question nobody asked and a question asked and answered — the next reader
 cannot tell them apart otherwise.
 
-Then run `design.sh validate` (at `scripts/design/design.sh` under the plugin root — `${CLAUDE_PLUGIN_ROOT}`
-installed, `.claude/` in a plain checkout) and fix anything it reports **in the entries this pass appended**. A
-malformed entry blocks the design's gate on a formatting defect rather than on the question it raises. A problem in
-an entry that was already there is reported, not corrected — this skill does not edit existing entries.
-
-**This skill only ever appends `D` entries and writes that one line.** Do not modify existing entries, their
-`Answer:` or `Basis:` lines, or any other section of the design file — and never touch production code, test code,
-or a plan. An existing entry the grill disagrees with becomes a *new* entry saying so, citing the entry it
+**Never edit the design.** Not an entry, not a section, not the body — and never production code, test code, or a
+plan. Where an existing entry looks wrong, that is a finding like any other, and it names the entry it
 challenges.
 
 ## 5. A Design That Was Already Grilled
 
-Recognizable because **Design Findings** already carries a `Grilled (...)` line. Everything above still applies,
-with these differences:
+The session says so when it spawns or resumes this agent. Everything above still applies, with these
+differences:
 
 - Judge the design **as it now stands**. An entry already marked `decided` stands as decided; do not re-open it
   because another answer looks better.
-- Append new entries past the highest existing number, and add a second `Grilled (<date>):` line beneath the first.
-- If nothing new survives, write `Grilled (<date>): no new findings` — a grill that leaves no trace is
+- Raise only what is new. If nothing is, say `No new findings` — a grill that reports nothing is otherwise
   indistinguishable from one that never ran.

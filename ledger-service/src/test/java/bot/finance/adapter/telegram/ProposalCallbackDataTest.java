@@ -1,13 +1,13 @@
 package bot.finance.adapter.telegram;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import bot.finance.adapter.telegram.ProposalCallbackData.ParsedCallback;
 import bot.finance.application.dto.ProposalResolution;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,7 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ProposalCallbackDataTest {
 
-    private static final MessageReference REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId REFERENCE = IncomingMessageId.of("conversation-1", "42");
 
     @Nested
     @DisplayName("rendering a resolution and a reference into a callback payload")
@@ -27,7 +27,7 @@ class ProposalCallbackDataTest {
 
         @Test
         @DisplayName(
-                "when ACCEPT and a reference are rendered - then returns accept: followed by that reference's canonical UUID text")
+                "when ACCEPT and a reference are rendered - then returns accept: followed by that reference's derived value")
         void whenAcceptAndReferenceAreRendered_thenReturnsAcceptFollowedByCanonicalUuidText() {
             String payload = ProposalCallbackData.render(ProposalResolution.ACCEPT, REFERENCE);
 
@@ -36,7 +36,7 @@ class ProposalCallbackDataTest {
 
         @Test
         @DisplayName(
-                "when DISCARD and a reference are rendered - then returns discard: followed by that reference's canonical UUID text")
+                "when DISCARD and a reference are rendered - then returns discard: followed by that reference's derived value")
         void whenDiscardAndReferenceAreRendered_thenReturnsDiscardFollowedByCanonicalUuidText() {
             String payload = ProposalCallbackData.render(ProposalResolution.DISCARD, REFERENCE);
 
@@ -57,7 +57,7 @@ class ProposalCallbackDataTest {
         }
 
         static Stream<Arguments> resolutionsWithExpectedByteLength() {
-            return Stream.of(Arguments.of(ProposalResolution.ACCEPT, 43), Arguments.of(ProposalResolution.DISCARD, 44));
+            return Stream.of(Arguments.of(ProposalResolution.ACCEPT, 24), Arguments.of(ProposalResolution.DISCARD, 25));
         }
     }
 
@@ -67,13 +67,21 @@ class ProposalCallbackDataTest {
 
         @Test
         @DisplayName(
-                "when parsing what render(ACCEPT, reference) produced - then returns ACCEPT and that same reference")
-        void whenParsingPayloadRenderAcceptProduced_thenReturnsParsedCallbackCarryingAcceptAndSameReference() {
+                "when parsing render(ACCEPT, reference)'s output - then returns ACCEPT and the same reference, derived or legacy")
+        void whenParsingRenderAcceptOutput_thenReturnsAcceptAndSameReferenceDerivedOrLegacy() {
             String payload = ProposalCallbackData.render(ProposalResolution.ACCEPT, REFERENCE);
 
             Optional<ParsedCallback> parsed = ProposalCallbackData.parse(payload);
 
             assertThat(parsed).contains(new ParsedCallback(ProposalResolution.ACCEPT, REFERENCE));
+
+            IncomingMessageId legacyReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            String legacyPayload = ProposalCallbackData.render(ProposalResolution.ACCEPT, legacyReference);
+
+            Optional<ParsedCallback> parsedLegacy = ProposalCallbackData.parse(legacyPayload);
+
+            assertThat(parsedLegacy).contains(new ParsedCallback(ProposalResolution.ACCEPT, legacyReference));
         }
 
         @Test
@@ -88,12 +96,14 @@ class ProposalCallbackDataTest {
         }
 
         @Test
-        @DisplayName("when parsing accept:not-a-uuid - then returns empty and throws nothing")
+        @DisplayName("when parsing accept:777:123 - then returns ACCEPT and that id, and a payload with no colon "
+                + "at all still answers empty")
         void whenParsingAcceptColonNotAUuid_thenReturnsEmptyAndThrowsNothing() {
-            assertThatNoException().isThrownBy(() -> {
-                Optional<ParsedCallback> parsed = ProposalCallbackData.parse("accept:not-a-uuid");
-                assertThat(parsed).isEmpty();
-            });
+            Optional<ParsedCallback> parsed = ProposalCallbackData.parse("accept:777:123");
+
+            assertThat(parsed).contains(new ParsedCallback(ProposalResolution.ACCEPT, IncomingMessageId.of("777:123")));
+
+            assertThat(ProposalCallbackData.parse("no-colon-here")).isEmpty();
         }
 
         @ParameterizedTest(name = "{0}")

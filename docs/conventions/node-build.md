@@ -50,6 +50,9 @@ The thresholds live in the module's `vite.config.ts` under `test.coverage.thresh
 Formatting is Prettier, configured in the module's `.prettierrc.json`. `format:check` fails the build on
 unformatted code and `format` rewrites it.
 
+**Formatting is never a reason to run the suite again.** Prettier rewrites layout; it cannot change a test
+result. Run the suite once — before the format or after it — and never on both sides of it.
+
 Linting is ESLint with the TypeScript rules, configured in `eslint.config.js`. `eslint-config-prettier` is last
 in the chain, so no lint rule disagrees with the formatter about layout.
 

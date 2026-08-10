@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static bot.finance.common.stubs.TelegramTestBot.DELIVERY_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.forToken;
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.dto.ResolutionOutcome;
@@ -28,7 +30,6 @@ import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -54,6 +55,7 @@ class TelegramMessageDeliveryAdapterTest {
     private static final String CONVERSATION_ID = "777";
     private static final String INBOUND_MESSAGE_ID = "123";
     private static final String INTERACTION_ID = "callback-query-id-1";
+    private static final String SENT_MESSAGE_ID = "555";
 
     @AfterEach
     void tearDown() {
@@ -79,7 +81,7 @@ class TelegramMessageDeliveryAdapterTest {
                                 Optional.empty(),
                                 new Money(6000, CurrencyCode.of("EUR")))),
                 List.of(),
-                MessageReference.newReference());
+                newIncomingMessageId());
     }
 
     private static TurnReport nothingIdentifiedReport() {
@@ -89,12 +91,16 @@ class TelegramMessageDeliveryAdapterTest {
                 ReportOutcome.NOTHING_IDENTIFIED,
                 List.of(),
                 List.of(),
-                MessageReference.newReference());
+                newIncomingMessageId());
     }
 
     private static ResolutionAcknowledgement acceptedAcknowledgement() {
         return new ResolutionAcknowledgement(
                 CONVERSATION_ID, INBOUND_MESSAGE_ID, INTERACTION_ID, ResolutionOutcome.ACCEPTED, 1);
+    }
+
+    private static ReportLocation sentReportLocation() {
+        return new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID);
     }
 
     private static TelegramMessageDeliveryAdapter adapterOver(TelegramBot bot) {
@@ -206,17 +212,66 @@ class TelegramMessageDeliveryAdapterTest {
         }
 
         @Test
-        @DisplayName("when a report carries no summaries - then the sendMessage carries no reply_markup")
+        @DisplayName("when a report carries no summaries - then the sendMessage carries no reply_markup and "
+                + "nothing is returned")
         void whenCalledWithNothingIdentifiedReport_thenSendMessageCarriesNoReplyMarkupFormParam() {
             telegramAcceptsSendMessage(DELIVERY_TOKEN);
             TurnReport report = nothingIdentifiedReport();
             TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
 
-            adapter.deliver(report);
+            Optional<ReportLocation> location = adapter.deliver(report);
 
             List<LoggedRequest> sent = recordedSendMessages(DELIVERY_TOKEN);
             assertThat(sent).hasSize(1);
             assertThat(sent.get(0).formParameter("reply_markup").isPresent()).isFalse();
+            assertThat(location).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when a report carrying proposals is delivered - then the returned location carries the "
+                + "chat and message id")
+        void
+                whenCalledWithRecordedReportAndSendMessageAccepted_thenReturnedLocationCarriesChatAndMessageIdTelegramGave() {
+            telegramAcceptsSendMessage(DELIVERY_TOKEN);
+            TurnReport report = recordedReportWithTwoSummaries();
+            TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
+
+            Optional<ReportLocation> location = adapter.deliver(report);
+
+            assertThat(location).contains(new ReportLocation(CONVERSATION_ID, "9999"));
+        }
+    }
+
+    @Nested
+    @DisplayName("clearButtons(ReportLocation)")
+    class ClearButtons {
+
+        @Test
+        @DisplayName("when the edit is accepted - then one editMessageReplyMarkup names the chat and message with "
+                + "no keyboard or text")
+        void whenEditMessageReplyMarkupAccepted_thenEditNamesChatAndMessageAndCarriesNoKeyboardOrText() {
+            telegramAcceptsEditMessageReplyMarkup(DELIVERY_TOKEN);
+            ReportLocation location = sentReportLocation();
+            TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
+
+            adapter.clearButtons(location);
+
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkups(DELIVERY_TOKEN);
+            assertThat(edits).hasSize(1);
+            assertThat(edits.get(0).formParameter("chat_id").getValues()).containsExactly(CONVERSATION_ID);
+            assertThat(edits.get(0).formParameter("message_id").getValues()).containsExactly(SENT_MESSAGE_ID);
+            assertThat(edits.get(0).formParameter("reply_markup").isPresent()).isFalse();
+            assertThat(edits.get(0).formParameter("text").isPresent()).isFalse();
+        }
+
+        @Test
+        @DisplayName("when the edit is refused - then throws MessageDeliveryFailedException")
+        void whenEditMessageReplyMarkupRefused_thenThrowsMessageDeliveryFailedException() {
+            telegramFailsEditMessageReplyMarkup(DELIVERY_TOKEN, 400, "simulated editMessageReplyMarkup failure");
+            ReportLocation location = sentReportLocation();
+            TelegramMessageDeliveryAdapter adapter = adapterOver(forToken(DELIVERY_TOKEN));
+
+            assertThatThrownBy(() -> adapter.clearButtons(location)).isInstanceOf(MessageDeliveryFailedException.class);
         }
     }
 

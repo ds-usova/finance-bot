@@ -1,6 +1,6 @@
 # ADR 0010: A message reference rides the caller token, not the extraction request
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR 0015
 - **Date:** 2026-08-03
 - **Source:** [Identify the User by Telegram User Id and Report the Proposals Back](../../../docs/implemented/11-report-expense-proposals-to-the-user/plan.md)
 

@@ -1,5 +1,6 @@
 package bot.finance.application.port;
 
+import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
@@ -15,6 +16,21 @@ public interface UserRepository {
      * @throws PersistenceFailedException if the lookup fails
      */
     Optional<User> findByExternalId(String externalId);
+
+    /**
+     * The caller a use case is acting for, refused where the store holds none. Every use case that acts on
+     * somebody's own ledger needs the stored id before it can read or write anything, and an absent row is the
+     * same refusal each time — a session outliving its user, or a tool called for somebody who never signed in.
+     * A use case for which absence is not a refusal calls {@link #findByExternalId} and decides for itself.
+     *
+     * @throws EntityNotFoundException if no user is stored under that external id
+     * @throws PersistenceFailedException if the lookup fails
+     */
+    default User requireByExternalId(String externalId) {
+        return findByExternalId(externalId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("user", "no user stored under external id " + externalId));
+    }
 
     /**
      * @throws InvalidUserException if the user's external id violates a column constraint

@@ -18,6 +18,7 @@ src/main
 │   │   ├── port        # inbound/outbound port interfaces
 │   │   └── dto
 │   └── adapter         # interface adapters
+│       ├── async       # background work dispatched off the request thread, fronting no external system
 │       ├── config      # use-case bean wiring only
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound

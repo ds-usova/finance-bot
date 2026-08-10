@@ -1,0 +1,32 @@
+post:
+  operationId: acceptExpenses
+  summary: Accept the signed-in person's pending proposals, by id.
+  description: >-
+    Every id is taken as the id of a `PENDING` entry of the signed-in person's, as the listing answered it. An
+    id naming no such entry is counted in `missing` rather than refused, so `accepted` plus `missing` always
+    equals the number of ids the request carried.
+  tags:
+    - expenses
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../ledger-api.yaml#/components/schemas/AcceptanceRequest'
+  responses:
+    '200':
+      description: The write ran. It moved whatever the ids matched, which may be nothing.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Acceptance'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '403':
+      description: The request carried no CSRF token.
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

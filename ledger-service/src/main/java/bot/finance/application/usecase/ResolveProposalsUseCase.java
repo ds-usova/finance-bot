@@ -12,7 +12,7 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.time.Clock;
 import java.time.Instant;
 
@@ -73,7 +73,7 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
     }
 
     private int applyResolution(long userId, ResolveProposalsCommand command) {
-        MessageReference reference = command.reference();
+        IncomingMessageId reference = command.reference();
         return switch (command.resolution()) {
             case ACCEPT -> expenseProposalRepository.accept(userId, reference, Instant.now(clock));
             case DISCARD -> expenseProposalRepository.discard(userId, reference);

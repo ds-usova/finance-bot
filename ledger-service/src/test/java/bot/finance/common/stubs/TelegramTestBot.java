@@ -82,6 +82,11 @@ public final class TelegramTestBot {
      */
     public static final String WEB_SESSION_TOKEN = "web-session-test-token";
 
+    /**
+     * Token owned by {@code AcceptExpensesSystemTest}, whose clearing reaches a stub path no other class can.
+     */
+    public static final String ACCEPT_EXPENSES_TOKEN = "accept-expenses-test-token";
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

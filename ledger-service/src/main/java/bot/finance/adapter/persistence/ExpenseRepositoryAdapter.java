@@ -8,7 +8,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -44,7 +44,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     }
 
     @Override
-    public int countByMessageReference(long userId, MessageReference reference) {
+    public int countByMessageReference(long userId, IncomingMessageId reference) {
         try {
             return expenseEntityRepository.countByMessageReference(userId, reference.value());
         } catch (RuntimeException e) {
@@ -137,7 +137,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
                 mapped.merchant(),
                 mapped.amountMinorUnits(),
                 mapped.currencyCode(),
-                mapped.messageReference(),
+                mapped.incomingMessageId(),
                 mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
                 mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
     }

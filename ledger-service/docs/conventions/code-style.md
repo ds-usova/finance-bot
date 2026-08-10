@@ -36,11 +36,15 @@ Applies across all layers.
   thing to keep in sync. The same goes for `@param`/`@return` tags that only spell the parameter name out again.
   **Never cite a plan step or a design decision by number** — `D7`, `RI03`. Those live in an archived task
   directory that a reader of this file has no reason to open, and they name nothing once the plan is finished.
-  Write the reason itself, or leave it out.
+  Write the reason itself, or leave it out. `CommentConventionsTest` in `bot.finance.architecture` fails the run
+  on one, so it is caught before review rather than in it.
 
 ### Domain
 
-- One exception type per error case, in `domain/exception`.
+- One exception type per error case, in `domain/exception`. A refusal that a value cannot exist extends
+  `InvalidValueException`, so an inbound adapter answers a value object written later without having been taught
+  it (enforced). The root carries no wording of its own: the web advice answers its own message and echoes the
+  exception's only where that message was composed for a caller.
 - Behaviour lives on the object that owns the data. A method that mainly reads a domain object's own fields
   belongs on that class — not as a free function taking it as a parameter, and not on a persistence entity.
 - Value objects validate themselves in their compact constructor, so an invalid instance cannot exist anywhere

@@ -119,7 +119,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .post("/api/v1/session");
             logResponse(response);
 
-            response.then().statusCode(401);
+            response.then().statusCode(403);
             assertThat(userEntityRepository.findByExternalId(externalId)).isEmpty();
         }
     }

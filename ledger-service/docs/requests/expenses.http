@@ -5,6 +5,9 @@
 @host = http://localhost:1000
 # Set from the fb_session cookie a sign-in response sets — see session.http.
 @sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie a "read the session" response returns — see session.http; the acceptance below
+# needs it.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
 
 ### Unfiltered — the default page, limit 50, offset 0.
 GET {{host}}/api/v1/expenses
@@ -21,3 +24,17 @@ Cookie: fb_session={{sessionCookie}}
 ### Narrowed by a period — both days required, the last day included.
 GET {{host}}/api/v1/expenses?from=2026-01-01&to=2026-01-31
 Cookie: fb_session={{sessionCookie}}
+
+### Accepting proposals — POST /api/v1/expenses/acceptances
+# Moves pending proposals of the signed-in person's own into recorded expenses, by id. Needs an open session and
+# the CSRF header, since it writes.
+
+### Two ids, both the signed-in person's own.
+POST {{host}}/api/v1/expenses/acceptances
+Content-Type: application/json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "ids": [1, 2]
+}

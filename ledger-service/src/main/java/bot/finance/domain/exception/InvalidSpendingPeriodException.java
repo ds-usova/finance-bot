@@ -1,6 +1,6 @@
 package bot.finance.domain.exception;
 
-public class InvalidSpendingPeriodException extends RuntimeException {
+public class InvalidSpendingPeriodException extends InvalidValueException {
 
     public InvalidSpendingPeriodException(String message) {
         super(message);

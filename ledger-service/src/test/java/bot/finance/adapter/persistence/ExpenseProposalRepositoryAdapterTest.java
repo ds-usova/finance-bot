@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.ProposalSummary;
@@ -18,13 +19,16 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
+import bot.finance.domain.value.ProposalIds;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,7 +67,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Weekly shop",
                     Optional.of("Trader Joe's"),
                     new Money(1500, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -91,7 +95,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Electric bill",
                     Optional.empty(),
                     new Money(4200, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             ExpenseProposal created = adapter.create(proposal);
@@ -115,7 +119,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Dinner",
                     Optional.empty(),
                     new Money(3000, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     nanosecondInstant);
 
             ExpenseProposal created = adapter.create(proposal);
@@ -142,7 +146,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             adapter.create(proposal);
@@ -166,7 +170,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     description,
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -186,7 +190,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             adapter.create(proposal);
@@ -210,7 +214,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.of(merchant),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(InvalidExpenseProposalException.class);
@@ -230,7 +234,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -250,7 +254,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -273,7 +277,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "First purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
             ExpenseProposal secondProposal = ExpenseProposal.newExpenseProposal(
                     secondUserId,
@@ -281,7 +285,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Second purchase",
                     Optional.empty(),
                     new Money(200, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             adapter.create(firstProposal);
@@ -305,7 +309,7 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenCalledWithMessageReference_thenRowMessageReferenceColumnHoldsItsUuid() {
             long userId = storedUserId("message-reference-proposal-user");
             long categoryId = storedGroupingId(userId, "Category");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
                     userId,
                     categoryId,
@@ -318,7 +322,7 @@ class ExpenseProposalRepositoryAdapterTest {
             adapter.create(proposal);
 
             List<ExpenseProposalEntity> rows = expenseProposalRowsFor(userId);
-            assertThat(rows).singleElement().satisfies(row -> assertThat(row.messageReference())
+            assertThat(rows).singleElement().satisfies(row -> assertThat(row.incomingMessageId())
                     .isEqualTo(reference.value()));
         }
     }
@@ -334,7 +338,7 @@ class ExpenseProposalRepositoryAdapterTest {
             long userId = storedUserId("summary-ordering-user");
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Instant base = Instant.now().minusSeconds(60);
 
             ExpenseProposalRowUtils.storedProposal(
@@ -389,8 +393,10 @@ class ExpenseProposalRepositoryAdapterTest {
             long userId = storedUserId("summary-two-references-user");
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
-            MessageReference firstReference = MessageReference.newReference();
-            MessageReference secondReference = MessageReference.newReference();
+            IncomingMessageId firstReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId secondReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -426,7 +432,8 @@ class ExpenseProposalRepositoryAdapterTest {
             long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");
             long secondUserId = storedUserId("summary-shared-reference-second-user");
             long secondCategoryId = storedCategoryId(secondUserId, storedGroupingId(secondUserId, "Food"), "Groceries");
-            MessageReference sharedReference = MessageReference.newReference();
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     firstUserId,
@@ -460,8 +467,8 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenReferenceHasNoStoredProposals_thenReturnsEmptyList() {
             long userId = storedUserId("summary-no-proposals-user");
 
-            List<ProposalSummary> summaries =
-                    adapter.findSummariesByMessageReference(userId, MessageReference.newReference());
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(summaries).isEmpty();
         }
@@ -473,7 +480,7 @@ class ExpenseProposalRepositoryAdapterTest {
             long userId = storedUserId("summary-no-merchant-user");
             long parentId = storedGroupingId(userId, "Food");
             long categoryId = storedCategoryId(userId, parentId, "Groceries");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -501,9 +508,12 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenTwoProposalsShareAReference_thenOnlyThoseMoveToExpense() {
             long userId = storedUserId("accept-two-proposals-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
-            MessageReference reference = MessageReference.newReference();
-            MessageReference otherReference = MessageReference.newReference();
-            Instant createdAt = Instant.now().minusSeconds(60);
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId otherReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            // An exact microsecond: Postgres rounds a finer instant to the nearest one, so a fixture carrying
+            // nanoseconds cannot be compared against what comes back.
+            Instant createdAt = Instant.parse("2026-01-12T18:04:00Z");
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -549,8 +559,8 @@ class ExpenseProposalRepositoryAdapterTest {
                         assertThat(row.merchant()).isEqualTo("Trader Joe's");
                         assertThat(row.amountMinorUnits()).isEqualTo(1500);
                         assertThat(row.currencyCode()).isEqualTo("USD");
-                        assertThat(row.messageReference()).isEqualTo(reference.value());
-                        assertThat(row.createdAt()).isEqualTo(truncatedNow);
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                        assertThat(row.createdAt()).isEqualTo(createdAt);
                         assertThat(row.updatedAt()).isEqualTo(truncatedNow);
                     })
                     .anySatisfy(row -> {
@@ -559,8 +569,8 @@ class ExpenseProposalRepositoryAdapterTest {
                         assertThat(row.merchant()).isNull();
                         assertThat(row.amountMinorUnits()).isEqualTo(2500);
                         assertThat(row.currencyCode()).isEqualTo("EUR");
-                        assertThat(row.messageReference()).isEqualTo(reference.value());
-                        assertThat(row.createdAt()).isEqualTo(truncatedNow);
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                        assertThat(row.createdAt()).isEqualTo(createdAt);
                         assertThat(row.updatedAt()).isEqualTo(truncatedNow);
                     });
             assertThat(expenseProposalRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.description())
@@ -572,7 +582,7 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenProposalMerchantColumnIsNull_thenWrittenExpenseRowMerchantColumnIsNull() {
             long userId = storedUserId("accept-null-merchant-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Utilities");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -595,7 +605,8 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenReferenceHasNoStoredProposals_thenReturnsZeroAndWritesNoExpenseRow() {
             long userId = storedUserId("accept-no-proposals-user");
 
-            int moved = adapter.accept(userId, MessageReference.newReference(), Instant.now());
+            int moved = adapter.accept(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()), Instant.now());
 
             assertThat(moved).isEqualTo(0);
             assertThat(expenseRowsFor(userId)).isEmpty();
@@ -609,7 +620,8 @@ class ExpenseProposalRepositoryAdapterTest {
             long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");
             long secondUserId = storedUserId("accept-shared-reference-second-user");
             long secondCategoryId = storedCategoryId(secondUserId, storedGroupingId(secondUserId, "Food"), "Groceries");
-            MessageReference sharedReference = MessageReference.newReference();
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     firstUserId,
@@ -641,12 +653,12 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when now carries nanosecond precision - then both written timestamps are truncated to microseconds")
+        @DisplayName("when now carries nanosecond precision - then the written updated_at is truncated to microseconds")
         void whenNowCarriesNanosecondPrecision_thenWrittenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("accept-nanosecond-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant proposedAt = Instant.parse("2026-01-12T18:04:00Z");
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -656,14 +668,14 @@ class ExpenseProposalRepositoryAdapterTest {
                     3000,
                     "USD",
                     reference.value(),
-                    Instant.now().minusSeconds(30));
+                    proposedAt);
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
 
             adapter.accept(userId, reference, nanosecondInstant);
 
             Instant truncated = nanosecondInstant.truncatedTo(ChronoUnit.MICROS);
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
-                assertThat(row.createdAt()).isEqualTo(truncated);
+                assertThat(row.createdAt()).isEqualTo(proposedAt);
                 assertThat(row.updatedAt()).isEqualTo(truncated);
             });
         }
@@ -678,8 +690,9 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenTwoProposalsShareAReference_thenOnlyThoseTwoAreDiscarded() {
             long userId = storedUserId("discard-two-proposals-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
-            MessageReference reference = MessageReference.newReference();
-            MessageReference otherReference = MessageReference.newReference();
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId otherReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             Instant createdAt = Instant.now().minusSeconds(60);
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate, userId, categoryId, "First", null, 100, "USD", reference.value(), createdAt);
@@ -717,7 +730,8 @@ class ExpenseProposalRepositoryAdapterTest {
         void whenReferenceHasNoStoredProposals_thenReturnsZero() {
             long userId = storedUserId("discard-no-proposals-user");
 
-            int discarded = adapter.discard(userId, MessageReference.newReference());
+            int discarded = adapter.discard(
+                    userId, IncomingMessageId.of(UUID.randomUUID().toString()));
 
             assertThat(discarded).isEqualTo(0);
         }
@@ -729,7 +743,8 @@ class ExpenseProposalRepositoryAdapterTest {
             long firstCategoryId = storedCategoryId(firstUserId, storedGroupingId(firstUserId, "Food"), "Groceries");
             long secondUserId = storedUserId("discard-shared-reference-second-user");
             long secondCategoryId = storedCategoryId(secondUserId, storedGroupingId(secondUserId, "Food"), "Groceries");
-            MessageReference sharedReference = MessageReference.newReference();
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     firstUserId,
@@ -760,6 +775,291 @@ class ExpenseProposalRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("accepting proposals by id")
+    class AcceptByIds {
+
+        @Test
+        @DisplayName(
+                "when two proposals share a reported message - then both move and the answer holds that message twice")
+        void whenTwoProposalsShareReportedMessage_thenBothMoveAndAnswerHoldsMessageTwice() {
+            long userId = storedUserId("accept-by-ids-two-on-one-message-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant createdAt = Instant.now().minusSeconds(60);
+            ExpenseProposalEntity first = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "With merchant",
+                    "Trader Joe's",
+                    1500,
+                    "USD",
+                    reference.value(),
+                    createdAt);
+            ExpenseProposalEntity second = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "No merchant",
+                    null,
+                    2500,
+                    "EUR",
+                    reference.value(),
+                    createdAt);
+            Instant now = Instant.now();
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), now);
+
+            assertThat(expenseProposalRowsFor(userId)).isEmpty();
+            List<ExpenseEntity> expenseRows = expenseRowsFor(userId);
+            assertThat(expenseRows).hasSize(2);
+            assertThat(expenseRows)
+                    .anySatisfy(row -> {
+                        assertThat(row.categoryId()).isEqualTo(categoryId);
+                        assertThat(row.description()).isEqualTo("With merchant");
+                        assertThat(row.merchant()).isEqualTo("Trader Joe's");
+                        assertThat(row.amountMinorUnits()).isEqualTo(1500);
+                        assertThat(row.currencyCode()).isEqualTo("USD");
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                    })
+                    .anySatisfy(row -> {
+                        assertThat(row.categoryId()).isEqualTo(categoryId);
+                        assertThat(row.description()).isEqualTo("No merchant");
+                        assertThat(row.merchant()).isNull();
+                        assertThat(row.amountMinorUnits()).isEqualTo(2500);
+                        assertThat(row.currencyCode()).isEqualTo("EUR");
+                        assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                    });
+            assertThat(answer).containsExactlyInAnyOrder(reference, reference);
+        }
+
+        @Test
+        @DisplayName(
+                "when a single pending proposal is accepted - then it moves and keeps the message it was reported on")
+        void whenOnePendingProposalAcceptedAlone_thenItMovesAndKeepsReportedMessage() {
+            long userId = storedUserId("accept-by-ids-single-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(proposal.id())), Instant.now());
+
+            assertThat(answer).containsExactly(reference);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.incomingMessageId())
+                    .isEqualTo(reference.value()));
+        }
+
+        @Test
+        @DisplayName(
+                "when two proposals reported on two different messages are accepted together - then the answer holds each message once")
+        void whenTwoProposalsReportedOnTwoDifferentMessages_thenAnswerHoldsEachMessageOnce() {
+            long userId = storedUserId("accept-by-ids-two-messages-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId firstReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId secondReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity first = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    firstReference.value(),
+                    Instant.now().minusSeconds(30));
+            ExpenseProposalEntity second = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    secondReference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
+
+            assertThat(answer).containsExactlyInAnyOrder(firstReference, secondReference);
+        }
+
+        @Test
+        @DisplayName(
+                "when the same ids were accepted a moment earlier - then the answer is empty and no second expense row is stored")
+        void whenSameIdsAcceptedAMomentEarlier_thenAnswerIsEmptyAndNoSecondExpenseRowStored() {
+            long userId = storedUserId("accept-by-ids-repeat-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            ProposalIds ids = ProposalIds.of(List.of(proposal.id()));
+            adapter.acceptByIds(userId, ids, Instant.now());
+
+            List<IncomingMessageId> secondAnswer = adapter.acceptByIds(userId, ids, Instant.now());
+
+            assertThat(secondAnswer).isEmpty();
+            assertThat(expenseRowsFor(userId)).hasSize(1);
+        }
+
+        @Test
+        @DisplayName(
+                "when an id names another person's pending proposal - then the answer is empty and that person's row still stands")
+        void whenIdNamesAnotherPersonsProposal_thenAnswerIsEmptyAndOtherPersonsRowStillStands() {
+            long ownerUserId = storedUserId("accept-by-ids-owner-user");
+            long ownerCategoryId = storedCategoryId(ownerUserId, storedGroupingId(ownerUserId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalEntity ownerProposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Someone else's proposal",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            long callerUserId = storedUserId("accept-by-ids-caller-user");
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(callerUserId, ProposalIds.of(List.of(ownerProposal.id())), Instant.now());
+
+            assertThat(answer).isEmpty();
+            assertThat(expenseProposalRowsFor(ownerUserId)).singleElement().satisfies(row -> assertThat(row.id())
+                    .isEqualTo(ownerProposal.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when an id names the caller's own expense rather than a proposal - then nothing is accepted or written")
+        void whenIdNamesCallersOwnExpenseRatherThanProposal_thenNothingIsAcceptedOrWritten() {
+            long userId = storedUserId("accept-by-ids-names-expense-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity existingExpense = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Already recorded",
+                    null,
+                    500,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(existingExpense.id())), Instant.now());
+
+            assertThat(answer).isEmpty();
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.id())
+                    .isEqualTo(existingExpense.id()));
+        }
+
+        @Test
+        @DisplayName("when accepting a proposal made days ago - then the expense keeps that day and is updated now")
+        void whenAcceptingAProposalMadeDaysAgo_thenExpenseKeepsThatDayAndIsUpdatedNow() {
+            long userId = storedUserId("accept-by-ids-timestamp-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant proposedAt = Instant.parse("2026-01-12T18:04:00Z");
+            ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    proposedAt);
+            Instant now = Instant.parse("2026-01-15T10:30:00.123456789Z");
+
+            adapter.acceptByIds(userId, ProposalIds.of(List.of(proposal.id())), now);
+
+            // The day a person sees the entry under is created_at, so re-dating it on acceptance would move a
+            // days-old proposal to today and empty the day it was made on.
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
+                assertThat(row.createdAt()).isEqualTo(proposedAt);
+                assertThat(row.updatedAt()).isEqualTo(now.truncatedTo(ChronoUnit.MICROS));
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("finding which messages still hold a pending proposal")
+    class FindWithPendingProposals {
+
+        @Test
+        @DisplayName("when only one of two messages still holds a pending proposal - then only that one is answered")
+        void whenOnlyOneOfTwoMessagesStillHoldsPendingProposal_thenOnlyThatOneIsAnswered() {
+            long userId = storedUserId("pending-messages-one-empty-user");
+            long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
+            IncomingMessageId stillPending =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId emptied = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Still pending",
+                    null,
+                    100,
+                    "USD",
+                    stillPending.value(),
+                    Instant.now().minusSeconds(30));
+
+            Set<IncomingMessageId> answer = adapter.findWithPendingProposals(userId, List.of(stillPending, emptied));
+
+            assertThat(answer).containsExactly(stillPending);
+        }
+
+        @Test
+        @DisplayName(
+                "when a message's only remaining proposal belongs to another person - then it is not answered for the caller")
+        void whenMessagesOnlyRemainingProposalBelongsToAnotherPerson_thenNotAnsweredForCaller() {
+            long ownerUserId = storedUserId("pending-messages-other-owner-user");
+            long ownerCategoryId = storedCategoryId(ownerUserId, storedGroupingId(ownerUserId, "Food"), "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Someone else's proposal",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30));
+            long callerUserId = storedUserId("pending-messages-caller-user");
+
+            Set<IncomingMessageId> answer = adapter.findWithPendingProposals(callerUserId, List.of(reference));
+
+            assertThat(answer).isEmpty();
+        }
+    }
+
     // The scenarios below need a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure, and a constraint failure naming
     // neither of expense_proposal's own foreign keys. They construct their own adapter over a
@@ -786,7 +1086,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
@@ -812,7 +1112,7 @@ class ExpenseProposalRepositoryAdapterTest {
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
-                    MessageReference.newReference(),
+                    IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
             assertThatThrownBy(() -> mockedAdapter.create(proposal))
@@ -829,7 +1129,8 @@ class ExpenseProposalRepositoryAdapterTest {
             when(mockedExpenseProposalEntityRepository.findSummariesByMessageReference(any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.findSummariesByMessageReference(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.findSummariesByMessageReference(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -842,7 +1143,8 @@ class ExpenseProposalRepositoryAdapterTest {
             when(mockedExpenseProposalEntityRepository.accept(any(), any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.accept(1L, MessageReference.newReference(), Instant.now()))
+            assertThatThrownBy(() -> mockedAdapter.accept(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString()), Instant.now()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -854,10 +1156,21 @@ class ExpenseProposalRepositoryAdapterTest {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
             when(mockedExpenseProposalEntityRepository.discard(any(), any())).thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.discard(1L, MessageReference.newReference()))
+            assertThatThrownBy(() -> mockedAdapter.discard(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when called with an empty collection of message ids - then the answer is empty and no statement runs")
+        void whenCalledWithEmptyCollectionOfMessageIds_thenAnswerIsEmptyAndNoStatementRuns() {
+            Set<IncomingMessageId> answer = mockedAdapter.findWithPendingProposals(1L, List.of());
+
+            assertThat(answer).isEmpty();
+            verifyNoInteractions(mockedExpenseProposalEntityRepository);
         }
     }
 

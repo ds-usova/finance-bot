@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -10,7 +11,7 @@ import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ExpenseProposalToolMapperTest {
 
     private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     private static CreateExpenseProposalToolRequest requestWith(String amount, String currencyCode) {
         return new CreateExpenseProposalToolRequest("Groceries", "Food", "Milk", "Corner Shop", amount, currencyCode);
@@ -61,11 +62,11 @@ class ExpenseProposalToolMapperTest {
                 + "carries that reference")
         void whenRequestIdentityAndReferenceAreValid_thenReturnedCommandCarriesThatReference() {
             CreateExpenseProposalToolRequest request = requestWith("15.00", "EUR");
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
 
             CreateExpenseProposalCommand command = ExpenseProposalToolMapper.toCommand(request, USER_ID, reference);
 
-            assertThat(command.messageReference()).isEqualTo(reference);
+            assertThat(command.incomingMessageId()).isEqualTo(reference);
         }
 
         @ParameterizedTest(name = "{0}")

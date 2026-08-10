@@ -16,6 +16,10 @@
   from a 503.
 - **Comments: the fewer the better.** Write one only for what the code cannot show — third-party behaviour a
   reader would otherwise look up, or a constraint forcing a workaround. Never restate a name or a signature.
+  **Never cite a plan step or a design decision by number** — `D34`, `RU03`, `Q1`. Those live in an archived
+  task directory a reader of this file has no reason to open, and they name nothing once the plan is finished.
+  Write the reason itself, or leave it out. `src/conventions.test.ts` fails the run on one, so it is caught
+  before review rather than in it.
 
 ## Refactoring Conventions
 

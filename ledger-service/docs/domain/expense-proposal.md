@@ -12,7 +12,7 @@ One spending record assembled against a user and filed under a category, not yet
 - A merchant is present as an optional value, never absent; the value itself may be empty.
 - A money amount is present.
 - The owning user's id and the filed category's id are both positive.
-- The reference of the message that produced it is present.
+- The incoming message id of the message that produced it is present.
 - Both instants are present.
 
 ## Lifecycle
@@ -22,6 +22,7 @@ One spending record assembled against a user and filed under a category, not yet
 | Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)           | one per spending the model read out of a message  |
 | Changed  | never                                                                             | every field is fixed at creation                  |
 | Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)         | accepted or discarded, and removed either way     |
+| Removed  | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md)     | accepted from the page, by id                     |
 
 Accepting does not change a proposal's state — it removes the proposal and writes an [expense](expense.md)
 carrying the same values, in one statement
@@ -34,21 +35,25 @@ and "recorded" are not a column on either.
 [*] --> Proposed : Create an expense proposal
 Proposed --> [*] : Resolve — discarded
 Proposed --> Recorded : Resolve — accepted
+Proposed --> Recorded : Accept the proposals a person chose
 state Recorded #line.dashed : an Expense, in its own table
 Recorded --> [*] : only with its user
 @enduml
 ```
+
+The two acceptances differ only in what they name: a tap resolves every proposal under one message, and the page
+accepts the ones it was given by id.
 
 A proposal nobody resolves stays proposed. Nothing expires one.
 
 ## Made of / held by
 
 The owning user's id, the filed category's id, a description, an optional merchant, a [money](money.md) amount,
-the reference of the message it came from, and the instants it was created and last updated.
+the incoming message id of the message it came from, and the instants it was created and last updated.
 
 - [User](user.md) — who the proposal is recorded against.
 - [Category](category.md) — what it is filed under, by the category's stored id.
-- [Message reference](message-reference.md) — which message produced it, and what the report answering that
+- [Incoming message id](incoming-message-id.md) — which message produced it, and what the report answering that
   message is assembled from.
 - [Money](money.md) — what was proposed, and its [currency](currency-code.md).
 - How long its text may be is checked where it is stored

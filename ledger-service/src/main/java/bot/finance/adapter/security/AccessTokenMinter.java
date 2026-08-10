@@ -1,6 +1,6 @@
 package bot.finance.adapter.security;
 
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccessTokenMinter {
 
+    /** Named by the class that puts it on the token, and read back by {@link AuthenticatedCaller}. */
+    static final String INCOMING_MESSAGE_ID_CLAIM = "imi";
+
     private final AccessTokenProperties properties;
     private final TokenSigningKeys signingKeys;
 
@@ -23,7 +26,7 @@ public class AccessTokenMinter {
         this.signingKeys = signingKeys;
     }
 
-    public String mint(String userExternalId, MessageReference reference) {
+    public String mint(String userExternalId, IncomingMessageId reference) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -33,7 +36,7 @@ public class AccessTokenMinter {
                 .issueTime(issuedAt)
                 .expirationTime(expiresAt)
                 .jwtID(UUID.randomUUID().toString())
-                .claim("mrf", reference.value().toString())
+                .claim(INCOMING_MESSAGE_ID_CLAIM, reference.value())
                 .build();
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(signingKeys.keyId())

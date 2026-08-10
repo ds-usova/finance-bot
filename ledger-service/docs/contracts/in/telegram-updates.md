@@ -53,7 +53,7 @@ Four of the values Telegram puts on a tap are read:
 - **which tap it is** — what gets answered, so the button stops spinning on the tapper's client;
 - **what the tapped button carries** — the payload the bot itself wrote into it
   ([outgoing replies](../out/telegram-replies.md)), naming which of the two buttons it is and which
-  [message](../../domain/message-reference.md) the report was about.
+  [message](../../domain/incoming-message-id.md) the report was about.
 
 The payload never says who tapped. A tapper can send any payload they like and resolve nothing by it, because
 everything the tap reaches is scoped to the tapper's own rows.

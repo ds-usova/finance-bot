@@ -3,7 +3,7 @@ package bot.finance.application.dto;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.util.Optional;
 
@@ -14,7 +14,7 @@ public record CreateExpenseProposalCommand(
         String description,
         Optional<String> merchant,
         Money money,
-        MessageReference messageReference) {
+        IncomingMessageId incomingMessageId) {
 
     public CreateExpenseProposalCommand {
         if (userId == null) {
@@ -36,8 +36,8 @@ public record CreateExpenseProposalCommand(
         if (money == null) {
             throw new InvalidExpenseProposalException("new expense proposal has no money");
         }
-        if (messageReference == null) {
-            throw new InvalidExpenseProposalException("new expense proposal has no messageReference");
+        if (incomingMessageId == null) {
+            throw new InvalidExpenseProposalException("new expense proposal has no incomingMessageId");
         }
     }
 }

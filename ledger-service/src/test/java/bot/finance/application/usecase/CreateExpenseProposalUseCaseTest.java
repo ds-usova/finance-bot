@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,7 +29,7 @@ import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
 import java.time.Instant;
@@ -47,7 +48,7 @@ class CreateExpenseProposalUseCaseTest {
     private static final long GROUPING_ID = 3L;
     private static final long CATEGORY_ID = 2L;
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
-    private static final MessageReference MESSAGE_REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     private UserRepository userRepository;
     private GroupingRepository groupingRepository;
@@ -92,7 +93,7 @@ class CreateExpenseProposalUseCaseTest {
 
     /** Stores a user and answers the command's grouping name. */
     private StoredGrouping stubResolvedGrouping() {
-        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
         StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
         when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
         return storedGrouping;
@@ -162,7 +163,8 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when nothing is stored under the command's external id - then throws "
                 + "EntityNotFoundException naming \"user\"")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatExceptionOfType(EntityNotFoundException.class)
                     .isThrownBy(() -> useCase.create(newExpenseProposal()))
@@ -206,7 +208,7 @@ class CreateExpenseProposalUseCaseTest {
         void whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenThrow(failure);
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
@@ -220,7 +222,7 @@ class CreateExpenseProposalUseCaseTest {
                 + "the grouping")
         void whenGroupingRepositoryAnswersNothing_thenThrowsInvalidGroupingExceptionNamingTheGrouping() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(storedUser);
             when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
@@ -253,7 +255,7 @@ class CreateExpenseProposalUseCaseTest {
                 + "unchanged")
         void whenGroupingRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(storedUser));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(storedUser);
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenThrow(failure);
@@ -271,7 +273,7 @@ class CreateExpenseProposalUseCaseTest {
 
             useCase.create(newExpenseProposal());
 
-            assertThat(capturedProposal().messageReference()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(capturedProposal().incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
         }
 
         @Test

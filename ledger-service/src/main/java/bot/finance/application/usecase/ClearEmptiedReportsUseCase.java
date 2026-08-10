@@ -1,0 +1,92 @@
+package bot.finance.application.usecase;
+
+import bot.finance.application.dto.ClearEmptiedReportsCommand;
+import bot.finance.application.dto.ReportLocation;
+import bot.finance.application.port.ClearEmptiedReportsPort;
+import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.Logger;
+import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.domain.exception.InvalidProposalReportException;
+import bot.finance.domain.exception.MessageDeliveryFailedException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.model.ProposalReport;
+import bot.finance.domain.value.IncomingMessageId;
+import java.util.List;
+import java.util.Set;
+
+public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
+
+    private final ExpenseProposalRepository expenseProposalRepository;
+    private final ProposalReportRepository proposalReportRepository;
+    private final MessageDeliveryPort messageDeliveryPort;
+    private final Logger log;
+
+    public ClearEmptiedReportsUseCase(
+            ExpenseProposalRepository expenseProposalRepository,
+            ProposalReportRepository proposalReportRepository,
+            MessageDeliveryPort messageDeliveryPort,
+            LoggerFactory loggerFactory) {
+        this.expenseProposalRepository = expenseProposalRepository;
+        this.proposalReportRepository = proposalReportRepository;
+        this.messageDeliveryPort = messageDeliveryPort;
+        this.log = loggerFactory.getLogger(ClearEmptiedReportsUseCase.class);
+    }
+
+    @Override
+    public void clear(ClearEmptiedReportsCommand command) {
+        if (command == null) {
+            throw new InvalidProposalReportException("clear-emptied-reports command is absent");
+        }
+
+        List<IncomingMessageId> messageIds = command.incomingMessageIds();
+        if (messageIds.isEmpty()) {
+            return;
+        }
+
+        Set<IncomingMessageId> stillPending;
+        try {
+            stillPending = expenseProposalRepository.findWithPendingProposals(command.userId(), messageIds);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to read pending proposal counts for user {}: {}", command.userId(), e.getMessage());
+            return;
+        }
+
+        for (IncomingMessageId messageId : messageIds) {
+            if (!stillPending.contains(messageId)) {
+                clearReportsFor(command.userId(), messageId);
+            }
+        }
+    }
+
+    private void clearReportsFor(long userId, IncomingMessageId messageId) {
+        List<ProposalReport> reports;
+        try {
+            reports = proposalReportRepository.findByIncomingMessageId(userId, messageId);
+        } catch (PersistenceFailedException e) {
+            // Returning rather than propagating is what leaves the messages after this one still to be cleared:
+            // the caller runs on a pool thread whose only handler is a catch-all, so an escape ends the batch.
+            log.warn("failed to read where message {} was reported: {}", messageId, e.getMessage());
+            return;
+        }
+
+        if (reports.isEmpty()) {
+            log.debug("no report is recorded for message {}, so nothing is cleared", messageId);
+            return;
+        }
+
+        boolean allCleared = true;
+        for (ProposalReport report : reports) {
+            try {
+                messageDeliveryPort.clearButtons(new ReportLocation(report.conversationId(), report.sentMessageId()));
+            } catch (MessageDeliveryFailedException e) {
+                allCleared = false;
+                log.warn("failed to clear report for message {}: {}", messageId, e.getMessage());
+            }
+        }
+        if (allCleared) {
+            log.info("cleared report for message {}", messageId);
+        }
+    }
+}

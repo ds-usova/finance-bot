@@ -86,6 +86,14 @@ against, and each pipeline is handed its own module's.
 
 **No pipeline repeats either gate.** By the time one starts, phase 1 has changed the tree.
 
+**These figures are a measurement, not a formality, and a measurement is not repeated over an unchanged tree.**
+A guardrail that would run a module's suite when nothing under that module has been written since the last full
+run of it reads that run's figures instead. The condition is checkable: whoever is about to run knows what it
+has written. This narrows nothing and skips no stage — a guardrail still gates the commit that follows it, and
+still runs the whole suite the moment that module's files have moved. What it stops is the same suite answering
+the same question twice, which on a module whose run takes minutes and starts a container is the largest
+avoidable cost in a task.
+
 ## Phase 1 — The Seam, Alone
 
 Present only when the design named an artifact more than one module reads at build time — a schema, a generated
@@ -102,7 +110,9 @@ by its own `implement-plan-module` agent.
 - **Its exit guardrail is Stage 1's, over every module it lists** — they compile, their architecture tests pass,
   their pre-existing suites are still green, and nothing was lost. Not a bespoke compile check: a guardrail that
   only compiles proves nothing about what a regenerated contract did to behaviour that still had tests. Tell its
-  agent that its Affected Modules are all of them, not one.
+  agent that its Affected Modules are all of them, not one. A module whose files this plan never touched — one
+  that only regenerates from the artifact and compiles clean — is answered by phase 0's figures under the rule
+  above, since nothing under it has been written.
 - **A disabled test's reason names the module plan and step that owes the rework** — `module-a/plan.md · RI03`.
   That is a reference for whoever reads the skip list, not a schedule: the pipeline that owns the step clears it
   during its own red phase.
@@ -138,19 +148,50 @@ When every pipeline has returned:
    scenario covered, a gap the design never named, an inconsistency the change left behind. A blocker the run
    settled stays in its plan as that plan's history and never appears here; so does a question already answered.
 
+   **An affected module's conventions may name something else that belongs here**, and that is read rather than
+   remembered: a module whose suite cannot see a whole class of defect leaves the list of what a person still
+   has to look at, which no step implemented and no test closed. Follow the conventions index to whatever the
+   module says its finished work leaves open.
+
    ```
    # Review: <task name>
 
-   <One line: what the task delivered, and that everything below is open.>
+   **<the counts by section, or that nothing is open>**
 
-   ## <module>
-
-   - **<what is wrong>** — where it is, what it does, and why the task left it. Name the plan item it came from.
+   ## Critical
    ```
 
-   One `##` per plan that has something open, module plans and `shared/plan.md` alike, in the order the task
-   directory lists them. A plan with nothing open gets no heading. **A task with nothing open still gets the
-   file**, carrying one line that says so — a missing file and a clean task must never look the same.
+   **The first line is the whole file when the task is clean**: `**Nothing open.** <one clause>`. A reader who
+   sees it stops there. A missing file and a clean task must never look the same, which is why the file is
+   written either way.
+
+   Sections are these four, in this order, and a section with nothing in it is left out:
+
+   | Section                   | Holds                                       | Shape                                            |
+   |---------------------------|---------------------------------------------|--------------------------------------------------|
+   | **Critical**              | fix before the next task starts             | one block per defect, in the form below          |
+   | **Bug**                   | real, and it can wait                       | one block per defect, in the form below          |
+   | **Refactoring candidate** | nothing behaves wrong                       | table — module · what · why the task left it |
+   | **Manual test**           | what no test can see, so a person must look | `- [ ]` checklist, one line each                 |
+
+   **A defect is reported as a case, not as a description.** Whoever picks it up reproduces it before fixing it,
+   and a paragraph about a class does not tell them how:
+
+   ```
+   **`<module>` — <the symptom, in one line>**
+
+   - **Given** <the state the system is in>
+   - **When** <what happens>
+   - **Then** <what should follow>
+   - **Actual** <what follows instead>
+   - **Fix** <the proposal> · `<class or file>`
+   ```
+
+   **The module comes first** — in a defect's heading, in the first cell of a table row, and in a checklist item
+   unless every item shares one module, which the section's opening line then names. Nothing is *grouped* by
+   module: a reader triages by what a row costs them, and this tells them where to go once they have.
+
+   **Write what a person hits, not the mechanism.** The class is the last thing on the line, never the sentence.
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.

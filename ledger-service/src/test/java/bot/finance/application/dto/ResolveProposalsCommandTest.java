@@ -1,10 +1,11 @@
 package bot.finance.application.dto;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class ResolveProposalsCommandTest {
         @Test
         @DisplayName("when every component is present and non-blank - then each reads back what was passed")
         void whenAllComponentsArePresent_thenEachComponentReadsBackWhatWasPassed() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
 
             ResolveProposalsCommand command =
                     new ResolveProposalsCommand("42", "555", "1", "abc", reference, ProposalResolution.ACCEPT);
@@ -40,12 +41,7 @@ class ResolveProposalsCommandTest {
         @DisplayName("when userExternalId is null or blank - then throws InvalidIncomingMessageException")
         void whenUserExternalIdIsNullOrBlank_thenThrowsInvalidIncomingMessageException(String userExternalId) {
             assertThatThrownBy(() -> new ResolveProposalsCommand(
-                            userExternalId,
-                            "555",
-                            "1",
-                            "abc",
-                            MessageReference.newReference(),
-                            ProposalResolution.ACCEPT))
+                            userExternalId, "555", "1", "abc", newIncomingMessageId(), ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -55,12 +51,7 @@ class ResolveProposalsCommandTest {
         @DisplayName("when conversationId is null or blank - then throws InvalidIncomingMessageException")
         void whenConversationIdIsNullOrBlank_thenThrowsInvalidIncomingMessageException(String conversationId) {
             assertThatThrownBy(() -> new ResolveProposalsCommand(
-                            "42",
-                            conversationId,
-                            "1",
-                            "abc",
-                            MessageReference.newReference(),
-                            ProposalResolution.ACCEPT))
+                            "42", conversationId, "1", "abc", newIncomingMessageId(), ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -70,12 +61,7 @@ class ResolveProposalsCommandTest {
         @DisplayName("when reportMessageId is null or blank - then throws InvalidIncomingMessageException")
         void whenReportMessageIdIsNullOrBlank_thenThrowsInvalidIncomingMessageException(String reportMessageId) {
             assertThatThrownBy(() -> new ResolveProposalsCommand(
-                            "42",
-                            "555",
-                            reportMessageId,
-                            "abc",
-                            MessageReference.newReference(),
-                            ProposalResolution.ACCEPT))
+                            "42", "555", reportMessageId, "abc", newIncomingMessageId(), ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -85,12 +71,7 @@ class ResolveProposalsCommandTest {
         @DisplayName("when interactionId is null or blank - then throws InvalidIncomingMessageException")
         void whenInteractionIdIsNullOrBlank_thenThrowsInvalidIncomingMessageException(String interactionId) {
             assertThatThrownBy(() -> new ResolveProposalsCommand(
-                            "42",
-                            "555",
-                            "1",
-                            interactionId,
-                            MessageReference.newReference(),
-                            ProposalResolution.ACCEPT))
+                            "42", "555", "1", interactionId, newIncomingMessageId(), ProposalResolution.ACCEPT))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
 
@@ -105,8 +86,7 @@ class ResolveProposalsCommandTest {
         @Test
         @DisplayName("when resolution is null - then throws InvalidIncomingMessageException")
         void whenResolutionIsNull_thenThrowsInvalidIncomingMessageException() {
-            assertThatThrownBy(() ->
-                            new ResolveProposalsCommand("42", "555", "1", "abc", MessageReference.newReference(), null))
+            assertThatThrownBy(() -> new ResolveProposalsCommand("42", "555", "1", "abc", newIncomingMessageId(), null))
                     .isInstanceOf(InvalidIncomingMessageException.class);
         }
     }

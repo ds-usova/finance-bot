@@ -2,7 +2,7 @@ package bot.finance.adapter.telegram;
 
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.util.Optional;
 
 public final class ProposalCallbackData {
@@ -13,9 +13,9 @@ public final class ProposalCallbackData {
 
     private ProposalCallbackData() {}
 
-    public record ParsedCallback(ProposalResolution resolution, MessageReference reference) {}
+    public record ParsedCallback(ProposalResolution resolution, IncomingMessageId reference) {}
 
-    public static String render(ProposalResolution resolution, MessageReference reference) {
+    public static String render(ProposalResolution resolution, IncomingMessageId reference) {
         String verb =
                 switch (resolution) {
                     case ACCEPT -> ACCEPT_VERB;
@@ -34,7 +34,7 @@ public final class ProposalCallbackData {
         }
 
         Optional<ProposalResolution> verb = verbOf(data.substring(0, separatorIndex));
-        Optional<MessageReference> reference = referenceOf(data.substring(separatorIndex + 1));
+        Optional<IncomingMessageId> reference = referenceOf(data.substring(separatorIndex + 1));
 
         if (verb.isEmpty() || reference.isEmpty()) {
             return Optional.empty();
@@ -51,9 +51,9 @@ public final class ProposalCallbackData {
         };
     }
 
-    private static Optional<MessageReference> referenceOf(String value) {
+    private static Optional<IncomingMessageId> referenceOf(String value) {
         try {
-            return Optional.of(MessageReference.of(value));
+            return Optional.of(IncomingMessageId.of(value));
         } catch (InvalidIncomingMessageException e) {
             return Optional.empty();
         }

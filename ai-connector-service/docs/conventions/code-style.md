@@ -40,7 +40,8 @@ Applies across all layers.
   thing to keep in sync. The same goes for `@param`/`@return` tags that only spell the parameter name out again.
   **Never cite a plan step or a design decision by number** — `D7`, `RI03`. Those live in an archived task
   directory that a reader of this file has no reason to open, and they name nothing once the plan is finished.
-  Write the reason itself, or leave it out.
+  Write the reason itself, or leave it out. `CommentConventionsTest` in `bot.finance.ai.architecture` fails the
+  run on one, so it is caught before review rather than in it.
 
 ### Domain
 

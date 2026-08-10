@@ -5,7 +5,6 @@ import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -18,7 +17,7 @@ public record ExpenseEntity(
         String merchant,
         long amountMinorUnits,
         String currencyCode,
-        UUID messageReference,
+        String incomingMessageId,
         Instant createdAt,
         Instant updatedAt) {
 

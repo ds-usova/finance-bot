@@ -1,14 +1,20 @@
 package bot.finance.adapter.web;
 
+import bot.finance.api.model.AcceptExpenses200Response;
+import bot.finance.api.model.AcceptExpensesRequest;
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
+import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.DayTotal;
+import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
+import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -16,6 +22,15 @@ import java.time.ZoneOffset;
 public final class ExpenseWebMapper {
 
     private ExpenseWebMapper() {}
+
+    public static AcceptExpensesCommand toAcceptExpensesCommand(
+            AcceptExpensesRequest request, AuthenticatedUserId userId) {
+        return new AcceptExpensesCommand(userId, ProposalIds.of(request.getIds()));
+    }
+
+    public static AcceptExpenses200Response toAcceptanceResponse(ExpenseAcceptance acceptance) {
+        return new AcceptExpenses200Response(acceptance.accepted(), acceptance.missing());
+    }
 
     public static ExpenseFilter toFilter(
             Integer limit, Integer offset, String status, Long categoryId, LocalDate from, LocalDate to) {

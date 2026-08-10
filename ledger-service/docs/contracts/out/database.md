@@ -1,8 +1,8 @@
 # Database — users, categories, expenses and expense proposals (SQL)
 
 Everything the service remembers. A user is stored under the identity the delivering platform knows them by; the
-categories they file spending under, the expenses they record, the expense proposals assembled against them, and
-the periods they have asked about, all hang off that user.
+categories they file spending under, the expenses they record, the expense proposals assembled against them, the
+periods they have asked about, and where each report they were sent was posted, all hang off that user.
 
 - **Counterpart:** the service's own PostgreSQL database — its address is [configuration](../../configuration.md)
 - **Transport:** SQL over JDBC
@@ -42,7 +42,7 @@ entity "expense" as expense {
   merchant : VARCHAR(255)
   * amount_minor_units : BIGINT <<check >= 0>>
   * currency_code : VARCHAR(3)
-  message_reference : UUID
+  incoming_message_id : TEXT
   * created_at : TIMESTAMPTZ
   * updated_at : TIMESTAMPTZ
 }
@@ -56,7 +56,7 @@ entity "expense_proposal" as expense_proposal {
   merchant : VARCHAR(255)
   * amount_minor_units : BIGINT <<check >= 0>>
   * currency_code : VARCHAR(3)
-  * message_reference : UUID
+  * incoming_message_id : TEXT
   * created_at : TIMESTAMPTZ
   * updated_at : TIMESTAMPTZ
 }
@@ -65,10 +65,21 @@ entity "spending_query" as spending_query {
   * id : BIGSERIAL <<PK>>
   --
   * user_id : BIGINT <<FK app_user.id>>
-  * message_reference : UUID
+  * incoming_message_id : TEXT
   * period_start : DATE
   * period_end : DATE <<check >= period_start>>
   * created_at : TIMESTAMPTZ
+}
+
+entity "proposal_report" as proposal_report {
+  * id : BIGSERIAL <<PK>>
+  --
+  * user_id : BIGINT <<FK app_user.id>>
+  * incoming_message_id : TEXT
+  * conversation_id : TEXT
+  * sent_message_id : TEXT
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
 }
 
 app_user ||--o{ category
@@ -78,6 +89,7 @@ category ||--o{ expense
 app_user ||--o{ expense_proposal
 category ||--o{ expense_proposal
 app_user ||--o{ spending_query
+app_user ||--o{ proposal_report
 @enduml
 ```
 
@@ -85,18 +97,24 @@ Indexes beyond the constraints above:
 
 - `uq_category_user_parent_name` on `(user_id, parent_id, name)`, **`NULLS NOT DISTINCT`**.
 - `idx_expense_user_created_at` on `(user_id, created_at DESC)`.
-- `idx_expense_message_reference` on `(user_id, message_reference)`.
+- `idx_expense_incoming_message` on `(user_id, incoming_message_id)`.
 - `idx_expense_proposal_user_created_at` on `(user_id, created_at DESC)`.
-- `idx_expense_proposal_message_reference` on `(user_id, message_reference)`.
-- `idx_spending_query_message_reference` on `(user_id, message_reference)`.
+- `idx_expense_proposal_incoming_message` on `(user_id, incoming_message_id)`.
+- `idx_spending_query_incoming_message` on `(user_id, incoming_message_id)`.
+- `idx_proposal_report_incoming_message` on `(user_id, incoming_message_id)`.
 
 ## What a Column Means
 
 - **A `category` row with no parent is a grouping.** That is the only thing telling a grouping from a category
   carrying the same name.
-- `message_reference` is a [message](../../domain/message-reference.md), in all three tables that carry one.
-- **A reference is in `expense_proposal` or in `expense`, never both.** No constraint enforces it
+- `incoming_message_id` is a [message](../../domain/incoming-message-id.md), in all four tables that carry one.
+  A value stored while the column was a `UUID` reads back as that UUID's canonical text.
+- **An incoming message id is in `expense_proposal` or in `expense`, never both.** No constraint enforces it
   ([ADR 0012](../../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
+- **`proposal_report` carries two message names, and they are different messages.** `incoming_message_id` is
+  what a person sent; `sent_message_id` is [the report](../../domain/proposal-report.md) the bot sent back about
+  it, in `conversation_id`.
+- **`proposal_report` has no unique key.** One incoming message reported twice holds a row each.
 - `user_id` cascades on delete everywhere. `category_id` does not: a category cannot be removed while an expense
   or a proposal references it.
 

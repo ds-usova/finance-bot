@@ -1,25 +1,29 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { en } from '../i18n/en';
 import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
-import { anExpense } from '../testing/fixtures';
-import { ExpenseDaySection } from './ExpenseDaySection';
+import { aDay, anExpense, categoryNames } from '../testing/fixtures';
+import { ExpenseDaySection, type ExpenseDaySectionProps } from './ExpenseDaySection';
 import type { ExpenseDay } from './expenseDays';
 
-const categoryNames = new Map([
-  [10, 'Groceries'],
-  [20, 'Transport'],
-]);
+/** The section under test, with the props a case says nothing about left inert. */
+function section(props: Partial<ExpenseDaySectionProps> & { day: ExpenseDay }) {
+  return (
+    <ExpenseDaySection
+      categoryNames={categoryNames}
+      tickedIds={new Set()}
+      onTick={vi.fn()}
+      onTickDay={vi.fn()}
+      tickHeadroom={Infinity}
+      {...props}
+    />
+  );
+}
 
-function aDay(overrides: Partial<ExpenseDay> = {}): ExpenseDay {
-  return {
-    day: '2026-08-01',
-    entries: [],
-    awaiting: 0,
-    totals: [],
-    ...overrides,
-  };
+function renderSection(props: Partial<ExpenseDaySectionProps> & { day: ExpenseDay }) {
+  return render(section(props));
 }
 
 afterEach(() => {
@@ -61,7 +65,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('Today');
@@ -81,13 +85,11 @@ describe('the rendered day section', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-05T10:00:00Z'));
 
-    const today = aDay({ day: '2026-08-05' });
-    const { unmount } = render(<ExpenseDaySection day={today} categoryNames={categoryNames} />);
+    const { unmount } = renderSection({ day: aDay({ day: '2026-08-05' }) });
     expect(screen.getByRole('button')).toHaveTextContent('Today');
     unmount();
 
-    const yesterday = aDay({ day: '2026-08-04' });
-    render(<ExpenseDaySection day={yesterday} categoryNames={categoryNames} />);
+    renderSection({ day: aDay({ day: '2026-08-04' }) });
     expect(screen.getByRole('button')).toHaveTextContent('Yesterday');
   });
 
@@ -97,7 +99,7 @@ describe('the rendered day section', () => {
 
     const day = aDay({ day: '2026-08-01' });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     // A fixed expected string, not the component's own Intl call repeated: built from the same expression,
     // this would hold in a zone that dated the heading a day off the entries the section holds.
@@ -121,7 +123,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /lunch/i });
@@ -132,6 +134,8 @@ describe('the rendered day section', () => {
     // Only a proposal is badged: a recorded entry is the ordinary case and carries no label of its own.
     expect(within(item).queryByText('Recorded')).not.toBeInTheDocument();
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
+    // A recorded entry is already settled, so it offers no checkbox at all.
+    expect(within(item).queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('keeps the header’s day, count and total whether it is open or closed', async () => {
@@ -155,7 +159,7 @@ describe('the rendered day section', () => {
     ];
     const day = aDay({ entries, totals: [{ amount: '12.50', currency: 'EUR', separator: '' }] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     const header = screen.getByRole('button');
 
     expect(header).toHaveTextContent('EUR12.50');
@@ -192,7 +196,7 @@ describe('the rendered day section', () => {
       ],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('EUR12.50');
@@ -225,7 +229,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('EUR8.00');
@@ -243,7 +247,7 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /vending machine/i });
@@ -259,7 +263,7 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /hotel/i });
@@ -274,7 +278,7 @@ describe('the rendered day section', () => {
       ],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('€12.50');
@@ -287,7 +291,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '1,245.00', currency: 'CHF', separator: ' ' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     expect(within(header).getByText('CHF 1,245.00')).toBeInTheDocument();
@@ -301,7 +305,7 @@ describe('the rendered day section', () => {
       ],
     });
 
-    const { rerender } = render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    const { rerender } = renderSection({ day });
     let header = screen.getByRole('button');
     expect(header).toHaveTextContent('€12.50');
     expect(header).toHaveTextContent('$9.00');
@@ -314,7 +318,7 @@ describe('the rendered day section', () => {
       ],
     });
 
-    rerender(<ExpenseDaySection day={updatedDay} categoryNames={categoryNames} />);
+    rerender(section({ day: updatedDay }));
 
     header = screen.getByRole('button');
     expect(header).toHaveTextContent('£20.00');
@@ -332,7 +336,7 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
 
     const header = screen.getByRole('button');
     // The heading's figure comes only from the section's totals, never from an entry's own money — so
@@ -351,13 +355,17 @@ describe('the rendered day section', () => {
     });
     const day = aDay({ entries: [entry], awaiting: 1, totals: [] });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(item).getByText('Pending')).toBeInTheDocument();
     expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
     expect(screen.queryByText(/^status$/i)).not.toBeInTheDocument();
+    // An entry still awaiting a decision offers a checkbox, findable by its accessible name.
+    expect(
+      within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeInTheDocument();
   });
 
   it('lists a recorded entry and a proposal that share an id as two separate entries, each carrying its own badge', () => {
@@ -381,7 +389,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '12.50', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
@@ -404,7 +412,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     const item = screen.getByRole('listitem', { name: /stamps/i });
@@ -433,7 +441,7 @@ describe('the rendered day section', () => {
       totals: [{ amount: '8.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    renderSection({ day });
     expandDays();
 
     expect(screen.getByRole('listitem', { name: /coffee/i })).toHaveTextContent('Corner Cafe');
@@ -467,15 +475,234 @@ describe('the rendered day section', () => {
       totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
     });
 
-    render(<ExpenseDaySection day={day} categoryNames={categoryNames} />);
+    // The pending entry ticked, so the header's ticked count is exercised too.
+    renderSection({ day, tickedIds: new Set([2]) });
 
     const header = screen.getByRole('button');
     expect(header).toHaveTextContent('‹Today›');
-    expect(header).toHaveTextContent('‹1 entry awaits a decision›');
+    expect(header).toHaveTextContent('‹1 entry ticked›');
+    // The day's own checkbox, findable by its catalogue-substituted accessible name.
+    expect(
+      screen.getByRole('checkbox', { name: '‹Select the 1 pending entry›' }),
+    ).toBeInTheDocument();
 
     expandDays();
 
     const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
     expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
+    expect(
+      within(pendingItem).getByRole('checkbox', { name: '‹Select this entry›' }),
+    ).toBeInTheDocument();
+  });
+
+  it('carries a checkbox on a pending row, findable by its accessible name, and none on a recorded row', () => {
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const recorded = anExpense({ id: 2, status: 'RECORDED', description: 'lunch' });
+    const day = aDay({ entries: [pending, recorded], awaiting: 1, totals: [] });
+
+    renderSection({ day });
+    expandDays();
+
+    const pendingItem = screen.getByRole('listitem', { name: /taxi/i });
+    const recordedItem = screen.getByRole('listitem', { name: /lunch/i });
+    expect(
+      within(pendingItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeInTheDocument();
+    expect(within(recordedItem).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('calls onTick with the entry’s id and false when its ticked checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onTick = vi.fn();
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1]), onTick });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /taxi/i });
+    const checkbox = within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel });
+    await user.click(checkbox);
+
+    expect(onTick).toHaveBeenCalledWith(1, false);
+    // Ticking an entry never opens or closes the section it sits in.
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+  });
+
+  it('calls onTick with the entry’s id and true when its unticked checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onTick = vi.fn();
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'taxi' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    renderSection({ day, onTick });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /taxi/i });
+    const checkbox = within(item).getByRole('checkbox', { name: en.listing.entryCheckboxLabel });
+    await user.click(checkbox);
+
+    expect(onTick).toHaveBeenCalledWith(1, true);
+  });
+
+  it('calls onTickDay with only the pending ids and true when the day’s own checkbox is clicked with none ticked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const recorded = anExpense({ id: 3, status: 'RECORDED', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, recorded], awaiting: 2, totals: [] });
+
+    renderSection({ day, onTickDay });
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 2 pending entries' });
+    await user.click(dayCheckbox);
+
+    expect(onTickDay).toHaveBeenCalledWith([1, 2], true);
+    // The day is collapsed and stays collapsed: clicking its checkbox is not clicking its header.
+    expect(screen.queryByText('a')).not.toBeInTheDocument();
+  });
+
+  it('reads the day’s checkbox as ticked when every pending entry is ticked, and calls onTickDay with those ids and false when clicked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const day = aDay({ entries: [pendingA, pendingB], awaiting: 2, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1, 2]), onTickDay });
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 2 pending entries' });
+    expect(dayCheckbox).toBeChecked();
+
+    await user.click(dayCheckbox);
+    expect(onTickDay).toHaveBeenCalledWith([1, 2], false);
+  });
+
+  it('reads the day’s checkbox as partly ticked when one of three pending entries is ticked, and calls onTickDay with all three and true when clicked', async () => {
+    const user = userEvent.setup();
+    const onTickDay = vi.fn();
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const pendingC = anExpense({ id: 3, status: 'PENDING', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, pendingC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1]), onTickDay });
+
+    const dayCheckbox = screen.getByRole('checkbox', { name: 'Select all 3 pending entries' });
+    expect(dayCheckbox).toBePartiallyChecked();
+
+    await user.click(dayCheckbox);
+    expect(onTickDay).toHaveBeenCalledWith([1, 2, 3], true);
+  });
+
+  it('offers no day checkbox at all when the day holds no pending entry', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED', description: 'lunch' });
+    const day = aDay({
+      entries: [recorded],
+      awaiting: 0,
+      totals: [{ amount: '5.00', currency: 'EUR', separator: '' }],
+    });
+
+    renderSection({ day });
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('disables an unticked entry’s checkbox at the bound while leaving a ticked one live, so unticking stays possible', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1]), tickHeadroom: 0 });
+    expandDays();
+
+    const tickedItem = screen.getByRole('listitem', { name: /alpha-ticked/i });
+    const uncheckedItem = screen.getByRole('listitem', { name: /beta-unticked/i });
+    expect(
+      within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeDisabled();
+    expect(
+      within(tickedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeEnabled();
+  });
+
+  it('disables the day’s own checkbox at the bound when not every pending entry is ticked, since ticking it would carry the set past the bound', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1]), tickHeadroom: 0 });
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeDisabled();
+  });
+
+  it('disables the day’s own checkbox when its pending count outnumbers the headroom, while each entry’s own checkbox stays live', () => {
+    const entryA = anExpense({ id: 1, status: 'PENDING', description: 'alpha' });
+    const entryB = anExpense({ id: 2, status: 'PENDING', description: 'beta' });
+    const entryC = anExpense({ id: 3, status: 'PENDING', description: 'gamma' });
+    const day = aDay({ entries: [entryA, entryB, entryC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickHeadroom: 2 });
+    expandDays();
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 3 pending entries' })).toBeDisabled();
+    for (const name of [/alpha/i, /beta/i, /gamma/i]) {
+      expect(
+        within(screen.getByRole('listitem', { name })).getByRole('checkbox', {
+          name: en.listing.entryCheckboxLabel,
+        }),
+      ).toBeEnabled();
+    }
+  });
+
+  it('leaves the day’s own checkbox live when the headroom covers its whole pending count', () => {
+    const entryA = anExpense({ id: 1, status: 'PENDING', description: 'alpha' });
+    const entryB = anExpense({ id: 2, status: 'PENDING', description: 'beta' });
+    const entryC = anExpense({ id: 3, status: 'PENDING', description: 'gamma' });
+    const day = aDay({ entries: [entryA, entryB, entryC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickHeadroom: 3 });
+
+    expect(screen.getByRole('checkbox', { name: 'Select all 3 pending entries' })).toBeEnabled();
+  });
+
+  it('disables no checkbox when the bound is not reached', () => {
+    const tickedEntry = anExpense({ id: 1, status: 'PENDING', description: 'alpha-ticked' });
+    const uncheckedEntry = anExpense({ id: 2, status: 'PENDING', description: 'beta-unticked' });
+    const day = aDay({ entries: [tickedEntry, uncheckedEntry], awaiting: 2, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1]) });
+    expandDays();
+
+    const uncheckedItem = screen.getByRole('listitem', { name: /beta-unticked/i });
+    expect(
+      within(uncheckedItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
+    ).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: 'Select all 2 pending entries' })).toBeEnabled();
+  });
+
+  it('says how many are ticked instead of what awaits a decision, on a collapsed day with two ticked', () => {
+    const pendingA = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING', description: 'b' });
+    const pendingC = anExpense({ id: 3, status: 'PENDING', description: 'c' });
+    const day = aDay({ entries: [pendingA, pendingB, pendingC], awaiting: 3, totals: [] });
+
+    renderSection({ day, tickedIds: new Set([1, 2]) });
+
+    const header = screen.getByRole('button');
+    expect(header).toHaveTextContent('2 entries ticked');
+    // One badge, not two: ticking replaces what the header says rather than adding a second label beside it.
+    expect(header).not.toHaveTextContent('3 entries await a decision');
+  });
+
+  it('says nothing about ticks on a collapsed day with none ticked', () => {
+    const pending = anExpense({ id: 1, status: 'PENDING', description: 'a' });
+    const day = aDay({ entries: [pending], awaiting: 1, totals: [] });
+
+    renderSection({ day });
+
+    const header = screen.getByRole('button');
+    expect(header).not.toHaveTextContent(/ticked/i);
   });
 });

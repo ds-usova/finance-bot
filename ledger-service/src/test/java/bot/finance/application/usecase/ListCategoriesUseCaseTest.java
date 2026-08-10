@@ -51,7 +51,7 @@ class ListCategoriesUseCaseTest {
     }
 
     private void stubStoredUser(long userId) {
-        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(userId, EXTERNAL_ID)));
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
     }
 
     /** Stores a user under {@code userId} and answers a Groceries grouping for it. */
@@ -87,7 +87,8 @@ class ListCategoriesUseCaseTest {
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.list(newListCategories("Groceries")))
                     .isInstanceOf(EntityNotFoundException.class);

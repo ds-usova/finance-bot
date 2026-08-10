@@ -1,5 +1,6 @@
 package bot.finance.adapter.aiconnector;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -10,10 +11,11 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
@@ -44,7 +46,7 @@ class AiConnectorIntentExtractionAdapterTest {
         GrpcStubServer.reset();
     }
 
-    private static IntentExtractionRequest requestFor(String userExternalId, MessageReference reference) {
+    private static IntentExtractionRequest requestFor(String userExternalId, IncomingMessageId reference) {
         return new IntentExtractionRequest(
                 "spent 15 on milk",
                 List.of("Groceries"),
@@ -80,7 +82,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     "user-external-id",
-                    MessageReference.newReference(),
+                    newIncomingMessageId(),
                     CURRENT_DATE);
 
             assertThatCode(() -> adapter.extract(request)).doesNotThrowAnyException();
@@ -98,7 +100,7 @@ class AiConnectorIntentExtractionAdapterTest {
         void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id", MessageReference.newReference()));
+            adapter.extract(requestFor("user-external-id", newIncomingMessageId()));
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
@@ -110,7 +112,7 @@ class AiConnectorIntentExtractionAdapterTest {
         void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id-77", MessageReference.newReference()));
+            adapter.extract(requestFor("user-external-id-77", newIncomingMessageId()));
 
             assertThat(bearerClaims().getSubject()).isEqualTo("user-external-id-77");
         }
@@ -120,12 +122,12 @@ class AiConnectorIntentExtractionAdapterTest {
                 + "reference's UUID text")
         void whenRequestCarriesMessageReference_thenBearerTokenCarriesMrfClaim() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
 
             adapter.extract(requestFor("user-external-id", reference));
 
-            assertThat(bearerClaims().getStringClaim("mrf"))
-                    .isEqualTo(reference.value().toString());
+            assertThat(bearerClaims().getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM))
+                    .isEqualTo(reference.value());
         }
 
         @Test
@@ -149,7 +151,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    MessageReference.newReference(),
+                    newIncomingMessageId(),
                     CURRENT_DATE);
 
             IntentExtractionFailedException thrown =

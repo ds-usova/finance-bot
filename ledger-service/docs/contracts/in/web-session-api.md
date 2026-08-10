@@ -56,9 +56,13 @@ No body, and a `Set-Cookie` that clears the session cookie immediately.
   category tree; one signing in again resolves to the row already there.
 - **The identity is the same one Telegram messages carry.** A person who has used the bot and one who has only
   used the web app are the same user, under the same external id.
-- **Every write is CSRF-protected**, sign-in included. A browser reads the token from the `XSRF-TOKEN` cookie
-  the service sets on any request under `/api`, and sends it back in the `X-XSRF-TOKEN` header. The unauthenticated
-  read a page makes on load is enough to obtain one.
+- **Every write under `/api` is CSRF-protected**, sign-in included. A browser reads the token from the
+  `XSRF-TOKEN` cookie the service sets on any safe request under `/api`, and sends it back in the
+  `X-XSRF-TOKEN` header. The unauthenticated read a page makes on load is enough to obtain one.
+- **A missing token always answers 403, whoever sent it.** The answer keys on the request, not on the caller, so
+  an unauthenticated sign-in and a signed-in person's write are refused the same way.
+- **A missing session answers 401 and never reaches the token check.** The two refusals cannot be confused: 401
+  means the session went away, 403 means the token did.
 - **The token is the second guard, not the only one.** `WEB_SESSION_COOKIE_SAME_SITE` already keeps the session
   cookie off a cross-site write, so a forged request usually arrives with no session at all. The token covers
   what that setting does not — a same-site subdomain, and any browser or deployment where it is relaxed.
@@ -163,7 +167,7 @@ what it means.
 | The signature does not match the fields sent                              | 401, naming only that the sign-in was not accepted |
 | The sign-in carries no hash, no id, or no readable `auth_date`            | 401, the same way                                  |
 | The sign-in is older than `TELEGRAM_LOGIN_MAX_AGE`, or dated ahead        | 401, the same way                                  |
-| A write carries no CSRF token                                             | 403, before the request reaches the endpoint       |
+| A write carries no CSRF token, or one that does not match the cookie      | 403, before the request reaches the endpoint       |
 | The session is read with no cookie, or with one this service did not sign | 401                                                |
 | The user cannot be stored                                                 | 503, naming no table, constraint or stack frame    |
 | Anything else                                                             | 500, saying the request could not be completed     |

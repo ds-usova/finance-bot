@@ -20,9 +20,9 @@
 - The identity is the one the service has already authenticated
   ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose proposal it is
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- The [message reference](../domain/message-reference.md) is read from the same credential as the identity, and
+- The [incoming message id](../domain/incoming-message-id.md) is read from the same credential as the identity, and
   the request never names it either
-  ([ADR 0010](../adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 - A stored proposal records which message produced it, so the report answering that message can name it.
 - Spending is filed under a [category](../domain/category.md), never under the
   [grouping](../domain/grouping.md) holding it.

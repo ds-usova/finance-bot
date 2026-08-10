@@ -133,15 +133,18 @@ Structure:
 ## Outcome
 
 <One row per finding: number, finding, layer, outcome — applied, declined, dropped or open.>
-
-## Adoption order
-
-<Cheapest first, and what each unblocks.>
 ```
 
 The status word belongs in the heading as well as the table.
 
-Follow the repository's rules for writing docs. Rank findings by what they cost, not by how easy they are to fix.
+Follow the repository's rules for writing docs.
+
+**Findings appear in the order they are to be applied.** The file is read from the top, one finding at a time,
+and each is answered where it stands — so the sequence is the proposal, and there is no separate list of it at
+the end. Cheapest first, then whatever each one unblocks; a finding that depends on another comes after it, and
+one being dropped comes last. Where the position needs a reason — it is free once the finding above lands, it
+cannot start until that one does — the finding says so in one clause. Ranking by severity instead makes a reader
+hold the whole file in their head before they can answer the first question.
 
 ## 4. Propose, Then Apply
 

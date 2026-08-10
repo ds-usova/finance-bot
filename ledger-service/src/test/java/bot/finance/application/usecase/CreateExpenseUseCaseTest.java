@@ -61,7 +61,7 @@ class CreateExpenseUseCaseTest {
     }
 
     private void stubStoredUser() {
-        when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     private Expense capturedExpense() {
@@ -127,7 +127,8 @@ class CreateExpenseUseCaseTest {
         @DisplayName("when nothing is stored under the command's external id - then throws "
                 + "EntityNotFoundException naming \"user\"")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatExceptionOfType(EntityNotFoundException.class)
                     .isThrownBy(() -> useCase.create(newExpense()))
@@ -167,7 +168,7 @@ class CreateExpenseUseCaseTest {
         void whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenThrow(failure);
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.create(newExpense())).isSameAs(failure);
 

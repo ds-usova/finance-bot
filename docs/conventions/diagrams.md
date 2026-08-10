@@ -104,3 +104,25 @@ elements in the middle, **the things it depends on — ports, adapters, stores, 
 
 Direction is stated, never left to the renderer. Relations carry `Rel_R` / `Rel_L` / `Rel_D`, and elements that
 must line up are pinned with `Lay_*`; a diagram whose elements move when one is added was drawn without them.
+
+### A Component Diagram Stacks, It Does Not Stretch
+
+The left-to-right rule is about **who initiates**, not about every arrow. It fits C1 and C2, where a handful of
+boxes sit in a row. A component diagram has boundaries, and one `Rel_R` per step of the call chain puts each
+boundary beside the last — a strip wider than a screen, read by scrolling. So:
+
+- **A step of the call chain is `Rel_D`.** The entry point is at the top, the layers below it, the adapters at
+  the bottom. Depth is what a screen has.
+- **`Rel_R` and `Rel_L` are for what sits beside**, not for what comes next: a mapper next to the class that
+  calls it, a use case next to the port it implements, a repository next to the entity it queries through.
+- **An adapter points back up at its port with `Rel_U`.** Every implementation of a port then leaves the same
+  edge of the same box, and a reader sees one boundary's worth of adapters at a glance.
+- **Pin each boundary to the one above it** with a single `Lay_D` between one element of each. Two or three
+  lines settle the whole stack.
+- **Never state a layout macro.** `LAYOUT_TOP_DOWN()` and `LAYOUT_LEFT_RIGHT()` overrule the per-relation
+  directions above and undo the arrangement they describe.
+
+**A record with no collaborator of its own is a table row, not a box.** A value object, a command, a read model,
+a projection, an entity row: nothing calls them, so they add a box and no arrow, and what a reader wants of them
+— their fields and what they refuse — is what a table carries and a box cannot. Draw one only where an arrow
+genuinely needs it.

@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,7 +26,7 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.User;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -44,7 +45,7 @@ class ResolveProposalsUseCaseTest {
     private static final String REPORT_MESSAGE_ID = "42";
     private static final String INTERACTION_ID = "interaction-1";
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
-    private static final MessageReference REFERENCE = MessageReference.newReference();
+    private static final IncomingMessageId REFERENCE = newIncomingMessageId();
 
     private Logger log;
     private UserRepository userRepository;

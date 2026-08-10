@@ -8,6 +8,7 @@ export type Category = components['schemas']['Category'];
 export type Grouping = components['schemas']['Grouping'];
 export type RenderedMoney = components['schemas']['RenderedMoney'];
 export type DayTotal = components['schemas']['DayTotal'];
+export type Acceptance = components['schemas']['Acceptance'];
 
 /** The six query parameters the listing accepts. A field left unset is not sent, so the ledger applies its own default. */
 export type ExpenseFilter = {
@@ -22,6 +23,7 @@ export type ExpenseFilter = {
 const EXPENSES_PATH = '/api/v1/expenses';
 const CATEGORIES_PATH = '/api/v1/categories';
 const GROUPINGS_PATH = '/api/v1/groupings';
+const ACCEPTANCES_PATH = '/api/v1/expenses/acceptances';
 
 export async function listExpenses(filter: ExpenseFilter): Promise<ExpensePage> {
   return get<ExpensePage>(EXPENSES_PATH, {
@@ -40,6 +42,18 @@ export async function listCategories(groupingId?: number): Promise<Category[]> {
 
 export async function listGroupings(): Promise<Grouping[]> {
   return get<Grouping[]>(GROUPINGS_PATH, {});
+}
+
+export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
+  const acceptance = await request<Acceptance>(ACCEPTANCES_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!acceptance) {
+    throw new Error('the acceptance answered with no counts');
+  }
+  return acceptance;
 }
 
 async function get<T>(

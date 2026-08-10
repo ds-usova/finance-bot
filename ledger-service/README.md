@@ -20,6 +20,8 @@ C3 is below. Package structure is in the
 - [Browse a person's expenses](docs/usecases/browse-expenses.md)
 - [Browse a person's categories](docs/usecases/browse-categories.md)
 - [Browse a person's groupings](docs/usecases/browse-groupings.md)
+- [Accept the proposals a person chose](docs/usecases/accept-chosen-proposals.md)
+- [Clear the emptied reports](docs/usecases/clear-emptied-reports.md)
 
 ### Contracts
 

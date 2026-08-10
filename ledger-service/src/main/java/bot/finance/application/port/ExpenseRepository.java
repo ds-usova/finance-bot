@@ -7,7 +7,7 @@ import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.util.List;
 
@@ -24,7 +24,7 @@ public interface ExpenseRepository {
     /**
      * @throws PersistenceFailedException if the read fails
      */
-    int countByMessageReference(long userId, MessageReference reference);
+    int countByMessageReference(long userId, IncomingMessageId reference);
 
     /**
      * @throws PersistenceFailedException if the read fails

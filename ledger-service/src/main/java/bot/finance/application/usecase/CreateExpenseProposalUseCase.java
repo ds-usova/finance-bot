@@ -9,7 +9,6 @@ import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidGroupingException;
@@ -47,11 +46,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         if (command == null) {
             throw new InvalidExpenseProposalException("new expense proposal command is absent");
         }
-        User user = userRepository
-                .findByExternalId(command.userId().externalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user",
-                        "no user stored under external id " + command.userId().externalId()));
+        User user = userRepository.requireByExternalId(command.userId().externalId());
         long categoryId = resolveCategoryId(user, command);
         Instant now = Instant.now(clock);
         ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -60,7 +55,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
                 command.description(),
                 command.merchant(),
                 command.money(),
-                command.messageReference(),
+                command.incomingMessageId(),
                 now);
         ExpenseProposal created = expenseProposalRepository.create(proposal);
         log.info(

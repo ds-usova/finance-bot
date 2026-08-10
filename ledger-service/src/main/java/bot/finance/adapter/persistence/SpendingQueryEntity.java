@@ -1,12 +1,11 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.domain.model.SpendingQuery;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -14,7 +13,7 @@ import org.springframework.data.relational.core.mapping.Table;
 public record SpendingQueryEntity(
         @Id Long id,
         Long userId,
-        UUID messageReference,
+        String incomingMessageId,
         LocalDate periodStart,
         LocalDate periodEnd,
         Instant createdAt) {
@@ -24,7 +23,7 @@ public record SpendingQueryEntity(
                 id,
                 userId,
                 new SpendingPeriod(periodStart, periodEnd),
-                new MessageReference(messageReference),
+                new IncomingMessageId(incomingMessageId),
                 createdAt);
     }
 
@@ -35,7 +34,7 @@ public record SpendingQueryEntity(
         return new SpendingQueryEntity(
                 query.id().orElse(null),
                 query.userId(),
-                query.messageReference().value(),
+                query.incomingMessageId().value(),
                 query.period().from(),
                 query.period().to(),
                 query.createdAt().truncatedTo(ChronoUnit.MICROS));

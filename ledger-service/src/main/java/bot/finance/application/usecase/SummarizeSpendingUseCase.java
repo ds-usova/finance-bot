@@ -4,7 +4,6 @@ import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.UserRepository;
-import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.model.SpendingQuery;
 import bot.finance.domain.model.User;
@@ -32,11 +31,7 @@ public class SummarizeSpendingUseCase implements SummarizeSpendingPort {
         }
 
         SpendingPeriod period = SpendingPeriod.of(command.from(), command.to());
-        User user = userRepository
-                .findByExternalId(command.userId().externalId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "user",
-                        "no user stored under external id " + command.userId().externalId()));
+        User user = userRepository.requireByExternalId(command.userId().externalId());
         long userId = user.id().orElseThrow();
         Instant now = clock.instant();
         spendingQueryRepository.create(SpendingQuery.newQuery(userId, period, command.reference(), now));

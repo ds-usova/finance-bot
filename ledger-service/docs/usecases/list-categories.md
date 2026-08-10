@@ -20,7 +20,7 @@
   ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose categories it is
   ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
 - Only the caller's own groupings and categories are reachable; no argument widens that.
-- The [message reference](../domain/message-reference.md) is not read, so a credential carrying none still lists.
+- The [incoming message id](../domain/incoming-message-id.md) is not read, so a credential carrying none still lists.
 - A [grouping](../domain/grouping.md) is named, never identified by a stored id.
 - The name is present, and it is not blank.
 - The name is resolved against the caller's groupings, and a grouping carrying it holds it alone.

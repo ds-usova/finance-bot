@@ -6,22 +6,30 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
+import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
+import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Money;
+import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import io.restassured.path.json.JsonPath;
 import jakarta.servlet.http.Cookie;
@@ -29,6 +37,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,22 +49,25 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * Integration test for the inbound HTTP adapter. Enters through the protocol - a MockMvc GET against
- * {@code /api/v1/expenses} - never by calling {@link ExpensesController}'s method directly, since binding lives in
- * the generated {@link bot.finance.api.ExpensesApi} interface. Only {@link BrowseExpensesPort} is mocked. It owns
- * what this endpoint accepts and refuses, including the two 400s only its own filter raises;
- * {@link WebExceptionHandlerTest} owns only the mappings every controller shares.
+ * Integration test for the inbound HTTP adapter. Enters through the protocol - MockMvc requests against
+ * {@code /api/v1/expenses} and {@code /api/v1/expenses/acceptances} - never by calling {@link ExpensesController}'s
+ * methods directly, since binding lives in the generated {@link bot.finance.api.ExpensesApi} interface. Both
+ * {@link BrowseExpensesPort} and {@link AcceptExpensesPort} are mocked. It owns what these endpoints accept and
+ * refuse, including the 400s only their own filter and {@code ids} raise; {@link WebExceptionHandlerTest} owns only
+ * the mappings every controller shares.
  */
 @WebAdapterTest
 @WebMvcTest(ExpensesController.class)
 class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
+    private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
     private static final String EXTERNAL_ID = "778899001";
 
     @Autowired
@@ -62,6 +75,9 @@ class ExpensesControllerTest {
 
     @MockitoBean
     private BrowseExpensesPort browseExpensesPort;
+
+    @MockitoBean
+    private AcceptExpensesPort acceptExpensesPort;
 
     @Nested
     @DisplayName("Happy Path")
@@ -130,6 +146,31 @@ class ExpensesControllerTest {
                     .isEqualTo(new SpendingPeriod(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31)));
             assertThat(filter.limit()).isEqualTo(30);
             assertThat(filter.offset()).isEqualTo(5);
+        }
+
+        @Test
+        @DisplayName("when the request posts two ids - then the port is called with the caller's ids, and the "
+                + "response is 200")
+        void whenTheRequestPostsTwoIds_thenPortIsCalledWithCallerAndIdsAndResponseIs200() throws Exception {
+            when(acceptExpensesPort.accept(any())).thenReturn(new ExpenseAcceptance(2, 0));
+
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArgumentCaptor<AcceptExpensesCommand> command = ArgumentCaptor.forClass(AcceptExpensesCommand.class);
+            verify(acceptExpensesPort).accept(command.capture());
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+            assertThat(command.getValue().ids().ids()).containsExactly(5L, 7L);
+
+            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            assertThat(json.getInt("accepted")).isEqualTo(2);
+            assertThat(json.getInt("missing")).isZero();
         }
     }
 
@@ -318,6 +359,42 @@ class ExpensesControllerTest {
             assertThat(messageOf(result)).containsIgnoringCase("categoryId");
             verify(browseExpensesPort, never()).browse(any());
         }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#idsBoundViolations")
+        @DisplayName("when ids breaks its own bound - then the response is 400 naming ids, and the port is never "
+                + "called")
+        void whenIdsBreaksItsOwnBound_thenResponseIs400NamingIdsAndPortNeverCalled(String description, String body)
+                throws Exception {
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).containsIgnoringCase("ids");
+            verify(acceptExpensesPort, never()).accept(any());
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#idsUnreadableBodies")
+        @DisplayName(
+                "when the body naming ids cannot be read - then the response is 400, and the port is never " + "called")
+        void whenTheBodyNamingIdsCannotBeRead_thenResponseIs400AndPortNeverCalled(String description, String body)
+                throws Exception {
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).isEqualTo("the request body could not be read");
+            verify(acceptExpensesPort, never()).accept(any());
+        }
     }
 
     @Nested
@@ -352,6 +429,55 @@ class ExpensesControllerTest {
             String message = messageOf(result);
             assertThat(message).containsIgnoringCase("from").containsIgnoringCase("to");
         }
+
+        @Test
+        @DisplayName("when the port throws InvalidExpenseAcceptanceException - then the response is 400 carrying "
+                + "the exception's own message")
+        void whenPortThrowsInvalidExpenseAcceptanceException_thenResponseIs400CarryingExceptionsMessage()
+                throws Exception {
+            String exceptionMessage = "ids must not repeat a value";
+            when(acceptExpensesPort.accept(any())).thenThrow(new InvalidExpenseAcceptanceException(exceptionMessage));
+
+            MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).isEqualTo(exceptionMessage);
+        }
+    }
+
+    static Stream<Arguments> idsBoundViolations() {
+        return Stream.of(
+                arguments("absent", "{}"),
+                arguments("null", """
+                        {"ids":null}"""),
+                arguments("an empty array", """
+                        {"ids":[]}"""),
+                arguments("101 ids", tooManyIds()),
+                arguments("an id of 0", """
+                        {"ids":[0]}"""),
+                arguments("an id below 0", """
+                        {"ids":[-1]}"""),
+                arguments("a repeated id", """
+                        {"ids":[5,5]}"""));
+    }
+
+    static Stream<Arguments> idsUnreadableBodies() {
+        return Stream.of(
+                arguments("a value that is not a number", """
+                        {"ids":[1,"abc"]}"""),
+                arguments("a body that is not JSON at all", "not json at all"));
+    }
+
+    private static String tooManyIds() {
+        return IntStream.rangeClosed(1, ProposalIds.MAX_IDS + 1)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(",", "{\"ids\":[", "]}"));
     }
 
     static Stream<Arguments> boundaryLimits() {

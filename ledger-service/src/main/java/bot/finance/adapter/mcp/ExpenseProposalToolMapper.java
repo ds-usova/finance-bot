@@ -5,7 +5,7 @@ import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -18,7 +18,7 @@ public final class ExpenseProposalToolMapper {
     private ExpenseProposalToolMapper() {}
 
     public static CreateExpenseProposalCommand toCommand(
-            CreateExpenseProposalToolRequest request, AuthenticatedUserId userId, MessageReference reference) {
+            CreateExpenseProposalToolRequest request, AuthenticatedUserId userId, IncomingMessageId reference) {
         if (request == null) {
             throw new InvalidExpenseProposalException("expense proposal request must be present");
         }

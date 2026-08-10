@@ -1,5 +1,6 @@
 package bot.finance.system;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.persistence.SpendingQueryEntity;
@@ -10,7 +11,7 @@ import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -70,7 +71,7 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
         void whenToolCallNamesAPeriod_thenThatPeriodIsAnsweredAndRecorded() {
             String externalId = "summarize-spending-happy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
             String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
 
             String requestBody = McpRequests.summarizeSpending(FROM, TO);
@@ -94,7 +95,7 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
                     .as("stored spending_query rows for user %s", userId)
                     .hasSize(1);
             SpendingQueryEntity row = rows.get(0);
-            assertThat(row.messageReference())
+            assertThat(row.incomingMessageId())
                     .as("stored query's message reference matches the token's mrf claim")
                     .isEqualTo(reference.value());
             assertThat(row.periodStart()).as("stored query's period start").isEqualTo(LocalDate.parse(FROM));

@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -7,7 +8,7 @@ import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolveProposalsCommand;
 import bot.finance.common.fixtures.TelegramFixtures;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.utility.BotUtils;
 import java.util.Optional;
@@ -91,7 +92,7 @@ class TelegramUpdateMapperTest {
         @DisplayName(
                 "when a callback query carries accept:<uuid> - then returns an ACCEPT command whose sender comes from from")
         void whenUpdateCarriesCallbackQueryWithAcceptData_thenReturnsCommandWithAcceptResolution() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "accept:" + reference.value()));
 
@@ -111,7 +112,7 @@ class TelegramUpdateMapperTest {
         @DisplayName(
                 "when the same update carries the data discard:<uuid> - then the returned command's resolution is DISCARD")
         void whenSameUpdateCarriesDiscardData_thenReturnedCommandResolutionIsDiscard() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "discard:" + reference.value()));
 
@@ -131,7 +132,7 @@ class TelegramUpdateMapperTest {
         }
 
         static Stream<Arguments> skippableCallbackUpdates() {
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
             return Stream.of(
                     Arguments.of("null update", (Update) null),
                     Arguments.of(

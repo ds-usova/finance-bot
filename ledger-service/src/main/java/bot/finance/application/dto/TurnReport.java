@@ -1,6 +1,6 @@
 package bot.finance.application.dto;
 
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import java.util.List;
 
 public record TurnReport(
@@ -9,7 +9,7 @@ public record TurnReport(
         ReportOutcome outcome,
         List<ProposalSummary> proposals,
         List<SpendingSummary> summaries,
-        MessageReference reference) {
+        IncomingMessageId reference) {
 
     public TurnReport {
         proposals = proposals == null ? List.of() : List.copyOf(proposals);

@@ -16,7 +16,6 @@ import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,8 +50,7 @@ class BrowseCategoriesUseCaseTest {
         @DisplayName("when the repository answers three categories - then all three are answered, each with its "
                 + "grouping")
         void whenRepositoryAnswersThreeCategories_thenAllThreeAreAnsweredWithGroupingIdAndName() {
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             List<CategoryEntry> categories = List.of(
                     new CategoryEntry(1L, "Coffee", GROUPING_ID, "Groceries"),
                     new CategoryEntry(2L, "Restaurant", GROUPING_ID, "Groceries"),
@@ -73,8 +71,7 @@ class BrowseCategoriesUseCaseTest {
                 + "that stored id")
         void whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdAndGroupingId() {
             long differentUserId = 42L;
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(differentUserId, EXTERNAL_ID)));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             when(categoryRepository.findAllForUser(differentUserId, GROUPING_ID))
                     .thenReturn(List.of());
 
@@ -86,8 +83,7 @@ class BrowseCategoriesUseCaseTest {
         @Test
         @DisplayName("when the grouping id names no grouping of the stored user's - then an empty list is answered")
         void whenGroupingIdNamesNoGroupingOfCaller_thenEmptyListIsAnswered() {
-            when(userRepository.findByExternalId(EXTERNAL_ID))
-                    .thenReturn(Optional.of(User.stored(USER_ID, EXTERNAL_ID)));
+            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             long unknownGroupingId = 999L;
             when(categoryRepository.findAllForUser(USER_ID, unknownGroupingId)).thenReturn(List.of());
 
@@ -100,7 +96,8 @@ class BrowseCategoriesUseCaseTest {
         @DisplayName(
                 "when no user row is stored under the caller's external id - then throws " + "EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+            when(userRepository.requireByExternalId(EXTERNAL_ID))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.browse(newCommand(null))).isInstanceOf(EntityNotFoundException.class);
 

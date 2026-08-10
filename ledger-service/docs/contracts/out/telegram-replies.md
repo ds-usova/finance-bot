@@ -10,11 +10,11 @@ report's buttons.
 
 ## Operations
 
-| Operation                | Purpose                                                            | Used by                                                                      |
-|--------------------------|--------------------------------------------------------------------|------------------------------------------------------------------------------|
-| Send a report            | puts the answer to one handled message in front of a user          | [Act on a user's message](../../usecases/handle-incoming-message.md)         |
-| Answer a tap             | tells the tapper what their tap did, and stops the button spinning | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md) |
-| Clear a report's buttons | takes both buttons off a report, so it cannot be resolved again    | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md) |
+| Operation                | Purpose                                                            | Used by                                                                                                                                              |
+|--------------------------|--------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Send a report            | puts the answer to one handled message in front of a user          | [Act on a user's message](../../usecases/handle-incoming-message.md)                                                                                 |
+| Answer a tap             | tells the tapper what their tap did, and stops the button spinning | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                         |
+| Clear a report's buttons | takes both buttons off a report, so it cannot be resolved again    | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md) · [Clear the emptied reports](../../usecases/clear-emptied-reports.md) |
 
 ## Semantics
 
@@ -30,8 +30,16 @@ writes that payload and is the only reader of it
 ([incoming messages](../in/telegram-updates.md)). A button stays on the message until something clears it, so a
 report can be tapped as long as it is in the chat.
 
+**Answered on a send that carried buttons:** the conversation Telegram put the report in, and the id Telegram
+gave it. That pair is [recorded](../../domain/proposal-report.md), and it is the only way back to a report once
+its proposals are gone. A send carrying no buttons answers nothing, because there is nothing to reach later.
+
 **Sent when a tap is resolved:** the tap to answer · what happened, in one line · then the conversation and the
 report message whose buttons come off.
+
+**Sent when an accepted message is emptied:** the conversation and the report message alone. Nothing is
+answered, no text is sent with it, and the report's own text is left exactly as it was. It goes only for a
+message with nothing pending left under it.
 
 The two calls go in that order: the tapper's button spins until the tap is answered, and by then the resolution
 has already happened, so the answer is true whether or not the buttons come off. The buttons are cleared for
@@ -105,10 +113,10 @@ Noted 2 expenses, pending your confirmation:
 
 The rest, one line each:
 
-| Outcome                                   | Text                                                          |
-|-------------------------------------------|---------------------------------------------------------------|
-| The message named and asked nothing       | `No expense was identified in that message.`                  |
-| The turn failed, having recorded nothing  | `Something went wrong and nothing was noted — please try again.` |
+| Outcome                                    | Text                                                                                   |
+|--------------------------------------------|----------------------------------------------------------------------------------------|
+| The message named and asked nothing        | `No expense was identified in that message.`                                           |
+| The turn failed, having recorded nothing   | `Something went wrong and nothing was noted — please try again.`                     |
 | The turn failed, having recorded something | `Something went wrong, so this may be incomplete. What I could read:` then the bullets |
 
 A trimmed report closes with the count it left out — `… and 3 more.` for proposals, `… and 3 more periods.`
@@ -116,33 +124,35 @@ when the totals alone fill the limit.
 
 ### What a tap answers with
 
-| Outcome                          | Text                            |
-|----------------------------------|---------------------------------|
-| Confirmed                        | `Confirmed 2 expenses.`         |
-| Deleted                          | `Deleted 2 expenses.`           |
-| Tapped again, already confirmed  | `Already confirmed: 2 expenses.` |
-| Nothing left to resolve          | `There is nothing left to resolve.` |
+| Outcome                         | Text                                |
+|---------------------------------|-------------------------------------|
+| Confirmed                       | `Confirmed 2 expenses.`             |
+| Deleted                         | `Deleted 2 expenses.`               |
+| Tapped again, already confirmed | `Already confirmed: 2 expenses.`    |
+| Nothing left to resolve         | `There is nothing left to resolve.` |
 
 A count of one drops the plural: `Confirmed 1 expense.`
 
 One report is always one message. Its length limit is spent in this order:
 
-| Filled first | Then                                                      | When it still does not fit                          |
-|--------------|------------------------------------------------------------|-------------------------------------------------------|
+| Filled first | Then                                                       | When it still does not fit                              |
+|--------------|------------------------------------------------------------|---------------------------------------------------------|
 | The totals   | the proposal list, trimmed, with what was left out counted | whole periods drop from the oldest, and are counted too |
 
 ## Failures
 
-| Condition                                             | Signal                                                                         |
-|-------------------------------------------------------|--------------------------------------------------------------------------------|
-| Telegram refuses the call                             | delivery fails, carrying the error code and description Telegram answered with |
-| Telegram is unreachable, or the call errors           | delivery fails, carrying what went wrong                                       |
-| The report, or what to say about a tap, is absent     | rejected as invalid; nothing is sent                                           |
-| The tap is older than the window Telegram answers in  | answering fails; the buttons are still cleared                                 |
-| The buttons the tap asks to clear are already gone    | clearing fails after the tapper has been answered                              |
+| Condition                                            | Signal                                                                         |
+|------------------------------------------------------|--------------------------------------------------------------------------------|
+| Telegram refuses the call                            | delivery fails, carrying the error code and description Telegram answered with |
+| Telegram is unreachable, or the call errors          | delivery fails, carrying what went wrong                                       |
+| The report, or what to say about a tap, is absent    | rejected as invalid; nothing is sent                                           |
+| The tap is older than the window Telegram answers in | answering fails; the buttons are still cleared                                 |
+| The buttons the tap asks to clear are already gone   | clearing fails after the tapper has been answered                              |
+| The buttons an emptied report asks to clear are gone | clearing fails, and the failure stays on the clearing's own thread             |
 
-A delivery failure rolls nothing back: the spending the report was going to name stays recorded, and a resolution
-whose answer was lost stays resolved.
+A delivery failure rolls nothing back: the spending the report was going to name stays recorded, a resolution
+whose answer was lost stays resolved, and spending accepted from the page stays accepted whether or not its
+report loses its buttons.
 
 ## Compatibility
 

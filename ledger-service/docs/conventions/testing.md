@@ -24,10 +24,12 @@ bot.finance
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
     │   ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
+    │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
@@ -61,7 +63,10 @@ belongs to none of them — a bucket of one is worth less than the honesty of le
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
 - **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`
-  rather than repeated in each type's test class. A rule about one type stays with that type.
+  rather than repeated in each type's test class. A rule about one type stays with that type. A rule ArchUnit
+  cannot see, because it is about text rather than about bytecode, is a source scan in that same package —
+  `CommentConventionsTest` reads `src/main/java` and `src/test/java` and names every line it refuses. It searches
+  comment lines only, so a `@Disabled` naming the step that owes its test a rework is untouched.
 
 ## Test Tooling
 

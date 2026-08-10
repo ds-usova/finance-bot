@@ -1,14 +1,14 @@
 package bot.finance.application.dto;
 
 import bot.finance.domain.exception.InvalidIncomingMessageException;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 
 public record ResolveProposalsCommand(
         String userExternalId,
         String conversationId,
         String reportMessageId,
         String interactionId,
-        MessageReference reference,
+        IncomingMessageId reference,
         ProposalResolution resolution) {
 
     public ResolveProposalsCommand {

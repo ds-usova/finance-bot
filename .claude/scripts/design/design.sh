@@ -85,6 +85,12 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --file)    design_file="${2:-}"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
+        # A bare design path is accepted wherever --file is, on every subcommand. Without this it
+        # lands in args and is silently ignored, and the command validates the one design in flight
+        # instead - the wrong file, with no way to tell from the output.
+        *.md|*/*)
+            [ -z "$design_file" ] || die "design file given twice: $design_file and $1"
+            design_file="$1"; shift ;;
         *) args+=("$1"); shift ;;
     esac
 done

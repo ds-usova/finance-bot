@@ -2,12 +2,11 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.domain.model.ExpenseProposal;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -20,7 +19,7 @@ public record ExpenseProposalEntity(
         String merchant,
         long amountMinorUnits,
         String currencyCode,
-        UUID messageReference,
+        String incomingMessageId,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -32,7 +31,7 @@ public record ExpenseProposalEntity(
                 description,
                 Optional.ofNullable(merchant),
                 new Money(amountMinorUnits, CurrencyCode.of(currencyCode)),
-                new MessageReference(messageReference),
+                new IncomingMessageId(incomingMessageId),
                 createdAt,
                 updatedAt);
     }
@@ -49,7 +48,7 @@ public record ExpenseProposalEntity(
                 proposal.merchant().orElse(null),
                 proposal.money().minorUnits(),
                 proposal.money().currencyCode().code(),
-                proposal.messageReference().value(),
+                proposal.incomingMessageId().value(),
                 proposal.createdAt().truncatedTo(ChronoUnit.MICROS),
                 proposal.updatedAt().truncatedTo(ChronoUnit.MICROS));
     }

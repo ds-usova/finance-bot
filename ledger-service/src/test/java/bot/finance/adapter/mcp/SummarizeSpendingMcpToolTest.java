@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,7 +21,7 @@ import bot.finance.domain.exception.InvalidSpendingQueryException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
-import bot.finance.domain.value.MessageReference;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -62,7 +63,7 @@ class SummarizeSpendingMcpToolTest {
         return McpTokens.tokenFor(accessTokenMinter, externalId);
     }
 
-    private String tokenWithReference(String externalId, MessageReference reference) {
+    private String tokenWithReference(String externalId, IncomingMessageId reference) {
         return McpTokens.tokenFor(accessTokenMinter, externalId, reference);
     }
 
@@ -74,7 +75,7 @@ class SummarizeSpendingMcpToolTest {
      * Stubs the port to accept {@code from}..{@code to}, then calls summarize_spending as {@code externalId} under
      * a token carrying {@code reference} as its mrf claim.
      */
-    private Response postAcceptedSummary(String externalId, MessageReference reference, String from, String to) {
+    private Response postAcceptedSummary(String externalId, IncomingMessageId reference, String from, String to) {
         when(summarizeSpendingPort.summarize(any()))
                 .thenReturn(new SpendingPeriod(LocalDate.parse(from), LocalDate.parse(to)));
         return postSummarizeSpending(tokenWithReference(externalId, reference), from, to);
@@ -103,7 +104,7 @@ class SummarizeSpendingMcpToolTest {
                 + "reference and both written days")
         void whenSummarizeSpendingIsCalled_thenPortReceivesIdentityReferenceAndBothDays() {
             String externalId = "user-101";
-            MessageReference reference = MessageReference.newReference();
+            IncomingMessageId reference = newIncomingMessageId();
             String from = "2026-07-27";
             String to = "2026-08-02";
 
@@ -123,7 +124,7 @@ class SummarizeSpendingMcpToolTest {
             String from = "2026-07-27";
             String to = "2026-08-02";
 
-            Response response = postAcceptedSummary("user-101", MessageReference.newReference(), from, to);
+            Response response = postAcceptedSummary("user-101", newIncomingMessageId(), from, to);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");

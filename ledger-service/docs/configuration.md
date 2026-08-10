@@ -3,25 +3,28 @@
 Every value below is read from the environment at startup. The defaults suit a developer's machine; a
 deployment supplies its own.
 
-| Variable                          | Sets                                                                   | Default                                      | Required                 | Secret |
-|-----------------------------------|------------------------------------------------------------------------|----------------------------------------------|--------------------------|--------|
-| `DB_JDBC_URL`                     | the database the service reads and writes                              | `jdbc:postgresql://localhost:5432/ledger-db` | yes                      | no     |
-| `DB_USER`                         | the database account                                                   | `ledger-user`                                | yes                      | no     |
-| `DB_PASSWORD`                     | the password for that account                                          | *(a local placeholder)*                      | yes                      | yes    |
-| `TELEGRAM_BOT_TOKEN`              | which bot the service collects messages for and acts as                | *(none)*                                     | when polling is on       | yes    |
-| `TELEGRAM_POLLING_ENABLED`        | whether the service collects Telegram messages at all                  | `true`                                       | no                       | no     |
-| `TELEGRAM_API_URL`                | where Telegram's Bot API is reached                                    | Telegram's own address                       | no                       | no     |
-| `TELEGRAM_LOGIN_MAX_AGE`          | how old a Telegram sign-in may be and still be accepted                | `1d`                                         | no                       | no     |
-| `AI_CONNECTOR_GRPC_TARGET`        | where the AI Connector's gRPC server is reached                        | `static://localhost:1001`                    | no                       | no     |
-| `MCP_ENABLED`                     | whether the MCP server endpoint is served at all                       | `true`                                       | no                       | no     |
-| `TOKEN_SIGNING_KEYSTORE`          | where the keystore signing every token the service issues is read from | the committed development keystore           | yes                      | no     |
-| `TOKEN_SIGNING_KEYSTORE_PASSWORD` | the password for that keystore                                         | *(a local placeholder)*                      | yes                      | yes    |
-| `TOKEN_SIGNING_KEY_ALIAS`         | which key pair in the keystore signs and verifies those tokens         | `mcp-signing`                                | with a supplied keystore | no     |
-| `MCP_JWT_TTL`                     | how long a minted MCP token is valid                                   | `2m`                                         | no                       | no     |
-| `SESSION_JWT_TTL`                 | how long a browser session token is valid                              | `7d`                                         | no                       | no     |
-| `WEB_SESSION_COOKIE_NAME`         | which cookie carries the browser session                               | `fb_session`                                 | no                       | no     |
-| `WEB_SESSION_COOKIE_SECURE`       | whether that cookie is sent over HTTPS only                            | `false`                                      | wherever HTTPS is served | no     |
-| `WEB_SESSION_COOKIE_SAME_SITE`    | how that cookie behaves on a cross-site request                        | `Lax`                                        | no                       | no     |
+| Variable                             | Sets                                                                  | Default                                      | Required                 | Secret |
+|---------------------------------------|------------------------------------------------------------------------|------------------------------------------------|----------------------------|--------|
+| `DB_JDBC_URL`                        | the database the service reads and writes                             | `jdbc:postgresql://localhost:5432/ledger-db` | yes                      | no     |
+| `DB_USER`                            | the database account                                                  | `ledger-user`                                | yes                      | no     |
+| `DB_PASSWORD`                        | the password for that account                                         | *(a local placeholder)*                      | yes                      | yes    |
+| `TELEGRAM_BOT_TOKEN`                 | which bot the service collects messages for and acts as               | *(none)*                                     | when polling is on       | yes    |
+| `TELEGRAM_POLLING_ENABLED`           | whether the service collects Telegram messages at all                 | `true`                                       | no                       | no     |
+| `TELEGRAM_API_URL`                   | where Telegram's Bot API is reached                                   | Telegram's own address                       | no                       | no     |
+| `TELEGRAM_LOGIN_MAX_AGE`             | how old a Telegram sign-in may be and still be accepted               | `1d`                                         | no                       | no     |
+| `AI_CONNECTOR_GRPC_TARGET`           | where the AI Connector's gRPC server is reached                       | `static://localhost:1001`                    | no                       | no     |
+| `MCP_ENABLED`                        | whether the MCP server endpoint is served at all                      | `true`                                       | no                       | no     |
+| `TOKEN_SIGNING_KEYSTORE`             | where the keystore signing every token the service issues is read from | the committed development keystore          | yes                      | no     |
+| `TOKEN_SIGNING_KEYSTORE_PASSWORD`    | the password for that keystore                                        | *(a local placeholder)*                      | yes                      | yes    |
+| `TOKEN_SIGNING_KEY_ALIAS`            | which key pair in the keystore signs and verifies those tokens        | `mcp-signing`                                | with a supplied keystore | no     |
+| `MCP_JWT_TTL`                        | how long a minted MCP token is valid                                  | `2m`                                         | no                       | no     |
+| `SESSION_JWT_TTL`                    | how long a browser session token is valid                             | `7d`                                         | no                       | no     |
+| `WEB_SESSION_COOKIE_NAME`            | which cookie carries the browser session                              | `fb_session`                                 | no                       | no     |
+| `WEB_SESSION_COOKIE_SECURE`          | whether that cookie is sent over HTTPS only                           | `false`                                      | wherever HTTPS is served | no     |
+| `WEB_SESSION_COOKIE_SAME_SITE`       | how that cookie behaves on a cross-site request                       | `Lax`                                        | no                       | no     |
+| `REPORT_CLEARING_POOL_CORE_SIZE`     | the clearing pool's core thread count                                 | `1`                                          | no                       | no     |
+| `REPORT_CLEARING_POOL_MAX_SIZE`      | the clearing pool's maximum thread count                              | `2`                                          | no                       | no     |
+| `REPORT_CLEARING_POOL_QUEUE_CAPACITY` | how many clearing tasks the pool queues before dropping more work    | `100`                                        | no                       | no     |
 
 A secret belongs in the deployment's secret store, never in a committed file or a log line.
 
@@ -62,3 +65,9 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   page — see [ADR 0014](../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md).
 - `TELEGRAM_LOGIN_MAX_AGE` bounds how long a captured Login Widget payload stays replayable.
 - `MCP_ENABLED=false` leaves the service running with the MCP endpoint gone. The session API is unaffected.
+- The three `REPORT_CLEARING_POOL_*` values bound the one piece of work this service does off the request thread:
+  taking the buttons off a report a web acceptance emptied
+  ([Clear the emptied reports](usecases/clear-emptied-reports.md)).
+- A clearing the pool has no room for is dropped rather than queued further or run on the request thread. Nobody
+  is waiting for it, and a report that keeps its buttons still answers truthfully when tapped. Raise
+  `REPORT_CLEARING_POOL_QUEUE_CAPACITY` where a deployment serves more than one person's chats.

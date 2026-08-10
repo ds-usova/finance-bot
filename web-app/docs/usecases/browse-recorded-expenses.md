@@ -8,6 +8,9 @@
 *Implemented by the expenses page, the filter controls, the expense list with its day sections, the pager and
 the expenses client.*
 
+What this listing shows awaiting a decision is acted on by
+[Accept pending expenses](accept-pending-expenses.md).
+
 ## Collaborators
 
 | Direction | Collaborator                                             | Through                                                 | For                                                                                 |
@@ -24,6 +27,8 @@ What this page decides, rather than the ledger. What each read takes and answers
 - The answered page is cut into UTC days here, by the UTC day a row was recorded on, and each day's entry count
   and awaiting badge are counted here. A day's figures are the ledger's, looked up by that same day key and left
   in the order it answered them.
+- A day's awaiting badge gives way to what [Accept pending expenses](accept-pending-expenses.md) has ticked
+  there.
 - A day split by the page boundary appears on both pages, each part counting only its own entries.
 - A row is named from the category list, matched by id.
 - Paging steps by the page size the ledger answered with, never one this page chose.
