@@ -107,6 +107,9 @@ export function ExpenseDaySection({
   }, [focusDay, day.day]);
 
   const pendingIds = pendingIdsOf(day);
+  // A day with nothing pending holds no tick anywhere — not in its header and not in any of its rows — so it
+  // reserves no column for one either, and its whole card sits flush with the card's own padding.
+  const hasPending = pendingIds.length > 0;
   const tickedCount = pendingIds.filter((id) => tickedIds.has(id)).length;
   const untickedCount = pendingIds.length - tickedCount;
   const allTicked = pendingIds.length > 0 && tickedCount === pendingIds.length;
@@ -142,24 +145,24 @@ export function ExpenseDaySection({
             space them differently per day. */}
         <AccordionTrigger
           ref={headerRef}
-          // The left padding is there to stand the chevron off the day's tick. A day with nothing pending has
-          // no tick, so it has nothing to stand off.
-          className={`gap-3 pr-4 sm:pr-5 ${pendingIds.length > 0 ? 'pl-3' : ''}`}
+          // With a tick beside it the left padding stands the chevron off it; without one the trigger carries
+          // the panel's own side padding itself, so the chevron starts where the descriptions below it do.
+          className={`gap-3 pr-4 sm:pr-5 ${hasPending ? 'pl-3' : 'pl-4 sm:pl-5'}`}
           leading={
-            // The same gutter every entry row below reserves, so the day's tick sits over the column its
-            // entries' ticks stand in. The width has to cover the panel's own side padding *and* the tick
-            // column inside it — `w-4 pl-4` is a 16px box entirely filled by its padding, which centres the
-            // tick half a column to the left of every tick beneath it.
-            <span className="flex w-8 shrink-0 items-center justify-center pl-4 sm:w-9 sm:pl-5">
-              {pendingIds.length > 0 && (
+            hasPending && (
+              // The same gutter every entry row below reserves, so the day's tick sits over the column its
+              // entries' ticks stand in. The width has to cover the panel's own side padding *and* the tick
+              // column inside it — `w-4 pl-4` is a 16px box entirely filled by its padding, which centres the
+              // tick half a column to the left of every tick beneath it.
+              <span className="flex w-8 shrink-0 items-center justify-center pl-4 sm:w-9 sm:pl-5">
                 <Checkbox
                   aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}
                   checked={dayChecked}
                   disabled={dayDisabled}
                   onCheckedChange={() => onTickDay(pendingIds, !allTicked)}
                 />
-              )}
-            </span>
+              </span>
+            )
           }
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
@@ -206,18 +209,27 @@ export function ExpenseDaySection({
                       reason the gutter is. The category gets a wider share than the merchant despite holding
                       shorter text, because it is a control: its chevron and its padding eat width that plain
                       text does not. */}
-                  <div className="grid grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem] items-center gap-3">
-                    {/* Only a PENDING row puts a checkbox in the gutter. */}
-                    <span className="flex items-center justify-center">
-                      {entry.status === 'PENDING' && (
-                        <Checkbox
-                          aria-label={t('listing.entryCheckboxLabel')}
-                          checked={tickedIds.has(entry.id)}
-                          disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
-                          onCheckedChange={(checked) => onTick(entry.id, checked === true)}
-                        />
-                      )}
-                    </span>
+                  <div
+                    className={`grid items-center gap-3 ${
+                      hasPending
+                        ? 'grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem]'
+                        : 'grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem]'
+                    }`}
+                  >
+                    {/* The column stands on every row of a day that has anything pending, so a day mixing the
+                        two statuses keeps its descriptions in one line; only a PENDING row fills it. */}
+                    {hasPending && (
+                      <span className="flex items-center justify-center">
+                        {entry.status === 'PENDING' && (
+                          <Checkbox
+                            aria-label={t('listing.entryCheckboxLabel')}
+                            checked={tickedIds.has(entry.id)}
+                            disabled={tickHeadroom === 0 && !tickedIds.has(entry.id)}
+                            onCheckedChange={(checked) => onTick(entry.id, checked === true)}
+                          />
+                        )}
+                      </span>
+                    )}
                     <span className="truncate font-medium">{entry.description}</span>
                     <span className="truncate text-xs text-muted-foreground">{entry.merchant}</span>
                     <span className="flex min-w-0 items-center">
