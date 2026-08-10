@@ -39,11 +39,12 @@ class ClearEmptiedReportsUseCaseTest {
     private ExpenseProposalRepository expenseProposalRepository;
     private ProposalReportRepository proposalReportRepository;
     private MessageDeliveryPort messageDeliveryPort;
+    private Logger log;
     private ClearEmptiedReportsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        Logger log = mock(Logger.class);
+        log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(ClearEmptiedReportsUseCase.class)).thenReturn(log);
         expenseProposalRepository = mock(ExpenseProposalRepository.class);
@@ -142,6 +143,23 @@ class ClearEmptiedReportsUseCaseTest {
 
             verify(messageDeliveryPort).clearButtons(new ReportLocation("777", "43"));
             verify(proposalReportRepository).findByIncomingMessageId(USER_ID, MESSAGE_B);
+        }
+
+        @Test
+        @DisplayName("when an emptied message has no report recorded - then it is not reported as cleared")
+        void whenEmptiedMessageHasNoReportRecorded_thenItIsNotReportedAsCleared() {
+            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
+                    .thenReturn(Set.of());
+            when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
+                    .thenReturn(List.of());
+
+            useCase.clear(commandFor(List.of(MESSAGE_A)));
+
+            // Nothing is sent either way, so what the run says about it is the only thing that can be wrong:
+            // a message with no report reads as one whose buttons came off.
+            verifyNoInteractions(messageDeliveryPort);
+            verify(log).debug(any(), eq(MESSAGE_A));
+            verify(log, never()).info(any(), any());
         }
 
         @Test

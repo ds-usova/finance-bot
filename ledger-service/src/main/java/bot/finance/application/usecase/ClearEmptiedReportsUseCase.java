@@ -66,6 +66,11 @@ public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
             return;
         }
 
+        if (reports.isEmpty()) {
+            log.debug("no report is recorded for message {}, so nothing is cleared", messageId);
+            return;
+        }
+
         boolean allCleared = true;
         for (ProposalReport report : reports) {
             try {
