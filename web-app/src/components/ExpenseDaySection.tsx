@@ -142,7 +142,9 @@ export function ExpenseDaySection({
             space them differently per day. */}
         <AccordionTrigger
           ref={headerRef}
-          className="gap-3 pr-4 pl-3 sm:pr-5"
+          // The left padding is there to stand the chevron off the day's tick. A day with nothing pending has
+          // no tick, so it has nothing to stand off.
+          className={`gap-3 pr-4 sm:pr-5 ${pendingIds.length > 0 ? 'pl-3' : ''}`}
           leading={
             // The same gutter every entry row below reserves, so the day's tick sits over the column its
             // entries' ticks stand in, and neither is flush with the card's edge.
@@ -199,8 +201,10 @@ export function ExpenseDaySection({
                       amount of space for the three middle cells to divide, and no two rows agreed on where a
                       column started. Fixed tracks for the badge and the figure make the space they leave the
                       same on every row. Every cell is rendered whether or not it has content, for the same
-                      reason the gutter is. */}
-                  <div className="grid grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem_7rem] items-center gap-3">
+                      reason the gutter is. The category gets a wider share than the merchant despite holding
+                      shorter text, because it is a control: its chevron and its padding eat width that plain
+                      text does not. */}
+                  <div className="grid grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem] items-center gap-3">
                     {/* Only a PENDING row puts a checkbox in the gutter. */}
                     <span className="flex items-center justify-center">
                       {entry.status === 'PENDING' && (
