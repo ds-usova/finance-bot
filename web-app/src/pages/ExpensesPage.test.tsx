@@ -13,7 +13,7 @@ import {
   type ExpensePage,
 } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
-import { expandDays, listingArrives } from '../testing/accordion';
+import { expandDays, listingArrives, openDayHeaders } from '../testing/accordion';
 import { chooseFromList } from '../testing/combobox';
 import {
   aCategory,
@@ -1047,12 +1047,6 @@ describe('the expenses page', () => {
     await changeCategoryOnRow('lunch', /Transport/);
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
-    // `dayHeaders()` returns only collapsed headers; the surviving day section is expanded (it was opened by
-    // `expandDays()` above and stays that way), so its header is found the same way `dayHeaders()` finds a
-    // collapsed one, just with the opposite `expanded` value.
-    const openHeaders = screen
-      .getAllByRole('button', { expanded: true })
-      .filter((header) => !header.hasAttribute('aria-haspopup'));
-    await waitFor(() => expect(document.activeElement).toEqual(openHeaders[0]));
+    await waitFor(() => expect(document.activeElement).toEqual(openDayHeaders()[0]));
   });
 });

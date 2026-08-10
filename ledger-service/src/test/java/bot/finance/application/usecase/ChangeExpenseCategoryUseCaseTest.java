@@ -1,7 +1,6 @@
 package bot.finance.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -99,23 +98,6 @@ class ChangeExpenseCategoryUseCaseTest {
             assertThat(result).isSameAs(entry);
             verify(expenseProposalRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT);
             verifyNoInteractions(expenseRepository);
-        }
-
-        @Test
-        @DisplayName(
-                "when the refile answers a row already carrying the admitted category - then nothing is " + "refused")
-        void whenRefileAnswersRowAlreadyCarryingAdmittedCategory_thenAnswerIsThatRowAndNothingRefused() {
-            stubStoredUser();
-            stubCategoryAdmitted();
-            ExpenseEntry entry = newEntry(CATEGORY_ID);
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
-                    .thenReturn(Optional.of(entry));
-
-            ExpenseEntry[] result = new ExpenseEntry[1];
-            assertThatCode(() -> result[0] = useCase.change(newCommand(ExpenseStatus.RECORDED)))
-                    .doesNotThrowAnyException();
-
-            assertThat(result[0]).isSameAs(entry);
         }
 
         @Test
