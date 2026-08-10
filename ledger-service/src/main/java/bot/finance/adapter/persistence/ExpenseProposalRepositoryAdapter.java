@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
@@ -11,6 +12,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -111,6 +113,15 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
             throw new PersistenceFailedException(
                     "failed to find messages with pending proposals for user " + userId, e);
         }
+    }
+
+    @Override
+    @Transactional
+    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
+        // will run expenseProposalEntityRepository.refile(userId, entryId, categoryId, now truncated to
+        // microseconds) and map the returned RefiledEntryProjection, when present, onto an ExpenseEntry carrying
+        // PENDING; wraps a store failure as the other methods here do
+        return Optional.empty();
     }
 
     private static RuntimeException classify(ExpenseProposal proposal, RuntimeException e) {

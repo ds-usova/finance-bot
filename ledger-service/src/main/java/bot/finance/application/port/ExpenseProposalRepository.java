@@ -1,5 +1,6 @@
 package bot.finance.application.port;
 
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseProposalException;
@@ -10,6 +11,7 @@ import bot.finance.domain.value.ProposalIds;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ExpenseProposalRepository {
@@ -45,4 +47,12 @@ public interface ExpenseProposalRepository {
      * @throws PersistenceFailedException if the read fails
      */
     Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids);
+
+    /**
+     * Refiles the caller's pending proposal under a new category, answering the row as it now stands. An empty
+     * result means no row of the caller's carried that id.
+     *
+     * @throws PersistenceFailedException if the write fails
+     */
+    Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now);
 }

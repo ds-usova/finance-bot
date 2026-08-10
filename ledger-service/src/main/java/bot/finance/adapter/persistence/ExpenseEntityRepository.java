@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -82,4 +83,17 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             @Param("categoryId") Long categoryId,
             @Param("from") Instant from,
             @Param("toExclusive") Instant toExclusive);
+
+    @Query(
+            """
+            UPDATE expense
+            SET category_id = :categoryId, updated_at = :now
+            WHERE id = :id AND user_id = :userId
+            RETURNING id, category_id, description, merchant, amount_minor_units, currency_code, created_at
+            """)
+    Optional<RefiledEntryProjection> refile(
+            @Param("userId") Long userId,
+            @Param("id") Long id,
+            @Param("categoryId") Long categoryId,
+            @Param("now") Instant now);
 }

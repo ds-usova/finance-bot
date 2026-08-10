@@ -2,9 +2,12 @@ package bot.finance.adapter.web;
 
 import bot.finance.api.model.AcceptExpenses200Response;
 import bot.finance.api.model.AcceptExpensesRequest;
+import bot.finance.api.model.CategoryPatchOperation;
+import bot.finance.api.model.ChangeExpenseCategory200Response;
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.application.dto.AcceptExpensesCommand;
+import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.DayTotal;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
@@ -18,6 +21,7 @@ import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 
 public final class ExpenseWebMapper {
 
@@ -77,7 +81,28 @@ public final class ExpenseWebMapper {
         return new SpendingPeriod(from, to);
     }
 
-    private static Expense toItem(ExpenseEntry entry) {
+    public static ChangeExpenseCategoryCommand toChangeExpenseCategoryCommand(
+            String status, Long id, List<CategoryPatchOperation> document, AuthenticatedUserId userId) {
+        // refuses a document that is not exactly one operation replacing /categoryId, throwing
+        // InvalidExpenseCategoryChangeException naming what was refused, and converts the generated status
+        // token to the domain ExpenseStatus
+        return null;
+    }
+
+    public static ChangeExpenseCategory200Response toChangeExpenseCategoryResponse(ExpenseEntry entry) {
+        Expense item = toItem(entry);
+        ChangeExpenseCategory200Response response = new ChangeExpenseCategory200Response(
+                item.getId(),
+                item.getStatus(),
+                item.getCategoryId(),
+                item.getDescription(),
+                item.getMoney(),
+                item.getCreatedAt());
+        item.getMerchant().ifPresent(response::merchant);
+        return response;
+    }
+
+    public static Expense toItem(ExpenseEntry entry) {
         Expense item = new Expense(
                 entry.id(),
                 bot.finance.api.model.ExpenseStatus.valueOf(entry.status().name()),

@@ -52,4 +52,11 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
             throw new PersistenceFailedException("failed to find categories for user " + userId, e);
         }
     }
+
+    @Override
+    public boolean existsOwnedCategory(long userId, long categoryId) {
+        // will run categoryEntityRepository.existsByIdAndUserIdAndParentIdIsNotNull(categoryId, userId), wrapping
+        // a store failure as its siblings do
+        return false;
+    }
 }

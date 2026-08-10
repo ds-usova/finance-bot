@@ -9,7 +9,9 @@ import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface ExpenseRepository {
 
@@ -40,4 +42,12 @@ public interface ExpenseRepository {
      * @throws PersistenceFailedException if the read fails
      */
     long countMatching(long userId, ExpenseFilter filter);
+
+    /**
+     * Refiles the caller's recorded expense under a new category, answering the row as it now stands. An empty
+     * result means no row of the caller's carried that id.
+     *
+     * @throws PersistenceFailedException if the write fails
+     */
+    Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now);
 }

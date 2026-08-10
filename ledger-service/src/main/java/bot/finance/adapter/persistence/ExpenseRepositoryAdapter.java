@@ -13,6 +13,7 @@ import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,6 +101,15 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to count expenses for user " + userId, e);
         }
+    }
+
+    @Override
+    @Transactional
+    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
+        // will run expenseEntityRepository.refile(userId, entryId, categoryId, now truncated to microseconds,
+        // as truncatedToMicros() does above) and map the returned RefiledEntryProjection, when present, onto an
+        // ExpenseEntry carrying RECORDED; wraps a store failure as the other methods here do
+        return Optional.empty();
     }
 
     private static String statusName(ExpenseStatus status) {

@@ -23,4 +23,11 @@ public interface CategoryRepository {
      * @throws PersistenceFailedException if the read fails
      */
     List<CategoryEntry> findAllForUser(long userId, Long groupingId);
+
+    /**
+     * Whether categoryId names a category, not a grouping, filed under this user.
+     *
+     * @throws PersistenceFailedException if the read fails
+     */
+    boolean existsOwnedCategory(long userId, long categoryId);
 }
