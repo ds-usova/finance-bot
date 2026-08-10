@@ -31,12 +31,12 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
                 DELETE FROM expense_proposal
                 WHERE user_id = :userId AND incoming_message_id = :incomingMessageId
                 RETURNING user_id, category_id, description, merchant,
-                          amount_minor_units, currency_code, incoming_message_id
+                          amount_minor_units, currency_code, incoming_message_id, created_at
             )
             INSERT INTO expense (user_id, category_id, description, merchant,
                                  amount_minor_units, currency_code, incoming_message_id, created_at, updated_at)
             SELECT user_id, category_id, description, merchant,
-                   amount_minor_units, currency_code, incoming_message_id, :now, :now
+                   amount_minor_units, currency_code, incoming_message_id, created_at, :now
             FROM accepted
             """)
     int accept(
@@ -58,12 +58,12 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
                 DELETE FROM expense_proposal
                 WHERE user_id = :userId AND id IN (:ids)
                 RETURNING user_id, category_id, description, merchant,
-                          amount_minor_units, currency_code, incoming_message_id
+                          amount_minor_units, currency_code, incoming_message_id, created_at
             )
             INSERT INTO expense (user_id, category_id, description, merchant,
                                  amount_minor_units, currency_code, incoming_message_id, created_at, updated_at)
             SELECT user_id, category_id, description, merchant,
-                   amount_minor_units, currency_code, incoming_message_id, :now, :now
+                   amount_minor_units, currency_code, incoming_message_id, created_at, :now
             FROM accepted
             RETURNING incoming_message_id
             """)

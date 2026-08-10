@@ -740,6 +740,19 @@ to no subject.
   `ExpenseProposalRepositoryAdapterTest` exercises against real Postgres, which is more than a behaviour-preserving
   pass should take on.
 
+- **B7 (found in the manual review, decided, not implemented):** an accepted expense is dated the moment of
+  acceptance, so a proposal made on 3 August leaves that day and appears under today the moment it is accepted —
+  the day it was on then reads as empty. That is D13 working as designed, and `Confirm` in Telegram does the same
+  thing today; the contract states it, in `Expense.createdAt`: *"When the row was recorded, not when the money was
+  spent. Accepting a proposal re-dates it."* Seen on screen it was rejected.
+  - **Decided:** an accepted expense keeps the proposal's `created_at`, and `updated_at` carries the moment of
+    acceptance. **Both** paths change, since one date cannot mean two things across them: `acceptByIds` and
+    `accept` in `ExpenseProposalEntityRepository` both stop writing `:now` into `created_at`. It reaches the
+    `Expense.createdAt` description in `openapi/ledger-api.yaml`, D13 here, and D10 of
+    [design 15](../../implemented/15-accept-or-discard-a-reported-proposal/design.md), which fixed the current
+    meaning. Its own change, not this plan's: the whole Java suite has to run for it, and this plan is otherwise
+    finished.
+
 ## Review Findings
 
 - **F1:** RU01 carried no `update:` bullet for `MessageReferenceTest`'s five methods, every one of which asserts

@@ -511,7 +511,9 @@ class ExpenseProposalRepositoryAdapterTest {
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             IncomingMessageId otherReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
-            Instant createdAt = Instant.now().minusSeconds(60);
+            // An exact microsecond: Postgres rounds a finer instant to the nearest one, so a fixture carrying
+            // nanoseconds cannot be compared against what comes back.
+            Instant createdAt = Instant.parse("2026-01-12T18:04:00Z");
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -558,7 +560,7 @@ class ExpenseProposalRepositoryAdapterTest {
                         assertThat(row.amountMinorUnits()).isEqualTo(1500);
                         assertThat(row.currencyCode()).isEqualTo("USD");
                         assertThat(row.incomingMessageId()).isEqualTo(reference.value());
-                        assertThat(row.createdAt()).isEqualTo(truncatedNow);
+                        assertThat(row.createdAt()).isEqualTo(createdAt);
                         assertThat(row.updatedAt()).isEqualTo(truncatedNow);
                     })
                     .anySatisfy(row -> {
@@ -568,7 +570,7 @@ class ExpenseProposalRepositoryAdapterTest {
                         assertThat(row.amountMinorUnits()).isEqualTo(2500);
                         assertThat(row.currencyCode()).isEqualTo("EUR");
                         assertThat(row.incomingMessageId()).isEqualTo(reference.value());
-                        assertThat(row.createdAt()).isEqualTo(truncatedNow);
+                        assertThat(row.createdAt()).isEqualTo(createdAt);
                         assertThat(row.updatedAt()).isEqualTo(truncatedNow);
                     });
             assertThat(expenseProposalRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.description())
@@ -651,12 +653,12 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when now carries nanosecond precision - then both written timestamps are truncated to microseconds")
+        @DisplayName("when now carries nanosecond precision - then the written updated_at is truncated to microseconds")
         void whenNowCarriesNanosecondPrecision_thenWrittenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("accept-nanosecond-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant proposedAt = Instant.parse("2026-01-12T18:04:00Z");
             ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -666,14 +668,14 @@ class ExpenseProposalRepositoryAdapterTest {
                     3000,
                     "USD",
                     reference.value(),
-                    Instant.now().minusSeconds(30));
+                    proposedAt);
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
 
             adapter.accept(userId, reference, nanosecondInstant);
 
             Instant truncated = nanosecondInstant.truncatedTo(ChronoUnit.MICROS);
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
-                assertThat(row.createdAt()).isEqualTo(truncated);
+                assertThat(row.createdAt()).isEqualTo(proposedAt);
                 assertThat(row.updatedAt()).isEqualTo(truncated);
             });
         }
@@ -976,11 +978,12 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when accepting at a given instant - then the stored expense's created_at and updated_at match it")
-        void whenAcceptedAtGivenInstant_thenStoredExpenseTimestampsMatchIt() {
+        @DisplayName("when accepting a proposal made days ago - then the expense keeps that day and is updated now")
+        void whenAcceptingAProposalMadeDaysAgo_thenExpenseKeepsThatDayAndIsUpdatedNow() {
             long userId = storedUserId("accept-by-ids-timestamp-user");
             long categoryId = storedCategoryId(userId, storedGroupingId(userId, "Food"), "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant proposedAt = Instant.parse("2026-01-12T18:04:00Z");
             ExpenseProposalEntity proposal = ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -990,15 +993,16 @@ class ExpenseProposalRepositoryAdapterTest {
                     3000,
                     "USD",
                     reference.value(),
-                    Instant.now().minusSeconds(30));
+                    proposedAt);
             Instant now = Instant.parse("2026-01-15T10:30:00.123456789Z");
 
             adapter.acceptByIds(userId, ProposalIds.of(List.of(proposal.id())), now);
 
-            Instant truncated = now.truncatedTo(ChronoUnit.MICROS);
+            // The day a person sees the entry under is created_at, so re-dating it on acceptance would move a
+            // days-old proposal to today and empty the day it was made on.
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
-                assertThat(row.createdAt()).isEqualTo(truncated);
-                assertThat(row.updatedAt()).isEqualTo(truncated);
+                assertThat(row.createdAt()).isEqualTo(proposedAt);
+                assertThat(row.updatedAt()).isEqualTo(now.truncatedTo(ChronoUnit.MICROS));
             });
         }
     }

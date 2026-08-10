@@ -54,7 +54,9 @@ components:
         createdAt:
           type: string
           format: date-time
-          description: When the row was recorded, not when the money was spent. Accepting a proposal re-dates it.
+          description: >-
+            When the row was recorded, not when the money was spent. A proposal keeps this through being
+            accepted, so an entry stays on the day it first appeared on.
       required:
         - id
         - status
