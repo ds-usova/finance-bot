@@ -172,7 +172,7 @@ When every pipeline has returned:
    | **Critical**              | fix before the next task starts             | one block per defect, in the form below          |
    | **Bug**                   | real, and it can wait                       | one block per defect, in the form below          |
    | **Refactoring candidate** | nothing behaves wrong                       | table — module · what · why the task left it |
-   | **Manual test**           | what no test can see, so a person must look | `- [ ]` checklist, one line each                 |
+   | **Manual test**           | what no test can see, so a person must look | one block per check, in the form below           |
 
    **A defect is reported as a case, not as a description.** Whoever picks it up reproduces it before fixing it,
    and a paragraph about a class does not tell them how:
@@ -187,9 +187,25 @@ When every pipeline has returned:
    - **Fix** <the proposal> · `<class or file>`
    ```
 
-   **The module comes first** — in a defect's heading, in the first cell of a table row, and in a checklist item
-   unless every item shares one module, which the section's opening line then names. Nothing is *grouped* by
-   module: a reader triages by what a row costs them, and this tells them where to go once they have.
+   **A manual check is the same block, minus what has not happened yet.** No `Actual`, since nobody has looked,
+   and no `Fix`, since nothing is claimed to be wrong:
+
+   ```
+   **[ ] `<module>` — <what this check decides, in one line>**
+
+   - **Given** <the state to arrange, and where on screen>
+   - **When** <what the person does; "it renders" where they only look>
+   - **Then** <the one thing that must hold>
+   ```
+
+   **`Then` states one observable.** A check that needs three is three blocks — bundled into one sentence, a
+   person who sees two of them hold has no way to record the third failing, which is the whole reason the list
+   exists. The tick rides on the heading, so a half-worked list still says where it stopped.
+
+   **The module comes first** — in a defect's heading, in a check's heading, and in the first cell of a table
+   row, unless every entry in the section shares one module, which the section's opening line then names.
+   Nothing is *grouped* by module: a reader triages by what an entry costs them, and this tells them where to go
+   once they have.
 
    **Write what a person hits, not the mechanism.** The class is the last thing on the line, never the sentence.
 
