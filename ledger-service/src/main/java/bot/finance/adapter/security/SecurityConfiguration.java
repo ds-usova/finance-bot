@@ -27,7 +27,6 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -62,12 +61,8 @@ public class SecurityConfiguration {
                 // bearer-token resolver recognizes from CSRF — correct for a token read off the Authorization
                 // header, which a browser never attaches on its own, but wrong here: the resolver reads the
                 // session cookie, exactly what a forged cross-site request also carries automatically, and that
-                // exemption cannot be un-registered through the DSL. So csrf() is disabled here and two CsrfFilters
-                // are added by hand instead: one early, so a token is issued on every request including a refused
-                // one; one after authorization, so a missing token always answers 403 while a request authorization
-                // itself refuses — no session cookie at all, on a path that requires one — still answers 401
-                // through the ordinary authentication-entry-point path, never reaching CSRF enforcement at all. See
-                // csrfTokenIssuingFilter() and csrfEnforcementFilter().
+                // exemption cannot be un-registered through the DSL. So csrf() is disabled and the two filters
+                // below stand in for it; each one documents the position it is given.
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(csrfTokenIssuingFilter(), BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(csrfEnforcementFilter(), AuthorizationFilter.class)
@@ -129,11 +124,7 @@ public class SecurityConfiguration {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(signingKeys.publicKey())
                 .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                new JwtTimestampValidator(),
-                new JwtIssuerValidator(properties.issuer()),
-                new JwtAudienceValidator(properties.audience()),
-                maxLifetimeValidator(properties.ttl())));
+        decoder.setJwtValidator(validator(properties.issuer(), properties.audience(), properties.ttl()));
         return decoder;
     }
 
@@ -191,12 +182,8 @@ public class SecurityConfiguration {
     private static CsrfFilter csrfEnforcementFilter() {
         CsrfFilter filter = new CsrfFilter(CookieCsrfTokenRepository.withHttpOnlyFalse());
         filter.setRequestHandler(eagerCsrfTokenRequestHandler());
-        filter.setAccessDeniedHandler(csrfDeniedHandler());
+        filter.setAccessDeniedHandler(new AccessDeniedHandlerImpl());
         return filter;
-    }
-
-    private static AccessDeniedHandler csrfDeniedHandler() {
-        return new AccessDeniedHandlerImpl();
     }
 
     private static JwtDecoder buildMcpJwtDecoder(AccessTokenProperties properties, Environment environment) {
@@ -206,12 +193,16 @@ public class SecurityConfiguration {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
                 .jwsAlgorithm(SignatureAlgorithm.RS256)
                 .build();
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                new JwtTimestampValidator(),
-                new JwtIssuerValidator(properties.issuer()),
-                new JwtAudienceValidator(properties.audience()),
-                maxLifetimeValidator(properties.ttl())));
+        decoder.setJwtValidator(validator(properties.issuer(), properties.audience(), properties.ttl()));
         return decoder;
+    }
+
+    private static OAuth2TokenValidator<Jwt> validator(String issuer, String audience, Duration ttl) {
+        return new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                new JwtIssuerValidator(issuer),
+                new JwtAudienceValidator(audience),
+                maxLifetimeValidator(ttl));
     }
 
     private static OAuth2TokenValidator<Jwt> maxLifetimeValidator(Duration ttl) {

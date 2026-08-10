@@ -18,7 +18,7 @@ public class ReportClearingConfiguration {
 
     @Bean
     Executor reportClearingExecutor(ReportClearingProperties properties) {
-        // a pool with no room drops the work rather than blocking or running it on the caller's thread (D24)
+        // a pool with no room drops the work rather than blocking or running it on the caller's thread
         return new ThreadPoolExecutor(
                 properties.coreSize(),
                 properties.maxSize(),

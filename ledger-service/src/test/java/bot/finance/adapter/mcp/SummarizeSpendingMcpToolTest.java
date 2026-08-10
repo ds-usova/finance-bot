@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -103,8 +104,7 @@ class SummarizeSpendingMcpToolTest {
                 + "reference and both written days")
         void whenSummarizeSpendingIsCalled_thenPortReceivesIdentityReferenceAndBothDays() {
             String externalId = "user-101";
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             String from = "2026-07-27";
             String to = "2026-08-02";
 
@@ -124,8 +124,7 @@ class SummarizeSpendingMcpToolTest {
             String from = "2026-07-27";
             String to = "2026-08-02";
 
-            Response response = postAcceptedSummary(
-                    "user-101", IncomingMessageId.of(java.util.UUID.randomUUID().toString()), from, to);
+            Response response = postAcceptedSummary("user-101", newIncomingMessageId(), from, to);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");

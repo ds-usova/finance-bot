@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static bot.finance.common.stubs.TelegramTestBot.DELIVERY_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.forToken;
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
@@ -29,7 +30,6 @@ import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -81,7 +81,7 @@ class TelegramMessageDeliveryAdapterTest {
                                 Optional.empty(),
                                 new Money(6000, CurrencyCode.of("EUR")))),
                 List.of(),
-                IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                newIncomingMessageId());
     }
 
     private static TurnReport nothingIdentifiedReport() {
@@ -91,7 +91,7 @@ class TelegramMessageDeliveryAdapterTest {
                 ReportOutcome.NOTHING_IDENTIFIED,
                 List.of(),
                 List.of(),
-                IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                newIncomingMessageId());
     }
 
     private static ResolutionAcknowledgement acceptedAcknowledgement() {

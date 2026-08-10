@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -47,8 +48,7 @@ class CreateExpenseProposalUseCaseTest {
     private static final long GROUPING_ID = 3L;
     private static final long CATEGORY_ID = 2L;
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
-    private static final IncomingMessageId MESSAGE_REFERENCE =
-            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     private UserRepository userRepository;
     private GroupingRepository groupingRepository;

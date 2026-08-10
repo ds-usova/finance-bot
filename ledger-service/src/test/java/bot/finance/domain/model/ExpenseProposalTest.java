@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -19,8 +20,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ExpenseProposalTest {
 
     private static final Money MONEY = new Money(1500L, CurrencyCode.of("USD"));
-    private static final IncomingMessageId MESSAGE_REFERENCE =
-            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     @Nested
     @DisplayName("creating a new expense proposal")

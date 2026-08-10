@@ -1,11 +1,11 @@
 package bot.finance.adapter.aiconnector;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.IncomingMessageId;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +31,7 @@ class IntentProtoMapperTest {
                     "Other",
                     Optional.of(CurrencyCode.of("EUR")),
                     "user-external-id",
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                    newIncomingMessageId(),
                     CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
@@ -54,7 +54,7 @@ class IntentProtoMapperTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                    newIncomingMessageId(),
                     CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
@@ -71,7 +71,7 @@ class IntentProtoMapperTest {
                     "Other",
                     Optional.empty(),
                     "user-external-id",
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()),
+                    newIncomingMessageId(),
                     CURRENT_DATE);
 
             ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);

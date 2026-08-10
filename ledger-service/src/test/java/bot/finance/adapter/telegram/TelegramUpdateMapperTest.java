@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -91,8 +92,7 @@ class TelegramUpdateMapperTest {
         @DisplayName(
                 "when a callback query carries accept:<uuid> - then returns an ACCEPT command whose sender comes from from")
         void whenUpdateCarriesCallbackQueryWithAcceptData_thenReturnsCommandWithAcceptResolution() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "accept:" + reference.value()));
 
@@ -112,8 +112,7 @@ class TelegramUpdateMapperTest {
         @DisplayName(
                 "when the same update carries the data discard:<uuid> - then the returned command's resolution is DISCARD")
         void whenSameUpdateCarriesDiscardData_thenReturnedCommandResolutionIsDiscard() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             Update update = BotUtils.parseUpdate(TelegramFixtures.callbackQueryUpdate(
                     UPDATE_ID, USER_ID, CHAT_ID, REPORT_MESSAGE_ID, "discard:" + reference.value()));
 
@@ -133,8 +132,7 @@ class TelegramUpdateMapperTest {
         }
 
         static Stream<Arguments> skippableCallbackUpdates() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             return Stream.of(
                     Arguments.of("null update", (Update) null),
                     Arguments.of(

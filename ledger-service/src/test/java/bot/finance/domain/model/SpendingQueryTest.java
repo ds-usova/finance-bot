@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -18,8 +19,7 @@ class SpendingQueryTest {
 
     private static final SpendingPeriod PERIOD =
             new SpendingPeriod(LocalDate.parse("2026-07-20"), LocalDate.parse("2026-07-27"));
-    private static final IncomingMessageId MESSAGE_REFERENCE =
-            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     @Nested
     @DisplayName("creating a new spending query")

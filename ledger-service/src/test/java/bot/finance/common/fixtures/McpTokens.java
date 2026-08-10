@@ -48,10 +48,7 @@ public final class McpTokens {
     }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {
-        return tokenFor(
-                accessTokenMinter,
-                externalId,
-                IncomingMessageId.of(UUID.randomUUID().toString()));
+        return tokenFor(accessTokenMinter, externalId, IncomingMessages.newIncomingMessageId());
     }
 
     public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId, IncomingMessageId reference) {

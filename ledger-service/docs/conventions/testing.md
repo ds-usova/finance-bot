@@ -29,6 +29,7 @@ bot.finance
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter

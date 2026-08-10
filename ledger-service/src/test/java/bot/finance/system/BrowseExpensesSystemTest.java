@@ -2,7 +2,6 @@ package bot.finance.system;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.adapter.persistence.CategoryEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
@@ -61,11 +60,7 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
                     .findByExternalId(externalId)
                     .orElseThrow()
                     .id();
-            long categoryId = CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId).stream()
-                    .filter(row -> row.parentId() != null)
-                    .findFirst()
-                    .map(CategoryEntity::id)
-                    .orElseThrow();
+            long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
 
             Instant now = Instant.now();
             ExpenseRowUtils.storedExpense(

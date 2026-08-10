@@ -720,6 +720,26 @@ to no subject.
     no session cookie stands — that is authentication, not CSRF. The web-app therefore keeps 401 meaning that a
     session went away, and nothing else.
 
+- **B4 (from the refactor pass, unverified):** `ClearEmptiedReportsCommand` does not validate itself, against the
+  convention that an inbound-port command does. `ClearEmptiedReportsUseCase.clear` reads
+  `command.incomingMessageIds()` with no null check, so a null command or a null list raises
+  `NullPointerException` rather than a domain exception. No live defect was demonstrated: the only caller is
+  `AcceptExpensesUseCase`, which always passes a non-null, non-empty list. A convention deviation with a latent
+  sharp edge, left as it is because closing it changes behaviour.
+
+- **B5 (from the refactor pass):** `WebExceptionHandlerTest.whenARequestBodysDeclaredBoundsAreBroken_thenResponseIs400NamingFieldAndBound`
+  pins a mechanism rather than a behaviour. It posts `{"ids":[]}` and asserts the message contains `100` — the
+  *maximum*-items bound, which the generated validator happens to name while refusing an *empty* array.
+  Regenerating the OpenAPI model or rewording that message fails the test with nothing broken. The behaviour worth
+  asserting is a 400 naming the field that was refused. Left untouched, since the refactor pass changes no
+  assertion.
+
+- **B6 (from the refactor pass, deliberately not taken):** `PendingCountProjection.pendingCount` is never read —
+  `findPendingCounts` selects `count(*)` and the adapter only asks which ids came back, so the projection and the
+  counted column could both go, in favour of a `SELECT DISTINCT incoming_message_id`. It rewrites SQL that
+  `ExpenseProposalRepositoryAdapterTest` exercises against real Postgres, which is more than a behaviour-preserving
+  pass should take on.
+
 ## Review Findings
 
 - **F1:** RU01 carried no `update:` bullet for `MessageReferenceTest`'s five methods, every one of which asserts

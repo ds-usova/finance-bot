@@ -47,15 +47,11 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         Optional<InlineKeyboardMarkup> keyboard = TurnReportRenderer.renderKeyboard(report);
         keyboard.ifPresent(request::replyMarkup);
 
-        ExecutionResult<SendResponse> result = execute(request, SEND_MESSAGE);
-        result.failure().ifPresent(failure -> {
-            throw failure;
-        });
+        SendResponse response = execute(request, SEND_MESSAGE);
 
         if (keyboard.isEmpty()) {
             return Optional.empty();
         }
-        SendResponse response = result.response().orElseThrow();
         return Optional.of(new ReportLocation(
                 report.conversationId(), String.valueOf(response.message().messageId())));
     }
@@ -65,9 +61,7 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
         EditMessageReplyMarkup edit =
                 new EditMessageReplyMarkup(location.conversationId(), Integer.parseInt(location.sentMessageId()));
 
-        execute(edit, EDIT_MESSAGE_REPLY_MARKUP).failure().ifPresent(failure -> {
-            throw failure;
-        });
+        execute(edit, EDIT_MESSAGE_REPLY_MARKUP);
     }
 
     @Override
@@ -82,37 +76,40 @@ public class TelegramMessageDeliveryAdapter implements MessageDeliveryPort {
                 new EditMessageReplyMarkup(ack.conversationId(), Integer.parseInt(ack.reportMessageId()));
 
         // the keyboard is cleared even when the answer failed, so a tapped report cannot be tapped twice
-        Optional<MessageDeliveryFailedException> answerFailure =
-                execute(answer, ANSWER_CALLBACK_QUERY).failure();
-        Optional<MessageDeliveryFailedException> editFailure =
-                execute(edit, EDIT_MESSAGE_REPLY_MARKUP).failure();
+        Optional<MessageDeliveryFailedException> answerFailure = failureOf(answer, ANSWER_CALLBACK_QUERY);
+        Optional<MessageDeliveryFailedException> editFailure = failureOf(edit, EDIT_MESSAGE_REPLY_MARKUP);
 
         answerFailure.or(() -> editFailure).ifPresent(failure -> {
             throw failure;
         });
     }
 
-    private <T extends BaseRequest<T, R>, R extends BaseResponse> ExecutionResult<R> execute(T request, String method) {
+    private <T extends BaseRequest<T, R>, R extends BaseResponse> Optional<MessageDeliveryFailedException> failureOf(
+            T request, String method) {
+        try {
+            execute(request, method);
+            return Optional.empty();
+        } catch (MessageDeliveryFailedException e) {
+            return Optional.of(e);
+        }
+    }
+
+    private <T extends BaseRequest<T, R>, R extends BaseResponse> R execute(T request, String method) {
         R response;
         try {
             response = bot.execute(request);
         } catch (RuntimeException e) {
-            return new ExecutionResult<>(
-                    Optional.empty(),
-                    Optional.of(new MessageDeliveryFailedException(
-                            "failed to send telegram %s: %s".formatted(method, e.getMessage()), e)));
+            throw new MessageDeliveryFailedException(
+                    "failed to send telegram %s: %s".formatted(method, e.getMessage()), e);
         }
 
         if (!response.isOk()) {
             log.error(
                     "telegram {} failed with error code {}: {}", method, response.errorCode(), response.description());
-            return new ExecutionResult<>(
-                    Optional.empty(),
-                    Optional.of(new MessageDeliveryFailedException("telegram %s failed with error code %d: %s"
-                            .formatted(method, response.errorCode(), response.description()))));
+            throw new MessageDeliveryFailedException("telegram %s failed with error code %d: %s"
+                    .formatted(method, response.errorCode(), response.description()));
         }
-        return new ExecutionResult<>(Optional.of(response), Optional.empty());
-    }
 
-    private record ExecutionResult<R>(Optional<R> response, Optional<MessageDeliveryFailedException> failure) {}
+        return response;
+    }
 }

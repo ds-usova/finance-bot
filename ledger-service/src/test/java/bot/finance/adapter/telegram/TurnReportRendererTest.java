@@ -1,5 +1,6 @@
 package bot.finance.adapter.telegram;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -54,7 +55,7 @@ class TurnReportRendererTest {
                     ReportOutcome.RECORDED,
                     List.of(withMerchant, withoutMerchant),
                     List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -72,12 +73,7 @@ class TurnReportRendererTest {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    List.of(summary),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -88,12 +84,7 @@ class TurnReportRendererTest {
         @DisplayName("when a NOTHING_IDENTIFIED report has no summaries - then renders the no-expense-identified text")
         void whenNothingIdentifiedReportHasNoSummaries_thenRendersNoExpenseIdentifiedText() {
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.NOTHING_IDENTIFIED,
-                    List.of(),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of(), List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -103,13 +94,8 @@ class TurnReportRendererTest {
         @Test
         @DisplayName("when a FAILED report has no summaries - then renders the went-wrong text")
         void whenFailedReportHasNoSummaries_thenRendersWentWrongText() {
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.FAILED,
-                    List.of(),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.FAILED, List.of(), List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -123,12 +109,7 @@ class TurnReportRendererTest {
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.PARTIAL,
-                    List.of(summary),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.PARTIAL, List.of(summary), List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -152,13 +133,8 @@ class TurnReportRendererTest {
                             Optional.of("Rewe supermarket"),
                             new Money(4230, EUR)))
                     .toList();
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    summaries,
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.RECORDED, summaries, List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -185,13 +161,8 @@ class TurnReportRendererTest {
                             "Groceries", "Food", "d".repeat(31), Optional.of("Rewe supermarket"), new Money(4230, EUR)))
                     .toList());
             summaries.add(new ProposalSummary("A", "B", "c", Optional.empty(), new Money(100, EUR)));
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    summaries,
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.RECORDED, summaries, List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -205,12 +176,7 @@ class TurnReportRendererTest {
             ProposalSummary summary = new ProposalSummary(
                     "Groceries", "Food", "weekly *shop_ trip", Optional.empty(), new Money(4230, EUR));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    List.of(summary),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.RECORDED, List.of(summary), List.of(), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -227,12 +193,7 @@ class TurnReportRendererTest {
             CurrencyTotal hufTotal = new CurrencyTotal(new Money(720000, CurrencyCode.of("HUF")), 1);
             SpendingSummary summary = new SpendingSummary(period, List.of(eurTotal, hufTotal));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -251,12 +212,7 @@ class TurnReportRendererTest {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of());
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -273,12 +229,7 @@ class TurnReportRendererTest {
                 SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
                 SpendingSummary summary = new SpendingSummary(period, List.of());
                 TurnReport report = new TurnReport(
-                        "555",
-                        "1",
-                        ReportOutcome.ANSWERED,
-                        List.of(),
-                        List.of(summary),
-                        IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                        "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), newIncomingMessageId());
 
                 String text = TurnReportRenderer.render(report);
 
@@ -302,7 +253,7 @@ class TurnReportRendererTest {
                     ReportOutcome.ANSWERED,
                     List.of(),
                     List.of(firstSummary, secondSummary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -331,7 +282,7 @@ class TurnReportRendererTest {
                     ReportOutcome.RECORDED,
                     List.of(withMerchant, withoutMerchant),
                     List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -355,12 +306,7 @@ class TurnReportRendererTest {
             ProposalSummary proposal =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.PARTIAL,
-                    List.of(proposal),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.PARTIAL, List.of(proposal), List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -381,12 +327,7 @@ class TurnReportRendererTest {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.NOTHING_IDENTIFIED,
-                    List.of(),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.NOTHING_IDENTIFIED, List.of(), List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -406,12 +347,7 @@ class TurnReportRendererTest {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.FAILED,
-                    List.of(),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.FAILED, List.of(), List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -440,12 +376,7 @@ class TurnReportRendererTest {
                             new Money(4230, EUR)))
                     .toList();
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    proposals,
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.RECORDED, proposals, List.of(summary), newIncomingMessageId());
 
             String text = TurnReportRenderer.render(report);
 
@@ -481,13 +412,8 @@ class TurnReportRendererTest {
                         return new SpendingSummary(new SpendingPeriod(day, day), List.of());
                     })
                     .toList();
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    summaries,
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.ANSWERED, List.of(), summaries, newIncomingMessageId());
             String oldestBlock = "Nothing is recorded between %s and %s."
                     .formatted(
                             LocalDate.of(2026, 1, 1).format(dateFormat),
@@ -522,8 +448,7 @@ class TurnReportRendererTest {
         @Test
         @DisplayName("when a RECORDED report carries summaries - then returns one row of a Confirm and a Delete button")
         void whenRecordedReportCarriesTwoSummariesAndReference_thenReturnsOneRowOfConfirmAndDeleteButtons() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             ProposalSummary first =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             ProposalSummary second =
@@ -548,8 +473,7 @@ class TurnReportRendererTest {
         @DisplayName(
                 "when a PARTIAL report carries one summary and a reference - then returns the same one-row, two-button markup")
         void whenPartialReportCarriesOneSummaryAndReference_thenReturnsSameOneRowTwoButtonMarkup() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             ProposalSummary summary =
                     new ProposalSummary("Groceries", "Food", "weekly shop", Optional.of("Rewe"), new Money(4230, EUR));
             TurnReport report =
@@ -569,13 +493,7 @@ class TurnReportRendererTest {
         @DisplayName("when a NOTHING_IDENTIFIED report and a FAILED report both have no summaries - then returns empty")
         void whenNothingIdentifiedAndFailedReportsHaveNoSummaries_thenReturnsEmpty(
                 String description, ReportOutcome outcome) {
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    outcome,
-                    List.of(),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report = new TurnReport("555", "1", outcome, List.of(), List.of(), newIncomingMessageId());
 
             Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
@@ -592,13 +510,8 @@ class TurnReportRendererTest {
         @DisplayName(
                 "when a RECORDED report's summary list is empty - then returns empty, the list deciding, not the outcome")
         void whenRecordedReportSummaryListIsEmpty_thenReturnsEmpty() {
-            TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.RECORDED,
-                    List.of(),
-                    List.of(),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report =
+                    new TurnReport("555", "1", ReportOutcome.RECORDED, List.of(), List.of(), newIncomingMessageId());
 
             Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
@@ -611,12 +524,7 @@ class TurnReportRendererTest {
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             TurnReport report = new TurnReport(
-                    "555",
-                    "1",
-                    ReportOutcome.ANSWERED,
-                    List.of(),
-                    List.of(summary),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    "555", "1", ReportOutcome.ANSWERED, List.of(), List.of(summary), newIncomingMessageId());
 
             Optional<InlineKeyboardMarkup> markup = TurnReportRenderer.renderKeyboard(report);
 
@@ -627,8 +535,7 @@ class TurnReportRendererTest {
         @DisplayName("when a RECORDED report carries both a summary and a proposal - then returns the one-row, "
                 + "two-button markup")
         void whenRecordedReportCarriesSummaryAndProposal_thenReturnsTheOneRowTwoButtonMarkup() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 27), LocalDate.of(2026, 8, 2));
             SpendingSummary summary = new SpendingSummary(period, List.of(new CurrencyTotal(new Money(4230, EUR), 1)));
             ProposalSummary proposal =

@@ -1,5 +1,6 @@
 package bot.finance.application.dto;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -25,8 +26,7 @@ class CreateExpenseProposalCommandTest {
     private static final String DESCRIPTION = "groceries";
     private static final Optional<String> MERCHANT = Optional.of("Trader Joe's");
     private static final Money MONEY = new Money(1000, new CurrencyCode("USD"));
-    private static final IncomingMessageId MESSAGE_REFERENCE =
-            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     @Nested
     @DisplayName("constructing a new expense proposal")

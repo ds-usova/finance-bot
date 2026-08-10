@@ -14,6 +14,15 @@ public class CategoryRowUtils {
                 .toList();
     }
 
+    /** The id of the first category the user has under a grouping, as the initial tree gives them. */
+    public static long firstLeafCategoryId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId) {
+        return categoryRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row -> row.parentId() != null)
+                .findFirst()
+                .map(CategoryEntity::id)
+                .orElseThrow();
+    }
+
     public static long storedGroupingId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String name) {
         return jdbcAggregateTemplate
                 .insert(new CategoryEntity(null, userId, null, name))

@@ -1,5 +1,6 @@
 package bot.finance.system;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.persistence.SpendingQueryEntity;
@@ -70,8 +71,7 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
         void whenToolCallNamesAPeriod_thenThatPeriodIsAnsweredAndRecorded() {
             String externalId = "summarize-spending-happy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
             String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
 
             String requestBody = McpRequests.summarizeSpending(FROM, TO);

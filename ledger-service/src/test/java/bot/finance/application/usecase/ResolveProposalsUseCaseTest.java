@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,8 +45,7 @@ class ResolveProposalsUseCaseTest {
     private static final String REPORT_MESSAGE_ID = "42";
     private static final String INTERACTION_ID = "interaction-1";
     private static final Instant FIXED_INSTANT = Instant.parse("2026-07-29T10:15:30Z");
-    private static final IncomingMessageId REFERENCE =
-            IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+    private static final IncomingMessageId REFERENCE = newIncomingMessageId();
 
     private Logger log;
     private UserRepository userRepository;

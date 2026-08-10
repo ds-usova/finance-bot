@@ -7,7 +7,6 @@ import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.adapter.persistence.CategoryEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
@@ -74,11 +73,7 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                     .findByExternalId(externalId)
                     .orElseThrow()
                     .id();
-            long categoryId = CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId).stream()
-                    .filter(row -> row.parentId() != null)
-                    .findFirst()
-                    .map(CategoryEntity::id)
-                    .orElseThrow();
+            long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
 
             String incomingMessageId = UUID.randomUUID().toString();
             Instant now = Instant.now();
@@ -230,11 +225,7 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
         }
 
         private long storedPendingProposal(long userId) {
-            long categoryId = CategoryRowUtils.categoryRowsFor(jdbcAggregateTemplate, userId).stream()
-                    .filter(row -> row.parentId() != null)
-                    .findFirst()
-                    .map(CategoryEntity::id)
-                    .orElseThrow();
+            long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
             return ExpenseProposalRowUtils.storedProposal(
                             jdbcAggregateTemplate,
                             userId,

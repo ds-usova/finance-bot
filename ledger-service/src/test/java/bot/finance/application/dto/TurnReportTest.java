@@ -1,5 +1,6 @@
 package bot.finance.application.dto;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -34,8 +35,7 @@ class TurnReportTest {
         @Test
         @DisplayName("when every component is present - then every component reads back unchanged")
         void whenEveryComponentIsPresent_thenEveryComponentReadsBackUnchanged() {
-            IncomingMessageId reference =
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString());
+            IncomingMessageId reference = newIncomingMessageId();
 
             TurnReport report = recordedReport(reference);
 
@@ -51,8 +51,7 @@ class TurnReportTest {
         @DisplayName(
                 "when a report is built from proposal and summary lists - then both lists read back " + "unmodifiable")
         void whenReportIsBuiltFromProposalAndSummaryLists_thenBothListsReadBackUnmodifiable() {
-            TurnReport report = recordedReport(
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+            TurnReport report = recordedReport(newIncomingMessageId());
 
             assertThatThrownBy(() -> report.proposals().add(PROPOSAL))
                     .isInstanceOf(UnsupportedOperationException.class);
@@ -68,7 +67,7 @@ class TurnReportTest {
                     ReportOutcome.NOTHING_IDENTIFIED,
                     null,
                     List.of(SUMMARY),
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
 
             assertThat(report.proposals()).isEmpty();
         }
@@ -82,7 +81,7 @@ class TurnReportTest {
                     ReportOutcome.ANSWERED,
                     List.of(PROPOSAL),
                     null,
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
 
             assertThat(report.summaries()).isEmpty();
         }
@@ -100,7 +99,7 @@ class TurnReportTest {
                     ReportOutcome.PARTIAL,
                     mutableProposals,
                     mutableSummaries,
-                    IncomingMessageId.of(java.util.UUID.randomUUID().toString()));
+                    newIncomingMessageId());
             mutableProposals.add(PROPOSAL);
             mutableSummaries.add(SUMMARY);
 
