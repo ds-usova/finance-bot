@@ -57,6 +57,10 @@ class IncomingMessageIdTest {
             assertThat(IncomingMessageId.of(reference.value())).isEqualTo(reference);
         }
 
+        // Both bound cases are ASCII, where a character is a byte, so neither tells a byte check from a
+        // character one. Pinning that difference needs a multi-byte value — 55 'a' and one 'é' is 56
+        // characters and 57 bytes. Nothing produces one: the value is two decimal ids from Telegram, or a
+        // canonical UUID from before the rename.
         @Test
         @DisplayName("when of is called with a value of exactly 56 bytes - then it is accepted")
         void whenCalledWithValueOfExactly56Bytes_thenItIsAccepted() {
