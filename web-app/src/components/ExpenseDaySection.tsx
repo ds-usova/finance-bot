@@ -70,9 +70,9 @@ function CategoryControl({
           aria-label={t('listing.changeCategoryLabel', { description: entry.description })}
           aria-busy={busy}
           disabled={disabled}
-          className="h-auto gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
+          className="h-auto min-w-0 max-w-full gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
         >
-          {categoryName}
+          <span className="truncate">{categoryName}</span>
           <ChevronsUpDown aria-hidden="true" className="h-3 w-3 shrink-0 opacity-50" />
         </Button>
       }
@@ -204,25 +204,29 @@ export function ExpenseDaySection({
                         />
                       )}
                     </span>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate font-medium">{entry.description}</span>
-                      {(entry.merchant || categoryName) && (
-                        <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
-                          {entry.merchant && <span className="truncate">{entry.merchant}</span>}
-                          {entry.merchant && categoryName && <span aria-hidden="true">·</span>}
-                          {categoryName && (
-                            <CategoryControl
-                              entry={entry}
-                              categoryName={categoryName}
-                              categories={categories}
-                              groupings={groupings}
-                              changingKey={changingKey}
-                              onChangeCategory={onChangeCategory}
-                            />
-                          )}
-                        </span>
+                    {/* Three columns rather than a description with a secondary line under it, so a reader
+                        scans merchants down one column and categories down another. Each cell is rendered
+                        whether or not it has content, or a row missing one would pull the rest left and the
+                        columns would stop lining up. The description takes twice the width of either, and all
+                        three truncate — the merchant first, since it is the widest and the least load-bearing. */}
+                    <span className="min-w-0 flex-[2] truncate font-medium">
+                      {entry.description}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                      {entry.merchant}
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center">
+                      {categoryName && (
+                        <CategoryControl
+                          entry={entry}
+                          categoryName={categoryName}
+                          categories={categories}
+                          groupings={groupings}
+                          changingKey={changingKey}
+                          onChangeCategory={onChangeCategory}
+                        />
                       )}
-                    </div>
+                    </span>
                     <div className="flex shrink-0 items-center gap-3">
                       {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
                       <span className="whitespace-nowrap text-right tabular-nums">
