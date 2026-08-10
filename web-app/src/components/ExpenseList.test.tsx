@@ -5,7 +5,14 @@ import type { DayTotal, ExpensePage } from '../api/expenses';
 import { en } from '../i18n/en';
 import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
-import { anExpense, anExpensePage, categoryNames } from '../testing/fixtures';
+import { chooseFromList } from '../testing/combobox';
+import {
+  aCategory,
+  aGrouping,
+  anExpense,
+  anExpensePage,
+  categoryNames,
+} from '../testing/fixtures';
 import { ExpenseList, type ExpenseListProps } from './ExpenseList';
 
 /** The list under test, with the props a case says nothing about left inert. */
@@ -47,6 +54,27 @@ function threeDaysOfEntries() {
       description: 'taxi',
       money: { amount: '9.00', currency: 'EUR', separator: '' },
       createdAt: '2026-08-03T09:00:00Z',
+    }),
+  ];
+}
+
+/** One recorded entry on each of two UTC days, both filed under the same category: coffee on the 1st, taxi
+ * on the 2nd. */
+function twoDaysOfEntries() {
+  return [
+    anExpense({
+      id: 1,
+      status: 'RECORDED',
+      categoryId: 10,
+      description: 'coffee',
+      createdAt: '2026-08-01T09:00:00Z',
+    }),
+    anExpense({
+      id: 2,
+      status: 'RECORDED',
+      categoryId: 10,
+      description: 'taxi',
+      createdAt: '2026-08-02T09:00:00Z',
     }),
   ];
 }
@@ -169,5 +197,55 @@ describe('the expense list', () => {
     expect(
       within(secondItem).getByRole('checkbox', { name: en.listing.entryCheckboxLabel }),
     ).toBeDisabled();
+  });
+
+  it('marks the row a change is out for as busy and disables every control on the other day', () => {
+    renderList({ page: anExpensePage(twoDaysOfEntries()), changingKey: 'RECORDED-1' });
+    expandDays();
+
+    const busyControl = screen.getByRole('button', { name: 'Change coffee’s category' });
+    const otherControl = screen.getByRole('button', { name: 'Change taxi’s category' });
+    expect(busyControl).toHaveAttribute('aria-busy', 'true');
+    expect(otherControl).toBeDisabled();
+  });
+
+  it('calls the list’s onChangeCategory with the row’s entry and the chosen id when a category is picked', async () => {
+    const onChangeCategory = vi.fn();
+    const groceries = aCategory({ id: 10, name: 'Groceries' });
+    const transport = aCategory({
+      id: 20,
+      name: 'Transport',
+      groupingId: groceries.groupingId,
+      groupingName: groceries.groupingName,
+    });
+    const entries = twoDaysOfEntries();
+
+    renderList({
+      page: anExpensePage(entries),
+      changingKey: null,
+      categories: [groceries, transport],
+      groupings: [aGrouping({ id: groceries.groupingId, name: groceries.groupingName })],
+      onChangeCategory,
+    });
+    expandDays();
+
+    await chooseFromList('Change taxi’s category', 'Transport');
+
+    expect(onChangeCategory).toHaveBeenCalledWith(entries[1], transport.id);
+  });
+
+  it('shows the refusal only on the row it names, leaving the other day without one', () => {
+    renderList({
+      page: anExpensePage(twoDaysOfEntries()),
+      changeFailure: { key: 'RECORDED-2', message: 'That category no longer exists.' },
+    });
+    expandDays();
+
+    const firstItem = screen.getByRole('listitem', { name: /coffee/i });
+    const secondItem = screen.getByRole('listitem', { name: /taxi/i });
+    expect(within(secondItem).getByRole('alert')).toHaveTextContent(
+      'That category no longer exists.',
+    );
+    expect(within(firstItem).queryByRole('alert')).not.toBeInTheDocument();
   });
 });

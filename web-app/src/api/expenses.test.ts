@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { aCategory, aGrouping, anAcceptance, anExpense, anExpensePage } from '../testing/fixtures';
-import { acceptExpenses, listCategories, listExpenses, listGroupings } from './expenses';
+import { acceptExpenses, changeCategory, listCategories, listExpenses, listGroupings } from './expenses';
 
 describe('the expense calls', () => {
   afterEach(() => {
@@ -134,6 +134,81 @@ describe('the expense calls', () => {
       await expect(acceptExpenses([1])).rejects.toMatchObject({
         name: 'ApiError',
         status: 401,
+      });
+    });
+  });
+
+  describe('changing an expense category', () => {
+    beforeEach(() => {
+      document.cookie = 'XSRF-TOKEN=csrf-token-value; path=/';
+    });
+
+    afterEach(() => {
+      document.cookie = 'XSRF-TOKEN=; path=/; max-age=0';
+    });
+
+    it('patches the entry by its status and id, replacing /categoryId, with the CSRF header and the cookies', async () => {
+      const entry = anExpense({ id: 12, status: 'RECORDED' });
+      const fetchMock = stubFetch(jsonResponse(anExpense({ id: 12, categoryId: 42 })));
+
+      await changeCategory(entry, 42);
+
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/RECORDED/12');
+      const [, init] = fetchMock.mock.calls[0]!;
+      expect(init).toMatchObject({ method: 'PATCH', credentials: 'include' });
+      expect(JSON.parse(String(init?.body))).toEqual([
+        { op: 'replace', path: '/categoryId', value: 42 },
+      ]);
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Content-Type')).toBe('application/json-patch+json');
+      expect(headers.get('X-XSRF-TOKEN')).toBe('csrf-token-value');
+    });
+
+    it('carries the PENDING status in the path, so the two statuses are never confused for one id', async () => {
+      const entry = anExpense({ id: 12, status: 'PENDING' });
+      const fetchMock = stubFetch(jsonResponse(anExpense({ id: 12, status: 'PENDING' })));
+
+      await changeCategory(entry, 42);
+
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/PENDING/12');
+    });
+
+    it('answers the entry as the ledger now holds it', async () => {
+      const entry = anExpense({ id: 12, categoryId: 10 });
+      const updated = anExpense({ id: 12, categoryId: 42 });
+      stubFetch(jsonResponse(updated));
+
+      await expect(changeCategory(entry, 42)).resolves.toEqual(updated);
+    });
+
+    it('rejects with the message and status the ledger answered on a 503', async () => {
+      const entry = anExpense({ id: 12 });
+      stubFetch(jsonResponse({ message: 'ledger unavailable' }, 503));
+
+      await expect(changeCategory(entry, 42)).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 503,
+        message: 'ledger unavailable',
+      });
+    });
+
+    it('rejects with a 401 status so a page can tell an expiry from an entry that moved on', async () => {
+      const entry = anExpense({ id: 12 });
+      stubFetch(new Response('', { status: 401 }));
+
+      await expect(changeCategory(entry, 42)).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 401,
+      });
+    });
+
+    it('rejects with a 404 status so a page can tell an expiry from an entry that moved on', async () => {
+      const entry = anExpense({ id: 12 });
+      stubFetch(new Response('', { status: 404 }));
+
+      await expect(changeCategory(entry, 42)).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 404,
       });
     });
   });
