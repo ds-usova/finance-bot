@@ -1096,6 +1096,34 @@ class ExpenseProposalRepositoryAdapterTest {
         }
 
         @Test
+        @DisplayName("when a refiled proposal is then accepted - then the recorded expense carries the category "
+                + "it was refiled to")
+        void whenRefiledProposalIsThenAccepted_thenRecordedExpenseCarriesTheRefiledCategory() {
+            long userId = storedUserId("refile-then-accept-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long reportedCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long refiledCategoryId = storedCategoryId(userId, groupingId, "Markets");
+            ExpenseProposalEntity stored = ExpenseProposalRowUtils.storedProposal(
+                    jdbcAggregateTemplate,
+                    userId,
+                    reportedCategoryId,
+                    "Flowers",
+                    "Market",
+                    800,
+                    "EUR",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    Instant.now().minusSeconds(60));
+
+            adapter.refile(userId, stored.id(), refiledCategoryId, Instant.now());
+            adapter.acceptByIds(userId, ProposalIds.of(List.of(stored.id())), Instant.now());
+
+            // The acceptance copies the proposal's own category column, so a person who refiles a proposal and
+            // then confirms it from the report that still names the old category records the new one.
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(refiledCategoryId));
+        }
+
+        @Test
         @DisplayName(
                 "when the proposal was already accepted - then the answer is empty and no row is written in either table")
         void whenProposalIdWasAcceptedAMomentEarlier_thenAnswerIsEmptyAndNoRowWrittenInEitherTable() {

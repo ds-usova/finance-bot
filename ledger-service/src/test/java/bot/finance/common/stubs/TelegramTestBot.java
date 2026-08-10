@@ -87,12 +87,6 @@ public final class TelegramTestBot {
      */
     public static final String ACCEPT_EXPENSES_TOKEN = "accept-expenses-test-token";
 
-    /**
-     * Token owned by {@code RefileReportedProposalSystemTest}, whose Telegram scenario reaches a stub path no
-     * other class can, starting from a clean poll offset.
-     */
-    public static final String REFILE_REPORTED_PROPOSAL_TOKEN = "refile-reported-proposal-test-token";
-
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
