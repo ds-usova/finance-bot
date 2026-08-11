@@ -128,6 +128,20 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
+// Keeps every Kafka Connect artifact debezium-embedded pulls in on the version it was built against (see the
+// comment on kafkaConnectVersion in gradle.properties) instead of the newer one Spring Boot's own dependency
+// management would otherwise select for it.
+dependencyManagement {
+    dependencies {
+        dependency "org.apache.kafka:connect-api:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-runtime:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-json:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-file:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-transforms:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:kafka-clients:${kafkaConnectVersion}"
+    }
+}
+
 test {
     useJUnitPlatform()
 

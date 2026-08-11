@@ -2,6 +2,7 @@ package bot.finance.adapter.cdc;
 
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,7 +21,9 @@ public class ChangeStreamHealthIndicator implements HealthIndicator {
 
     @Override
     public Health health() {
-        // UP with detail STREAMING or STANDBY, DOWN with detail DOWN, naming the reader's state either way
-        return Health.down().build();
+        ChangeStreamState state = changeStreamReader.state();
+        Status status = state == ChangeStreamState.DOWN ? Status.DOWN : Status.UP;
+
+        return Health.status(status).withDetail("state", state.name()).build();
     }
 }

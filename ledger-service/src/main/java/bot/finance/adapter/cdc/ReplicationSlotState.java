@@ -12,9 +12,12 @@ public enum ReplicationSlotState {
     ABSENT;
 
     public static ReplicationSlotState fromWalStatus(String walStatus) {
-        // maps reserved/extended/unreserved/lost to the matching constant; refuses any other text rather than
-        // silently defaulting, since an unrecognised wal_status is a Postgres version this pipeline has not
-        // been taught
-        return null;
+        return switch (walStatus) {
+            case "reserved" -> RESERVED;
+            case "extended" -> EXTENDED;
+            case "unreserved" -> UNRESERVED;
+            case "lost" -> LOST;
+            default -> throw new IllegalArgumentException("Undocumented wal_status: " + walStatus);
+        };
     }
 }

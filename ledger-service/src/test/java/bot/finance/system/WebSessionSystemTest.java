@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -149,8 +148,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
     class UseSession {
 
         @Test
-        @Disabled("GU03: ReadSessionUseCase.read answers null, so a session read always fails rather than "
-                + "resolving the caller's row")
         @DisplayName("when the session is read with the cookie the sign-in set - then 200 with the signed-in id")
         void whenTheSessionIsReadWithTheCookieTheSignInSet_then200WithTheSignedInId() {
             String externalId = "web-session-read-user";

@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -135,8 +134,6 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the authenticated caller is "
-                + "always refused as unknown")
         @DisplayName("when the poll loop picks up a text message asking what was spent - then the reply reports "
                 + "the in-period totals")
         void whenPollLoopPicksUpSpendingQuestion_thenReplyReportsTheInPeriodTotals() {

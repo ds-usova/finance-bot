@@ -45,6 +45,9 @@ public class ChangeStreamConfiguration {
                 .with("name", properties.slotName())
                 .with("connector.class", "io.debezium.connector.postgresql.PostgresConnector")
                 .with("topic.prefix", "ledger-service")
+                // Required by Kafka Connect's WorkerConfig validation, which the embedded engine reuses even
+                // though it never talks to a Kafka cluster.
+                .with("bootstrap.servers", "localhost:9092")
                 .with("database.hostname", jdbcUri.getHost())
                 .with("database.port", jdbcUri.getPort())
                 .with("database.dbname", databaseName)

@@ -18,8 +18,6 @@ public class CategoryNameReader {
     }
 
     public Optional<CategoryNames> findNames(long categoryId) {
-        // reads the category and its parent by category.id alone, since an id is globally unique; answers
-        // nothing for an id no category row carries, or for a grouping's own id, which has no parent
-        return Optional.empty();
+        return categoryEntityRepository.findCategoryNames(categoryId).map(CategoryNamesProjection::toCategoryNames);
     }
 }

@@ -19,7 +19,6 @@ import io.restassured.response.Response;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,8 +66,6 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the authenticated caller is "
-                + "always refused as unknown")
         @DisplayName("when tools/call summarize_spending is posted with a first and last day - then that period "
                 + "is answered and recorded")
         void whenToolCallNamesAPeriod_thenThatPeriodIsAnsweredAndRecorded() {

@@ -1,7 +1,12 @@
 package bot.finance.adapter.redis;
 
 import bot.finance.adapter.cdc.CdcProperties;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisStreamCommands.TrimOptions;
+import org.springframework.data.redis.connection.RedisStreamCommands.XAddOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +25,18 @@ public class RedisChangeStreamWriter {
     }
 
     public boolean write(String payload, Optional<String> enrichment) {
-        // XADDs payload and, when present, enrichment to the configured stream, capped with an approximate
-        // trim to streamMaxLength; answers false rather than throwing when Redis cannot be reached
-        return false;
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("payload", payload);
+        enrichment.ifPresent(value -> body.put("enrichment", value));
+
+        XAddOptions options = XAddOptions.trim(
+                TrimOptions.maxLen(properties.streamMaxLength()).approximate());
+
+        try {
+            redisTemplate.opsForStream().add(properties.streamKey(), body, options);
+            return true;
+        } catch (DataAccessException e) {
+            return false;
+        }
     }
 }

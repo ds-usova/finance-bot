@@ -1,7 +1,15 @@
 package bot.finance.adapter.cdc;
 
 import bot.finance.adapter.redis.RedisChangeStreamWriter;
+import bot.finance.domain.exception.PersistenceFailedException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.debezium.engine.ChangeEvent;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.time.Instant;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,9 +20,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChangeEventPublisher {
 
+    private static final String CATEGORY_TABLE = "category";
+
     private final CategoryNameResolver categoryNameResolver;
     private final RedisChangeStreamWriter redisChangeStreamWriter;
     private final ChangeStreamMeters meters;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChangeEventPublisher(
             CategoryNameResolver categoryNameResolver,
@@ -26,8 +37,68 @@ public class ChangeEventPublisher {
     }
 
     public boolean publish(ChangeEvent<String, String> event) {
-        // shapes the Debezium envelope, adds the enrichment block for an expense or proposal row,
-        // and XADDs it to the capped stream; answers false when Redis or the category lookup refuses
-        return false;
+        String payload = event.value();
+        JsonNode root = readPayload(payload);
+        String table = root.path("source").path("table").asText();
+        String operation = root.path("op").asText();
+
+        Optional<String> enrichment;
+        if (CATEGORY_TABLE.equals(table)) {
+            categoryNameResolver.evict(evictedCategoryId(root));
+            enrichment = Optional.empty();
+        } else {
+            try {
+                enrichment = Optional.of(buildEnrichment(root));
+            } catch (PersistenceFailedException e) {
+                return false;
+            }
+        }
+
+        if (!redisChangeStreamWriter.write(payload, enrichment)) {
+            meters.countPublishFailure();
+            return false;
+        }
+
+        meters.countPublished(table, operation);
+        meters.setEventLag(
+                Instant.ofEpochMilli(root.path("source").path("ts_ms").asLong()));
+        return true;
+    }
+
+    private JsonNode readPayload(String payload) {
+        try {
+            return objectMapper.readTree(payload);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to parse change event payload", e);
+        }
+    }
+
+    private long evictedCategoryId(JsonNode root) {
+        JsonNode after = root.path("after");
+        JsonNode side = after.isMissingNode() ? root.path("before") : after;
+        return side.path("id").asLong();
+    }
+
+    private String buildEnrichment(JsonNode root) {
+        ObjectNode enrichment = objectMapper.createObjectNode();
+        JsonNode before = root.path("before");
+        if (!before.isMissingNode()) {
+            enrichment.set("before", enrichedSide(before));
+        }
+        JsonNode after = root.path("after");
+        if (!after.isMissingNode()) {
+            enrichment.set("after", enrichedSide(after));
+        }
+        return enrichment.toString();
+    }
+
+    private ObjectNode enrichedSide(JsonNode side) {
+        ObjectNode sideEnrichment = objectMapper.createObjectNode();
+        long categoryId = side.path("category_id").asLong();
+        categoryNameResolver.resolve(categoryId).ifPresent(names -> {
+            sideEnrichment.put("categoryName", names.categoryName());
+            sideEnrichment.put("groupingName", names.groupingName());
+        });
+        return sideEnrichment;
     }
 }

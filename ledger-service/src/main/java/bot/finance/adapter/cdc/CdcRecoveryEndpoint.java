@@ -22,9 +22,16 @@ public class CdcRecoveryEndpoint {
 
     @WriteOperation
     public WebEndpointResponse<SlotRecoveryOutcome> recover() {
-        // runs the recovery sequence and answers 200 with both positions on success, 409 when the slot is not
-        // lost or the advisory lock is held, and 503 when the engine, the position delete or the slot drop
-        // each refuse
-        return new WebEndpointResponse<>(HttpStatus.SERVICE_UNAVAILABLE.value());
+        SlotRecoveryOutcome outcome = changeStreamRecovery.recover();
+
+        return new WebEndpointResponse<>(outcome, statusFor(outcome).value());
+    }
+
+    private HttpStatus statusFor(SlotRecoveryOutcome outcome) {
+        return switch (outcome.status()) {
+            case REBUILT -> HttpStatus.OK;
+            case SLOT_NOT_LOST, LOCK_HELD -> HttpStatus.CONFLICT;
+            case ENGINE_DID_NOT_STOP, POSITION_NOT_DELETED, SLOT_NOT_DROPPED -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
     }
 }

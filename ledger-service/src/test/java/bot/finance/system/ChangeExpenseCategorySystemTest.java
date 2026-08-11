@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -57,8 +56,6 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the authenticated caller is "
-                + "always refused as unknown")
         @DisplayName("when a recorded expense and a pending proposal are patched to a second category - then "
                 + "both refile there")
         void whenARecordedExpenseAndAPendingProposalAreEachPatchedToTheSecondCategory_thenBothRefileCorrectly() {
@@ -144,8 +141,6 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the authenticated caller is "
-                + "always refused as unknown")
         @DisplayName("when the refiled pending proposal is accepted - then the recorded expense carries the "
                 + "new category")
         void whenTheRefiledPendingProposalIsAccepted_thenTheRecordedExpenseCarriesTheNewCategory() {
@@ -201,8 +196,6 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the 404 names the caller as "
-                + "unknown rather than the entry")
         @DisplayName("when an id names no entry of theirs under that status - then 404 naming the entry rather "
                 + "than the caller")
         void whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry() {

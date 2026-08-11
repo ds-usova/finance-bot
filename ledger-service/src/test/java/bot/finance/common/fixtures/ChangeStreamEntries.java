@@ -56,8 +56,12 @@ public class ChangeStreamEntries {
             return payload.path("op").asText();
         }
 
+        public JsonNode source() {
+            return payload.path("source");
+        }
+
         public String table() {
-            return payload.path("source").path("table").asText();
+            return source().path("table").asText();
         }
 
         public JsonNode after() {

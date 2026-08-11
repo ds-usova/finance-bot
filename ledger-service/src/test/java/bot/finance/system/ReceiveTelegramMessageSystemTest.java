@@ -35,7 +35,6 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -147,8 +146,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the create_expense_proposal "
-                + "callback the model triggers is refused as an unknown caller before anything is stored")
         @DisplayName("when the poll loop picks up a text message - then the turn records one proposal and reports it "
                 + "back with its buttons")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()

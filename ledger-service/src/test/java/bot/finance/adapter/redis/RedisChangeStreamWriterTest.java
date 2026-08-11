@@ -71,16 +71,17 @@ class RedisChangeStreamWriterTest {
                 RedisChangeStreamWriter writer =
                         new RedisChangeStreamWriter(template(factory), properties(streamKey, cap));
 
-                for (int i = 0; i < 20; i++) {
+                int written = 1000;
+                for (int i = 0; i < written; i++) {
                     writer.write("{\"op\":\"c\",\"after\":{\"marker\":\"entry-" + i + "\"}}", Optional.empty());
                 }
 
                 List<String> payloads = readEntries(streamKey).stream()
                         .map(m -> m.getBody().get("payload"))
                         .toList();
-                assertThat(payloads).contains("{\"op\":\"c\",\"after\":{\"marker\":\"entry-19\"}}");
+                assertThat(payloads).contains("{\"op\":\"c\",\"after\":{\"marker\":\"entry-999\"}}");
                 assertThat(payloads).doesNotContain("{\"op\":\"c\",\"after\":{\"marker\":\"entry-0\"}}");
-                assertThat(payloads.size()).isLessThanOrEqualTo(20);
+                assertThat(payloads.size()).isLessThanOrEqualTo(written / 5);
             } finally {
                 factory.destroy();
             }

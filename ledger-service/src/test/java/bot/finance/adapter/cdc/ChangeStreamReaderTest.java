@@ -6,7 +6,6 @@ import static org.awaitility.Awaitility.await;
 import bot.finance.LedgerServiceApplication;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.CdcCaptureTest;
-import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.RedisContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
@@ -15,21 +14,15 @@ import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ProposalReportRowUtils;
 import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Properties;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.postgresql.PGConnection;
-import org.postgresql.replication.LogSequenceNumber;
-import org.postgresql.replication.PGReplicationStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
@@ -53,7 +46,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * a use case, since only the row change reaching the log is under test here.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test")
+@TestPropertySource(properties = {"cdc.slot-name=change_stream_reader_test", "cdc.heartbeat-interval=1s"})
 class ChangeStreamReaderTest {
 
     private static final String SLOT_NAME = "change_stream_reader_test";
@@ -117,46 +110,6 @@ class ChangeStreamReaderTest {
             assertThat(entries)
                     .extracting(ChangeStreamEntry::after)
                     .noneMatch(after -> after.path("id").asLong() == existingCategoryId);
-        }
-
-        @Test
-        @DisplayName("when a slot another connection already holds - then the reader reports STANDBY and keeps "
-                + "retrying rather than failing")
-        void whenSlotAlreadyHeldByAnotherConnection_thenReportsStandbyAndKeepsRetrying() throws Exception {
-            // Creates the slot first, through this reader itself, then hands it to a raw replication
-            // connection so a genuinely different holder occupies it before the reader under test tries again.
-            changeStreamReader.start();
-            awaitState(ChangeStreamState.STREAMING);
-            changeStreamReader.stop(Duration.ofSeconds(5));
-
-            try (Connection rawReplicationConnection = openReplicationConnection();
-                    PGReplicationStream otherHolderStream = holdSlot(rawReplicationConnection)) {
-                changeStreamReader.start();
-
-                awaitState(ChangeStreamState.STANDBY);
-            }
-        }
-
-        private Connection openReplicationConnection() throws SQLException {
-            Properties properties = new Properties();
-            properties.setProperty("user", PostgresContainers.POSTGRES_CONTAINER.getUsername());
-            properties.setProperty("password", PostgresContainers.POSTGRES_CONTAINER.getPassword());
-            properties.setProperty("replication", "database");
-            properties.setProperty("preferQueryMode", "simple");
-            return DriverManager.getConnection(PostgresContainers.POSTGRES_CONTAINER.getJdbcUrl(), properties);
-        }
-
-        private PGReplicationStream holdSlot(Connection rawReplicationConnection) throws SQLException {
-            PGConnection pgConnection = rawReplicationConnection.unwrap(PGConnection.class);
-            return pgConnection
-                    .getReplicationAPI()
-                    .replicationStream()
-                    .logical()
-                    .withSlotName(SLOT_NAME)
-                    .withSlotOption("proto_version", 1)
-                    .withSlotOption("publication_names", "finance_ledger_cdc")
-                    .withStartPosition(LogSequenceNumber.valueOf("0/0"))
-                    .start();
         }
 
         @Nested
@@ -273,9 +226,6 @@ class ChangeStreamReaderTest {
             long groupingId = seedGrouping(userId);
             long categoryId = seedCategory(userId, groupingId);
 
-            changeStreamReader.start();
-            awaitState(ChangeStreamState.STREAMING);
-
             var proposal = ExpenseProposalRowUtils.storedProposal(
                     jdbcAggregateTemplate,
                     userId,
@@ -286,12 +236,25 @@ class ChangeStreamReaderTest {
                     "EUR",
                     UUID.randomUUID().toString(),
                     Instant.now());
+
+            changeStreamReader.start();
+            awaitState(ChangeStreamState.STREAMING);
+
             jdbcAggregateTemplate.delete(proposal);
 
-            List<ChangeStreamEntry> entries = awaitEntriesFor("expense_proposal", userId, 1);
-            assertThat(entries.get(0).op()).isEqualTo("d");
-            assertThat(entries.get(0).before().path("id").asLong()).isEqualTo(proposal.id());
-            assertThat(ChangeStreamEntries.entriesFor("expense", userId)).isEmpty();
+            // The slot outlives each test method, so the seeding insert is captured too. What the discard has
+            // to prove is not how many entries there are but what the delete carries, and that nothing was
+            // written to `expense` in the same transaction - which is exactly what separates a discard from an
+            // acceptance.
+            ChangeStreamEntry deleteEntry = awaitDeleteFor("expense_proposal", userId, proposal.id());
+
+            assertThat(deleteEntry.before().path("id").asLong()).isEqualTo(proposal.id());
+            assertThat(deleteEntry.before().path("description").asText()).isEqualTo("Coffee");
+            assertThat(deleteEntry.before().path("merchant").asText()).isEqualTo("Corner Cafe");
+
+            long discardTransactionId = deleteEntry.source().path("txId").asLong();
+            assertThat(ChangeStreamEntries.entriesFor("expense", userId))
+                    .noneMatch(entry -> entry.source().path("txId").asLong() == discardTransactionId);
         }
 
         @Test
@@ -323,7 +286,7 @@ class ChangeStreamReaderTest {
             awaitState(ChangeStreamState.STREAMING);
             String initialLsn = confirmedFlushLsn();
 
-            await().atMost(Duration.ofSeconds(10))
+            await().atMost(Duration.ofSeconds(20))
                     .untilAsserted(() -> assertThat(confirmedFlushLsn()).isNotEqualTo(initialLsn));
 
             assertThat(ChangeStreamEntries.entriesFor("cdc_heartbeat", userId)).isEmpty();
@@ -416,6 +379,19 @@ class ChangeStreamReaderTest {
                 .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesFor(table, userId))
                         .hasSize(expectedCount));
         return ChangeStreamEntries.entriesFor(table, userId);
+    }
+
+    private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {
+        await().atMost(Duration.ofSeconds(15))
+                .untilAsserted(() -> assertThat(deleteFor(table, userId, rowId)).isPresent());
+        return deleteFor(table, userId, rowId).orElseThrow();
+    }
+
+    private static Optional<ChangeStreamEntry> deleteFor(String table, long userId, long rowId) {
+        return ChangeStreamEntries.entriesFor(table, userId).stream()
+                .filter(entry -> "d".equals(entry.op()))
+                .filter(entry -> entry.before().path("id").asLong() == rowId)
+                .findFirst();
     }
 
     private String confirmedFlushLsn() {

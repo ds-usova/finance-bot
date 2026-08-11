@@ -1,7 +1,11 @@
 package bot.finance.adapter.cdc;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,44 +16,58 @@ import org.springframework.stereotype.Component;
 public class ChangeStreamMeters {
 
     private final MeterRegistry registry;
+    private final AtomicLong eventLagSeconds = new AtomicLong();
+    private final AtomicLong state = new AtomicLong();
+    private final AtomicLong slotRetainedBytes = new AtomicLong();
+    private final AtomicLong slotWalStatus = new AtomicLong();
 
     public ChangeStreamMeters(MeterRegistry registry) {
         this.registry = registry;
+        registry.gauge("ledger_cdc_event_lag_seconds", eventLagSeconds, AtomicLong::get);
+        registry.gauge("ledger_cdc_state", state, AtomicLong::get);
+        registry.gauge("ledger_cdc_slot_retained_bytes", slotRetainedBytes, AtomicLong::get);
+        registry.gauge("ledger_cdc_slot_wal_status", slotWalStatus, AtomicLong::get);
     }
 
     public void countPublished(String table, String operation) {
-        // increments ledger_cdc_events_published_total, tagged by table and op alone
+        counter("ledger_cdc_events_published_total", Tags.of("table", table, "op", operation))
+                .increment();
     }
 
     public void countPublishFailure() {
-        // increments ledger_cdc_publish_failures_total
+        counter("ledger_cdc_publish_failures_total", Tags.empty()).increment();
     }
 
     public void countCategoryLookupHit() {
-        // increments ledger_cdc_category_lookups_total, tagged hit
+        counter("ledger_cdc_category_lookups_total", Tags.of("result", "hit")).increment();
     }
 
     public void countCategoryLookupMiss() {
-        // increments ledger_cdc_category_lookups_total, tagged miss
+        counter("ledger_cdc_category_lookups_total", Tags.of("result", "miss")).increment();
     }
 
     public void countCategoryLookupFailure() {
-        // increments ledger_cdc_category_lookup_failures_total
+        counter("ledger_cdc_category_lookup_failures_total", Tags.empty()).increment();
     }
 
     public void setEventLag(Instant lastPublishedEventTimestamp) {
-        // sets ledger_cdc_event_lag_seconds to now less the given timestamp
+        eventLagSeconds.set(
+                Duration.between(lastPublishedEventTimestamp, Instant.now()).getSeconds());
     }
 
-    public void setState(ChangeStreamState state) {
-        // sets ledger_cdc_state to the state's ordinal
+    public void setState(ChangeStreamState changeStreamState) {
+        state.set(changeStreamState.ordinal());
     }
 
     public void setSlotRetainedBytes(long retainedBytes) {
-        // sets ledger_cdc_slot_retained_bytes
+        slotRetainedBytes.set(retainedBytes);
     }
 
-    public void setSlotWalStatus(ReplicationSlotState state) {
-        // sets ledger_cdc_slot_wal_status to the state's ordinal
+    public void setSlotWalStatus(ReplicationSlotState replicationSlotState) {
+        slotWalStatus.set(replicationSlotState.ordinal());
+    }
+
+    private Counter counter(String name, Tags tags) {
+        return Counter.builder(name).tags(tags).register(registry);
     }
 }

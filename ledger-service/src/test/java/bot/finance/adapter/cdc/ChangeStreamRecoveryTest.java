@@ -76,6 +76,11 @@ class ChangeStreamRecoveryTest {
             assertThat(outcome.status()).isEqualTo(SlotRecoveryOutcome.Status.REBUILT);
             assertThat(outcome.abandonedPosition()).isPresent();
             assertThat(outcome.resumedPosition()).isPresent();
+
+            // The rebuilt slot is opened by the engine rather than by the recovery, so it appears once the
+            // reader is streaming again - which is also what makes it a slot the service is actually using.
+            changeStreamReader.start();
+            awaitState(ChangeStreamState.STREAMING);
             assertThat(currentWalStatus()).isIn("reserved", "extended");
         }
 
@@ -101,7 +106,11 @@ class ChangeStreamRecoveryTest {
             assertThat(outcome.status()).isEqualTo(SlotRecoveryOutcome.Status.REBUILT);
             assertThat(outcome.abandonedPosition()).isEmpty();
             assertThat(outcome.resumedPosition()).isPresent();
-            assertThat(currentWalStatus()).isIn("reserved", "extended");
+
+            // The rebuilt slot is created by the reader's own start(), on its own executor - not yet visible
+            // the instant recover() returns - so this polls for it rather than asserting once.
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(currentWalStatusIfPresent())
+                    .hasValueSatisfying(walStatus -> assertThat(walStatus).isIn("reserved", "extended")));
         }
 
         @ParameterizedTest(name = "wal_status {0}")
@@ -127,11 +136,17 @@ class ChangeStreamRecoveryTest {
             try (Connection lockHolder = dataSource.getConnection();
                     Statement statement = lockHolder.createStatement()) {
                 statement.execute("SELECT pg_advisory_lock(hashtext('" + SLOT_NAME + "'))");
+                try {
+                    SlotRecoveryOutcome outcome = changeStreamRecovery.recover();
 
-                SlotRecoveryOutcome outcome = changeStreamRecovery.recover();
-
-                assertThat(outcome.status()).isEqualTo(SlotRecoveryOutcome.Status.LOCK_HELD);
-                assertThat(currentWalStatus()).isEqualTo("lost");
+                    assertThat(outcome.status()).isEqualTo(SlotRecoveryOutcome.Status.LOCK_HELD);
+                    assertThat(currentWalStatus()).isEqualTo("lost");
+                } finally {
+                    // The lock is session-scoped and this connection is a pooled one, so closing it returns the
+                    // session to the pool still holding the lock. Every later recovery that draws that same
+                    // connection would then refuse itself, which is a failure with no visible cause.
+                    statement.execute("SELECT pg_advisory_unlock(hashtext('" + SLOT_NAME + "'))");
+                }
             }
         }
 
@@ -192,21 +207,42 @@ class ChangeStreamRecoveryTest {
                     .untilAsserted(() -> assertThat(changeStreamReader.state()).isEqualTo(expected));
         }
 
+        /**
+         * {@code max_slot_wal_keep_size} only invalidates a slot once a checkpoint actually recycles segments
+         * past that bound, so one burst-then-checkpoint round is not reliably enough: each round writes WAL
+         * comfortably past the limit, forces a segment boundary, then checkpoints, polling {@code wal_status}
+         * before deciding whether another round is needed.
+         */
         private void invalidateSlot() {
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
             changeStreamReader.stop(Duration.ofSeconds(5));
-            for (int i = 0; i < WAL_CHUNKS_PAST_THE_BOUND; i++) {
-                jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
-            }
-            jdbcTemplate.execute("CHECKPOINT");
-            await().atMost(Duration.ofSeconds(30))
-                    .untilAsserted(() -> assertThat(currentWalStatus()).isEqualTo("lost"));
+
+            await().atMost(Duration.ofSeconds(60))
+                    .pollInterval(Duration.ofSeconds(1))
+                    .untilAsserted(() -> {
+                        for (int i = 0; i < WAL_CHUNKS_PAST_THE_BOUND; i++) {
+                            jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
+                        }
+                        jdbcTemplate.execute("SELECT pg_switch_wal()");
+                        jdbcTemplate.execute("CHECKPOINT");
+                        assertThat(currentWalStatus()).isEqualTo("lost");
+                    });
         }
 
         private String currentWalStatus() {
-            return jdbcTemplate.queryForObject(
-                    "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME);
+            // A rebuilt slot is only re-created when the engine next starts, so between a recovery and that
+            // start there is legitimately no row at all - answered as absent rather than as a failed query.
+            return currentWalStatusIfPresent().orElse(null);
+        }
+
+        /** Unlike {@link #currentWalStatus()}, answers a slot that does not exist as absent rather than throwing. */
+        private java.util.Optional<String> currentWalStatusIfPresent() {
+            return jdbcTemplate
+                    .queryForList(
+                            "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME)
+                    .stream()
+                    .findFirst();
         }
     }
 }

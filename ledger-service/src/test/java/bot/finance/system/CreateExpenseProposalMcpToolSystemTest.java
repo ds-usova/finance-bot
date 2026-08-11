@@ -19,7 +19,6 @@ import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -82,8 +81,6 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the authenticated caller is "
-                + "always refused as unknown")
         @DisplayName("when create_expense_proposal names a category under its own grouping - then the proposal is "
                 + "stored and returned")
         void whenToolCallNamesCategoryUnderItsGrouping_thenProposalIsStoredAndReturned() {
@@ -136,8 +133,6 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the tool answers \"the user is "
-                + "unknown\" before the grouping mismatch is ever checked")
         @DisplayName("when create_expense_proposal names the wrong grouping - then nothing is stored and the "
                 + "mismatch is named")
         void whenToolCallNamesCategoryUnderTheWrongGrouping_thenNothingIsStoredAndMismatchIsNamed() {
@@ -168,8 +163,6 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("GI07: UserRepositoryAdapter.findById answers Optional.empty(), so the tool answers \"the user is "
-                + "unknown\" before the missing grouping is ever checked")
         @DisplayName("when create_expense_proposal is posted with no grouping - then nothing is stored and the "
                 + "grouping is named")
         void whenToolCallHasNoGrouping_thenNothingIsStoredAndMissingGroupingIsNamed() {

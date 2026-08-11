@@ -37,8 +37,11 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<User> findById(long userId) {
-        // reads the app_user row by its primary key, translating a store failure to PersistenceFailedException
-        return Optional.empty();
+        try {
+            return userEntityRepository.findById(userId).map(UserEntity::toDomain);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find user " + userId, e);
+        }
     }
 
     @Override

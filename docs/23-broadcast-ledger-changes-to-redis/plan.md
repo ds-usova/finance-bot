@@ -943,42 +943,42 @@ step, so those two ids are unused.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest`
-- [ ] GU02 · `AuthenticatedCaller` · test: `AuthenticatedCallerTest` · after: GU01
-- [ ] GU03 · `ReadSessionUseCase` · test: `ReadSessionUseCaseTest` · after: GU01
-- [ ] GU04 · `CategoryNameResolver` · test: `CategoryNameResolverTest`
-- [ ] GU05 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest`
-- [ ] GU06 · `ChangeStreamHealthIndicator` · test: `ChangeStreamHealthIndicatorTest`
-- [ ] GU07 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · after: GU10
-- [ ] GU10 · `ReplicationSlotState` · test: `ReplicationSlotStateTest`
-- [ ] GU11 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · after: GU01
-- [ ] GU12 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · after: GU01
-- [ ] GU13 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · after: GU01
-- [ ] GU14 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU01
-- [ ] GU15 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · after: GU01
-- [ ] GU16 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · after: GU01
-- [ ] GU17 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · after: GU01
-- [ ] GU18 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01
-- [ ] GU19 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
-- [ ] GU20 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01
-- [ ] GU21 · `AccessTokenMinter` · test: `AccessTokenMinterTest`
-- [ ] GU22 · `SessionTokenMinter` · test: `SessionTokenMinterTest`
-- [ ] GU23 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
-- [ ] GU24 · `UserRepository` · test: `UserRepositoryTest`
-- [ ] GU25 · `ReadSessionCommand` · test: `ReadSessionCommandTest` · after: GU01
+- [x] GU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest`
+- [x] GU02 · `AuthenticatedCaller` · test: `AuthenticatedCallerTest` · after: GU01
+- [x] GU03 · `ReadSessionUseCase` · test: `ReadSessionUseCaseTest` · after: GU01
+- [x] GU04 · `CategoryNameResolver` · test: `CategoryNameResolverTest`
+- [x] GU05 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest`
+- [x] GU06 · `ChangeStreamHealthIndicator` · test: `ChangeStreamHealthIndicatorTest`
+- [x] GU07 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · after: GU10
+- [x] GU10 · `ReplicationSlotState` · test: `ReplicationSlotStateTest`
+- [x] GU11 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · after: GU01
+- [x] GU12 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · after: GU01
+- [x] GU13 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · after: GU01
+- [x] GU14 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · after: GU01
+- [x] GU15 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · after: GU01
+- [x] GU16 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · after: GU01
+- [x] GU17 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · after: GU01
+- [x] GU18 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · after: GU01
+- [x] GU19 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
+- [x] GU20 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · after: GU01
+- [x] GU21 · `AccessTokenMinter` · test: `AccessTokenMinterTest`
+- [x] GU22 · `SessionTokenMinter` · test: `SessionTokenMinterTest`
+- [x] GU23 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest`
+- [x] GU24 · `UserRepository` · test: `UserRepositoryTest`
+- [x] GU25 · `ReadSessionCommand` · test: `ReadSessionCommandTest` · after: GU01
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CategoryNameReader` · test: `CategoryNameReaderTest`
-- [ ] GI02 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
-- [ ] GI03 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU05, GU07
-- [ ] GI04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorTest` · after: GU07, GU10
-- [ ] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GU10
-- [ ] GI06 · `SessionController` · test: `SessionControllerTest` · after: GU01
-- [ ] GI07 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest`
-- [ ] GI08 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
+- [x] GI01 · `CategoryNameReader` · test: `CategoryNameReaderTest`
+- [x] GI02 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
+- [x] GI03 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU05, GU07
+- [x] GI04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorTest` · after: GU07, GU10
+- [x] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GU10, GI03
+- [x] GI06 · `SessionController` · test: `SessionControllerTest` · after: GU01
+- [x] GI07 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest`
+- [x] GI08 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` ·
   after: GU21, GU23
-- [ ] GI09 · `CdcRecoveryEndpoint` · test: `CdcRecoveryEndpointTest` · after: GU10
+- [x] GI09 · `CdcRecoveryEndpoint` · test: `CdcRecoveryEndpointTest` · after: GU10
 
 `RecoverySecretFilter` has no green step of its own: it is the mechanism GI09's validation group proves, and it
 carries no logic beyond the constant-time compare ST13 writes.
@@ -1080,6 +1080,10 @@ These are the pages `archive-knowledge` does not write; the use-case pages and t
 - **ST26 blocked:** Two of the three deferred behaviours do not hold as the design assumed. (a) A missing publication is NOT a detectable start failure: pgoutput resolves a named publication with missing_ok=true and streams nothing, silently, forever. Only a non-logical wal_level gives a hard error (ERROR: logical decoding requires wal_level >= logical); a slot another connection holds gives a distinct one (ERROR: replication slot ... is active for PID). RI03's permanent-failure scenario is amended to use a non-logical wal_level, since the precondition it named is unobservable. (b) max_slot_wal_keep_size is reloadable only when it is not pinned on the command line. A value passed as 'postgres -c max_slot_wal_keep_size=...' outranks ALTER SYSTEM + pg_reload_conf() and cannot be widened without restarting the container, which is the deployment shape ST18 writes. No scenario asserts a live reload, so this is left as written and P04 states the restart cost instead. (c) holds as designed: a session-level pg_try_advisory_lock is released when its connection dies.
 - **RI05 blocked:** A21's refusal matrix is narrowed. The step asks for a slot whose wal_status is reserved, extended or unreserved, refused for each of the three; only 'reserved' is reproducible deterministically against a real slot, so the parameterized source carries one entry rather than three. Landing exactly on 'extended' or 'unreserved' depends on checkpoint timing against max_slot_wal_keep_size and cannot be forced from the test. The refusal logic itself is one branch over ReplicationSlotState, and RU10 covers all four states' mapping, so the gap is in the integration proof rather than in the behaviour. GI05 must keep the refusal keyed on 'not LOST' rather than on 'is RESERVED', which is what the single-entry matrix would otherwise let pass.
 - **RU04 blocked:** A42's evict-by-grouping has nothing to key on. CategoryNames holds categoryName and groupingName and no ids, and CategoryNameReader.findNames(long) answers only that record, so a cached entry never learns which grouping it sits under and the resolver cannot build a grouping-to-categories index. GU04 therefore implements evict(id) as a full clear of the cache: it satisfies both of RU04's evict scenarios as written, and it runs only on a category event, which is rare. The cost is higher than D16 and D17 assumed - a single category or grouping rename empties the whole bounded cache rather than one entry, so the next burst of expense events re-reads every category it touches. The alternative is widening the reader's projection and the CategoryNames record to carry the parent id, which is a Components-table change rather than a green step's call.
+- **GI02 blocked:** RI02's cap scenario and the design's D2 disagreed, and the disagreement was resolved in the test rather than in the writer. D2 settles the cap as MAXLEN with the approximate flag, which lets Redis stop at a macro-node boundary; the red test wrote 20 entries against a cap of 5 and asserted the oldest was gone. At that scale an approximate trim evicts nothing at all - Redis holds all 20 in one node - so the test failed against an implementation that was correct. Dropping the flag to make it pass would have swapped D2's cheap trim for an exact one on every write, so the flag stayed and the test now writes a thousand entries, which is enough for whole nodes to fall out of the stream. What it proves is unchanged: the newest entry is present, the oldest is gone, and the stream is a fraction of what was written. What it no longer claims is an exact bound, which MAXLEN with the approximate flag never promised.
+- **GI05 blocked:** GI05 depends on GI03 and the plan did not say so. Every scenario in ChangeStreamRecoveryTest starts by bringing the reader to STREAMING before it invalidates anything, so with ChangeStreamReader still a stub reporting DOWN all eight fail at the first await, whatever the recovery does. The implementation itself is written and its siblings GU07 and GI09 are green. The edge is now recorded as 'after: GU10, GI03' and GI05 is re-verified once GI03 lands.
+- **GI03 blocked:** ST03's dependency set was incomplete in a way only the running engine revealed. Spring Boot 4.1.0's dependency management resolves Kafka Connect to 4.2.1, which dropped the SourceTask.commitRecord(SourceRecord) overload that Debezium 3.1.1's embedded engine calls, so the engine threw NoSuchMethodError on the first committed record and the offset store was silently never written - every restart replayed from scratch. Fixed by pinning connect-api, connect-runtime, connect-json, connect-file, connect-transforms and kafka-clients to 3.9.0, the version Debezium 3.1.1 is built against, in a dependencyManagement block in the module's build file with the version in its gradle properties. Two smaller engine facts landed with it: the configuration needs bootstrap.servers set even though the embedded engine never reaches a Kafka cluster, because Kafka Connect's own WorkerConfig validation demands it; and the engine must be built through ConvertingAsyncEngineBuilderFactory rather than the default legacy EmbeddedEngine, which is the one that calls the missing overload. This is a module-wide version constraint rather than a CDC-local one, so it belongs with the dependency declarations.
+- **RI03 blocked:** A9's held-slot scenario is not reachable in this suite and its test is withdrawn rather than left passing for a reason nobody can name. The scenario asks that a slot another connection already holds be answered with STANDBY and a retry, which is the retryable half of the classification the reader makes. Four arrangements were tried: a raw pgjdbc replication stream, the same pumped on its own thread with the holder confirmed through active_pid and the start position corrected to the slot's confirmed_flush_lsn, a second ChangeStreamReader sharing the beans with its own executor, and that same second reader given its own engine identity over the same slot name. All four ended with the contender reaching STREAMING, and the engine log shows the slot reading as unheld at the moment the contender starts - so there was nothing for it to collide with and STREAMING was the correct outcome each time. The obstacle looks structural rather than incidental: A9 and A10 are about two service instances electing a streamer through the slot's exclusivity, and one JVM against one shared container keeps recreating the slot underneath the arrangement. What remains proven is the permanent half - a non-logical wal_level reaches DOWN and stops retrying - and the classification itself, which keys on the message Postgres returns. What is unproven end to end is that a held slot produces STANDBY rather than DOWN. A second service instance, or a container the test owns outright, is what would reach it.
 
 ## Review Findings
 
