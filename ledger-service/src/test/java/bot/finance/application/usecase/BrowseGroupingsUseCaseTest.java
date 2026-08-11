@@ -17,7 +17,6 @@ import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,9 +48,8 @@ class BrowseGroupingsUseCaseTest {
         @Test
         @DisplayName("when the repository answers the seeded groupings - then every grouping is answered with "
                 + "its id and name")
-        @Disabled("RU12: arranges requireByExternalId, which the use case no longer calls")
         void whenRepositoryAnswersSeededGroupings_thenEveryGroupingIsAnsweredWithIdAndName() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             List<GroupingEntry> groupings =
                     List.of(new GroupingEntry(1L, "Groceries"), new GroupingEntry(2L, "Transport"));
             when(groupingRepository.findAllForUser(USER_ID)).thenReturn(groupings);
@@ -67,10 +65,9 @@ class BrowseGroupingsUseCaseTest {
         @Test
         @DisplayName("when the stored user's id differs from the external id - then the repository is asked with "
                 + "that stored id")
-        @Disabled("RU12: arrange requireById and assert the lookup receives the command's internal id")
         void whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdNotExternalId() {
             long differentUserId = 42L;
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             when(groupingRepository.findAllForUser(differentUserId)).thenReturn(List.of());
 
             useCase.browse(newCommand());
@@ -81,9 +78,8 @@ class BrowseGroupingsUseCaseTest {
         @Test
         @DisplayName(
                 "when no user row is stored under the caller's external id - then throws " + "EntityNotFoundException")
-        @Disabled("RU12: the absence is now requireById throwing")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.browse(newCommand())).isInstanceOf(EntityNotFoundException.class);

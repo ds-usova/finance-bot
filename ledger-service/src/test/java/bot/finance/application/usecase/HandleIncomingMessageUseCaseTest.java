@@ -52,7 +52,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -183,23 +182,22 @@ class HandleIncomingMessageUseCaseTest {
         @Test
         @DisplayName("when handle is called - then the extraction request carries the text, groupings, currency "
                 + "and date")
-        @Disabled("RU19: the extraction request now carries the stored internal id, not the external identifier")
         void whenHandleIsCalled_thenExtractionRequestCarriesTextGroupingsCurrencyAndDate() {
-            // List<String> categoryGroupings = stubKnownUserAndGroupings();
-            // when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
-            //         .thenReturn(twoSummaries());
-            //
-            // useCase.handle(newCommand());
-            //
-            // verify(groupingRepository).findNamesWithCategories(USER_ID);
-            //
-            // IntentExtractionRequest request = capturedExtractionRequest();
-            // assertThat(request.text()).isEqualTo(TEXT);
-            // assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
-            // assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
-            // assertThat(request.defaultCurrency()).isEmpty();
-            // assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
-            // assertThat(request.currentDate()).isEqualTo(LocalDate.now(clock));
+            List<String> categoryGroupings = stubKnownUserAndGroupings();
+            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(twoSummaries());
+
+            useCase.handle(newCommand());
+
+            verify(groupingRepository).findNamesWithCategories(USER_ID);
+
+            IntentExtractionRequest request = capturedExtractionRequest();
+            assertThat(request.text()).isEqualTo(TEXT);
+            assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
+            assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
+            assertThat(request.defaultCurrency()).isEmpty();
+            assertThat(request.userId()).isEqualTo(USER_ID);
+            assertThat(request.currentDate()).isEqualTo(LocalDate.now(clock));
         }
 
         @Test
@@ -708,7 +706,9 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
+            IntentExtractionRequest request = capturedExtractionRequest();
+            IncomingMessageId reference = request.incomingMessageId();
+            assertThat(request.userId()).isEqualTo(differentUserId);
 
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);

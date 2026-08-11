@@ -26,7 +26,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -108,16 +107,14 @@ class AiConnectorIntentExtractionAdapterTest {
         }
 
         @Test
-        @DisplayName("when extract is called - then the metadata carries a bearer token whose sub claim is the "
-                + "userExternalId")
-        @Disabled("RI08: the request helper takes a long userId; the subject assertion reads that id as decimal "
-                + "text and the method's name follows the meaning")
-        void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
-            // GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
-            //
-            // adapter.extract(requestFor("user-external-id-77", newIncomingMessageId()));
-            //
-            // assertThat(bearerClaims().getSubject()).isEqualTo("user-external-id-77");
+        @DisplayName(
+                "when extract is called - then the metadata carries a bearer token whose sub claim is the " + "userId")
+        void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserId() throws ParseException {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+
+            adapter.extract(requestFor(77L, newIncomingMessageId()));
+
+            assertThat(bearerClaims().getSubject()).isEqualTo("77");
         }
 
         @Test

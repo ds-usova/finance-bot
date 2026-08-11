@@ -36,7 +36,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -94,7 +93,7 @@ class CreateExpenseProposalUseCaseTest {
 
     /** Stores a user and answers the command's grouping name. */
     private StoredGrouping stubResolvedGrouping() {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
         StoredGrouping storedGrouping = new StoredGrouping(GROUPING_ID, "Food");
         when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.of(storedGrouping));
         return storedGrouping;
@@ -120,7 +119,6 @@ class CreateExpenseProposalUseCaseTest {
 
         @Test
         @DisplayName("when a grouping and a category are answered - then the proposal carries that category's id")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenGroupingAndCategoryAreAnswered_thenProposalCarriesThatCategorysId() {
             stubResolvedGroupingAndCategory();
 
@@ -132,7 +130,6 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when a grouping is answered - then the category is looked up under the user's stored id "
                 + "and that grouping")
-        @Disabled("RU18: arrange requireById for the command's internal id")
         void whenGroupingIsAnswered_thenCategoryIsLookedUpUnderStoredUserIdAndThatGrouping() {
             StoredGrouping storedGrouping = stubResolvedGroupingAndCategory();
 
@@ -143,7 +140,6 @@ class CreateExpenseProposalUseCaseTest {
 
         @Test
         @DisplayName("when the proposal repository stores the proposal - then it is returned to the caller")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenProposalRepositoryStoresTheProposal_thenItIsReturnedToTheCaller() {
             stubResolvedGroupingAndCategory();
             ExpenseProposal createdProposal = ExpenseProposal.stored(
@@ -166,9 +162,8 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws "
                 + "EntityNotFoundException naming \"user\"")
-        @Disabled("RU18: the absence is now requireById throwing")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatExceptionOfType(EntityNotFoundException.class)
@@ -196,7 +191,6 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the proposal repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenProposalRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             stubResolvedGroupingAndCategory();
             PersistenceFailedException failure =
@@ -211,11 +205,10 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the user repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenUserRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenThrow(failure);
+            when(userRepository.requireById(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
@@ -227,10 +220,9 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the grouping repository answers nothing - then throws InvalidGroupingException naming "
                 + "the grouping")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenGroupingRepositoryAnswersNothing_thenThrowsInvalidGroupingExceptionNamingTheGrouping() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(storedUser);
+            when(userRepository.requireById(USER_ID)).thenReturn(storedUser);
             when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal()))
@@ -245,7 +237,6 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the category repository answers nothing - then throws InvalidCategoryException naming "
                 + "the category and grouping")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenCategoryRepositoryAnswersNothing_thenThrowsInvalidCategoryExceptionNamingCategoryAndGrouping() {
             StoredGrouping storedGrouping = stubResolvedGrouping();
             when(categoryRepository.findByGroupingAndName(USER_ID, storedGrouping, "Groceries"))
@@ -262,10 +253,9 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the grouping repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenGroupingRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             User storedUser = User.stored(USER_ID, EXTERNAL_ID);
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(storedUser);
+            when(userRepository.requireById(USER_ID)).thenReturn(storedUser);
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
             when(groupingRepository.findByUserIdAndName(USER_ID, "Food")).thenThrow(failure);
@@ -278,7 +268,6 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName(
                 "when the command carries a message reference - then the stored proposal carries that " + "reference")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenCommandCarriesMessageReference_thenProposalRepositoryReceivesProposalWithThatReference() {
             stubResolvedGroupingAndCategory();
 
@@ -290,7 +279,6 @@ class CreateExpenseProposalUseCaseTest {
         @Test
         @DisplayName("when the category repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
-        @Disabled("RU18: arranges requireByExternalId, which the use case no longer calls")
         void whenCategoryRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
             StoredGrouping storedGrouping = stubResolvedGrouping();
             PersistenceFailedException failure =

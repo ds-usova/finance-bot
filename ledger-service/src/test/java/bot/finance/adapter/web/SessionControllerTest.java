@@ -14,14 +14,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bot.finance.adapter.telegram.TelegramLoginRejectedException;
 import bot.finance.adapter.telegram.TelegramLoginVerifier;
 import bot.finance.application.dto.InitializeUserCommand;
+import bot.finance.application.dto.ReadSessionCommand;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.ReadSessionPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.SessionTokens;
+import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.AuthenticatedUserId;
+import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
-import org.junit.jupiter.api.Disabled;
+import java.text.ParseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,6 +45,7 @@ class SessionControllerTest {
 
     private static final String EXTERNAL_ID = "987654321";
     private static final long USER_ID = 987654321L;
+    private static final long INTERNAL_ID = 42L;
     private static final String PAYLOAD_JSON =
             """
             {"id":"987654321","first_name":"Ada","auth_date":"1785000000","hash":"cafebabe"}""";
@@ -63,22 +68,35 @@ class SessionControllerTest {
 
         @Test
         @DisplayName("when the payload verifies - then the user is initialized with the id the payload is signed for")
-        @Disabled("RI06: acceptTheSignIn() must answer User.stored(<id>, ...) now that signIn mints from the "
-                + "answered row's id")
         void whenThePayloadVerifies_thenTheUserIsInitializedWithTheIdThePayloadIsSignedFor() throws Exception {
             acceptTheSignIn();
 
-            mockMvc.perform(signInRequest()).andExpect(status().isOk());
+            MvcResult result =
+                    mockMvc.perform(signInRequest()).andExpect(status().isOk()).andReturn();
 
             ArgumentCaptor<InitializeUserCommand> command = ArgumentCaptor.forClass(InitializeUserCommand.class);
             verify(initializeUserPort).initialize(command.capture());
             assertThat(command.getValue().externalId()).isEqualTo(EXTERNAL_ID);
+            assertThat(subjectOf(setCookieHeaderOf(result))).isEqualTo(Long.toString(USER_ID));
+        }
+
+        @Test
+        @DisplayName("when the answered user's internal id differs from the payload's identifier - then the token "
+                + "is minted from it")
+        void whenTheAnsweredUsersInternalIdDiffersFromThePayloadsIdentifier_thenTheTokenIsMintedFromIt()
+                throws Exception {
+            when(loginVerifier.verify(any(), any())).thenReturn(EXTERNAL_ID);
+            when(initializeUserPort.initialize(any())).thenReturn(User.stored(INTERNAL_ID, EXTERNAL_ID));
+
+            MvcResult result =
+                    mockMvc.perform(signInRequest()).andExpect(status().isOk()).andReturn();
+
+            assertThat(subjectOf(setCookieHeaderOf(result))).isEqualTo(Long.toString(INTERNAL_ID));
+            assertThat(result.getResponse().getContentAsString()).contains(EXTERNAL_ID);
         }
 
         @Test
         @DisplayName("when the payload verifies - then the session cookie is HttpOnly, path-scoped and SameSite=Lax")
-        @Disabled("RI06: acceptTheSignIn() must answer User.stored(<id>, ...) now that signIn mints from the "
-                + "answered row's id")
         void whenThePayloadVerifies_thenTheSessionCookieIsHttpOnlyPathScopedAndSameSiteLax() throws Exception {
             acceptTheSignIn();
 
@@ -94,8 +112,6 @@ class SessionControllerTest {
 
         @Test
         @DisplayName("when web.session.secure is left at its local default - then the session cookie is not Secure")
-        @Disabled("RI06: acceptTheSignIn() must answer User.stored(<id>, ...) now that signIn mints from the "
-                + "answered row's id")
         void whenWebSessionSecureIsLeftAtItsLocalDefault_thenTheSessionCookieIsNotSecure() throws Exception {
             acceptTheSignIn();
 
@@ -107,8 +123,6 @@ class SessionControllerTest {
 
         @Test
         @DisplayName("when the payload verifies - then the body answers with the signed-in external id")
-        @Disabled("RI06: acceptTheSignIn() must answer User.stored(<id>, ...) now that signIn mints from the "
-                + "answered row's id")
         void whenThePayloadVerifies_thenTheBodyAnswersWithTheSignedInExternalId() throws Exception {
             acceptTheSignIn();
 
@@ -163,13 +177,27 @@ class SessionControllerTest {
 
         @Test
         @DisplayName("when the request carries a valid session cookie - then it answers with that cookie's subject")
-        @Disabled("RI06: the subject is now an internal id re-resolved from the row; arrange the read session port")
         void whenTheRequestCarriesAValidSessionCookie_thenItAnswersWithThatCookiesSubject() throws Exception {
-            // MvcResult result = mockMvc.perform(get("/api/v1/session").cookie(BrowserSessions.cookieFor(EXTERNAL_ID)))
-            //         .andExpect(status().isOk())
-            //         .andReturn();
-            //
-            // assertThat(result.getResponse().getContentAsString()).contains(EXTERNAL_ID);
+            when(readSessionPort.read(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+
+            MvcResult result = mockMvc.perform(get("/api/v1/session").cookie(BrowserSessions.cookieFor(USER_ID)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArgumentCaptor<ReadSessionCommand> command = ArgumentCaptor.forClass(ReadSessionCommand.class);
+            verify(readSessionPort).read(command.capture());
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
+            assertThat(result.getResponse().getContentAsString()).contains(EXTERNAL_ID);
+        }
+
+        @Test
+        @DisplayName("when the read session port throws EntityNotFoundException - then the response is 404")
+        void whenTheReadSessionPortThrowsEntityNotFoundException_thenTheResponseIs404() throws Exception {
+            when(readSessionPort.read(any()))
+                    .thenThrow(new EntityNotFoundException("user", "no user stored under id " + USER_ID));
+
+            mockMvc.perform(get("/api/v1/session").cookie(BrowserSessions.cookieFor(USER_ID)))
+                    .andExpect(status().isNotFound());
         }
 
         @Test
@@ -224,7 +252,7 @@ class SessionControllerTest {
 
     private void acceptTheSignIn() {
         when(loginVerifier.verify(any(), any())).thenReturn(EXTERNAL_ID);
-        when(initializeUserPort.initialize(any())).thenReturn(User.newUser(EXTERNAL_ID));
+        when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     private static MockHttpServletRequestBuilder signInRequest() {
@@ -236,5 +264,10 @@ class SessionControllerTest {
 
     private static String setCookieHeaderOf(MvcResult result) {
         return result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+    }
+
+    private static String subjectOf(String setCookie) throws ParseException {
+        String token = setCookie.substring((BrowserSessions.COOKIE_NAME + "=").length(), setCookie.indexOf(';'));
+        return SignedJWT.parse(token).getJWTClaimsSet().getSubject();
     }
 }

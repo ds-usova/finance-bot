@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,9 +64,8 @@ class BrowseExpensesUseCaseTest {
         @Test
         @DisplayName("when the repository answers a page and a total - then the answered page carries them and "
                 + "the filter's paging")
-        @Disabled("RU13: arranges requireByExternalId, which the use case no longer calls")
         void whenRepositoryAnswersPageAndTotal_thenAnsweredPageCarriesEntriesTotalLimitAndOffset() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             List<ExpenseEntry> entries = List.of(new ExpenseEntry(
                     ExpenseStatus.RECORDED,
@@ -91,10 +89,9 @@ class BrowseExpensesUseCaseTest {
         @Test
         @DisplayName(
                 "when the stored user's id differs from the external id - then both reads receive that " + "stored id")
-        @Disabled("RU13: arrange requireById and assert both reads receive the command's internal id")
         void whenStoredUserIdDiffersFromExternalId_thenBothReadsReceiveStoredUserIdNotExternalId() {
             long differentUserId = 42L;
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             when(expenseRepository.findPage(differentUserId, filter)).thenReturn(List.of());
             when(expenseRepository.countMatching(differentUserId, filter)).thenReturn(0L);
@@ -108,9 +105,8 @@ class BrowseExpensesUseCaseTest {
         @Test
         @DisplayName("when no user is stored under the caller's external id - then throws EntityNotFoundException "
                 + "and nothing is read")
-        @Disabled("RU13: the absence is now requireById throwing")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryUntouched() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.browse(newCommand(newFilter())))
@@ -122,9 +118,8 @@ class BrowseExpensesUseCaseTest {
         @Test
         @DisplayName("when the expense repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
-        @Disabled("RU13: arranges requireByExternalId, which the use case no longer calls")
         void whenExpenseRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(expenseRepository.findPage(USER_ID, filter)).thenThrow(failure);

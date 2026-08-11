@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -59,7 +58,7 @@ class SummarizeSpendingUseCaseTest {
 
     /** Stores a user under {@code userId}, and answers the query the use case writes for EXPECTED_PERIOD. */
     private void stubStoredUserAndCreatedQuery(long userId, IncomingMessageId reference) {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
         when(spendingQueryRepository.create(any()))
                 .thenReturn(SpendingQuery.stored(9L, userId, EXPECTED_PERIOD, reference, FIXED_INSTANT));
     }
@@ -97,9 +96,8 @@ class SummarizeSpendingUseCaseTest {
 
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
-        @Disabled("RU15: the absence is now requireById throwing")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-08-01", "2026-08-05");
 
@@ -111,7 +109,6 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when a well-formed period is given - then the stored query carries the user, reference, "
                 + "period and instant")
-        @Disabled("RU15: arranges requireByExternalId, which the use case no longer calls")
         void whenWellFormedPeriod_thenStoredQueryCarriesUserReferencePeriodAndClockInstant() {
             IncomingMessageId reference = newIncomingMessageId();
             stubStoredUserAndCreatedQuery(USER_ID, reference);
@@ -127,7 +124,6 @@ class SummarizeSpendingUseCaseTest {
 
         @Test
         @DisplayName("when the period is well-formed - then the answer is that same period")
-        @Disabled("RU15: arranges requireByExternalId, which the use case no longer calls")
         void whenPeriodIsWellFormed_thenTheAnswerIsThatSamePeriod() {
             IncomingMessageId reference = newIncomingMessageId();
             stubStoredUserAndCreatedQuery(USER_ID, reference);
@@ -140,7 +136,6 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName(
                 "when the stored user's id differs from the external id - then the stored query carries " + "that id")
-        @Disabled("RU15: arrange requireById and assert the stored query carries that id")
         void whenStoredUsersIdDiffersFromExternalId_thenStoredQueryCarriesStoredUsersId() {
             long differentUserId = 42L;
             IncomingMessageId reference = newIncomingMessageId();
@@ -154,9 +149,8 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when the spending query repository raises PersistenceFailedException - then the "
                 + "exception propagates unchanged")
-        @Disabled("RU15: arranges requireByExternalId, which the use case no longer calls")
         void whenSpendingQueryRepositoryThrowsPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
             when(spendingQueryRepository.create(any())).thenThrow(failure);
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-07-27", "2026-08-02");

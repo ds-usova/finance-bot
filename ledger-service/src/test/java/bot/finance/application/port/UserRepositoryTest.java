@@ -53,6 +53,40 @@ class UserRepositoryTest {
         }
     }
 
+    @Nested
+    @DisplayName("requiring the caller a use case is acting for, by internal id")
+    class RequireById {
+
+        private static final long USER_ID = 42L;
+
+        @Test
+        @DisplayName("when a user is stored under that id - then it is answered")
+        void whenAUserIsStoredUnderThatId_thenItIsAnswered() {
+            User stored = User.stored(USER_ID, EXTERNAL_ID);
+
+            assertThat(repositoryAnsweringById(Optional.of(stored)).requireById(USER_ID))
+                    .isEqualTo(stored);
+        }
+
+        @Test
+        @DisplayName("when no user is stored under that id - then EntityNotFoundException names the user and the id")
+        void whenNoUserIsStoredUnderThatId_thenEntityNotFoundExceptionNamesTheUserAndTheId() {
+            assertThatThrownBy(() -> repositoryAnsweringById(Optional.empty()).requireById(USER_ID))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("user")
+                    .hasMessageContaining(String.valueOf(USER_ID));
+        }
+
+        @Test
+        @DisplayName("when the lookup itself fails - then that failure propagates rather than becoming a refusal")
+        void whenTheLookupItselfFails_thenThatFailurePropagatesRatherThanBecomingARefusal() {
+            PersistenceFailedException failure = new PersistenceFailedException("store down", new RuntimeException());
+
+            assertThatThrownBy(() -> repositoryThrowingById(failure).requireById(USER_ID))
+                    .isSameAs(failure);
+        }
+    }
+
     private static UserRepository repositoryAnswering(Optional<User> answer) {
         return new StubUserRepository() {
             @Override
@@ -71,7 +105,30 @@ class UserRepositoryTest {
         };
     }
 
+    private static UserRepository repositoryAnsweringById(Optional<User> answer) {
+        return new StubUserRepository() {
+            @Override
+            public Optional<User> findById(long userId) {
+                return answer;
+            }
+        };
+    }
+
+    private static UserRepository repositoryThrowingById(RuntimeException failure) {
+        return new StubUserRepository() {
+            @Override
+            public Optional<User> findById(long userId) {
+                throw failure;
+            }
+        };
+    }
+
     private abstract static class StubUserRepository implements UserRepository {
+
+        @Override
+        public Optional<User> findByExternalId(String externalId) {
+            throw new UnsupportedOperationException("not part of what this test exercises");
+        }
 
         @Override
         public Optional<User> findById(long userId) {

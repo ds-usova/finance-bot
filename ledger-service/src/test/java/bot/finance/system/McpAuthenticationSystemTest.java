@@ -2,12 +2,14 @@ package bot.finance.system;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.adapter.persistence.ExpenseProposalEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
+import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import io.restassured.RestAssured;
@@ -16,10 +18,10 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -130,6 +132,33 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                     .as("amount's published type")
                     .containsEntry("type", "string");
         }
+
+        @Test
+        @DisplayName(
+                "when a tool is called with a token minted from a stored user's id - then it acts on their " + "ledger")
+        void whenAToolIsCalledWithATokenMintedFromAStoredUsersId_thenItActsOnTheirLedger() {
+            String externalId = "mcp-auth-acts-on-ledger-user";
+            long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
+            long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries");
+            CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
+            String token = McpTokens.tokenFor(accessTokenMinter, userId);
+
+            String requestBody =
+                    McpRequests.createExpenseProposal("Supermarkets", "Groceries", "lunch", "Cafe", "10.00", "EUR");
+            Response response = postMcp(token, requestBody);
+
+            response.then().statusCode(200);
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("tool result isError")
+                    .isNotEqualTo(Boolean.TRUE);
+
+            // then: the proposal is stored under the same user_id the token's subject carries
+            List<ExpenseProposalEntity> rows =
+                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            assertThat(rows)
+                    .as("stored expense_proposal rows carrying the token's subject as user_id")
+                    .hasSize(1);
+        }
     }
 
     @Nested
@@ -140,11 +169,11 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
         @MethodSource("bot.finance.system.McpAuthenticationSystemTest#rejectedTokens")
         @DisplayName("when tools/call is posted with a rejected token - then 401 with no tool result and no row "
                 + "written")
-        @Disabled("RS06: the rejected token fixtures now mint from a seeded row's id, which the static "
-                + "@MethodSource provider has no repository to seed with")
         void whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten(
-                String scenario, String token, String externalId) {
+                String scenario, Function<Long, String> tokenFactory) {
+            String externalId = "mcp-auth-rejected-" + scenario.replace(" ", "-");
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
+            String token = tokenFactory == null ? null : tokenFactory.apply(userId);
 
             Response response = postMcp(
                     token,
@@ -159,11 +188,34 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                     .isEmpty();
         }
 
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.system.McpAuthenticationSystemTest#unknownCallerSubjects")
+        @DisplayName("when a tool is called with a token naming no stored user - then both refusals match and "
+                + "nothing is written")
+        void whenAToolIsCalledWithATokenNamingNoStoredUser_thenBothRefusalsMatchAndNothingIsWritten(
+                String scenario, long unknownUserId) {
+            String token = McpTokens.tokenFor(accessTokenMinter, unknownUserId);
+
+            Response response = postMcp(
+                    token,
+                    McpRequests.createExpenseProposal("Groceries", "Groceries", "lunch", "Cafe", "10.00", "EUR"));
+
+            response.then().statusCode(200);
+            assertThat(response.jsonPath().getBoolean("result.isError"))
+                    .as("%s - tool result isError", scenario)
+                    .isTrue();
+            assertThat(response.jsonPath().getString("result.content[0].text"))
+                    .as("%s - tool error message", scenario)
+                    .contains("the user is unknown");
+            assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, unknownUserId))
+                    .as("%s - expense_proposal rows for the unknown subject", scenario)
+                    .isEmpty();
+        }
+
         @Test
         @DisplayName("when GET /actuator/health is requested with no token - then 200")
-        @Disabled("RS06: health has moved to the management port, so the request must change address")
         void whenActuatorHealthIsRequestedWithNoToken_thenOk() {
-            Response response = RestAssured.given().when().get("/actuator/health");
+            Response response = RestAssured.given().port(managementPort).when().get("/actuator/health");
             logResponse(response);
 
             response.then().statusCode(200);
@@ -180,10 +232,17 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                 Arguments.of("summarize_spending", List.of("from", "to"), List.of("from", "to")));
     }
 
-    // Feeds only whenToolsCallIsPostedWithRejectedToken_thenUnauthorizedWithNoToolResultAndNoRowWritten, which is
-    // disabled: minting now needs a seeded row's id, and this static provider has no repository to seed with.
     static Stream<Arguments> rejectedTokens() {
-        String noTokenUser = "mcp-auth-no-token-user";
-        return Stream.of(Arguments.of("no token", null, noTokenUser));
+        return Stream.of(
+                Arguments.of("no token", null),
+                Arguments.of("expired token", (Function<Long, String>) McpTokens::expiredToken),
+                Arguments.of("wrong-audience token", (Function<Long, String>) McpTokens::wrongAudienceToken),
+                Arguments.of("over-ttl token", (Function<Long, String>) McpTokens::overTtlToken));
+    }
+
+    static Stream<Arguments> unknownCallerSubjects() {
+        return Stream.of(
+                Arguments.of("a number matching no user row", 900_100_001L),
+                Arguments.of("a Telegram identifier minted before the change", 900_100_002L));
     }
 }

@@ -29,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,7 +69,6 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when called with RECORDED status - then the expense repository is refiled, and the "
                 + "proposal repository is not")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenCalledWithRecordedStatus_thenExpenseRepositoryIsRefiledAndProposalRepositoryUntouched() {
             stubStoredUser();
             stubCategoryAdmitted();
@@ -88,7 +86,6 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when called with a PENDING status - then the proposal repository is refiled and the "
                 + "expense repository is never touched")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenCalledWithPendingStatus_thenProposalRepositoryIsRefiledAndExpenseRepositoryUntouched() {
             stubStoredUser();
             stubCategoryAdmitted();
@@ -106,7 +103,6 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when the category read does not admit categoryId - then throws "
                 + "InvalidExpenseCategoryChangeException naming it")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenCategoryReadDoesNotAdmitCategoryId_thenThrowsInvalidExpenseCategoryChangeExceptionNamingCategoryId() {
             stubStoredUser();
             when(categoryRepository.existsOwnedCategory(USER_ID, CATEGORY_ID)).thenReturn(false);
@@ -122,7 +118,6 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when the refile answers nothing - then throws ExpenseEntryNotFoundException naming the "
                 + "entry rather than the caller")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenRefileAnswersNothing_thenThrowsExpenseEntryNotFoundExceptionNamingEntryRatherThanCaller() {
             stubStoredUser();
             stubCategoryAdmitted();
@@ -139,10 +134,9 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when no user row is stored for the caller's external id - then EntityNotFoundException "
                 + "propagates")
-        @Disabled("RU17: the absence is now requireById throwing")
         void whenNoUserRowStoredForExternalId_thenEntityNotFoundExceptionPropagatesAndNothingElseTouched() {
             EntityNotFoundException failure = new EntityNotFoundException("user", "no user stored");
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenThrow(failure);
+            when(userRepository.requireById(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
                     .isSameAs(failure);
@@ -155,7 +149,6 @@ class ChangeExpenseCategoryUseCaseTest {
         @Test
         @DisplayName("when the category read throws PersistenceFailedException - then it propagates and neither "
                 + "refile is attempted")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenCategoryReadThrowsPersistenceFailedException_thenPropagatesAndNeitherRefileAttempted() {
             stubStoredUser();
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
@@ -170,7 +163,6 @@ class ChangeExpenseCategoryUseCaseTest {
 
         @Test
         @DisplayName("when a refile throws PersistenceFailedException - then it propagates")
-        @Disabled("RU17: arranges requireByExternalId, which the use case no longer calls")
         void whenRefileThrowsPersistenceFailedException_thenPropagates() {
             stubStoredUser();
             stubCategoryAdmitted();
@@ -200,7 +192,7 @@ class ChangeExpenseCategoryUseCaseTest {
     }
 
     private void stubStoredUser() {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     private void stubCategoryAdmitted() {

@@ -367,7 +367,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest` · covers: `of()`, the compact constructor ·
+- [x] RU01 · `AuthenticatedUserId` · test: `AuthenticatedUserIdTest` · covers: `of()`, the compact constructor ·
   scenarios: A36
     - `of()`:
         - given: a subject that is a positive number
@@ -390,7 +390,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           `auth0|abc123` are now refusals, not carriers; replace them with numeric subjects asserted through
           `userId()`
 
-- [ ] RU02 · `AuthenticatedCaller` · test: `AuthenticatedCallerTest` · covers: `authenticatedUserId()` ·
+- [x] RU02 · `AuthenticatedCaller` · test: `AuthenticatedCallerTest` · covers: `authenticatedUserId()` ·
   scenarios: A36
     - `authenticatedUserId()`:
         - given: a validated token whose subject is a numeric internal id
@@ -405,7 +405,7 @@ a step id — `CommentConventionsTest` fails the run on one.
         - update: `whenContextHoldsValidatedTokenWithBlankSubject_thenThrowsInvalidUserException()` — the refusal
           now comes from `of()`, so assert it still surfaces as `InvalidUserException`
 
-- [ ] RU03 · `ReadSessionUseCase` · test: `ReadSessionUseCaseTest` · covers: `read()` · scenarios: A33, A35, A37
+- [x] RU03 · `ReadSessionUseCase` · test: `ReadSessionUseCaseTest` · covers: `read()` · scenarios: A33, A35, A37
     - `read()`:
         - given: a stored user whose id the command names
           when: read() is called
@@ -417,7 +417,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: read() is called
           then: InvalidUserException is thrown
 
-- [ ] RU04 · `CategoryNameResolver` · test: `CategoryNameResolverTest` · covers: `resolve()`, `evict()` ·
+- [x] RU04 · `CategoryNameResolver` · test: `CategoryNameResolverTest` · covers: `resolve()`, `evict()` ·
   scenarios: A38, A39, A41, A42, A43
     - `resolve()`:
         - given: an id the cache does not hold and a lookup that answers a category and its grouping
@@ -443,7 +443,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: evict() is called for the grouping's id
           then: every one of those entries is gone, not only the grouping's own
 
-- [ ] RU05 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest` · covers: `publish()` · scenarios: A1, A5,
+- [x] RU05 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest` · covers: `publish()` · scenarios: A1, A5,
   A40, A41, A43
     - `publish()`:
         - given: an update on `expense` carrying a different `before.category_id` and `after.category_id`, and a
@@ -474,7 +474,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           then: the published counter is tagged with the table and the operation, and the lag gauge is set from
           `source.ts_ms`
 
-- [ ] RU06 · `ChangeStreamHealthIndicator` · test: `ChangeStreamHealthIndicatorTest` · covers: `health()` ·
+- [x] RU06 · `ChangeStreamHealthIndicator` · test: `ChangeStreamHealthIndicatorTest` · covers: `health()` ·
   scenarios: A9, A12, A17
     - `health()`:
         - given: a reader reporting STREAMING
@@ -487,7 +487,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: health() is called
           then: the component is DOWN and the detail names DOWN
 
-- [ ] RU07 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · covers: the counters and the gauges ·
+- [x] RU07 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · covers: the counters and the gauges ·
   scenarios: A24
     - the counters and the gauges:
         - given: a real `SimpleMeterRegistry`
@@ -505,7 +505,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 RU08 and RU09 were the endpoint's status contract and the filter's 401; both moved to RI09, the entry-point
 step, so those two ids are unused.
 
-- [ ] RU10 · `ReplicationSlotState` · test: `ReplicationSlotStateTest` · covers: `fromWalStatus()` · scenarios:
+- [x] RU10 · `ReplicationSlotState` · test: `ReplicationSlotStateTest` · covers: `fromWalStatus()` · scenarios:
   A17, A21
     - `fromWalStatus()`:
         - given: each of `reserved`, `extended`, `unreserved` and `lost`
@@ -518,61 +518,61 @@ step, so those two ids are unused.
           when: fromWalStatus() is called
           then: it is refused rather than silently mapped
 
-- [ ] RU11 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · covers: `browse()`
+- [x] RU11 · `BrowseCategoriesUseCase` · test: `BrowseCategoriesUseCaseTest` · covers: `browse()`
     - `browse()`:
         - update: `whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdAndGroupingId()` — the
           command now carries the internal id, so arrange `requireById` and assert the lookup receives that id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException()` — the absence is now
           `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU12 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · covers: `browse()`
+- [x] RU12 · `BrowseGroupingsUseCase` · test: `BrowseGroupingsUseCaseTest` · covers: `browse()`
     - `browse()`:
         - update: `whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdNotExternalId()` —
           arrange `requireById` and assert the lookup receives the command's internal id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException()` — the absence is now
           `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU13 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · covers: `browse()`
+- [x] RU13 · `BrowseExpensesUseCase` · test: `BrowseExpensesUseCaseTest` · covers: `browse()`
     - `browse()`:
         - update: `whenStoredUserIdDiffersFromExternalId_thenBothReadsReceiveStoredUserIdNotExternalId()` —
           arrange `requireById` and assert both reads receive the command's internal id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryUntouched()`
           — the absence is now `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU14 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
+- [x] RU14 · `ListCategoriesUseCase` · test: `ListCategoriesUseCaseTest` · covers: `list()`
     - `list()`:
         - update: `whenStoredUsersIdDiffersFromCommandsExternalId_thenBothReadsReceiveStoredUsersIdNotExternalId()`
           — arrange `requireById` and assert both reads receive the command's internal id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException()` — the absence is now
           `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU15 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · covers: `summarize()`
+- [x] RU15 · `SummarizeSpendingUseCase` · test: `SummarizeSpendingUseCaseTest` · covers: `summarize()`
     - `summarize()`:
         - update: `whenStoredUsersIdDiffersFromExternalId_thenStoredQueryCarriesStoredUsersId()` — arrange
           `requireById` and assert the stored query carries that id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException()` — the absence is now
           `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU16 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · covers: `accept()`
+- [x] RU16 · `AcceptExpensesUseCase` · test: `AcceptExpensesUseCaseTest` · covers: `accept()`
     - `accept()`:
         - update: `whenNoUserRowForCallersExternalId_thenEntityNotFoundExceptionThrownAndNothingMovedOrDispatched()`
           — the absence is now `requireById` throwing; every other method in the class arranges the same stub
         - update: `whenMoveAnswersOneIdPerProposalForTwoPosted_thenAcceptedTwoAndMissingZero()` — arrange
           `requireById` for the command's internal id
 
-- [ ] RU17 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · covers: `change()`
+- [x] RU17 · `ChangeExpenseCategoryUseCase` · test: `ChangeExpenseCategoryUseCaseTest` · covers: `change()`
     - `change()`:
         - update: `whenNoUserRowStoredForExternalId_thenEntityNotFoundExceptionPropagatesAndNothingElseTouched()`
           — the absence is now `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU18 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
+- [x] RU18 · `CreateExpenseProposalUseCase` · test: `CreateExpenseProposalUseCaseTest` · covers: `create()`
     - `create()`:
         - update: `whenGroupingIsAnswered_thenCategoryIsLookedUpUnderStoredUserIdAndThatGrouping()` — arrange
           `requireById` for the command's internal id
         - update: `whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionNamingUser()` — the absence is
           now `requireById` throwing; every other method in the class arranges the same stub
 
-- [ ] RU19 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
+- [x] RU19 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
   scenarios: A31
     - `handle()`:
         - update: `whenHandleIsCalled_thenInitializeReceivesTheCommandsUserExternalId()` — first recognition still
@@ -580,13 +580,13 @@ step, so those two ids are unused.
         - update: `whenStoredUsersIdDiffersFromExternalId_thenBothReadsCarryThatStoredId()` — the extraction
           request now carries that same stored id, so assert it there too
 
-- [ ] RU20 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: the caller-identity mapping
+- [x] RU20 · `ExpenseWebMapper` · test: `ExpenseWebMapperTest` · covers: the caller-identity mapping
     - the caller-identity mapping:
         - update: `whenDocumentReplacesCategoryIdUnderRecorded_thenCommandCarriesCallerRecordedIdAndCategory()` —
           the caller value now carries a `long` internal id; assert the command carries that id rather than an
           external identifier
 
-- [ ] RU21 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint()` · scenarios: A31
+- [x] RU21 · `AccessTokenMinter` · test: `AccessTokenMinterTest` · covers: `mint()` · scenarios: A31
     - `mint()`:
         - given: a caller's internal id and an incoming message reference
           when: mint() is called
@@ -598,7 +598,7 @@ step, so those two ids are unused.
         - update: `whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues()` — it
           mints twice from a `String`; both calls take the internal id, and the method's name follows
 
-- [ ] RU22 · `SessionTokenMinter` · test: `SessionTokenMinterTest` · covers: `mint()` · scenarios: A32
+- [x] RU22 · `SessionTokenMinter` · test: `SessionTokenMinterTest` · covers: `mint()` · scenarios: A32
     - `mint()`:
         - given: a signed-in person's internal id
           when: mint() is called
@@ -609,7 +609,7 @@ step, so those two ids are unused.
         - update: `whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues()` — both
           calls take the internal id, and the method's name follows
 
-- [ ] RU23 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor ·
+- [x] RU23 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: the compact constructor ·
   scenarios: A31
     - the compact constructor:
         - given: a `userId` of zero, and a negative one
@@ -620,7 +620,7 @@ step, so those two ids are unused.
         - update: `whenEveryComponentIsValid_thenEveryComponentReadsBackUnchanged()` — assert `userId()` in
           place of `userExternalId()`
 
-- [ ] RU24 · `UserRepository` · test: `UserRepositoryTest` · covers: `requireById()` · scenarios: A33, A35
+- [x] RU24 · `UserRepository` · test: `UserRepositoryTest` · covers: `requireById()` · scenarios: A33, A35
     - `requireById()`:
         - given: a stored user under that id
           when: requireById() is called
@@ -632,7 +632,7 @@ step, so those two ids are unused.
           when: requireById() is called
           then: the failure propagates unchanged
 
-- [ ] RU25 · `ReadSessionCommand` · test: `ReadSessionCommandTest` · covers: the compact constructor ·
+- [x] RU25 · `ReadSessionCommand` · test: `ReadSessionCommandTest` · covers: the compact constructor ·
   scenarios: A37
     - the compact constructor:
         - given: an absent `userId`
@@ -644,7 +644,7 @@ step, so those two ids are unused.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CategoryNameReader` · test: `CategoryNameReaderTest` · covers: `findNames()` · scenarios: A38, A40
+- [x] RI01 · `CategoryNameReader` · test: `CategoryNameReaderTest` · covers: `findNames()` · scenarios: A38, A40
     - `findNames()`:
         - given: a category stored under a grouping
           when: findNames() is called for its id
@@ -659,7 +659,7 @@ step, so those two ids are unused.
           when: findNames() is called for one of the ids
           then: that person's names are answered, the id alone being the key
 
-- [ ] RI02 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest` · covers: `write()` · scenarios: A13
+- [x] RI02 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest` · covers: `write()` · scenarios: A13
     - `write()`:
         - given: a running Redis and a payload with an enrichment block
           when: write() is called
@@ -671,7 +671,7 @@ step, so those two ids are unused.
           when: write() is called
           then: it answers not written rather than throwing out of the publish path
 
-- [ ] RI03 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · covers: `start()`, `stop()`, the offer loop ·
+- [x] RI03 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · covers: `start()`, `stop()`, the offer loop ·
   scenarios: A2, A4, A5, A6, A7, A8, A9, A10, A12, A14, A15, A17, A26
     - `start()`:
         - given: a Postgres at `wal_level=logical` with the publication in place and no stored position
@@ -717,7 +717,7 @@ step, so those two ids are unused.
           then: the engine's task finishes, the slot is left in place, and a fresh reader takes it over and
           resumes from the last committed position
 
-- [ ] RI04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorTest` · covers: `readSlot()` · scenarios:
+- [x] RI04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorTest` · covers: `readSlot()` · scenarios:
   A25, A27, A28
     - `readSlot()`:
         - given: an existing slot with log retained behind it
@@ -734,7 +734,7 @@ step, so those two ids are unused.
           when: readSlot() is called after an idle period
           then: the retained bytes stay near zero, which is what separates an idle ledger from a stuck one
 
-- [ ] RI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · covers: `recover()` · scenarios: A18,
+- [x] RI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · covers: `recover()` · scenarios: A18,
   A19, A20, A21, A22, A23
     - `recover()`:
         - given: an invalidated slot and a reader that is not streaming
@@ -766,7 +766,7 @@ step, so those two ids are unused.
           when: recover() is called and streaming resumes
           then: no event for any of those rows is offered, ever — the gap is what the operation spends
 
-- [ ] RI06 · `SessionController` · test: `SessionControllerTest` · covers: `POST /api/v1/session`,
+- [x] RI06 · `SessionController` · test: `SessionControllerTest` · covers: `POST /api/v1/session`,
   `GET /api/v1/session` · mocks: `InitializeUserPort`, `ReadSessionPort`, `TelegramLoginVerifier` · scenarios:
   A32, A37
     - Happy Path:
@@ -797,7 +797,7 @@ step, so those two ids are unused.
         - update: `whenWebSessionSecureIsLeftAtItsLocalDefault_thenTheSessionCookieIsNotSecure()` — broken by
           the same arrangement, and fixed by the same change
 
-- [ ] RI07 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findById()` · scenarios:
+- [x] RI07 · `UserRepositoryAdapter` · test: `UserRepositoryAdapterTest` · covers: `findById()` · scenarios:
   A33, A35
     - `findById()`:
         - given: a stored `app_user` row
@@ -810,7 +810,7 @@ step, so those two ids are unused.
           when: findById() is called
           then: PersistenceFailedException is thrown, the way the adapter's other reads translate a failure
 
-- [ ] RI08 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI08 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()` · scenarios: A31
     - `extract()`:
         - given: a request carrying a caller's internal id
@@ -821,7 +821,7 @@ step, so those two ids are unused.
           request helper takes a `long userId` in place of a `String userExternalId`, and the subject assertion
           reads that id as decimal text; the method's own name follows the meaning
 
-- [ ] RI09 · `CdcRecoveryEndpoint` · test: `CdcRecoveryEndpointTest` · covers: `POST /actuator/cdc` ·
+- [x] RI09 · `CdcRecoveryEndpoint` · test: `CdcRecoveryEndpointTest` · covers: `POST /actuator/cdc` ·
   mocks: `ChangeStreamRecovery` · scenarios: A18, A21, A22, A23, A29, A30
     - Happy Path:
         - given: the mocked recovery answers a rebuilt slot, and the request carries the configured secret
@@ -845,7 +845,7 @@ step, so those two ids are unused.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}` · scenarios: A1,
+- [x] RS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}` · scenarios: A1,
   A7, A38
     - Happy Path:
         - given: a signed-in person with a recorded expense, a streaming engine and a running Redis
@@ -859,7 +859,7 @@ step, so those two ids are unused.
           then: nothing is published while it refuses, the health component reads DOWN, and that change reaches
           the stream once it returns
 
-- [ ] RS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances` · scenarios:
+- [x] RS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances` · scenarios:
   A3
     - Happy Path:
         - given: a signed-in person with a pending proposal, a streaming engine and a running Redis
@@ -871,7 +871,7 @@ step, so those two ids are unused.
           when: the acceptance is posted
           then: the endpoint answers as it does today and no entry for that id reaches the stream
 
-- [ ] RS03 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health` · scenarios: A11, A16, A27
+- [x] RS03 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health` · scenarios: A11, A16, A27
     - Happy Path:
         - given: a Postgres at `wal_level=replica`, started and stopped by this class alone rather than taken
           from `common/containers/`, and the application booted against it with `CDC_ENABLED=false`
@@ -884,7 +884,7 @@ step, so those two ids are unused.
           then: `ledger_cdc_slot_retained_bytes` and `ledger_cdc_slot_wal_status` still report that slot, and
           `ledger_cdc_state` reads DOWN
 
-- [ ] RS04 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc` · scenarios: A18, A30
+- [x] RS04 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc` · scenarios: A18, A30
     - Happy Path:
         - given: an invalidated slot and an engine that is not streaming
           when: the operation is posted to the management port with the configured secret
@@ -896,7 +896,7 @@ step, so those two ids are unused.
           then: both answer, sharing the port the recovery operation guards — the secret's own refusals belong to
           RI09, not here
 
-- [ ] RS05 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A24
+- [x] RS05 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A24
     - Happy Path:
         - given: an engine that has published events and a Redis that refused at least one while the proxy cut
           the connection
@@ -908,7 +908,7 @@ step, so those two ids are unused.
           when: it is requested on the service port instead
           then: it is not served there, the three management endpoints having moved off it
 
-- [ ] RS06 · `McpAuthenticationSystemTest` · covers: `POST /mcp` · scenarios: A31, A33, A35
+- [x] RS06 · `McpAuthenticationSystemTest` · covers: `POST /mcp` · scenarios: A31, A33, A35
     - Happy Path:
         - given: a stored user and a token minted from the id `UserRowUtils` returned
           when: a tool is called with it
@@ -924,7 +924,7 @@ step, so those two ids are unused.
         - update: `whenToolsListIsPostedWithValidToken_thenAmountIsPublishedAsAString()` — its token is minted
           from a seeded row's id rather than an invented identifier
 
-- [ ] RS07 · `WebSessionSystemTest` · covers: `GET /api/v1/session` · scenarios: A32, A33, A35, A37
+- [x] RS07 · `WebSessionSystemTest` · covers: `GET /api/v1/session` · scenarios: A32, A33, A35, A37
     - Happy Path:
         - given: a person signing in through Telegram
           when: they browse and refile afterwards
@@ -1078,6 +1078,8 @@ These are the pages `archive-knowledge` does not write; the use-case pages and t
     `ChangeStreamRecovery` mocked. RU08 and RU09 thin to their own logic.
 - **ST27 blocked:** Stabilization cannot leave the suite green, and this is structural rather than a defect in the work: ST06 stubs UserRepositoryAdapter.findById to answer Optional.empty() while ST07 points all eight use cases at requireById, so every system and MCP test that authenticates a stored caller answers 'caller is unknown' until GI07 implements the read. Those tests are disabled naming the green step that restores them, not a red one. Consequence for the guardrails: the module's skipped count returns to the 0 baseline at the GREEN exit, not at the RED exit. The RED exit instead requires that every skip still open names a green-phase step.
 - **ST26 blocked:** Two of the three deferred behaviours do not hold as the design assumed. (a) A missing publication is NOT a detectable start failure: pgoutput resolves a named publication with missing_ok=true and streams nothing, silently, forever. Only a non-logical wal_level gives a hard error (ERROR: logical decoding requires wal_level >= logical); a slot another connection holds gives a distinct one (ERROR: replication slot ... is active for PID). RI03's permanent-failure scenario is amended to use a non-logical wal_level, since the precondition it named is unobservable. (b) max_slot_wal_keep_size is reloadable only when it is not pinned on the command line. A value passed as 'postgres -c max_slot_wal_keep_size=...' outranks ALTER SYSTEM + pg_reload_conf() and cannot be widened without restarting the container, which is the deployment shape ST18 writes. No scenario asserts a live reload, so this is left as written and P04 states the restart cost instead. (c) holds as designed: a session-level pg_try_advisory_lock is released when its connection dies.
+- **RI05 blocked:** A21's refusal matrix is narrowed. The step asks for a slot whose wal_status is reserved, extended or unreserved, refused for each of the three; only 'reserved' is reproducible deterministically against a real slot, so the parameterized source carries one entry rather than three. Landing exactly on 'extended' or 'unreserved' depends on checkpoint timing against max_slot_wal_keep_size and cannot be forced from the test. The refusal logic itself is one branch over ReplicationSlotState, and RU10 covers all four states' mapping, so the gap is in the integration proof rather than in the behaviour. GI05 must keep the refusal keyed on 'not LOST' rather than on 'is RESERVED', which is what the single-entry matrix would otherwise let pass.
+- **RU04 blocked:** A42's evict-by-grouping has nothing to key on. CategoryNames holds categoryName and groupingName and no ids, and CategoryNameReader.findNames(long) answers only that record, so a cached entry never learns which grouping it sits under and the resolver cannot build a grouping-to-categories index. GU04 therefore implements evict(id) as a full clear of the cache: it satisfies both of RU04's evict scenarios as written, and it runs only on a category event, which is rare. The cost is higher than D16 and D17 assumed - a single category or grouping rename empties the whole bounded cache rather than one entry, so the next burst of expense events re-reads every category it touches. The alternative is widening the reader's projection and the CategoryNames record to carry the parent id, which is a Components-table change rather than a green step's call.
 
 ## Review Findings
 

@@ -13,7 +13,6 @@ import com.nimbusds.jwt.SignedJWT;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,11 +32,10 @@ class AccessTokenMinterTest {
         @Test
         @DisplayName("when mint() is called - then the token carries the configured subject, issuer, audience "
                 + "and a jti")
-        @Disabled("RU21: the subject is now the internal id read as decimal text, not the raw constant")
         void whenMintIsCalledAndTheTokenIsParsed_thenItCarriesTheExpectedClaims() throws ParseException {
             JWTClaimsSet claims = mintedClaims();
 
-            assertThat(claims.getSubject()).isEqualTo(USER_ID);
+            assertThat(claims.getSubject()).isEqualTo(Long.toString(USER_ID));
             assertThat(claims.getIssuer()).isEqualTo(properties.issuer());
             assertThat(claims.getAudience()).containsExactly(properties.audience());
             assertThat(claims.getJWTID()).isNotBlank();
@@ -60,8 +58,8 @@ class AccessTokenMinterTest {
 
         @Test
         @DisplayName(
-                "when mint() is called twice for the same external id - then the two tokens carry different jti values")
-        void whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
+                "when mint() is called twice for the same user id - then the two tokens carry different jti values")
+        void whenMintIsCalledTwiceForTheSameUserId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
             String firstToken = minter.mint(USER_ID, newIncomingMessageId());
             String secondToken = minter.mint(USER_ID, newIncomingMessageId());
 
