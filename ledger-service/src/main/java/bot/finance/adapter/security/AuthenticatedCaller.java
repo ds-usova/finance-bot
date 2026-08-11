@@ -16,7 +16,7 @@ public final class AuthenticatedCaller {
         if (!(authentication instanceof JwtAuthenticationToken jwtAuthenticationToken)) {
             throw new InvalidUserException("security context does not hold a validated token");
         }
-        return new AuthenticatedUserId(jwtAuthenticationToken.getToken().getSubject());
+        return AuthenticatedUserId.of(jwtAuthenticationToken.getToken().getSubject());
     }
 
     public static IncomingMessageId incomingMessageId() {

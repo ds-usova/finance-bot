@@ -19,6 +19,7 @@ import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.application.port.ReadSessionPort;
 import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
@@ -35,6 +36,7 @@ import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.application.usecase.InitializeUserUseCase;
 import bot.finance.application.usecase.ListCategoriesUseCase;
+import bot.finance.application.usecase.ReadSessionUseCase;
 import bot.finance.application.usecase.ResolveProposalsUseCase;
 import bot.finance.application.usecase.SummarizeSpendingUseCase;
 import java.time.Clock;
@@ -169,6 +171,11 @@ public class UseCaseConfiguration {
                 expenseProposalRepository,
                 Clock.systemUTC(),
                 loggerFactory);
+    }
+
+    @Bean
+    ReadSessionPort readSessionPort(UserRepository userRepository) {
+        return new ReadSessionUseCase(userRepository);
     }
 
     @Bean

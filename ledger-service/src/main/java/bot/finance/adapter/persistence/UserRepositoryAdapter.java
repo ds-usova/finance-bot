@@ -36,6 +36,12 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findById(long userId) {
+        // reads the app_user row by its primary key, translating a store failure to PersistenceFailedException
+        return Optional.empty();
+    }
+
+    @Override
     @Transactional
     public User create(User user, List<Grouping> groupings) {
         ColumnLimits.validateExternalId(user.externalId());

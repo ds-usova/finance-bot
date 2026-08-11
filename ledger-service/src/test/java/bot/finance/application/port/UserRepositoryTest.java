@@ -74,6 +74,11 @@ class UserRepositoryTest {
     private abstract static class StubUserRepository implements UserRepository {
 
         @Override
+        public Optional<User> findById(long userId) {
+            throw new UnsupportedOperationException("not part of what this test exercises");
+        }
+
+        @Override
         public User create(User user, List<Grouping> groupings) {
             throw new UnsupportedOperationException("not part of what this test exercises");
         }

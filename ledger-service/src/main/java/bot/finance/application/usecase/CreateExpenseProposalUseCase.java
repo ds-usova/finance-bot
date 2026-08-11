@@ -46,7 +46,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
         if (command == null) {
             throw new InvalidExpenseProposalException("new expense proposal command is absent");
         }
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long categoryId = resolveCategoryId(user, command);
         Instant now = Instant.now(clock);
         ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
@@ -58,9 +58,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
                 command.incomingMessageId(),
                 now);
         ExpenseProposal created = expenseProposalRepository.create(proposal);
-        log.info(
-                "created expense proposal for user with external id {}",
-                command.userId().externalId());
+        log.info("created expense proposal for user {}", command.userId().userId());
         return created;
     }
 

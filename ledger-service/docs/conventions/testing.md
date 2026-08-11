@@ -18,8 +18,15 @@ bot.finance
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
+    │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
     │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
+    │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
+    │   ├── PostgresContainers    # JVM-wide singleton, the containerized Postgres
+    │   ├── RedisContainers       # JVM-wide singleton, the containerized Redis, plus a redisUrl() accessor
+    │   ├── ToxiproxyContainers   # fronts RedisContainers on the same network, for the outage-and-recovery capture test
+    │   ├── WireMockSupport       # JVM-wide singleton, the WireMock stub server
+    │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
@@ -29,6 +36,7 @@ bot.finance
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── ChangeStreamEntries   # reads entries back off ledger.cdc, parsed and filtered by source.table and user_id
     │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp

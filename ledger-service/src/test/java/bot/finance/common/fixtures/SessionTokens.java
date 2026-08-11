@@ -21,7 +21,7 @@ public final class SessionTokens {
         return new SessionTokenMinter(properties(), SigningKeys.keys());
     }
 
-    public static String tokenFor(String externalId) {
-        return minter().mint(externalId);
+    public static String tokenFor(long userId) {
+        return minter().mint(userId);
     }
 }

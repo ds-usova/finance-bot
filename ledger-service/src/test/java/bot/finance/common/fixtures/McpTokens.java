@@ -53,50 +53,49 @@ public final class McpTokens {
         return new AccessTokenMinter(properties(), SigningKeys.keys());
     }
 
-    public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId) {
-        return tokenFor(accessTokenMinter, externalId, IncomingMessages.newIncomingMessageId());
+    public static String tokenFor(AccessTokenMinter accessTokenMinter, long userId) {
+        return tokenFor(accessTokenMinter, userId, IncomingMessages.newIncomingMessageId());
     }
 
-    public static String tokenFor(AccessTokenMinter accessTokenMinter, String externalId, IncomingMessageId reference) {
-        return accessTokenMinter.mint(externalId, reference);
+    public static String tokenFor(AccessTokenMinter accessTokenMinter, long userId, IncomingMessageId reference) {
+        return accessTokenMinter.mint(userId, reference);
     }
 
-    public static String expiredToken(String externalId) {
+    public static String expiredToken(long userId) {
         Instant issuedAt = Instant.now().minus(TTL).minusSeconds(60);
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), newReferenceText());
+        return sign(userId, AUDIENCE, issuedAt, issuedAt.plus(TTL), newReferenceText());
     }
 
-    public static String wrongAudienceToken(String externalId) {
+    public static String wrongAudienceToken(long userId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, "some-other-audience", issuedAt, issuedAt.plus(TTL), newReferenceText());
+        return sign(userId, "some-other-audience", issuedAt, issuedAt.plus(TTL), newReferenceText());
     }
 
-    public static String overTtlToken(String externalId) {
+    public static String overTtlToken(long userId) {
         Instant issuedAt = Instant.now();
-        return sign(
-                externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)), newReferenceText());
+        return sign(userId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)), newReferenceText());
     }
 
     /** A token whose {@code imi} claim is blank, which the type refuses. */
-    public static String malformedReferenceToken(String externalId) {
+    public static String malformedReferenceToken(long userId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), "   ");
+        return sign(userId, AUDIENCE, issuedAt, issuedAt.plus(TTL), "   ");
     }
 
     /** A token carrying no {@code imi} claim at all. */
-    public static String noReferenceToken(String externalId) {
+    public static String noReferenceToken(long userId) {
         Instant issuedAt = Instant.now();
-        return sign(externalId, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
+        return sign(userId, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
     }
 
     private static String newReferenceText() {
         return UUID.randomUUID().toString();
     }
 
-    private static String sign(String subject, String audience, Instant issuedAt, Instant expiresAt, String imi) {
+    private static String sign(long userId, String audience, Instant issuedAt, Instant expiresAt, String imi) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
-                    .subject(subject)
+                    .subject(Long.toString(userId))
                     .issuer(ISSUER)
                     .audience(audience)
                     .issueTime(Date.from(issuedAt))

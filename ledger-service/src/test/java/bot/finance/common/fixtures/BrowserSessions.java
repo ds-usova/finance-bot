@@ -24,8 +24,8 @@ public final class BrowserSessions {
 
     private BrowserSessions() {}
 
-    public static Cookie cookieFor(String externalId) {
-        return new Cookie(COOKIE_NAME, SessionTokens.tokenFor(externalId));
+    public static Cookie cookieFor(long userId) {
+        return new Cookie(COOKIE_NAME, SessionTokens.tokenFor(userId));
     }
 
     /** The token the unauthenticated read hands out, which a browser gets on page load. */

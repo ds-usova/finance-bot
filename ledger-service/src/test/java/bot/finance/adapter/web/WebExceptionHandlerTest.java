@@ -47,6 +47,7 @@ class WebExceptionHandlerTest {
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
     private static final String EXTERNAL_ID = "445566778";
+    private static final long USER_ID = 445566778L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -173,6 +174,6 @@ class WebExceptionHandlerTest {
     }
 
     private static Cookie sessionCookie() {
-        return BrowserSessions.cookieFor(EXTERNAL_ID);
+        return BrowserSessions.cookieFor(USER_ID);
     }
 }

@@ -47,7 +47,7 @@ public class ChangeExpenseCategoryUseCase implements ChangeExpenseCategoryPort {
             throw new InvalidExpenseCategoryChangeException("category change command is absent");
         }
 
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long userId = user.id().orElseThrow();
         if (!categoryRepository.existsOwnedCategory(userId, command.categoryId())) {
             throw new InvalidExpenseCategoryChangeException(

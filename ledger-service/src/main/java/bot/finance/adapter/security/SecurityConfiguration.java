@@ -1,5 +1,6 @@
 package bot.finance.adapter.security;
 
+import bot.finance.adapter.cdc.CdcProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,7 +44,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
     AccessTokenProperties.class,
     TokenSigningProperties.class,
     SessionTokenProperties.class,
-    WebSessionProperties.class
+    WebSessionProperties.class,
+    CdcProperties.class
 })
 public class SecurityConfiguration {
 
@@ -93,15 +95,21 @@ public class SecurityConfiguration {
 
     @Bean
     @Order(2)
-    SecurityFilterChain mcpSecurityFilterChain(HttpSecurity http, @Qualifier("mcpJwtDecoder") JwtDecoder jwtDecoder) {
+    SecurityFilterChain mcpSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("mcpJwtDecoder") JwtDecoder jwtDecoder,
+            RecoverySecretFilter recoverySecretFilter) {
         // Scoped to exactly the paths this chain owns, unlike the web-session chain above: with no securityMatcher
         // at all, this chain's anyRequest().denyAll() would also claim the container's forward to /error for a
         // request the other chain already refused, turning that chain's computed status into a 500 or 401 of its
         // own instead of letting the forward through to Boot's error handling.
         http.securityMatcher("/actuator/**", "/.well-known/jwks.json", "/mcp/**")
                 .csrf(AbstractHttpConfigurer::disable)
+                .addFilterBefore(recoverySecretFilter, AuthorizationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/**", "/.well-known/jwks.json")
+                        .requestMatchers("/actuator/health", "/actuator/prometheus", "/.well-known/jwks.json")
+                        .permitAll()
+                        .requestMatchers("/actuator/cdc")
                         .permitAll()
                         .requestMatchers("/mcp/**")
                         .authenticated()

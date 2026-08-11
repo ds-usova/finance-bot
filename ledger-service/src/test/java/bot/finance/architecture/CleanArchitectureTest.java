@@ -54,7 +54,10 @@ class CleanArchitectureTest {
                     "com.google.protobuf..",
                     "bot.finance.ai..",
                     "bot.finance.api..",
-                    "io.modelcontextprotocol..")
+                    "io.modelcontextprotocol..",
+                    "io.debezium..",
+                    "org.apache.kafka..",
+                    "org.springframework.data.redis..")
             .allowEmptyShould(true);
 
     /**
@@ -163,7 +166,8 @@ class CleanArchitectureTest {
     /**
      * {@code @AnalyzeClasses(packages = "bot.finance")} scans test classes too, so a fixture that builds an
      * {@link AuthenticatedUserId} for a test is excluded rather than flagged: a class whose top-level name ends
-     * with {@code Test}, and any class in {@code bot.finance.common}.
+     * with {@code Test}, and any class in {@code bot.finance.common}. {@link AuthenticatedUserId} itself is
+     * excluded too, since its own {@code of} factory calls its canonical constructor.
      */
     @ArchTest
     static final ArchRule authenticatedUserIdIsConstructedOnlyBySecurityAdapter = noClasses()
@@ -172,8 +176,12 @@ class CleanArchitectureTest {
             .and(DescribedPredicate.not(topLevelClassNameEndingWithTest()))
             .and()
             .resideOutsideOfPackage("bot.finance.common..")
+            .and()
+            .areNotAssignableTo(AuthenticatedUserId.class)
             .should()
             .callConstructor(AuthenticatedUserId.class)
+            .orShould()
+            .callMethod(AuthenticatedUserId.class, "of", String.class)
             .allowEmptyShould(true);
 
     private static DescribedPredicate<JavaClass> topLevelClassNameEndingWithTest() {

@@ -43,9 +43,7 @@ public class AiConnectorIntentExtractionAdapter implements IntentExtractionPort 
 
         ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
         Metadata metadata = new Metadata();
-        metadata.put(
-                AUTHORIZATION,
-                "Bearer " + accessTokenMinter.mint(request.userExternalId(), request.incomingMessageId()));
+        metadata.put(AUTHORIZATION, "Bearer " + accessTokenMinter.mint(request.userId(), request.incomingMessageId()));
         try {
             intentExtractionStub
                     .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))

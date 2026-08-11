@@ -131,7 +131,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
                     categoryGroupings,
                     catchAllGrouping(categoryGroupings),
                     Optional.empty(),
-                    user.externalId(),
+                    user.id().orElseThrow(),
                     reference,
                     LocalDate.now(clock)));
             return false;

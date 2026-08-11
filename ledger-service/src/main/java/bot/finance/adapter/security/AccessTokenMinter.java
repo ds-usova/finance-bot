@@ -26,11 +26,11 @@ public class AccessTokenMinter {
         this.signingKeys = signingKeys;
     }
 
-    public String mint(String userExternalId, IncomingMessageId reference) {
+    public String mint(long userId, IncomingMessageId reference) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(userExternalId)
+                .subject(Long.toString(userId))
                 .issuer(properties.issuer())
                 .audience(properties.audience())
                 .issueTime(issuedAt)

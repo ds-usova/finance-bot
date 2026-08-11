@@ -4,6 +4,7 @@ services:
   finance-postgres:
     image: postgres:18
     container_name: finance-bot-postgres
+    command: [ "postgres", "-c", "wal_level=logical", "-c", "max_slot_wal_keep_size=1GB" ]
     ports:
       - "5432:5432"
     environment:
@@ -41,9 +42,20 @@ services:
       TELEGRAM_BOT_TOKEN: ${FINANCE_BOT_TELEGRAM_BOT_TOKEN}
       # The browser reaches the web app over the tunnel's HTTPS, so the session cookie must be Secure.
       WEB_SESSION_COOKIE_SECURE: ${FINANCE_BOT_WEB_SESSION_COOKIE_SECURE:-true}
+      REDIS_URL: redis://redis:6379
+      CDC_RECOVERY_SECRET: ${FINANCE_BOT_CDC_RECOVERY_SECRET}
+      MANAGEMENT_PORT: 1010
     depends_on:
       finance-postgres:
         condition: service_healthy
+    networks:
+      - backend
+
+  redis:
+    image: redis:8
+    container_name: finance-bot-redis
+    volumes:
+      - finance-bot-redis:/data
     networks:
       - backend
 
@@ -78,6 +90,8 @@ services:
 volumes:
   finance-bot-postgres:
     name: finance-bot-postgres
+  finance-bot-redis:
+    name: finance-bot-redis
 
 networks:
   backend:

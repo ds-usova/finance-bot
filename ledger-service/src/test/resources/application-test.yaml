@@ -6,3 +6,13 @@ telegram:
       limit: 100
       timeout-seconds: 1
       sleep-millis: 50
+
+cdc:
+  enabled: false
+
+management:
+  server:
+    port: 0
+  health:
+    redis:
+      enabled: false

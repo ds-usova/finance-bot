@@ -75,7 +75,7 @@ class ExpensesControllerTest {
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
     private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{status}/{id}";
-    private static final String EXTERNAL_ID = "778899001";
+    private static final long USER_ID = 778899001L;
     private static final String VALID_DOCUMENT = """
             [{"op":"replace","path":"/categoryId","value":42}]""";
     private static final MediaType JSON_PATCH = MediaType.parseMediaType("application/json-patch+json");
@@ -178,7 +178,7 @@ class ExpensesControllerTest {
 
             ArgumentCaptor<AcceptExpensesCommand> command = ArgumentCaptor.forClass(AcceptExpensesCommand.class);
             verify(acceptExpensesPort).accept(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
             assertThat(command.getValue().ids().ids()).containsExactly(5L, 7L);
 
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
@@ -212,7 +212,7 @@ class ExpensesControllerTest {
             ArgumentCaptor<ChangeExpenseCategoryCommand> command =
                     ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
             verify(changeExpenseCategoryPort).change(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
             assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.RECORDED);
             assertThat(command.getValue().entryId()).isEqualTo(7L);
             assertThat(command.getValue().categoryId()).isEqualTo(42L);
@@ -756,6 +756,6 @@ class ExpensesControllerTest {
     }
 
     private static Cookie sessionCookie() {
-        return BrowserSessions.cookieFor(EXTERNAL_ID);
+        return BrowserSessions.cookieFor(USER_ID);
     }
 }

@@ -47,4 +47,18 @@ public class CategoryRowUtils {
                 .insert(new CategoryEntity(null, userId, parentId, name))
                 .id();
     }
+
+    /**
+     * Renames an already-seeded grouping or category by SQL, since nothing in the module renames or deletes one -
+     * the tree is written once at initialization, so a capture test drives a rename through here.
+     */
+    public static void renameCategory(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId, long categoryId, String newName) {
+        CategoryEntity existing = categoryRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row -> row.id() == categoryId)
+                .findFirst()
+                .orElseThrow();
+        jdbcAggregateTemplate.update(
+                new CategoryEntity(existing.id(), existing.userId(), existing.parentId(), newName));
+    }
 }

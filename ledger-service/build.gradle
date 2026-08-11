@@ -91,6 +91,13 @@ dependencies {
     implementation "org.flywaydb:flyway-database-postgresql"
     implementation "org.postgresql:postgresql"
 
+    // Change data capture
+    implementation "io.debezium:debezium-embedded:${debeziumVersion}"
+    implementation "io.debezium:debezium-connector-postgres:${debeziumVersion}"
+    implementation "io.debezium:debezium-storage-jdbc:${debeziumVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+
     // Telegram Bot API
     implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
 
@@ -112,6 +119,7 @@ dependencies {
 
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
     testImplementation "org.testcontainers:testcontainers-postgresql"
+    testImplementation "org.testcontainers:testcontainers-toxiproxy"
 
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
     testImplementation "org.awaitility:awaitility:${awaitilityVersion}"

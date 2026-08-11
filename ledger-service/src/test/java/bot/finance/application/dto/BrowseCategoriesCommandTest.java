@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class BrowseCategoriesCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
     private static final Long GROUPING_ID = 42L;
 
     @Nested

@@ -20,7 +20,7 @@ public class BrowseGroupingsUseCase implements BrowseGroupingsPort {
 
     @Override
     public List<GroupingEntry> browse(BrowseGroupingsCommand command) {
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
 
         return groupingRepository.findAllForUser(user.id().orElseThrow());
     }

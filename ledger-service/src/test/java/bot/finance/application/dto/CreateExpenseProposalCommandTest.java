@@ -20,7 +20,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class CreateExpenseProposalCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
     private static final String CATEGORY_NAME = "Groceries";
     private static final String GROUPING_NAME = "Food";
     private static final String DESCRIPTION = "groceries";
