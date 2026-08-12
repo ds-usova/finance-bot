@@ -64,6 +64,7 @@ class ChangeStreamReaderTest {
     private static final String SLOT_NAME = "change_stream_reader_test";
     private static final String STREAM_KEY = "change-stream-reader-test.cdc";
     private static final Duration STATE_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(15);
 
     @Autowired
     private ChangeStreamReader changeStreamReader;
@@ -226,10 +227,14 @@ class ChangeStreamReaderTest {
         void whenStoredPositionExistsFromEarlierRun_thenStreamingResumesAndEveryChangeIsOfferedInOrder() {
             long userId = seedUser();
             long groupingId = seedGrouping(userId);
+            String lsnAfterSeeding = currentWalLsn();
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
             changeStreamReader.stop(Duration.ofSeconds(5));
+            // stop() returns once the engine's task has finished, which can be before the position it reached
+            // is durable. A restart over a position still behind the seeding rows resumes from before them.
+            awaitPositionCommittedPast(lsnAfterSeeding);
 
             long firstCategoryId = CategoryRowUtils.storedCategoryId(
                     jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
@@ -239,10 +244,12 @@ class ChangeStreamReaderTest {
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            List<ChangeStreamEntry> entries = awaitEntriesFor("category", userId, 2);
-            assertThat(entries)
-                    .extracting(entry -> entry.after().path("id").asLong())
-                    .containsExactly(firstCategoryId, secondCategoryId);
+            // Delivery is at-least-once, so what holds is that both changes arrive in the order they were
+            // committed - never that they arrive once each.
+            await().atMost(EVENT_TIMEOUT)
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                            .extracting(entry -> entry.after().path("id").asLong())
+                            .containsSubsequence(firstCategoryId, secondCategoryId));
         }
     }
 
@@ -365,14 +372,22 @@ class ChangeStreamReaderTest {
         @TestPropertySource(
                 properties = {
                     "cdc.slot-name=change_stream_reader_test_redis_down",
-                    "cdc.stream-key=change-stream-reader-test-redis-down.cdc"
+                    "cdc.stream-key=change-stream-reader-test-redis-down.cdc",
+                    // The heartbeat moves the slot forward on its own, and this scenario reads the slot to
+                    // learn whether the held-back change moved it. An interval outlasting the test leaves the
+                    // change as the only thing that could.
+                    "cdc.heartbeat-interval=1h"
                 })
         class RedisUnavailable {
 
+            private static final String REDIS_DOWN_SLOT_NAME = "change_stream_reader_test_redis_down";
             private static final String REDIS_DOWN_STREAM_KEY = "change-stream-reader-test-redis-down.cdc";
 
             @Autowired
             private ChangeStreamReader readerAgainstDeadRedis;
+
+            @Autowired
+            private JdbcTemplate jdbcTemplateInDeadRedisContext;
 
             @Autowired
             private JdbcAggregateTemplate jdbcAggregateTemplateInDeadRedisContext;
@@ -381,9 +396,9 @@ class ChangeStreamReaderTest {
             private UserEntityRepository userEntityRepositoryInDeadRedisContext;
 
             @Test
-            @DisplayName("when a captured row changes - then the position is not committed and the event is "
-                    + "offered again after a backoff")
-            void whenCapturedRowChanges_thenPositionNotCommittedAndEventOfferedAgainAfterBackoff() {
+            @DisplayName("when a captured row changes - then the change is held back and the log position is "
+                    + "not committed")
+            void whenCapturedRowChanges_thenChangeHeldBackAndPositionNotCommitted() {
                 // Redis is refused at the proxy rather than by pointing this context at a closed port: the
                 // capture annotation registers the Redis URL through a bean applied during the refresh, which
                 // outranks a property a class sets for itself, so such an override would silently do nothing.
@@ -395,6 +410,9 @@ class ChangeStreamReaderTest {
                             jdbcAggregateTemplateInDeadRedisContext, userId, "Groceries " + UUID.randomUUID());
 
                     readerAgainstDeadRedis.start();
+                    awaitDeadRedisState(ChangeStreamState.STREAMING);
+                    String positionBeforeChange =
+                            confirmedFlushLsn(jdbcTemplateInDeadRedisContext, REDIS_DOWN_SLOT_NAME);
 
                     CategoryRowUtils.storedCategoryId(
                             jdbcAggregateTemplateInDeadRedisContext,
@@ -402,15 +420,24 @@ class ChangeStreamReaderTest {
                             groupingId,
                             "Markets " + UUID.randomUUID());
 
-                    await().pollDelay(Duration.ofSeconds(3))
-                            .atMost(Duration.ofSeconds(10))
-                            .untilAsserted(() -> assertThat(
-                                            ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, "category", userId))
-                                    .isEmpty());
+                    // A refused publish is the only thing that takes a streaming reader back to DOWN, so
+                    // reaching it is what establishes the engine got to the change and Redis rejected it. An
+                    // empty stream on its own cannot tell that from an engine that never arrived.
+                    awaitDeadRedisState(ChangeStreamState.DOWN);
+
+                    assertThat(ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, "category", userId))
+                            .isEmpty();
+                    assertThat(confirmedFlushLsn(jdbcTemplateInDeadRedisContext, REDIS_DOWN_SLOT_NAME))
+                            .isEqualTo(positionBeforeChange);
                 } finally {
                     ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
                     readerAgainstDeadRedis.stop(Duration.ofSeconds(5));
                 }
+            }
+
+            private void awaitDeadRedisState(ChangeStreamState expected) {
+                await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(readerAgainstDeadRedis.state())
+                        .isEqualTo(expected));
             }
         }
     }
@@ -456,14 +483,14 @@ class ChangeStreamReaderTest {
     }
 
     private static List<ChangeStreamEntry> awaitEntriesFor(String table, long userId, int expectedCount) {
-        await().atMost(Duration.ofSeconds(15))
+        await().atMost(EVENT_TIMEOUT)
                 .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId))
                         .hasSize(expectedCount));
         return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId);
     }
 
     private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {
-        await().atMost(Duration.ofSeconds(15))
+        await().atMost(EVENT_TIMEOUT)
                 .untilAsserted(() -> assertThat(deleteFor(table, userId, rowId)).isPresent());
         return deleteFor(table, userId, rowId).orElseThrow();
     }
@@ -476,9 +503,30 @@ class ChangeStreamReaderTest {
     }
 
     private String confirmedFlushLsn() {
-        return jdbcTemplate.queryForObject(
+        return confirmedFlushLsn(jdbcTemplate, SLOT_NAME);
+    }
+
+    private static String confirmedFlushLsn(JdbcTemplate template, String slotName) {
+        return template.queryForObject(
                 "SELECT confirmed_flush_lsn::text FROM pg_replication_slots WHERE slot_name = ?",
                 String.class,
+                slotName);
+    }
+
+    private String currentWalLsn() {
+        return jdbcTemplate.queryForObject("SELECT pg_current_wal_lsn()::text", String.class);
+    }
+
+    private void awaitPositionCommittedPast(String lsn) {
+        await().atMost(STATE_TIMEOUT)
+                .untilAsserted(() -> assertThat(positionPassed(lsn)).isTrue());
+    }
+
+    private Boolean positionPassed(String lsn) {
+        return jdbcTemplate.queryForObject(
+                "SELECT confirmed_flush_lsn >= ?::pg_lsn FROM pg_replication_slots WHERE slot_name = ?",
+                Boolean.class,
+                lsn,
                 SLOT_NAME);
     }
 }
