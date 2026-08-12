@@ -52,8 +52,7 @@ class ChangeEventPublisherTest {
     class Publish {
 
         @Test
-        @DisplayName(
-                "when an expense update is published - then one entry is written enriched with both " + "categories")
+        @DisplayName("when an expense update is published - then one entry is written enriched with both categories")
         void whenExpenseUpdateIsPublished_thenOneEntryWrittenEnrichedWithBothCategories() {
             String payload =
                     """
@@ -157,8 +156,7 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName(
-                "when the resolver fails the lookup - then nothing is written and publish answers not " + "published")
+        @DisplayName("when the resolver fails the lookup - then nothing is written and publish answers not published")
         void whenResolverFailsLookup_thenNothingWrittenAndPublishAnswersNotPublished() {
             String payload =
                     """
@@ -175,8 +173,7 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName(
-                "when the writer refuses - then publish answers not published and a publish failure is " + "counted")
+        @DisplayName("when the writer refuses - then publish answers not published and a publish failure is counted")
         void whenWriterRefuses_thenPublishAnswersNotPublishedAndPublishFailureCounted() {
             String payload =
                     """

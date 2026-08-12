@@ -107,8 +107,7 @@ class AiConnectorIntentExtractionAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when extract is called - then the metadata carries a bearer token whose sub claim is the " + "userId")
+        @DisplayName("when extract is called - then the metadata carries a bearer token whose sub claim is the userId")
         void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
