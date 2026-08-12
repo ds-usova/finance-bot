@@ -1,21 +1,8 @@
 # Review: Broadcast Ledger Changes to Redis
 
-**2 bugs, 2 refactoring candidates, 5 manual checks. Nothing critical.** Every entry is `ledger-service`.
+**1 bug, 2 refactoring candidates, 5 manual checks. Nothing critical.** Every entry is `ledger-service`.
 
 ## Bug
-
-**A publication the database does not have looks exactly like a healthy idle pipeline**
-
-- **Given** the service is deployed with `CDC_ENABLED=true` and the `finance_ledger_cdc` publication is absent —
-  a migration that did not run, a database restored without it, or a renamed publication
-- **When** the engine starts and captured rows change
-- **Then** the operator learns the pipeline is not working
-- **Actual** `pgoutput` resolves a named publication permissively, so the engine starts, reports `STREAMING`,
-  holds the slot and publishes nothing, forever. `/actuator/health` reads healthy and
-  `ledger_cdc_events_published_total` simply stays at zero, which is indistinguishable from a quiet ledger. The
-  only symptom is `ledger_cdc_slot_retained_bytes` climbing, and that is the alarm for a different failure.
-- **Fix** check the publication exists at start-up and report the component `DOWN` when it does not, the way a
-  non-logical `wal_level` already is · `ChangeStreamReader`
 
 **`ChangeStreamReaderTest`'s stop and Redis-unavailable cases fail intermittently**
 

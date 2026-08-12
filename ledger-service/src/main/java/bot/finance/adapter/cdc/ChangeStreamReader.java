@@ -7,12 +7,17 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,6 +30,8 @@ public class ChangeStreamReader {
 
     /** What {@code pgoutput} answers when another connection already holds the slot - the retryable failure. */
     private static final String SLOT_HELD_ELSEWHERE_MARKER = "is active for PID";
+
+    private static final String PUBLICATION_NAME_KEY = "publication.name";
 
     private static final Duration START_RETRY_BACKOFF = Duration.ofSeconds(2);
     private static final Duration PUBLISH_RETRY_BACKOFF = Duration.ofSeconds(1);
@@ -46,6 +53,7 @@ public class ChangeStreamReader {
     private final ChangeEventPublisher publisher;
     private final ChangeStreamMeters meters;
     private final Executor changeStreamExecutor;
+    private final DataSource dataSource;
     private final Logger log;
 
     private final Object lifecycleLock = new Object();
@@ -60,12 +68,14 @@ public class ChangeStreamReader {
             ChangeEventPublisher publisher,
             ChangeStreamMeters meters,
             Executor changeStreamExecutor,
+            DataSource dataSource,
             LoggerFactory loggerFactory) {
         this.properties = properties;
         this.engineConfiguration = engineConfiguration;
         this.publisher = publisher;
         this.meters = meters;
         this.changeStreamExecutor = changeStreamExecutor;
+        this.dataSource = dataSource;
         this.log = loggerFactory.getLogger(ChangeStreamReader.class);
     }
 
@@ -76,7 +86,37 @@ public class ChangeStreamReader {
             }
             stopRequested = false;
         }
+
+        String publication = engineConfiguration.getString(PUBLICATION_NAME_KEY);
+        if (!publicationExists(publication)) {
+            log.error(
+                    "Publication {} is absent, so the change stream will not start for slot {}",
+                    publication,
+                    properties.slotName());
+            setState(ChangeStreamState.DOWN);
+            return;
+        }
+
         launchEngine();
+    }
+
+    /**
+     * {@code pgoutput} resolves a publication name permissively: an engine pointed at one the database does not
+     * have still starts, reports itself streaming and holds the slot while publishing nothing. Asking the
+     * catalogue first is the only way that state is distinguishable from a quiet ledger.
+     */
+    private boolean publicationExists(String publication) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement statement =
+                        connection.prepareStatement("SELECT 1 FROM pg_publication WHERE pubname = ?")) {
+            statement.setString(1, publication);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            log.error("Failed to read the publication {} before starting the change stream", publication, e);
+            return false;
+        }
     }
 
     public boolean stop(Duration timeout) {

@@ -168,6 +168,58 @@ class ChangeStreamReaderTest {
             }
         }
 
+        @Nested
+        @DisplayName("when the publication the connector streams from is absent")
+        @NestedTestConfiguration(EnclosingConfiguration.OVERRIDE)
+        @ActiveProfiles("test")
+        @Testcontainers(disabledWithoutDocker = true)
+        @SpringBootTest(
+                classes = LedgerServiceApplication.class,
+                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+        @TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test_publication")
+        class PublicationAbsent {
+
+            private static final String PUBLICATION_SLOT_NAME = "change_stream_reader_test_publication";
+
+            /**
+             * A private Postgres at {@code wal_level=logical} whose publication this scenario drops, rather than
+             * the shared {@link bot.finance.common.containers.PostgresContainers} singleton: every other capture
+             * test streams from that one publication, and dropping it underneath them would take their engines
+             * down with it.
+             */
+            @Container
+            private static final PostgreSQLContainer<?> PUBLICATION_POSTGRES =
+                    new PostgreSQLContainer<>("postgres:18").withCommand("postgres", "-c", "wal_level=logical");
+
+            @DynamicPropertySource
+            static void datasourceProperties(DynamicPropertyRegistry registry) {
+                registry.add("spring.datasource.url", PUBLICATION_POSTGRES::getJdbcUrl);
+                registry.add("spring.datasource.username", PUBLICATION_POSTGRES::getUsername);
+                registry.add("spring.datasource.password", PUBLICATION_POSTGRES::getPassword);
+                registry.add("spring.data.redis.url", RedisContainers::redisUrl);
+            }
+
+            @Autowired
+            private ChangeStreamReader readerAgainstMissingPublication;
+
+            @Autowired
+            private JdbcTemplate jdbcTemplateAgainstMissingPublication;
+
+            @Test
+            @DisplayName("when start() is called - then the reader reports DOWN without taking the slot")
+            void whenStartIsCalled_thenReportsDownWithoutTakingTheSlot() {
+                jdbcTemplateAgainstMissingPublication.execute("DROP PUBLICATION finance_ledger_cdc");
+
+                readerAgainstMissingPublication.start();
+
+                await().pollDelay(Duration.ofSeconds(3)).atMost(STATE_TIMEOUT).untilAsserted(() -> assertThat(
+                                readerAgainstMissingPublication.state())
+                        .isEqualTo(ChangeStreamState.DOWN));
+                assertThat(ReplicationSlots.walStatus(jdbcTemplateAgainstMissingPublication, PUBLICATION_SLOT_NAME))
+                        .isEmpty();
+            }
+        }
+
         @Test
         @DisplayName("when a stored position exists - then streaming resumes and every change since is offered "
                 + "in order")
