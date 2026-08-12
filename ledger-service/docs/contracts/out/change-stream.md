@@ -17,9 +17,8 @@ Nothing consumes the stream yet. The entries are written and trimmed regardless.
 | Append an entry | publishes one committed row change                          | the ledger's change capture, on every captured change |
 | Trim the stream | drops the oldest entries once the stream passes its cap     | the same append                                      |
 
-The stream is named by `CDC_STREAM_KEY` and capped by `CDC_STREAM_MAX_LENGTH`, both
-[configuration](../../configuration.md). The cap is approximate: the stream is trimmed to whole internal blocks,
-so it holds at least the cap and a little more.
+The stream's name and its cap are both [configuration](../../configuration.md). The cap is approximate: the
+stream is trimmed to whole internal blocks, so it holds at least the cap and a little more.
 
 ## What an entry carries
 

@@ -101,7 +101,8 @@ the whole row, both sides of an update and a delete included, not the primary ke
 
 A publication named `finance_ledger_cdc` covers those three tables plus `cdc_heartbeat`. That heartbeat's single
 row is advanced on a timer, so the replication slot moves forward even while only uncaptured tables are written.
-The slot itself is created at first start, under the name `CDC_SLOT_NAME` sets, and no migration declares it.
+The slot itself is created at first start, under [a configured name](../../configuration.md), and no migration
+declares it.
 Both exist so the service can republish its own row changes onto [the change stream](change-stream.md).
 
 The publication is restricted to inserts, updates and deletes. A truncate is not published.

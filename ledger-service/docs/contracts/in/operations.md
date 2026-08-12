@@ -3,8 +3,8 @@
 The boundary a deployment is watched and repaired through: everything an operator needs to see how the service
 is doing, and the one operation they can run against it by hand.
 
-It is served on its own port, `MANAGEMENT_PORT`, which is never published alongside the service's own. Nothing
-the product is used with is reachable here, and nothing here is reachable there.
+It is served on a [port of its own](../../configuration.md), never published alongside the service's own.
+Nothing the product is used with is reachable here, and nothing here is reachable there.
 
 - **Counterpart:** an operator, or the monitoring that stands in for one
 - **Transport:** HTTP on the management port
@@ -86,12 +86,9 @@ records which hours are missing.
 
 | Request          | What it carries                                                  |
 |------------------|--------------------------------------------------------------------|
-| `POST /actuator/cdc` | the `X-Cdc-Recovery-Secret` header, matching `CDC_RECOVERY_SECRET` |
+| `POST /actuator/cdc` | the `X-Cdc-Recovery-Secret` header, carrying [the deployment's secret](../../configuration.md) |
 
 The answer names the position abandoned and the position resumed from. It carries neither on a refusal.
-
-A running service always holds a secret — a blank `CDC_RECOVERY_SECRET` stops startup — so "no secret
-configured" is not a state this boundary can be reached in.
 
 Only one instance runs the sequence at a time — a second is refused rather than queued.
 
