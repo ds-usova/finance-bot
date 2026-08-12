@@ -54,7 +54,7 @@ outcome, no text for the user.
 - A call must answer within `spring.grpc.client.channel.ai-connector.default.deadline`.
 - That deadline covers the whole model-driven loop: listing the tools, then a provider call and a callback per
   expense, per period asked about, and per retry.
-- Three ceilings nest, outermost first: [the lifetime](../../configuration.md) of the credential this service
+- Three ceilings nest, outermost first: [`MCP_JWT_TTL`](../../configuration.md) on the credential this service
   mints, then the call's deadline, then the connector's own per-callback timeout.
 - So one slow callback cannot spend the turn.
 - A call that runs out of time is abandoned here while the connector runs on.

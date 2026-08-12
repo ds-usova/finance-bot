@@ -38,8 +38,8 @@ of them, so dropping one or adding one makes the sign-in unverifiable. The field
 ### What opening a session answers with
 
 The external id the session was opened for, and a `Set-Cookie` carrying the session. The cookie is not readable
-by page scripts; its name, its transport, its cross-site behaviour and its lifetime are all
-[configuration](../../configuration.md).
+by page scripts, is scoped by `WEB_SESSION_COOKIE_NAME`, `WEB_SESSION_COOKIE_SECURE` and
+`WEB_SESSION_COOKIE_SAME_SITE`, and expires after `SESSION_JWT_TTL`.
 
 ### What reading the session answers with
 
@@ -144,7 +144,7 @@ what it means.
 |---------------------------------------------------------------------------|----------------------------------------------------|
 | The signature does not match the fields sent                              | 401, naming only that the sign-in was not accepted |
 | The sign-in carries no hash, no id, or no readable `auth_date`            | 401, the same way                                  |
-| The sign-in is older than [the accepted age](../../configuration.md), or dated ahead | 401, the same way        |
+| The sign-in is older than `TELEGRAM_LOGIN_MAX_AGE`, or dated ahead        | 401, the same way                                  |
 | A write carries no CSRF token, or one that does not match the cookie      | 403, before the request reaches the endpoint       |
 | The session is read with no cookie, or with one this service did not sign | 401                                                |
 | The session's subject is not a stored person's id                         | 401, saying no browser session is open             |
