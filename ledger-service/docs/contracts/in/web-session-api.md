@@ -1,8 +1,8 @@
 # A person signing in from a browser — the session API (HTTP)
 
 A person opens the web app, signs in with their Telegram account, and the browser holds a session for as long as
-it lasts. This is the boundary a browser signs in through. One thing crosses it: proof from Telegram that the
-person at the keyboard is a particular Telegram user.
+it lasts. One thing crosses this boundary: proof from Telegram that the person at the keyboard is a particular
+Telegram user.
 
 What that session then admits is [the browse API](web-browse-api.md), a separate interface on the same
 transport.
@@ -18,9 +18,9 @@ transport.
 
 | Operation        | Purpose                                                      | Used by                                                          |
 |------------------|--------------------------------------------------------------|------------------------------------------------------------------|
-| Open a session   | checks a Telegram sign-in and opens a browser session for it | [Initialize a new user](../../usecases/initialize-a-new-user.md) |
-| Read the session | answers who the browser is signed in as                      | the page, on load, to decide what to show                        |
-| End the session  | clears the session, whether or not one was open              | the app shell's sign-out control                                 |
+| Open a session   | checks a Telegram sign-in and opens a browser session for it | [Initialize a new user](../../usecases/initialize-a-new-user.md)     |
+| Read the session | answers who the browser is signed in as                      | [Read the current session](../../usecases/read-the-current-session.md) |
+| End the session  | clears the session, whether or not one was open              | the app shell's sign-out control                                     |
 
 ### What opening a session takes
 
@@ -43,8 +43,10 @@ by page scripts, is scoped by `WEB_SESSION_COOKIE_NAME`, `WEB_SESSION_COOKIE_SEC
 
 ### What reading the session answers with
 
-The external id the session was opened for. Nothing else — the session carries no name, no photo and no
-Telegram profile.
+The external id the session was opened for. Nothing else: no name, no photo, no Telegram profile.
+
+It is read back off the stored person on every request, not off the session token, so a session outliving its
+person is refused rather than answered ([Read the current session](../../usecases/read-the-current-session.md)).
 
 ### What ending the session answers with
 
@@ -101,7 +103,8 @@ note over Browser, Api : the header is what the page had to **read** a cookie to
 ```
 
 - The session is a long-lived RS256 JSON Web Token, issued and validated by this service itself.
-- It names the user as its subject, `ledger-service` as its issuer, and `web-app` as its audience.
+- Its subject is the [id the ledger stores the person under](../../domain/authenticated-user-id.md), never their
+  Telegram identifier. Its issuer is `ledger-service` and its audience `web-app`.
 - It is carried only in its cookie. The `Authorization` header is not read under `/api`, so a token minted for
   another audience cannot be presented here by hand.
 - It is verified against the public half of the signing key in process, so no request is made to the published
@@ -144,23 +147,27 @@ what it means.
 | The sign-in is older than `TELEGRAM_LOGIN_MAX_AGE`, or dated ahead        | 401, the same way                                  |
 | A write carries no CSRF token, or one that does not match the cookie      | 403, before the request reaches the endpoint       |
 | The session is read with no cookie, or with one this service did not sign | 401                                                |
+| The session's subject is not a stored person's id                         | 401, saying no browser session is open             |
+| The session's subject names no stored person                              | 404, saying the caller is unknown                  |
 | The user cannot be stored                                                 | 503, naming no table, constraint or stack frame    |
 | Anything else                                                             | 500, saying the request could not be completed     |
 
-A rejected sign-in stores nothing and sets no cookie. Neither the payload nor its hash is echoed back or logged —
-a rejected payload is still a credential.
+A rejected sign-in stores nothing and sets no cookie. Neither the payload nor its hash is echoed back or logged.
 
 ## Compatibility
 
 The sign-in body is Telegram's field set, not this service's. A field Telegram adds is signed by the widget and
-included in the check without any change here, which is why the whole payload is forwarded rather than a chosen
-subset.
+included in the check without any change here.
 
 The cookie's name and attributes are configuration, so a deployment can change them without a client change: the
 browser sends back whatever it was given.
 
+What the session names inside it is this service's own and is never read by a browser, so it can change without
+a client change. A session held from before such a change is refused on its next request, and signing in again
+issues a usable one.
+
 Adding an operation under `/api` costs a browser nothing. Moving the session to an identity provider outside this
 service would change where a token is minted, not what the browser sends.
 
-The unversioned `/api/session` is gone. It is no longer served, and a request to it is refused by the filter
-chain with a 401 rather than a 404. Every path under `/api` now carries the version.
+The unversioned `/api/session` is gone. A request to it is refused by the filter chain with a 401 rather than a
+404. Every path under `/api` now carries the version.

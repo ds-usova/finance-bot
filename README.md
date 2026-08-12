@@ -61,7 +61,8 @@ System_Boundary(financeBot, "Finance Bot") {
   Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates expense capture: coordinates transcription and AI extraction, then persists and confirms the result")
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts voice message audio into a text transcript")
   Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
-  ContainerDb(db, "Database", "PostgreSQL", "Stores users and their recorded expenses")
+  ContainerDb(db, "Database", "PostgreSQL", "Stores users and their recorded expenses, and streams every change to them from its write-ahead log")
+  ContainerQueue(changeStream, "Change Stream", "Redis", "Holds one capped stream of ledger row changes; nothing reads it yet")
 }
 
 Rel(user, telegram, "Sends voice message", "Telegram app")
@@ -80,6 +81,8 @@ Rel_R(ledger, aiConnector, "Sends text, the user's category groupings and today'
 Rel_L(aiConnector, ledger, "Records expense proposals and asks for spending summaries, as the token's subject", "MCP over HTTP")
 Rel_R(aiConnector, aiProvider, "Requests structured extraction", "HTTPS")
 Rel_D(ledger, db, "Reads/writes users and expenses", "JDBC")
+Rel_U(db, ledger, "Streams committed row changes", "logical replication")
+Rel_D(ledger, changeStream, "Publishes each row change, enriched with its category's name", "RESP")
 
 SHOW_LEGEND()
 @enduml

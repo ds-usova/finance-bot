@@ -31,32 +31,30 @@ deployment supplies its own.
 | `CDC_SLOT_NAME`                       | the replication slot the engine holds                                               | `finance_ledger_cdc`                                       | no                       | no     |
 | `CDC_STREAM_KEY`                      | the stream every change is written to                                               | `ledger.cdc`                                               | no                       | no     |
 | `CDC_STREAM_MAX_LENGTH`               | roughly how many entries the stream keeps                                           | `100000`                                                   | no                       | no     |
-| `CDC_SNAPSHOT_MODE`                   | whether existing rows are published on first start                                  | changes only, never a snapshot                              | no                       | no     |
+| `CDC_SNAPSHOT_MODE`                   | whether existing rows are published on first start                                  | `no_data`                                                   | no                       | no     |
 | `CDC_HEARTBEAT_INTERVAL`              | how often the slot is moved on with no captured change                              | `30s`                                                      | no                       | no     |
 | `CDC_SLOT_MONITOR_INTERVAL`           | how often the slot's retained size is read for the meters                           | `30s`                                                      | no                       | no     |
 | `CDC_CATEGORY_CACHE_SIZE`             | how many category entries the resolver holds                                        | `50000`                                                    | no                       | no     |
-| `CDC_RECOVERY_SECRET`                 | the header value the recovery operation demands                                     | *(none — the operation refuses every call without one)*   | no                       | yes    |
+| `CDC_RECOVERY_SECRET`                 | the header value the recovery operation demands                                     | *(none)*                                                  | yes                      | yes    |
 | `MANAGEMENT_PORT`                     | where health, metrics and the recovery operation are served                         | `1010`                                                     | no                       | no     |
 
 A secret belongs in the deployment's secret store, never in a committed file or a log line.
 
 ## Notes
 
-- Polling on with no bot token stops startup. Set `TELEGRAM_POLLING_ENABLED=false` to boot without a bot — the
-  service then runs with no way to receive a message, which is what local database work wants.
-- The bot token appears in the address every Bot API call is made to, so it reaches anywhere a request URL does —
-  further than a credential carried in a header.
+- Polling on with no bot token stops startup. Set `TELEGRAM_POLLING_ENABLED=false` to boot without a bot, with
+  no way to receive a message.
+- The bot token appears in the address every Bot API call is made to, so it reaches anywhere a request URL does.
 - `TELEGRAM_API_URL` exists so the service can be pointed at a stand-in for Telegram. A deployment leaves it
-  alone; see [ADR 0001](adr/0001-telegram-updates-arrive-by-long-polling.md) for why every Telegram
-  interaction is an outbound call to this address.
+  alone ([ADR 0001](adr/0001-telegram-updates-arrive-by-long-polling.md)).
 - The database defaults match the local Postgres in
   [`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml), which also supplies all
   three database values to the service when it runs under compose.
 - `AI_CONNECTOR_GRPC_TARGET` defaults to the port that same file publishes for the AI Connector; under compose
-  the service is given the connector's container address instead. A target pointing nowhere shows in
-  `/actuator/health` — see [AI Connector Service](contracts/out/ai-connector.md).
-- The keystore `TOKEN_SIGNING_KEYSTORE` defaults to is committed to the repository, and its password with it. It
-  is a development convenience and nothing more: a deployment supplies its own keystore and password.
+  the service is given the connector's container address instead.
+- How a target pointing nowhere shows is on [AI Connector Service](contracts/out/ai-connector.md).
+- The keystore `TOKEN_SIGNING_KEYSTORE` defaults to is committed to the repository, and its password with it. A
+  deployment supplies its own keystore and password.
 - The keystore is read once at startup. A keystore that cannot be opened, or that holds no key under the alias,
   stops startup.
 - `TOKEN_SIGNING_KEY_ALIAS` only needs setting when the supplied keystore names its key something other than the
@@ -68,8 +66,6 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   token claiming more is refused. `SESSION_JWT_TTL` does the same for a browser session. See
   [Agent acting for a user](contracts/in/mcp.md) and
   [A person signing in from a browser](contracts/in/web-session-api.md).
-- The session token is verified in process against the public half of the signing key, so reading it makes no
-  request to the published key set.
 - `WEB_SESSION_COOKIE_SECURE` defaults to off so the service works over plain HTTP when run directly on a
   developer's machine. **Compose turns it on**, because a Telegram sign-in needs an HTTPS tunnel in front of the
   web app and the browser would otherwise discard the cookie. Any deployment served over HTTPS sets it on too.
@@ -88,13 +84,12 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 - `max_slot_wal_keep_size` is the database's own setting, applied to Postgres directly
   (`infrastructure/docker-compose.yaml` passes it as `postgres -c max_slot_wal_keep_size=1GB`), not a variable
   this service reads. Once the log the replication slot retains passes it, Postgres invalidates the slot rather
-  than keeping the segments — bounding the database's disk at the cost of every change made during the outage
+  than keeping the segments. That bounds the database's disk at the cost of every change made during the outage
   that reached the bound, unrecoverably. The service reads the effect through `ledger_cdc_slot_retained_bytes`
   and cannot set the bound itself.
 - **A value passed as a `postgres -c` flag cannot be widened without restarting the container.** A command-line
   setting outranks `ALTER SYSTEM` plus `pg_reload_conf()`, so raising `max_slot_wal_keep_size` this way needs a
-  restart even though the setting is itself reloadable — unlike `wal_level`, which cannot be changed at all
-  without one.
+  restart even though the setting is itself reloadable. `wal_level` cannot be changed without one at all.
 - `DB_USER` needs the `REPLICATION` attribute to open a logical replication slot. It works untouched everywhere
   this repository runs, because every Postgres instance here makes `DB_USER` its bootstrap superuser; a managed
   database does not grant that by default.
@@ -105,3 +100,7 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   again.
 - `CDC_RECOVERY_SECRET` reaches the recovery operation only as a header, never a path segment, and is never
   logged — the same treatment `TELEGRAM_BOT_TOKEN` gets everywhere but the outbound call it authenticates.
+- A deploy supplies it whether or not it expects to use the operation. See
+  [Operator](contracts/in/operations.md).
+- `CDC_SNAPSHOT_MODE` at its default publishes no snapshot, so rows that already existed when the engine first
+  started never reach [the change stream](contracts/out/change-stream.md) — only changes made from that point on.

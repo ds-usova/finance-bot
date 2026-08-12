@@ -22,6 +22,7 @@ C3 is below. Package structure is in the
 - [Browse a person's groupings](docs/usecases/browse-groupings.md)
 - [Accept the proposals a person chose](docs/usecases/accept-chosen-proposals.md)
 - [Clear the emptied reports](docs/usecases/clear-emptied-reports.md)
+- [Read the current session](docs/usecases/read-the-current-session.md)
 
 ### Contracts
 
@@ -29,9 +30,11 @@ C3 is below. Package structure is in the
 - [Agent acting for a user — the ledger's tools](docs/contracts/in/mcp.md) (inbound)
 - [A person signing in from a browser — the session API](docs/contracts/in/web-session-api.md) (inbound)
 - [A person browsing their ledger from a browser — the browse API](docs/contracts/in/web-browse-api.md) (inbound)
+- [An operator running the service — health, meters and slot recovery](docs/contracts/in/operations.md) (inbound)
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
+- [A consumer of the ledger's changes — the change stream](docs/contracts/out/change-stream.md) (outbound)
 
 ### Running It
 
@@ -40,10 +43,9 @@ C3 is below. Package structure is in the
 
 ### C3 — Component
 
-The expense pipeline, the service's primary use case; each [use case](#use-cases)
-page carries its own C3. Every interaction with something outside the service
-boundary goes through a port, never a direct call from the core. Adapters are
-colour-coded by the external dependency they front.
+The expense pipeline, the service's primary use case. Each [use case](#use-cases)
+page carries its own C3. Adapters are colour-coded by the external dependency
+they front.
 
 ```plantuml
 @startuml C3-Component-LedgerService
