@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.common.LogCapture;
+import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcCaptureTest;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,16 +53,17 @@ class ChangeStreamRecoveryTest {
 
     @BeforeEach
     void dropAnyLeftoverSlot() {
-        changeStreamReader.stop(Duration.ofSeconds(5));
-        jdbcTemplate.execute("SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '"
-                + SLOT_NAME + "' AND NOT active");
+        stopTheReaderAndDropItsSlot();
     }
 
     @AfterEach
     void cleanUp() {
+        stopTheReaderAndDropItsSlot();
+    }
+
+    private void stopTheReaderAndDropItsSlot() {
         changeStreamReader.stop(Duration.ofSeconds(5));
-        jdbcTemplate.execute("SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '"
-                + SLOT_NAME + "' AND NOT active");
+        ReplicationSlots.dropIfUnheld(jdbcTemplate, SLOT_NAME);
     }
 
     @Nested
@@ -223,11 +226,7 @@ class ChangeStreamRecoveryTest {
             await().atMost(Duration.ofSeconds(60))
                     .pollInterval(Duration.ofSeconds(1))
                     .untilAsserted(() -> {
-                        for (int i = 0; i < WAL_CHUNKS_PAST_THE_BOUND; i++) {
-                            jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
-                        }
-                        jdbcTemplate.execute("SELECT pg_switch_wal()");
-                        jdbcTemplate.execute("CHECKPOINT");
+                        ReplicationSlots.burnWal(jdbcTemplate, WAL_CHUNKS_PAST_THE_BOUND);
                         assertThat(currentWalStatus()).isEqualTo("lost");
                     });
         }
@@ -239,12 +238,8 @@ class ChangeStreamRecoveryTest {
         }
 
         /** Unlike {@link #currentWalStatus()}, answers a slot that does not exist as absent rather than throwing. */
-        private java.util.Optional<String> currentWalStatusIfPresent() {
-            return jdbcTemplate
-                    .queryForList(
-                            "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME)
-                    .stream()
-                    .findFirst();
+        private Optional<String> currentWalStatusIfPresent() {
+            return ReplicationSlots.walStatus(jdbcTemplate, SLOT_NAME);
         }
     }
 }

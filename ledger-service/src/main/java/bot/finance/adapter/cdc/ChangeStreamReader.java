@@ -2,6 +2,7 @@ package bot.finance.adapter.cdc;
 
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import io.debezium.config.Configuration;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
@@ -41,7 +42,7 @@ public class ChangeStreamReader {
             "io.debezium.embedded.async.ConvertingAsyncEngineBuilderFactory";
 
     private final CdcProperties properties;
-    private final io.debezium.config.Configuration engineConfiguration;
+    private final Configuration engineConfiguration;
     private final ChangeEventPublisher publisher;
     private final ChangeStreamMeters meters;
     private final Executor changeStreamExecutor;
@@ -55,7 +56,7 @@ public class ChangeStreamReader {
 
     public ChangeStreamReader(
             CdcProperties properties,
-            io.debezium.config.Configuration engineConfiguration,
+            Configuration engineConfiguration,
             ChangeEventPublisher publisher,
             ChangeStreamMeters meters,
             Executor changeStreamExecutor,

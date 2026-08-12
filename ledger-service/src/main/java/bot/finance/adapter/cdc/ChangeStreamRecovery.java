@@ -117,10 +117,9 @@ public class ChangeStreamRecovery {
                 if (!resultSet.next()) {
                     return Optional.empty();
                 }
-                String walStatus = resultSet.getString("wal_status");
                 String confirmedFlushLsn = resultSet.getString("confirmed_flush_lsn");
                 ReplicationSlotState state =
-                        walStatus == null ? ReplicationSlotState.LOST : ReplicationSlotState.fromWalStatus(walStatus);
+                        ReplicationSlotState.fromNullableWalStatus(resultSet.getString("wal_status"));
                 return Optional.of(new SlotSnapshot(state, confirmedFlushLsn));
             }
         }

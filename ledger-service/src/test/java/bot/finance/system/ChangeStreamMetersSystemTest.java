@@ -8,6 +8,8 @@ import bot.finance.common.boot.CdcCaptureTest;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.ChangeStreamEntries;
+import bot.finance.common.fixtures.ChangeStreamHealth;
+import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
@@ -15,8 +17,6 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,10 +40,6 @@ class ChangeStreamMetersSystemTest {
 
     private static final String STREAM_KEY = "change-stream-meters.cdc";
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
-    private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
-    private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
-    private static final String EXPENSES_PATH = "/api/v1/expenses";
-    private static final String PATCH_MEDIA_TYPE = "application/json-patch+json";
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
     @LocalServerPort
@@ -109,12 +105,7 @@ class ChangeStreamMetersSystemTest {
                 patchCategory(sessionCookie, csrfToken, expenseId, firstCategoryId)
                         .then()
                         .statusCode(200);
-                await("the publish failure is recorded").atMost(TIMEOUT).untilAsserted(() -> {
-                    Response health =
-                            RestAssured.given().port(managementPort).when().get("/actuator/health");
-                    assertThat(health.jsonPath().getString("components.changeStream.details.state"))
-                            .isEqualTo("DOWN");
-                });
+                ChangeStreamHealth.awaitState(managementPort, "DOWN", TIMEOUT);
             } finally {
                 ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
             }
@@ -157,23 +148,14 @@ class ChangeStreamMetersSystemTest {
     }
 
     private Response patchCategory(String sessionCookie, String csrfToken, long expenseId, long categoryId) {
-        return RestAssured.given()
-                .contentType(PATCH_MEDIA_TYPE)
-                .cookie(SESSION_COOKIE, sessionCookie)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(List.of(Map.of("op", "replace", "path", "/categoryId", "value", categoryId)))
-                .when()
-                .patch("%s/RECORDED/%d".formatted(EXPENSES_PATH, expenseId));
+        return ExpensePatches.replaceCategory(sessionCookie, csrfToken, expenseId, categoryId);
     }
 
     private long groceriesCategoryId(long userId, String name) {
-        long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
-        return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
+        return CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Groceries", name);
     }
 
     private long diningCategoryId(long userId, String name) {
-        long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Dining");
-        return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
+        return CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Dining", name);
     }
 }

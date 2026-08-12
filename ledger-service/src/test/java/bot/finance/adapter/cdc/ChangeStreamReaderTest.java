@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import bot.finance.LedgerServiceApplication;
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcCaptureTest;
 import bot.finance.common.containers.RedisContainers;
 import bot.finance.common.containers.ToxiproxyContainers;
@@ -17,6 +18,7 @@ import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,8 +80,7 @@ class ChangeStreamReaderTest {
     @AfterEach
     void cleanUp() {
         changeStreamReader.stop(Duration.ofSeconds(5));
-        jdbcTemplate.execute("SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '"
-                + SLOT_NAME + "' AND NOT active");
+        ReplicationSlots.dropIfUnheld(jdbcTemplate, SLOT_NAME);
     }
 
     private long seedUser() {
@@ -210,8 +211,8 @@ class ChangeStreamReaderTest {
                     jdbcAggregateTemplate,
                     userId,
                     UUID.randomUUID().toString(),
-                    java.time.LocalDate.now().minusDays(7),
-                    java.time.LocalDate.now(),
+                    LocalDate.now().minusDays(7),
+                    LocalDate.now(),
                     Instant.now());
             ProposalReportRowUtils.storedReport(
                     jdbcAggregateTemplate,

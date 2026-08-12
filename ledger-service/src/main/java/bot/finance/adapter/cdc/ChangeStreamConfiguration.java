@@ -25,7 +25,10 @@ public class ChangeStreamConfiguration {
 
     private static final String CAPTURED_TABLES = "public.expense,public.expense_proposal,public.category";
 
-    /** Moves the slot forward when nothing captured is written; never reaches the stream itself (F15). */
+    /**
+     * Moves the slot forward when nothing captured is written. Its own event is dropped in the reader rather
+     * than published, so no heartbeat ever reaches the stream.
+     */
     private static final String HEARTBEAT_ACTION_QUERY = "UPDATE cdc_heartbeat SET beat_at = now()";
 
     @Bean(destroyMethod = "shutdown")

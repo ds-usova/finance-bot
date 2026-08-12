@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.adapter.cdc.CategoryNames;
+import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,10 @@ public class CategoryNameReader {
     }
 
     public Optional<CategoryNames> findNames(long categoryId) {
-        return categoryEntityRepository.findCategoryNames(categoryId).map(CategoryNamesProjection::toCategoryNames);
+        try {
+            return categoryEntityRepository.findCategoryNames(categoryId).map(CategoryNamesProjection::toCategoryNames);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find the names of category " + categoryId, e);
+        }
     }
 }

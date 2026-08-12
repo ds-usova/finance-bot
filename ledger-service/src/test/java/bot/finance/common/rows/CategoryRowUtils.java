@@ -35,6 +35,16 @@ public class CategoryRowUtils {
                 .orElseThrow();
     }
 
+    /**
+     * The id of the user's already-seeded category with this name under the grouping of that name - the two-step
+     * lookup a test does when it names a leaf of the initial tree by the pair a person would read.
+     */
+    public static long categoryIdUnderGrouping(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String groupingName, String categoryName) {
+        long groupingId = categoryIdNamed(jdbcAggregateTemplate, userId, null, groupingName);
+        return categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, categoryName);
+    }
+
     public static long storedGroupingId(JdbcAggregateTemplate jdbcAggregateTemplate, long userId, String name) {
         return jdbcAggregateTemplate
                 .insert(new CategoryEntity(null, userId, null, name))

@@ -109,6 +109,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/prometheus", "/.well-known/jwks.json")
                         .permitAll()
+                        // Kept apart from the three above rather than folded in with them: this path is open to
+                        // Spring Security because RecoverySecretFilter, added ahead of authorization, has already
+                        // refused it without the shared secret.
                         .requestMatchers("/actuator/cdc")
                         .permitAll()
                         .requestMatchers("/mcp/**")

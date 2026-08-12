@@ -1,17 +1,22 @@
 package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.cdc.CategoryNames;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 @PersistenceAdapterTest
@@ -76,6 +81,27 @@ class CategoryNameReaderTest {
             Optional<CategoryNames> found = reader.findNames(firstCategoryId);
 
             assertThat(found).contains(new CategoryNames("Supplies", "Home"));
+        }
+    }
+
+    @Nested
+    @DisplayName("with a mocked store")
+    class WithAMockedStore {
+
+        private final CategoryEntityRepository mockedCategoryEntityRepository = mock(CategoryEntityRepository.class);
+        private final CategoryNameReader mockedReader = new CategoryNameReader(mockedCategoryEntityRepository);
+
+        @Test
+        @DisplayName("when the database is unreachable - then it throws PersistenceFailedException wrapping it")
+        void whenDatabaseIsUnreachable_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            DataAccessResourceFailureException frameworkException =
+                    new DataAccessResourceFailureException("connection refused");
+            when(mockedCategoryEntityRepository.findCategoryNames(42L)).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedReader.findNames(42L))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
         }
     }
 

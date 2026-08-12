@@ -93,11 +93,8 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
                 }
 
                 long retainedBytes = resultSet.getLong("retained_bytes");
-                String walStatus = resultSet.getString("wal_status");
-                // NULL wal_status means the slot has never been classified against the retention bound yet;
-                // treated the same as ChangeStreamRecovery's own read of the column.
                 ReplicationSlotState state =
-                        walStatus == null ? ReplicationSlotState.LOST : ReplicationSlotState.fromWalStatus(walStatus);
+                        ReplicationSlotState.fromNullableWalStatus(resultSet.getString("wal_status"));
                 meters.setSlotRetainedBytes(retainedBytes);
                 meters.setSlotWalStatus(state);
             }

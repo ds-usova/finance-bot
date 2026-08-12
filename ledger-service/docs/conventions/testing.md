@@ -36,7 +36,9 @@ bot.finance
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
-    │   ├── ChangeStreamEntries   # reads entries back off ledger.cdc, parsed and filtered by source.table and user_id
+    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by source.table and user_id
+    │   ├── ChangeStreamHealth    # reads the engine's state off /actuator/health on the management port
+    │   ├── ExpensePatches        # the JSON Patch bodies a browser sends to /api/v1/expenses
     │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
@@ -48,11 +50,13 @@ bot.finance
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
-    └── LogCapture            # Logback appender, for asserting on log output
+    ├── LogCapture            # Logback appender, for asserting on log output
+    └── ReplicationSlots      # reads a slot's wal_status, drops one, and burns WAL past the retention bound
 ```
 
-A new helper joins the subpackage its role names, and is listed above. `LogCapture` sits at the root because it
-belongs to none of them — a bucket of one is worth less than the honesty of leaving it where it is.
+A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
+the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper
+where its role is honest.
 
 ## Test Layers
 

@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcCaptureTest;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
+import bot.finance.common.fixtures.ChangeStreamHealth;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import io.restassured.RestAssured;
@@ -114,18 +116,12 @@ class RecoverSlotSystemTest {
             long stalledUserId = UserRowUtils.storedUserId(userEntityRepository, "recover-slot-stall-user");
             CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, stalledUserId, "Stalled");
 
-            for (int i = 0; i < WAL_CHUNKS_PAST_THE_BOUND; i++) {
-                jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
-            }
-            jdbcTemplate.execute("SELECT pg_switch_wal()");
-            jdbcTemplate.execute("CHECKPOINT");
+            ReplicationSlots.burnWal(jdbcTemplate, WAL_CHUNKS_PAST_THE_BOUND);
             await("the slot's wal_status reaches lost")
                     .atMost(Duration.ofSeconds(60))
                     .pollInterval(Duration.ofSeconds(1))
                     .untilAsserted(() -> {
-                        jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
-                        jdbcTemplate.execute("SELECT pg_switch_wal()");
-                        jdbcTemplate.execute("CHECKPOINT");
+                        ReplicationSlots.burnWal(jdbcTemplate, 1);
                         assertThat(currentWalStatus()).isEqualTo("lost");
                     });
 
@@ -133,12 +129,7 @@ class RecoverSlotSystemTest {
         }
 
         private String currentWalStatus() {
-            return jdbcTemplate
-                    .queryForList(
-                            "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME)
-                    .stream()
-                    .findFirst()
-                    .orElse(null);
+            return ReplicationSlots.walStatus(jdbcTemplate, SLOT_NAME).orElse(null);
         }
     }
 
@@ -164,17 +155,6 @@ class RecoverSlotSystemTest {
     }
 
     private void awaitChangeStreamStatus(String expected) {
-        await("the changeStream health component reads " + expected)
-                .atMost(TIMEOUT)
-                .untilAsserted(() -> {
-                    Response health =
-                            RestAssured.given().port(managementPort).when().get("/actuator/health");
-                    // The engine's own state is the detail, not the component's status: the status is the
-                    // actuator's UP or DOWN, and STREAMING and STANDBY are both UP. Reading the status would
-                    // pass for DOWN by coincidence and could never match STREAMING at all.
-                    assertThat(health.jsonPath().getString("components.changeStream.details.state"))
-                            .as("changeStream engine state")
-                            .isEqualTo(expected);
-                });
+        ChangeStreamHealth.awaitState(managementPort, expected, TIMEOUT);
     }
 }
