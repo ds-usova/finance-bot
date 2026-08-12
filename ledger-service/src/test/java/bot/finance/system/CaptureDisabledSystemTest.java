@@ -23,6 +23,7 @@ import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -48,6 +49,9 @@ class CaptureDisabledSystemTest {
             classes = LedgerServiceApplication.class,
             webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
     @TestPropertySource(properties = {"cdc.enabled=false", "cdc.stream-key=capture-disabled.cdc"})
+    // The container below is stopped when this class ends. A context left in the cache would keep reconnecting to
+    // an address nothing listens on for the rest of the run, so it is discarded with the container it points at.
+    @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
     @DisplayName("happy path")
     class HappyPath {
 

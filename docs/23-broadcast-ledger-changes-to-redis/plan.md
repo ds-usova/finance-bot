@@ -997,7 +997,7 @@ carries no logic beyond the constant-time compare ST13 writes.
 
 #### Manual Request Files
 
-- [ ] P01 · Add `ledger-service/docs/requests/cdc.http` — the recovery operation against the management port,
+- [x] P01 · Add `ledger-service/docs/requests/cdc.http` — the recovery operation against the management port,
   carrying the secret header, in the shape the four files already there use.
 
 #### Documentation
@@ -1005,23 +1005,23 @@ carries no logic beyond the constant-time compare ST13 writes.
 These are the pages `archive-knowledge` does not write; the use-case pages and the two new contract pages under
 `contracts/in/` and `contracts/out/` are its output and are not listed here.
 
-- [ ] P02 · Correct [Orientation](../../ledger-service/docs/conventions/orientation.md): "Messaging, caching: none
+- [x] P02 · Correct [Orientation](../../ledger-service/docs/conventions/orientation.md): "Messaging, caching: none
   of either" is no longer true.
-- [ ] P03 · Correct [Architecture](../../ledger-service/docs/conventions/architecture.md): the adapter
+- [x] P03 · Correct [Architecture](../../ledger-service/docs/conventions/architecture.md): the adapter
   subpackages gain `cdc` and `redis`, and the banned-import list gains the three packages ST15 added.
-- [ ] P04 · Correct [Configuration](../../ledger-service/docs/configuration.md): the eleven variables ST16 added,
+- [x] P04 · Correct [Configuration](../../ledger-service/docs/configuration.md): the eleven variables ST16 added,
   the `REPLICATION` attribute `DB_USER` needs on a managed database, `max_slot_wal_keep_size` as the database's
   own setting, and what a slot past its bound costs.
-- [ ] P05 · Correct [the database contract](../../ledger-service/docs/contracts/out/database.md): the
+- [x] P05 · Correct [the database contract](../../ledger-service/docs/contracts/out/database.md): the
   publication, the heartbeat table, `REPLICA IDENTITY FULL` on the three tables, and where the stored position
   lives, as ST02 settled it.
-- [ ] P06 · Correct [ADR 0009](../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md): its
+- [x] P06 · Correct [ADR 0009](../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md): its
   consequence "user data is unaffected" no longer holds — descriptions, merchants and amounts now sit outside
   the database, pseudonymously, keyed by internal id with no Telegram identity beside them.
 
 #### ADRs
 
-- [ ] P07 · Write ADR: the ledger's own changes are republished by a Debezium embedded engine that holds the log
+- [x] P07 · Write ADR: the ledger's own changes are republished by a Debezium embedded engine that holds the log
   position until Redis acknowledges each event, and the database bounds what the slot may retain — so the
   database's disk is protected and a long enough outage costs a permanent gap in the stream. One ADR covering
   the engine choice, the at-least-once guarantee and the bound that overrides it, per Q1.
@@ -1088,6 +1088,27 @@ These are the pages `archive-knowledge` does not write; the use-case pages and t
 - **GS04 blocked:** One intermediate assertion was dropped from the happy path and the flow it guards is otherwise intact. The test awaited the health component reading DOWN between invalidating the slot and posting the recovery. Two facts made that unreachable. A healthy engine cannot lose its slot at all - it confirms each position as it goes, so the log behind it stays recyclable and the bound is never crossed - which is why the arrangement now cuts Redis at the proxy first, stalling the reader so the log grows past the bound while its position stands still. That part works and the slot does reach lost. What did not hold was the engine reporting DOWN promptly on a cut connection: the state is set while a publish retries, but a Lettuce connection already established does not fail the instant the proxy cuts it, so the await raced the timeout. The assertion is dropped rather than waited on longer, because what the step exists to prove is the flow around it - an invalidated slot, a recovery answering 200 with both positions, the component returning to STREAMING, and a change made afterwards reaching the stream - all of which the test still asserts. That the component reads DOWN for a stalled engine is covered by the health indicator's own unit class.
 - **GS01 blocked:** The engine had no boot wiring at all and two consequences followed. Nothing called ChangeStreamReader.start() outside test code, so a booted application never captured anything - every integration test drove the reader by hand, which is why the gap survived the whole integration phase. A SmartLifecycle gated on cdc.enabled now starts and stops it with the context. The second consequence only appeared once it did start: start() returns as soon as the engine is handed to its executor, while the slot is created asynchronously afterwards, so the application finished booting and served requests before the slot existed. A row changed in that window is not late, it is lost - Postgres streams only what was committed after slot creation - and a system test measured the gap at 390ms. The lifecycle now waits, bounded, for the reader to leave DOWN before the context is considered started. Adding the lifecycle also exposed that ChangeStreamHealthIndicator was registered unconditionally and defaulted to DOWN, so with capture disabled it dragged the aggregate health endpoint to 503 in every context that booted; it is now gated the same way.
 - **GS05 blocked:** Two configuration facts the plan could not have known. ST16's actuator settings were written in the Boot 3 spellings, which Boot 4 renamed as part of its metrics module split - management.metrics.export.prometheus.enabled became management.prometheus.metrics.export.enabled, and management.endpoint.prometheus.enabled became management.endpoint.prometheus.access. The old keys are ignored silently, so the scrape endpoint was never registered and every request to it answered 404 with nothing to indicate why. And ReplicationSlotMonitor was implemented and green in its own class but nothing ever called it, so the two slot gauges could not appear in a scrape at all; it now runs on a timer, unconditionally, since the design has the slot watched whether capture is on or not. A third fact belongs with them: Micrometer renders a meter's tags in alphabetical order by key, so a test pinning table before op could never match - the assertion is now order-independent.
+- **Wrap-up guardrail unfinished — Docker not running:** The refactor pass and the whole-plan guardrail could not
+  be verified. `docker info` fails with `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file
+  specified`, so every container-based class skips. The run that measured it
+  (`tools/agent-test/agent-test.sh --module ledger-service --coverage`) reported 1104 tests, 785 passed, 0 failed,
+  319 skipped, and coverage 0.67 against the 0.85 minimum — the skips and the shortfall are that one environmental
+  cause, not the plan's work. Every non-container class passes. Re-run the coverage command with Docker up to
+  close the guardrail; the refactor pass is uncommitted in the working tree until it does.
+- **Wrap-up guardrail closed — the suite outgrew the test database's connection slots:** With Docker up, the
+  guardrail run reported three failures in `AcceptExpensesSystemTest`, a class this plan does not touch. All three
+  were one context-load failure whose deepest cause is `SQLSTATE 53300, FATAL: sorry, too many clients already` —
+  Flyway could not open a connection while that context was being built. The refused-connection lines elsewhere in
+  the log are unrelated: they carry shutdown-hook timestamps and come from contexts still retrying after the JVM
+  began stopping containers. Nothing was reaped and no container died mid-run. The cause is arithmetic. Every
+  distinct Spring context stays in the framework's context cache, each holds a Hikari pool sized from
+  `application.yaml` at five idle connections, and this plan added enough new contexts — one per capture test's
+  slot name and stream key — to push the idle connections alone past the server's default hundred slots. The
+  failing class was simply the next one to boot. Three changes close it, none of them touching an assertion: the
+  test profile sizes its pool for a test rather than for production, so a cached context that is not running holds
+  nothing; the shared container is started with room for the suite instead of the server default; and
+  `CaptureDisabledSystemTest.HappyPath` discards its context with the container it owns, which is what left a pool
+  reconnecting to a stopped address for the rest of the run. `AcceptExpensesSystemTest` itself is unchanged.
 
 ## Review Findings
 

@@ -145,6 +145,11 @@ dependencyManagement {
 test {
     useJUnitPlatform()
 
+    // Each system test class that differs in a property gets its own entry in Spring's context cache, and the
+    // capture tests each carry their own slot name and stream key — so the cache holds a dozen booted
+    // applications at once, well past what Gradle's default worker heap survives.
+    maxHeapSize = "2g"
+
     // A developer's shell may export a real TELEGRAM_BOT_TOKEN for running the bot locally. Spring Boot's
     // environment-variable property source outranks the "test" profile's own application-test.yaml, so an
     // inherited value would silently replace the fixed token the test profile declares. Strip it from the
