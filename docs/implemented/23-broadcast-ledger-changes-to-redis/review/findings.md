@@ -1,19 +1,6 @@
 # Review: Broadcast Ledger Changes to Redis
 
-**1 bug, 2 refactoring candidates, 5 manual checks. Nothing critical.** Every entry is `ledger-service`.
-
-## Bug
-
-**`ChangeStreamReaderTest`'s stop and Redis-unavailable cases fail intermittently**
-
-- **Given** the full suite running against a real engine
-- **When** `ChangeStreamReaderTest$Stop` or `$TheOfferLoop$RedisUnavailable` runs
-- **Then** it passes as it does in isolation
-- **Actual** it fails occasionally on its own await bounds. Confirmed against a baseline taken before the
-  boot-race fix, so it predates that change and is not a regression from it. A run that trips it should be
-  re-run before it is read as one.
-- **Fix** widen or re-anchor the awaits against observable engine state rather than elapsed time ·
-  `ChangeStreamReaderTest`
+**2 refactoring candidates, 5 manual checks. No open bugs.** Every entry is `ledger-service`.
 
 ## Refactoring candidate
 
