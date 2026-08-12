@@ -14,12 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * Guards {@code POST /actuator/cdc} alone, ahead of Spring Security's own authorization: the request's
  * {@code X-Cdc-Recovery-Secret} header is compared to {@link CdcProperties#recoverySecret()} in constant time,
- * and answers 401 on absence or mismatch, including when no secret is configured at all. Every other path
- * passes through untouched.
- *
- * <p>A blank secret is what "not configured" looks like: an unset environment variable binds as the empty
- * string rather than as null, since the binder ignores a placeholder it cannot resolve. Comparing a blank
- * secret would admit a blank header.
+ * and answers 401 on absence or mismatch. Every other path passes through untouched.
  */
 @Component
 public class RecoverySecretFilter extends OncePerRequestFilter {
@@ -48,10 +43,10 @@ public class RecoverySecretFilter extends OncePerRequestFilter {
     }
 
     private boolean secretMatches(String header) {
-        String secret = properties.recoverySecret();
-        if (secret == null || secret.isBlank() || header == null) {
+        if (header == null) {
             return false;
         }
-        return MessageDigest.isEqual(secret.getBytes(StandardCharsets.UTF_8), header.getBytes(StandardCharsets.UTF_8));
+        return MessageDigest.isEqual(
+                properties.recoverySecret().getBytes(StandardCharsets.UTF_8), header.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -35,6 +35,9 @@ alarm permanently.
 
 With capture switched off the component is absent altogether, and the aggregate health is unaffected by it.
 
+A database the publication is missing from reaches `DOWN` rather than looking idle: the engine refuses to start,
+takes no replication slot, and does not retry.
+
 ## The meters
 
 | Meter                                       | Kind    | Says                                                                     |
@@ -87,6 +90,9 @@ records which hours are missing.
 
 The answer names the position abandoned and the position resumed from. It carries neither on a refusal.
 
+A running service always holds a secret — a blank `CDC_RECOVERY_SECRET` stops startup — so "no secret
+configured" is not a state this boundary can be reached in.
+
 Only one instance runs the sequence at a time — a second is refused rather than queued.
 
 ## Failures
@@ -94,7 +100,6 @@ Only one instance runs the sequence at a time — a second is refused rather tha
 | Condition                                                       | Signal |
 |-----------------------------------------------------------------|--------|
 | the rebuild carries no secret header, or one that does not match | 401, before the operation is reached |
-| no secret is configured at all                                   | 401, the same way |
 | the slot exists and the database has not invalidated it          | 409, with the slot untouched and the engine still running |
 | another rebuild is already running, here or on another instance  | 409, the same way |
 | the engine will not stop within its bound                        | 503, with nothing deleted and nothing dropped |

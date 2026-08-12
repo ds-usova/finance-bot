@@ -90,6 +90,9 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 - **A value passed as a `postgres -c` flag cannot be widened without restarting the container.** A command-line
   setting outranks `ALTER SYSTEM` plus `pg_reload_conf()`, so raising `max_slot_wal_keep_size` this way needs a
   restart even though the setting is itself reloadable. `wal_level` cannot be changed without one at all.
+- The `finance_ledger_cdc` publication is checked before the engine starts. A database without it — a migration
+  that did not run, a restore, a rename — leaves capture down and takes no replication slot, rather than
+  streaming from nothing while the health reads up.
 - `DB_USER` needs the `REPLICATION` attribute to open a logical replication slot. It works untouched everywhere
   this repository runs, because every Postgres instance here makes `DB_USER` its bootstrap superuser; a managed
   database does not grant that by default.
@@ -100,7 +103,9 @@ A secret belongs in the deployment's secret store, never in a committed file or 
   again.
 - `CDC_RECOVERY_SECRET` reaches the recovery operation only as a header, never a path segment, and is never
   logged — the same treatment `TELEGRAM_BOT_TOKEN` gets everywhere but the outbound call it authenticates.
-- A deploy supplies it whether or not it expects to use the operation. See
+- A blank or unset `CDC_RECOVERY_SECRET` stops startup, the way a missing bot token and an unopenable keystore
+  do. A deploy supplies it whether or not it expects to use the operation, and whether or not capture is on: the
+  replication slot outlives `CDC_ENABLED=false`, and rebuilding it is exactly what that state needs. See
   [Operator](contracts/in/operations.md).
 - `CDC_SNAPSHOT_MODE` at its default publishes no snapshot, so rows that already existed when the engine first
   started never reach [the change stream](contracts/out/change-stream.md) — only changes made from that point on.

@@ -20,6 +20,9 @@ telegram:
 
 cdc:
   enabled: false
+  # A blank secret stops startup, so every test context needs one whether or not it posts the recovery
+  # operation. A class that asserts on the operation itself declares its own.
+  recovery-secret: default-test-recovery-secret
 
 management:
   server:

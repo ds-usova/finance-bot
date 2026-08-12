@@ -31,10 +31,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * {@link ChangeStreamRecovery} is mocked; the rest of the application boots for real, the same shape
  * {@code McpAdapterTest} gives the inbound MCP-tool adapter, since no lighter slice reaches an actuator endpoint.
  *
- * <p>{@code cdc.recovery-secret} is configured at the class level so {@link ChangeStreamRecovery} is genuinely
- * reachable for the happy path and the error mappings; {@link Validation.NoSecretConfigured} lays a second,
- * separately cached context over it with the secret cleared back out, the same idiom
- * {@code CdcCaptureContextTest} uses to give itself its own slot name.
+ * <p>{@code cdc.recovery-secret} is configured at the class level, overriding the test profile's own, so
+ * {@link ChangeStreamRecovery} is genuinely reachable for the happy path and the error mappings. A service
+ * carrying no secret is not a state this test can reach: a blank one stops startup, which
+ * {@link CdcPropertiesTest} covers.
  */
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
@@ -177,6 +177,15 @@ class CdcRecoveryEndpointTest {
         }
 
         @Test
+        @DisplayName("when the header is blank - then the response is 401 and the recovery never runs")
+        void whenHeaderIsBlank_thenResponseIs401AndRecoveryNeverRuns() {
+            Response response = postRecovery("");
+
+            assertThat(response.statusCode()).isEqualTo(401);
+            verify(changeStreamRecovery, never()).recover();
+        }
+
+        @Test
         @DisplayName("when health is requested with no header - then it answers rather than refusing")
         void whenHealthIsRequestedWithNoHeader_thenItAnswersRatherThanRefusing() {
             Response response = RestAssured.given()
@@ -203,30 +212,6 @@ class CdcRecoveryEndpointTest {
                     .response();
 
             assertThat(response.statusCode()).isNotEqualTo(401);
-        }
-
-        @Nested
-        @DisplayName("when the service has no secret configured")
-        @TestPropertySource(properties = "cdc.recovery-secret=")
-        class NoSecretConfigured {
-
-            @Test
-            @DisplayName("when posted with no header - then the response is 401 and the recovery never runs")
-            void whenPostedWithNoHeader_thenResponseIs401AndRecoveryNeverRuns() {
-                Response response = postRecovery(null);
-
-                assertThat(response.statusCode()).isEqualTo(401);
-                verify(changeStreamRecovery, never()).recover();
-            }
-
-            @Test
-            @DisplayName("when posted with a blank header - then the response is 401 and the recovery never runs")
-            void whenPostedWithABlankHeader_thenResponseIs401AndRecoveryNeverRuns() {
-                Response response = postRecovery("");
-
-                assertThat(response.statusCode()).isEqualTo(401);
-                verify(changeStreamRecovery, never()).recover();
-            }
         }
     }
 }
