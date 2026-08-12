@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.LongStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -65,6 +66,9 @@ class ChangeStreamReaderTest {
     private static final String STREAM_KEY = "change-stream-reader-test.cdc";
     private static final Duration STATE_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(15);
+
+    /** The engine's flush trails the record it published, so a position outlives the entry it belongs to. */
+    private static final Duration FLUSH_TIMEOUT = Duration.ofSeconds(30);
 
     @Autowired
     private ChangeStreamReader changeStreamReader;
@@ -227,14 +231,10 @@ class ChangeStreamReaderTest {
         void whenStoredPositionExistsFromEarlierRun_thenStreamingResumesAndEveryChangeIsOfferedInOrder() {
             long userId = seedUser();
             long groupingId = seedGrouping(userId);
-            String lsnAfterSeeding = currentWalLsn();
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
             changeStreamReader.stop(Duration.ofSeconds(5));
-            // stop() returns once the engine's task has finished, which can be before the position it reached
-            // is durable. A restart over a position still behind the seeding rows resumes from before them.
-            awaitPositionCommittedPast(lsnAfterSeeding);
 
             long firstCategoryId = CategoryRowUtils.storedCategoryId(
                     jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
@@ -244,12 +244,7 @@ class ChangeStreamReaderTest {
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            // Delivery is at-least-once, so what holds is that both changes arrive in the order they were
-            // committed - never that they arrive once each.
-            await().atMost(EVENT_TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-                            .extracting(entry -> entry.after().path("id").asLong())
-                            .containsSubsequence(firstCategoryId, secondCategoryId));
+            awaitCategoryIdsInOrder(userId, firstCategoryId, secondCategoryId);
         }
     }
 
@@ -458,7 +453,7 @@ class ChangeStreamReaderTest {
 
             long firstCategoryId = CategoryRowUtils.storedCategoryId(
                     jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
-            awaitEntriesFor("category", userId, 1);
+            long firstChangeLsn = awaitCategoryChangeLsn(userId, firstCategoryId);
 
             boolean stoppedInTime = changeStreamReader.stop(Duration.ofSeconds(5));
             assertThat(stoppedInTime).isTrue();
@@ -469,16 +464,17 @@ class ChangeStreamReaderTest {
                     SLOT_NAME));
             assertThat(slotStillExists).isTrue();
 
+            // stop() returns once the engine's task has finished, which can be before the position it reached
+            // is durable. A restart over a position still behind the first change resumes from before it.
+            awaitPositionCommittedPast(firstChangeLsn);
+
             long secondCategoryId = CategoryRowUtils.storedCategoryId(
                     jdbcAggregateTemplate, userId, groupingId, "Household " + UUID.randomUUID());
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            List<ChangeStreamEntry> entries = awaitEntriesFor("category", userId, 2);
-            assertThat(entries)
-                    .extracting(entry -> entry.after().path("id").asLong())
-                    .containsExactly(firstCategoryId, secondCategoryId);
+            awaitCategoryIdsInOrder(userId, firstCategoryId, secondCategoryId);
         }
     }
 
@@ -487,6 +483,31 @@ class ChangeStreamReaderTest {
                 .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId))
                         .hasSize(expectedCount));
         return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId);
+    }
+
+    /**
+     * Waits for one user's category entries to carry the given ids in that relative order, among whatever else
+     * the stream holds. Delivery is at-least-once - a restart between an entry being appended and its position
+     * being committed republishes it - so a count is not a property of a correct pipeline.
+     */
+    private static void awaitCategoryIdsInOrder(long userId, long... categoryIds) {
+        Long[] expected = LongStream.of(categoryIds).boxed().toArray(Long[]::new);
+        await().atMost(EVENT_TIMEOUT)
+                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                        .extracting(entry -> entry.after().path("id").asLong())
+                        .containsSubsequence(expected));
+    }
+
+    /** The log position one awaited category change was committed at, as its own event reports it. */
+    private static long awaitCategoryChangeLsn(long userId, long categoryId) {
+        awaitCategoryIdsInOrder(userId, categoryId);
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId).stream()
+                .filter(entry -> entry.after().path("id").asLong() == categoryId)
+                .findFirst()
+                .orElseThrow()
+                .source()
+                .path("lsn")
+                .asLong();
     }
 
     private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {
@@ -513,18 +534,17 @@ class ChangeStreamReaderTest {
                 slotName);
     }
 
-    private String currentWalLsn() {
-        return jdbcTemplate.queryForObject("SELECT pg_current_wal_lsn()::text", String.class);
-    }
-
-    private void awaitPositionCommittedPast(String lsn) {
-        await().atMost(STATE_TIMEOUT)
+    private void awaitPositionCommittedPast(long lsn) {
+        await().atMost(FLUSH_TIMEOUT)
                 .untilAsserted(() -> assertThat(positionPassed(lsn)).isTrue());
     }
 
-    private Boolean positionPassed(String lsn) {
+    private Boolean positionPassed(long lsn) {
         return jdbcTemplate.queryForObject(
-                "SELECT confirmed_flush_lsn >= ?::pg_lsn FROM pg_replication_slots WHERE slot_name = ?",
+                """
+                SELECT confirmed_flush_lsn >= '0/0'::pg_lsn + ?::numeric
+                FROM pg_replication_slots WHERE slot_name = ?
+                """,
                 Boolean.class,
                 lsn,
                 SLOT_NAME);
