@@ -170,13 +170,29 @@ public class ChangeStreamReader {
             throws InterruptedException {
         for (ChangeEvent<String, String> record : records) {
             if (!isHeartbeat(record)) {
-                while (!publisher.publish(record)) {
-                    Thread.sleep(PUBLISH_RETRY_BACKOFF.toMillis());
-                }
+                publishWithRetry(record);
             }
             committer.markProcessed(record);
         }
         committer.markBatchFinished();
+    }
+
+    /**
+     * A refused write leaves the position uncommitted and marks the stream {@code DOWN} for as long as the
+     * refusal lasts, so the health component reflects the outage rather than the engine still holding the slot.
+     */
+    private void publishWithRetry(ChangeEvent<String, String> record) throws InterruptedException {
+        if (publisher.publish(record)) {
+            return;
+        }
+
+        log.debug("Change stream publish refused for slot {}, entering backoff", properties.slotName());
+        setState(ChangeStreamState.DOWN);
+        while (!publisher.publish(record)) {
+            Thread.sleep(PUBLISH_RETRY_BACKOFF.toMillis());
+        }
+        log.debug("Change stream publish recovered for slot {}", properties.slotName());
+        setState(ChangeStreamState.STREAMING);
     }
 
     /**

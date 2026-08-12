@@ -7,6 +7,7 @@ import bot.finance.LedgerServiceApplication;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.CdcCaptureTest;
 import bot.finance.common.containers.RedisContainers;
+import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
 import bot.finance.common.rows.CategoryRowUtils;
@@ -46,10 +47,20 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * a use case, since only the row change reaching the log is under test here.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = {"cdc.slot-name=change_stream_reader_test", "cdc.heartbeat-interval=1s"})
+@TestPropertySource(
+        properties = {
+            "cdc.slot-name=change_stream_reader_test",
+            "cdc.heartbeat-interval=1s",
+            "cdc.stream-key=change-stream-reader-test.cdc",
+            // This class drives the reader itself, one start() and stop() per scenario, so the boot-time
+            // lifecycle must not have started it first: a reader already streaming captures the rows a
+            // scenario seeds as its "already existed" precondition, and the counts stop meaning anything.
+            "cdc.enabled=false"
+        })
 class ChangeStreamReaderTest {
 
     private static final String SLOT_NAME = "change_stream_reader_test";
+    private static final String STREAM_KEY = "change-stream-reader-test.cdc";
     private static final Duration STATE_TIMEOUT = Duration.ofSeconds(10);
 
     @Autowired
@@ -211,11 +222,14 @@ class ChangeStreamReaderTest {
                     Instant.now());
             jdbcTemplate.update("UPDATE cdc_heartbeat SET beat_at = now()");
 
-            assertThat(ChangeStreamEntries.entriesFor("app_user", userId)).isEmpty();
-            assertThat(ChangeStreamEntries.entriesFor("spending_query", userId)).isEmpty();
-            assertThat(ChangeStreamEntries.entriesFor("proposal_report", userId))
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "app_user", userId))
                     .isEmpty();
-            assertThat(ChangeStreamEntries.entriesFor("cdc_heartbeat", userId)).isEmpty();
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "spending_query", userId))
+                    .isEmpty();
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "proposal_report", userId))
+                    .isEmpty();
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "cdc_heartbeat", userId))
+                    .isEmpty();
         }
 
         @Test
@@ -253,7 +267,7 @@ class ChangeStreamReaderTest {
             assertThat(deleteEntry.before().path("merchant").asText()).isEqualTo("Corner Cafe");
 
             long discardTransactionId = deleteEntry.source().path("txId").asLong();
-            assertThat(ChangeStreamEntries.entriesFor("expense", userId))
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
                     .noneMatch(entry -> entry.source().path("txId").asLong() == discardTransactionId);
         }
 
@@ -289,7 +303,8 @@ class ChangeStreamReaderTest {
             await().atMost(Duration.ofSeconds(20))
                     .untilAsserted(() -> assertThat(confirmedFlushLsn()).isNotEqualTo(initialLsn));
 
-            assertThat(ChangeStreamEntries.entriesFor("cdc_heartbeat", userId)).isEmpty();
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "cdc_heartbeat", userId))
+                    .isEmpty();
         }
 
         @Nested
@@ -297,11 +312,11 @@ class ChangeStreamReaderTest {
         @TestPropertySource(
                 properties = {
                     "cdc.slot-name=change_stream_reader_test_redis_down",
-                    // Points this nested context's own Redis client at a closed port, per the module's own
-                    // fixture guidance, rather than stopping the shared Redis singleton every other test relies on.
-                    "spring.data.redis.url=redis://localhost:1"
+                    "cdc.stream-key=change-stream-reader-test-redis-down.cdc"
                 })
         class RedisUnavailable {
+
+            private static final String REDIS_DOWN_STREAM_KEY = "change-stream-reader-test-redis-down.cdc";
 
             @Autowired
             private ChangeStreamReader readerAgainstDeadRedis;
@@ -316,20 +331,33 @@ class ChangeStreamReaderTest {
             @DisplayName("when a captured row changes - then the position is not committed and the event is "
                     + "offered again after a backoff")
             void whenCapturedRowChanges_thenPositionNotCommittedAndEventOfferedAgainAfterBackoff() {
-                long userId = UserRowUtils.storedUserId(
-                        userEntityRepositoryInDeadRedisContext, "redis-down-" + UUID.randomUUID());
-                long groupingId = CategoryRowUtils.storedGroupingId(
-                        jdbcAggregateTemplateInDeadRedisContext, userId, "Groceries " + UUID.randomUUID());
+                // Redis is refused at the proxy rather than by pointing this context at a closed port: the
+                // capture annotation registers the Redis URL through a bean applied during the refresh, which
+                // outranks a property a class sets for itself, so such an override would silently do nothing.
+                ToxiproxyContainers.REDIS_PROXY.setConnectionCut(true);
+                try {
+                    long userId = UserRowUtils.storedUserId(
+                            userEntityRepositoryInDeadRedisContext, "redis-down-" + UUID.randomUUID());
+                    long groupingId = CategoryRowUtils.storedGroupingId(
+                            jdbcAggregateTemplateInDeadRedisContext, userId, "Groceries " + UUID.randomUUID());
 
-                readerAgainstDeadRedis.start();
+                    readerAgainstDeadRedis.start();
 
-                CategoryRowUtils.storedCategoryId(
-                        jdbcAggregateTemplateInDeadRedisContext, userId, groupingId, "Markets " + UUID.randomUUID());
+                    CategoryRowUtils.storedCategoryId(
+                            jdbcAggregateTemplateInDeadRedisContext,
+                            userId,
+                            groupingId,
+                            "Markets " + UUID.randomUUID());
 
-                await().pollDelay(Duration.ofSeconds(3))
-                        .atMost(Duration.ofSeconds(10))
-                        .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesFor("category", userId))
-                                .isEmpty());
+                    await().pollDelay(Duration.ofSeconds(3))
+                            .atMost(Duration.ofSeconds(10))
+                            .untilAsserted(() -> assertThat(
+                                            ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, "category", userId))
+                                    .isEmpty());
+                } finally {
+                    ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
+                    readerAgainstDeadRedis.stop(Duration.ofSeconds(5));
+                }
             }
         }
     }
@@ -376,9 +404,9 @@ class ChangeStreamReaderTest {
 
     private static List<ChangeStreamEntry> awaitEntriesFor(String table, long userId, int expectedCount) {
         await().atMost(Duration.ofSeconds(15))
-                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesFor(table, userId))
+                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId))
                         .hasSize(expectedCount));
-        return ChangeStreamEntries.entriesFor(table, userId);
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId);
     }
 
     private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {
@@ -388,7 +416,7 @@ class ChangeStreamReaderTest {
     }
 
     private static Optional<ChangeStreamEntry> deleteFor(String table, long userId, long rowId) {
-        return ChangeStreamEntries.entriesFor(table, userId).stream()
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId).stream()
                 .filter(entry -> "d".equals(entry.op()))
                 .filter(entry -> entry.before().path("id").asLong() == rowId)
                 .findFirst();

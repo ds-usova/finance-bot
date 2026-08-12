@@ -27,8 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
@@ -37,9 +35,10 @@ import org.springframework.test.context.TestPropertySource;
  * refused one inside this one booted context.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=change_stream_meters_slot")
+@TestPropertySource(properties = {"cdc.slot-name=change_stream_meters_slot", "cdc.stream-key=change-stream-meters.cdc"})
 class ChangeStreamMetersSystemTest {
 
+    private static final String STREAM_KEY = "change-stream-meters.cdc";
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
@@ -58,11 +57,6 @@ class ChangeStreamMetersSystemTest {
 
     @Autowired
     private JdbcAggregateTemplate jdbcAggregateTemplate;
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.url", ToxiproxyContainers::proxiedRedisUrl);
-    }
 
     @BeforeEach
     void configureRestAssured() {
@@ -106,7 +100,7 @@ class ChangeStreamMetersSystemTest {
                     .statusCode(200);
             await("the first category change reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesFor("expense", userId))
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
                             .isNotEmpty());
 
             // given: Redis has refused at least one write, cut at the proxy
@@ -118,7 +112,7 @@ class ChangeStreamMetersSystemTest {
                 await("the publish failure is recorded").atMost(TIMEOUT).untilAsserted(() -> {
                     Response health =
                             RestAssured.given().port(managementPort).when().get("/actuator/health");
-                    assertThat(health.jsonPath().getString("components.changeStream.status"))
+                    assertThat(health.jsonPath().getString("components.changeStream.details.state"))
                             .isEqualTo("DOWN");
                 });
             } finally {
@@ -133,8 +127,8 @@ class ChangeStreamMetersSystemTest {
             // then: it carries a published count tagged by table and op
             assertThat(body)
                     .as("published count tagged by table and op")
-                    .containsPattern(Pattern.compile(
-                            "(?m)^ledger_cdc_events_published_total\\{[^}]*table=\"expense\"[^}]*op=\"u\"[^}]*}"));
+                    .containsPattern(Pattern.compile("(?m)^ledger_cdc_events_published_total\\{"
+                            + "(?=[^}]*table=\"expense\")(?=[^}]*op=\"u\")[^}]*}"));
             // then: a failure count
             assertThat(body).as("publish failure count").contains("ledger_cdc_publish_failures_total");
             // then: the event lag

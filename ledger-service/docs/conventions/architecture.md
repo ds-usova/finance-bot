@@ -25,6 +25,8 @@ src/main
 │       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── mcp         # the MCP server's tools and their wire types
 │       ├── security    # the filter chain, the token decoder, the minter and the JWKS endpoint
+│       ├── cdc         # the embedded Debezium engine, its recovery operation and its meters
+│       ├── redis       # the change stream writer
 │       ├── web
 │       └── persistence
 └── resources
@@ -79,7 +81,7 @@ The first is enforced below; the second by review. How a command is named is enf
   parameters and responses stay layered under `openapi/paths/` and `openapi/components/`. Generated Java lands in
   `build/generated/sources/openapi/`, never edited or committed.
 - Manual `.http` request files: `ledger-service/docs/requests/`, one file per endpoint — `expenses.http`,
-  `categories.http`, `groupings.http` and `session.http`.
+  `categories.http`, `groupings.http`, `session.http` and `cdc.http`.
 
 ## Architecture Enforcement
 
@@ -90,8 +92,9 @@ The first is enforced below; the second by review. How a command is named is enf
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,
     `bot.finance.ai..` — the generated gRPC schema's own package — `bot.finance.api..` — the generated OpenAPI
-    schema's own package — and `io.modelcontextprotocol..` banned from `domain`/`application`; each new
-    external-service library joins the list as its adapter lands;
+    schema's own package — `io.modelcontextprotocol..`, `io.debezium..`, `org.apache.kafka..` and
+    `org.springframework.data.redis..` banned from `domain`/`application`; each new external-service library
+    joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
     `Whisper`, `Postgres`, `AiConnector`, `Grpc`, `Proto`, `Mcp` or `Jwt`; the list grows the same way;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;

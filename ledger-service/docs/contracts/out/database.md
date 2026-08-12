@@ -93,6 +93,17 @@ app_user ||--o{ proposal_report
 @enduml
 ```
 
+`expense`, `expense_proposal` and `category` run under `REPLICA IDENTITY FULL`, so a change to any of them logs
+the whole row, both sides of an update and a delete included, not the primary key alone.
+
+A logical replication slot, `finance_ledger_cdc`, and a publication of the same name cover those three tables
+plus `cdc_heartbeat`, a single row a change-capture engine advances on a timer so the slot moves forward even
+while only uncaptured tables are written. Both exist so the service can republish its own row changes onto a
+Redis stream.
+
+The engine's own read position is held in `cdc_offset`, a table Debezium's JDBC offset store creates itself on
+first start — no migration declares it.
+
 Indexes beyond the constraints above:
 
 - `uq_category_user_parent_name` on `(user_id, parent_id, name)`, **`NULLS NOT DISTINCT`**.

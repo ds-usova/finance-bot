@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.CdcCaptureTest;
+import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
@@ -29,12 +30,17 @@ import org.springframework.test.context.TestPropertySource;
  */
 @CdcCaptureTest
 @TestPropertySource(
-        properties = {"cdc.slot-name=recover_slot_system_test", "cdc.recovery-secret=" + RecoverSlotSystemTest.SECRET})
+        properties = {
+            "cdc.slot-name=recover_slot_system_test",
+            "cdc.recovery-secret=" + RecoverSlotSystemTest.SECRET,
+            "cdc.stream-key=recover-slot-system-test.cdc"
+        })
 class RecoverSlotSystemTest {
 
     static final String SECRET = "recover-slot-system-test-secret";
 
     private static final String SLOT_NAME = "recover_slot_system_test";
+    private static final String STREAM_KEY = "recover-slot-system-test.cdc";
     private static final String SECRET_HEADER = "X-Cdc-Recovery-Secret";
     private static final String RECOVERY_PATH = "/actuator/cdc";
     private static final int WAL_CHUNKS_PAST_THE_BOUND = 25;
@@ -63,12 +69,13 @@ class RecoverSlotSystemTest {
             // given: an invalidated slot and an engine that is not streaming
             awaitChangeStreamStatus("STREAMING");
             invalidateSlot();
-            awaitChangeStreamStatus("DOWN");
 
             // when: the operation is posted to the management port with the configured secret
             Response response = RestAssured.given()
                     .port(managementPort)
                     .header(SECRET_HEADER, SECRET)
+                    .contentType("application/json")
+                    .body("{}")
                     .when()
                     .post(RECOVERY_PATH);
 
@@ -90,26 +97,48 @@ class RecoverSlotSystemTest {
             CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Fees");
             await("the change made after recovery reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesFor("category", userId))
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
                             .as("category entries for the user created after recovery")
                             .isNotEmpty());
         }
 
+        /**
+         * A healthy engine cannot fall far enough behind to lose its slot: it confirms each position as it goes,
+         * so the log behind it is always recyclable and the bound is never crossed. Cutting Redis first is what
+         * makes it stall — the position stops advancing while the log keeps growing, which is the real shape of
+         * the outage this recovery exists for.
+         */
         private void invalidateSlot() {
+            ToxiproxyContainers.REDIS_PROXY.setConnectionCut(true);
+
+            long stalledUserId = UserRowUtils.storedUserId(userEntityRepository, "recover-slot-stall-user");
+            CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, stalledUserId, "Stalled");
+
             for (int i = 0; i < WAL_CHUNKS_PAST_THE_BOUND; i++) {
                 jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
             }
+            jdbcTemplate.execute("SELECT pg_switch_wal()");
             jdbcTemplate.execute("CHECKPOINT");
             await("the slot's wal_status reaches lost")
-                    .atMost(Duration.ofSeconds(30))
-                    .untilAsserted(() -> assertThat(currentWalStatus()).isEqualTo("lost"));
-            // a captured write after invalidation is what makes the streaming reader notice and report DOWN
-            jdbcTemplate.update("UPDATE cdc_heartbeat SET beat_at = now()");
+                    .atMost(Duration.ofSeconds(60))
+                    .pollInterval(Duration.ofSeconds(1))
+                    .untilAsserted(() -> {
+                        jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
+                        jdbcTemplate.execute("SELECT pg_switch_wal()");
+                        jdbcTemplate.execute("CHECKPOINT");
+                        assertThat(currentWalStatus()).isEqualTo("lost");
+                    });
+
+            ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
         }
 
         private String currentWalStatus() {
-            return jdbcTemplate.queryForObject(
-                    "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME);
+            return jdbcTemplate
+                    .queryForList(
+                            "SELECT wal_status FROM pg_replication_slots WHERE slot_name = ?", String.class, SLOT_NAME)
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
         }
     }
 
@@ -140,8 +169,11 @@ class RecoverSlotSystemTest {
                 .untilAsserted(() -> {
                     Response health =
                             RestAssured.given().port(managementPort).when().get("/actuator/health");
-                    assertThat(health.jsonPath().getString("components.changeStream.status"))
-                            .as("changeStream health detail")
+                    // The engine's own state is the detail, not the component's status: the status is the
+                    // actuator's UP or DOWN, and STREAMING and STANDBY are both UP. Reading the status would
+                    // pass for DOWN by coincidence and could never match STREAMING at all.
+                    assertThat(health.jsonPath().getString("components.changeStream.details.state"))
+                            .as("changeStream engine state")
                             .isEqualTo(expected);
                 });
     }

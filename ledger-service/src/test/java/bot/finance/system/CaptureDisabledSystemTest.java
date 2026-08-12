@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.LedgerServiceApplication;
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.ChangeStreamEntries;
@@ -46,7 +47,7 @@ class CaptureDisabledSystemTest {
     @SpringBootTest(
             classes = LedgerServiceApplication.class,
             webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-    @TestPropertySource(properties = "cdc.enabled=false")
+    @TestPropertySource(properties = {"cdc.enabled=false", "cdc.stream-key=capture-disabled.cdc"})
     @DisplayName("happy path")
     class HappyPath {
 
@@ -58,11 +59,19 @@ class CaptureDisabledSystemTest {
                 .withCommand("postgres", "-c", "wal_level=replica")
                 .waitingFor(Wait.forListeningPort());
 
+        /**
+         * The AI connector is pointed at the in-JVM stub for the same reason {@code McpAuthenticationSystemTest}
+         * does it: its health contributor reports a real connection refusal as {@code DOWN}, and the aggregate
+         * {@code /actuator/health} this class asserts on would then be down for a reason it has nothing to do
+         * with. This class boots on its own rather than through {@code AbstractSystemTest}, so it wires the
+         * target itself.
+         */
         @DynamicPropertySource
-        static void postgresProperties(DynamicPropertyRegistry registry) {
+        static void containerProperties(DynamicPropertyRegistry registry) {
             registry.add("spring.datasource.url", POSTGRES_CONTAINER::getJdbcUrl);
             registry.add("spring.datasource.username", POSTGRES_CONTAINER::getUsername);
             registry.add("spring.datasource.password", POSTGRES_CONTAINER::getPassword);
+            registry.add("spring.grpc.client.channel.ai-connector.target", GrpcStubServer::target);
         }
 
         @LocalServerPort
@@ -107,8 +116,8 @@ class CaptureDisabledSystemTest {
             assertThat(slotCount).as("no slot opened while capture is disabled").isZero();
 
             // then: nothing about the captured rows reaches the stream
-            assertThat(ChangeStreamEntries.entriesFor("category", userId))
-                    .as("no category entries published for this user")
+            assertThat(ChangeStreamEntries.allEntriesOn("capture-disabled.cdc"))
+                    .as("nothing published on this class's own stream")
                     .isEmpty();
         }
     }

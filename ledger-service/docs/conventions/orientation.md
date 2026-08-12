@@ -11,7 +11,7 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 |------------------------|----------------------------------------------------------------------------------------------|
 | Language / framework   | Java 25, Spring Boot                                                                         |
 | Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                                      |
-| Messaging, caching     | none of either                                                                               |
+| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else                     |
 | Services consumed      | Telegram Bot API and the Transcription Service over HTTP, the AI Connector Service over gRPC |
 | APIs exposed           | [MCP](../contracts/in/mcp.md), and HTTP under `/api/v1` for the browser client               |
 | Contract-first codegen | `proto/` for the AI connector, `openapi/` for the browser client                             |

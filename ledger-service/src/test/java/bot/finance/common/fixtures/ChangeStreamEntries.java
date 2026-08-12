@@ -21,12 +21,22 @@ public class ChangeStreamEntries {
 
     private ChangeStreamEntries() {}
 
-    /** Every entry on the stream, in the order they were XADDed. */
+    /** Every entry on the default stream, in the order they were XADDed. */
     public static List<ChangeStreamEntry> allEntries() {
+        return allEntriesOn(STREAM_KEY);
+    }
+
+    /**
+     * Every entry on one named stream. A class that gives itself its own {@code cdc.stream-key} reads it back
+     * through here: the Redis singleton is JVM-wide, and a class booting its own database mints the same low
+     * {@code user_id} values another class already published under, so filtering by table and user alone is not
+     * enough to tell one class's entries from another's.
+     */
+    public static List<ChangeStreamEntry> allEntriesOn(String streamKey) {
         try (RedisClient client = RedisClient.create(RedisContainers.redisUrl())) {
             try (StatefulRedisConnection<String, String> connection = client.connect()) {
                 RedisCommands<String, String> commands = connection.sync();
-                List<StreamMessage<String, String>> messages = commands.xrange(STREAM_KEY, Range.create("-", "+"));
+                List<StreamMessage<String, String>> messages = commands.xrange(streamKey, Range.create("-", "+"));
                 return messages.stream().map(ChangeStreamEntries::toEntry).toList();
             }
         }
@@ -37,7 +47,12 @@ public class ChangeStreamEntries {
      * read from {@code after} where present, {@code before} otherwise, since a delete carries no {@code after}.
      */
     public static List<ChangeStreamEntry> entriesFor(String table, long userId) {
-        return allEntries().stream()
+        return entriesOnFor(STREAM_KEY, table, userId);
+    }
+
+    /** The same filter, against one named stream rather than the default one. */
+    public static List<ChangeStreamEntry> entriesOnFor(String streamKey, String table, long userId) {
+        return allEntriesOn(streamKey).stream()
                 .filter(entry -> table.equals(entry.table()) && userId == entry.userId())
                 .toList();
     }

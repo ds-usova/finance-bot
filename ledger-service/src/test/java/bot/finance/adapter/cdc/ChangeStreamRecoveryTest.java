@@ -29,10 +29,12 @@ import org.springframework.test.context.TestPropertySource;
  * set {@code wal_status} directly.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=change_stream_recovery_test")
+@TestPropertySource(
+        properties = {"cdc.slot-name=change_stream_recovery_test", "cdc.stream-key=change-stream-recovery-test.cdc"})
 class ChangeStreamRecoveryTest {
 
     private static final String SLOT_NAME = "change_stream_recovery_test";
+    private static final String STREAM_KEY = "change-stream-recovery-test.cdc";
     private static final int WAL_CHUNKS_PAST_THE_BOUND = 25;
 
     @Autowired

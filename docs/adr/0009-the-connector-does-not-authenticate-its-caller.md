@@ -30,3 +30,7 @@ that provider's key set instead of the ledger's own.
 - User data is unaffected. Identity is still enforced where it is spent, so no forged caller records an expense.
 - Taking this up means a new token issuer for both services, and the connector gaining a validator — its first
   reason to read the token it currently only carries.
+- **2026-08-12:** "User data is unaffected" no longer holds. `ledger-service` now republishes descriptions,
+  merchants and amounts outside the database onto a Redis stream, keyed by internal `user_id` with no Telegram
+  identity beside them. Reaching that stream — not the connector's gRPC port — is what now exposes that data,
+  pseudonymously.

@@ -3,6 +3,7 @@ package bot.finance.common.boot;
 import bot.finance.LedgerServiceApplication;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.RedisContainers;
+import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.containers.WireMockSupport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -34,6 +35,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * <p>{@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type cannot
  * declare, so both the Redis URL and the telegram stub redirect — required because polling is on by default —
  * are {@link DynamicPropertyRegistrar} beans instead, the same shape {@code McpAdapterTest} gives its own.
+ *
+ * <p>Redis is reached through {@link ToxiproxyContainers} rather than directly, for every capture test and not
+ * only the ones that cut the connection. A registrar bean is applied during the context refresh, while a test
+ * class's own {@code @DynamicPropertySource} runs before it, so the two write to the same map and this one wins
+ * — a class that pointed itself at the proxy would silently be handed the direct URL instead, and its outage
+ * would do nothing. Routing everything through the proxy removes the conflict: a test that never touches the
+ * toxic cannot tell the difference.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -50,7 +58,7 @@ public @interface CdcCaptureTest {
 
         @Bean
         DynamicPropertyRegistrar redisUrl() {
-            return registry -> registry.add("spring.data.redis.url", RedisContainers::redisUrl);
+            return registry -> registry.add("spring.data.redis.url", ToxiproxyContainers::proxiedRedisUrl);
         }
 
         @Bean

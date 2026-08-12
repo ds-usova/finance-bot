@@ -35,9 +35,14 @@ import org.springframework.test.context.TestPropertySource;
  * needs.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=accepted_proposal_change_stream_slot")
+@TestPropertySource(
+        properties = {
+            "cdc.slot-name=accepted_proposal_change_stream_slot",
+            "cdc.stream-key=accepted-proposal-change-stream.cdc"
+        })
 class AcceptedProposalChangeStreamSystemTest {
 
+    private static final String STREAM_KEY = "accepted-proposal-change-stream.cdc";
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
@@ -173,14 +178,14 @@ class AcceptedProposalChangeStreamSystemTest {
     }
 
     private Optional<ChangeStreamEntry> deleteEntry(long userId, long proposalId) {
-        return ChangeStreamEntries.entriesFor("expense_proposal", userId).stream()
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense_proposal", userId).stream()
                 .filter(entry ->
                         "d".equals(entry.op()) && entry.before().path("id").asLong() == proposalId)
                 .findFirst();
     }
 
     private Optional<ChangeStreamEntry> insertEntry(long userId) {
-        return ChangeStreamEntries.entriesFor("expense", userId).stream()
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId).stream()
                 .filter(entry -> "c".equals(entry.op()))
                 .findFirst();
     }

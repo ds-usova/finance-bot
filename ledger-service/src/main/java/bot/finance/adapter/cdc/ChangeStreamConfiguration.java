@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.net.URI;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import javax.sql.DataSource;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,7 @@ import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 public class ChangeStreamConfiguration {
 
     private static final String THREAD_NAME_PREFIX = "change-stream-";
+    private static final String SLOT_MONITOR_THREAD_NAME_PREFIX = "slot-monitor-";
 
     private static final String CAPTURED_TABLES = "public.expense,public.expense_proposal,public.category";
 
@@ -29,6 +31,12 @@ public class ChangeStreamConfiguration {
     @Bean(destroyMethod = "shutdown")
     Executor changeStreamExecutor() {
         return Executors.newSingleThreadExecutor(new CustomizableThreadFactory(THREAD_NAME_PREFIX));
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    ScheduledExecutorService slotMonitorExecutor() {
+        return Executors.newSingleThreadScheduledExecutor(
+                new CustomizableThreadFactory(SLOT_MONITOR_THREAD_NAME_PREFIX));
     }
 
     @Bean

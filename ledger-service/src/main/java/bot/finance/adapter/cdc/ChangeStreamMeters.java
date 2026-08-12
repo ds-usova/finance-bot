@@ -17,7 +17,7 @@ public class ChangeStreamMeters {
 
     private final MeterRegistry registry;
     private final AtomicLong eventLagSeconds = new AtomicLong();
-    private final AtomicLong state = new AtomicLong();
+    private final AtomicLong state = new AtomicLong(ChangeStreamState.DOWN.ordinal());
     private final AtomicLong slotRetainedBytes = new AtomicLong();
     private final AtomicLong slotWalStatus = new AtomicLong();
 

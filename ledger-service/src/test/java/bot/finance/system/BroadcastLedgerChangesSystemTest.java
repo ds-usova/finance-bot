@@ -28,8 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
@@ -39,9 +37,11 @@ import org.springframework.test.context.TestPropertySource;
  * restore the connection inside this one booted context.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=broadcast_ledger_changes_slot")
+@TestPropertySource(
+        properties = {"cdc.slot-name=broadcast_ledger_changes_slot", "cdc.stream-key=broadcast-ledger-changes.cdc"})
 class BroadcastLedgerChangesSystemTest {
 
+    private static final String STREAM_KEY = "broadcast-ledger-changes.cdc";
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
@@ -60,11 +60,6 @@ class BroadcastLedgerChangesSystemTest {
 
     @Autowired
     private JdbcAggregateTemplate jdbcAggregateTemplate;
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.url", ToxiproxyContainers::proxiedRedisUrl);
-    }
 
     @BeforeEach
     void configureRestAssured() {
@@ -181,8 +176,8 @@ class BroadcastLedgerChangesSystemTest {
                                     .port(managementPort)
                                     .when()
                                     .get("/actuator/health");
-                            assertThat(health.jsonPath().getString("components.changeStream.status"))
-                                    .as("changeStream health detail")
+                            assertThat(health.jsonPath().getString("components.changeStream.details.state"))
+                                    .as("changeStream engine state")
                                     .isEqualTo("DOWN");
                         });
 
@@ -205,7 +200,7 @@ class BroadcastLedgerChangesSystemTest {
     }
 
     private Optional<ChangeStreamEntry> updateEntryFor(long userId, long expenseId) {
-        List<ChangeStreamEntry> entries = ChangeStreamEntries.entriesFor("expense", userId);
+        List<ChangeStreamEntry> entries = ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId);
         return entries.stream()
                 .filter(entry ->
                         "u".equals(entry.op()) && entry.after().path("id").asLong() == expenseId)
