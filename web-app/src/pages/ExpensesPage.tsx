@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
 import {
   acceptExpenses,
+  changeCategory,
   listCategories,
   listExpenses,
   listGroupings,
   type Category,
+  type Expense,
   type ExpenseFilter,
   type ExpensePage,
   type Grouping,
@@ -14,7 +16,14 @@ import {
 import { useAuth } from '../auth/useAuth';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseActionBar } from '../components/ExpenseActionBar';
-import { mergeDay, touchedDaysOf } from '../components/expenseDays';
+import {
+  entryKey,
+  mergeDay,
+  replaceEntry,
+  ticksStillOnPage,
+  touchedDaysOf,
+  utcDayOf,
+} from '../components/expenseDays';
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
@@ -34,6 +43,9 @@ export function ExpensesPage() {
   const [tickedIds, setTickedIds] = useState<ReadonlySet<number>>(new Set());
   const [accepting, setAccepting] = useState(false);
   const [missingMessage, setMissingMessage] = useState<string | null>(null);
+  const [changingKey, setChangingKey] = useState<string | null>(null);
+  const [changeFailure, setChangeFailure] = useState<{ key: string; message: string } | null>(null);
+  const [focusDay, setFocusDay] = useState<string | null>(null);
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
   // not the ones the call left with — a ref rather than the closed-over state keeps them current.
@@ -109,24 +121,31 @@ export function ExpensesPage() {
 
   const tickHeadroom = ACCEPTANCE_BOUND - tickedIds.size;
 
-  // Re-reads the days an acceptance touched, spanning from the earliest to the latest, carrying the filter on
-  // screen now rather than the one the acceptance call left with, and merges each back into the page.
+  // Reads a span of UTC days on its own, from the first page of it, under the filter on screen now rather
+  // than the one the call that touched those days left with.
+  const readSpan = useCallback((from: string | undefined, to: string | undefined) => {
+    const currentFilter = filterRef.current;
+
+    return listExpenses({
+      status: currentFilter.status,
+      categoryId: currentFilter.categoryId,
+      from,
+      to,
+      offset: undefined,
+      limit: ACCEPTANCE_BOUND,
+    });
+  }, []);
+
+  // Re-reads the days an acceptance touched, spanning from the earliest to the latest, and merges each back
+  // into the page.
   const rereadTouchedDays = useCallback(
     (days: Set<string>) => {
       if (days.size === 0) {
         return;
       }
       const sorted = Array.from(days).sort();
-      const currentFilter = filterRef.current;
 
-      listExpenses({
-        status: currentFilter.status,
-        categoryId: currentFilter.categoryId,
-        from: sorted[0],
-        to: sorted[sorted.length - 1],
-        offset: undefined,
-        limit: ACCEPTANCE_BOUND,
-      })
+      readSpan(sorted[0], sorted[sorted.length - 1])
         .then((fresh) => {
           const current = pageRef.current;
           if (!current) {
@@ -136,7 +155,71 @@ export function ExpensesPage() {
         })
         .catch(report);
     },
-    [report],
+    [readSpan, report],
+  );
+
+  // Re-reads the single day an entry sits on, merges it back into the page, drops any tick a refile carried
+  // off the page, and moves focus to that day's header when the entry named is no longer on it — the row's
+  // own control just left with it.
+  const rereadChangedDay = useCallback(
+    (entry: Expense) => {
+      const day = utcDayOf(entry.createdAt);
+      const key = entryKey(entry);
+
+      readSpan(day, day)
+        .then((fresh) => {
+          const current = pageRef.current;
+          if (!current) {
+            return;
+          }
+          const merged = mergeDay(current, day, fresh);
+          setPage(merged);
+          setTickedIds((prev) => ticksStillOnPage(merged, prev));
+          const stillOnPage = merged.items.some((item) => entryKey(item) === key);
+          setFocusDay(stillOnPage ? null : day);
+        })
+        .catch(report);
+    },
+    [readSpan, report],
+  );
+
+  const onChangeCategory = useCallback(
+    (entry: Expense, categoryId: number) => {
+      if (categoryId === entry.categoryId || changingKey !== null) {
+        return;
+      }
+      const key = entryKey(entry);
+      setChangingKey(key);
+      setChangeFailure(null);
+
+      changeCategory(entry, categoryId)
+        .then((answered) => {
+          setChangingKey(null);
+          if (filterRef.current.categoryId !== undefined) {
+            // A category filter can no longer match the row's new category, so only a fresh read tells whether
+            // it still belongs on the page.
+            rereadChangedDay(answered);
+            return;
+          }
+          setPage((current) => (current ? replaceEntry(current, answered) : current));
+        })
+        .catch((error: unknown) => {
+          setChangingKey(null);
+          if (error instanceof ApiError && error.status === 401) {
+            sessionExpired();
+            return;
+          }
+          setChangeFailure({
+            key,
+            message: error instanceof Error ? error.message : 'That change was not answered.',
+          });
+          if (error instanceof ApiError && error.status === 404) {
+            // The row has moved on under the ledger; only a fresh read can tell it apart from the page.
+            rereadChangedDay(entry);
+          }
+        });
+    },
+    [changingKey, rereadChangedDay, sessionExpired],
   );
 
   const onAccept = useCallback(() => {
@@ -182,10 +265,16 @@ export function ExpensesPage() {
           <ExpenseList
             page={page}
             categoryNames={categoryNames}
+            categories={categories}
+            groupings={groupings}
             tickedIds={tickedIds}
             onTick={onTick}
             onTickDay={onTickDay}
             tickHeadroom={tickHeadroom}
+            changingKey={changingKey}
+            changeFailure={changeFailure}
+            focusDay={focusDay}
+            onChangeCategory={onChangeCategory}
           />
           <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
         </>

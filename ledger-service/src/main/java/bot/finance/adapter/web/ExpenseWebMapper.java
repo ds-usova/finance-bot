@@ -2,13 +2,17 @@ package bot.finance.adapter.web;
 
 import bot.finance.api.model.AcceptExpenses200Response;
 import bot.finance.api.model.AcceptExpensesRequest;
+import bot.finance.api.model.CategoryPatchOperation;
+import bot.finance.api.model.ChangeExpenseCategory200Response;
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.application.dto.AcceptExpensesCommand;
+import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.DayTotal;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -18,6 +22,7 @@ import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 
 public final class ExpenseWebMapper {
 
@@ -52,6 +57,46 @@ public final class ExpenseWebMapper {
                 page.offset(),
                 page.total(),
                 page.dayTotals().stream().map(ExpenseWebMapper::toDayTotal).toList());
+    }
+
+    public static ChangeExpenseCategoryCommand toChangeExpenseCategoryCommand(
+            String status, Long id, List<CategoryPatchOperation> document, AuthenticatedUserId userId) {
+        if (document.size() != 1) {
+            throw new InvalidExpenseCategoryChangeException("a category change document carries one operation");
+        }
+
+        CategoryPatchOperation operation = document.get(0);
+        if (operation.getOp() != CategoryPatchOperation.OpEnum.REPLACE) {
+            throw new InvalidExpenseCategoryChangeException("a category change document's op must be replace");
+        }
+        if (operation.getPath() != CategoryPatchOperation.PathEnum._CATEGORY_ID) {
+            throw new InvalidExpenseCategoryChangeException("a category change document's path must be /categoryId");
+        }
+        if (operation.getValue() == null) {
+            throw new InvalidExpenseCategoryChangeException("a category change document's operation needs a value");
+        }
+
+        ExpenseStatus parsedStatus;
+        try {
+            parsedStatus = ExpenseStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidExpenseCategoryChangeException("status must be PENDING or RECORDED");
+        }
+
+        return new ChangeExpenseCategoryCommand(userId, parsedStatus, id, operation.getValue());
+    }
+
+    public static ChangeExpenseCategory200Response toChangeExpenseCategoryResponse(ExpenseEntry entry) {
+        Expense item = toItem(entry);
+        ChangeExpenseCategory200Response response = new ChangeExpenseCategory200Response(
+                item.getId(),
+                item.getStatus(),
+                item.getCategoryId(),
+                item.getDescription(),
+                item.getMoney(),
+                item.getCreatedAt());
+        item.getMerchant().ifPresent(response::merchant);
+        return response;
     }
 
     private static ExpenseStatus toStatus(String status) {

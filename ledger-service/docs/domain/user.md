@@ -5,9 +5,12 @@ message.
 
 ## Invariants
 
-- Two stored users with the same id are the same user, whatever else differs; a user not yet stored equals only
-  itself.
-- A user is stored or not yet stored, and carries the store's own id only once it is.
+| Field        | Bound                |
+|--------------|----------------------|
+| `id`         | only once stored     |
+| `externalId` | mandatory, non-blank |
+
+Two stored users with the same `id` are the same user. An unstored one equals only itself.
 
 ## Lifecycle
 

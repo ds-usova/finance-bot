@@ -4,7 +4,9 @@ import bot.finance.adapter.telegram.TelegramLoginRejectedException;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.ExpenseEntryNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
+import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
@@ -52,6 +54,12 @@ public class WebExceptionHandler {
 
     @ExceptionHandler(InvalidExpenseAcceptanceException.class)
     public ResponseEntity<Map<String, String>> onInvalidExpenseAcceptance(InvalidExpenseAcceptanceException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidExpenseCategoryChangeException.class)
+    public ResponseEntity<Map<String, String>> onInvalidExpenseCategoryChange(InvalidExpenseCategoryChangeException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
     }
@@ -105,6 +113,12 @@ public class WebExceptionHandler {
     public ResponseEntity<Map<String, String>> onInvalidValue(InvalidValueException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, "the request carried a value this service cannot accept");
+    }
+
+    @ExceptionHandler(ExpenseEntryNotFoundException.class)
+    public ResponseEntity<Map<String, String>> onExpenseEntryNotFound(ExpenseEntryNotFoundException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(EntityNotFoundException.class)

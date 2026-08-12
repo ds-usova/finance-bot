@@ -1,0 +1,71 @@
+patch:
+  operationId: changeExpenseCategory
+  summary: Refile one of the signed-in person's entries under a different category.
+  description: >-
+    The entry is named by the `status` the listing answered and by the id it answered within that status. The
+    document replaces `/categoryId` and nothing else, and the answer is the entry as it now stands. Both a
+    pending proposal and a recorded expense can be refiled.
+  tags:
+    - expenses
+  parameters:
+    - name: status
+      in: path
+      required: true
+      description: >-
+        Which of the two tables the id names. An id is unique within its status and not across it, so the token
+        is what says which entry is meant.
+      schema:
+        $ref: '../ledger-api.yaml#/components/schemas/ExpenseStatus'
+      example: RECORDED
+    - name: id
+      in: path
+      required: true
+      description: The id of the caller's entry, as the listing answered it under this `status`.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 12
+  requestBody:
+    required: true
+    content:
+      application/json-patch+json:
+        schema:
+          $ref: '../ledger-api.yaml#/components/schemas/CategoryPatch'
+  responses:
+    '200':
+      description: >-
+        The entry was refiled, and is answered as it now stands. Answered for a category the entry already
+        carried too; the day it appeared on is unchanged.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Expense'
+    '400':
+      description: >-
+        The document is not one `replace` of `/categoryId`, its value is below 1, the body is not JSON,
+        `status` is neither token, or `categoryId` names no category of the caller's. The message names what
+        was refused. Unlike every other refusal on this API, a row is read before this one: an unknown
+        category, a grouping and another person's category are one answer.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
+          example:
+            message: categoryId must name one of your own categories
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '403':
+      description: The request carried no CSRF token.
+    '404':
+      description: >-
+        No entry of the caller's carries that id under that status, or the session outlives the user row it
+        names. The two carry different messages: one names the entry, the other says the caller is unknown.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
+          example:
+            message: no entry of yours carries that id
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

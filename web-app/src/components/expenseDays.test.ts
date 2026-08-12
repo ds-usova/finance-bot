@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DayTotal, ExpensePage } from '../api/expenses';
 import { aDay, anExpense, anExpensePage } from '../testing/fixtures';
-import { mergeDay, pendingIdsOf, relativeDay, toDaySections, touchedDaysOf } from './expenseDays';
+import {
+  mergeDay,
+  pendingIdsOf,
+  relativeDay,
+  replaceEntry,
+  ticksStillOnPage,
+  toDaySections,
+  touchedDaysOf,
+  utcDayOf,
+} from './expenseDays';
 
 function itemsOnDay(items: ExpensePage['items'], day: string) {
   return items.filter((item) => item.createdAt.startsWith(day));
@@ -344,5 +353,91 @@ describe('the day merge', () => {
     expect(itemsOnDay(merged.items, '2026-08-02')).toEqual([]);
     expect(merged.dayTotals.find((dt) => dt.day === '2026-08-02')).toBeUndefined();
     expect(itemsOnDay(merged.items, '2026-08-01')).toEqual([dayOneEntry]);
+  });
+});
+
+describe('replacing one entry on a page', () => {
+  it('carries the new category on the answered entry, leaves the other two and their position untouched, and keeps limit, offset, total and dayTotals as the original page’s', () => {
+    const entryA = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'a' });
+    const entryB = anExpense({ id: 2, status: 'RECORDED', categoryId: 10, description: 'b' });
+    const entryC = anExpense({ id: 3, status: 'RECORDED', categoryId: 10, description: 'c' });
+    const dayTotals: DayTotal[] = [
+      { day: '2026-08-01', amounts: [{ amount: '1.00', currency: 'EUR', separator: '' }] },
+    ];
+    const page = anExpensePage([entryA, entryB, entryC], {
+      dayTotals,
+      limit: 50,
+      offset: 20,
+      total: 3,
+    });
+    const answered = anExpense({ id: 2, status: 'RECORDED', categoryId: 20, description: 'b' });
+
+    const result = replaceEntry(page, answered);
+
+    expect(result.items[0]).toEqual(entryA);
+    expect(result.items[1]).toEqual(answered);
+    expect(result.items[2]).toEqual(entryC);
+    expect(result.limit).toBe(page.limit);
+    expect(result.offset).toBe(page.offset);
+    expect(result.total).toBe(page.total);
+    expect(result.dayTotals).toEqual(page.dayTotals);
+  });
+
+  it('replaces only the pending entry when a RECORDED and a PENDING entry share an id', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED', categoryId: 10 });
+    const pending = anExpense({ id: 1, status: 'PENDING', categoryId: 10 });
+    const page = anExpensePage([recorded, pending]);
+    const answeredPending = anExpense({ id: 1, status: 'PENDING', categoryId: 20 });
+
+    const result = replaceEntry(page, answeredPending);
+
+    expect(result.items.find((item) => item.status === 'PENDING')).toEqual(answeredPending);
+    expect(result.items.find((item) => item.status === 'RECORDED')).toEqual(recorded);
+  });
+
+  it('answers the page unchanged and throws nothing for an entry the page no longer holds', () => {
+    const held = anExpense({ id: 1, status: 'RECORDED', categoryId: 10 });
+    const page = anExpensePage([held]);
+    const missing = anExpense({ id: 999, status: 'RECORDED', categoryId: 20 });
+
+    expect(() => replaceEntry(page, missing)).not.toThrow();
+    expect(replaceEntry(page, missing)).toEqual(page);
+  });
+});
+
+describe('the ticks still on a page', () => {
+  it('answers only the ticked ids the page still holds as pending entries', () => {
+    const pendingA = anExpense({ id: 1, status: 'PENDING' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING' });
+    const page = anExpensePage([pendingA, pendingB]);
+
+    expect(ticksStillOnPage(page, new Set([1, 2, 3]))).toEqual(new Set([1, 2]));
+  });
+
+  it('drops a ticked id naming only a RECORDED entry, since a tick names a pending entry', () => {
+    const recorded = anExpense({ id: 1, status: 'RECORDED' });
+    const page = anExpensePage([recorded]);
+
+    expect(ticksStillOnPage(page, new Set([1]))).toEqual(new Set());
+  });
+
+  it('answers the ticked set unchanged when the page holds every ticked entry', () => {
+    const pendingA = anExpense({ id: 1, status: 'PENDING' });
+    const pendingB = anExpense({ id: 2, status: 'PENDING' });
+    const page = anExpensePage([pendingA, pendingB]);
+
+    expect(ticksStillOnPage(page, new Set([1, 2]))).toEqual(new Set([1, 2]));
+  });
+});
+
+describe('utcDayOf', () => {
+  it('answers the UTC day of an instant read in a zone that would name it another day', () => {
+    // UTC+14: local calendar has already turned over to the 2nd while it's still 23:30 UTC on the 1st.
+    vi.stubEnv('TZ', 'Pacific/Kiritimati');
+    try {
+      expect(utcDayOf('2026-08-01T23:30:00Z')).toBe('2026-08-01');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

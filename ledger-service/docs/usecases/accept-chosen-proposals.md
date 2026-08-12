@@ -27,18 +27,6 @@ What bounds the list, what an id is taken as, and how the two counts relate are 
 | out       | [Database](../contracts/out/database.md)                                             | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and moving the chosen proposals into that person's expenses |
 | out       | [Clear the emptied reports](clear-emptied-reports.md)                                | [Clear the emptied reports](clear-emptied-reports.md)                             | handing over the messages this acceptance may have emptied                          |
 
-## Rules
-
-- Only that person's pending proposals are reachable. An id is never widened to somebody else's row.
-- The move is one statement, so an acceptance and a Telegram **Confirm** racing over the same rows move them
-  once ([ADR 0012](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md)).
-- An accepted proposal keeps the day it was proposed on — see [Expense](../domain/expense.md#lifecycle).
-- The order the ids were given in is kept, and says nothing about what moves.
-- The messages the moved rows were reported on are handed to the clearing, each one once.
-- An acceptance that moved nothing hands nothing over.
-- The clearing runs after the caller is answered, so nothing it does can change the answer.
-- One info line per acceptance names the person, how many moved and how many named nothing.
-
 ## Outcomes
 
 | Outcome           | When                                                               | Result                                                                                       |
@@ -142,3 +130,10 @@ else the list is usable
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0012: A set of rows moves between tables in one statement](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md) —
+  why an acceptance and a Telegram tap over the same rows move them once
+- [ADR 0006: An expense proposal is a table and an entity of its own](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md) —
+  why accepting moves a row rather than changing a status

@@ -71,37 +71,7 @@ no expense.** What the caller asked about is put in front of the user by
 [the turn](../../usecases/handle-incoming-message.md), and never returned here, so a total no model has read is
 a total no model can restate.
 
-## Semantics
-
-- Every call carries its own token. The server keeps nothing between calls, so two calls never share state.
-- Each proposal, and each period asked about, is stored under the
-  [incoming message id](../../domain/incoming-message-id.md) its token carries. That is what lets the ledger tell
-  the user which message produced what.
-- A proposal or summary call whose token carries no readable incoming message id is refused, and stores nothing.
-- Listing categories never reads it, so a token carrying none still lists.
-- A caller reaches only their own categories and their own spending. No tool takes an identity argument, and
-  every read is scoped to the token's subject.
-- A grouping and a category are both named, never identified.
-- A proposal names both. The grouping is resolved first, the category only under it. Nothing is filed under a
-  grouping itself.
-
-Which names resolve, and which are refused, is the use case's rule rather than the tool's —
-[for a proposal](../../usecases/create-an-expense-proposal.md#rules), and
-[for a listing](../../usecases/list-categories.md#rules).
-
-The amount crosses as written, in the currency's main unit, and is scaled to minor units on this side
-([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)).
-
-- Accepted: digits, at most one dot, at most four decimals; surrounding whitespace is ignored.
-- Nothing is rounded, regrouped or converted.
-- Refused: any other written form — a comma decimal, grouped digits, a sign, an exponent, a currency symbol.
-- Refused: an amount finer than its currency's decimal places.
-- Refused: a currency with no minor unit at all.
-- Refused: an amount too large to record.
-- An absent `amount` is refused rather than read as zero. A deliberate zero is stored.
-- The answer states the amount in the units the call spoke.
-
-What a repeated call leaves behind:
+## What a repeated call leaves behind
 
 | Tool                      | Repeating it                                                                     |
 |---------------------------|----------------------------------------------------------------------------------|
@@ -109,12 +79,7 @@ What a repeated call leaves behind:
 | `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                   |
 | `summarize_spending`      | idempotent in what the user reads — two calls leave two rows, the turn reports the period once, and both rows go once the report is delivered |
 
-- A refused proposal stores nothing, so a corrected retry of it leaves one proposal.
-- Two *different* periods asked about in one turn are two blocks, oldest first.
-- A period is a period and nothing else. It cannot be narrowed to a category, a grouping or a merchant.
-- The summary it produces is the whole ledger over those days.
-
-### How a caller authenticates
+## How a caller authenticates
 
 The ledger both mints the token and validates it. It leaves this service, crosses two boundaries, and comes
 back:

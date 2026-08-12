@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import bot.finance.api.model.CategoryPatchOperation;
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
+import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.DayTotal;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
+import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
@@ -280,6 +284,102 @@ class ExpenseWebMapperTest {
                     Optional.empty(),
                     money,
                     Instant.parse("2026-01-04T09:00:00Z"));
+        }
+    }
+
+    @Nested
+    @DisplayName("mapping a category-change document into the change-category command")
+    class ToChangeExpenseCategoryCommand {
+
+        private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
+
+        @Test
+        @DisplayName("when the document replaces /categoryId under RECORDED - then the command carries the caller, "
+                + "status, id and category")
+        void whenDocumentReplacesCategoryIdUnderRecorded_thenCommandCarriesCallerRecordedIdAndCategory() {
+            List<CategoryPatchOperation> document = List.of(replaceCategoryId(42L));
+
+            ChangeExpenseCategoryCommand command =
+                    ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID);
+
+            assertThat(command.userId()).isEqualTo(USER_ID);
+            assertThat(command.status()).isEqualTo(ExpenseStatus.RECORDED);
+            assertThat(command.entryId()).isEqualTo(7L);
+            assertThat(command.categoryId()).isEqualTo(42L);
+        }
+
+        @Test
+        @DisplayName("when the same document is given under PENDING - then the command carries PENDING as the "
+                + "domain status")
+        void whenSameDocumentIsGivenUnderPending_thenCommandCarriesPendingStatus() {
+            List<CategoryPatchOperation> document = List.of(replaceCategoryId(42L));
+
+            ChangeExpenseCategoryCommand command =
+                    ExpenseWebMapper.toChangeExpenseCategoryCommand("PENDING", 7L, document, USER_ID);
+
+            assertThat(command.status()).isEqualTo(ExpenseStatus.PENDING);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("documentsOfTheWrongSize")
+        @DisplayName("when the document carries zero or two operations - then throws "
+                + "InvalidExpenseCategoryChangeException")
+        void whenDocumentCarriesWrongNumberOfOperations_thenThrowsInvalidExpenseCategoryChangeException(
+                String description, List<CategoryPatchOperation> document) {
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+                    .isInstanceOf(InvalidExpenseCategoryChangeException.class)
+                    .hasMessageContaining("one operation");
+        }
+
+        static Stream<Arguments> documentsOfTheWrongSize() {
+            return Stream.of(
+                    arguments("empty document", List.<CategoryPatchOperation>of()),
+                    arguments("two operations", List.of(replaceCategoryId(42L), replaceCategoryId(43L))));
+        }
+
+        @Test
+        @DisplayName("when the document's one operation carries no value - then throws "
+                + "InvalidExpenseCategoryChangeException naming value")
+        void whenOperationCarriesNoValue_thenThrowsInvalidExpenseCategoryChangeExceptionNamingValue() {
+            CategoryPatchOperation operation = new CategoryPatchOperation(
+                    CategoryPatchOperation.OpEnum.REPLACE, CategoryPatchOperation.PathEnum._CATEGORY_ID, null);
+            List<CategoryPatchOperation> document = List.of(operation);
+
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+                    .isInstanceOf(InvalidExpenseCategoryChangeException.class)
+                    .hasMessageContaining("value");
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("operationsNamingSomethingRefused")
+        @DisplayName("when the operation is neither replace nor /categoryId - then throws "
+                + "InvalidExpenseCategoryChangeException")
+        void whenOperationNamesSomethingOtherThanReplaceOrCategoryId_thenThrowsExceptionNamingWhatWasRefused(
+                String description, List<CategoryPatchOperation> document, String expectedMessageFragment) {
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+                    .isInstanceOf(InvalidExpenseCategoryChangeException.class)
+                    .hasMessageContaining(expectedMessageFragment);
+        }
+
+        /**
+         * The generated {@code OpEnum} and {@code PathEnum} each declare a single member — {@code REPLACE} and
+         * {@code _CATEGORY_ID} — so no other constant exists to pass here. {@code null} is the only value the
+         * field can hold besides that one member, and stands in for "names something other than what is
+         * accepted" at this unit boundary.
+         */
+        static Stream<Arguments> operationsNamingSomethingRefused() {
+            CategoryPatchOperation operationWithoutOp =
+                    new CategoryPatchOperation(null, CategoryPatchOperation.PathEnum._CATEGORY_ID, 42L);
+            CategoryPatchOperation operationWithoutPath =
+                    new CategoryPatchOperation(CategoryPatchOperation.OpEnum.REPLACE, null, 42L);
+            return Stream.of(
+                    arguments("op other than replace", List.of(operationWithoutOp), "op"),
+                    arguments("path other than /categoryId", List.of(operationWithoutPath), "path"));
+        }
+
+        private static CategoryPatchOperation replaceCategoryId(long categoryId) {
+            return new CategoryPatchOperation(
+                    CategoryPatchOperation.OpEnum.REPLACE, CategoryPatchOperation.PathEnum._CATEGORY_ID, categoryId);
         }
     }
 }

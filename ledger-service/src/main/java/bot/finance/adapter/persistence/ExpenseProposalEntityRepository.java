@@ -3,6 +3,7 @@ package bot.finance.adapter.persistence;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -77,4 +78,17 @@ public interface ExpenseProposalEntityRepository extends CrudRepository<ExpenseP
             """)
     List<String> findWithPendingProposals(
             @Param("userId") Long userId, @Param("incomingMessageIds") Collection<String> incomingMessageIds);
+
+    @Query(
+            """
+            UPDATE expense_proposal
+            SET category_id = :categoryId, updated_at = :now
+            WHERE id = :id AND user_id = :userId
+            RETURNING id, category_id, description, merchant, amount_minor_units, currency_code, created_at
+            """)
+    Optional<RefiledEntryProjection> refile(
+            @Param("userId") Long userId,
+            @Param("id") Long id,
+            @Param("categoryId") Long categoryId,
+            @Param("now") Instant now);
 }

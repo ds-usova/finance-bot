@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
+import bot.finance.application.port.ChangeExpenseCategoryPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
@@ -55,6 +56,9 @@ class WebExceptionHandlerTest {
 
     @MockitoBean
     private AcceptExpensesPort acceptExpensesPort;
+
+    @MockitoBean
+    private ChangeExpenseCategoryPort changeExpenseCategoryPort;
 
     @Nested
     @DisplayName("Error Mapping")

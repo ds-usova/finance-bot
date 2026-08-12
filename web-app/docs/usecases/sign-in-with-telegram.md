@@ -17,18 +17,6 @@
 | out       | [Telegram](https://core.telegram.org/widgets/login)      | the Login Widget script the page embeds                   | proving which Telegram account is signing in   |
 | out       | [Ledger Service](../contracts/out/ledger-session-api.md) | [The session API](../contracts/out/ledger-session-api.md) | opening, reading and ending the session        |
 
-## Rules
-
-- The page asks the ledger who is signed in **before** it decides what to show, and shows neither the sign-in
-  nor the expenses page while that answer is outstanding.
-- A refused read means nobody is signed in. It is not an error.
-- Sign-out is offered in the shell's header, on every route, and only while a session is open.
-- The widget's payload is forwarded unchanged. Nothing here inspects it, and nothing here decides whether it is
-  genuine — that is the ledger's, and only the ledger holds the bot token.
-- The session cookie is never read by the page. It cannot be, and no code tries.
-- The widget names one bot, fixed when the module is built. A person signing in with a Telegram account that has
-  never used the bot is still signed in — the ledger stores them on the spot.
-
 ## Outcomes
 
 | Outcome           | When                                       | Result                                                          |
@@ -87,3 +75,11 @@ group ending the session
 end
 @enduml
 ```
+
+## References
+
+- [ADR 0013: A browser session is a cookie-borne token with its own audience](../../../ledger-service/docs/adr/0013-a-browser-session-is-a-cookie-borne-token-with-its-own-audience.md) —
+  why the page never reads the session itself
+- [ADR 0014: The web app and the ledger are served from one origin](../../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md) —
+  why the cookie reaches the API with no CORS step
+- [Browse recorded expenses](browse-recorded-expenses.md) — where a signed-in person lands

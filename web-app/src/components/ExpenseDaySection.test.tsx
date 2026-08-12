@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../i18n/en';
 import { expandDays } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
-import { aDay, anExpense, categoryNames } from '../testing/fixtures';
+import { chooseFromList } from '../testing/combobox';
+import { aCategory, aDay, aGrouping, anExpense, categoryNames } from '../testing/fixtures';
 import { ExpenseDaySection, type ExpenseDaySectionProps } from './ExpenseDaySection';
 import type { ExpenseDay } from './expenseDays';
 
@@ -13,10 +14,16 @@ function section(props: Partial<ExpenseDaySectionProps> & { day: ExpenseDay }) {
   return (
     <ExpenseDaySection
       categoryNames={categoryNames}
+      categories={[]}
+      groupings={[]}
       tickedIds={new Set()}
       onTick={vi.fn()}
       onTickDay={vi.fn()}
       tickHeadroom={Infinity}
+      changingKey={null}
+      changeFailure={null}
+      focusDay={null}
+      onChangeCategory={vi.fn()}
       {...props}
     />
   );
@@ -136,6 +143,10 @@ describe('the rendered day section', () => {
     expect(within(item).queryByText('Pending')).not.toBeInTheDocument();
     // A recorded entry is already settled, so it offers no checkbox at all.
     expect(within(item).queryByRole('checkbox')).not.toBeInTheDocument();
+    // The category name is now carried by a control, not by plain text beside the merchant.
+    expect(within(item).getByRole('button', { name: 'Change lunch’s category' })).toHaveTextContent(
+      'Groceries',
+    );
   });
 
   it('keeps the header’s day, count and total whether it is open or closed', async () => {
@@ -421,6 +432,8 @@ describe('the rendered day section', () => {
     expect(item).toHaveTextContent('EUR5.00');
     expect(item).not.toHaveTextContent('999');
     expect(item).not.toHaveTextContent(/null|undefined/i);
+    // An unnamed category earns no control at all.
+    expect(within(item).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('shows the merchant when it is given and no null or undefined in its place when it is not', () => {
@@ -492,6 +505,10 @@ describe('the rendered day section', () => {
     expect(within(pendingItem).getByText('‹Pending›')).toBeInTheDocument();
     expect(
       within(pendingItem).getByRole('checkbox', { name: '‹Select this entry›' }),
+    ).toBeInTheDocument();
+    // The row control's own label cannot be a literal in the component either.
+    expect(
+      within(pendingItem).getByRole('button', { name: '‹Change taxi’s category›' }),
     ).toBeInTheDocument();
   });
 
@@ -704,5 +721,220 @@ describe('the rendered day section', () => {
 
     const header = screen.getByRole('button');
     expect(header).not.toHaveTextContent(/ticked/i);
+  });
+
+  it('offers each row’s category as a control, and pressing it offers the person’s categories grouped, with no all entry', async () => {
+    const everyday = aGrouping({ id: 100, name: 'Everyday' });
+    const groceries = aCategory({
+      id: 10,
+      name: 'Groceries',
+      groupingId: everyday.id,
+      groupingName: everyday.name,
+    });
+    const transport = aCategory({
+      id: 20,
+      name: 'Transport',
+      groupingId: everyday.id,
+      groupingName: everyday.name,
+    });
+    const recorded = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const pending = anExpense({ id: 2, status: 'PENDING', categoryId: 10, description: 'taxi' });
+    const day = aDay({ entries: [recorded, pending] });
+
+    renderSection({ day, categories: [groceries, transport], groupings: [everyday] });
+    expandDays();
+
+    const recordedControl = screen.getByRole('button', { name: 'Change lunch’s category' });
+    const pendingControl = screen.getByRole('button', { name: 'Change taxi’s category' });
+    expect(recordedControl).toBeInTheDocument();
+    expect(pendingControl).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(recordedControl);
+
+    expect(await screen.findByRole('option', { name: 'Groceries' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Transport' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'All' })).not.toBeInTheDocument();
+  });
+
+  it('calls onChangeCategory once with the row’s own entry and the chosen category id when a different one is picked', async () => {
+    const everyday = aGrouping({ id: 100, name: 'Everyday' });
+    const groceries = aCategory({
+      id: 10,
+      name: 'Groceries',
+      groupingId: everyday.id,
+      groupingName: everyday.name,
+    });
+    const transport = aCategory({
+      id: 20,
+      name: 'Transport',
+      groupingId: everyday.id,
+      groupingName: everyday.name,
+    });
+    const entry = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const day = aDay({ entries: [entry] });
+    const onChangeCategory = vi.fn();
+
+    renderSection({
+      day,
+      categories: [groceries, transport],
+      groupings: [everyday],
+      onChangeCategory,
+    });
+    expandDays();
+
+    await chooseFromList('Change lunch’s category', 'Transport');
+
+    expect(onChangeCategory).toHaveBeenCalledTimes(1);
+    expect(onChangeCategory).toHaveBeenCalledWith(entry, transport.id);
+  });
+
+  it('stands the control alone on the secondary line, with no separator, when the merchant is absent', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      categoryId: 10,
+      description: 'stamps',
+      merchant: null,
+    });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /stamps/i });
+    expect(
+      within(item).getByRole('button', { name: 'Change stamps’s category' }),
+    ).toBeInTheDocument();
+    expect(item).not.toHaveTextContent('·');
+  });
+
+  it('shows both the merchant and the control on the secondary line, in that order, when there is a merchant', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      categoryId: 10,
+      description: 'lunch',
+      merchant: 'Corner Cafe',
+    });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /lunch/i });
+    const merchant = within(item).getByText('Corner Cafe');
+    const control = within(item).getByRole('button', { name: 'Change lunch’s category' });
+
+    // The control comes after the merchant in the DOM, not merely somewhere later in the text.
+    expect(
+      merchant.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('reads its old category and marks the control busy but still focusable when a change is out for it', () => {
+    const entry = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day, changingKey: 'RECORDED-1' });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /lunch/i });
+    const control = within(item).getByRole('button', { name: 'Change lunch’s category' });
+    expect(item).toHaveTextContent('Groceries');
+    expect(control).toHaveAttribute('aria-busy', 'true');
+    expect(control).toBeEnabled();
+  });
+
+  it('disables every other row’s control on the day while one change is out', () => {
+    const first = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const second = anExpense({ id: 2, status: 'RECORDED', categoryId: 10, description: 'dinner' });
+    const day = aDay({ entries: [first, second] });
+
+    renderSection({ day, changingKey: 'RECORDED-1' });
+    expandDays();
+
+    const secondItem = screen.getByRole('listitem', { name: /dinner/i });
+    const control = within(secondItem).getByRole('button', { name: 'Change dinner’s category' });
+    expect(control).toBeDisabled();
+  });
+
+  it('leaves every control enabled and not busy when no change is out', () => {
+    const entry = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day, changingKey: null });
+    expandDays();
+
+    const control = screen.getByRole('button', { name: 'Change lunch’s category' });
+    expect(control).toBeEnabled();
+    expect(control).not.toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('shows the refusal message inside the row it names, and nowhere else on the day', () => {
+    const first = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const second = anExpense({ id: 2, status: 'RECORDED', categoryId: 10, description: 'dinner' });
+    const day = aDay({ entries: [first, second] });
+
+    renderSection({
+      day,
+      changeFailure: { key: 'RECORDED-2', message: 'That category no longer exists.' },
+    });
+    expandDays();
+
+    const firstItem = screen.getByRole('listitem', { name: /lunch/i });
+    const secondItem = screen.getByRole('listitem', { name: /dinner/i });
+    expect(within(secondItem).getByRole('alert')).toHaveTextContent(
+      'That category no longer exists.',
+    );
+    expect(within(firstItem).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows no message on any row when there is no refusal', () => {
+    const entry = anExpense({ id: 1, status: 'RECORDED', categoryId: 10, description: 'lunch' });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day, changeFailure: null });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /lunch/i });
+    expect(within(item).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('offers no category control and leaks no id, null or undefined when the categoryNames map is empty', () => {
+    const entry = anExpense({
+      id: 1,
+      status: 'RECORDED',
+      categoryId: 10,
+      description: 'stamps',
+      merchant: 'Post Office',
+    });
+    const day = aDay({ entries: [entry] });
+
+    renderSection({ day, categoryNames: new Map() });
+    expandDays();
+
+    const item = screen.getByRole('listitem', { name: /stamps/i });
+    expect(item).toHaveTextContent('stamps');
+    expect(item).toHaveTextContent('Post Office');
+    expect(within(item).queryByRole('button')).not.toBeInTheDocument();
+    expect(item).not.toHaveTextContent('10');
+    expect(item).not.toHaveTextContent(/null|undefined/i);
+  });
+
+  it('focuses the day’s header when focusDay names this day', () => {
+    const day = aDay({ day: '2026-08-01', entries: [anExpense({ id: 1, description: 'lunch' })] });
+
+    renderSection({ day, focusDay: '2026-08-01' });
+
+    expect(screen.getByRole('button')).toHaveFocus();
+  });
+
+  it('leaves the day’s header unfocused when focusDay names another day', () => {
+    const day = aDay({ day: '2026-08-01', entries: [anExpense({ id: 1, description: 'lunch' })] });
+
+    renderSection({ day, focusDay: '2026-08-02' });
+
+    expect(screen.getByRole('button')).not.toHaveFocus();
   });
 });

@@ -20,7 +20,6 @@
 - It starts where [an acceptance](accept-chosen-proposals.md) hands over the messages it moved rows under.
 - It runs on a thread of its own, out of a pool whose bounds are [configuration](../configuration.md).
 - Nobody waits for it. Nothing it does or fails to do reaches the browser, and nothing is retried.
-- Work the pool has no room for is dropped rather than queued further or run on the request thread.
 
 ## Collaborators
 
@@ -29,15 +28,6 @@
 | in        | [Accept the proposals a person chose](accept-chosen-proposals.md) | [Accept the proposals a person chose](accept-chosen-proposals.md)                 | handing over the messages an acceptance may have emptied                            |
 | out       | [Database](../contracts/out/database.md)                          | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading what is still pending under each message, and where its reports were posted |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                  | [Outgoing replies](../contracts/out/telegram-replies.md)                          | taking the buttons off a report the acceptance emptied                              |
-
-## Rules
-
-- Only a message with nothing of that person's left pending under it is cleared.
-- A message still holding one of their pending proposals is left alone, so its buttons still resolve the rest.
-- Every [report](../domain/proposal-report.md) recorded for an emptied message is cleared, oldest first.
-- A report's own text is left as sent. Only its buttons go.
-- A message the clearing takes is logged at info where nothing refused it, and at warn for each refusal.
-- Clearing a report whose buttons are already gone is refused by Telegram, which is one of those warns.
 
 ## Outcomes
 
@@ -50,6 +40,7 @@
 | Counts unreadable   | reading what is still pending fails                                                  | it is logged, and no report is cleared                             |
 | Reports unreadable  | reading where a message's reports were posted fails                                  | the run ends there, and the messages after it are left alone       |
 | Nothing handed over | the work names no message                                                            | nothing is read and nothing is sent                                |
+| Clearing dropped    | the pool has no room for the work                                                    | it never runs, and nothing is queued or run on the request thread  |
 
 A report that keeps its buttons is not a lost outcome: a later tap on it answers that the spending is already
 recorded ([Resolve a reported proposal](resolve-a-reported-proposal.md)).
@@ -94,8 +85,8 @@ Rel_D(clearService, messageDeliveryPort, "Clears the buttons through")
 Rel_U(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
 Rel_U(reportRepositoryAdapter, reportRepositoryPort, "Implements", $tags="implements")
 Rel_U(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
-Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
-Rel_R(reportRepositoryAdapter, db, "SQL", "JDBC")
+Rel_D(proposalRepositoryAdapter, db, "SQL", "JDBC")
+Rel_D(reportRepositoryAdapter, db, "SQL", "JDBC")
 Rel_R(deliveryAdapter, telegram, "The report, with its keyboard removed", "Telegram Bot API")
 
 Lay_D(dispatchPort, dispatcher)
@@ -143,3 +134,9 @@ repeat while (another message?) is (yes)
 stop
 @enduml
 ```
+
+## References
+
+- [Resolve a reported proposal](resolve-a-reported-proposal.md) — what a report that keeps its buttons answers
+  when it is tapped
+- [Configuration](../configuration.md) — the pool's bounds, and what happens to work it has no room for

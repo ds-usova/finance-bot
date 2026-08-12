@@ -1,16 +1,19 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.ProposalIds;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -110,6 +113,19 @@ public class ExpenseProposalRepositoryAdapter implements ExpenseProposalReposito
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
                     "failed to find messages with pending proposals for user " + userId, e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
+        try {
+            return expenseProposalEntityRepository
+                    .refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS))
+                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.PENDING));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to refile expense proposal " + entryId + " for user " + userId, e);
         }
     }
 

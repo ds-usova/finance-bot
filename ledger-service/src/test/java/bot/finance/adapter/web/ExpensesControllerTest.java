@@ -8,22 +8,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
+import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
+import bot.finance.application.port.ChangeExpenseCategoryPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
+import bot.finance.domain.exception.ExpenseEntryNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
+import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
+import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseFilter;
@@ -68,7 +74,11 @@ class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
+    private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{status}/{id}";
     private static final String EXTERNAL_ID = "778899001";
+    private static final String VALID_DOCUMENT = """
+            [{"op":"replace","path":"/categoryId","value":42}]""";
+    private static final MediaType JSON_PATCH = MediaType.parseMediaType("application/json-patch+json");
 
     @Autowired
     private MockMvc mockMvc;
@@ -78,6 +88,9 @@ class ExpensesControllerTest {
 
     @MockitoBean
     private AcceptExpensesPort acceptExpensesPort;
+
+    @MockitoBean
+    private ChangeExpenseCategoryPort changeExpenseCategoryPort;
 
     @Nested
     @DisplayName("Happy Path")
@@ -171,6 +184,79 @@ class ExpensesControllerTest {
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getInt("accepted")).isEqualTo(2);
             assertThat(json.getInt("missing")).isZero();
+        }
+
+        @Test
+        @DisplayName("when a RECORDED entry is patched to a new categoryId - then the response is 200 with the "
+                + "entry in listing shape")
+        void whenARecordedEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry()
+                throws Exception {
+            ExpenseEntry answeredEntry = new ExpenseEntry(
+                    ExpenseStatus.RECORDED,
+                    7L,
+                    42L,
+                    "Coffee",
+                    Optional.of("Corner Cafe"),
+                    new Money(500L, CurrencyCode.of("EUR")),
+                    Instant.parse("2026-01-01T10:00:00Z"));
+            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
+
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
+                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
+            verify(changeExpenseCategoryPort).change(command.capture());
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.RECORDED);
+            assertThat(command.getValue().entryId()).isEqualTo(7L);
+            assertThat(command.getValue().categoryId()).isEqualTo(42L);
+
+            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            assertThat(json.getLong("id")).isEqualTo(7L);
+            assertThat(json.getString("status")).isEqualTo("RECORDED");
+            assertThat(json.getLong("categoryId")).isEqualTo(42L);
+            assertThat(json.getString("description")).isEqualTo("Coffee");
+            assertThat(json.getString("merchant")).isEqualTo("Corner Cafe");
+            assertThat(json.getString("money.amount")).isEqualTo("5.00");
+            assertThat(json.getString("money.currency")).isEqualTo("€");
+        }
+
+        @Test
+        @DisplayName("when a PENDING entry is patched to a new categoryId - then the command and response both "
+                + "carry PENDING")
+        void whenAPendingEntryIsPatchedToANewCategoryId_thenCommandCarriesPendingAndResponseStatusIsPending()
+                throws Exception {
+            ExpenseEntry answeredEntry = new ExpenseEntry(
+                    ExpenseStatus.PENDING,
+                    9L,
+                    42L,
+                    "Coffee",
+                    Optional.of("Corner Cafe"),
+                    new Money(500L, CurrencyCode.of("EUR")),
+                    Instant.parse("2026-01-01T10:00:00Z"));
+            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
+
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "PENDING", "9")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
+                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
+            verify(changeExpenseCategoryPort).change(command.capture());
+            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.PENDING);
+
+            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            assertThat(json.getString("status")).isEqualTo("PENDING");
         }
     }
 
@@ -395,6 +481,52 @@ class ExpensesControllerTest {
             assertThat(messageOf(result)).isEqualTo("the request body could not be read");
             verify(acceptExpensesPort, never()).accept(any());
         }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#changeCategoryPathViolations")
+        @DisplayName("when the status or the id path segment is refused - then the response is 400, and the port "
+                + "is never called")
+        void whenStatusOrIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(
+                String description, String status, String id) throws Exception {
+            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, status, id)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isBadRequest());
+
+            verify(changeExpenseCategoryPort, never()).change(any());
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#changeCategoryDocumentViolations")
+        @DisplayName("when the document is refused - then the response is 400, and the port is never called")
+        void whenTheDocumentIsRefused_thenResponseIs400AndPortNeverCalled(String description, String body)
+                throws Exception {
+            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(body))
+                    .andExpect(status().isBadRequest());
+
+            verify(changeExpenseCategoryPort, never()).change(any());
+        }
+
+        @Test
+        @DisplayName("when the document is not JSON at all - then the response is 400 and the port is never called")
+        void whenTheDocumentIsNotJsonAtAll_thenResponseIs400AndPortNeverCalled() throws Exception {
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content("not json at all"))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).isEqualTo("the request body could not be read");
+            verify(changeExpenseCategoryPort, never()).change(any());
+        }
     }
 
     @Nested
@@ -449,6 +581,65 @@ class ExpensesControllerTest {
 
             assertThat(messageOf(result)).isEqualTo(exceptionMessage);
         }
+
+        @Test
+        @DisplayName("when the port throws InvalidExpenseCategoryChangeException - then the response is 400 "
+                + "carrying its message")
+        void whenPortThrowsInvalidExpenseCategoryChangeException_thenResponseIs400CarryingExceptionsMessage()
+                throws Exception {
+            String exceptionMessage = "categoryId names no category of the caller's";
+            when(changeExpenseCategoryPort.change(any()))
+                    .thenThrow(new InvalidExpenseCategoryChangeException(exceptionMessage));
+
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).isEqualTo(exceptionMessage);
+        }
+
+        @Test
+        @DisplayName("when the port throws ExpenseEntryNotFoundException - then the response is 404 carrying the "
+                + "exception's own message")
+        void whenPortThrowsExpenseEntryNotFoundException_thenResponseIs404CarryingExceptionsOwnMessage()
+                throws Exception {
+            String exceptionMessage = "no entry of the caller's carries id 7 under RECORDED";
+            when(changeExpenseCategoryPort.change(any()))
+                    .thenThrow(new ExpenseEntryNotFoundException(exceptionMessage));
+
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isNotFound())
+                    .andReturn();
+
+            assertThat(messageOf(result)).isEqualTo(exceptionMessage).isNotEqualTo("the caller is unknown");
+        }
+
+        @Test
+        @DisplayName("when the port throws PersistenceFailedException - then the response is 503 and its message "
+                + "names no table or statement")
+        void whenPortThrowsPersistenceFailedException_thenResponseIs503NamingNoTableOrStatement() throws Exception {
+            when(changeExpenseCategoryPort.change(any()))
+                    .thenThrow(new PersistenceFailedException("the refile statement failed", new RuntimeException()));
+
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(JSON_PATCH)
+                            .content(VALID_DOCUMENT))
+                    .andExpect(status().isServiceUnavailable())
+                    .andReturn();
+
+            String message = messageOf(result);
+            assertThat(message).doesNotContainIgnoringCase("table").doesNotContainIgnoringCase("statement");
+        }
     }
 
     static Stream<Arguments> idsBoundViolations() {
@@ -494,6 +685,42 @@ class ExpensesControllerTest {
 
     static Stream<Arguments> invalidOffsets() {
         return Stream.of(arguments("negative", "-1"), arguments("not a number", "xyz"));
+    }
+
+    static Stream<Arguments> changeCategoryPathViolations() {
+        return Stream.of(
+                arguments("status ACCEPTED", "ACCEPTED", "7"),
+                arguments("status in lower case", "recorded", "7"),
+                arguments("id of 0", "RECORDED", "0"),
+                arguments("id that is not a number", "RECORDED", "abc"));
+    }
+
+    static Stream<Arguments> changeCategoryDocumentViolations() {
+        return Stream.of(
+                arguments("an empty document", "[]"),
+                arguments(
+                        "a document of two operations",
+                        """
+                        [{"op":"replace","path":"/categoryId","value":42},\
+                        {"op":"replace","path":"/categoryId","value":43}]"""),
+                arguments(
+                        "an op other than replace",
+                        """
+                        [{"op":"add","path":"/categoryId","value":42}]"""),
+                arguments(
+                        "a path other than /categoryId",
+                        """
+                        [{"op":"replace","path":"/other","value":42}]"""),
+                arguments(
+                        "a value of 0",
+                        """
+                        [{"op":"replace","path":"/categoryId","value":0}]"""),
+                arguments(
+                        "a value below 0",
+                        """
+                        [{"op":"replace","path":"/categoryId","value":-1}]"""),
+                arguments("an absent value", """
+                        [{"op":"replace","path":"/categoryId"}]"""));
     }
 
     private static String messageOf(MvcResult result) throws Exception {

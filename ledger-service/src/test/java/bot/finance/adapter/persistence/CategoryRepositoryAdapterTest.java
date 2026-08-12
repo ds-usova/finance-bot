@@ -263,6 +263,58 @@ class CategoryRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("checking whether a category is owned by the caller")
+    class ExistsOwnedCategory {
+
+        @Test
+        @DisplayName(
+                "when the id names a category of the caller's, filed under one of their groupings - then answers true")
+        void whenIdNamesCallersCategoryUnderGrouping_thenAnswersTrue() {
+            long userId = storedUserId("owned-category-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long categoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+
+            boolean exists = adapter.existsOwnedCategory(userId, categoryId);
+
+            assertThat(exists).isTrue();
+        }
+
+        @Test
+        @DisplayName("when the id names one of the caller's own groupings, which has no parent - then answers false")
+        void whenIdNamesCallersOwnGrouping_thenAnswersFalse() {
+            long userId = storedUserId("owned-grouping-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+
+            boolean exists = adapter.existsOwnedCategory(userId, groupingId);
+
+            assertThat(exists).isFalse();
+        }
+
+        @Test
+        @DisplayName("when the id names another person's category - then answers false")
+        void whenIdNamesAnotherPersonsCategory_thenAnswersFalse() {
+            long ownerUserId = storedUserId("owned-category-owner-user");
+            long groupingId = storedGroupingId(ownerUserId, "Groceries");
+            long categoryId = storedCategoryId(ownerUserId, groupingId, "Supermarkets");
+            long callerUserId = storedUserId("owned-category-caller-user");
+
+            boolean exists = adapter.existsOwnedCategory(callerUserId, categoryId);
+
+            assertThat(exists).isFalse();
+        }
+
+        @Test
+        @DisplayName("when the id names no category row at all - then answers false")
+        void whenIdNamesNoCategoryRow_thenAnswersFalse() {
+            long userId = storedUserId("owned-category-unknown-id-user");
+
+            boolean exists = adapter.existsOwnedCategory(userId, 999_999_999L);
+
+            assertThat(exists).isFalse();
+        }
+    }
+
     // These scenarios need a store that misbehaves in a way the healthy containerized Postgres
     // cannot be made to: an outright database failure. They construct their own adapter over a
     // Mockito mock and call the adapter's own public method directly - it is still the adapter
@@ -317,6 +369,20 @@ class CategoryRepositoryAdapterTest {
             CategoryRepositoryAdapter throwingAdapter = new CategoryRepositoryAdapter(throwingRepository);
 
             assertThatThrownBy(() -> throwingAdapter.findAllForUser(1L, null))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when existsOwnedCategory() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenExistsOwnedCategoryHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedCategoryEntityRepository.existsByIdAndUserIdAndParentIdIsNotNull(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.existsOwnedCategory(1L, 1L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

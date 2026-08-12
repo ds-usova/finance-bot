@@ -14,7 +14,6 @@ How much of a person's spending one listing asks for — which rows are wanted, 
 
 - Over `limit`'s maximum is refused, never trimmed to it.
 - Matching nothing is valid.
-- A refusal names the part and the bound.
 
 ## Made of / held by
 

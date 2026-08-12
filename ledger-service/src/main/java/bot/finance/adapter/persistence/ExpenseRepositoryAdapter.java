@@ -13,6 +13,7 @@ import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,6 +100,18 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
                     periodEndExclusive(filter.period()));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to count expenses for user " + userId, e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
+        try {
+            return expenseEntityRepository
+                    .refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS))
+                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.RECORDED));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
         }
     }
 

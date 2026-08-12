@@ -4,21 +4,29 @@ One purchase or payment recorded against a user, filed under a category.
 
 ## Invariants
 
-- An expense is stored or not yet stored, and carries the store's own id only once it is.
-- Two stored expenses with the same id are the same expense, whatever else differs; an expense not yet stored
-  equals only itself.
+| Field                                            | Bound                |
+|--------------------------------------------------|----------------------|
+| `id`                                             | only once stored     |
+| `userId`                                         | `> 0`                |
+| `categoryId`                                     | `> 0`                |
+| `description`                                    | mandatory, non-blank |
+| `merchant`                                       | optional             |
+| [`money`](money.md)                              | mandatory            |
+| `createdAt`, `updatedAt`                         | mandatory            |
+
+Two stored expenses with the same `id` are the same expense. An unstored one equals only itself.
 
 ## Lifecycle
 
 One state, reached two ways and never left.
 
-| Event   | By                                                                        | Notes                                                   |
-|---------|---------------------------------------------------------------------------|---------------------------------------------------------|
-| Created | [Create an expense](../usecases/create-an-expense.md)                            | recorded directly                                       |
-| Created | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)        | an accepted [proposal](expense-proposal.md) becomes one |
-| Created | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md)    | the same, for the entries a person ticked on the page   |
-| Changed | never                                                                            | every field is fixed at creation                        |
-| Removed | never                                                                            | only with its user, by the store's own cascade          |
+| Event   | By                                                                           | Notes                                                   |
+|---------|------------------------------------------------------------------------------|---------------------------------------------------------|
+| Created | [Create an expense](../usecases/create-an-expense.md)                        | recorded directly                                       |
+| Created | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)    | an accepted [proposal](expense-proposal.md) becomes one |
+| Created | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | the same, for the entries a person ticked on the page   |
+| Changed | [Change an entry's category](../usecases/change-an-expense-category.md)      | its category, and nothing else                          |
+| Removed | never                                                                        | only with its user, by the store's own cascade          |
 
 An expense created by accepting a proposal carries the day the proposal was made, on either path. Only the
 last-updated instant is the moment of acceptance, so an entry stays on the day it first appeared on. See

@@ -5,6 +5,7 @@ import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.BrowseGroupingsPort;
 import bot.finance.application.port.CategoryRepository;
+import bot.finance.application.port.ChangeExpenseCategoryPort;
 import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
@@ -27,6 +28,7 @@ import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
 import bot.finance.application.usecase.BrowseExpensesUseCase;
 import bot.finance.application.usecase.BrowseGroupingsUseCase;
+import bot.finance.application.usecase.ChangeExpenseCategoryUseCase;
 import bot.finance.application.usecase.ClearEmptiedReportsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
@@ -149,6 +151,22 @@ public class UseCaseConfiguration {
                 userRepository,
                 expenseProposalRepository,
                 reportClearingDispatchPort,
+                Clock.systemUTC(),
+                loggerFactory);
+    }
+
+    @Bean
+    ChangeExpenseCategoryPort changeExpenseCategoryPort(
+            UserRepository userRepository,
+            CategoryRepository categoryRepository,
+            ExpenseRepository expenseRepository,
+            ExpenseProposalRepository expenseProposalRepository,
+            LoggerFactory loggerFactory) {
+        return new ChangeExpenseCategoryUseCase(
+                userRepository,
+                categoryRepository,
+                expenseRepository,
+                expenseProposalRepository,
                 Clock.systemUTC(),
                 loggerFactory);
     }

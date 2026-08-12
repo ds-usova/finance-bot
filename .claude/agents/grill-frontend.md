@@ -50,7 +50,14 @@ scenario has a branch.
 
 **And one question the design must answer:** what has to be looked at with human eyes. A unit suite lays nothing
 out, so every category above except **Input & locale** and **Person's state** is beyond any test the module can
-write. Record the answer as a decision naming the screens and the states.
+write. Record the answer as a decision naming the screens and the states — and, beside each one, **the question
+whose answer decides whether it passes**, so the session numbering your findings can turn that into a reference.
+`a narrow row` alone says where to look and not what is wrong when you get there; `a narrow row — which of the
+merchant and the category gives way first` points at the entry that already settled it.
+
+A bare label is copied out later as a check somebody has to invent a criterion for, and two readers of the same
+label invent two different ones. Naming the question keeps the criterion in one place: this design answers it
+once, and whoever works the list dereferences rather than guesses.
 
 ## 3. Answer It Yourself First
 
@@ -68,6 +75,10 @@ with no token, precedent or rule behind it is `must-decide`, however obvious one
 adds a dependency or contradicts an entry marked `decided`.
 
 Never mark an entry `decided`. That basis records the user's own choice.
+
+**The basis decides where the finding lands.** An `assumed` or `deferred` finding becomes a **Design Findings**
+row — question, answer, evidence, one clause each. A `must-decide` becomes a numbered entry under **Decisions**.
+So an answer that will not compress to a row is a sign the classification is wrong.
 
 ## 4. Report Back
 
@@ -101,8 +112,9 @@ entry it challenges.
 ## 5. A Design That Was Already Grilled
 
 The session says so when it spawns or resumes this agent, and says which grill went before — a change spanning a
-service and a screen is grilled twice. Read the entries to tell which questions were asked. Everything above
-still applies, with these differences:
+service and a screen is grilled twice. Read the **Decisions** entries and the **Design Findings** rows to tell
+which questions were asked. Everything above still applies, with these differences:
 
-- Judge the design **as it now stands**. An entry marked `decided` stands.
+- Judge the design **as it now stands**. An entry marked `decided` stands, and so does a Design Findings row
+  whose evidence still holds.
 - Raise only what is new. If nothing is, say `No new findings`.

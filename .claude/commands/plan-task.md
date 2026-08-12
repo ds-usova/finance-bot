@@ -27,7 +27,9 @@ as a new question.
 
 Every plan is written from a design file — `docs/<n>-<task-name>/design.md`, produced by `design-task`. Read it in
 full before anything else. It carries the **Objective**, the **Proposed Solution**, the flow the change follows, the
-**Acceptance Scenarios** a person signed off, and the **Decisions** this plan's steps have to encode.
+**Acceptance Scenarios** a person signed off, and the calls this plan's steps have to encode. Those calls are in
+two places: **Decisions** holds the ones the user made, and **Design Findings** holds the ones the repository
+answered. Both bind the plan.
 
 **Two gates, both hard:**
 
@@ -37,9 +39,9 @@ full before anything else. It carries the **Objective**, the **Proposed Solution
   The script ships with the `design-task` skill at `scripts/design/design.sh` — under `${CLAUDE_PLUGIN_ROOT}` when
   installed as a plugin, under `.claude/` in a plain checkout.
 
-A design gap found *while* planning — a case the **Decisions** section does not cover — is amended in the design
-file as a new `D` entry, answered against the repository or escalated to the user. It is never absorbed into the
-plan.
+A design gap found *while* planning — a case neither **Decisions** nor **Design Findings** covers — is amended in
+the design file: a **Design Findings** row where the repository answers it, a new `D` entry escalated to the user
+where nothing does. It is never absorbed into the plan.
 
 ## 2. Create a Plan File per Module
 

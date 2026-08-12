@@ -5,18 +5,16 @@ Telegram gave it — so its buttons can be reached after the proposals it listed
 
 ## Invariants
 
-- A report is stored or not yet stored, and carries the store's own id only once it is.
-- Two stored reports with the same id are the same report, whatever else differs; a report not yet stored equals
-  only itself.
-- The owning user's id — positive.
-- The [incoming message id](incoming-message-id.md) the report is about — present.
-- The conversation the report was posted into — present, non-blank.
-- The report's own message id, as Telegram gave it on send — present, non-blank.
+| Field                                            | Bound                          |
+|--------------------------------------------------|--------------------------------|
+| `id`                                             | only once stored               |
+| `userId`                                         | `> 0`                          |
+| [`incomingMessageId`](incoming-message-id.md)    | mandatory                      |
+| `conversationId`                                 | mandatory, non-blank           |
+| `sentMessageId`                                  | mandatory, non-blank           |
 
-Two of those name a message and they are not the same message: one is what a person sent, the other is what the
-bot sent back about it.
-
-There is no unique key. One incoming message can carry several reports, and each has a row.
+- Two stored reports with the same `id` are the same report. An unstored one equals only itself.
+- `incomingMessageId` is what the person sent, `sentMessageId` is what the bot sent back.
 
 ## Lifecycle
 
@@ -25,12 +23,6 @@ There is no unique key. One incoming message can carry several reports, and each
 | Created | [Act on a user's message](../usecases/handle-incoming-message.md) | one per report delivered carrying buttons      |
 | Changed | never                                                             | every field is fixed at creation               |
 | Removed | never                                                             | only with its user, by the store's own cascade |
-
-One state, and it outlives the proposals it is about — which is what lets an emptied report still be reached by
-[the clearing](../usecases/clear-emptied-reports.md).
-
-A report exists in the chat without a row in two cases: one delivered before the row was ever kept, and one
-whose location could not be stored. Both keep their buttons, and a tap on either still answers truthfully.
 
 ## Made of / held by
 

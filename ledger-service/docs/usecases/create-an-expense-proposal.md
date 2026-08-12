@@ -15,36 +15,6 @@
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md)                  | recording spending it has assembled from a conversation                                    |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the grouping and the category under it, storing the proposal |
 
-## Rules
-
-- The identity is the one the service has already authenticated
-  ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose proposal it is
-  ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- The [incoming message id](../domain/incoming-message-id.md) is read from the same credential as the identity, and
-  the request never names it either
-  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
-- A stored proposal records which message produced it, so the report answering that message can name it.
-- Spending is filed under a [category](../domain/category.md), never under the
-  [grouping](../domain/grouping.md) holding it.
-- Both names are resolved among the caller's own rows only, and neither is ever a stored id.
-- The grouping is required, and it is not blank.
-- The grouping is resolved first: a name no grouping of theirs carries is rejected, and the message repeats it.
-- The category is resolved under that grouping: a name it holds no category of is rejected, and the message
-  names both.
-- A grouping's own name is not one of its categories, so sending it as the category is rejected the same way.
-- A grouping holds at most one category of a given name
-  ([ADR 0003](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md)).
-- A description is present, and it is not blank.
-- A merchant is present as an optional value, never absent — but a present, blank merchant is normalized to
-  absent rather than rejected.
-- A money amount is present.
-- Nothing is stored, and no proposal is built, when the identity names no user.
-- Both timestamps are stamped at creation, equal to each other.
-- How long its text may be is checked where it is stored
-  ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).
-- A stored proposal is not an expense, and nothing further happens to it yet.
-- Nothing makes a repeat of the same request the same proposal: it stores a second one.
-
 ## Outcomes
 
 | Outcome          | When                                                                                                      | Result                                                                               |
@@ -156,3 +126,16 @@ endif
 stop
 @enduml
 ```
+
+## References
+
+- [ADR 0007: An MCP caller is identified by a signed token, not a tool argument](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md) —
+  why the request names no person
+- [ADR 0015: A turn is named by the message that started it](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md) —
+  why the request names no message either
+- [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
+  why a grouping is resolved before the category under it
+- [ADR 0011: The amount is scaled to minor units in the domain](../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md) —
+  what happens to the amount as the message wrote it
+- [ADR 0004: Column widths are checked in the persistence adapter](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) —
+  where a description too long is refused

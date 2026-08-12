@@ -16,6 +16,8 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
 
     boolean existsByUserIdAndNameAndParentIdIsNotNull(Long userId, String name);
 
+    boolean existsByIdAndUserIdAndParentIdIsNotNull(Long id, Long userId);
+
     @Query(
             """
             SELECT c.name

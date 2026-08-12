@@ -45,7 +45,7 @@ function problem(msg) {
 }
 
 BEGIN {
-    nent = 0; nsec = 0; cur = 0; problems = 0; infence = 0
+    nent = 0; nsec = 0; cur = 0; problems = 0; infence = 0; nrow = 0
     lastcontent = 0; seen_modules = 0; grilled = 0
     nreq = split("## Objective,## Context,## Proposed Solution,## Acceptance Scenarios,## Decisions,## Design Findings", req, ",")
 }
@@ -68,6 +68,18 @@ BEGIN {
 }
 
 section == "## Design Findings" && /Grilled \(/ { grilled = 1 }
+
+# A Design Findings row carries an F id in its first cell. Numbered on the same terms as a D entry, so the
+# same duplicate check applies - the body cites these.
+section == "## Design Findings" && /^\|[ \t]*F[0-9]+[ \t]*\|/ {
+    fid = $0
+    sub(/^\|[ \t]*/, "", fid)
+    sub(/[ \t]*\|.*$/, "", fid)
+    nrow++
+    rowid[nrow] = fid
+    lastcontent = NR
+    next
+}
 
 /^- \*\*D[0-9]+:\*\*/ {
     close_entry()
@@ -205,11 +217,21 @@ END {
             problem(eid[i] " is must-decide but carries an Answer - settle the Basis or clear the Answer")
         if (kw[i] != "must-decide" && unfilled(ans[i]))
             problem(eid[i] " is '" kw[i] "' with no Answer")
+
+        # Decisions is what the user reads: the calls they made, and the ones waiting for them. A question the
+        # repository settles was still asked, and its record is a Design Findings row rather than an entry.
+        if (kw[i] == "assumed" || kw[i] == "deferred")
+            problem(eid[i] " is '" kw[i] "' - only decided and must-decide are entries, the rest are Design Findings rows")
+    }
+
+    for (i = 1; i <= nrow; i++) {
+        if (seenrow[rowid[i]]) problem(rowid[i] " is defined twice")
+        seenrow[rowid[i]] = 1
     }
 
     if (!grilled)
         problem("Design Findings carries no 'Grilled (<date>):' line - the grill has not run")
 
-    if (!problems) print nent " decisions, no problems"
+    if (!problems) print nent " decisions, " nrow " findings, no problems"
     exit problems
 }

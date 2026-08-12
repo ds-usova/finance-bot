@@ -14,23 +14,6 @@
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the list categories tool](../contracts/in/mcp.md)                          | narrowing a grouping to the categories an expense may be filed under                            |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the grouping, reading its categories, telling a category from a grouping |
 
-## Rules
-
-- The identity is the one the service has already authenticated
-  ([authenticated user id](../domain/authenticated-user-id.md)); the request never names whose categories it is
-  ([ADR 0007](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)).
-- Only the caller's own groupings and categories are reachable; no argument widens that.
-- The [incoming message id](../domain/incoming-message-id.md) is not read, so a credential carrying none still lists.
-- A [grouping](../domain/grouping.md) is named, never identified by a stored id.
-- The name is present, and it is not blank.
-- The name is resolved against the caller's groupings, and a grouping carrying it holds it alone.
-- A name no grouping of theirs carries is rejected, and the message repeats the name.
-- A name carried by a category of theirs rather than a grouping is rejected as a category, not a grouping.
-- A name that is both a grouping and a category resolves to the grouping.
-- Whether a category carries the name is asked only once no grouping does.
-- A grouping holding no categories answers an empty list, which is not a failure.
-- Nothing is stored, created or changed.
-
 ## Outcomes
 
 | Outcome            | When                                                                     | Result                                                                 |
@@ -140,3 +123,11 @@ endif
 stop
 @enduml
 ```
+
+## References
+
+- [ADR 0007: An MCP caller is identified by a signed token, not a tool argument](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md) —
+  why the request names no person
+- [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
+  why one name can be both a grouping and a category
+- [Create an expense proposal](create-an-expense-proposal.md) — what the caller does with the names it read here

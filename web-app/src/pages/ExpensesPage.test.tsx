@@ -4,14 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import {
   acceptExpenses,
+  changeCategory,
   listCategories,
   listExpenses,
   listGroupings,
   type Acceptance,
+  type Expense,
   type ExpensePage,
 } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
-import { expandDays, listingArrives } from '../testing/accordion';
+import { expandDays, listingArrives, openDayHeaders } from '../testing/accordion';
 import { chooseFromList } from '../testing/combobox';
 import {
   aCategory,
@@ -28,16 +30,24 @@ vi.mock('../api/expenses', () => ({
   listCategories: vi.fn(),
   listGroupings: vi.fn(),
   acceptExpenses: vi.fn(),
+  changeCategory: vi.fn(),
 }));
 
 const listExpensesMock = vi.mocked(listExpenses);
 const listCategoriesMock = vi.mocked(listCategories);
 const listGroupingsMock = vi.mocked(listGroupings);
 const acceptExpensesMock = vi.mocked(acceptExpenses);
+const changeCategoryMock = vi.mocked(changeCategory);
 
 const page = anExpensePage([anExpense({ description: 'lunch', categoryId: 10 })]);
 const categories = [aCategory({ id: 10, name: 'Groceries', groupingId: 100 })];
 const groupings = [aGrouping({ id: 100, name: 'Everyday' })];
+
+/** Both categories a "changed to a different one" scenario needs, under the one grouping the fixtures share. */
+const twoCategories = [
+  aCategory({ id: 10, name: 'Groceries', groupingId: 100 }),
+  aCategory({ id: 20, name: 'Transport', groupingId: 100 }),
+];
 
 /** A call the test settles itself, so a slower one can be made to answer after a faster one. */
 function inFlight<T>() {
@@ -52,6 +62,12 @@ function inFlight<T>() {
 
 async function chooseGroceries() {
   await chooseFromList(/^category/i, /Groceries/);
+}
+
+/** Opens the row named by its description's own control — never the filter's, which is queried as
+ * `/^category/i` throughout this file — and picks a category from it. */
+async function changeCategoryOnRow(description: string, categoryName: string | RegExp) {
+  await chooseFromList(new RegExp(`change ${description}`, 'i'), categoryName);
 }
 
 /** Ticks the checkbox of the entry named, scoped to its own row so the generic checkbox label cannot match
@@ -97,6 +113,10 @@ describe('the expenses page', () => {
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
 
+    // The filter's own trigger is the only control this pattern matches, with every day section open — a
+    // row's own control is named with a verb and never collides with it.
+    expect(screen.getAllByRole('button', { name: /^category/i })).toHaveLength(1);
+
     // Both reads reach the one list: the category is an entry in it, the grouping is the heading over it.
     await userEvent.click(screen.getByRole('button', { name: /^category/i }));
     expect(await screen.findByRole('option', { name: /Groceries/ })).toBeInTheDocument();
@@ -114,6 +134,7 @@ describe('the expenses page', () => {
     expect(listCategoriesMock).toHaveBeenCalledOnce();
     expect(listGroupingsMock).toHaveBeenCalledOnce();
     expect(acceptExpensesMock).not.toHaveBeenCalled();
+    expect(changeCategoryMock).not.toHaveBeenCalled();
   });
 
   it('reports an expired session to the context when the listing is refused', async () => {
@@ -181,6 +202,7 @@ describe('the expenses page', () => {
     expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /change lunch/i })).not.toBeInTheDocument();
   });
 
   it('reads the page after the one on screen when the pager steps forward, keeping the filter', async () => {
@@ -545,7 +567,9 @@ describe('the expenses page', () => {
     expect(ids).toBeDefined();
     expect(ids).toHaveLength(100);
     expect(ids?.every((id) => inBound.some((entry) => entry.id === id))).toBe(true);
-  });
+    // The bound is 100, so the case cannot be made with fewer rows, and every one of them now mounts a
+    // category control. Coverage instrumentation roughly doubles that, which crosses the 5s default.
+  }, 20000);
 
   it('disables the second day’s own checkbox once the first day’s whole tick leaves too little headroom, keeping its entries live and no call over the bound', async () => {
     const firstDay = Array.from({ length: 95 }, (_, i) =>
@@ -589,7 +613,8 @@ describe('the expenses page', () => {
     const [ids] = acceptExpensesMock.mock.calls[0] ?? [];
     expect(ids).toHaveLength(95);
     expect(ids?.every((id) => firstDay.some((entry) => entry.id === id))).toBe(true);
-  });
+    // Same 105 rows as the case above, and the same reason for the raised bound.
+  }, 20000);
 
   it('reads back against the filter the page holds now, not the one the acceptance call left with', async () => {
     const entry = anExpense({
@@ -618,5 +643,413 @@ describe('the expenses page', () => {
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
     expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
+  });
+
+  it('carries the entry and the chosen id in one change call, shows the new category on that row, and leaves the rest of the listing and the pager untouched', async () => {
+    const lunch = anExpense({
+      id: 1,
+      description: 'lunch',
+      categoryId: 10,
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    const coffee = anExpense({
+      id: 2,
+      description: 'coffee',
+      categoryId: 10,
+      createdAt: '2026-08-05T10:00:00Z',
+    });
+    const taxi = anExpense({
+      id: 3,
+      description: 'taxi',
+      categoryId: 10,
+      createdAt: '2026-08-04T18:00:00Z',
+    });
+    listExpensesMock.mockResolvedValueOnce(
+      anExpensePage([lunch, coffee, taxi], { limit: 3, offset: 0, total: 5 }),
+    );
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
+
+    renderPage();
+    await listedEntries();
+    const pagerTextBefore = screen.getByText(/showing/i).textContent;
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    expect(changeCategoryMock).toHaveBeenCalledOnce();
+    expect(changeCategoryMock).toHaveBeenCalledWith(lunch, 20);
+    const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText('Transport')).toBeInTheDocument();
+    expect(within(lunchRow).queryByText('Groceries')).not.toBeInTheDocument();
+    const coffeeRow = screen.getByRole('listitem', { name: /coffee/i });
+    expect(within(coffeeRow).getByText('Groceries')).toBeInTheDocument();
+    expect(listExpensesMock).toHaveBeenCalledOnce();
+    expect(screen.getByText(/showing/i).textContent).toEqual(pagerTextBefore);
+  });
+
+  it('reads back only the day the answered entry carries, spanning it alone with no offset, when a narrowed listing loses the refiled row', async () => {
+    const day = '2026-08-05T09:00:00Z';
+    const lunch = anExpense({
+      id: 30,
+      status: 'RECORDED',
+      description: 'lunch',
+      categoryId: 10,
+      createdAt: day,
+    });
+    const coffee = anExpense({
+      id: 31,
+      status: 'PENDING',
+      description: 'coffee',
+      categoryId: 10,
+      createdAt: day,
+    });
+    // total is set above the item count so the pager renders at all — Pager.tsx shows nothing once every
+    // item fits on the first page, which would otherwise hide the very value this case checks stays put.
+    const narrowed = anExpensePage([lunch, coffee], { limit: 50, offset: 0, total: 5 });
+    listExpensesMock.mockResolvedValueOnce(page).mockResolvedValueOnce(narrowed);
+    listCategoriesMock.mockResolvedValue(twoCategories);
+
+    renderPage();
+    await listedEntries();
+    await chooseGroceries();
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+    expandDays();
+
+    changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
+    const freshTotal = {
+      day: '2026-08-05',
+      amounts: [{ amount: '9.00', currency: '€', separator: '' }],
+    };
+    // The fresh read's own limit/offset/total are decoys, deliberately different from the narrowed page's, so
+    // a pager built from them rather than from the original page would be caught.
+    listExpensesMock.mockResolvedValueOnce(
+      anExpensePage([coffee], { limit: 99, offset: 99, total: 99, dayTotals: [freshTotal] }),
+    );
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    expect(listExpensesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        categoryId: 10,
+        from: '2026-08-05',
+        to: '2026-08-05',
+        offset: undefined,
+      }),
+    );
+    expect(screen.queryByRole('listitem', { name: /lunch/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole('listitem', { name: /coffee/i })).toBeInTheDocument();
+    expect(await screen.findByText('€9.00')).toBeInTheDocument();
+    // Only coffee remains, so the range's upper bound is 1 — but the total is still the narrowed page's 5,
+    // not the fresh read's decoy 99.
+    expect(screen.getByText(/showing/i).textContent).toEqual('Showing 1–1 of 5.');
+  });
+
+  it('keeps a ticked pending row ticked and the action naming it, and accepting afterwards carries its id, once its category is changed', async () => {
+    const parking = anExpense({
+      id: 40,
+      status: 'PENDING',
+      description: 'parking',
+      categoryId: 10,
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    listExpensesMock.mockResolvedValue(anExpensePage([parking]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockResolvedValueOnce({ ...parking, categoryId: 20 });
+    acceptExpensesMock.mockResolvedValueOnce(anAcceptance({ accepted: 1, missing: 0 }));
+
+    renderPage();
+    await listedEntries();
+    await tickEntry(/parking/i);
+
+    await changeCategoryOnRow('parking', /Transport/);
+
+    const parkingRow = await screen.findByRole('listitem', { name: /parking/i });
+    expect(within(parkingRow).getByRole('checkbox')).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Accept 1 entry' }));
+    expect(acceptExpensesMock).toHaveBeenCalledWith([40]);
+  });
+
+  it('drops the tick and the action no longer counts it, when a refiled ticked row leaves a narrowed listing', async () => {
+    const day = '2026-08-05T09:00:00Z';
+    const parking = anExpense({
+      id: 41,
+      status: 'PENDING',
+      description: 'parking',
+      categoryId: 10,
+      createdAt: day,
+    });
+    const narrowed = anExpensePage([parking], { limit: 50, offset: 0, total: 1 });
+    listExpensesMock.mockResolvedValueOnce(page).mockResolvedValueOnce(narrowed);
+    listCategoriesMock.mockResolvedValue(twoCategories);
+
+    renderPage();
+    await listedEntries();
+    await chooseGroceries();
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+    expandDays();
+    await tickEntry(/parking/i);
+
+    changeCategoryMock.mockResolvedValueOnce({ ...parking, categoryId: 20 });
+    listExpensesMock.mockResolvedValueOnce(anExpensePage([], { limit: 50, offset: 0, total: 0 }));
+
+    await changeCategoryOnRow('parking', /Transport/);
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    expect(screen.queryByRole('listitem', { name: /parking/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+  });
+
+  it('makes no change call and leaves the row unchanged when the category picked is the row’s own', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Groceries/);
+
+    expect(changeCategoryMock).not.toHaveBeenCalled();
+    const lunchRow = screen.getByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText('Groceries')).toBeInTheDocument();
+  });
+
+  it('makes only one change call when a category is picked on a second row while one change is still out', async () => {
+    const lunch = anExpense({
+      id: 1,
+      description: 'lunch',
+      categoryId: 10,
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    const coffee = anExpense({
+      id: 2,
+      description: 'coffee',
+      categoryId: 10,
+      createdAt: '2026-08-05T10:00:00Z',
+    });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch, coffee]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    const outstanding = inFlight<Expense>();
+    changeCategoryMock.mockReturnValueOnce(outstanding.promise);
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    // Every other row's control is disabled while a change is out, so the second row's control cannot be
+    // opened at all — that disabling is itself what keeps this to one call.
+    const coffeeControl = screen.getByRole('button', { name: /change coffee/i });
+    expect(coffeeControl).toBeDisabled();
+    await userEvent.click(coffeeControl);
+
+    expect(changeCategoryMock).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('option', { name: /Transport/i })).not.toBeInTheDocument();
+  });
+
+  it('leaves every row’s control usable once the change is answered, and a further pick sends a second call', async () => {
+    const lunch = anExpense({
+      id: 1,
+      description: 'lunch',
+      categoryId: 10,
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    const coffee = anExpense({
+      id: 2,
+      description: 'coffee',
+      categoryId: 10,
+      createdAt: '2026-08-05T10:00:00Z',
+    });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch, coffee]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
+    changeCategoryMock.mockResolvedValueOnce({ ...coffee, categoryId: 20 });
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+    await waitFor(() => expect(changeCategoryMock).toHaveBeenCalledOnce());
+
+    for (const control of screen.getAllByRole('button', { name: /change (lunch|coffee)/i })) {
+      expect(control).toBeEnabled();
+      expect(control).not.toHaveAttribute('aria-busy', 'true');
+    }
+
+    await changeCategoryOnRow('coffee', /Transport/);
+    expect(changeCategoryMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the ledger’s own message under the row, keeps its old category, leaves the page’s banner untouched, reads nothing back and leaves every control usable again, when the ledger refuses with 503', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(
+      new ApiError(503, 'the ledger is temporarily unavailable'),
+    );
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText('the ledger is temporarily unavailable')).toBeInTheDocument();
+    expect(within(lunchRow).getByText('Groceries')).toBeInTheDocument();
+    // The row's own message renders through the same `Alert` (role="alert") as the page's banner, so the
+    // banner staying untouched means exactly one alert exists — the row's — not zero.
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(listExpensesMock).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /change lunch/i })).toBeEnabled();
+  });
+
+  it('shows the ledger’s message under the row and reads back the day it was on, when the ledger refuses with 404', async () => {
+    const taxi = anExpense({
+      id: 3,
+      description: 'taxi',
+      categoryId: 10,
+      createdAt: '2026-08-04T18:00:00Z',
+    });
+    listExpensesMock.mockResolvedValueOnce(anExpensePage([taxi]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(new ApiError(404, 'that entry has moved on'));
+    // Held open rather than resolved immediately: the reread would otherwise empty the day and drop the row
+    // before the test ever gets to look at its message, since nothing here delays the mock's own resolution.
+    const reread = inFlight<ExpensePage>();
+    listExpensesMock.mockReturnValueOnce(reread.promise);
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('taxi', /Transport/);
+
+    const taxiRow = await screen.findByRole('listitem', { name: /taxi/i });
+    expect(within(taxiRow).getByText('that entry has moved on')).toBeInTheDocument();
+    expect(listExpensesMock).toHaveBeenCalledTimes(2);
+    expect(listExpensesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: '2026-08-04', to: '2026-08-04' }),
+    );
+
+    // Now let the reread land, so the stale row leaves as the scenario says it does.
+    await act(async () => {
+      reread.answer(anExpensePage([]));
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('listitem', { name: /taxi/i })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('reports the session expired, re-reads nothing and shows no message on the row, when the ledger refuses with 401', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(new ApiError(401, 'no session'));
+    const sessionExpired = vi.fn();
+
+    renderPage({ sessionExpired });
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    await waitFor(() => expect(sessionExpired).toHaveBeenCalledOnce());
+    expect(listExpensesMock).toHaveBeenCalledOnce();
+    const lunchRow = screen.getByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).queryByText('no session')).not.toBeInTheDocument();
+  });
+
+  it('clears a row’s refusal before the second call’s answer arrives', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(
+      new ApiError(503, 'the ledger is temporarily unavailable'),
+    );
+    const outstanding = inFlight<Expense>();
+    changeCategoryMock.mockReturnValueOnce(outstanding.promise);
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+    const firstRefusal = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(
+      within(firstRefusal).getByText('the ledger is temporarily unavailable'),
+    ).toBeInTheDocument();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    expect(
+      within(screen.getByRole('listitem', { name: /lunch/i })).queryByText(
+        'the ledger is temporarily unavailable',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reads back against the filter the page holds now, not the one the change call left with, and drops an answer for a row the page no longer holds', async () => {
+    const ferry = anExpense({
+      id: 25,
+      description: 'ferry',
+      categoryId: 10,
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    listExpensesMock.mockResolvedValueOnce(anExpensePage([ferry]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    const outstanding = inFlight<Expense>();
+    changeCategoryMock.mockReturnValueOnce(outstanding.promise);
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('ferry', /Transport/);
+
+    listExpensesMock.mockResolvedValueOnce(anExpensePage([ferry]));
+    await chooseGroceries();
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+
+    listExpensesMock.mockResolvedValueOnce(anExpensePage([]));
+    await act(async () => {
+      outstanding.answer({ ...ferry, categoryId: 20 });
+    });
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    expect(listExpensesMock).toHaveBeenLastCalledWith(expect.objectContaining({ categoryId: 10 }));
+  });
+
+  it('moves focus to the day header that held a refiled row the read back removed', async () => {
+    const day = '2026-08-05T09:00:00Z';
+    const lunch = anExpense({
+      id: 50,
+      status: 'RECORDED',
+      description: 'lunch',
+      categoryId: 10,
+      createdAt: day,
+    });
+    const coffee = anExpense({
+      id: 51,
+      status: 'PENDING',
+      description: 'coffee',
+      categoryId: 10,
+      createdAt: day,
+    });
+    const narrowed = anExpensePage([lunch, coffee], { limit: 50, offset: 0, total: 2 });
+    listExpensesMock.mockResolvedValueOnce(page).mockResolvedValueOnce(narrowed);
+    listCategoriesMock.mockResolvedValue(twoCategories);
+
+    renderPage();
+    await listedEntries();
+    await chooseGroceries();
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(2));
+    expandDays();
+
+    changeCategoryMock.mockResolvedValueOnce({ ...lunch, categoryId: 20 });
+    listExpensesMock.mockResolvedValueOnce(
+      anExpensePage([coffee], { limit: 50, offset: 0, total: 2 }),
+    );
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(document.activeElement).toEqual(openDayHeaders()[0]));
   });
 });

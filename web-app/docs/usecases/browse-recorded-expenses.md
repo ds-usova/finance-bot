@@ -19,23 +19,6 @@ What this listing shows awaiting a decision is acted on by
 | out       | [Ledger Service](../contracts/out/ledger-browse-api.md)  | [the browse API](../contracts/out/ledger-browse-api.md) | the entries, each day's figures, and the categories and groupings behind the filter |
 | out       | [Sign in with Telegram](sign-in-with-telegram.md)        | [the session state it owns](sign-in-with-telegram.md)   | dropping to anonymous on a refused read                                             |
 
-## Rules
-
-What this page decides, rather than the ledger. What each read takes and answers is
-[the browse API](../contracts/out/ledger-browse-api.md)'s.
-
-- The answered page is cut into UTC days here, by the UTC day a row was recorded on, and each day's entry count
-  and awaiting badge are counted here. A day's figures are the ledger's, looked up by that same day key and left
-  in the order it answered them.
-- A day's awaiting badge gives way to what [Accept pending expenses](accept-pending-expenses.md) has ticked
-  there.
-- A day split by the page boundary appears on both pages, each part counting only its own entries.
-- A row is named from the category list, matched by id.
-- Paging steps by the page size the ledger answered with, never one this page chose.
-- Only the newest listing read reaches the screen. A slower one answering after its filter was left is dropped,
-  and so is its refusal.
-- A refusal for want of a session drops the session to anonymous. The ledger is told nothing.
-
 ## Outcomes
 
 | Outcome            | When                                                    | Result                                                                           |
@@ -124,3 +107,10 @@ Rel_R(expensesPage, expensesClient, "Reads through")
 Rel_R(expensesClient, ledger, "Browse requests", "HTTPS, same origin")
 @enduml
 ```
+
+## References
+
+- [ADR 0014: The web app and the ledger are served from one origin](../../../docs/adr/0014-the-web-app-and-the-ledger-are-served-from-one-origin.md) —
+  why every read carries the session cookie without a CORS step
+- [Accept pending expenses](accept-pending-expenses.md) — what a person does with the entries this listing shows
+  awaiting a decision

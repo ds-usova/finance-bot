@@ -38,3 +38,36 @@ X-XSRF-TOKEN: {{csrfToken}}
 {
   "ids": [1, 2]
 }
+
+### Changing an entry's category — PATCH /api/v1/expenses/{status}/{id}
+# Refiles one of the signed-in person's entries under a different category. The status says which table the id
+# names, the document replaces /categoryId and nothing else, and the answer is the entry as it now stands. Needs
+# an open session and the CSRF header, since it writes.
+
+### A recorded expense.
+PATCH {{host}}/api/v1/expenses/RECORDED/12
+Content-Type: application/json-patch+json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+[
+  {
+    "op": "replace",
+    "path": "/categoryId",
+    "value": 42
+  }
+]
+
+### A pending proposal — the same document, the other status.
+PATCH {{host}}/api/v1/expenses/PENDING/7
+Content-Type: application/json-patch+json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+[
+  {
+    "op": "replace",
+    "path": "/categoryId",
+    "value": 42
+  }
+]

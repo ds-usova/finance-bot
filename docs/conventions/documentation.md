@@ -59,11 +59,13 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
 
 - **In and Out are lists**, one item per thing that goes in or comes out. Never one line with the items separated
   by a symbol: a reader counts them by scanning, and a fourth item makes the line wrap into prose.
-- **Prerequisites, not Rules.** What must already hold for the use case to run — the caller is authenticated, a
-  user is stored under that identity — one line each. Two or three is a full section.
-- **A Rules section is where a page goes wrong.** It fills with what the flow diagram draws, what **Outcomes**
-  already tables, and what a contract or a domain page owns. Before writing a rule, look for it in those three; a
-  rule that survives that search is usually a **Prerequisite** or a sentence under the section it qualifies.
+- **Prerequisites.** What must already hold for the use case to run — the caller is authenticated, a user is
+  stored under that identity — one line each. Two or three is a full section.
+- **A page carries the flow diagram, Prerequisites, Outcomes, Collaborators and References.** Anything else it
+  wants to say is already drawn by the diagram, tabled by **Outcomes**, or owned by a contract or a domain page.
+- **References is the last section**, and it is links only: the ADRs that decided how this use case works, and
+  the use cases a reader needs next. One line each, each saying in a few words why it is worth opening. A
+  collaborator the table already lists is not repeated, and a page with nothing to point at carries no section.
 - **Outcomes is a table** of condition and result, and it is the section that earns its length. It is the one
   place a reader learns what the use case answers when things go wrong.
 - **The page documents this use case and no other.** Never contrast it with a sibling — "the MCP listing takes a
@@ -80,6 +82,8 @@ identity, whose page describes something the store keeps rows of — carries one
   `50`. "A page size of at least 1 and at most 100" says the same thing and has to be read word by word to get
   there. `PENDING | RECORDED` beats "two values and no others", `PENDING -> RECORDED only` beats a sentence about
   what never happens.
+- **An invariant is what the type refuses, never what the refusal says.** The wording, the status and the field
+  named back to a caller are the boundary's, and its contract page owns them.
 - **Prose is for the invariant that has no symbol** — what the type refuses to be, and what a reader would
   otherwise get wrong. Three of those under a table of bounds is a full page.
 

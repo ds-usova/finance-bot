@@ -5,24 +5,27 @@ One spending record assembled against a user and filed under a category, not yet
 
 ## Invariants
 
-- A proposal is stored or not yet stored, and carries the store's own id only once it is.
-- Two stored proposals with the same id are the same proposal, whatever else differs; a proposal not yet stored
-  equals only itself.
-- A description is present, and it is not blank.
-- A merchant is present as an optional value, never absent; the value itself may be empty.
-- A money amount is present.
-- The owning user's id and the filed category's id are both positive.
-- The incoming message id of the message that produced it is present.
-- Both instants are present.
+| Field                                            | Bound                |
+|--------------------------------------------------|----------------------|
+| `id`                                             | only once stored     |
+| `userId`                                         | `> 0`                |
+| `categoryId`                                     | `> 0`                |
+| `description`                                    | mandatory, non-blank |
+| `merchant`                                       | optional, may be empty |
+| [`money`](money.md)                              | mandatory            |
+| [`incomingMessageId`](incoming-message-id.md)    | mandatory            |
+| `createdAt`, `updatedAt`                         | mandatory            |
+
+Two stored proposals with the same `id` are the same proposal. An unstored one equals only itself.
 
 ## Lifecycle
 
-| Event    | By                                                                                | Notes                                             |
-|----------|-----------------------------------------------------------------------------------|---------------------------------------------------|
-| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)           | one per spending the model read out of a message  |
-| Changed  | never                                                                             | every field is fixed at creation                  |
-| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)         | accepted or discarded, and removed either way     |
-| Removed  | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md)     | accepted from the page, by id                     |
+| Event    | By                                                                            | Notes                                            |
+|----------|-------------------------------------------------------------------------------|--------------------------------------------------|
+| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)       | one per spending the model read out of a message |
+| Changed  | [Change an entry's category](../usecases/change-an-expense-category.md)       | its category, and nothing else                   |
+| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | accepted or discarded, and removed either way    |
+| Removed  | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | accepted from the page, by id                    |
 
 Accepting does not change a proposal's state — it removes the proposal and writes an [expense](expense.md)
 carrying the same values, in one statement
