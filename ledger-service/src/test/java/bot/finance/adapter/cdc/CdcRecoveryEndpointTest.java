@@ -218,6 +218,15 @@ class CdcRecoveryEndpointTest {
                 assertThat(response.statusCode()).isEqualTo(401);
                 verify(changeStreamRecovery, never()).recover();
             }
+
+            @Test
+            @DisplayName("when posted with a blank header - then the response is 401 and the recovery never runs")
+            void whenPostedWithABlankHeader_thenResponseIs401AndRecoveryNeverRuns() {
+                Response response = postRecovery("");
+
+                assertThat(response.statusCode()).isEqualTo(401);
+                verify(changeStreamRecovery, never()).recover();
+            }
         }
     }
 }

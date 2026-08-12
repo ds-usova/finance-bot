@@ -83,7 +83,7 @@ cdc:
   heartbeat-interval: ${CDC_HEARTBEAT_INTERVAL:30s}
   slot-monitor-interval: ${CDC_SLOT_MONITOR_INTERVAL:30s}
   category-cache-size: ${CDC_CATEGORY_CACHE_SIZE:50000}
-  recovery-secret: ${CDC_RECOVERY_SECRET}
+  recovery-secret: ${CDC_RECOVERY_SECRET:}
 
 telegram:
   bot:
