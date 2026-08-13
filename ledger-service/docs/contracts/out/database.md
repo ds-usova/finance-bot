@@ -96,9 +96,8 @@ app_user ||--o{ proposal_report
 @enduml
 ```
 
-One more table exists that no migration declares — `debezium_offset_storage`, created by the engine that reads
-this database's write-ahead log — and three of the tables above carry a replica identity set for that engine
-rather than for any read. Both belong to [Change capture](change-capture.md).
+The database also carries `debezium_offset_storage`, which no migration declares, and a replica identity on
+three of the tables above. Both are [Change capture](change-capture.md)'s.
 
 Indexes beyond the constraints above:
 
@@ -121,7 +120,7 @@ Indexes beyond the constraints above:
 | `expense_proposal` | [Expense proposal](../../domain/expense-proposal.md)  | spending read out of a message, awaiting the person's decision     |
 | `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
 | `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
-| `cdc_heartbeat`    | none                                                  | one row, written by no use case — see [Change capture](change-capture.md) |
+| `cdc_heartbeat`    | none                                                  | no use case writes it — see [Change capture](change-capture.md)    |
 
 - A grouping and a category are the same table. The parent is what tells them apart.
 - `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all four tables
