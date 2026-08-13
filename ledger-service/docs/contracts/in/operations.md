@@ -85,14 +85,44 @@ participant "the change stream reader" as Reader
 database "Postgres" as PG
 
 Operator -> Endpoint : POST /actuator/cdc, with the secret
-Endpoint -> PG : reads the dead slot's last confirmed position
+
+break the secret is absent or wrong
+    Endpoint --> Operator : 401, the operation is never reached
+end
+
+Endpoint -> PG : claims the rebuild
+
+break another rebuild is already running, here or elsewhere
+    Endpoint --> Operator : 409, nothing touched
+end
+
+Endpoint -> PG : reads the slot's status and last confirmed position
+
+break the database has left the slot usable
+    Endpoint --> Operator : 409, the slot untouched, the engine still streaming
+end
+
 Endpoint -> Reader : stop
-Reader --> Endpoint : stopped
+
+break the engine will not stop within its bound
+    Endpoint --> Operator : 503, nothing deleted, nothing dropped
+end
+
 Endpoint -> PG : deletes the stored read position
+
+break the position will not delete
+    Endpoint --> Operator : 503, the engine stopped, the slot untouched
+end
+
 Endpoint -> PG : drops the dead slot
+
+break the slot will not drop
+    Endpoint --> Operator : 503, the engine stopped; a second call resumes from here
+end
+
 Endpoint -> Reader : start
 Reader -> PG : creates a slot at the current end of the log
-Endpoint --> Operator : 200, the position abandoned and the one resumed from
+Endpoint --> Operator : 200, the position abandoned, and the one resumed from
 @enduml
 ```
 
@@ -106,48 +136,6 @@ records which hours are missing.
 The answer names the position abandoned and the position resumed from. It carries neither on a refusal.
 
 Only one instance runs the sequence at a time — a second is refused rather than queued.
-
-## Failures
-
-Every guard is an early exit, and each one leaves the service further along than the last.
-
-```plantuml
-@startuml
-start
-if (does the secret match?) then (no)
-  :401 — the operation is never reached;
-  stop
-else (yes)
-endif
-if (is another rebuild already running, here or elsewhere?) then (yes)
-  :409 — nothing touched;
-  stop
-else (no)
-endif
-if (does the slot exist, and has the database left it usable?) then (yes)
-  :409 — the slot untouched, the engine still streaming;
-  stop
-else (no)
-endif
-if (does the engine stop within its bound?) then (no)
-  :503 — nothing deleted, nothing dropped;
-  stop
-else (yes)
-endif
-if (does the stored position delete?) then (no)
-  :503 — the engine stopped, the slot untouched;
-  stop
-else (yes)
-endif
-if (does the slot drop?) then (no)
-  :503 — the engine stopped; a second call resumes from here;
-  stop
-else (yes)
-endif
-:200 — the position abandoned, and the one resumed from;
-stop
-@enduml
-```
 
 A 503 leaves the service running with capture stopped. Repeating the call is safe: each guard it already passed
 is a step it does not have to repeat.
