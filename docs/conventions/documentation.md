@@ -40,6 +40,10 @@ Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/*
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
+- **A page documents what is served now.** A retired path, a dropped field, an operation that no longer exists:
+  none of them belongs on a page, and least of all a note on how one now fails. Nothing serves it, so the
+  refusal comes from a default nobody chose — a catch-all route, a deny-by-default rule — and writing it down
+  promises a status the next change to that default will break. What the system used to do is in the history.
 - **Prefer a table or a diagram to a paragraph.** A rule with conditions and outcomes is a table. A flow whose
   shape carries meaning is a diagram. Prose is for what neither can hold — why a rule exists, and what a reader
   would otherwise get wrong. A page that is mostly paragraphs is a page whose structure was not found.

@@ -168,6 +168,3 @@ issues a usable one.
 
 Adding an operation under `/api` costs a browser nothing. Moving the session to an identity provider outside this
 service would change where a token is minted, not what the browser sends.
-
-The unversioned `/api/session` is gone. A request to it is refused by the filter chain with a 401 rather than a
-404. Every path under `/api` now carries the version.
