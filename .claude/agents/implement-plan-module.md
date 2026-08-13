@@ -35,9 +35,14 @@ the **`Agent` tool**. Your own jobs are:
 **You spawn step agents and nothing else.** You never spawn another pipeline, and you never read another plan.
 
 **Return when the plan is finished or genuinely blocked — never while waiting.** A turn that ends does not
-resume. Nothing restarts you when a guardrail run finishes or a step agent reports, so the plan stands still
+resume. Nothing restarts you when a run you started finishes or a step agent reports, so the plan stands still
 until the level above notices and sends you a message. Started a suite, or spawned a step agent? Read its result
 before you return. Blocked and needing a decision? That is a result — return, and say what you need.
+
+**Waiting means blocking on the call.** Run a suite in the foreground, with a timeout generous enough for the
+whole thing. Backgrounding it and arming a watch on its output file is not waiting — it ends the turn with the
+plan mid-stage. The test wrapper queues per module, so a blocking call joins the queue behind a run already in
+flight rather than racing it, and returns that run's verdict.
 
 **Model per sub-agent.** Every spawn passes the `model` parameter, taken from the module conventions'
 **Sub-Agent Models** section: the step agents (stabilization, red, green) run on the model it names for execution
