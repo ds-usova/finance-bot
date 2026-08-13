@@ -46,18 +46,18 @@ Both sides carry every column, on an update and a delete alike.
 
 `enrichment` mirrors the payload's two sides, so a category's name is read off the spending entry itself.
 
-| Path                     | Holds                                     |
-|--------------------------|-------------------------------------------|
-| `before.categoryName`    | the category the row was filed under      |
-| `before.groupingName`    | the grouping that category sits in        |
-| `after.categoryName`     | the category the row is filed under       |
-| `after.groupingName`     | the grouping that category sits in        |
+| Path                  | Holds                                |
+|-----------------------|--------------------------------------|
+| `before.categoryName` | the category the row was filed under |
+| `before.groupingName` | the grouping that category sits in   |
+| `after.categoryName`  | the category the row is filed under  |
+| `after.groupingName`  | the grouping that category sits in   |
 
-- A side is empty when the id resolves to no category.
-- The only route to that is a deleted person: their categories and their spending go in one transaction, so all
-  their delete entries land unnamed together.
-- A name resolved from the service's own cache is the name as of the change.
-- A name read fresh is the name as it is now. The two differ only between a rename and the cache noticing it.
+| Condition                              | What a consumer gets                                                        |
+|----------------------------------------|--------------------------------------------------------------------------------|
+| the id resolves to no category         | an empty side. Only a deleted person reaches it, and every delete entry of theirs lands unnamed together |
+| the name was held in the service       | the name as of the change                                                     |
+| the name was read when the entry was built | the name as it is now, differing from the held one only between a rename and the service noticing it |
 
 ## Which changes reach the stream
 
