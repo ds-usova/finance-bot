@@ -109,16 +109,48 @@ Only one instance runs the sequence at a time — a second is refused rather tha
 
 ## Failures
 
-| Condition                                                       | Signal |
-|-----------------------------------------------------------------|--------|
-| the rebuild carries no secret header, or one that does not match | 401, before the operation is reached |
-| the slot exists and the database has not invalidated it          | 409, with the slot untouched and the engine still running |
-| another rebuild is already running, here or on another instance  | 409, the same way |
-| the engine will not stop within its bound                        | 503, with nothing deleted and nothing dropped |
-| the stored position will not delete                              | 503, with the engine stopped and the slot untouched |
-| the slot will not drop                                           | 503, with the engine stopped; a second call resumes from there |
+Every guard is an early exit, and each one leaves the service further along than the last.
 
-A 503 leaves the service running with capture stopped. Repeating the call is safe.
+```plantuml
+@startuml
+start
+if (does the secret match?) then (no)
+  :401 — the operation is never reached;
+  stop
+else (yes)
+endif
+if (is another rebuild already running, here or elsewhere?) then (yes)
+  :409 — nothing touched;
+  stop
+else (no)
+endif
+if (does the slot exist, and has the database left it usable?) then (yes)
+  :409 — the slot untouched, the engine still streaming;
+  stop
+else (no)
+endif
+if (does the engine stop within its bound?) then (no)
+  :503 — nothing deleted, nothing dropped;
+  stop
+else (yes)
+endif
+if (does the stored position delete?) then (no)
+  :503 — the engine stopped, the slot untouched;
+  stop
+else (yes)
+endif
+if (does the slot drop?) then (no)
+  :503 — the engine stopped; a second call resumes from here;
+  stop
+else (yes)
+endif
+:200 — the position abandoned, and the one resumed from;
+stop
+@enduml
+```
+
+A 503 leaves the service running with capture stopped. Repeating the call is safe: each guard it already passed
+is a step it does not have to repeat.
 
 ## Compatibility
 
