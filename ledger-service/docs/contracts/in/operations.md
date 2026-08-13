@@ -126,18 +126,14 @@ Endpoint --> Operator : 200, the position abandoned, and the one resumed from
 @enduml
 ```
 
-The stored position is deleted before the slot is dropped. A crash between the two leaves no position beside a
-slot that still exists, which is what a first start already handles.
+A crash between the delete and the drop leaves no position beside a slot that still exists, which is what a
+first start already handles.
 
 **It never replays the gap.** Every change made while the slot was dead is gone from the stream permanently. The
 position it abandoned and the moment it did so are written to the service's log, at error, once. Nothing else
 records which hours are missing.
 
-The answer names the position abandoned and the position resumed from. It carries neither on a refusal.
-
-Only one instance runs the sequence at a time — a second is refused rather than queued.
-
-A 503 leaves the service running with capture stopped until a later call carries the sequence through.
+Every endpoint keeps serving throughout, capture alone being what stops.
 
 ## Compatibility
 
