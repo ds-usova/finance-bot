@@ -75,8 +75,29 @@ A slot the database cannot classify reads as lost.
 
 ## Rebuilding the slot
 
-The operation is the only repair for a slot the database has invalidated. It stops the engine, deletes the
-stored read position, drops the dead slot, and starts a fresh one at the current end of the log.
+The only repair for a slot the database has invalidated.
+
+```plantuml
+@startuml
+actor Operator
+participant "the recovery operation" as Endpoint
+participant "the change stream reader" as Reader
+database "Postgres" as PG
+
+Operator -> Endpoint : POST /actuator/cdc, with the secret
+Endpoint -> PG : reads the dead slot's last confirmed position
+Endpoint -> Reader : stop
+Reader --> Endpoint : stopped
+Endpoint -> PG : deletes the stored read position
+Endpoint -> PG : drops the dead slot
+Endpoint -> Reader : start
+Reader -> PG : creates a slot at the current end of the log
+Endpoint --> Operator : 200, the position abandoned and the one resumed from
+@enduml
+```
+
+The stored position is deleted before the slot is dropped. A crash between the two leaves no position beside a
+slot that still exists, which is what a first start already handles.
 
 **It never replays the gap.** Every change made while the slot was dead is gone from the stream permanently. The
 position it abandoned and the moment it did so are written to the service's log, at error, once. Nothing else

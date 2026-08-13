@@ -54,7 +54,7 @@ Reader -> PG : confirms the position, releasing the log behind it
 ```
 
 The position is confirmed only after Redis has taken the entry, which is what makes delivery
-[at-least-once](change-stream.md). What a refusal does is [the operator's boundary](../in/operations.md).
+[at-least-once](change-stream.md). What a refusal does to the reported state is [Health](../in/operations.md#health).
 
 ## The slot and the stored position
 
@@ -75,8 +75,8 @@ Postgres retains every segment after the position the slot has confirmed, so a s
 | the publication present                | capture reports down and takes no slot                                           |
 | a bound on what a slot may retain      | an unread slot retains log until the disk is gone                                |
 
-The bound is the database's setting, not the service's. What happens when a slot passes it is
-[the operator's boundary](../in/operations.md).
+The bound is the database's setting, not the service's. A slot that passes it is invalidated, and capture stays
+down until an operator [rebuilds it](../in/operations.md#rebuilding-the-slot).
 
 ## Compatibility
 

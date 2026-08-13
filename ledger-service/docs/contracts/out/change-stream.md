@@ -86,7 +86,7 @@ key — every entry of an initial snapshot carries the same one.
 |---------------------------------|---------------------------------------------------------------------------------------------|
 | exactly-once delivery           | delivery is at-least-once — a restart between the append and the position being committed republishes the change |
 | a redelivered copy is identical | the two copies can name a category differently, having been enriched at different moments   |
-| every change eventually arrives | an outage long enough to invalidate the replication slot loses every change made during it, permanently — see [Operator](../in/operations.md) |
+| every change eventually arrives | an outage long enough to invalidate the replication slot loses every change made during it, permanently — see [Rebuilding the slot](../in/operations.md#rebuilding-the-slot) |
 
 ## Failures
 

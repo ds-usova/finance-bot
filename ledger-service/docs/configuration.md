@@ -106,6 +106,6 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 - A blank or unset `CDC_RECOVERY_SECRET` stops startup, the way a missing bot token and an unopenable keystore
   do. A deploy supplies it whether or not it expects to use the operation, and whether or not capture is on: the
   replication slot outlives `CDC_ENABLED=false`, and rebuilding it is exactly what that state needs. See
-  [Operator](contracts/in/operations.md).
+  [Rebuilding the slot](contracts/in/operations.md#rebuilding-the-slot).
 - `CDC_SNAPSHOT_MODE` at its default publishes no snapshot, so rows that already existed when the engine first
   started never reach [the change stream](contracts/out/change-stream.md) — only changes made from that point on.
