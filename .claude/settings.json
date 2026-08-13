@@ -42,6 +42,7 @@
       "Bash(docker info:*)",
       "Bash(bash -n:*)",
       "Bash(ls:*)",
+      "Bash(sleep:*)",
       "Bash(mkdir:*)",
       "Bash(sed -n:*)",
       "Bash(jar tf:*)",
