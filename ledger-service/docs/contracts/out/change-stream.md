@@ -83,7 +83,7 @@ key — every entry of an initial snapshot carries the same one.
 |---------------------------------|---------------------------------------------------------------------------------------------|
 | exactly-once delivery           | delivery is at-least-once — a restart between the append and the position being committed republishes the change |
 | a redelivered copy is identical | the two copies can name a category differently, having been enriched at different moments   |
-| every change eventually arrives | an outage long enough to invalidate the replication slot loses every change made during it, permanently — see [Rebuilding the slot](../in/operations.md#rebuilding-the-slot) |
+| every change eventually arrives | an outage can end with the slot invalidated, and then what it held is gone — see Failures below |
 
 ## Failures
 
@@ -92,7 +92,7 @@ key — every entry of an initial snapshot carries the same one.
 | Redis refuses the write                         | nothing is appended, the log position stands, and the change is retried until it is accepted |
 | the category lookup fails                       | the same — the entry is held back rather than published unnamed              |
 | Redis stays unreachable                         | the database's retained log grows, and the health component reads down        |
-| the retained log passes the database's bound    | the database invalidates the slot, the engine stops, and an operator rebuilds it |
+| the retained log passes the database's bound    | the database invalidates the slot and the engine stops. Everything it still held is lost permanently, and an operator [rebuilds the slot](../in/operations.md#rebuilding-the-slot) |
 
 Nothing is dropped to keep the pipeline moving; holding the log position is the whole mechanism
 ([ADR 0016](../../../../docs/adr/0016-an-embedded-engine-holds-the-log-position-until-redis-acknowledges-bounded-by-the-database.md)).

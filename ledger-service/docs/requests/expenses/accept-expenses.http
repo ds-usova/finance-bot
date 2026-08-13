@@ -1,0 +1,19 @@
+### Accepting proposals — POST /api/v1/expenses/acceptances
+# Moves pending proposals of the signed-in person's own into recorded expenses, by id. Needs an open session and
+# the CSRF header, since it writes.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie a "read the session" response returns — see ../session/current-session.http.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### Two ids, both the signed-in person's own.
+POST {{host}}/api/v1/expenses/acceptances
+Content-Type: application/json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "ids": [1, 2]
+}

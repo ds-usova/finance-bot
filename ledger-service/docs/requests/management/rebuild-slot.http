@@ -1,0 +1,10 @@
+### Rebuilding an invalidated slot — POST /actuator/cdc
+# Closes the engine, drops the invalidated slot and its stored position, and starts a new one at the current end
+# of the log. Every refusal, and whether it is worth repeating: ../../contracts/in/operations.md
+
+@host = http://localhost:1010
+@recoverySecret = paste-the-CDC_RECOVERY_SECRET-value-here
+
+### Rebuild the slot.
+POST {{host}}/actuator/cdc
+X-Cdc-Recovery-Secret: {{recoverySecret}}

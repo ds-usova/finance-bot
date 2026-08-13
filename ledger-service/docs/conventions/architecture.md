@@ -77,7 +77,9 @@ The first is enforced below, along with how a command is named. The second by re
 - API schema: repo-root `openapi/ledger-api.yaml`, whose `components/schemas` holds every schema. Paths,
   parameters and responses stay layered under `openapi/paths/` and `openapi/components/`. Generated Java lands in
   `build/generated/sources/openapi/`, never edited or committed.
-- Manual `.http` request files: `ledger-service/docs/requests/`, one file per endpoint.
+- Manual `.http` request files: `ledger-service/docs/requests/<tag>/<operation>.http` — one file per endpoint,
+  in a directory per tag the API schema declares, named after the operation. An endpoint outside the schema goes
+  under `management/`.
 
 ## Architecture Enforcement
 

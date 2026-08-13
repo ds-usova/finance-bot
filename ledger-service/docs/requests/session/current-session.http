@@ -1,0 +1,12 @@
+### Read the session — GET /api/v1/session
+# Answers who the browser is signed in as. Run it once, unauthenticated, to obtain the XSRF-TOKEN cookie every
+# write needs; a read itself needs no CSRF token. What it answers and refuses:
+# ../../contracts/in/web-session-api.md
+
+@host = http://localhost:1000
+# Set from the fb_session cookie sign-in.http sets.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### Who am I.
+GET {{host}}/api/v1/session
+Cookie: fb_session={{sessionCookie}}

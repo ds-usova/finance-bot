@@ -3,7 +3,7 @@
 # session; no CSRF token, since it is a read.
 
 @host = http://localhost:1000
-# Set from the fb_session cookie a sign-in response sets — see session.http.
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
 @sessionCookie = paste-the-fb_session-cookie-value-here
 
 ### Every category, unpaged.

@@ -1,0 +1,23 @@
+### Listing expenses — GET /api/v1/expenses
+# A page of the signed-in person's expenses and pending proposals, newest first. Needs an open session; no CSRF
+# token, since it is a read.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### Unfiltered — the default page, limit 50, offset 0.
+GET {{host}}/api/v1/expenses
+Cookie: fb_session={{sessionCookie}}
+
+### Narrowed by status — PENDING or RECORDED.
+GET {{host}}/api/v1/expenses?status=PENDING
+Cookie: fb_session={{sessionCookie}}
+
+### Narrowed by category.
+GET {{host}}/api/v1/expenses?categoryId=1
+Cookie: fb_session={{sessionCookie}}
+
+### Narrowed by a period — both days required, the last day included.
+GET {{host}}/api/v1/expenses?from=2026-01-01&to=2026-01-31
+Cookie: fb_session={{sessionCookie}}

@@ -44,8 +44,7 @@ conventions, the conventions win.
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
   supplies, and what breaks without them.
-- Manual requests: [`docs/requests/`](../requests/) — one `.http` file per HTTP boundary this service exposes,
-  for driving an endpoint by hand against a running service.
+- Manual requests: [`docs/requests/`](../requests/) — for driving an endpoint by hand against a running service.
 - ADRs / design decisions: [`docs/adr/`](../adr/) — decisions the code cannot explain by itself, whose
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.

@@ -1,0 +1,13 @@
+### End the session — DELETE /api/v1/session
+# Clears it, whether or not one was open. What it answers and refuses: ../../contracts/in/web-session-api.md
+
+@host = http://localhost:1000
+# Set from the fb_session cookie sign-in.http sets.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie current-session.http returns.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### Sign out.
+DELETE {{host}}/api/v1/session
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}

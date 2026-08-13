@@ -40,7 +40,7 @@ C3 is below. Package structure is in the
 ### Running It
 
 - [Configuration](docs/configuration.md) — the environment variables a deployment supplies.
-- [Manual requests](docs/requests/) — one `.http` file per HTTP boundary, for driving an endpoint by hand.
+- [Manual requests](docs/requests/) — for driving an endpoint by hand against a running service.
 
 ### C3 — Component
 
