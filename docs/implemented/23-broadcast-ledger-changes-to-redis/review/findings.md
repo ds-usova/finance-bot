@@ -9,6 +9,10 @@
 | One Spring context per system test class, now ~20 booted applications in one JVM      | Already agreed as its own task. The suite needed `maxHeapSize = "2g"` and `max_connections=300` to run at all; both are symptoms. `testing.md` documents context-per-class as a benefit, which is the convention to change — a distinct property should be the exception, not the isolation mechanism. |
 | `CategoryNameResolver.evict(id)` clears the whole cache rather than one entry          | `CategoryNames` carries two names and no ids, and `CategoryNameReader.findNames(long)` answers only that record, so no cached entry knows its parent and no grouping-to-categories index can be built. A rename therefore empties a 50 000-entry cache, which is more than D16 and D17 assumed. Widening the projection and the record to carry the parent id is the fix, and it is a design-level change rather than a green step's. |
 
+Verdict: both are valid finding, and both will be tackled with a separate PR:
+- the context-per-class change should define different telegram scenarios rather than isolating the each system test;
+- the cache eviction is not what I thought it's gonna look like, it should be redesigned 
+
 ## Manual test
 
 **[ ] A second instance meets a slot the first already holds**
