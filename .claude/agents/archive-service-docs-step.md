@@ -42,9 +42,9 @@ here:
 - Diagram labels are a few words.
 
 **What diagrams are written in comes from the module conventions' Diagram Format section** — the language, the
-fenced block's language tag, any preamble a diagram needs, and **which form a flow takes**. In this repository
-that section points at [`docs/conventions/diagrams.md`](../../docs/conventions/diagrams.md); read it before
-drawing a flow, since it decides sequence versus activity rather than leaving it to habit. Where a module names
+fenced block's language tag, any preamble a diagram needs, and **which form a flow takes**. Read whatever that
+section points at before drawing a flow, since it decides sequence versus activity rather than leaving it to
+habit. Where a module names
 none, use PlantUML with the bundled C4-PlantUML standard library. Every diagram sample below is written in that
 assumed default; a module naming another language gets the same diagram in it, showing exactly the same thing.
 
@@ -135,6 +135,17 @@ gained a step still reaches everything it reached before, and a collaborator mis
 one the use case does not have.
 
 Updating: edit in place. The file describes the system as it is, never what changed.
+
+## Domain Documents
+
+One per domain type the work list names, at the path it gives. **The rules are the orchestrator's, passed in
+with the work list, and the repository's own documentation conventions on top.** Two of them decide the page and
+neither is inferable from the type:
+
+- **Invariants live here and nowhere else** — what the type refuses to be, as a bound rather than a sentence.
+- **A lifecycle is written from the whole module's use cases, never from the work list.** A type whose lifecycle
+  this change did not touch keeps the section exactly as it stands. Reading it off a short work list is how a
+  correct page becomes "never created, never removed".
 
 ## Contract Documents
 

@@ -187,6 +187,11 @@ When every pipeline has returned:
    - **Fix** <the proposal> · `<class or file>`
    ```
 
+   **Four of those lines are observations; `Fix` is not.** `Given`, `When`, `Then` and `Actual` are what the run
+   saw. The fix is a proposal, and whoever picks it up implements it as written — so where this run did not
+   exercise the mechanism behind it, the line says `unverified`. A design records the same distinction as
+   `Basis:`; a findings file without it reads a guess and a tested conclusion in one voice.
+
    **A manual check is the same block, minus what has not happened yet.** No `Actual`, since nobody has looked,
    and no `Fix`, since nothing is claimed to be wrong:
 
