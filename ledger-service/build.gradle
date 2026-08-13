@@ -161,11 +161,18 @@ jacoco {
     toolVersion = "${jacocoVersion}"
 }
 
-// Generated protobuf and gRPC stubs compile into main output and are never exercised directly.
+// Generated sources compile into main output and are never exercised directly. The OpenAPI generator needs two
+// entries: apiPackage and modelPackage put its types under bot/finance/api, and it emits a converter
+// configuration into a package of its own that neither setting reaches.
 // The report and the rule share one filter, so a reported percentage is the one being enforced.
 def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
-        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "bot/finance/api/**", "**/*Application.class"])
+        fileTree(dir: it, exclude: [
+            "bot/finance/ai/adapter/grpc/v1/**",
+            "bot/finance/api/**",
+            "org/openapitools/**",
+            "**/*Application.class"
+        ])
     }))
 }
 
