@@ -12,15 +12,13 @@ the product is used with is reachable here, and nothing here is reachable there.
 
 ## Operations
 
-| Operation           | Purpose                                                             | Used by                                     |
-|---------------------|-----------------------------------------------------------------------|---------------------------------------------|
-| Read the health     | says whether the service and each of its parts is up                 | a liveness and readiness probe              |
-| Scrape the meters   | publishes every meter in the Prometheus text format                  | the metrics collector                       |
-| Rebuild the slot    | replaces an invalidated replication slot and restarts change capture | an operator, after a long outage            |
+| Operation                                   | Address                     | Who may call                                                       | Purpose                                                              |
+|---------------------------------------------|-----------------------------|--------------------------------------------------------------------|------------------------------------------------------------------------|
+| [Health](#health)                           | `GET /actuator/health`      | anyone reaching the port                                            | whether the service and each of its parts is up, for a liveness and readiness probe |
+| [Meters](#meters)                           | `GET /actuator/prometheus`  | anyone reaching the port                                            | every meter in the Prometheus text format, for the metrics collector |
+| [Rebuilding the slot](#rebuilding-the-slot) | `POST /actuator/cdc`        | the `X-Cdc-Recovery-Secret` header, matching `CDC_RECOVERY_SECRET` | replaces an invalidated replication slot and restarts change capture |
 
-Health and the meters answer to anyone reaching the port. Rebuilding the slot demands a shared secret.
-
-## What the health says about change capture
+## Health
 
 A `changeStream` component appears whenever capture is switched on, carrying a `state` detail.
 
@@ -38,7 +36,7 @@ With capture switched off the component is absent altogether, and the aggregate 
 A database the publication is missing from reaches `DOWN` rather than looking idle: the engine refuses to start,
 takes no replication slot, and does not retry.
 
-## The meters
+## Meters
 
 | Meter                                       | Kind    | Says                                                                     |
 |---------------------------------------------|---------|--------------------------------------------------------------------------|
@@ -83,10 +81,6 @@ stored read position, drops the dead slot, and starts a fresh one at the current
 **It never replays the gap.** Every change made while the slot was dead is gone from the stream permanently. The
 position it abandoned and the moment it did so are written to the service's log, at error, once. Nothing else
 records which hours are missing.
-
-| Request          | What it carries                                                  |
-|------------------|--------------------------------------------------------------------|
-| `POST /actuator/cdc` | the `X-Cdc-Recovery-Secret` header, matching `CDC_RECOVERY_SECRET` |
 
 The answer names the position abandoned and the position resumed from. It carries neither on a refusal.
 
