@@ -86,17 +86,15 @@ The first is enforced below; the second by review. How a command is named is enf
 ## Architecture Enforcement
 
 - Tool: ArchUnit (JUnit 5 integration).
-- Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
-  [Build](build.md)).
+- Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in [Build](build.md)). It holds the
+  current list behind every rule below; a list repeated here would be wrong the first time one grows.
 - Rules:
   - the layer-dependency rules;
-  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,
-    `bot.finance.ai..` — the generated gRPC schema's own package — `bot.finance.api..` — the generated OpenAPI
-    schema's own package — `io.modelcontextprotocol..`, `io.debezium..`, `org.apache.kafka..` and
-    `org.springframework.data.redis..` banned from `domain`/`application`; each new external-service library
-    joins the list as its adapter lands;
-  - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
-    `Whisper`, `Postgres`, `AiConnector`, `Grpc`, `Proto`, `Mcp` or `Jwt`; the list grows the same way;
+  - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC
+    and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
+    `bot.finance.api..`. A library joins as its adapter lands;
+  - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
+    system's, such as `Telegram`, `Postgres` or `Mcp`;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`;
