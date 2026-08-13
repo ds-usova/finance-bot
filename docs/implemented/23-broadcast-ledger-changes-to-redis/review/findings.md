@@ -1,6 +1,6 @@
 # Review: Broadcast Ledger Changes to Redis
 
-**2 refactoring candidates, 5 manual checks. No open bugs.** Every entry is `ledger-service`.
+**3 refactoring candidates, 5 manual checks. No open bugs.** Every entry is `ledger-service`.
 
 ## Refactoring candidate
 
@@ -8,6 +8,7 @@
 |--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | One Spring context per system test class, now ~20 booted applications in one JVM      | Already agreed as its own task. The suite needed `maxHeapSize = "2g"` and `max_connections=300` to run at all; both are symptoms. `testing.md` documents context-per-class as a benefit, which is the convention to change — a distinct property should be the exception, not the isolation mechanism. |
 | `CategoryNameResolver.evict(id)` clears the whole cache rather than one entry          | `CategoryNames` carries two names and no ids, and `CategoryNameReader.findNames(long)` answers only that record, so no cached entry knows its parent and no grouping-to-categories index can be built. A rename therefore empties a 50 000-entry cache, which is more than D16 and D17 assumed. Widening the projection and the record to carry the parent id is the fix, and it is a design-level change rather than a green step's. |
+| The three `adapter/cdc` tests boot the whole application rather than a slice           | `ChangeStreamReaderTest`, `ChangeStreamRecoveryTest` and `ReplicationSlotMonitorTest` carry `@CdcCaptureTest`, which is `@SpringBootTest`, while this plan classified all three as integration-outbound — the type [Testing](../../../../ledger-service/docs/conventions/testing.md#test-layers) wires only the adapter under test for. One annotation was made to serve them and the four system tests, and the system tests set the width: each adapter test also starts a Telegram poll loop, the web layer, the MCP server, the gRPC client and both security chains, none of which it touches. Target shape — the database slice with Redis mocked for the three; the system tests keep the whole context; `RedisChangeStreamWriterTest` needs nothing, already being a narrow test against a real Redis. |
 
 Verdict: both are valid finding, and both will be tackled with a separate PR:
 - the context-per-class change should define different telegram scenarios rather than isolating the each system test;
