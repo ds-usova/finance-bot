@@ -5,10 +5,23 @@ package bot.finance.adapter.cdc;
  * ordinal {@code ledger_cdc_slot_wal_status} reports.
  */
 public enum ReplicationSlotState {
+    /** The log this slot still needs is within {@code max_wal_size}. Nothing is at risk. */
     RESERVED,
+
+    /** Past {@code max_wal_size}, but the log is still retained for the slot. Recoverable by catching up. */
     EXTENDED,
+
+    /**
+     * The log this slot needs is no longer reserved, and the next checkpoint will remove some of it. A consumer
+     * that catches up before then returns the slot to {@code EXTENDED} or {@code RESERVED}; one that does not
+     * reaches {@code LOST}. This is the last state anything can be done from.
+     */
     UNRESERVED,
+
+    /** Log the slot needed has been removed. Terminal — the slot can never be read again, only replaced. */
     LOST,
+
+    /** No such slot exists. Not a Postgres status: what this service reports when the row is missing. */
     ABSENT;
 
     /**
