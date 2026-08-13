@@ -34,6 +34,7 @@ C3 is below. Package structure is in the
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
 - [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
+- [Change capture — the write-ahead log this service reads](docs/contracts/out/change-capture.md) (outbound)
 - [A consumer of the ledger's changes — the change stream](docs/contracts/out/change-stream.md) (outbound)
 
 ### Running It

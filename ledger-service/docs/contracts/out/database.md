@@ -96,18 +96,9 @@ app_user ||--o{ proposal_report
 @enduml
 ```
 
-`expense`, `expense_proposal` and `category` run under `REPLICA IDENTITY FULL`, so a change to any of them logs
-the whole row, both sides of an update and a delete included, not the primary key alone.
-
-A publication named `finance_ledger_cdc` covers those three tables plus `cdc_heartbeat`. That heartbeat's single
-row is advanced on a timer, so the replication slot moves forward even while only uncaptured tables are written.
-The slot itself is created at first start, under the name `CDC_SLOT_NAME` sets, and no migration declares it.
-Both exist so the service can republish its own row changes onto [the change stream](change-stream.md).
-
-The publication is restricted to inserts, updates and deletes. A truncate is not published.
-
-The engine's own read position is held in `debezium_offset_storage`, a table the engine's offset store creates
-itself on first start — no migration declares it either.
+One more table exists that no migration declares — `debezium_offset_storage`, created by the engine that reads
+this database's write-ahead log — and three of the tables above carry a replica identity set for that engine
+rather than for any read. Both belong to [Change capture](change-capture.md).
 
 Indexes beyond the constraints above:
 
@@ -130,7 +121,7 @@ Indexes beyond the constraints above:
 | `expense_proposal` | [Expense proposal](../../domain/expense-proposal.md)  | spending read out of a message, awaiting the person's decision     |
 | `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
 | `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
-| `cdc_heartbeat`    | none                                                  | one row, touched on a timer so the replication slot keeps moving   |
+| `cdc_heartbeat`    | none                                                  | one row, written by no use case — see [Change capture](change-capture.md) |
 
 - A grouping and a category are the same table. The parent is what tells them apart.
 - `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all four tables
