@@ -42,10 +42,6 @@ so it holds at least the cap and a little more.
 
 Both sides carry every column, on an update and a delete alike.
 
-**A person is an internal user id on the wire and nothing else.** The Telegram identifier lives in a table that
-is not captured, so it never reaches the stream. The same id is what a caller token's subject carries
-([Authenticated user id](../../domain/authenticated-user-id.md)).
-
 ### The enrichment block
 
 `enrichment` mirrors the payload's two sides, so a category's name is read off the spending entry itself.
