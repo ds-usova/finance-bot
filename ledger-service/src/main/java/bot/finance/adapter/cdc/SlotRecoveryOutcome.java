@@ -8,6 +8,15 @@ import java.util.Optional;
  */
 public record SlotRecoveryOutcome(Status status, Optional<String> abandonedPosition, Optional<String> resumedPosition) {
 
+    public static SlotRecoveryOutcome refusal(Status status) {
+        return new SlotRecoveryOutcome(status, Optional.empty(), Optional.empty());
+    }
+
+    /** The abandoned position stays optional: a slot that was already gone leaves none behind. */
+    public static SlotRecoveryOutcome rebuilt(Optional<String> abandonedPosition, String resumedPosition) {
+        return new SlotRecoveryOutcome(Status.REBUILT, abandonedPosition, Optional.of(resumedPosition));
+    }
+
     public enum Status {
         REBUILT,
         SLOT_NOT_LOST,

@@ -72,8 +72,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery answers a rebuilt slot - then the response is 200 carrying both positions")
         void whenRecoveryAnswersRebuiltSlot_thenResponseIs200CarryingBothPositions() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.REBUILT, Optional.of("0/1A2B3C4"), Optional.of("0/1A2B400")));
+                    .thenReturn(SlotRecoveryOutcome.rebuilt(Optional.of("0/1A2B3C4"), "0/1A2B400"));
 
             Response response = postRecovery(SECRET);
 
@@ -92,8 +91,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery refuses a slot whose wal_status is not lost - then the response is 409")
         void whenRecoveryRefusesSlotNotLost_thenResponseIs409() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.SLOT_NOT_LOST, Optional.empty(), Optional.empty()));
+                    .thenReturn(SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_LOST));
 
             Response response = postRecovery(SECRET);
 
@@ -105,8 +103,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery reports the advisory lock held - then the response is 409")
         void whenRecoveryReportsLockHeld_thenResponseIs409() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.LOCK_HELD, Optional.empty(), Optional.empty()));
+                    .thenReturn(SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.LOCK_HELD));
 
             Response response = postRecovery(SECRET);
 
@@ -118,8 +115,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery reports the engine would not stop - then the response is 503")
         void whenRecoveryReportsEngineDidNotStop_thenResponseIs503() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.ENGINE_DID_NOT_STOP, Optional.empty(), Optional.empty()));
+                    .thenReturn(SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.ENGINE_DID_NOT_STOP));
 
             Response response = postRecovery(SECRET);
 
@@ -131,8 +127,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery reports the position would not delete - then the response is 503")
         void whenRecoveryReportsPositionNotDeleted_thenResponseIs503() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.POSITION_NOT_DELETED, Optional.empty(), Optional.empty()));
+                    .thenReturn(SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.POSITION_NOT_DELETED));
 
             Response response = postRecovery(SECRET);
 
@@ -144,8 +139,7 @@ class CdcRecoveryEndpointTest {
         @DisplayName("when the recovery reports the slot would not drop - then the response is 503")
         void whenRecoveryReportsSlotNotDropped_thenResponseIs503() {
             when(changeStreamRecovery.recover())
-                    .thenReturn(new SlotRecoveryOutcome(
-                            SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED, Optional.empty(), Optional.empty()));
+                    .thenReturn(SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED));
 
             Response response = postRecovery(SECRET);
 

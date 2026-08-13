@@ -44,7 +44,7 @@ public class ChangeStreamRecovery {
     public SlotRecoveryOutcome recover() {
         try (Connection connection = dataSource.getConnection()) {
             if (!tryAdvisoryLock(connection)) {
-                return refusal(SlotRecoveryOutcome.Status.LOCK_HELD);
+                return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.LOCK_HELD);
             }
 
             try {
@@ -61,21 +61,21 @@ public class ChangeStreamRecovery {
         Optional<SlotSnapshot> slot = readSlot(connection);
 
         if (slot.isPresent() && slot.get().walStatus() != ReplicationSlotState.LOST) {
-            return refusal(SlotRecoveryOutcome.Status.SLOT_NOT_LOST);
+            return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_LOST);
         }
 
         Optional<String> abandonedPosition = slot.map(SlotSnapshot::confirmedFlushLsn);
 
         if (!changeStreamReader.stop(ENGINE_STOP_TIMEOUT)) {
-            return refusal(SlotRecoveryOutcome.Status.ENGINE_DID_NOT_STOP);
+            return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.ENGINE_DID_NOT_STOP);
         }
 
         if (!deleteStoredPosition(connection)) {
-            return refusal(SlotRecoveryOutcome.Status.POSITION_NOT_DELETED);
+            return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.POSITION_NOT_DELETED);
         }
 
         if (slot.isPresent() && !dropSlot(connection)) {
-            return refusal(SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED);
+            return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED);
         }
 
         abandonedPosition.ifPresent(
@@ -84,12 +84,7 @@ public class ChangeStreamRecovery {
         String resumedPosition = readCurrentWalLsn(connection);
         changeStreamReader.start();
 
-        return new SlotRecoveryOutcome(
-                SlotRecoveryOutcome.Status.REBUILT, abandonedPosition, Optional.of(resumedPosition));
-    }
-
-    private SlotRecoveryOutcome refusal(SlotRecoveryOutcome.Status status) {
-        return new SlotRecoveryOutcome(status, Optional.empty(), Optional.empty());
+        return SlotRecoveryOutcome.rebuilt(abandonedPosition, resumedPosition);
     }
 
     private boolean tryAdvisoryLock(Connection connection) throws SQLException {
