@@ -93,7 +93,7 @@ end
 Endpoint -> PG : claims the rebuild
 
 break another rebuild is already running, here or elsewhere
-    Endpoint --> Operator : 409 — nothing touched; retry once that one has finished
+    Endpoint --> Operator : 409 — nothing touched; watch the health rather than repeating
 end
 
 Endpoint -> PG : reads the slot's status and last confirmed position
