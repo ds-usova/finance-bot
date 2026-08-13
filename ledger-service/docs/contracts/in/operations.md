@@ -87,37 +87,37 @@ database "Postgres" as PG
 Operator -> Endpoint : POST /actuator/cdc, with the secret
 
 break the secret is absent or wrong
-    Endpoint --> Operator : 401, the operation is never reached
+    Endpoint --> Operator : 401 — nothing touched; retry only with the right secret
 end
 
 Endpoint -> PG : claims the rebuild
 
 break another rebuild is already running, here or elsewhere
-    Endpoint --> Operator : 409, nothing touched
+    Endpoint --> Operator : 409 — nothing touched; retry once that one has finished
 end
 
 Endpoint -> PG : reads the slot's status and last confirmed position
 
 break the database has left the slot usable
-    Endpoint --> Operator : 409, the slot untouched, the engine still streaming
+    Endpoint --> Operator : 409 — the engine is still streaming; nothing to repair, do not retry
 end
 
 Endpoint -> Reader : stop
 
 break the engine will not stop within its bound
-    Endpoint --> Operator : 503, nothing deleted, nothing dropped
+    Endpoint --> Operator : 503 — nothing deleted or dropped; safe to retry
 end
 
 Endpoint -> PG : deletes the stored read position
 
 break the position will not delete
-    Endpoint --> Operator : 503, the engine stopped, the slot untouched
+    Endpoint --> Operator : 503 — the engine is stopped; safe to retry
 end
 
 Endpoint -> PG : drops the dead slot
 
 break the slot will not drop
-    Endpoint --> Operator : 503, the engine stopped; a second call resumes from here
+    Endpoint --> Operator : 503 — the position is deleted; safe to retry
 end
 
 Endpoint -> Reader : start
@@ -137,8 +137,7 @@ The answer names the position abandoned and the position resumed from. It carrie
 
 Only one instance runs the sequence at a time — a second is refused rather than queued.
 
-A 503 leaves the service running with capture stopped. Repeating the call is safe: each guard it already passed
-is a step it does not have to repeat.
+A 503 leaves the service running with capture stopped until a later call carries the sequence through.
 
 ## Compatibility
 
