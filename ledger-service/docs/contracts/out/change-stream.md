@@ -44,7 +44,8 @@ Both sides carry every column, on an update and a delete alike.
 
 ### The enrichment block
 
-`enrichment` mirrors the payload's two sides, so a category's name is read off the spending entry itself.
+`enrichment` has the same `before` and `after` sides as the payload. A consumer reads a category's name straight
+off the spending entry, without looking it up anywhere.
 
 | Path                  | Holds                                |
 |-----------------------|--------------------------------------|
@@ -53,11 +54,11 @@ Both sides carry every column, on an update and a delete alike.
 | `after.categoryName`  | the category the row is filed under  |
 | `after.groupingName`  | the grouping that category sits in   |
 
-| Condition                              | What a consumer gets                                                        |
-|----------------------------------------|--------------------------------------------------------------------------------|
-| the id resolves to no category         | an empty side. Only a deleted person reaches it, and every delete entry of theirs lands unnamed together |
-| the name was held in the service       | the name as of the change                                                     |
-| the name was read when the entry was built | the name as it is now, differing from the held one only between a rename and the service noticing it |
+| What a consumer may see                                | How often                                                                    |
+|--------------------------------------------------------|--------------------------------------------------------------------------------|
+| the name the category had when the change happened     | almost always                                                                 |
+| a newer name, if that category was renamed at about the same time | rarely, and only around a rename                                    |
+| no name at all, both fields empty                      | only when the person was deleted, and then every delete entry of theirs is unnamed |
 
 ## Which changes reach the stream
 
