@@ -5,8 +5,9 @@ and two policies would contradict each other inside a single commit.
 
 - Commit incrementally: yes — the agent commits intermediate changes as it goes, on whichever branch is
   currently checked out.
-- Granularity: one commit per passed stage guardrail (stabilization, red, green, refactor, wrap-up) — not per
-  step or per wave.
+- Granularity: one commit per passed stage guardrail. A plan's stages are stabilization, red, green, refactor
+  and wrap-up, and a step or a wave inside one earns no commit of its own. Work that has no stages gates each
+  edit on its own test run, and that run is the guardrail the commit follows.
 - Scope: every commit names the paths it takes — those of the module being worked, plus any shared path that
   work owns. The working tree and its index are shared whether or not another plan is visibly running, so a
   commit naming nothing takes whatever else is staged in it.

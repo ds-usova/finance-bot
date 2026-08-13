@@ -130,7 +130,7 @@ PlantUML with the bundled C4-PlantUML standard library: fenced ` ```plantuml ` b
 stdlib, needing neither a network fetch nor a relative path. Where a renderer's PlantUML predates the bundled
 stdlib, fall back to the raw URL for the same file
 (`https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml`).
-See `.claude/templates/example-design.md` for working syntax.
+See `example-design.md`, beside this file, for working syntax.
 
 **No class appears in any of them.** Here a box is a responsibility, a module, or a system.
 
@@ -214,7 +214,7 @@ An `assumed` or `deferred` question is a **Design Findings** row instead. It was
 it just needs no reader. `design.sh validate` refuses a `D` entry carrying either basis.
 
 **The four bases — `assumed`, `decided`, `deferred`, `must-decide` — and what each obliges are in
-[`.claude/templates/example-design.md`](../templates/example-design.md), beside the worked example that uses
+[`example-design.md`](example-design.md), beside the worked entries that use
 them.** Read them there before writing the first entry. `must-decide` is the only one that leaves `Answer:`
 empty, and it is what `settled` counts.
 
@@ -256,7 +256,7 @@ and the two never meet.
 A question that needs a paragraph was not settled. It is a `must-decide` in **Decisions**, and the user answers
 it.
 
-See `.claude/templates/example-design.md` for a complete worked example of every section above.
+See `example-design.md`, beside this file, for a complete worked example of every section above.
 
 ## 5. Invoke the Grill Subagent
 

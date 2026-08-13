@@ -62,7 +62,7 @@ Every finding **names the artifact to change** and what to put in it:
 | `.claude/settings.json`        | What may run without asking, what must ask, what is denied.            |
 | `.claude/scripts/hooks/`       | A refusal that cannot be read and skipped.                             |
 | The repository's own tooling   | An option or a command that removes the reason to do it the wrong way. |
-| `.claude/commands/<skill>.md`  | Workflow — stage order, guardrails, what a sub-agent is told.          |
+| `.claude/skills/<skill>/`      | Workflow — stage order, guardrails, what a sub-agent is told.          |
 | `.claude/agents/<agent>.md`    | What one sub-agent does with the context it is handed.                 |
 | Repository-wide conventions    | Facts true of the whole repository, not of one module.                 |
 | `<module>/docs/conventions.md` | Project rules the workflow reads: build commands, models, parallelism. |

@@ -12,7 +12,7 @@ commit policy. It never states the answer. Every answer lives in the repository'
 repository tier or the module tier, and is written by `init-conventions` from what the repository already does.
 Where those files sit is the repository's business, and no skill assumes it.
 
-That is what makes `commands/`, `agents/`, `scripts/` and `templates/` liftable into another repository as a
+That is what makes `skills/`, `agents/`, `scripts/` and `templates/` liftable into another repository as a
 plugin. A fact about *this* project inside a skill is the defect this split exists to prevent.
 
 ## The pipeline
@@ -27,7 +27,16 @@ Five skills carry one change from "someone asked for it" to "implemented and doc
 | Implement   | `implement-plan`    | nobody        | nothing — it executes the plan and verifies each stage | anything the plan left open         |
 | Archive     | `archive-knowledge` | the developer | what outlives the plan                                 | anything the implementation settled |
 
-`retro` sits outside the line: it reflects on a finished session and proposes changes to the four above.
+`retro` sits outside the line: it reflects on a finished session and proposes changes to the skills above.
+`tighten` and `teachme` sit outside it too — one shortens a file without changing what it says, the other
+teaches a subject a decision depends on.
+
+`rework` is a shorter line beside it, for code that already exists. Nothing new is being designed, so the suite
+that is already green is the safety net, and every guardrail it has exists to keep that green honest.
+
+**It is one skill, not a pipeline, because it has one reader.** The chain above splits by audience: a person
+approves what the change does, a model executes how it is built. A rework decides nothing a person approves
+that a model does not also execute, so a handoff between the two would carry an empty file.
 
 **Each phase's output is the whole handoff.** The next phase starts in a fresh context and reads the file, not
 the conversation. A design a cold session cannot plan from was underspecified; a plan a cold agent cannot

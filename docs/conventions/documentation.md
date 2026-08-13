@@ -1,7 +1,8 @@
 # Conventions > Writing Documentation
 
-Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/**`, `docs/domain/**`, and the
-`design.md` and `plan.md` in each `docs/<n>-<task-name>/`.
+Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/**`, `docs/domain/**`, and every
+document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, a `rework.md`, and what `review/`
+holds.
 
 - **Every sentence earns its place.** Cut preamble, restatement and hedging.
 - **State a fact once.** Each fact has one owning document; everywhere else links to it.

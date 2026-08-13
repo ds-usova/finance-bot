@@ -342,9 +342,9 @@ here.
 
 The exact shape of every Red Phase and Green Phase item, **The Three Test Types** that decide which phase a step
 belongs to, and the scenario-authoring rules that bind them all, are
-[`.claude/templates/step-formats.md`](../templates/step-formats.md). Read it before writing or reviewing a step;
+[`.claude/templates/step-formats.md`](../../templates/step-formats.md). Read it before writing or reviewing a step;
 `plan.sh validate` checks what it can of the result.
-[`.claude/templates/example-plan.md`](../templates/example-plan.md) is a complete worked plan in those formats.
+[`.claude/templates/example-plan.md`](../../templates/example-plan.md) is a complete worked plan in those formats.
 
 ### Open Questions / Blockers
 

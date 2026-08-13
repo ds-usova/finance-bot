@@ -6,7 +6,8 @@ would live at `docs/1-add-widget/design.md`, beside the `plan.md` written from i
 the module's `docs/conventions.md` records (see `.claude/templates/conventions/`). What transfers is the
 structure: the sections, their order, and the decision format.
 
-`.claude/templates/example-plan.md` is the plan written from this design — the same feature, one stage later.
+[`.claude/templates/example-plan.md`](../../templates/example-plan.md) is the plan written from this design —
+the same feature, one stage later.
 
 Every decision below is answered, which is what makes the design finished. An entry still awaiting the user has the
 same three lines with an empty `Answer:` and a `Basis: must-decide — [what the repository does not say]`; **D7**
