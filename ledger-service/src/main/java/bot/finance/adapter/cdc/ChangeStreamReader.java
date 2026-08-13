@@ -59,6 +59,7 @@ public class ChangeStreamReader {
     private final Object lifecycleLock = new Object();
     private DebeziumEngine<ChangeEvent<String, String>> engine;
     private CountDownLatch completionLatch;
+    private boolean starting;
     private volatile boolean stopRequested;
     private volatile ChangeStreamState currentState = ChangeStreamState.DOWN;
 
@@ -79,25 +80,38 @@ public class ChangeStreamReader {
         this.log = loggerFactory.getLogger(ChangeStreamReader.class);
     }
 
+    /**
+     * The claim is taken and released under {@link #lifecycleLock} rather than the whole method running under it:
+     * a caller that only checked {@code engine} would release the monitor before the engine is assigned, and a
+     * second caller arriving in that window would launch an engine of its own — leaving one running with nothing
+     * referring to it, holding the slot and unreachable by {@link #stop}.
+     */
     public void start() {
         synchronized (lifecycleLock) {
-            if (engine != null) {
+            if (engine != null || starting) {
                 return;
             }
+            starting = true;
             stopRequested = false;
         }
 
-        String publication = engineConfiguration.getString(PUBLICATION_NAME_KEY);
-        if (!publicationExists(publication)) {
-            log.error(
-                    "Publication {} is absent, so the change stream will not start for slot {}",
-                    publication,
-                    properties.slotName());
-            setState(ChangeStreamState.DOWN);
-            return;
-        }
+        try {
+            String publication = engineConfiguration.getString(PUBLICATION_NAME_KEY);
+            if (!publicationExists(publication)) {
+                log.error(
+                        "Publication {} is absent, so the change stream will not start for slot {}",
+                        publication,
+                        properties.slotName());
+                setState(ChangeStreamState.DOWN);
+                return;
+            }
 
-        launchEngine();
+            launchEngine();
+        } finally {
+            synchronized (lifecycleLock) {
+                starting = false;
+            }
+        }
     }
 
     /**
@@ -199,6 +213,11 @@ public class ChangeStreamReader {
                 .build();
 
         synchronized (lifecycleLock) {
+            // A stop that arrived while this start was in flight found no engine to close, so an engine handed
+            // to the executor now would outlive it. One that was never executed holds nothing and is dropped.
+            if (stopRequested) {
+                return;
+            }
             this.engine = newEngine;
             this.completionLatch = latch;
         }
