@@ -405,7 +405,7 @@ class ChangeStreamReaderTest {
                             jdbcAggregateTemplateInDeadRedisContext, userId, "Groceries " + UUID.randomUUID());
 
                     readerAgainstDeadRedis.start();
-                    awaitDeadRedisState(ChangeStreamState.STREAMING);
+                    awaitStateAgainstDeadRedis(ChangeStreamState.STREAMING);
                     String positionBeforeChange =
                             confirmedFlushLsn(jdbcTemplateInDeadRedisContext, REDIS_DOWN_SLOT_NAME);
 
@@ -418,7 +418,7 @@ class ChangeStreamReaderTest {
                     // A refused publish is the only thing that takes a streaming reader back to DOWN, so
                     // reaching it is what establishes the engine got to the change and Redis rejected it. An
                     // empty stream on its own cannot tell that from an engine that never arrived.
-                    awaitDeadRedisState(ChangeStreamState.DOWN);
+                    awaitStateAgainstDeadRedis(ChangeStreamState.DOWN);
 
                     assertThat(ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, "category", userId))
                             .isEmpty();
@@ -430,7 +430,7 @@ class ChangeStreamReaderTest {
                 }
             }
 
-            private void awaitDeadRedisState(ChangeStreamState expected) {
+            private void awaitStateAgainstDeadRedis(ChangeStreamState expected) {
                 await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(readerAgainstDeadRedis.state())
                         .isEqualTo(expected));
             }
