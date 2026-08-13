@@ -238,3 +238,6 @@ Your service's `docs/` folder, plus those README link edits. Never another servi
 Files written, created or updated · use cases, one line each · contracts with counterpart and direction ·
 configuration variables added, removed, or changed · facts moved out of the README · discrepancies between plan
 and code · anything unwritten, and why.
+
+**The report is the only channel back** — the orchestrator is not addressable by name, so never send it a
+message; anything you would have asked goes in the report.
