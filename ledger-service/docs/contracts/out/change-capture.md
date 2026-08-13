@@ -10,18 +10,18 @@ The service reads its own committed row changes back out of Postgres's write-ahe
 
 ## What is published
 
-| Table              | Reaches the log | Reaches [the stream](change-stream.md) |
-|--------------------|-----------------|----------------------------------------|
-| `expense`          | yes             | yes                                    |
-| `expense_proposal` | yes             | yes                                    |
-| `category`         | yes             | yes                                    |
-| `cdc_heartbeat`    | yes             | no                                     |
-| every other table  | no              | no                                     |
+| Table              | Published |
+|--------------------|-----------|
+| `expense`          | yes       |
+| `expense_proposal` | yes       |
+| `category`         | yes       |
+| `cdc_heartbeat`    | yes       |
+| every other table  | no        |
 
-The three captured tables run under `REPLICA IDENTITY FULL`. A change to any of them logs the whole row: both
-sides of an update, and the row a delete removed.
+Which of them a consumer receives is [the change stream](change-stream.md).
 
-The publication is restricted to inserts, updates and deletes.
+The first three run under `REPLICA IDENTITY FULL`. The publication is restricted to inserts, updates and
+deletes.
 
 `cdc_heartbeat`'s single row is advanced on a timer, which moves the replication slot forward while only
 uncaptured tables are written. Retained log is cluster-wide, so without it ordinary traffic would pin the log.
@@ -75,8 +75,8 @@ Postgres retains every segment after the position the slot has confirmed, so a s
 | the publication present                | capture reports down and takes no slot                                           |
 | a bound on what a slot may retain      | an unread slot retains log until the disk is gone                                |
 
-The bound is the database's setting, not the service's. A slot that passes it is invalidated, and capture stays
-down until an operator [rebuilds it](../in/operations.md#rebuilding-the-slot).
+The bound is the database's setting, not the service's. A slot that passes it is invalidated, and only
+[rebuilding it](../in/operations.md#rebuilding-the-slot) brings capture back.
 
 ## Compatibility
 
