@@ -9,6 +9,37 @@ writes a row: what the tables hold is [the database's own contract](database.md)
 - **Schema:** the publication and the replica identity, declared in
   `src/main/resources/db/migration/V009__publish_ledger_changes.sql`
 
+## How a change travels
+
+```plantuml
+@startuml
+participant "a use case's write" as Write
+database "Postgres" as PG
+participant "the change stream reader" as Reader
+participant "the change publisher" as Publisher
+queue "Redis" as Redis
+
+Write -> PG : commits a transaction touching a captured table
+PG -> PG : records it in the write-ahead log
+PG -> Reader : streams the change from the replication slot, whole row on both sides
+Reader -> Publisher : offers the change
+
+opt the category is not already cached
+    Publisher -> PG : reads the category and its grouping by id
+    PG --> Publisher : the two names
+end
+
+Publisher -> Redis : appends the payload, with the names beside it
+Redis --> Publisher : the entry id
+Publisher --> Reader : published
+Reader -> PG : confirms the position, releasing the log behind it
+@enduml
+```
+
+The position is confirmed only after Redis has taken the entry, which is what makes delivery at-least-once
+rather than at-most-once. What a refusal does at each step is [the operator's boundary](../in/operations.md);
+what the entry carries is [the change stream](change-stream.md).
+
 ## What is captured
 
 | Table                                       | Reaches the log | Reaches [the stream](change-stream.md) |
