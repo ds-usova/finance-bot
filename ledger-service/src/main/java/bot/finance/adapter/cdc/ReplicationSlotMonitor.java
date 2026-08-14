@@ -1,15 +1,13 @@
 package bot.finance.adapter.cdc;
 
+import bot.finance.adapter.persistence.ReplicationCatalogue;
+import bot.finance.adapter.persistence.ReplicationSlotRetention;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import javax.sql.DataSource;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -23,14 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReplicationSlotMonitor implements SmartLifecycle {
 
-    private static final String SELECT_SLOT_SQL =
-            """
-            SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) AS retained_bytes, wal_status
-            FROM pg_replication_slots
-            WHERE slot_name = ?
-            """;
-
-    private final DataSource dataSource;
+    private final ReplicationCatalogue replicationCatalogue;
     private final CdcProperties properties;
     private final ChangeStreamMeters meters;
     private final ScheduledExecutorService scheduledExecutorService;
@@ -39,12 +30,12 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
     private volatile ScheduledFuture<?> scheduledFuture;
 
     public ReplicationSlotMonitor(
-            DataSource dataSource,
+            ReplicationCatalogue replicationCatalogue,
             CdcProperties properties,
             ChangeStreamMeters meters,
             ScheduledExecutorService scheduledExecutorService,
             LoggerFactory loggerFactory) {
-        this.dataSource = dataSource;
+        this.replicationCatalogue = replicationCatalogue;
         this.properties = properties;
         this.meters = meters;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -81,25 +72,16 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
     }
 
     public void readSlot() {
-        try (Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement(SELECT_SLOT_SQL)) {
-            statement.setString(1, properties.slotName());
+        Optional<ReplicationSlotRetention> retention = replicationCatalogue.findSlotRetention(properties.slotName());
 
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    meters.setSlotRetainedBytes(0);
-                    meters.setSlotWalStatus(ReplicationSlotState.ABSENT);
-                    return;
-                }
-
-                long retainedBytes = resultSet.getLong("retained_bytes");
-                ReplicationSlotState state =
-                        ReplicationSlotState.fromNullableWalStatus(resultSet.getString("wal_status"));
-                meters.setSlotRetainedBytes(retainedBytes);
-                meters.setSlotWalStatus(state);
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to read the replication slot", e);
+        if (retention.isEmpty()) {
+            meters.setSlotRetainedBytes(0);
+            meters.setSlotWalStatus(ReplicationSlotState.ABSENT);
+            return;
         }
+
+        meters.setSlotRetainedBytes(retention.get().retainedBytes());
+        meters.setSlotWalStatus(
+                ReplicationSlotState.fromNullableWalStatus(retention.get().walStatus()));
     }
 }
