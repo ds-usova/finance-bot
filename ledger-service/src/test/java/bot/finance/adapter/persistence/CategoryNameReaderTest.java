@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bot.finance.adapter.cdc.CategoryNames;
+import bot.finance.adapter.cdc.CategoryRow;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
@@ -33,44 +33,43 @@ class CategoryNameReaderTest {
     private JdbcAggregateTemplate jdbcAggregateTemplate;
 
     @Nested
-    @DisplayName("finding a category's name and its grouping's")
-    class FindNames {
+    @DisplayName("finding one category row by its id")
+    class FindRow {
 
         @Test
-        @DisplayName("when a category is stored under a grouping - then answers both the category's name and its "
-                + "grouping's")
-        void whenCategoryStoredUnderAGrouping_thenAnswersCategoryNameAndGroupingName() {
-            long userId = storedUserId("category-names-user");
+        @DisplayName("when a category is stored under a grouping - then answers its own name and its grouping's id")
+        void whenCategoryStoredUnderAGrouping_thenAnswersOwnNameAndGroupingId() {
+            long userId = storedUserId("category-row-user");
             long groupingId = storedGroupingId(userId, "Groceries");
             long categoryId = storedCategoryId(userId, groupingId, "Supermarkets");
 
-            Optional<CategoryNames> found = reader.findNames(categoryId);
+            Optional<CategoryRow> found = reader.findRow(categoryId);
 
-            assertThat(found).contains(new CategoryNames("Supermarkets", "Groceries"));
+            assertThat(found).contains(new CategoryRow("Supermarkets", Optional.of(groupingId)));
         }
 
         @Test
         @DisplayName("when the id given is one no category row carries - then answers nothing")
         void whenIdMatchesNoCategoryRow_thenAnswersNothing() {
-            Optional<CategoryNames> found = reader.findNames(-1L);
+            Optional<CategoryRow> found = reader.findRow(-1L);
 
             assertThat(found).isEmpty();
         }
 
         @Test
-        @DisplayName("when the id given is a grouping's own id - then answers nothing since a grouping has no parent")
-        void whenIdIsAGroupingsOwnId_thenAnswersNothing() {
+        @DisplayName("when the id given is a grouping's own id - then answers its name and no parent")
+        void whenIdIsAGroupingsOwnId_thenAnswersItsNameAndNoParent() {
             long userId = storedUserId("grouping-own-id-user");
             long groupingId = storedGroupingId(userId, "Travel");
 
-            Optional<CategoryNames> found = reader.findNames(groupingId);
+            Optional<CategoryRow> found = reader.findRow(groupingId);
 
-            assertThat(found).isEmpty();
+            assertThat(found).contains(new CategoryRow("Travel", Optional.empty()));
         }
 
         @Test
-        @DisplayName("when two people hold a category of the same name - then answers that person's names by id alone")
-        void whenTwoPeopleShareACategoryName_thenAnswersThatPersonsNamesByIdAlone() {
+        @DisplayName("when two people hold a category of the same name - then answers that person's row by id alone")
+        void whenTwoPeopleShareACategoryName_thenAnswersThatPersonsRowByIdAlone() {
             long firstUserId = storedUserId("first-shared-name-user");
             long secondUserId = storedUserId("second-shared-name-user");
             long firstGroupingId = storedGroupingId(firstUserId, "Home");
@@ -78,9 +77,9 @@ class CategoryNameReaderTest {
             long firstCategoryId = storedCategoryId(firstUserId, firstGroupingId, "Supplies");
             storedCategoryId(secondUserId, secondGroupingId, "Supplies");
 
-            Optional<CategoryNames> found = reader.findNames(firstCategoryId);
+            Optional<CategoryRow> found = reader.findRow(firstCategoryId);
 
-            assertThat(found).contains(new CategoryNames("Supplies", "Home"));
+            assertThat(found).contains(new CategoryRow("Supplies", Optional.of(firstGroupingId)));
         }
     }
 
@@ -96,9 +95,9 @@ class CategoryNameReaderTest {
         void whenDatabaseIsUnreachable_thenThrowsPersistenceFailedExceptionWrappingIt() {
             DataAccessResourceFailureException frameworkException =
                     new DataAccessResourceFailureException("connection refused");
-            when(mockedCategoryEntityRepository.findCategoryNames(42L)).thenThrow(frameworkException);
+            when(mockedCategoryEntityRepository.findCategoryRow(42L)).thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedReader.findNames(42L))
+            assertThatThrownBy(() -> mockedReader.findRow(42L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

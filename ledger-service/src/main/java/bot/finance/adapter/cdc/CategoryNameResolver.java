@@ -8,9 +8,9 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * A bounded LRU cache over {@link CategoryNameReader}, sized by {@link CdcProperties#categoryCacheSize()}. A
- * grouping renamed evicts its own entry and every category filed under it, since each cached entry carries
- * names drawn from both rows.
+ * A bounded LRU cache over {@link CategoryNameReader}, sized by {@link CdcProperties#categoryCacheSize()} and
+ * holding one category row per id, groupings included. A category's two names come from its own row and its
+ * parent's, so a grouping's name is stored once rather than copied into every entry under it.
  */
 @Component
 public class CategoryNameResolver {
@@ -18,7 +18,7 @@ public class CategoryNameResolver {
     private final CategoryNameReader categoryNameReader;
     private final ChangeStreamMeters meters;
     private final CdcProperties properties;
-    private final Map<Long, Optional<CategoryNames>> cache;
+    private final Map<Long, Optional<CategoryRow>> cache;
 
     public CategoryNameResolver(
             CategoryNameReader categoryNameReader, ChangeStreamMeters meters, CdcProperties properties) {
@@ -27,34 +27,55 @@ public class CategoryNameResolver {
         this.properties = properties;
         this.cache = new LinkedHashMap<>(16, 0.75f, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<Long, Optional<CategoryNames>> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Long, Optional<CategoryRow>> eldest) {
                 return size() > properties.categoryCacheSize();
             }
         };
     }
 
     public synchronized Optional<CategoryNames> resolve(long categoryId) {
-        Optional<CategoryNames> cached = cache.get(categoryId);
+        boolean fromMemory = cache.containsKey(categoryId);
+
+        Optional<CategoryRow> category = row(categoryId);
+        Optional<Long> groupingId = category.flatMap(CategoryRow::parentId);
+        if (groupingId.isEmpty()) {
+            countLookup(fromMemory);
+            return Optional.empty();
+        }
+
+        fromMemory = fromMemory && cache.containsKey(groupingId.get());
+        Optional<CategoryRow> grouping = row(groupingId.get());
+        countLookup(fromMemory);
+
+        return grouping.map(found -> new CategoryNames(category.get().name(), found.name()));
+    }
+
+    public synchronized void evict(long categoryId) {
+        cache.clear();
+    }
+
+    private Optional<CategoryRow> row(long id) {
+        Optional<CategoryRow> cached = cache.get(id);
         if (cached != null) {
-            meters.countCategoryLookupHit();
             return cached;
         }
 
-        meters.countCategoryLookupMiss();
-        Optional<CategoryNames> names;
+        Optional<CategoryRow> found;
         try {
-            names = categoryNameReader.findNames(categoryId);
+            found = categoryNameReader.findRow(id);
         } catch (PersistenceFailedException e) {
             meters.countCategoryLookupFailure();
             throw e;
         }
-        cache.put(categoryId, names);
-        return names;
+        cache.put(id, found);
+        return found;
     }
 
-    public synchronized void evict(long categoryId) {
-        // a cached entry names its grouping, not its grouping's id, so there is no way to tell which entries
-        // are filed under the evicted id without clearing every one of them
-        cache.clear();
+    private void countLookup(boolean fromMemory) {
+        if (fromMemory) {
+            meters.countCategoryLookupHit();
+        } else {
+            meters.countCategoryLookupMiss();
+        }
     }
 }

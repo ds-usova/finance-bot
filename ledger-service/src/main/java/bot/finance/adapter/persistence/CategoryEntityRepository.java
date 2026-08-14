@@ -53,10 +53,9 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
 
     @Query(
             """
-            SELECT c.name AS name, g.name AS grouping_name
-            FROM category c
-            JOIN category g ON g.id = c.parent_id
-            WHERE c.id = :categoryId
+            SELECT name, parent_id
+            FROM category
+            WHERE id = :categoryId
             """)
-    Optional<CategoryNamesProjection> findCategoryNames(@Param("categoryId") Long categoryId);
+    Optional<CategoryRowProjection> findCategoryRow(@Param("categoryId") Long categoryId);
 }

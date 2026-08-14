@@ -18,8 +18,13 @@ import org.junit.jupiter.api.Test;
 
 class CategoryNameResolverTest {
 
-    private static final CategoryNames COFFEE_UNDER_FOOD = new CategoryNames("Coffee", "Food");
-    private static final CategoryNames RENT_UNDER_HOUSING = new CategoryNames("Rent", "Housing");
+    private static final long FOOD_ID = 10L;
+    private static final long HOUSING_ID = 20L;
+    private static final CategoryRow FOOD = new CategoryRow("Food", Optional.empty());
+    private static final CategoryRow HOUSING = new CategoryRow("Housing", Optional.empty());
+    private static final CategoryRow COFFEE = new CategoryRow("Coffee", Optional.of(FOOD_ID));
+    private static final CategoryRow UTILITIES = new CategoryRow("Utilities", Optional.of(FOOD_ID));
+    private static final CategoryRow RENT = new CategoryRow("Rent", Optional.of(HOUSING_ID));
 
     private CategoryNameReader categoryNameReader;
     private ChangeStreamMeters meters;
@@ -45,42 +50,61 @@ class CategoryNameResolverTest {
                 "secret");
     }
 
+    private void storedRows() {
+        when(categoryNameReader.findRow(1L)).thenReturn(Optional.of(COFFEE));
+        when(categoryNameReader.findRow(2L)).thenReturn(Optional.of(RENT));
+        when(categoryNameReader.findRow(3L)).thenReturn(Optional.of(UTILITIES));
+        when(categoryNameReader.findRow(FOOD_ID)).thenReturn(Optional.of(FOOD));
+        when(categoryNameReader.findRow(HOUSING_ID)).thenReturn(Optional.of(HOUSING));
+    }
+
     @Nested
     @DisplayName("resolving a category id to its names")
     class Resolve {
 
         @Test
-        @DisplayName("when the id is not cached - then the lookup answers the names, is called once, and a miss "
-                + "is counted")
-        void whenIdIsNotCached_thenLookupAnswersNamesIsCalledOnceAndMissIsCounted() {
-            when(categoryNameReader.findNames(1L)).thenReturn(Optional.of(COFFEE_UNDER_FOOD));
+        @DisplayName("when the id is not cached - then both rows are read and the two names are answered")
+        void whenIdIsNotCached_thenBothRowsAreReadAndTwoNamesAnswered() {
+            storedRows();
 
             Optional<CategoryNames> result = resolver.resolve(1L);
 
-            assertThat(result).contains(COFFEE_UNDER_FOOD);
-            verify(categoryNameReader, times(1)).findNames(1L);
+            assertThat(result).contains(new CategoryNames("Coffee", "Food"));
+            verify(categoryNameReader, times(1)).findRow(1L);
+            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
             verify(meters).countCategoryLookupMiss();
         }
 
         @Test
-        @DisplayName("when the same id is resolved again - then it is answered from memory and the lookup is not "
-                + "called again")
-        void whenSameIdIsResolvedAgain_thenAnsweredFromMemoryAndLookupNotCalledAgain() {
-            when(categoryNameReader.findNames(1L)).thenReturn(Optional.of(COFFEE_UNDER_FOOD));
+        @DisplayName("when the same id is resolved again - then it is answered from memory and nothing is read")
+        void whenSameIdIsResolvedAgain_thenAnsweredFromMemoryAndNothingIsRead() {
+            storedRows();
             resolver.resolve(1L);
 
             Optional<CategoryNames> second = resolver.resolve(1L);
 
-            assertThat(second).contains(COFFEE_UNDER_FOOD);
-            verify(categoryNameReader, times(1)).findNames(1L);
+            assertThat(second).contains(new CategoryNames("Coffee", "Food"));
+            verify(categoryNameReader, times(1)).findRow(1L);
+            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
             verify(meters).countCategoryLookupHit();
         }
 
         @Test
-        @DisplayName("when the lookup answers nothing for the id - then an empty result is answered rather than "
-                + "an exception")
-        void whenLookupAnswersNothingForId_thenEmptyResultAnsweredRatherThanException() {
-            when(categoryNameReader.findNames(9L)).thenReturn(Optional.empty());
+        @DisplayName("when a second category under the same grouping is resolved - then the grouping is read once")
+        void whenSecondCategoryUnderSameGroupingIsResolved_thenGroupingIsReadOnce() {
+            storedRows();
+            resolver.resolve(1L);
+
+            Optional<CategoryNames> second = resolver.resolve(3L);
+
+            assertThat(second).contains(new CategoryNames("Utilities", "Food"));
+            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+        }
+
+        @Test
+        @DisplayName("when no row carries the id - then an empty result is answered rather than an exception")
+        void whenNoRowCarriesId_thenEmptyResultAnsweredRatherThanException() {
+            when(categoryNameReader.findRow(9L)).thenReturn(Optional.empty());
 
             Optional<CategoryNames> result = resolver.resolve(9L);
 
@@ -88,10 +112,21 @@ class CategoryNameResolverTest {
         }
 
         @Test
+        @DisplayName("when the id is a grouping's own id - then nothing is answered and no second row is read")
+        void whenIdIsAGroupingsOwnId_thenNothingIsAnsweredAndNoSecondRowIsRead() {
+            storedRows();
+
+            Optional<CategoryNames> result = resolver.resolve(FOOD_ID);
+
+            assertThat(result).isEmpty();
+            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+        }
+
+        @Test
         @DisplayName("when the lookup fails - then the failure propagates and a lookup failure is counted")
         void whenLookupFails_thenFailurePropagatesAndLookupFailureIsCounted() {
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
-            when(categoryNameReader.findNames(4L)).thenThrow(failure);
+            when(categoryNameReader.findRow(4L)).thenThrow(failure);
 
             assertThatThrownBy(() -> resolver.resolve(4L)).isSameAs(failure);
 
@@ -99,19 +134,16 @@ class CategoryNameResolverTest {
         }
 
         @Test
-        @DisplayName("when the cache exceeds its configured size - then the least recently used entry is evicted")
-        void whenCacheExceedsConfiguredSize_thenLeastRecentlyUsedEntryIsEvicted() {
+        @DisplayName("when the cache exceeds its configured size - then the least recently used row is evicted")
+        void whenCacheExceedsConfiguredSize_thenLeastRecentlyUsedRowIsEvicted() {
             CategoryNameResolver smallResolver = new CategoryNameResolver(categoryNameReader, meters, properties(2L));
-            when(categoryNameReader.findNames(1L)).thenReturn(Optional.of(COFFEE_UNDER_FOOD));
-            when(categoryNameReader.findNames(2L)).thenReturn(Optional.of(RENT_UNDER_HOUSING));
-            when(categoryNameReader.findNames(3L)).thenReturn(Optional.of(COFFEE_UNDER_FOOD));
+            storedRows();
             smallResolver.resolve(1L);
             smallResolver.resolve(2L);
-            smallResolver.resolve(3L);
 
             smallResolver.resolve(1L);
 
-            verify(categoryNameReader, times(2)).findNames(1L);
+            verify(categoryNameReader, times(2)).findRow(1L);
         }
     }
 
@@ -120,34 +152,30 @@ class CategoryNameResolverTest {
     class Evict {
 
         @Test
-        @DisplayName(
-                "when evict() is called for a cached entry's id - then the next resolve() reads the lookup " + "again")
-        void whenEvictCalledForCachedEntryId_thenNextResolveReadsLookupAgain() {
-            when(categoryNameReader.findNames(1L)).thenReturn(Optional.of(COFFEE_UNDER_FOOD));
+        @DisplayName("when evict() is called for a cached row's id - then the next resolve() reads it again")
+        void whenEvictCalledForCachedRowId_thenNextResolveReadsItAgain() {
+            storedRows();
             resolver.resolve(1L);
 
             resolver.evict(1L);
             resolver.resolve(1L);
 
-            verify(categoryNameReader, times(2)).findNames(1L);
+            verify(categoryNameReader, times(2)).findRow(1L);
         }
 
         @Test
-        @DisplayName("when evict() is called for a grouping's id - then every entry filed under it is gone too")
-        void whenEvictCalledForGroupingId_thenEveryEntryFiledUnderItIsGoneToo() {
-            CategoryNames rentUnderHousehold = new CategoryNames("Rent", "Household");
-            CategoryNames utilitiesUnderHousehold = new CategoryNames("Utilities", "Household");
-            when(categoryNameReader.findNames(10L)).thenReturn(Optional.of(rentUnderHousehold));
-            when(categoryNameReader.findNames(11L)).thenReturn(Optional.of(utilitiesUnderHousehold));
-            resolver.resolve(10L);
-            resolver.resolve(11L);
+        @DisplayName("when evict() is called for a grouping's id - then every row filed under it is gone too")
+        void whenEvictCalledForGroupingId_thenEveryRowFiledUnderItIsGoneToo() {
+            storedRows();
+            resolver.resolve(1L);
+            resolver.resolve(3L);
 
-            resolver.evict(100L);
-            resolver.resolve(10L);
-            resolver.resolve(11L);
+            resolver.evict(FOOD_ID);
+            resolver.resolve(1L);
+            resolver.resolve(3L);
 
-            verify(categoryNameReader, times(2)).findNames(10L);
-            verify(categoryNameReader, times(2)).findNames(11L);
+            verify(categoryNameReader, times(2)).findRow(1L);
+            verify(categoryNameReader, times(2)).findRow(3L);
         }
     }
 }
