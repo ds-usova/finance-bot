@@ -1,7 +1,6 @@
 package bot.finance.common.stubs;
 
 import static bot.finance.common.stubs.TelegramTestBot.getUpdatesPath;
-import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -38,8 +37,10 @@ import bot.finance.common.fixtures.TelegramFixtures;
  */
 public final class WireMockStubs {
 
+    private static final String TELEGRAM_DELIVERY_SCENARIO = "telegram-getUpdates-delivery";
     private static final String TELEGRAM_RECOVERY_SCENARIO = "telegram-getUpdates-recovery";
     private static final String RECOVERED = "recovered";
+    private static final String DELIVERED = "delivered";
 
     private static final int UPDATE_BEARING_PRIORITY = 1;
     private static final int CATCH_ALL_PRIORITY = 10;
@@ -58,13 +59,21 @@ public final class WireMockStubs {
     }
 
     /**
-     * Answers only the poll that carries no {@code offset} form param — the one pengrad sends until a batch has
-     * been confirmed — so the batch is delivered exactly once, without a stateful stub.
+     * Answers the next poll for this token with {@code responseBody} and steps the scenario past itself, so the
+     * batch is delivered exactly once and every later poll falls through to the catch-all.
+     *
+     * <p>Delivery is keyed on scenario state rather than on the absent {@code offset} form param, which pengrad
+     * only omits until it has confirmed a batch. That param made "once" mean "on a poll loop that has never
+     * confirmed anything", so a second scenario needed a second loop, and a second loop needed a Spring context
+     * of its own. Scenario state holds on any loop at any offset, which is what lets every system test share one
+     * booted application.
      */
-    public static void telegramReturnsOnFirstPoll(String token, String responseBody) {
+    public static void telegramDeliversOnce(String token, String responseBody) {
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
+                .inScenario("%s-%s".formatted(TELEGRAM_DELIVERY_SCENARIO, token))
+                .whenScenarioStateIs(STARTED)
+                .willSetStateTo(DELIVERED)
                 .atPriority(UPDATE_BEARING_PRIORITY)
-                .withFormParam("offset", absent())
                 .willReturn(okJson(responseBody)));
     }
 
@@ -79,13 +88,12 @@ public final class WireMockStubs {
     }
 
     /**
-     * Fails the first offset-less poll with an {@code ok:false} body and answers every later one with
-     * {@code responseBody}.
+     * Fails the next poll with an {@code ok:false} body, answers the one after it with {@code responseBody}, and
+     * steps past itself so the batch is delivered exactly once.
      *
-     * <p>The only stateful stub in the suite, and it has to be: a failed {@code getUpdates} does not advance
-     * pengrad's offset, so the failing poll and the recovering poll are otherwise indistinguishable requests and
-     * WireMock would answer both with the same stub. Safe because the scenario state belongs to one token,
-     * hence to one test class's own context and poll loop.
+     * <p>A failed {@code getUpdates} does not advance pengrad's offset, so the failing poll and the recovering
+     * poll are otherwise indistinguishable requests and WireMock would answer both with the same stub. Three
+     * scenario states tell them apart, and the third is what {@link #telegramDeliversOnce} does on its own.
      */
     public static void telegramFailsOnceThenReturns(String token, int errorCode, String responseBody) {
         String scenario = "%s-%s".formatted(TELEGRAM_RECOVERY_SCENARIO, token);
@@ -94,14 +102,13 @@ public final class WireMockStubs {
                 .whenScenarioStateIs(STARTED)
                 .willSetStateTo(RECOVERED)
                 .atPriority(UPDATE_BEARING_PRIORITY)
-                .withFormParam("offset", absent())
                 .willReturn(okJson(TelegramFixtures.error(errorCode, "simulated getUpdates failure"))));
 
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(getUpdatesPath(token)))
                 .inScenario(scenario)
                 .whenScenarioStateIs(RECOVERED)
+                .willSetStateTo(DELIVERED)
                 .atPriority(UPDATE_BEARING_PRIORITY)
-                .withFormParam("offset", absent())
                 .willReturn(okJson(responseBody)));
     }
 

@@ -6,8 +6,8 @@ import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyM
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramDeliversOnce;
 import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
-import static bot.finance.common.stubs.WireMockStubs.telegramReturnsOnFirstPoll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -104,7 +104,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         telegramReturnsNoUpdates(RESOLVE_PROPOSALS_TOKEN);
         telegramAcceptsAnswerCallbackQuery(RESOLVE_PROPOSALS_TOKEN);
         telegramAcceptsEditMessageReplyMarkup(RESOLVE_PROPOSALS_TOKEN);
-        telegramReturnsOnFirstPoll(
+        telegramDeliversOnce(
                 RESOLVE_PROPOSALS_TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
                         UPDATE_ID, FROM_ID, CHAT_ID, TelegramFixtures.MESSAGE_ID, "accept:" + reference)));

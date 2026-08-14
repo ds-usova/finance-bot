@@ -123,7 +123,7 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
         WireMockStubs.telegramAcceptsSendMessage(TOKEN);
         GrpcStubServer.armMcpCallbacks(
                 "http://localhost:" + port, McpRequests.summarizeSpending(PERIOD_FROM, PERIOD_TO));
-        WireMockStubs.telegramReturnsOnFirstPoll(
+        WireMockStubs.telegramDeliversOnce(
                 TOKEN,
                 TelegramFixtures.updatesResponse(
                         TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));

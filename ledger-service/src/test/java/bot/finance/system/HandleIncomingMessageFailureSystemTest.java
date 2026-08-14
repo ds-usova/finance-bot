@@ -61,7 +61,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
     void stubTelegramAndConnector() {
         telegramAcceptsSendMessage(HANDLE_MESSAGE_FAILURE_TOKEN);
         WireMockStubs.telegramReturnsNoUpdates(HANDLE_MESSAGE_FAILURE_TOKEN);
-        WireMockStubs.telegramReturnsOnFirstPoll(
+        WireMockStubs.telegramDeliversOnce(
                 HANDLE_MESSAGE_FAILURE_TOKEN,
                 TelegramFixtures.updatesResponse(
                         TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));

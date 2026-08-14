@@ -120,7 +120,7 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                         PROPOSAL_MERCHANT,
                         PROPOSAL_AMOUNT_TEXT,
                         PROPOSAL_CURRENCY_CODE));
-        WireMockStubs.telegramReturnsOnFirstPoll(
+        WireMockStubs.telegramDeliversOnce(
                 TOKEN,
                 TelegramFixtures.updatesResponse(
                         TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
