@@ -2,50 +2,41 @@ package bot.finance.adapter.cdc;
 
 import bot.finance.adapter.persistence.CategoryNameReader;
 import bot.finance.domain.exception.PersistenceFailedException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * A bounded LRU cache over {@link CategoryNameReader}, sized by {@link CdcProperties#categoryCacheSize()} and
- * holding one category row per id, groupings included. A category's two names come from its own row and its
- * parent's, so a grouping's name is stored once rather than copied into every entry under it.
+ * Answers a category's own name and its grouping's from {@link CategoryRowCache}, falling back to
+ * {@link CategoryNameReader} for a row the cache does not hold. A grouping is a row like any other, so its name
+ * is stored once rather than copied into every entry under it.
  */
 @Component
 public class CategoryNameResolver {
 
     private final CategoryNameReader categoryNameReader;
     private final ChangeStreamMeters meters;
-    private final CdcProperties properties;
-    private final Map<Long, Optional<CategoryRow>> cache;
+    private final CategoryRowCache cache;
 
     public CategoryNameResolver(
             CategoryNameReader categoryNameReader, ChangeStreamMeters meters, CdcProperties properties) {
         this.categoryNameReader = categoryNameReader;
         this.meters = meters;
-        this.properties = properties;
-        this.cache = new LinkedHashMap<>(16, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<Long, Optional<CategoryRow>> eldest) {
-                return size() > properties.categoryCacheSize();
-            }
-        };
+        this.cache = new CategoryRowCache(properties.categoryCacheSize());
     }
 
     public synchronized Optional<CategoryNames> resolve(long categoryId) {
-        boolean fromMemory = cache.containsKey(categoryId);
+        Optional<Optional<CategoryRow>> cachedCategory = cache.lookup(categoryId);
+        Optional<CategoryRow> category = cachedCategory.orElseGet(() -> read(categoryId));
 
-        Optional<CategoryRow> category = row(categoryId);
         Optional<Long> groupingId = category.flatMap(CategoryRow::parentId);
         if (groupingId.isEmpty()) {
-            countLookup(fromMemory);
+            countLookup(cachedCategory.isPresent());
             return Optional.empty();
         }
 
-        fromMemory = fromMemory && cache.containsKey(groupingId.get());
-        Optional<CategoryRow> grouping = row(groupingId.get());
-        countLookup(fromMemory);
+        Optional<Optional<CategoryRow>> cachedGrouping = cache.lookup(groupingId.get());
+        Optional<CategoryRow> grouping = cachedGrouping.orElseGet(() -> read(groupingId.get()));
+        countLookup(cachedCategory.isPresent() && cachedGrouping.isPresent());
 
         return grouping.map(found -> new CategoryNames(category.get().name(), found.name()));
     }
@@ -54,12 +45,7 @@ public class CategoryNameResolver {
         cache.remove(categoryId);
     }
 
-    private Optional<CategoryRow> row(long id) {
-        Optional<CategoryRow> cached = cache.get(id);
-        if (cached != null) {
-            return cached;
-        }
-
+    private Optional<CategoryRow> read(long id) {
         Optional<CategoryRow> found;
         try {
             found = categoryNameReader.findRow(id);
@@ -67,6 +53,7 @@ public class CategoryNameResolver {
             meters.countCategoryLookupFailure();
             throw e;
         }
+
         cache.put(id, found);
         return found;
     }
