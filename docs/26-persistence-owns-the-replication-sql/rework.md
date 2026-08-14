@@ -140,7 +140,7 @@ the text, so the dependency runs one way only.
   - frozen: `ChangeStreamReaderTest`
   - cover: `ReplicationCatalogueTest`
 
-- [ ] R03 · extract · the rebuild's six statements move behind a lock-scoped session
+- [x] R03 · extract · the rebuild's six statements move behind a lock-scoped session
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/ChangeStreamRecovery.java`
     - `ledger-service/src/main/java/bot/finance/adapter/persistence/ReplicationCatalogue.java`

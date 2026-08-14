@@ -1,15 +1,13 @@
 package bot.finance.adapter.cdc;
 
+import bot.finance.adapter.persistence.ReplicationCatalogue;
+import bot.finance.adapter.persistence.ReplicationSlotPosition;
+import bot.finance.adapter.persistence.SlotRebuildSession;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import javax.sql.DataSource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,141 +20,59 @@ public class ChangeStreamRecovery {
 
     private static final Duration ENGINE_STOP_TIMEOUT = Duration.ofSeconds(10);
 
-    /** The table Debezium's {@code JdbcOffsetBackingStore} keeps the engine's stored position in. */
-    private static final String OFFSET_STORAGE_TABLE = "debezium_offset_storage";
-
     private final ChangeStreamReader changeStreamReader;
-    private final DataSource dataSource;
+    private final ReplicationCatalogue replicationCatalogue;
     private final CdcProperties properties;
     private final Logger log;
 
     public ChangeStreamRecovery(
             ChangeStreamReader changeStreamReader,
-            DataSource dataSource,
+            ReplicationCatalogue replicationCatalogue,
             CdcProperties properties,
             LoggerFactory loggerFactory) {
         this.changeStreamReader = changeStreamReader;
-        this.dataSource = dataSource;
+        this.replicationCatalogue = replicationCatalogue;
         this.properties = properties;
         this.log = loggerFactory.getLogger(ChangeStreamRecovery.class);
     }
 
     public SlotRecoveryOutcome recover() {
-        try (Connection connection = dataSource.getConnection()) {
-            if (!tryAdvisoryLock(connection)) {
-                return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.LOCK_HELD);
-            }
-
-            try {
-                return runSequence(connection);
-            } finally {
-                releaseAdvisoryLock(connection);
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to reach the database for the recovery sequence", e);
-        }
+        return replicationCatalogue
+                .underSlotLock(properties.slotName(), this::runSequence)
+                .orElseGet(() -> SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.LOCK_HELD));
     }
 
-    private SlotRecoveryOutcome runSequence(Connection connection) throws SQLException {
-        Optional<SlotSnapshot> slot = readSlot(connection);
+    private SlotRecoveryOutcome runSequence(SlotRebuildSession session) {
+        Optional<ReplicationSlotPosition> slot = session.findSlot();
 
-        if (slot.isPresent() && slot.get().walStatus() != ReplicationSlotState.LOST) {
+        if (slot.isPresent() && walStatusOf(slot.get()) != ReplicationSlotState.LOST) {
             return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_LOST);
         }
 
-        Optional<String> abandonedPosition = slot.map(SlotSnapshot::confirmedFlushLsn);
+        Optional<String> abandonedPosition = slot.map(ReplicationSlotPosition::confirmedFlushLsn);
 
         if (!changeStreamReader.stop(ENGINE_STOP_TIMEOUT)) {
             return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.ENGINE_DID_NOT_STOP);
         }
 
-        if (!deleteStoredPosition(connection)) {
+        if (!session.deleteStoredPosition()) {
             return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.POSITION_NOT_DELETED);
         }
 
-        if (slot.isPresent() && !dropSlot(connection)) {
+        if (slot.isPresent() && !session.dropSlot()) {
             return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED);
         }
 
         abandonedPosition.ifPresent(
                 position -> log.error("Abandoned replication position {} at {}", position, Instant.now()));
 
-        String resumedPosition = readCurrentWalLsn(connection);
+        String resumedPosition = session.currentWalLsn();
         changeStreamReader.start();
 
         return SlotRecoveryOutcome.rebuilt(abandonedPosition, resumedPosition);
     }
 
-    private boolean tryAdvisoryLock(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_try_advisory_lock(hashtext(?))")) {
-            statement.setString(1, properties.slotName());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                resultSet.next();
-                return resultSet.getBoolean(1);
-            }
-        }
+    private ReplicationSlotState walStatusOf(ReplicationSlotPosition slot) {
+        return ReplicationSlotState.fromNullableWalStatus(slot.walStatus());
     }
-
-    private void releaseAdvisoryLock(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_advisory_unlock(hashtext(?))")) {
-            statement.setString(1, properties.slotName());
-            statement.execute();
-        }
-    }
-
-    private Optional<SlotSnapshot> readSlot(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT wal_status, confirmed_flush_lsn FROM pg_replication_slots WHERE slot_name = ?")) {
-            statement.setString(1, properties.slotName());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    return Optional.empty();
-                }
-                String confirmedFlushLsn = resultSet.getString("confirmed_flush_lsn");
-                ReplicationSlotState state =
-                        ReplicationSlotState.fromNullableWalStatus(resultSet.getString("wal_status"));
-                return Optional.of(new SlotSnapshot(state, confirmedFlushLsn));
-            }
-        }
-    }
-
-    private boolean deleteStoredPosition(Connection connection) {
-        try {
-            boolean tableExists;
-            try (ResultSet tables = connection.getMetaData().getTables(null, null, OFFSET_STORAGE_TABLE, null)) {
-                tableExists = tables.next();
-            }
-            if (!tableExists) {
-                return true;
-            }
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM " + OFFSET_STORAGE_TABLE)) {
-                statement.executeUpdate();
-            }
-            return true;
-        } catch (SQLException e) {
-            log.error("Failed to delete the stored replication position", e);
-            return false;
-        }
-    }
-
-    private boolean dropSlot(Connection connection) {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_drop_replication_slot(?)")) {
-            statement.setString(1, properties.slotName());
-            statement.execute();
-            return true;
-        } catch (SQLException e) {
-            log.error("Failed to drop the replication slot", e);
-            return false;
-        }
-    }
-
-    private String readCurrentWalLsn(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_current_wal_lsn()");
-                ResultSet resultSet = statement.executeQuery()) {
-            resultSet.next();
-            return resultSet.getString(1);
-        }
-    }
-
-    private record SlotSnapshot(ReplicationSlotState walStatus, String confirmedFlushLsn) {}
 }
