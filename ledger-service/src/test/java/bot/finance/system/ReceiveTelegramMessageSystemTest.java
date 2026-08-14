@@ -2,7 +2,7 @@ package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static bot.finance.common.stubs.TelegramTestBot.replyMarkup;
 import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,13 +52,12 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
 
     private static final String TOKEN = TelegramTestBot.RECEIVE_MESSAGE_TOKEN;
 
-    private static final int UPDATE_ID = 42;
-    private static final long FROM_ID = 777L;
-    private static final long CHAT_ID = 555L;
-    private static final String FROM_ID_STRING = String.valueOf(FROM_ID);
-    private static final String CHAT_ID_STRING = String.valueOf(CHAT_ID);
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RECEIVE_MESSAGE;
+
+    private static final String FROM_ID_STRING = SCENARIO.userExternalId();
+    private static final String CHAT_ID_STRING = SCENARIO.conversationId();
     private static final String MESSAGE_TEXT = "lunch 12 euro";
-    private static final String NEXT_OFFSET = "43";
+    private static final String NEXT_OFFSET = SCENARIO.nextOffset();
 
     private static final String PROPOSAL_CATEGORY = "Supermarkets";
     private static final String PROPOSAL_GROUPING = "Groceries";
@@ -122,8 +121,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                         PROPOSAL_CURRENCY_CODE));
         WireMockStubs.telegramDeliversOnce(
                 TOKEN,
-                TelegramFixtures.updatesResponse(
-                        TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                        SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
     }
 
     @AfterEach
@@ -240,11 +239,11 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             await("a sendMessage reply is recorded for the confirmed batch")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessages(TOKEN))
+                    .untilAsserted(() -> assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
                             .as("sendMessage requests recorded for token %s", TOKEN)
                             .isNotEmpty());
 
-            List<LoggedRequest> sent = recordedSendMessages(TOKEN);
+            List<LoggedRequest> sent = recordedSendMessagesTo(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);
             LoggedRequest sendMessageRequest = sent.get(0);
             assertThat(sendMessageRequest.formParameter("chat_id").getValues())

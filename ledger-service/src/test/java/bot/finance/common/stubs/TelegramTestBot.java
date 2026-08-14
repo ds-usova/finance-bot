@@ -87,6 +87,54 @@ public final class TelegramTestBot {
      */
     public static final String ACCEPT_EXPENSES_TOKEN = "accept-expenses-test-token";
 
+    /**
+     * What tells one poll-loop scenario from another: the update it is delivered as, the Telegram user who sends
+     * it, the conversation it arrives in, and — for a tap — the callback query that carries it.
+     *
+     * <p>The constants below are the whole allocation, so that no two scenarios sharing an id is something a
+     * reader can check by looking at one list. The user matters beyond the poll loop: a user's first message
+     * seeds their entire category tree, and a user who already exists is not seeded again, so two scenarios on
+     * one id would depend on which ran first against the shared database.
+     */
+    public record TelegramScenario(int updateId, long userId, long chatId) {
+
+        public String userExternalId() {
+            return String.valueOf(userId);
+        }
+
+        public String conversationId() {
+            return String.valueOf(chatId);
+        }
+
+        /** The {@code offset} pengrad polls with once it has confirmed this scenario's batch. */
+        public String nextOffset() {
+            return String.valueOf(updateId + 1);
+        }
+
+        /** A {@code callback_query.id} no other scenario's tap carries. */
+        public String callbackQueryId() {
+            return "callback-query-%d".formatted(updateId);
+        }
+    }
+
+    /** Scenario owned by {@code ReceiveTelegramMessageSystemTest}. */
+    public static final TelegramScenario RECEIVE_MESSAGE = new TelegramScenario(101, 1001, 2001);
+
+    /** Scenario owned by {@code SummarizeSpendingReplySystemTest}. */
+    public static final TelegramScenario SUMMARIZE_SPENDING = new TelegramScenario(201, 1002, 2002);
+
+    /** Scenario owned by {@code ResolveProposalsSystemTest}. */
+    public static final TelegramScenario RESOLVE_PROPOSALS = new TelegramScenario(301, 1003, 2003);
+
+    /** Scenario owned by {@code ResolveUnknownProposalsSystemTest}. */
+    public static final TelegramScenario RESOLVE_UNKNOWN_PROPOSALS = new TelegramScenario(401, 1004, 2004);
+
+    /** Scenario owned by {@code HandleIncomingMessageFailureSystemTest}. */
+    public static final TelegramScenario HANDLE_MESSAGE_FAILURE = new TelegramScenario(501, 1005, 2005);
+
+    /** Scenario owned by {@code TelegramPollFailureRecoverySystemTest}. */
+    public static final TelegramScenario POLL_RECOVERY = new TelegramScenario(601, 1006, 2006);
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -159,6 +207,33 @@ public final class TelegramTestBot {
      */
     public static List<LoggedRequest> recordedSendMessages(String token) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token))));
+    }
+
+    /**
+     * The recorded {@code sendMessage} calls addressed to this scenario's conversation.
+     *
+     * <p>A turn still running when the next test starts writes into that test's journal, and the conversation is
+     * what tells the two apart once every scenario shares one token and one poll loop.
+     */
+    public static List<LoggedRequest> recordedSendMessagesTo(String token, TelegramScenario scenario) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token)))
+                .withFormParam("chat_id", equalTo(scenario.conversationId())));
+    }
+
+    /**
+     * The recorded {@code editMessageReplyMarkup} calls addressed to this scenario's conversation.
+     */
+    public static List<LoggedRequest> recordedEditMessageReplyMarkupsIn(String token, TelegramScenario scenario) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(editMessageReplyMarkupPath(token)))
+                .withFormParam("chat_id", equalTo(scenario.conversationId())));
+    }
+
+    /**
+     * The recorded {@code answerCallbackQuery} calls answering this scenario's own tap.
+     */
+    public static List<LoggedRequest> recordedAnswerCallbackQueriesFor(String token, TelegramScenario scenario) {
+        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(answerCallbackQueryPath(token)))
+                .withFormParam("callback_query_id", equalTo(scenario.callbackQueryId())));
     }
 
     /**

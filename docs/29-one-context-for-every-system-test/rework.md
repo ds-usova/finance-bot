@@ -79,7 +79,7 @@ for it and the whole chain falls:
   - survives: a failed poll is followed by a good one carrying the same batch · `TelegramPollFailureRecoverySystemTest`
   - measures: system test classes whose delivery depends on a virgin poll loop 6 -> 0
 
-- [ ] R02 · tests · every poll-loop scenario is identified by its own data rather than by its own context
+- [x] R02 · tests · every poll-loop scenario is identified by its own data rather than by its own context
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/stubs/TelegramTestBot.java`
     - `ledger-service/src/test/java/bot/finance/system/ReceiveTelegramMessageSystemTest.java`
@@ -88,6 +88,7 @@ for it and the whole chain falls:
     - `ledger-service/src/test/java/bot/finance/system/ResolveUnknownProposalsSystemTest.java`
     - `ledger-service/src/test/java/bot/finance/system/HandleIncomingMessageFailureSystemTest.java`
     - `ledger-service/src/test/java/bot/finance/system/TelegramPollFailureRecoverySystemTest.java`
+    - `ledger-service/src/test/java/bot/finance/common/fixtures/TelegramFixtures.java`
   - survives: a text message is turned into a reported proposal · `ReceiveTelegramMessageSystemTest`
   - survives: a spending question is answered in the chat · `SummarizeSpendingReplySystemTest`
   - survives: an accept tap records the proposals and acknowledges the tap · `ResolveProposalsSystemTest`

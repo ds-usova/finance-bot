@@ -3,12 +3,13 @@ package bot.finance.system;
 import static bot.finance.common.stubs.TelegramTestBot.POLL_RECOVERY_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.TelegramFixtures;
+import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +26,11 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "telegram.bot.token=" + POLL_RECOVERY_TOKEN)
 class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
 
-    private static final int UPDATE_ID = 42;
-    private static final long CHAT_ID = 555L;
-    private static final String CONVERSATION_ID = "555";
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.POLL_RECOVERY;
+
+    private static final String CONVERSATION_ID = SCENARIO.conversationId();
     private static final String MESSAGE_TEXT = "lunch 12 euro";
-    private static final String CONFIRMED_OFFSET = String.valueOf(UPDATE_ID + 1);
+    private static final String CONFIRMED_OFFSET = SCENARIO.nextOffset();
     private static final int TOO_MANY_REQUESTS = 429;
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -46,8 +47,8 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
         WireMockStubs.telegramFailsOnceThenReturns(
                 POLL_RECOVERY_TOKEN,
                 TOO_MANY_REQUESTS,
-                TelegramFixtures.updatesResponse(
-                        TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                        SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
     }
 
     @Nested
@@ -61,11 +62,11 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
             // then: the message the failed poll delayed is answered, so the failure cost the user nothing
             await("a sendMessage reply is recorded once the good response arrived")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(recordedSendMessages(POLL_RECOVERY_TOKEN))
+                    .untilAsserted(() -> assertThat(recordedSendMessagesTo(POLL_RECOVERY_TOKEN, SCENARIO))
                             .as("sendMessage requests recorded for token %s", POLL_RECOVERY_TOKEN)
                             .isNotEmpty());
 
-            assertThat(recordedSendMessages(POLL_RECOVERY_TOKEN))
+            assertThat(recordedSendMessagesTo(POLL_RECOVERY_TOKEN, SCENARIO))
                     .singleElement()
                     .satisfies(
                             reply -> assertThat(reply.formParameter("chat_id").getValues())

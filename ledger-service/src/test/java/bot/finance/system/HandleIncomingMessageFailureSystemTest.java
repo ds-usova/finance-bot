@@ -2,7 +2,7 @@ package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.HANDLE_MESSAGE_FAILURE_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsSendMessage;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,6 +13,7 @@ import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -36,11 +37,11 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "telegram.bot.token=" + HANDLE_MESSAGE_FAILURE_TOKEN)
 class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
 
-    private static final int UPDATE_ID = 42;
-    private static final long CHAT_ID = 555L;
-    private static final String CONVERSATION_ID = String.valueOf(CHAT_ID);
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.HANDLE_MESSAGE_FAILURE;
+
+    private static final String CONVERSATION_ID = SCENARIO.conversationId();
     private static final String MESSAGE_TEXT = "lunch 12 euro";
-    private static final String NEXT_OFFSET = String.valueOf(UPDATE_ID + 1);
+    private static final String NEXT_OFFSET = SCENARIO.nextOffset();
     private static final String EXPECTED_TEXT = "Something went wrong and nothing was noted — please try again.";
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -63,8 +64,8 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         WireMockStubs.telegramReturnsNoUpdates(HANDLE_MESSAGE_FAILURE_TOKEN);
         WireMockStubs.telegramDeliversOnce(
                 HANDLE_MESSAGE_FAILURE_TOKEN,
-                TelegramFixtures.updatesResponse(
-                        TelegramFixtures.textMessageUpdate(UPDATE_ID, CHAT_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                        SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
         GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
     }
 
@@ -86,7 +87,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
             await("exactly one sendMessage reporting the FAILED outcome is recorded")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
-                        List<LoggedRequest> sent = recordedSendMessages(HANDLE_MESSAGE_FAILURE_TOKEN);
+                        List<LoggedRequest> sent = recordedSendMessagesTo(HANDLE_MESSAGE_FAILURE_TOKEN, SCENARIO);
                         log.debug("Recorded sendMessage requests: {}", sent);
 
                         assertThat(sent).hasSize(1);
@@ -108,7 +109,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
                     });
 
             // then: a failed turn leaves nothing half-recorded behind it
-            Optional<User> storedUser = userRepository.findByExternalId(CONVERSATION_ID);
+            Optional<User> storedUser = userRepository.findByExternalId(SCENARIO.userExternalId());
             storedUser.ifPresent(user -> assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(
                             jdbcAggregateTemplate, user.id().orElseThrow()))
                     .as("expense_proposal rows for the conversation's user")

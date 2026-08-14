@@ -1,7 +1,7 @@
 package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -42,13 +42,12 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
 
     private static final String TOKEN = TelegramTestBot.SUMMARIZE_SPENDING_TOKEN;
 
-    private static final int UPDATE_ID = 42;
-    private static final long FROM_ID = 888L;
-    private static final long CHAT_ID = 666L;
-    private static final String FROM_ID_STRING = String.valueOf(FROM_ID);
-    private static final String CHAT_ID_STRING = String.valueOf(CHAT_ID);
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.SUMMARIZE_SPENDING;
+
+    private static final String FROM_ID_STRING = SCENARIO.userExternalId();
+    private static final String CHAT_ID_STRING = SCENARIO.conversationId();
     private static final String MESSAGE_TEXT = "how much did I spend last month";
-    private static final String NEXT_OFFSET = "43";
+    private static final String NEXT_OFFSET = SCENARIO.nextOffset();
 
     private static final String PERIOD_FROM = "2026-07-01";
     private static final String PERIOD_TO = "2026-07-31";
@@ -125,8 +124,8 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                 "http://localhost:" + port, McpRequests.summarizeSpending(PERIOD_FROM, PERIOD_TO));
         WireMockStubs.telegramDeliversOnce(
                 TOKEN,
-                TelegramFixtures.updatesResponse(
-                        TelegramFixtures.textMessageUpdate(UPDATE_ID, FROM_ID, CHAT_ID, MESSAGE_TEXT)));
+                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                        SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
     }
 
     @Nested
@@ -171,11 +170,11 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
             await("a sendMessage reply is recorded for the answered turn")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessages(TOKEN))
+                    .untilAsserted(() -> assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
                             .as("sendMessage requests recorded for token %s", TOKEN)
                             .isNotEmpty());
 
-            List<LoggedRequest> sent = recordedSendMessages(TOKEN);
+            List<LoggedRequest> sent = recordedSendMessagesTo(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);
             LoggedRequest sendMessageRequest = sent.get(0);
             assertThat(sendMessageRequest.formParameter("chat_id").getValues())

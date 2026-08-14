@@ -1,8 +1,8 @@
 package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.RESOLVE_PROPOSALS_TOKEN;
-import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
-import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkups;
+import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
@@ -20,6 +20,7 @@ import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,12 +42,11 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "telegram.bot.token=" + RESOLVE_PROPOSALS_TOKEN)
 class ResolveProposalsSystemTest extends AbstractSystemTest {
 
-    private static final int UPDATE_ID = 42;
-    private static final long FROM_ID = 777L;
-    private static final long CHAT_ID = 555L;
-    private static final String FROM_ID_STRING = String.valueOf(FROM_ID);
-    private static final String NEXT_OFFSET = String.valueOf(UPDATE_ID + 1);
-    private static final String CALLBACK_QUERY_ID = "callback-query-id";
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RESOLVE_PROPOSALS;
+
+    private static final String FROM_ID_STRING = SCENARIO.userExternalId();
+    private static final String NEXT_OFFSET = SCENARIO.nextOffset();
+    private static final String CALLBACK_QUERY_ID = SCENARIO.callbackQueryId();
     private static final String EXPECTED_ANSWER_TEXT = "Confirmed 2 expenses.";
 
     private static final String GROUPING_NAME = "Groceries";
@@ -107,7 +107,12 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         telegramDeliversOnce(
                 RESOLVE_PROPOSALS_TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
-                        UPDATE_ID, FROM_ID, CHAT_ID, TelegramFixtures.MESSAGE_ID, "accept:" + reference)));
+                        SCENARIO.updateId(),
+                        CALLBACK_QUERY_ID,
+                        SCENARIO.userId(),
+                        SCENARIO.chatId(),
+                        TelegramFixtures.MESSAGE_ID,
+                        "accept:" + reference)));
     }
 
     @Nested
@@ -141,10 +146,10 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
             // then: the tap is answered, telling the user what it did
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedAnswerCallbackQueries(RESOLVE_PROPOSALS_TOKEN))
+                            recordedAnswerCallbackQueriesFor(RESOLVE_PROPOSALS_TOKEN, SCENARIO))
                     .as("answerCallbackQuery requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> answers = recordedAnswerCallbackQueries(RESOLVE_PROPOSALS_TOKEN);
+            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(RESOLVE_PROPOSALS_TOKEN, SCENARIO);
             assertThat(answers).as("exactly one answerCallbackQuery recorded").hasSize(1);
             LoggedRequest answer = answers.get(0);
             assertThat(answer.formParameter("callback_query_id").getValues())
@@ -156,15 +161,15 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
             // then: the report loses its buttons, so it cannot be resolved twice
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkups(RESOLVE_PROPOSALS_TOKEN))
+                            recordedEditMessageReplyMarkupsIn(RESOLVE_PROPOSALS_TOKEN, SCENARIO))
                     .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> edits = recordedEditMessageReplyMarkups(RESOLVE_PROPOSALS_TOKEN);
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(RESOLVE_PROPOSALS_TOKEN, SCENARIO);
             assertThat(edits).as("exactly one editMessageReplyMarkup recorded").hasSize(1);
             LoggedRequest edit = edits.get(0);
             assertThat(edit.formParameter("chat_id").getValues())
                     .as("editMessageReplyMarkup chat_id form param")
-                    .containsExactly(String.valueOf(CHAT_ID));
+                    .containsExactly(SCENARIO.conversationId());
             assertThat(edit.formParameter("message_id").getValues())
                     .as("editMessageReplyMarkup message_id form param")
                     .containsExactly(String.valueOf(TelegramFixtures.MESSAGE_ID));

@@ -29,6 +29,8 @@ public final class TelegramFixtures {
 
     private static final int MESSAGE_DATE = 1700000000;
 
+    private static final String DEFAULT_CALLBACK_QUERY_ID = "callback-query-id";
+
     private TelegramFixtures() {}
 
     /**
@@ -127,11 +129,20 @@ public final class TelegramFixtures {
      * A bare {@code Update} carrying a callback query with a {@code from}, a {@code message} and {@code data}.
      */
     public static String callbackQueryUpdate(int updateId, long userId, long chatId, int messageId, String data) {
+        return callbackQueryUpdate(updateId, DEFAULT_CALLBACK_QUERY_ID, userId, chatId, messageId, data);
+    }
+
+    /**
+     * The same, with a {@code callback_query.id} of the caller's choosing — what a test asserting on its own
+     * {@code answerCallbackQuery} filters the recorded calls by.
+     */
+    public static String callbackQueryUpdate(
+            int updateId, String callbackQueryId, long userId, long chatId, int messageId, String data) {
         return """
                 {
                   "update_id": %d,
                   "callback_query": {
-                    "id": "callback-query-id",
+                    "id": "%s",
                     "from": { "id": %d, "is_bot": false, "first_name": "Tester" },
                     "message": {
                       "message_id": %d,
@@ -142,7 +153,7 @@ public final class TelegramFixtures {
                     "data": "%s"
                   }
                 }"""
-                .formatted(updateId, userId, messageId, MESSAGE_DATE, chatId, escaped(data));
+                .formatted(updateId, escaped(callbackQueryId), userId, messageId, MESSAGE_DATE, chatId, escaped(data));
     }
 
     /**
