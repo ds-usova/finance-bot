@@ -139,9 +139,9 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName("when a category update is published - then no enrichment block is added, and the resolver "
-                + "takes the row from the payload")
-        void whenCategoryUpdateIsPublished_thenNoEnrichmentBlockAddedAndResolverTakesRowFromPayload() {
+        @DisplayName("when a category update is published - then the resolver takes the row and no enrichment "
+                + "is added")
+        void whenCategoryUpdateIsPublished_thenResolverTakesRowAndNoEnrichmentIsAdded() {
             String payload =
                     """
                     {"after":{"id":42,"name":"Household","parent_id":null},\
