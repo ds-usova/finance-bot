@@ -139,8 +139,8 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName("when a category update is published - then the resolver takes the row and no enrichment "
-                + "is added")
+        @DisplayName(
+                "when a category update is published - then the resolver takes the row and no enrichment " + "is added")
         void whenCategoryUpdateIsPublished_thenResolverTakesRowAndNoEnrichmentIsAdded() {
             String payload =
                     """
