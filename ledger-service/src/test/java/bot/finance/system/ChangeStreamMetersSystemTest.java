@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers {@code GET /actuator/prometheus} end to end against the fully wired application with capture switched on.
@@ -35,10 +34,9 @@ import org.springframework.test.context.TestPropertySource;
  * refused one inside this one booted context.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = {"cdc.slot-name=change_stream_meters_slot", "cdc.stream-key=change-stream-meters.cdc"})
 class ChangeStreamMetersSystemTest {
 
-    private static final String STREAM_KEY = "change-stream-meters.cdc";
+    private static final String STREAM_KEY = CdcCaptureTest.STREAM_KEY;
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 

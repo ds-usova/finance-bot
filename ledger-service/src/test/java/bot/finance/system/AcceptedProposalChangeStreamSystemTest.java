@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers {@code POST /api/v1/expenses/acceptances} end to end against the fully wired application with capture
@@ -35,14 +34,9 @@ import org.springframework.test.context.TestPropertySource;
  * needs.
  */
 @CdcCaptureTest
-@TestPropertySource(
-        properties = {
-            "cdc.slot-name=accepted_proposal_change_stream_slot",
-            "cdc.stream-key=accepted-proposal-change-stream.cdc"
-        })
 class AcceptedProposalChangeStreamSystemTest {
 
-    private static final String STREAM_KEY = "accepted-proposal-change-stream.cdc";
+    private static final String STREAM_KEY = CdcCaptureTest.STREAM_KEY;
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;

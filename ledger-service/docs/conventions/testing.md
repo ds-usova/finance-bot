@@ -26,7 +26,8 @@ bot.finance
     │   ├── CaptureAdapterConfiguration # the capture adapter's beans, a meter registry and a Redis template
     │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
     │   ├── CdcAdapterTestOnItsOwnDatabase # the same, for a class declaring its own Postgres container
-    │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
+    │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired
+    │                             #   in, on the application's own slot and stream key
     │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the four whose bean
     │                             #   graph only proves itself at runtime
@@ -158,6 +159,17 @@ running when the next test starts otherwise lands in that test's journal.
 **A batch is delivered by `WireMockStubs.telegramDeliversOnce`**, whose scenario state is what makes it exactly
 once. Never match on an absent `offset` form param: pengrad omits it only until it has confirmed a batch, so a
 stub keyed on it needs a poll loop that has confirmed nothing, and that is a booted application per class.
+
+### Sharing the capture engine
+
+Every `@CdcCaptureTest` class runs on the application's own `cdc.slot-name` and `cdc.stream-key`, so they share
+one context, one engine and one slot. Postgres allows a slot one active consumer, so a class overriding either
+property founds a second engine rather than joining the first.
+
+What separates two classes' entries on the shared stream is the user each creates: read them back through
+`ChangeStreamEntries.entriesOnFor(key, table, userId)`, never off the whole stream. A class booting a database
+of its own is the exception, since its `user_id` values repeat ids another class already published under — it
+names a stream key of its own and reads that stream whole.
 
 ## Naming Conventions
 

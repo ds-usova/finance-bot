@@ -23,11 +23,12 @@ import org.springframework.test.context.TestPropertySource;
  * ({@link PostgresContainers} is a JVM-wide singleton, same as this class's own reasoning in
  * {@code application-test.yaml}).
  *
- * <p>The slot name is deliberately left at the application's own default rather than fixed here: two capture
- * test classes both opening it against the shared {@link PostgresContainers} singleton would fight over it. A
- * class needing its own slot declares its own {@code @TestPropertySource(properties = "cdc.slot-name=...")}
- * beside this annotation, the same way a long-polling system test isolates itself with its own bot token
- * (see {@link bot.finance.common.stubs.TelegramTestBot} and the isolation rules in the testing conventions).
+ * <p>The slot name and the stream key are left at the application's own defaults, named below as {@link #SLOT_NAME}
+ * and {@link #STREAM_KEY}. Every class carrying this annotation therefore shares one context, one engine and one
+ * slot, which is the shape production runs in. Postgres allows a slot one active consumer, so a class that
+ * overrode either would be founding a second engine rather than joining this one — and what separates two
+ * classes' entries on the shared stream is the user each creates, read back through
+ * {@link bot.finance.common.fixtures.ChangeStreamEntries#entriesOnFor}.
  *
  * <p>{@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type cannot
  * declare, so both the Redis URL and the telegram stub redirect — required because polling is on by default —
@@ -46,6 +47,15 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "cdc.enabled=true")
 @Import(CdcCaptureTest.CaptureTestConfiguration.class)
 public @interface CdcCaptureTest {
+
+    /** The {@code cdc.slot-name} the application defaults to, and therefore the one every capture test runs on. */
+    String SLOT_NAME = "finance_ledger_cdc";
+
+    /** The {@code cdc.stream-key} the application defaults to, and therefore the one every capture test reads. */
+    String STREAM_KEY = "ledger.cdc";
+
+    /** The {@code cdc.recovery-secret} the {@code test} profile configures. */
+    String RECOVERY_SECRET = "default-test-recovery-secret";
 
     @TestConfiguration(proxyBeanMethods = false)
     class CaptureTestConfiguration {

@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers {@code PATCH /api/v1/expenses/RECORDED/{id}} end to end against the fully wired application with capture
@@ -38,11 +37,9 @@ import org.springframework.test.context.TestPropertySource;
  * restore the connection inside this one booted context.
  */
 @CdcCaptureTest
-@TestPropertySource(
-        properties = {"cdc.slot-name=broadcast_ledger_changes_slot", "cdc.stream-key=broadcast-ledger-changes.cdc"})
 class BroadcastLedgerChangesSystemTest {
 
-    private static final String STREAM_KEY = "broadcast-ledger-changes.cdc";
+    private static final String STREAM_KEY = CdcCaptureTest.STREAM_KEY;
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 

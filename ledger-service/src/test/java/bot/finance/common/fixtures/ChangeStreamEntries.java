@@ -21,10 +21,11 @@ public class ChangeStreamEntries {
     private ChangeStreamEntries() {}
 
     /**
-     * Every entry on one named stream, in the order they were XADDed. Every capture test gives itself its own
-     * {@code cdc.stream-key} and names it here: the Redis singleton is JVM-wide, and a class booting its own
-     * database mints the same low {@code user_id} values another class already published under, so filtering by
-     * table and user alone is not enough to tell one class's entries from another's.
+     * Every entry on one named stream, in the order they were XADDed. Capture tests share the application's own
+     * {@code cdc.stream-key} and tell their entries apart by user, since the shared database gives each class's
+     * user an id no other class holds. A class booting a database of its own is the exception — it mints the
+     * same low {@code user_id} values another class already published under, so it names a stream key of its
+     * own and this method is how it reads that stream whole.
      */
     public static List<ChangeStreamEntry> allEntriesOn(String streamKey) {
         try (RedisClient client = RedisClient.create(RedisContainers.redisUrl())) {
