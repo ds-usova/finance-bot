@@ -97,7 +97,11 @@ The first is enforced below, along with how a command is named. The second by re
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`;
   - `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` — no class outside `bot.finance.adapter.security`
-    constructs `AuthenticatedUserId`.
+    constructs `AuthenticatedUserId`;
+  - `onlyThePersistenceAdapterNamesAJdbcType` — no class outside `bot.finance.adapter.persistence` depends on
+    `java.sql..`, `javax.sql..`, `com.zaxxer.hikari..`, `org.springframework.jdbc..` or
+    `org.springframework.data.jdbc..`. Another adapter needing the database takes a collaborator `persistence`
+    owns. Test classes and `bot.finance.common` are excluded, since a test drives the database directly.
 
 ## Diagram Format
 

@@ -164,6 +164,28 @@ class CleanArchitectureTest {
     }
 
     /**
+     * A JDBC type reaching another adapter is how that adapter ends up carrying its own SQL, its own connection
+     * lifecycle and its own view of the schema. A test drives the database directly and is excluded, along with
+     * the shared test infrastructure in {@code bot.finance.common}.
+     */
+    @ArchTest
+    static final ArchRule onlyThePersistenceAdapterNamesAJdbcType = noClasses()
+            .that()
+            .resideOutsideOfPackage("bot.finance.adapter.persistence..")
+            .and(DescribedPredicate.not(topLevelClassNameEndingWithTest()))
+            .and()
+            .resideOutsideOfPackage("bot.finance.common..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                    "java.sql..",
+                    "javax.sql..",
+                    "com.zaxxer.hikari..",
+                    "org.springframework.jdbc..",
+                    "org.springframework.data.jdbc..")
+            .allowEmptyShould(true);
+
+    /**
      * {@code @AnalyzeClasses(packages = "bot.finance")} scans test classes too, so a fixture that builds an
      * {@link AuthenticatedUserId} for a test is excluded rather than flagged: a class whose top-level name ends
      * with {@code Test}, and any class in {@code bot.finance.common}. {@link AuthenticatedUserId} itself is

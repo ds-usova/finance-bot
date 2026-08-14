@@ -161,14 +161,15 @@ the text, so the dependency runs one way only.
   - frozen: `ChangeStreamReaderTest`
   - cover: `DatabaseConnectionDetailsTest`
 
-- [ ] R05 · pin · the persistence adapter is the only package that may name a JDBC type
+- [x] R05 · pin · the persistence adapter is the only package that may name a JDBC type
   - test-files:
     - `ledger-service/src/test/java/bot/finance/architecture/CleanArchitectureTest.java`
   - needs: no class outside `bot.finance.adapter.persistence` imports `java.sql..`, `javax.sql..`,
     `com.zaxxer.hikari..`, `org.springframework.jdbc..` or `org.springframework.data.jdbc..`, test classes and
     `bot.finance.common..` excluded
-  - proves: the `javax.sql.DataSource` field is put back into `ReplicationSlotMonitor` and the new rule reds;
-    the field is removed again and the rule is green
+  - proves: a `javax.sql.DataSource` field put back into `ReplicationSlotMonitor` reds the rule — *Field
+    `ReplicationSlotMonitor.dataSource` has type `javax.sql.DataSource`*, violated 1 time; the field removed
+    again, the rule green
   - docs: `ledger-service/docs/conventions/architecture.md`
 
 ## Open Questions
