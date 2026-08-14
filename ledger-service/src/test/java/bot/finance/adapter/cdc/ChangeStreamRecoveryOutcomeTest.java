@@ -14,7 +14,7 @@ import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.ReplicationSlotPosition;
 import bot.finance.adapter.persistence.SlotRebuildSession;
 import bot.finance.common.LogCapture;
-import java.time.Duration;
+import bot.finance.common.fixtures.CdcConfigurations;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -53,7 +53,10 @@ class ChangeStreamRecoveryOutcomeTest {
         runTheSequence();
 
         changeStreamRecovery = new ChangeStreamRecovery(
-                changeStreamReader, replicationCatalogue, properties(), new Slf4jLoggerFactory());
+                changeStreamReader,
+                replicationCatalogue,
+                CdcConfigurations.forSlot(SLOT_NAME),
+                new Slf4jLoggerFactory());
     }
 
     /** The catalogue hands the sequence a session and answers whatever it returns, the way the real one does. */
@@ -62,19 +65,6 @@ class ChangeStreamRecoveryOutcomeTest {
             Function<SlotRebuildSession, Object> sequence = invocation.getArgument(1);
             return Optional.of(sequence.apply(session));
         });
-    }
-
-    private CdcProperties properties() {
-        return new CdcProperties(
-                true,
-                SLOT_NAME,
-                "recovery-outcome-test.cdc",
-                1000,
-                "no_data",
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                10,
-                "a-secret");
     }
 
     @Nested

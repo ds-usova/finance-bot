@@ -23,7 +23,8 @@ bot.finance
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
     │   ├── PostgresContainers    # JVM-wide singleton, the containerized Postgres
-    │   ├── RedisContainers       # JVM-wide singleton, the containerized Redis, plus a redisUrl() accessor
+    │   ├── RedisContainers       # JVM-wide singleton, the containerized Redis, its URL, and started Lettuce
+    │   │                         #   factories — one at the singleton, one at a closed port — with a template
     │   ├── ToxiproxyContainers   # fronts RedisContainers on the same network, for the outage-and-recovery capture test
     │   ├── WireMockSupport       # JVM-wide singleton, the WireMock stub server
     │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract
@@ -36,6 +37,7 @@ bot.finance
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── CdcConfigurations     # CdcProperties for a test building a capture component itself, by slot or by stream
     │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by source.table and user_id
     │   ├── ChangeStreamHealth    # reads the engine's state off /actuator/health on the management port
     │   ├── ExpensePatches        # the JSON Patch bodies a browser sends to /api/v1/expenses

@@ -7,10 +7,10 @@ import static org.mockito.Mockito.when;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.ReplicationSlotRetention;
+import bot.finance.common.fixtures.CdcConfigurations;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,23 +40,10 @@ class ReplicationSlotMonitorGaugesTest {
 
         replicationSlotMonitor = new ReplicationSlotMonitor(
                 replicationCatalogue,
-                properties(),
+                CdcConfigurations.forSlot(SLOT_NAME),
                 new ChangeStreamMeters(meterRegistry),
                 mock(ScheduledExecutorService.class),
                 new Slf4jLoggerFactory());
-    }
-
-    private CdcProperties properties() {
-        return new CdcProperties(
-                true,
-                SLOT_NAME,
-                "replication-slot-monitor-gauges-test.cdc",
-                1000,
-                "no_data",
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(1),
-                10,
-                "a-secret");
     }
 
     @Nested

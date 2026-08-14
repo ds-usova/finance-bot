@@ -4,23 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.cdc.CdcProperties;
 import bot.finance.common.containers.RedisContainers;
+import bot.finance.common.fixtures.CdcConfigurations;
 import io.lettuce.core.Range;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.StreamMessage;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
-import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
@@ -40,10 +36,10 @@ class RedisChangeStreamWriterTest {
         @DisplayName("when a payload with an enrichment block is written - then one entry carries both fields verbatim")
         void whenPayloadWithEnrichmentIsWritten_thenOneEntryCarriesBothFieldsVerbatim() {
             String streamKey = uniqueStreamKey("happy-path");
-            LettuceConnectionFactory factory = workingConnectionFactory();
+            LettuceConnectionFactory factory = RedisContainers.connectionFactory();
             try {
                 RedisChangeStreamWriter writer =
-                        new RedisChangeStreamWriter(template(factory), properties(streamKey, 1000));
+                        new RedisChangeStreamWriter(RedisContainers.template(factory), properties(streamKey, 1000));
                 String payload = "{\"op\":\"c\",\"after\":{\"id\":1}}";
                 String enrichment = "{\"category\":\"Groceries\"}";
 
@@ -66,10 +62,10 @@ class RedisChangeStreamWriterTest {
         void whenStreamIsAtItsCapAndMoreAreWritten_thenNewestSurviveOldestAreGoneNearCap() {
             String streamKey = uniqueStreamKey("at-cap");
             long cap = 5;
-            LettuceConnectionFactory factory = workingConnectionFactory();
+            LettuceConnectionFactory factory = RedisContainers.connectionFactory();
             try {
                 RedisChangeStreamWriter writer =
-                        new RedisChangeStreamWriter(template(factory), properties(streamKey, cap));
+                        new RedisChangeStreamWriter(RedisContainers.template(factory), properties(streamKey, cap));
 
                 int written = 1000;
                 for (int i = 0; i < written; i++) {
@@ -91,10 +87,10 @@ class RedisChangeStreamWriterTest {
         @DisplayName("when Redis cannot be reached - then answers not written rather than throwing")
         void whenRedisIsUnreachable_thenAnswersNotWrittenRatherThanThrowing() {
             String streamKey = uniqueStreamKey("unreachable");
-            LettuceConnectionFactory factory = unreachableConnectionFactory();
+            LettuceConnectionFactory factory = RedisContainers.unreachableConnectionFactory();
             try {
                 RedisChangeStreamWriter writer =
-                        new RedisChangeStreamWriter(template(factory), properties(streamKey, 1000));
+                        new RedisChangeStreamWriter(RedisContainers.template(factory), properties(streamKey, 1000));
 
                 boolean written = writer.write("{\"op\":\"c\",\"after\":{\"id\":1}}", Optional.empty());
 
@@ -110,41 +106,7 @@ class RedisChangeStreamWriterTest {
     }
 
     private static CdcProperties properties(String streamKey, long streamMaxLength) {
-        return new CdcProperties(
-                true,
-                "redis_change_stream_writer_test_slot",
-                streamKey,
-                streamMaxLength,
-                "never",
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(10),
-                100,
-                "unused-recovery-secret");
-    }
-
-    private static StringRedisTemplate template(LettuceConnectionFactory factory) {
-        StringRedisTemplate template = new StringRedisTemplate(factory);
-        template.afterPropertiesSet();
-        return template;
-    }
-
-    private static LettuceConnectionFactory workingConnectionFactory() {
-        URI redisUri = URI.create(RedisContainers.redisUrl());
-        return startedConnectionFactory(redisUri.getHost(), redisUri.getPort());
-    }
-
-    private static LettuceConnectionFactory unreachableConnectionFactory() {
-        return startedConnectionFactory("localhost", 1);
-    }
-
-    private static LettuceConnectionFactory startedConnectionFactory(String host, int port) {
-        LettuceClientConfiguration clientConfiguration = LettuceClientConfiguration.builder()
-                .commandTimeout(Duration.ofSeconds(2))
-                .build();
-        LettuceConnectionFactory factory =
-                new LettuceConnectionFactory(new RedisStandaloneConfiguration(host, port), clientConfiguration);
-        factory.afterPropertiesSet();
-        return factory;
+        return CdcConfigurations.forStream("redis_change_stream_writer_test_slot", streamKey, streamMaxLength);
     }
 
     private static List<StreamMessage<String, String>> readEntries(String streamKey) {
