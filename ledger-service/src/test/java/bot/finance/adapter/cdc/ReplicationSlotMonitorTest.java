@@ -3,7 +3,7 @@ package bot.finance.adapter.cdc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.common.boot.CdcCaptureTest;
+import bot.finance.common.boot.CdcAdapterTest;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -24,7 +24,7 @@ import org.springframework.test.context.TestPropertySource;
  * <p>Only what needs that real slot is here. What the monitor records from a retention row is
  * {@link ReplicationSlotMonitorGaugesTest}'s.
  */
-@CdcCaptureTest
+@CdcAdapterTest
 @TestPropertySource(
         properties = {"cdc.slot-name=replication_slot_monitor_test", "cdc.heartbeat-interval=500ms", "cdc.enabled=false"
         })

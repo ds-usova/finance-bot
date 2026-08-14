@@ -18,6 +18,7 @@ bot.finance
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
+    │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
     │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
@@ -67,7 +68,9 @@ where its role is honest.
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context.
 - **Integration, outbound** — `adapter/persistence/` and future outbound HTTP adapters, one subpackage per
   external system. Wire only the adapter under test and call its public methods directly against real test
-  infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`.
+  infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`; the change-capture
+  adapter uses `@CdcAdapterTest`, which is the same slice plus the capture beans, a Redis template and no
+  rolled-back transaction — an uncommitted row never reaches the write-ahead log the engine reads.
 - **Integration, inbound** — `adapter/web/` through `@WebMvcTest` with the inbound-port beans mocked. Owns
   validation, binding, delegation and error-to-response mapping; never business logic or real infrastructure.
 

@@ -1,5 +1,6 @@
 package bot.finance.common.containers;
 
+import java.net.URI;
 import java.time.Duration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -44,7 +45,16 @@ public class RedisContainers {
      * The caller destroys it.
      */
     public static LettuceConnectionFactory connectionFactory() {
-        return connectionFactoryAt(REDIS_CONTAINER.getHost(), REDIS_CONTAINER.getMappedPort(REDIS_PORT));
+        return connectionFactoryFor(redisUrl());
+    }
+
+    /**
+     * A started factory at whatever {@code redis://host:port} names — the singleton itself, or
+     * {@link ToxiproxyContainers#proxiedRedisUrl()} for a test that cuts the connection. The caller destroys it.
+     */
+    public static LettuceConnectionFactory connectionFactoryFor(String redisUrl) {
+        URI uri = URI.create(redisUrl);
+        return connectionFactoryAt(uri.getHost(), uri.getPort());
     }
 
     /**
