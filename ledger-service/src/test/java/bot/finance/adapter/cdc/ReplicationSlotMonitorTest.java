@@ -22,7 +22,7 @@ import org.springframework.test.context.TestPropertySource;
  * than through {@link ChangeStreamReader}, since the monitor's own point is that it needs no engine.
  *
  * <p>Only what needs that real slot is here. What the monitor records from a retention row is
- * {@link ReplicationSlotMeteringTest}'s.
+ * {@link ReplicationSlotMonitorGaugesTest}'s.
  */
 @CdcCaptureTest
 @TestPropertySource(

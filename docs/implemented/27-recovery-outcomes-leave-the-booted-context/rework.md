@@ -56,14 +56,14 @@ were private methods on the classes under test, so there was nothing to answer d
 - [x] R02 · tests · the slot monitor's metering scenarios move out of the booted context
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ReplicationSlotMonitorTest.java`
-    - `ledger-service/src/test/java/bot/finance/adapter/cdc/ReplicationSlotMeteringTest.java`
+    - `ledger-service/src/test/java/bot/finance/adapter/cdc/ReplicationSlotMonitorGaugesTest.java`
   - survives: a slot holding log behind it is recorded as its retained bytes and its `wal_status` · a mocked
     `ReplicationCatalogue` answering a retention row, where it ran against a real slot with emitted WAL — that
     a real slot answers a positive number is `ReplicationCatalogueTest`'s now ·
-    `ReplicationSlotMeteringTest#whenSlotHoldsLogBehindIt_thenRetainedBytesAndWalStatusAreRecorded`
+    `ReplicationSlotMonitorGaugesTest#whenSlotHoldsLogBehindIt_thenRetainedBytesAndWalStatusAreRecorded`
   - survives: a slot of that name existing nowhere is recorded as zero bytes and `ABSENT` · a mocked catalogue
     answering empty, where it ran against a database with no such slot ·
-    `ReplicationSlotMeteringTest#whenNoSlotOfThatNameExists_thenRetainedBytesIsZeroAndWalStatusIsAbsent`
+    `ReplicationSlotMonitorGaugesTest#whenNoSlotOfThatNameExists_thenRetainedBytesIsZeroAndWalStatusIsAbsent`
   - measures: scenarios booting the application to assert a gauge 4 -> 2
 
 ## Open Questions
@@ -79,7 +79,7 @@ were private methods on the classes under test, so there was nothing to answer d
   written. Keep both, or is the monitor's version the same fact measured twice?
   - A: Keep both. The reader's proves the slot advances, the monitor's proves the gauge an operator watches.
 - **Q3:** The two new classes are named for the aspect they cover — `ChangeStreamRecoveryOutcomeTest` and
-  `ReplicationSlotMeteringTest` — following `UserRepositoryAdapterConcurrencyTest`, the module's one existing
+  `ReplicationSlotMonitorGaugesTest` — following `UserRepositoryAdapterConcurrencyTest`, the module's one existing
   second-class-for-one-production-class. Is that the shape, or should the unit scenarios stay inside the
   existing classes and give up the context saving?
   - A: New sibling classes. A context is cached per class, so nothing else stops the boot.

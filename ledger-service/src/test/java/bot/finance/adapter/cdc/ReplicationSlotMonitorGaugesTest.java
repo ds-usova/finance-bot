@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
  * the monitor reads one no engine holds, and that a heartbeat keeps its retention near zero — stays in
  * {@link ReplicationSlotMonitorTest}.
  */
-class ReplicationSlotMeteringTest {
+class ReplicationSlotMonitorGaugesTest {
 
-    private static final String SLOT_NAME = "replication_slot_metering_test";
+    private static final String SLOT_NAME = "replication_slot_monitor_gauges_test";
     private static final String RETAINED_BYTES_METER = "ledger_cdc_slot_retained_bytes";
     private static final String WAL_STATUS_METER = "ledger_cdc_slot_wal_status";
 
@@ -50,7 +50,7 @@ class ReplicationSlotMeteringTest {
         return new CdcProperties(
                 true,
                 SLOT_NAME,
-                "replication-slot-metering-test.cdc",
+                "replication-slot-monitor-gauges-test.cdc",
                 1000,
                 "no_data",
                 Duration.ofSeconds(1),
