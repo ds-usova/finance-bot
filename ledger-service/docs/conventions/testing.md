@@ -17,6 +17,7 @@ bot.finance
     │   ├── TheDatabaseSlice      # role — Spring Data JDBC against the real database, transaction rolled back
     │   ├── OnTheContainerizedDatabase # role — the Postgres singleton, skipped when Docker is down
     │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
+    │   ├── TheSecurityChain      # role — the real filter chains, their signing keys and the secret filter
     │   ├── AbstractSystemTest    # full-application base class
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
@@ -26,7 +27,8 @@ bot.finance
     │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
     │   ├── CdcAdapterTestOnItsOwnDatabase # the same, for a class declaring its own Postgres container
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
-    │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
+    │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
+    │   └── *ContextTest          # one per composed annotation — proves it boots, asserts nothing else
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
     │   ├── PostgresContainers    # JVM-wide singleton, the containerized Postgres
@@ -63,9 +65,10 @@ bot.finance
     └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
 
-The four roles at the top of `boot` are what the annotations below them are assembled from, so each reads as a
-role plus the one thing that distinguishes it. A new annotation composes them rather than restating what they
-hold.
+The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus
+the one thing that distinguishes it. An annotation naming an explicit bean list — `AiConnectorAdapterTest`,
+`McpAdapterTest`, `WebAdapterTest` — composes the roles it can and names the rest, rather than restating what a
+role already holds.
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
 the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper
@@ -87,6 +90,12 @@ where its role is honest.
   An inbound adapter whose protocol is not HTTP has no slice, so it is entered through its own protocol:
   `adapter/telegram/TelegramUpdateListener` is driven by a real Telegram client polling WireMock, with the
   inbound port mocked.
+
+  An inbound adapter reached over HTTP that no framework slice covers — an MCP tool, an actuator `@Endpoint` —
+  is booted from an explicit bean list with autoconfiguration on, over a random port, with the inbound port
+  mocked. `McpAdapterTest` and `CdcRecoveryEndpointTest` are the two. Autoconfiguration supplies beans a bean
+  list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
+  repository was enough.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
 - **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`

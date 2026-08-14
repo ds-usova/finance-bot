@@ -41,7 +41,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Integration test for the inbound MCP-tool adapter. Enters through the protocol - a JSON-RPC {@code tools/call}
@@ -62,7 +61,7 @@ class CreateExpenseProposalMcpToolTest {
     @Autowired
     private AccessTokenMinter accessTokenMinter;
 
-    @MockitoBean
+    @Autowired
     private CreateExpenseProposalPort createExpenseProposalPort;
 
     private String token(long userId) {

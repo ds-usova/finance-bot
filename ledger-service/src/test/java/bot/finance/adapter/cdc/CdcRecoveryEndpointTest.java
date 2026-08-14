@@ -6,10 +6,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.adapter.security.RecoverySecretFilter;
-import bot.finance.adapter.security.SecurityConfiguration;
-import bot.finance.adapter.security.TokenSigningKeys;
+import bot.finance.common.boot.TheSecurityChain;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
@@ -30,9 +27,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * HTTP request on the management port - never by calling {@link CdcRecoveryEndpoint#recover()} directly, since an
  * actuator {@code @Endpoint} has no {@code @WebMvcTest} slice and the request's mapping, the shared-secret filter
  * ahead of it and the outcome-to-status mapping all live outside this one class's body. Only
- * {@link ChangeStreamRecovery} is mocked, and the endpoint, the filter ahead of it and the management chain are
- * the only things booted - autoconfiguration is on for the web and actuator layers, and nothing is
- * component-scanned, so no database, no capture engine and no Telegram poll loop come with them.
+ * {@link ChangeStreamRecovery} is mocked, and the endpoint and {@link TheSecurityChain} are the only things
+ * booted. Autoconfiguration is on for the web and actuator layers; nothing is component-scanned, and the
+ * datasource, Redis and MCP server are switched off.
+ *
+ * <p>What the two actuator scenarios below assert is that the shared-secret filter lets a path other than
+ * {@code /actuator/cdc} through - never what health or metrics answer. What those report against real
+ * infrastructure is a system test's, since only a system test has the infrastructure to report on.
  *
  * <p>{@code cdc.recovery-secret} is configured at the class level, overriding the test profile's own, so
  * {@link ChangeStreamRecovery} is genuinely reachable for the happy path and the error mappings. A service
@@ -44,7 +45,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         classes = CdcRecoveryEndpointTest.RecoveryEndpointConfiguration.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(
-        properties = {"cdc.recovery-secret=" + CdcRecoveryEndpointTest.SECRET, "spring.flyway.enabled=false"})
+        properties = {
+            "cdc.recovery-secret=" + CdcRecoveryEndpointTest.SECRET,
+            "spring.ai.mcp.server.enabled=false",
+            "spring.autoconfigure.exclude="
+                    + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+                    + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration"
+        })
 class CdcRecoveryEndpointTest {
 
     static final String SECRET = "test-recovery-secret";
@@ -194,8 +201,7 @@ class CdcRecoveryEndpointTest {
                     .extract()
                     .response();
 
-            assertThat(response.statusCode()).isNotEqualTo(401);
-            assertThat(response.jsonPath().getString("status")).isIn("UP", "DOWN");
+            assertThat(response.statusCode()).isEqualTo(200);
         }
 
         @Test
@@ -209,17 +215,13 @@ class CdcRecoveryEndpointTest {
                     .extract()
                     .response();
 
-            assertThat(response.statusCode()).isNotEqualTo(401);
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.asString()).contains("jvm_");
         }
     }
 
     @EnableAutoConfiguration
-    @Import({
-        CdcRecoveryEndpoint.class,
-        RecoverySecretFilter.class,
-        SecurityConfiguration.class,
-        TokenSigningKeys.class,
-        Slf4jLoggerFactory.class,
-    })
+    @TheSecurityChain
+    @Import(CdcRecoveryEndpoint.class)
     static class RecoveryEndpointConfiguration {}
 }
