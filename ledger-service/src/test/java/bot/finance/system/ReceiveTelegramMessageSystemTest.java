@@ -40,17 +40,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
-/**
- * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
- * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
- * other class's poller reaches.
- */
-@TestPropertySource(properties = "telegram.bot.token=" + TelegramTestBot.RECEIVE_MESSAGE_TOKEN)
 class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
 
-    private static final String TOKEN = TelegramTestBot.RECEIVE_MESSAGE_TOKEN;
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
 
     private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RECEIVE_MESSAGE;
 

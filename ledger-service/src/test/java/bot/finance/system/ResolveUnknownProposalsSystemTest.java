@@ -1,6 +1,5 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
 import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
@@ -28,15 +27,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
- * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
- * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
- * other class's poller reaches.
+ * Covers a tap whose reference names no stored proposal or expense: nothing is resolved, and the buttons come
+ * off anyway.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
 class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
+
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
 
     private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS;
 
@@ -66,11 +64,11 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
     void stubTelegram() {
         userId = UserRowUtils.storedUserId(userEntityRepository, FROM_ID_STRING);
 
-        telegramReturnsNoUpdates(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
-        telegramAcceptsAnswerCallbackQuery(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
-        telegramAcceptsEditMessageReplyMarkup(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
+        telegramReturnsNoUpdates(TOKEN);
+        telegramAcceptsAnswerCallbackQuery(TOKEN);
+        telegramAcceptsEditMessageReplyMarkup(TOKEN);
         telegramDeliversOnce(
-                RESOLVE_UNKNOWN_PROPOSALS_TOKEN,
+                TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
                         SCENARIO.updateId(),
                         CALLBACK_QUERY_ID,
@@ -91,10 +89,9 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
             // then: the tap is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
-                    .untilAsserted(
-                            () -> assertThat(recordedPollsWithOffset(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, NEXT_OFFSET))
-                                    .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
-                                    .isNotEmpty());
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
+                            .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
+                            .isNotEmpty());
 
             // then: a reference naming nothing of this user's records nothing
             List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
@@ -102,10 +99,10 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
             // then: the tap is still answered, saying there was nothing to resolve
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedAnswerCallbackQueriesFor(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, SCENARIO))
-                    .as("answerCallbackQuery requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
+                            recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO))
+                    .as("answerCallbackQuery requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, SCENARIO);
+            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO);
             assertThat(answers).as("exactly one answerCallbackQuery recorded").hasSize(1);
             LoggedRequest answer = answers.get(0);
             assertThat(answer.formParameter("callback_query_id").getValues())
@@ -117,10 +114,10 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
             // then: the buttons come off anyway, which is what repairs a report whose earlier edit was lost
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkupsIn(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, SCENARIO))
-                    .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
+                            recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO))
+                    .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, SCENARIO);
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO);
             assertThat(edits).as("exactly one editMessageReplyMarkup recorded").hasSize(1);
             LoggedRequest edit = edits.get(0);
             assertThat(edit.formParameter("chat_id").getValues())

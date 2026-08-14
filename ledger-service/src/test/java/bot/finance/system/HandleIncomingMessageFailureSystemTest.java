@@ -1,6 +1,5 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.HANDLE_MESSAGE_FAILURE_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
@@ -27,15 +26,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
- * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
- * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
- * other class's poller reaches.
+ * Covers a turn whose extraction fails: the user is told nothing was noted, and the batch is confirmed anyway.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + HANDLE_MESSAGE_FAILURE_TOKEN)
 class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
+
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
 
     private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.HANDLE_MESSAGE_FAILURE;
 
@@ -60,10 +57,10 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
      */
     @BeforeEach
     void stubTelegramAndConnector() {
-        telegramAcceptsSendMessage(HANDLE_MESSAGE_FAILURE_TOKEN);
-        WireMockStubs.telegramReturnsNoUpdates(HANDLE_MESSAGE_FAILURE_TOKEN);
+        telegramAcceptsSendMessage(TOKEN);
+        WireMockStubs.telegramReturnsNoUpdates(TOKEN);
         WireMockStubs.telegramDeliversOnce(
-                HANDLE_MESSAGE_FAILURE_TOKEN,
+                TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
                         SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
         GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));
@@ -79,7 +76,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
         void whenLoopPicksUpdateUp_thenFailureIsLoggedAndBatchIsStillConfirmed() {
             // then: a connector that never answered does not stall the loop
             await("a follow-up getUpdates confirms the batch").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedPollsWithOffset(HANDLE_MESSAGE_FAILURE_TOKEN, NEXT_OFFSET))
+                            recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
                     .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                     .isNotEmpty());
 
@@ -87,7 +84,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
             await("exactly one sendMessage reporting the FAILED outcome is recorded")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
-                        List<LoggedRequest> sent = recordedSendMessagesTo(HANDLE_MESSAGE_FAILURE_TOKEN, SCENARIO);
+                        List<LoggedRequest> sent = recordedSendMessagesTo(TOKEN, SCENARIO);
                         log.debug("Recorded sendMessage requests: {}", sent);
 
                         assertThat(sent).hasSize(1);

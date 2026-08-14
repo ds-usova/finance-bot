@@ -130,8 +130,8 @@ class ChangeStreamRecoveryTest {
 
             // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
             // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
-            long groupingId = CategoryRowUtils.storedGroupingId(
-                    jdbcAggregateTemplate, userId, "Groceries " + UUID.randomUUID());
+            long groupingId =
+                    CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries " + UUID.randomUUID());
 
             changeStreamRecovery.recover();
             changeStreamReader.start();
@@ -141,9 +141,9 @@ class ChangeStreamRecoveryTest {
             // than a stream nobody ever wrote to.
             CategoryRowUtils.storedCategoryId(
                     jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
-            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(
-                            ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-                    .hasSize(1));
+            await().atMost(Duration.ofSeconds(20))
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                            .hasSize(1));
             assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
                     .extracting(entry -> entry.after().path("id").asLong())
                     .doesNotContain(groupingId);

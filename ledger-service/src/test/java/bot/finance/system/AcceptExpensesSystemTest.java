@@ -1,8 +1,7 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.ACCEPT_EXPENSES_TOKEN;
-import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkups;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessages;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -14,6 +13,7 @@ import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.ProposalReportRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -29,16 +29,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers {@code POST /api/v1/expenses/acceptances} end to end against the fully wired application, entered the
  * way a browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it
- * needs to write. Its clearing dispatches a real {@code editMessageReplyMarkup} call, off the request thread, so
- * it declares its own bot token — a stub path no other class's clearing can reach.
+ * needs to write.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + ACCEPT_EXPENSES_TOKEN)
 class AcceptExpensesSystemTest extends AbstractSystemTest {
+
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
+
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.ACCEPT_EXPENSES;
 
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
@@ -99,12 +100,12 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                             incomingMessageId,
                             now)
                     .id();
-            String conversationId = "555";
+            String conversationId = SCENARIO.conversationId();
             String sentMessageId = "4242";
             ProposalReportRowUtils.storedReport(
                     jdbcAggregateTemplate, userId, incomingMessageId, conversationId, sentMessageId, now);
 
-            telegramAcceptsEditMessageReplyMarkup(ACCEPT_EXPENSES_TOKEN);
+            telegramAcceptsEditMessageReplyMarkup(TOKEN);
             String csrfToken = BrowserSessions.csrfToken();
 
             Response response = RestAssured.given()
@@ -145,18 +146,18 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
 
             // then: the buttons come off that report without its text being resent
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkups(ACCEPT_EXPENSES_TOKEN))
-                    .as("editMessageReplyMarkup requests recorded for token %s", ACCEPT_EXPENSES_TOKEN)
+                            recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO))
+                    .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .hasSize(1));
             LoggedRequest edit =
-                    recordedEditMessageReplyMarkups(ACCEPT_EXPENSES_TOKEN).get(0);
+                    recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO).get(0);
             assertThat(edit.formParameter("chat_id").getValues())
                     .as("editMessageReplyMarkup chat_id form param")
                     .containsExactly(conversationId);
             assertThat(edit.formParameter("message_id").getValues())
                     .as("editMessageReplyMarkup message_id form param")
                     .containsExactly(sentMessageId);
-            assertThat(recordedSendMessages(ACCEPT_EXPENSES_TOKEN))
+            assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
                     .as("clearing the buttons never resends the report's text")
                     .isEmpty();
         }
@@ -241,6 +242,6 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
     }
 
     private Response signIn(String externalId) {
-        return BrowserSessions.signIn(ACCEPT_EXPENSES_TOKEN, externalId);
+        return BrowserSessions.signIn(TOKEN, externalId);
     }
 }

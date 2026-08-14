@@ -61,7 +61,8 @@ bot.finance
     │   └── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
-    │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
+    │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
+    │                             #   verification, and Bot API method recording
     ├── LogCapture            # Logback appender, for asserting on log output
     └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
@@ -148,11 +149,15 @@ where its role is honest.
 The Telegram listener's poll loop starts with the application context and runs continuously, so a system test
 stubs the Bot API and waits for the outcome rather than calling the inbound port.
 
-Each such system test class declares its own bot token via
-`@TestPropertySource(properties = "telegram.bot.token=…")`. A differing property gives the class its own entry
-in Spring's context cache — a fresh loop from a clean offset — and, since the token forms part of the request
-path, a stub path no other class can reach. Consequence: **one triggered scenario per class**, since a second
-would inherit the first's advanced state. Give each new class a token constant in `TelegramTestBot`.
+Every such class runs on the one shared context, so it runs against **one poll loop and one stub path**, and
+what separates two scenarios is the data each carries: a `TelegramScenario` in `TelegramTestBot` naming its
+update id, its Telegram user, its conversation and its callback query. Give a new scenario its own entry there,
+and read its outcome back through the scenario-scoped accessors rather than the token-wide ones — a turn still
+running when the next test starts otherwise lands in that test's journal.
+
+**A batch is delivered by `WireMockStubs.telegramDeliversOnce`**, whose scenario state is what makes it exactly
+once. Never match on an absent `offset` form param: pengrad omits it only until it has confirmed a batch, so a
+stub keyed on it needs a poll loop that has confirmed nothing, and that is a booted application per class.
 
 ## Naming Conventions
 

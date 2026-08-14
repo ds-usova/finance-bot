@@ -1,6 +1,5 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.RESOLVE_PROPOSALS_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
 import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
@@ -32,15 +31,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
- * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
- * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
- * other class's poller reaches.
+ * Covers an accept tap arriving over the poll loop: the proposals it names become expenses, and the tap is
+ * answered.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + RESOLVE_PROPOSALS_TOKEN)
 class ResolveProposalsSystemTest extends AbstractSystemTest {
+
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
 
     private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RESOLVE_PROPOSALS;
 
@@ -101,11 +99,11 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
                 reference,
                 now);
 
-        telegramReturnsNoUpdates(RESOLVE_PROPOSALS_TOKEN);
-        telegramAcceptsAnswerCallbackQuery(RESOLVE_PROPOSALS_TOKEN);
-        telegramAcceptsEditMessageReplyMarkup(RESOLVE_PROPOSALS_TOKEN);
+        telegramReturnsNoUpdates(TOKEN);
+        telegramAcceptsAnswerCallbackQuery(TOKEN);
+        telegramAcceptsEditMessageReplyMarkup(TOKEN);
         telegramDeliversOnce(
-                RESOLVE_PROPOSALS_TOKEN,
+                TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
                         SCENARIO.updateId(),
                         CALLBACK_QUERY_ID,
@@ -126,7 +124,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
             // then: the tap is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(RESOLVE_PROPOSALS_TOKEN, NEXT_OFFSET))
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
                             .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
                             .isNotEmpty());
 
@@ -146,10 +144,10 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
             // then: the tap is answered, telling the user what it did
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedAnswerCallbackQueriesFor(RESOLVE_PROPOSALS_TOKEN, SCENARIO))
-                    .as("answerCallbackQuery requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)
+                            recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO))
+                    .as("answerCallbackQuery requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(RESOLVE_PROPOSALS_TOKEN, SCENARIO);
+            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO);
             assertThat(answers).as("exactly one answerCallbackQuery recorded").hasSize(1);
             LoggedRequest answer = answers.get(0);
             assertThat(answer.formParameter("callback_query_id").getValues())
@@ -161,10 +159,10 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
             // then: the report loses its buttons, so it cannot be resolved twice
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkupsIn(RESOLVE_PROPOSALS_TOKEN, SCENARIO))
-                    .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_PROPOSALS_TOKEN)
+                            recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO))
+                    .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(RESOLVE_PROPOSALS_TOKEN, SCENARIO);
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO);
             assertThat(edits).as("exactly one editMessageReplyMarkup recorded").hasSize(1);
             LoggedRequest edit = edits.get(0);
             assertThat(edit.formParameter("chat_id").getValues())

@@ -98,7 +98,7 @@ for it and the whole chain falls:
   - needs: a scenario is delivered once whatever the loop's offset already is
   - measures: poll-loop scenarios sharing a Telegram user with another scenario 2 -> 0
 
-- [ ] R03 · tests · the eight classes declaring a bot token take the test profile's own
+- [x] R03 · tests · the eight classes declaring a bot token take the test profile's own
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/stubs/TelegramTestBot.java`
     - `ledger-service/src/test/java/bot/finance/system/ReceiveTelegramMessageSystemTest.java`

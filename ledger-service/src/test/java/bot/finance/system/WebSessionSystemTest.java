@@ -28,17 +28,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers the browser session end to end against the fully wired application, and the boundary between it and the
  * MCP endpoint: the two token kinds are signed by one key pair, so nothing but the audience and the way each is
  * carried keeps them apart.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + TelegramTestBot.WEB_SESSION_TOKEN)
 class WebSessionSystemTest extends AbstractSystemTest {
 
-    private static final String BOT_TOKEN = TelegramTestBot.WEB_SESSION_TOKEN;
+    private static final String BOT_TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
