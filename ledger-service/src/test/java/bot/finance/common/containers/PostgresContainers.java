@@ -23,17 +23,7 @@ public class PostgresContainers {
                 .withUsername("ledger_user")
                 .withPassword("ledger_password")
                 .withReuse(false)
-                // Every cached Spring context in the test JVM holds a pool against this one container, and the
-                // capture tests add a replication connection each, so the server's default 100 slots are the
-                // suite's real ceiling rather than a comfortable bound.
-                .withCommand(
-                        "postgres",
-                        "-c",
-                        "wal_level=logical",
-                        "-c",
-                        "max_slot_wal_keep_size=16MB",
-                        "-c",
-                        "max_connections=300")
+                .withCommand("postgres", "-c", "wal_level=logical", "-c", "max_slot_wal_keep_size=16MB")
                 .waitingFor(Wait.forListeningPort());
 
         POSTGRES_CONTAINER.start();

@@ -64,7 +64,7 @@ for it and the whole chain falls:
 | R02 | each poll-loop scenario takes its own update id, Telegram user and conversation | the six poll-loop system tests                        |
 | R03 | the eight classes drop their bot token and share the profile's                 | the system tests, and the distinct-configuration count |
 | R04 | the full-application context is no longer discarded after each class           | the module's suite, and the count of booted applications |
-| R05 | the test heap and the container's connection bound come back down              | the module's suite                                    |
+| R05 | the container's connection bound is dropped and the test heap is halved        | the module's suite                                    |
 
 - [x] R01 · tests · the two update-bearing Telegram stubs deliver once through a WireMock scenario
   - test-files:
@@ -122,13 +122,12 @@ for it and the whole chain falls:
   - needs: the fifteen classes share one configuration, so the cache has something to hand back
   - proves: nothing to undo — the claim is that the suite is green without it, 1164 passed either way, and the system tests fell from 200.6s to 82.6s with the whole suite at 318.6s -> 204.8s
 
-- [ ] R05 · pin · the test heap and the container's connection bound drop to what one context needs
+- [x] R05 · pin · the container's connection bound is dropped and the test heap is halved
   - test-files:
     - `ledger-service/build.gradle`
     - `ledger-service/src/test/java/bot/finance/common/containers/PostgresContainers.java`
   - needs: the suite no longer holds fifteen booted applications
-  - proves: nothing to undo — the claim is that the suite is green without them
-  - docs: `ledger-service/docs/conventions/testing.md`
+  - proves: nothing to undo — the claim is that the suite is green without them, 1164 passed with `max_connections` back at the server's default and `maxHeapSize` at `1g`. Dropping the heap setting altogether was tried first and refused: the run died part-way with `OutOfMemoryError: Java heap space` at 1146 of 1164 tests, so Gradle's default worker heap is below what the remaining contexts need.
 
 ## Open Questions
 

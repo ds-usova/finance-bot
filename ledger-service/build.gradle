@@ -145,10 +145,10 @@ dependencyManagement {
 test {
     useJUnitPlatform()
 
-    // Each system test class that differs in a property gets its own entry in Spring's context cache, and the
-    // capture tests each carry their own slot name and stream key — so the cache holds a dozen booted
-    // applications at once, well past what Gradle's default worker heap survives.
-    maxHeapSize = "2g"
+    // The suite holds one booted application for every system test, one per capture class, and the cached
+    // adapter slices. Gradle's default worker heap does not survive them: the suite dies part-way through with
+    // OutOfMemoryError rather than failing a test.
+    maxHeapSize = "1g"
 
     // A developer's shell may export a real TELEGRAM_BOT_TOKEN for running the bot locally. Spring Boot's
     // environment-variable property source outranks the "test" profile's own application-test.yaml, so an
