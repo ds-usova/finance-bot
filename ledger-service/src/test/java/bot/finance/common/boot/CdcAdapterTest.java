@@ -6,7 +6,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 
 /**
  * Composed annotation for the change-capture adapter's own integration tests.
@@ -29,5 +28,5 @@ import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @CdcAdapterTestOnItsOwnDatabase
-@ImportTestcontainers(PostgresContainers.class)
+@OnTheContainerizedDatabase
 public @interface CdcAdapterTest {}

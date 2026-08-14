@@ -13,6 +13,9 @@ bot.finance
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
     ├── boot                  # what a test starts, and how
+    │   ├── TheWholeApplication   # role — every bean, a random port, the containerized database
+    │   ├── TheDatabaseSlice      # role — Spring Data JDBC against the real database, transaction rolled back
+    │   ├── OnTheContainerizedDatabase # role — the Postgres singleton, skipped when Docker is down
     │   ├── AbstractSystemTest    # full-application base class
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
@@ -58,6 +61,10 @@ bot.finance
     ├── LogCapture            # Logback appender, for asserting on log output
     └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
+
+The three roles at the top of `boot` are what the annotations below them are assembled from, so each reads as a
+role plus the one thing that distinguishes it. A new annotation composes them rather than restating what they
+hold.
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
 the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper

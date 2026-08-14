@@ -1,6 +1,5 @@
 package bot.finance.common.boot;
 
-import bot.finance.LedgerServiceApplication;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.RedisContainers;
 import bot.finance.common.containers.ToxiproxyContainers;
@@ -9,15 +8,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Boots the full application with capture switched on and {@link RedisContainers} wired in, for a system test
@@ -47,11 +42,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@ActiveProfiles("test")
-@Testcontainers(disabledWithoutDocker = true)
-@ImportTestcontainers(PostgresContainers.class)
+@TheWholeApplication
 @TestPropertySource(properties = "cdc.enabled=true")
-@SpringBootTest(classes = LedgerServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(CdcCaptureTest.CaptureTestConfiguration.class)
 public @interface CdcCaptureTest {
 

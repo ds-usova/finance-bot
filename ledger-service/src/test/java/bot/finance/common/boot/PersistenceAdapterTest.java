@@ -6,11 +6,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Composed annotation for outbound persistence-adapter integration tests.
@@ -28,8 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@DataJdbcTest
-@AutoConfigureTestDatabase(replace = Replace.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ImportTestcontainers(PostgresContainers.class)
+@TheDatabaseSlice
+@OnTheContainerizedDatabase
 public @interface PersistenceAdapterTest {}
