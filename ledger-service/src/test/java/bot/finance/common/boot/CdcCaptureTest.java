@@ -18,10 +18,8 @@ import org.springframework.test.context.TestPropertySource;
  * Boots the full application with capture switched on and {@link RedisContainers} wired in, for a system test
  * that drives the change stream end to end through the entry points a person actually reaches. A test of the
  * capture adapter itself takes {@link CdcAdapterTest}, which boots the adapter and not the application around
- * it. {@code cdc.enabled=true} overrides the {@code test} profile's own default, which otherwise keeps capture
- * off so a default-on engine never puts several polling system tests' contexts on one slot
- * ({@link PostgresContainers} is a JVM-wide singleton, same as this class's own reasoning in
- * {@code application-test.yaml}).
+ * it. {@code cdc.enabled=true} overrides the {@code test} profile's own default, which keeps capture off so the
+ * context every other system test shares opens no slot at all against the {@link PostgresContainers} singleton.
  *
  * <p>The slot name and the stream key are left at the application's own defaults, named below as {@link #SLOT_NAME}
  * and {@link #STREAM_KEY}. Every class carrying this annotation therefore shares one context, one engine and one
