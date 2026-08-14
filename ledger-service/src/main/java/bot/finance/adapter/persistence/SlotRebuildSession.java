@@ -2,11 +2,9 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.Logger;
 import bot.finance.domain.exception.PersistenceFailedException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Optional;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * The statements a slot rebuild runs, all on the connection that holds its advisory lock. Valid only for the
@@ -17,68 +15,59 @@ public class SlotRebuildSession {
     /** The table Debezium's {@code JdbcOffsetBackingStore} keeps the engine's stored position in. */
     private static final String OFFSET_STORAGE_TABLE = "debezium_offset_storage";
 
-    private final Connection connection;
+    private final JdbcTemplate pinned;
     private final String slotName;
     private final Logger log;
 
-    SlotRebuildSession(Connection connection, String slotName, Logger log) {
-        this.connection = connection;
+    SlotRebuildSession(JdbcTemplate pinned, String slotName, Logger log) {
+        this.pinned = pinned;
         this.slotName = slotName;
         this.log = log;
     }
 
     public Optional<ReplicationSlotPosition> findSlot() {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT wal_status, confirmed_flush_lsn FROM pg_replication_slots WHERE slot_name = ?")) {
-            statement.setString(1, slotName);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    return Optional.empty();
-                }
-                return Optional.of(new ReplicationSlotPosition(
-                        resultSet.getString("wal_status"), resultSet.getString("confirmed_flush_lsn")));
-            }
-        } catch (SQLException e) {
+        try {
+            return pinned
+                    .query(
+                            "SELECT wal_status, confirmed_flush_lsn FROM pg_replication_slots WHERE slot_name = ?",
+                            (resultSet, rowNumber) -> new ReplicationSlotPosition(
+                                    resultSet.getString("wal_status"), resultSet.getString("confirmed_flush_lsn")),
+                            slotName)
+                    .stream()
+                    .findFirst();
+        } catch (DataAccessException e) {
             throw new PersistenceFailedException("failed to read the replication slot " + slotName, e);
         }
     }
 
     public boolean deleteStoredPosition() {
         try {
-            boolean tableExists;
-            try (ResultSet tables = connection.getMetaData().getTables(null, null, OFFSET_STORAGE_TABLE, null)) {
-                tableExists = tables.next();
-            }
-            if (!tableExists) {
+            if (!Boolean.TRUE.equals(
+                    pinned.queryForObject("SELECT to_regclass(?) IS NOT NULL", Boolean.class, OFFSET_STORAGE_TABLE))) {
                 return true;
             }
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM " + OFFSET_STORAGE_TABLE)) {
-                statement.executeUpdate();
-            }
+            pinned.update("DELETE FROM " + OFFSET_STORAGE_TABLE);
             return true;
-        } catch (SQLException e) {
+        } catch (DataAccessException e) {
             log.error("Failed to delete the stored replication position", e);
             return false;
         }
     }
 
     public boolean dropSlot() {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_drop_replication_slot(?)")) {
-            statement.setString(1, slotName);
-            statement.execute();
+        try {
+            pinned.queryForObject("SELECT pg_drop_replication_slot(?)", String.class, slotName);
             return true;
-        } catch (SQLException e) {
+        } catch (DataAccessException e) {
             log.error("Failed to drop the replication slot", e);
             return false;
         }
     }
 
     public String currentWalLsn() {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_current_wal_lsn()");
-                ResultSet resultSet = statement.executeQuery()) {
-            resultSet.next();
-            return resultSet.getString(1);
-        } catch (SQLException e) {
+        try {
+            return pinned.queryForObject("SELECT pg_current_wal_lsn()::text", String.class);
+        } catch (DataAccessException e) {
             throw new PersistenceFailedException("failed to read the current write-ahead log position", e);
         }
     }

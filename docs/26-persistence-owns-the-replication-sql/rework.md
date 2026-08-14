@@ -172,6 +172,14 @@ the text, so the dependency runs one way only.
     again, the rule green
   - docs: `ledger-service/docs/conventions/architecture.md`
 
+- [x] R06 · inline · the moved statements are issued through `JdbcTemplate` rather than raw JDBC
+  - files:
+    - `ledger-service/src/main/java/bot/finance/adapter/persistence/ReplicationCatalogue.java`
+    - `ledger-service/src/main/java/bot/finance/adapter/persistence/SlotRebuildSession.java`
+  - needs: the rebuild's statements still run on the one connection that holds the advisory lock, which
+    `ConnectionCallback` and a `SingleConnectionDataSource` over that connection both preserve
+  - runs: `ReplicationCatalogueTest`
+
 ## Open Questions
 
 - **Q1:** The two records answer `wal_status` as the text Postgres gives, and `adapter/cdc` maps it to
