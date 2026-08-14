@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Covers {@code POST /actuator/cdc} end to end against the fully wired application with capture switched on,
@@ -31,18 +30,11 @@ import org.springframework.test.context.TestPropertySource;
  * observed through {@code /actuator/health} rather than by calling {@code ChangeStreamReader} directly.
  */
 @CdcCaptureTest
-@TestPropertySource(
-        properties = {
-            "cdc.slot-name=recover_slot_system_test",
-            "cdc.recovery-secret=" + RecoverSlotSystemTest.SECRET,
-            "cdc.stream-key=recover-slot-system-test.cdc"
-        })
 class RecoverSlotSystemTest {
 
-    static final String SECRET = "recover-slot-system-test-secret";
-
-    private static final String SLOT_NAME = "recover_slot_system_test";
-    private static final String STREAM_KEY = "recover-slot-system-test.cdc";
+    private static final String SECRET = CdcCaptureTest.RECOVERY_SECRET;
+    private static final String SLOT_NAME = CdcCaptureTest.SLOT_NAME;
+    private static final String STREAM_KEY = CdcCaptureTest.STREAM_KEY;
     private static final String SECRET_HEADER = "X-Cdc-Recovery-Secret";
     private static final String RECOVERY_PATH = "/actuator/cdc";
     private static final int WAL_CHUNKS_PAST_THE_BOUND = 25;

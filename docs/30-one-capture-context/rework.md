@@ -68,7 +68,7 @@ key of its own for that reason.
   - measures: booted applications behind these three classes 3 -> 1
   - docs: `ledger-service/docs/conventions/testing.md`
 
-- [ ] R02 · tests · the recovery class takes the shared slot and the profile's own secret
+- [x] R02 · tests · the recovery class takes the shared slot and the profile's own secret
   - test-files:
     - `ledger-service/src/test/java/bot/finance/system/RecoverSlotSystemTest.java`
   - survives: an invalidated slot is recovered and streaming resumes · `RecoverSlotSystemTest`
