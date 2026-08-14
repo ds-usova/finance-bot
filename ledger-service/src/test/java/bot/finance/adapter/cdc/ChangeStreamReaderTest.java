@@ -13,6 +13,7 @@ import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.ProposalReportRowUtils;
 import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
@@ -99,6 +100,20 @@ class ChangeStreamReaderTest {
     private long seedCategory(long userId, long groupingId) {
         return CategoryRowUtils.storedCategoryId(
                 jdbcAggregateTemplate, userId, groupingId, "Supermarkets " + UUID.randomUUID());
+    }
+
+    private long seedExpense(long userId, long categoryId) {
+        return ExpenseRowUtils.storedExpense(
+                        jdbcAggregateTemplate,
+                        userId,
+                        categoryId,
+                        "Coffee " + UUID.randomUUID(),
+                        "Corner Cafe",
+                        350L,
+                        "USD",
+                        UUID.randomUUID().toString(),
+                        Instant.now())
+                .id();
     }
 
     private void awaitState(ChangeStreamState expected) {
@@ -346,6 +361,29 @@ class ChangeStreamReaderTest {
         }
 
         @Test
+        @DisplayName("when a grouping is renamed between two expenses - then the second entry carries its new name")
+        void whenGroupingIsRenamedBetweenTwoExpenses_thenSecondEntryCarriesItsNewName() {
+            long userId = seedUser();
+            long groupingId = seedGrouping(userId);
+            long categoryId = seedCategory(userId, groupingId);
+            String newGroupingName = "Household " + UUID.randomUUID();
+
+            changeStreamReader.start();
+            awaitState(ChangeStreamState.STREAMING);
+
+            long firstExpenseId = seedExpense(userId, categoryId);
+            awaitExpenseEntryFor(userId, firstExpenseId);
+
+            CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, groupingId, newGroupingName);
+            awaitEntriesFor("category", userId, 1);
+            long secondExpenseId = seedExpense(userId, categoryId);
+
+            ChangeStreamEntry entry = awaitExpenseEntryFor(userId, secondExpenseId);
+            assertThat(entry.enrichment().path("after").path("groupingName").asText())
+                    .isEqualTo(newGroupingName);
+        }
+
+        @Test
         @DisplayName("when only uncaptured tables are written past the heartbeat interval - then the slot "
                 + "advances and nothing is offered")
         void whenOnlyUncapturedTablesWrittenPastHeartbeat_thenSlotPositionAdvancesAndNothingOffered() {
@@ -508,6 +546,18 @@ class ChangeStreamReaderTest {
                 .source()
                 .path("lsn")
                 .asLong();
+    }
+
+    private static ChangeStreamEntry awaitExpenseEntryFor(long userId, long expenseId) {
+        await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(expenseEntryFor(userId, expenseId))
+                .isPresent());
+        return expenseEntryFor(userId, expenseId).orElseThrow();
+    }
+
+    private static Optional<ChangeStreamEntry> expenseEntryFor(long userId, long expenseId) {
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId).stream()
+                .filter(entry -> entry.after().path("id").asLong() == expenseId)
+                .findFirst();
     }
 
     private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {

@@ -54,13 +54,13 @@ whole row on both sides, so the name and the parent id are there beside it.
   - needs: the cache is keyed by the row a change event names, which rework 24 made true
   - docs: none — the staleness `contracts/out/change-stream.md` bounds only narrows
 
-- [ ] R03 · pin · a capture test follows a rename to the name a consumer reads off the stream
+- [x] R03 · pin · a capture test follows a rename to the name a consumer reads off the stream
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ChangeStreamReaderTest.java`
   - needs: a category event writes the payload's row, which R02 makes true — before it the same scenario passes
     through the re-read instead, and pins nothing about the refresh
-  - proves: the refresh writing the wrong row is the mutation — `refresh` keeping the entry it already holds
-    rather than replacing it, which serves the pre-rename grouping name onto the entry the test reads
+  - proves: `refresh` inverted to keep the entry it already holds rather than replace it, and the test read the
+    pre-rename grouping name off the stream — `expected: "Household 2358c39e" but was: "Groceries 165f93ff"`
 
 ## Open Questions
 
