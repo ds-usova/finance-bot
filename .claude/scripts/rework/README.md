@@ -55,6 +55,9 @@ one of two reworks in flight at once.
 A step is `- [ ] <ID> · <kind> · <text>`, the ID being a letter prefix and a number — `R01`, `R02`. The kinds
 and the numbering rule belong to the rework format, defined by the `rework` skill this ships with.
 
+`files:` and `test-files:` carry their paths as bullets under the label rather than as text beside it, so their
+label line is empty by design. Every other label keeps its value on its own line.
+
 ### What `validate` checks
 
 | Check                                                            | Catches                                                |
@@ -64,6 +67,7 @@ and the numbering rule belong to the rework format, defined by the `rework` skil
 | A labelled line the kind does not take                           | `frozen:` on a `tests` step, which does nothing        |
 | A labelled line the kind owes and does not carry                 | a `pin` with no `proves:` — a claim nobody checked     |
 | A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                      |
+| A `files:` or `test-files:` with no bullet under it              | a boundary that names nothing                          |
 | A `survives:` with nothing after the middot                      | a scenario that never said what it was proven against  |
 | `needs:` or `disables:` naming a step nothing defines            | a reference to a step that was renumbered or dropped   |
 | An Open Question whose `- A:` is empty                           | a run about to start on a decision nobody made         |

@@ -26,12 +26,24 @@ function problem(text) {
     problems[++problem_count] = text
 }
 
+# "files:" and "test-files:" put each path on a bullet of its own, so their label line carries no value.
+# The label is only filled once a bullet follows it; one that never gets a bullet lists nothing at all.
+# Reported here, where the label is superseded, so problems stay in line order.
+function flush_awaiting(   aw) {
+    if (awaiting != "") {
+        split(awaiting, aw, "\t")
+        problem(FILENAME ":" awaiting_line ": " aw[1] "'s \"" aw[2] ":\" lists nothing")
+    }
+    awaiting = ""
+}
+
 # "an extract step" reads as English; "a extract step" reads as a bug in the tool.
 function a(word) {
     return (word ~ /^[aeiou]/ ? "an " : "a ") word
 }
 
 function close_step() {
+    flush_awaiting()
     if (cur != "") {
         end_line[cur] = NR - 1
     }
@@ -45,6 +57,11 @@ BEGIN {
     fenced = 0
     in_questions = 0
     open_question = ""
+    awaiting = ""
+
+    # The labels whose value is a list of bullets under them rather than text on the label line.
+    lists_below["files"]      = 1
+    lists_below["test-files"] = 1
 
     # Every labelled line a step may carry, and the kinds that take it. "*" means any kind.
     takes["files"]      = "inline extract behaviour pin stabilize"
@@ -129,6 +146,7 @@ fenced { next }
 
 # - files: `path/to/A`
 cur != "" && /^[ \t]+-[ \t]+[A-Za-z-]+:/ {
+    flush_awaiting()
     end_line[cur] = NR
     line = trim($0)
     sub(/^-[ \t]+/, "", line)
@@ -148,7 +166,12 @@ cur != "" && /^[ \t]+-[ \t]+[A-Za-z-]+:/ {
         problem(FILENAME ":" NR ": " cur " is " a(step_kind[cur]) " step and cannot carry \"" name ":\"")
     }
     if (is_placeholder(value)) {
-        problem(FILENAME ":" NR ": " cur "'s \"" name ":\" is empty or still a placeholder")
+        if (value == "" && (name in lists_below)) {
+            awaiting = cur "\t" name
+            awaiting_line = NR
+        } else {
+            problem(FILENAME ":" NR ": " cur "'s \"" name ":\" is empty or still a placeholder")
+        }
     }
     seen[cur "\t" name] = 1
 
@@ -162,6 +185,13 @@ cur != "" && /^[ \t]+-[ \t]+[A-Za-z-]+:/ {
             rest = substr(rest, RSTART + RLENGTH)
         }
     }
+    next
+}
+
+#     - `path/to/A`
+awaiting != "" && /^[ \t]+-[ \t]+[^ \t]/ {
+    awaiting = ""
+    end_line[cur] = NR
     next
 }
 
@@ -187,6 +217,7 @@ in_questions && /^[ \t]+-[ \t]+A:/ {
 
 END {
     close_step()
+    flush_awaiting()
 
     if (open_question != "") {
         problem(FILENAME ":" question_line ": " open_question " has no answer")
