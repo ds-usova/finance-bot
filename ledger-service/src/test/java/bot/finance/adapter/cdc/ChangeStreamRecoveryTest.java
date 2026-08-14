@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.common.ReplicationSlots;
-import bot.finance.common.boot.CdcCaptureTest;
+import bot.finance.common.boot.CdcAdapterTest;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +28,7 @@ import org.springframework.test.context.TestPropertySource;
  * <p>Only what needs that really-invalidated slot is here. The statuses {@code recover()} answers from what its
  * collaborators say are {@link ChangeStreamRecoveryOutcomeTest}'s.
  */
-@CdcCaptureTest
+@CdcAdapterTest
 @TestPropertySource(
         properties = {"cdc.slot-name=change_stream_recovery_test", "cdc.stream-key=change-stream-recovery-test.cdc"})
 class ChangeStreamRecoveryTest {

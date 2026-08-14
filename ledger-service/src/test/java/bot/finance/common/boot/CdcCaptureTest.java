@@ -20,11 +20,13 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Boots the full application with capture switched on and {@link RedisContainers} wired in, for a test that
- * drives the change stream end to end. {@code cdc.enabled=true} overrides the {@code test} profile's own
- * default, which otherwise keeps capture off so a default-on engine never puts several polling system tests'
- * contexts on one slot ({@link PostgresContainers} is a JVM-wide singleton, same as this class's own reasoning
- * in {@code application-test.yaml}).
+ * Boots the full application with capture switched on and {@link RedisContainers} wired in, for a system test
+ * that drives the change stream end to end through the entry points a person actually reaches. A test of the
+ * capture adapter itself takes {@link CdcAdapterTest}, which boots the adapter and not the application around
+ * it. {@code cdc.enabled=true} overrides the {@code test} profile's own default, which otherwise keeps capture
+ * off so a default-on engine never puts several polling system tests' contexts on one slot
+ * ({@link PostgresContainers} is a JVM-wide singleton, same as this class's own reasoning in
+ * {@code application-test.yaml}).
  *
  * <p>The slot name is deliberately left at the application's own default rather than fixed here: two capture
  * test classes both opening it against the shared {@link PostgresContainers} singleton would fight over it. A

@@ -50,7 +50,7 @@ three already do — they drop their own slot.
     layer, the MCP server, the gRPC client, the security chains 5 -> 0
   - docs: `ledger-service/docs/conventions/testing.md`
 
-- [ ] R02 · tests · the recovery test moves onto the slice
+- [x] R02 · tests · the recovery test moves onto the slice
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ChangeStreamRecoveryTest.java`
   - needs: `CdcAdapterTest` boots a context holding the reader, the recovery and the catalogue
@@ -63,7 +63,7 @@ three already do — they drop their own slot.
     invalidated slot and a real engine
   - measures: application components this class starts and never touches 5 -> 0
 
-- [ ] R03 · tests · the reader test moves onto the slice
+- [x] R03 · tests · the reader test moves onto the slice
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ChangeStreamReaderTest.java`
     - `ledger-service/src/test/java/bot/finance/common/boot/CdcCaptureTest.java`
@@ -83,7 +83,7 @@ three already do — they drop their own slot.
   - survives: a non-logical wal_level reports down and stops retrying · its own private Postgres container
   - survives: an absent publication reports down without taking the slot · its own private Postgres container
   - measures: application components this class starts and never touches 5 -> 0
-  - measures: the three classes' own run, wall-clock 85.1 s -> ?
+  - measures: the three classes' own run, wall-clock 85.1 s -> 72.3 s
 
 ## Open Questions
 

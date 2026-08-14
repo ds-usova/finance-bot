@@ -3,11 +3,9 @@ package bot.finance.adapter.cdc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.LedgerServiceApplication;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.ReplicationSlots;
-import bot.finance.common.boot.CdcCaptureTest;
-import bot.finance.common.containers.RedisContainers;
+import bot.finance.common.boot.CdcAdapterTest;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
@@ -29,7 +27,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,6 +39,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.NestedTestConfiguration;
 import org.springframework.test.context.NestedTestConfiguration.EnclosingConfiguration;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -50,7 +53,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * through {@code JdbcAggregateTemplate}, the same idiom {@link CategoryRowUtils} already uses, rather than through
  * a use case, since only the row change reaching the log is under test here.
  */
-@CdcCaptureTest
+@CdcAdapterTest
 @TestPropertySource(
         properties = {
             "cdc.slot-name=change_stream_reader_test",
@@ -149,9 +152,10 @@ class ChangeStreamReaderTest {
         @NestedTestConfiguration(EnclosingConfiguration.OVERRIDE)
         @ActiveProfiles("test")
         @Testcontainers(disabledWithoutDocker = true)
-        @SpringBootTest(
-                classes = LedgerServiceApplication.class,
-                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+        @DataJdbcTest
+        @AutoConfigureTestDatabase(replace = Replace.NONE)
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
+        @Import(CdcAdapterTest.CaptureAdapterConfiguration.class)
         @TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test_wal_level")
         class WalLevelNotLogical {
 
@@ -171,7 +175,6 @@ class ChangeStreamReaderTest {
                 registry.add("spring.datasource.url", REPLICA_WAL_LEVEL_POSTGRES::getJdbcUrl);
                 registry.add("spring.datasource.username", REPLICA_WAL_LEVEL_POSTGRES::getUsername);
                 registry.add("spring.datasource.password", REPLICA_WAL_LEVEL_POSTGRES::getPassword);
-                registry.add("spring.data.redis.url", RedisContainers::redisUrl);
             }
 
             @Autowired
@@ -193,9 +196,10 @@ class ChangeStreamReaderTest {
         @NestedTestConfiguration(EnclosingConfiguration.OVERRIDE)
         @ActiveProfiles("test")
         @Testcontainers(disabledWithoutDocker = true)
-        @SpringBootTest(
-                classes = LedgerServiceApplication.class,
-                webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+        @DataJdbcTest
+        @AutoConfigureTestDatabase(replace = Replace.NONE)
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
+        @Import(CdcAdapterTest.CaptureAdapterConfiguration.class)
         @TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test_publication")
         class PublicationAbsent {
 
@@ -216,7 +220,6 @@ class ChangeStreamReaderTest {
                 registry.add("spring.datasource.url", PUBLICATION_POSTGRES::getJdbcUrl);
                 registry.add("spring.datasource.username", PUBLICATION_POSTGRES::getUsername);
                 registry.add("spring.datasource.password", PUBLICATION_POSTGRES::getPassword);
-                registry.add("spring.data.redis.url", RedisContainers::redisUrl);
             }
 
             @Autowired

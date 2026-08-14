@@ -81,7 +81,7 @@ public @interface CdcAdapterTest {
         RedisChangeStreamWriter.class,
         Slf4jLoggerFactory.class,
     })
-    class CaptureAdapterConfiguration {
+    public class CaptureAdapterConfiguration {
 
         @Bean
         MeterRegistry meterRegistry() {
