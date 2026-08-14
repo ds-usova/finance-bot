@@ -38,7 +38,7 @@ public class ReplicationCatalogue {
             return jdbcTemplate
                     .query(
                             SELECT_SLOT_RETENTION_SQL,
-                            (resultSet, _) -> new ReplicationSlotRetention(
+                            (resultSet, rowNumber) -> new ReplicationSlotRetention(
                                     resultSet.getLong("retained_bytes"), resultSet.getString("wal_status")),
                             slotName)
                     .stream()
