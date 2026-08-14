@@ -130,7 +130,7 @@ the text, so the dependency runs one way only.
   - frozen: `ReplicationSlotMonitorTest`
   - cover: `ReplicationCatalogueTest`
 
-- [ ] R02 · extract · the publication check moves out of the engine's lifecycle class
+- [x] R02 · extract · the publication check moves out of the engine's lifecycle class
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/ChangeStreamReader.java`
     - `ledger-service/src/main/java/bot/finance/adapter/persistence/ReplicationCatalogue.java`

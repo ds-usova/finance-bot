@@ -1,23 +1,20 @@
 package bot.finance.adapter.cdc;
 
+import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.domain.exception.PersistenceFailedException;
 import io.debezium.config.Configuration;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import javax.sql.DataSource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -53,7 +50,7 @@ public class ChangeStreamReader {
     private final ChangeEventPublisher publisher;
     private final ChangeStreamMeters meters;
     private final Executor changeStreamExecutor;
-    private final DataSource dataSource;
+    private final ReplicationCatalogue replicationCatalogue;
     private final Logger log;
 
     private final Object lifecycleLock = new Object();
@@ -69,14 +66,14 @@ public class ChangeStreamReader {
             ChangeEventPublisher publisher,
             ChangeStreamMeters meters,
             Executor changeStreamExecutor,
-            DataSource dataSource,
+            ReplicationCatalogue replicationCatalogue,
             LoggerFactory loggerFactory) {
         this.properties = properties;
         this.engineConfiguration = engineConfiguration;
         this.publisher = publisher;
         this.meters = meters;
         this.changeStreamExecutor = changeStreamExecutor;
-        this.dataSource = dataSource;
+        this.replicationCatalogue = replicationCatalogue;
         this.log = loggerFactory.getLogger(ChangeStreamReader.class);
     }
 
@@ -120,14 +117,9 @@ public class ChangeStreamReader {
      * catalogue first is the only way that state is distinguishable from a quiet ledger.
      */
     private boolean publicationExists(String publication) {
-        try (Connection connection = dataSource.getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement("SELECT 1 FROM pg_publication WHERE pubname = ?")) {
-            statement.setString(1, publication);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next();
-            }
-        } catch (SQLException e) {
+        try {
+            return replicationCatalogue.publicationExists(publication);
+        } catch (PersistenceFailedException e) {
             log.error("Failed to read the publication {} before starting the change stream", publication, e);
             return false;
         }

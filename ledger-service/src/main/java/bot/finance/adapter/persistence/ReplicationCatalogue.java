@@ -42,4 +42,18 @@ public class ReplicationCatalogue {
             throw new PersistenceFailedException("failed to read the replication slot " + slotName, e);
         }
     }
+
+    public boolean publicationExists(String publicationName) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement statement =
+                        connection.prepareStatement("SELECT 1 FROM pg_publication WHERE pubname = ?")) {
+            statement.setString(1, publicationName);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            throw new PersistenceFailedException("failed to read the publication " + publicationName, e);
+        }
+    }
 }

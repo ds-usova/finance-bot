@@ -73,6 +73,25 @@ class ReplicationCatalogueTest {
         }
     }
 
+    @Nested
+    @DisplayName("asking whether a publication exists")
+    class PublicationExists {
+
+        @Test
+        @DisplayName("when the publication capture streams from is declared - then it is answered as present")
+        void whenPublicationCaptureStreamsFromIsDeclared_thenItIsAnsweredAsPresent() {
+            assertThat(replicationCatalogue.publicationExists("finance_ledger_cdc"))
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("when no publication of that name is declared - then it is answered as absent")
+        void whenNoPublicationOfThatNameIsDeclared_thenItIsAnsweredAsAbsent() {
+            assertThat(replicationCatalogue.publicationExists("a_publication_nobody_declared"))
+                    .isFalse();
+        }
+    }
+
     private void createSlot() {
         jdbcTemplate.execute("SELECT pg_create_logical_replication_slot('" + slotName + "', 'pgoutput')");
     }
