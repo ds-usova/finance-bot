@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/27-recovery-outcomes-leave-the-booted-context/rework.md",
+  "commit": "2e4698a",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-14T15:23:40Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 92, "passed": 92, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1162, "passed": 1162, "failed": 0, "skipped": 0, "instructions": "96.9%", "branches": "93.1%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}
