@@ -4,7 +4,6 @@ import bot.finance.adapter.cdc.CdcProperties;
 import bot.finance.adapter.cdc.ChangeStreamReader;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * Proves {@link CdcCaptureTest} itself boots a working context - compiling says nothing about whether capture
@@ -12,7 +11,6 @@ import org.springframework.test.context.TestPropertySource;
  * asserts nothing beyond the autowiring succeeding, and beyond {@code cdc.enabled} having actually taken effect.
  */
 @CdcCaptureTest
-@TestPropertySource(properties = "cdc.slot-name=cdc_capture_context_test")
 class CdcCaptureContextTest {
 
     @Autowired

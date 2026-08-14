@@ -76,7 +76,7 @@ key of its own for that reason.
   - needs: the three classes already run on the application's default slot
   - measures: booted applications behind the four capture classes 2 -> 1
 
-- [ ] R03 · tests · the annotation's own context test stops booting an application of its own
+- [x] R03 · tests · the annotation's own context test stops booting an application of its own
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/boot/CdcCaptureContextTest.java`
   - survives: `@CdcCaptureTest` boots a context whose engine and Redis wiring come up together · `CdcCaptureContextTest`
