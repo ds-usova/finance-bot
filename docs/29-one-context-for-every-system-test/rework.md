@@ -116,11 +116,11 @@ for it and the whole chain falls:
   - measures: distinct full-application context configurations among the system tests 15 -> 1
   - docs: `ledger-service/docs/conventions/testing.md`
 
-- [ ] R04 · pin · the full-application context survives the class that used it
+- [x] R04 · pin · the full-application context survives the class that used it
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/boot/AbstractSystemTest.java`
   - needs: the fifteen classes share one configuration, so the cache has something to hand back
-  - proves: putting `@DirtiesContext(AFTER_CLASS)` back restores the boot count the step removed
+  - proves: nothing to undo — the claim is that the suite is green without it, 1164 passed either way, and the system tests fell from 200.6s to 82.6s with the whole suite at 318.6s -> 204.8s
 
 - [ ] R05 · pin · the test heap and the container's connection bound drop to what one context needs
   - test-files:
