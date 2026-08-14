@@ -41,6 +41,16 @@ public class CategoryNameResolver {
         return grouping.map(found -> new CategoryNames(category.get().name(), found.name()));
     }
 
+    /**
+     * A row nothing has resolved is left out rather than stored, so the bound and the eviction order keep being
+     * driven by what is read.
+     */
+    public synchronized void refresh(long categoryId, CategoryRow row) {
+        if (cache.lookup(categoryId).isPresent()) {
+            cache.put(categoryId, Optional.of(row));
+        }
+    }
+
     public synchronized void evict(long categoryId) {
         cache.remove(categoryId);
     }

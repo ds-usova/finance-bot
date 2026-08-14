@@ -194,4 +194,60 @@ class CategoryNameResolverTest {
             verify(categoryRowReader, times(1)).findRow(2L);
         }
     }
+
+    @Nested
+    @DisplayName("refreshing a cached row")
+    class Refresh {
+
+        @Test
+        @DisplayName("when a cached grouping is refreshed - then the categories under it answer the new name "
+                + "without a read")
+        void whenCachedGroupingIsRefreshed_thenCategoriesUnderItAnswerNewNameWithoutARead() {
+            storedRows();
+            resolver.resolve(1L);
+
+            resolver.refresh(FOOD_ID, new CategoryRow("Household", Optional.empty()));
+            Optional<CategoryNames> result = resolver.resolve(1L);
+
+            assertThat(result).contains(new CategoryNames("Coffee", "Household"));
+            verify(categoryRowReader, times(1)).findRow(FOOD_ID);
+        }
+
+        @Test
+        @DisplayName("when a cached category is refreshed - then its own name changes and its grouping does not")
+        void whenCachedCategoryIsRefreshed_thenItsOwnNameChangesAndItsGroupingDoesNot() {
+            storedRows();
+            resolver.resolve(1L);
+
+            resolver.refresh(1L, new CategoryRow("Espresso", Optional.of(FOOD_ID)));
+            Optional<CategoryNames> result = resolver.resolve(1L);
+
+            assertThat(result).contains(new CategoryNames("Espresso", "Food"));
+            verify(categoryRowReader, times(1)).findRow(1L);
+        }
+
+        @Test
+        @DisplayName("when an id nothing cached carries is refreshed - then it is not stored")
+        void whenUncachedIdIsRefreshed_thenItIsNotStored() {
+            storedRows();
+
+            resolver.refresh(1L, new CategoryRow("Espresso", Optional.of(FOOD_ID)));
+            Optional<CategoryNames> result = resolver.resolve(1L);
+
+            assertThat(result).contains(new CategoryNames("Coffee", "Food"));
+            verify(categoryRowReader, times(1)).findRow(1L);
+        }
+
+        @Test
+        @DisplayName("when a row moves to another grouping - then the new grouping's name is answered")
+        void whenRowMovesToAnotherGrouping_thenNewGroupingsNameIsAnswered() {
+            storedRows();
+            resolver.resolve(1L);
+
+            resolver.refresh(1L, new CategoryRow("Coffee", Optional.of(HOUSING_ID)));
+            Optional<CategoryNames> result = resolver.resolve(1L);
+
+            assertThat(result).contains(new CategoryNames("Coffee", "Housing"));
+        }
+    }
 }

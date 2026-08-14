@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Shapes the Debezium envelope into a stream entry, adds the category enrichment for an {@code expense} or
- * {@code expense_proposal} row, evicts the resolver's cache on a {@code category} event, and writes the entry
- * to Redis.
+ * {@code expense_proposal} row, hands the resolver the row a {@code category} event carries, and writes the
+ * entry to Redis.
  */
 @Component
 public class ChangeEventPublisher {
@@ -44,7 +44,7 @@ public class ChangeEventPublisher {
 
         Optional<String> enrichment;
         if (CATEGORY_TABLE.equals(table)) {
-            categoryNameResolver.evict(evictedCategoryId(root));
+            applyCategoryChange(root);
             enrichment = Optional.empty();
         } else {
             try {
@@ -73,10 +73,25 @@ public class ChangeEventPublisher {
         }
     }
 
-    private long evictedCategoryId(JsonNode root) {
+    /**
+     * The row travels on the event under {@code REPLICA IDENTITY FULL}, so an insert or an update hands the
+     * resolver what it would otherwise read back. A delete has no {@code after} side and leaves nothing to store.
+     */
+    private void applyCategoryChange(JsonNode root) {
         JsonNode after = root.path("after");
-        JsonNode side = after.isMissingNode() ? root.path("before") : after;
-        return side.path("id").asLong();
+        if (after.isMissingNode() || after.isNull()) {
+            categoryNameResolver.evict(root.path("before").path("id").asLong());
+            return;
+        }
+
+        categoryNameResolver.refresh(after.path("id").asLong(), categoryRow(after));
+    }
+
+    private CategoryRow categoryRow(JsonNode side) {
+        JsonNode parentId = side.path("parent_id");
+        return new CategoryRow(
+                side.path("name").asText(),
+                parentId.isMissingNode() || parentId.isNull() ? Optional.empty() : Optional.of(parentId.asLong()));
     }
 
     private String buildEnrichment(JsonNode root) {

@@ -139,20 +139,53 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName("when a category event is published - then no enrichment block is added, and the resolver "
-                + "is told to evict that id")
-        void whenCategoryEventIsPublished_thenNoEnrichmentBlockAddedAndResolverToldToEvictThatId() {
+        @DisplayName("when a category update is published - then no enrichment block is added, and the resolver "
+                + "takes the row from the payload")
+        void whenCategoryUpdateIsPublished_thenNoEnrichmentBlockAddedAndResolverTakesRowFromPayload() {
             String payload =
                     """
-                    {"after":{"id":42,"name":"Housing"},"source":{"table":"category","ts_ms":1700000000000},"op":"u"}""";
+                    {"after":{"id":42,"name":"Household","parent_id":null},\
+                    "source":{"table":"category","ts_ms":1700000000000},"op":"u"}""";
+            ChangeEvent<String, String> event = changeEvent(payload);
+            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+
+            publisher.publish(event);
+
+            verify(categoryNameResolver).refresh(42L, new CategoryRow("Household", Optional.empty()));
+            verify(categoryNameResolver, never()).resolve(anyLong());
+            verify(redisChangeStreamWriter).write(payload, Optional.empty());
+        }
+
+        @Test
+        @DisplayName("when a category filed under a grouping is published - then the row carries its parent id")
+        void whenCategoryFiledUnderAGroupingIsPublished_thenRowCarriesItsParentId() {
+            String payload =
+                    """
+                    {"after":{"id":7,"name":"Coffee","parent_id":42},\
+                    "source":{"table":"category","ts_ms":1700000000000},"op":"c"}""";
+            ChangeEvent<String, String> event = changeEvent(payload);
+            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+
+            publisher.publish(event);
+
+            verify(categoryNameResolver).refresh(7L, new CategoryRow("Coffee", Optional.of(42L)));
+        }
+
+        @Test
+        @DisplayName(
+                "when a category delete is published - then the resolver drops that id rather than storing " + "a row")
+        void whenCategoryDeleteIsPublished_thenResolverDropsThatIdRatherThanStoringARow() {
+            String payload =
+                    """
+                    {"before":{"id":42,"name":"Household","parent_id":null},\
+                    "source":{"table":"category","ts_ms":1700000000000},"op":"d"}""";
             ChangeEvent<String, String> event = changeEvent(payload);
             when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
 
             publisher.publish(event);
 
             verify(categoryNameResolver).evict(42L);
-            verify(categoryNameResolver, never()).resolve(anyLong());
-            verify(redisChangeStreamWriter).write(payload, Optional.empty());
+            verify(categoryNameResolver, never()).refresh(anyLong(), any());
         }
 
         @Test

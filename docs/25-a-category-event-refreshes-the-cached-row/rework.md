@@ -39,7 +39,7 @@ whole row on both sides, so the name and the parent id are there beside it.
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/CategoryNameResolverTest.java`
   - docs: none — the class is internal to the module and no page names it
 
-- [ ] R02 · behaviour · a category insert or update writes the row from the payload, and only a delete drops it
+- [x] R02 · behaviour · a category insert or update writes the row from the payload, and only a delete drops it
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/ChangeEventPublisher.java`
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/CategoryNameResolver.java`
