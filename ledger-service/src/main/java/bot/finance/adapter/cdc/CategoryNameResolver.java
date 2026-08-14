@@ -51,7 +51,7 @@ public class CategoryNameResolver {
     }
 
     public synchronized void evict(long categoryId) {
-        cache.clear();
+        cache.remove(categoryId);
     }
 
     private Optional<CategoryRow> row(long id) {

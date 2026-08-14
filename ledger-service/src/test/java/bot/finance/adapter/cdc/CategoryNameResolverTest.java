@@ -164,8 +164,8 @@ class CategoryNameResolverTest {
         }
 
         @Test
-        @DisplayName("when evict() is called for a grouping's id - then every row filed under it is gone too")
-        void whenEvictCalledForGroupingId_thenEveryRowFiledUnderItIsGoneToo() {
+        @DisplayName("when evict() is called for a grouping's id - then only that grouping's row is read again")
+        void whenEvictCalledForGroupingId_thenOnlyThatGroupingsRowIsReadAgain() {
             storedRows();
             resolver.resolve(1L);
             resolver.resolve(3L);
@@ -174,8 +174,24 @@ class CategoryNameResolverTest {
             resolver.resolve(1L);
             resolver.resolve(3L);
 
-            verify(categoryNameReader, times(2)).findRow(1L);
-            verify(categoryNameReader, times(2)).findRow(3L);
+            verify(categoryNameReader, times(2)).findRow(FOOD_ID);
+            verify(categoryNameReader, times(1)).findRow(1L);
+            verify(categoryNameReader, times(1)).findRow(3L);
+        }
+
+        @Test
+        @DisplayName("when evict() is called for an id nothing cached carries - then every other row stays cached")
+        void whenEvictCalledForUncachedId_thenEveryOtherRowStaysCached() {
+            storedRows();
+            resolver.resolve(1L);
+            resolver.resolve(2L);
+
+            resolver.evict(99L);
+            resolver.resolve(1L);
+            resolver.resolve(2L);
+
+            verify(categoryNameReader, times(1)).findRow(1L);
+            verify(categoryNameReader, times(1)).findRow(2L);
         }
     }
 }

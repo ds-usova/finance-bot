@@ -58,7 +58,7 @@ is the behaviour-preserved claim.
   - docs: none — `configuration.md` calls `CDC_CATEGORY_CACHE_SIZE` the entries the resolver holds, which a
     grouping's row is
 
-- [ ] R02 · behaviour · `evict(id)` drops the row stored under that id and leaves every other entry
+- [x] R02 · behaviour · `evict(id)` drops the row stored under that id and leaves every other entry
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/CategoryNameResolver.java`
   - test-files:
