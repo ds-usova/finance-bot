@@ -1,11 +1,9 @@
 package bot.finance.adapter.cdc;
 
-import com.zaxxer.hikari.HikariDataSource;
-import java.net.URI;
+import bot.finance.adapter.persistence.DatabaseConnectionDetails;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import javax.sql.DataSource;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,14 +41,11 @@ public class ChangeStreamConfiguration {
     }
 
     @Bean
-    io.debezium.config.Configuration changeStreamEngineConfiguration(CdcProperties properties, DataSource dataSource) {
-        HikariDataSource hikariDataSource = (HikariDataSource) dataSource;
-        String jdbcUrl = hikariDataSource.getJdbcUrl();
-        String user = hikariDataSource.getUsername();
-        String password = hikariDataSource.getPassword();
-
-        URI jdbcUri = URI.create(jdbcUrl.substring("jdbc:".length()));
-        String databaseName = jdbcUri.getPath().substring(1);
+    io.debezium.config.Configuration changeStreamEngineConfiguration(
+            CdcProperties properties, DatabaseConnectionDetails connectionDetails) {
+        String jdbcUrl = connectionDetails.jdbcUrl();
+        String user = connectionDetails.username();
+        String password = connectionDetails.password();
 
         return io.debezium.config.Configuration.create()
                 .with("name", properties.slotName())
@@ -59,9 +54,9 @@ public class ChangeStreamConfiguration {
                 // Required by Kafka Connect's WorkerConfig validation, which the embedded engine reuses even
                 // though it never talks to a Kafka cluster.
                 .with("bootstrap.servers", "localhost:9092")
-                .with("database.hostname", jdbcUri.getHost())
-                .with("database.port", jdbcUri.getPort())
-                .with("database.dbname", databaseName)
+                .with("database.hostname", connectionDetails.host())
+                .with("database.port", connectionDetails.port())
+                .with("database.dbname", connectionDetails.databaseName())
                 .with("database.user", user)
                 .with("database.password", password)
                 .with("plugin.name", "pgoutput")

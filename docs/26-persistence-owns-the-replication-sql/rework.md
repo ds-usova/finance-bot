@@ -152,7 +152,7 @@ the text, so the dependency runs one way only.
   - frozen: `ChangeStreamRecoveryTest`
   - cover: `ReplicationCatalogueTest`
 
-- [ ] R04 · extract · the connection pool's address and credentials move to persistence
+- [x] R04 · extract · the connection pool's address and credentials move to persistence
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/cdc/ChangeStreamConfiguration.java`
     - `ledger-service/src/main/java/bot/finance/adapter/persistence/DatabaseConnectionDetails.java`
