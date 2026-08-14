@@ -85,6 +85,19 @@ three already do — they drop their own slot.
   - measures: application components this class starts and never touches 5 -> 0
   - measures: the three classes' own run, wall-clock 85.1 s -> 72.3 s
 
+- [x] R04 · tests · the slice a class brings its own database to becomes an annotation of its own
+  - test-files:
+    - `ledger-service/src/test/java/bot/finance/common/boot/CaptureAdapterConfiguration.java`
+    - `ledger-service/src/test/java/bot/finance/common/boot/CdcAdapterTestOnItsOwnDatabase.java`
+    - `ledger-service/src/test/java/bot/finance/common/boot/CdcAdapterTest.java`
+    - `ledger-service/src/test/java/bot/finance/adapter/cdc/ChangeStreamReaderTest.java`
+  - needs: an annotation may be meta-annotated with another composed annotation, so `CdcAdapterTest` is
+    `CdcAdapterTestOnItsOwnDatabase` plus the shared container's import
+  - survives: a non-logical wal_level reports down and stops retrying · its own private Postgres container
+  - survives: an absent publication reports down without taking the slot · its own private Postgres container
+  - measures: annotations spelled out on a nested group that brings its own database 6 -> 1
+  - docs: `ledger-service/docs/conventions/testing.md`
+
 ## Open Questions
 
 - **Q1:** `CdcCaptureTest` stays for the four system tests, which do need the whole application. After this

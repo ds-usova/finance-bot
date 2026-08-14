@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
+import bot.finance.common.boot.CdcAdapterTestOnItsOwnDatabase;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
@@ -27,28 +28,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.NestedTestConfiguration;
 import org.springframework.test.context.NestedTestConfiguration.EnclosingConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Integration test for the outbound adapter owning the embedded Debezium engine's lifecycle. Wires
  * {@link ChangeStreamReader} together with its real collaborators - the real {@link ChangeEventPublisher} chain and
- * the real containerized Postgres and Redis {@link CdcCaptureTest} boots - and calls only the reader's own
+ * the real containerized Postgres and Redis {@link CdcAdapterTest} boots - and calls only the reader's own
  * {@code start()}, {@code stop()} and {@code state()}; nothing is mocked. A captured row is written directly
  * through {@code JdbcAggregateTemplate}, the same idiom {@link CategoryRowUtils} already uses, rather than through
  * a use case, since only the row change reaching the log is under test here.
@@ -150,12 +143,7 @@ class ChangeStreamReaderTest {
         @Nested
         @DisplayName("when the database's wal_level is not logical")
         @NestedTestConfiguration(EnclosingConfiguration.OVERRIDE)
-        @ActiveProfiles("test")
-        @Testcontainers(disabledWithoutDocker = true)
-        @DataJdbcTest
-        @AutoConfigureTestDatabase(replace = Replace.NONE)
-        @Transactional(propagation = Propagation.NOT_SUPPORTED)
-        @Import(CdcAdapterTest.CaptureAdapterConfiguration.class)
+        @CdcAdapterTestOnItsOwnDatabase
         @TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test_wal_level")
         class WalLevelNotLogical {
 
@@ -194,12 +182,7 @@ class ChangeStreamReaderTest {
         @Nested
         @DisplayName("when the publication the connector streams from is absent")
         @NestedTestConfiguration(EnclosingConfiguration.OVERRIDE)
-        @ActiveProfiles("test")
-        @Testcontainers(disabledWithoutDocker = true)
-        @DataJdbcTest
-        @AutoConfigureTestDatabase(replace = Replace.NONE)
-        @Transactional(propagation = Propagation.NOT_SUPPORTED)
-        @Import(CdcAdapterTest.CaptureAdapterConfiguration.class)
+        @CdcAdapterTestOnItsOwnDatabase
         @TestPropertySource(properties = "cdc.slot-name=change_stream_reader_test_publication")
         class PublicationAbsent {
 

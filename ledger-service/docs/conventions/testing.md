@@ -18,7 +18,9 @@ bot.finance
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
+    │   ├── CaptureAdapterConfiguration # the capture adapter's beans, a meter registry and a Redis template
     │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
+    │   ├── CdcAdapterTestOnItsOwnDatabase # the same, for a class declaring its own Postgres container
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
     │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
