@@ -1,7 +1,7 @@
 package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -167,11 +167,11 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
             await("a sendMessage reply is recorded for the answered turn")
                     .atMost(POLL_TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
+                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
                             .as("sendMessage requests recorded for token %s", TOKEN)
                             .isNotEmpty());
 
-            List<LoggedRequest> sent = recordedSendMessagesTo(TOKEN, SCENARIO);
+            List<LoggedRequest> sent = recordedSendMessagesFor(TOKEN, SCENARIO);
             assertThat(sent).as("exactly one sendMessage recorded").hasSize(1);
             LoggedRequest sendMessageRequest = sent.get(0);
             assertThat(sendMessageRequest.formParameter("chat_id").getValues())

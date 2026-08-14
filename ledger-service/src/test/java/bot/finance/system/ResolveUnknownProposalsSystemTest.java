@@ -1,7 +1,7 @@
 package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
-import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsFor;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
@@ -114,10 +114,10 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
             // then: the buttons come off anyway, which is what repairs a report whose earlier edit was lost
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO))
+                            recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO))
                     .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO);
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO);
             assertThat(edits).as("exactly one editMessageReplyMarkup recorded").hasSize(1);
             LoggedRequest edit = edits.get(0);
             assertThat(edit.formParameter("chat_id").getValues())

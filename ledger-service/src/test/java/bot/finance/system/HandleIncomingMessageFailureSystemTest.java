@@ -1,7 +1,7 @@
 package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesFor;
 import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsSendMessage;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +84,7 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
             await("exactly one sendMessage reporting the FAILED outcome is recorded")
                     .atMost(TIMEOUT)
                     .untilAsserted(() -> {
-                        List<LoggedRequest> sent = recordedSendMessagesTo(TOKEN, SCENARIO);
+                        List<LoggedRequest> sent = recordedSendMessagesFor(TOKEN, SCENARIO);
                         log.debug("Recorded sendMessage requests: {}", sent);
 
                         assertThat(sent).hasSize(1);

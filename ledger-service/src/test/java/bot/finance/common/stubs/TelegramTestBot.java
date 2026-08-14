@@ -180,25 +180,27 @@ public final class TelegramTestBot {
      * <p>A turn still running when the next test starts writes into that test's journal, and the conversation is
      * what tells the two apart once every scenario shares one token and one poll loop.
      */
-    public static List<LoggedRequest> recordedSendMessagesTo(String token, TelegramScenario scenario) {
-        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token)))
-                .withFormParam("chat_id", equalTo(scenario.conversationId())));
+    public static List<LoggedRequest> recordedSendMessagesFor(String token, TelegramScenario scenario) {
+        return recordedFor(sendMessagePath(token), "chat_id", scenario.conversationId());
     }
 
     /**
      * The recorded {@code editMessageReplyMarkup} calls addressed to this scenario's conversation.
      */
-    public static List<LoggedRequest> recordedEditMessageReplyMarkupsIn(String token, TelegramScenario scenario) {
-        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(editMessageReplyMarkupPath(token)))
-                .withFormParam("chat_id", equalTo(scenario.conversationId())));
+    public static List<LoggedRequest> recordedEditMessageReplyMarkupsFor(String token, TelegramScenario scenario) {
+        return recordedFor(editMessageReplyMarkupPath(token), "chat_id", scenario.conversationId());
     }
 
     /**
      * The recorded {@code answerCallbackQuery} calls answering this scenario's own tap.
      */
     public static List<LoggedRequest> recordedAnswerCallbackQueriesFor(String token, TelegramScenario scenario) {
-        return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(answerCallbackQueryPath(token)))
-                .withFormParam("callback_query_id", equalTo(scenario.callbackQueryId())));
+        return recordedFor(answerCallbackQueryPath(token), "callback_query_id", scenario.callbackQueryId());
+    }
+
+    private static List<LoggedRequest> recordedFor(String path, String formParameter, String value) {
+        return WireMockSupport.SERVER.findAll(
+                postRequestedFor(urlPathEqualTo(path)).withFormParam(formParameter, equalTo(value)));
     }
 
     /**

@@ -1,7 +1,7 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsIn;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsFor;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesFor;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -146,18 +146,18 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
 
             // then: the buttons come off that report without its text being resent
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO))
+                            recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO))
                     .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .hasSize(1));
             LoggedRequest edit =
-                    recordedEditMessageReplyMarkupsIn(TOKEN, SCENARIO).get(0);
+                    recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO).get(0);
             assertThat(edit.formParameter("chat_id").getValues())
                     .as("editMessageReplyMarkup chat_id form param")
                     .containsExactly(conversationId);
             assertThat(edit.formParameter("message_id").getValues())
                     .as("editMessageReplyMarkup message_id form param")
                     .containsExactly(sentMessageId);
-            assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
+            assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
                     .as("clearing the buttons never resends the report's text")
                     .isEmpty();
         }

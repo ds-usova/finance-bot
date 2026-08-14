@@ -2,7 +2,7 @@ package bot.finance.system;
 
 import static bot.finance.common.stubs.TelegramTestBot.recordedPolls;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
-import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesTo;
+import static bot.finance.common.stubs.TelegramTestBot.recordedSendMessagesFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -60,11 +60,11 @@ class TelegramPollFailureRecoverySystemTest extends AbstractSystemTest {
             // then: the message the failed poll delayed is answered, so the failure cost the user nothing
             await("a sendMessage reply is recorded once the good response arrived")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(recordedSendMessagesTo(TOKEN, SCENARIO))
+                    .untilAsserted(() -> assertThat(recordedSendMessagesFor(TOKEN, SCENARIO))
                             .as("sendMessage requests recorded for token %s", TOKEN)
                             .isNotEmpty());
 
-            assertThat(recordedSendMessagesTo(TOKEN, SCENARIO)).singleElement().satisfies(reply -> assertThat(
+            assertThat(recordedSendMessagesFor(TOKEN, SCENARIO)).singleElement().satisfies(reply -> assertThat(
                             reply.formParameter("chat_id").getValues())
                     .as("the reply goes back into the conversation the message came from")
                     .containsExactly(CONVERSATION_ID));
