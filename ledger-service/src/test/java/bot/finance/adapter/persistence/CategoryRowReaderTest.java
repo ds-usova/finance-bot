@@ -20,11 +20,11 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 @PersistenceAdapterTest
-@Import(CategoryNameReader.class)
-class CategoryNameReaderTest {
+@Import(CategoryRowReader.class)
+class CategoryRowReaderTest {
 
     @Autowired
-    private CategoryNameReader reader;
+    private CategoryRowReader reader;
 
     @Autowired
     private UserEntityRepository userEntityRepository;
@@ -88,7 +88,7 @@ class CategoryNameReaderTest {
     class WithAMockedStore {
 
         private final CategoryEntityRepository mockedCategoryEntityRepository = mock(CategoryEntityRepository.class);
-        private final CategoryNameReader mockedReader = new CategoryNameReader(mockedCategoryEntityRepository);
+        private final CategoryRowReader mockedReader = new CategoryRowReader(mockedCategoryEntityRepository);
 
         @Test
         @DisplayName("when the database is unreachable - then it throws PersistenceFailedException wrapping it")

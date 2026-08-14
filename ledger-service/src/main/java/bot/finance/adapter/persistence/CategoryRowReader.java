@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
  * row by its own id, whether it is a grouping or a category filed under one.
  */
 @Component
-public class CategoryNameReader {
+public class CategoryRowReader {
 
     private final CategoryEntityRepository categoryEntityRepository;
 
-    public CategoryNameReader(CategoryEntityRepository categoryEntityRepository) {
+    public CategoryRowReader(CategoryEntityRepository categoryEntityRepository) {
         this.categoryEntityRepository = categoryEntityRepository;
     }
 

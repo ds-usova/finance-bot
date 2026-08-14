@@ -7,7 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bot.finance.adapter.persistence.CategoryNameReader;
+import bot.finance.adapter.persistence.CategoryRowReader;
 import bot.finance.domain.exception.PersistenceFailedException;
 import java.time.Duration;
 import java.util.Optional;
@@ -26,15 +26,15 @@ class CategoryNameResolverTest {
     private static final CategoryRow UTILITIES = new CategoryRow("Utilities", Optional.of(FOOD_ID));
     private static final CategoryRow RENT = new CategoryRow("Rent", Optional.of(HOUSING_ID));
 
-    private CategoryNameReader categoryNameReader;
+    private CategoryRowReader categoryRowReader;
     private ChangeStreamMeters meters;
     private CategoryNameResolver resolver;
 
     @BeforeEach
     void setUp() {
-        categoryNameReader = mock(CategoryNameReader.class);
+        categoryRowReader = mock(CategoryRowReader.class);
         meters = mock(ChangeStreamMeters.class);
-        resolver = new CategoryNameResolver(categoryNameReader, meters, properties(50_000L));
+        resolver = new CategoryNameResolver(categoryRowReader, meters, properties(50_000L));
     }
 
     private static CdcProperties properties(long categoryCacheSize) {
@@ -51,11 +51,11 @@ class CategoryNameResolverTest {
     }
 
     private void storedRows() {
-        when(categoryNameReader.findRow(1L)).thenReturn(Optional.of(COFFEE));
-        when(categoryNameReader.findRow(2L)).thenReturn(Optional.of(RENT));
-        when(categoryNameReader.findRow(3L)).thenReturn(Optional.of(UTILITIES));
-        when(categoryNameReader.findRow(FOOD_ID)).thenReturn(Optional.of(FOOD));
-        when(categoryNameReader.findRow(HOUSING_ID)).thenReturn(Optional.of(HOUSING));
+        when(categoryRowReader.findRow(1L)).thenReturn(Optional.of(COFFEE));
+        when(categoryRowReader.findRow(2L)).thenReturn(Optional.of(RENT));
+        when(categoryRowReader.findRow(3L)).thenReturn(Optional.of(UTILITIES));
+        when(categoryRowReader.findRow(FOOD_ID)).thenReturn(Optional.of(FOOD));
+        when(categoryRowReader.findRow(HOUSING_ID)).thenReturn(Optional.of(HOUSING));
     }
 
     @Nested
@@ -70,8 +70,8 @@ class CategoryNameResolverTest {
             Optional<CategoryNames> result = resolver.resolve(1L);
 
             assertThat(result).contains(new CategoryNames("Coffee", "Food"));
-            verify(categoryNameReader, times(1)).findRow(1L);
-            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+            verify(categoryRowReader, times(1)).findRow(1L);
+            verify(categoryRowReader, times(1)).findRow(FOOD_ID);
             verify(meters).countCategoryLookupMiss();
         }
 
@@ -84,8 +84,8 @@ class CategoryNameResolverTest {
             Optional<CategoryNames> second = resolver.resolve(1L);
 
             assertThat(second).contains(new CategoryNames("Coffee", "Food"));
-            verify(categoryNameReader, times(1)).findRow(1L);
-            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+            verify(categoryRowReader, times(1)).findRow(1L);
+            verify(categoryRowReader, times(1)).findRow(FOOD_ID);
             verify(meters).countCategoryLookupHit();
         }
 
@@ -98,13 +98,13 @@ class CategoryNameResolverTest {
             Optional<CategoryNames> second = resolver.resolve(3L);
 
             assertThat(second).contains(new CategoryNames("Utilities", "Food"));
-            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+            verify(categoryRowReader, times(1)).findRow(FOOD_ID);
         }
 
         @Test
         @DisplayName("when no row carries the id - then an empty result is answered rather than an exception")
         void whenNoRowCarriesId_thenEmptyResultAnsweredRatherThanException() {
-            when(categoryNameReader.findRow(9L)).thenReturn(Optional.empty());
+            when(categoryRowReader.findRow(9L)).thenReturn(Optional.empty());
 
             Optional<CategoryNames> result = resolver.resolve(9L);
 
@@ -119,14 +119,14 @@ class CategoryNameResolverTest {
             Optional<CategoryNames> result = resolver.resolve(FOOD_ID);
 
             assertThat(result).isEmpty();
-            verify(categoryNameReader, times(1)).findRow(FOOD_ID);
+            verify(categoryRowReader, times(1)).findRow(FOOD_ID);
         }
 
         @Test
         @DisplayName("when the lookup fails - then the failure propagates and a lookup failure is counted")
         void whenLookupFails_thenFailurePropagatesAndLookupFailureIsCounted() {
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
-            when(categoryNameReader.findRow(4L)).thenThrow(failure);
+            when(categoryRowReader.findRow(4L)).thenThrow(failure);
 
             assertThatThrownBy(() -> resolver.resolve(4L)).isSameAs(failure);
 
@@ -136,14 +136,14 @@ class CategoryNameResolverTest {
         @Test
         @DisplayName("when the cache exceeds its configured size - then the least recently used row is evicted")
         void whenCacheExceedsConfiguredSize_thenLeastRecentlyUsedRowIsEvicted() {
-            CategoryNameResolver smallResolver = new CategoryNameResolver(categoryNameReader, meters, properties(2L));
+            CategoryNameResolver smallResolver = new CategoryNameResolver(categoryRowReader, meters, properties(2L));
             storedRows();
             smallResolver.resolve(1L);
             smallResolver.resolve(2L);
 
             smallResolver.resolve(1L);
 
-            verify(categoryNameReader, times(2)).findRow(1L);
+            verify(categoryRowReader, times(2)).findRow(1L);
         }
     }
 
@@ -160,7 +160,7 @@ class CategoryNameResolverTest {
             resolver.evict(1L);
             resolver.resolve(1L);
 
-            verify(categoryNameReader, times(2)).findRow(1L);
+            verify(categoryRowReader, times(2)).findRow(1L);
         }
 
         @Test
@@ -174,9 +174,9 @@ class CategoryNameResolverTest {
             resolver.resolve(1L);
             resolver.resolve(3L);
 
-            verify(categoryNameReader, times(2)).findRow(FOOD_ID);
-            verify(categoryNameReader, times(1)).findRow(1L);
-            verify(categoryNameReader, times(1)).findRow(3L);
+            verify(categoryRowReader, times(2)).findRow(FOOD_ID);
+            verify(categoryRowReader, times(1)).findRow(1L);
+            verify(categoryRowReader, times(1)).findRow(3L);
         }
 
         @Test
@@ -190,8 +190,8 @@ class CategoryNameResolverTest {
             resolver.resolve(1L);
             resolver.resolve(2L);
 
-            verify(categoryNameReader, times(1)).findRow(1L);
-            verify(categoryNameReader, times(1)).findRow(2L);
+            verify(categoryRowReader, times(1)).findRow(1L);
+            verify(categoryRowReader, times(1)).findRow(2L);
         }
     }
 }
