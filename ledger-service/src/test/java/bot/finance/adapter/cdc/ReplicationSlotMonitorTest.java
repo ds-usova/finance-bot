@@ -1,7 +1,6 @@
 package bot.finance.adapter.cdc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
@@ -58,27 +57,24 @@ class ReplicationSlotMonitorTest {
     class ReadSlot {
 
         @Test
-        @DisplayName("when no engine in this JVM holds the slot - then the same two numbers are still recorded")
-        void whenNoEngineHoldsTheSlot_thenSameTwoNumbersAreStillRecorded() {
+        @DisplayName("when no engine in this JVM holds the slot - then it is still read and recorded as present")
+        void whenNoEngineHoldsTheSlot_thenItIsStillReadAndRecordedAsPresent() {
             createSlotDirectly();
 
             replicationSlotMonitor.readSlot();
 
-            assertThat(retainedBytesGauge()).isNotNull();
-            assertThat(walStatusGauge()).isNotNull();
+            assertThat(walStatusGauge().value()).isEqualTo(ReplicationSlotState.RESERVED.ordinal());
         }
 
         @Test
-        @DisplayName("when a healthy slot is kept moving by the heartbeat - then retained bytes stays near zero "
-                + "after an idle period")
-        void whenHeartbeatKeepsSlotMoving_thenRetainedBytesStaysNearZeroAfterAnIdlePeriod() {
+        @DisplayName("when a slot is holding log back - then the retained bytes gauge carries how much")
+        void whenSlotIsHoldingLogBack_thenRetainedBytesGaugeCarriesHowMuch() {
             createSlotDirectly();
+            ReplicationSlots.emitOneMegabyteOfWal(jdbcTemplate);
 
-            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-                replicationSlotMonitor.readSlot();
-                assertThat(retainedBytesGauge()).isNotNull();
-                assertThat(retainedBytesGauge().value()).isLessThan(1_000_000.0);
-            });
+            replicationSlotMonitor.readSlot();
+
+            assertThat(retainedBytesGauge().value()).isGreaterThan(0.0);
         }
 
         private void createSlotDirectly() {

@@ -44,8 +44,8 @@ three already do — they drop their own slot.
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ReplicationSlotMonitorTest.java`
   - survives: a slot no engine in this JVM holds is still read and recorded · the real containerized Postgres,
     with the slot created by raw SQL
-  - survives: a healthy slot kept moving by the heartbeat retains near nothing over an idle period · the real
-    containerized Postgres and the application's own heartbeat
+  - survives: a slot holding log back is recorded as how much · the real containerized Postgres, with the slot
+    created by raw SQL and WAL emitted behind it
   - measures: application components this class starts and never touches — the Telegram poll loop, the web
     layer, the MCP server, the gRPC client, the security chains 5 -> 0
   - docs: `ledger-service/docs/conventions/testing.md`
@@ -91,11 +91,11 @@ three already do — they drop their own slot.
     - `ledger-service/src/test/java/bot/finance/common/boot/CdcAdapterTestOnItsOwnDatabase.java`
     - `ledger-service/src/test/java/bot/finance/common/boot/CdcAdapterTest.java`
     - `ledger-service/src/test/java/bot/finance/adapter/cdc/ChangeStreamReaderTest.java`
-  - needs: an annotation may be meta-annotated with another composed annotation, so `CdcAdapterTest` is
-    `CdcAdapterTestOnItsOwnDatabase` plus the shared container's import
+  - needs: an annotation may be meta-annotated with another composed annotation, so both capture annotations are
+    assembled from shared ones rather than restating them
   - survives: a non-logical wal_level reports down and stops retrying · its own private Postgres container
   - survives: an absent publication reports down without taking the slot · its own private Postgres container
-  - measures: annotations spelled out on a nested group that brings its own database 6 -> 1
+  - measures: boot annotations spelled out on a nested group that brings its own database 3 -> 1
   - docs: `ledger-service/docs/conventions/testing.md`
 
 ## Open Questions

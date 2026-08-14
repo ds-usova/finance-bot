@@ -28,7 +28,8 @@ bot.finance
     │   ├── CdcAdapterTestOnItsOwnDatabase # the same, for a class declaring its own Postgres container
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired in
     │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
-    │   └── *ContextTest          # one per composed annotation — proves it boots, asserts nothing else
+    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the four whose bean
+    │                             #   graph only proves itself at runtime
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
     │   ├── PostgresContainers    # JVM-wide singleton, the containerized Postgres
@@ -92,9 +93,9 @@ where its role is honest.
   inbound port mocked.
 
   An inbound adapter reached over HTTP that no framework slice covers — an MCP tool, an actuator `@Endpoint` —
-  is booted from an explicit bean list with autoconfiguration on, over a random port, with the inbound port
-  mocked. `McpAdapterTest` and `CdcRecoveryEndpointTest` are the two. Autoconfiguration supplies beans a bean
-  list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
+  is booted from an explicit bean list with autoconfiguration on, over a random port, with the collaborator
+  behind it mocked. `McpAdapterTest` and `CdcRecoveryEndpointTest` are the two. Autoconfiguration supplies beans
+  a bean list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
   repository was enough.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
@@ -108,12 +109,11 @@ where its role is honest.
 
 - JUnit 5, AssertJ, Mockito, WireMock, Awaitility. API-level client: **RestAssured** (with `json-path`) against
   the booted application's random port.
-- `containers/` (`PostgresContainers`, `WireMockSupport`, `Network`, `GrpcStubServer`) — JVM-wide singletons for
-  the containerized Postgres, the WireMock stub server, and a real in-JVM gRPC server on a dynamic port
-  fronting the AI connector's contract. Tests never manage their lifecycle. `@Testcontainers(disabledWithoutDocker
-  = true)` reaches a class through `OnTheContainerizedDatabase`, or through `CdcAdapterTestOnItsOwnDatabase` for
-  a class declaring its own container, so the suite skips rather than errors without Docker; `GrpcStubServer`
-  needs no Docker and carries no such annotation.
+- `containers/` — JVM-wide singletons, listed in the tree above. Tests never manage their lifecycle.
+  `@Testcontainers(disabledWithoutDocker = true)` reaches most classes through `OnTheContainerizedDatabase` or
+  `CdcAdapterTestOnItsOwnDatabase`, and a class starting a container of its own carries it directly, so the
+  suite skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such
+  annotation.
 - `AbstractSystemTest` — the full-application base class, reaching the containerized database through
   `TheWholeApplication`; subclasses declare nothing. System tests extend it; outbound-adapter and slice tests do
   not.

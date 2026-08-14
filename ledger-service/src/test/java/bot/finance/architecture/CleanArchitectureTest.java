@@ -164,9 +164,12 @@ class CleanArchitectureTest {
     }
 
     /**
-     * A JDBC type reaching another adapter is how that adapter ends up carrying its own SQL, its own connection
-     * lifecycle and its own view of the schema. A test drives the database directly and is excluded, along with
-     * the shared test infrastructure in {@code bot.finance.common}.
+     * A JDBC type reaching another adapter is how that adapter ends up opening its own connections. A test
+     * drives the database directly and is excluded, along with the shared test infrastructure in
+     * {@code bot.finance.common}.
+     *
+     * <p>It cannot see a statement handed to something that connects for itself: the embedded capture engine is
+     * configured with SQL and a table list in {@code adapter/cdc} and dials the database on its own.
      */
     @ArchTest
     static final ArchRule onlyThePersistenceAdapterNamesAJdbcType = noClasses()
@@ -180,8 +183,10 @@ class CleanArchitectureTest {
             .resideInAnyPackage(
                     "java.sql..",
                     "javax.sql..",
+                    "org.postgresql..",
                     "com.zaxxer.hikari..",
                     "org.springframework.jdbc..",
+                    "org.springframework.boot.jdbc..",
                     "org.springframework.data.jdbc..")
             .allowEmptyShould(true);
 

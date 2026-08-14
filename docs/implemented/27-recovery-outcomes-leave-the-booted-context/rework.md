@@ -23,8 +23,9 @@ were private methods on the classes under test, so there was nothing to answer d
 
 - A scenario that asserts against a really-invalidated slot keeps a real one. Nothing in this module can set
   `wal_status`, so a mocked `lost` proves the mapping and not the rebuild.
-- The delete-before-drop ordering stays proven end to end. A unit scenario asserting `POSITION_NOT_DELETED`
-  says what the status is, never that the order is safe to crash inside.
+- The delete-before-drop ordering stays proven. After this rework it is proven over mocked collaborators in
+  `ChangeStreamRecoveryOutcomeTest`, not end to end: no booted scenario asserts the order, and the integration
+  method whose name promised it only ever asserted the rebuilt slot's state.
 - Every status in `SlotRecoveryOutcome.Status` has a scenario after this rework. Today `POSITION_NOT_DELETED`
   has none.
 
@@ -78,6 +79,10 @@ were private methods on the classes under test, so there was nothing to answer d
   `ChangeStreamReaderTest` already proves the heartbeat advances the slot while only uncaptured tables are
   written. Keep both, or is the monitor's version the same fact measured twice?
   - A: Keep both. The reader's proves the slot advances, the monitor's proves the gauge an operator watches.
+    **The premise was wrong.** The monitor's class runs with `cdc.enabled=false` and starts no engine, so no
+    heartbeat ever ran in it and the scenario passed on a gauge nothing had written. Rework 28 replaced it with
+    one that asserts a retained value; the heartbeat is proven only where an engine runs, in
+    `ChangeStreamReaderTest`.
 - **Q3:** The two new classes are named for the aspect they cover — `ChangeStreamRecoveryOutcomeTest` and
   `ReplicationSlotMonitorGaugesTest` — following `UserRepositoryAdapterConcurrencyTest`, the module's one existing
   second-class-for-one-production-class. Is that the shape, or should the unit scenarios stay inside the

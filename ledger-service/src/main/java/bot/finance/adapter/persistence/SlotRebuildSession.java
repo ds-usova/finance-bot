@@ -1,14 +1,16 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.Logger;
+import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.PersistenceFailedException;
 import java.util.Optional;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * The statements a slot rebuild runs, all on the connection that holds its advisory lock. Valid only for the
- * duration of {@link ReplicationCatalogue#underSlotLock}: the connection returns to the pool when that returns.
+ * The statements a slot rebuild runs, all on the connection that holds its advisory lock. Valid only until
+ * {@link ReplicationCatalogue#underSlotLock} returns, after which the connection belongs to whoever the pool
+ * hands it to next - a statement issued then would run on someone else's session, so every method refuses.
  */
 public class SlotRebuildSession {
 
@@ -19,13 +21,16 @@ public class SlotRebuildSession {
     private final String slotName;
     private final Logger log;
 
-    SlotRebuildSession(JdbcTemplate pinned, String slotName, Logger log) {
+    private boolean closed;
+
+    SlotRebuildSession(JdbcTemplate pinned, String slotName, LoggerFactory loggerFactory) {
         this.pinned = pinned;
         this.slotName = slotName;
-        this.log = log;
+        this.log = loggerFactory.getLogger(SlotRebuildSession.class);
     }
 
     public Optional<ReplicationSlotPosition> findSlot() {
+        refuseWhenClosed();
         try {
             return pinned
                     .query(
@@ -40,7 +45,12 @@ public class SlotRebuildSession {
         }
     }
 
+    /**
+     * The table is looked up the way the delete below resolves it, through this connection's search path, so the
+     * two can never disagree about which one they mean. A table that is not there is nothing to delete.
+     */
     public boolean deleteStoredPosition() {
+        refuseWhenClosed();
         try {
             if (!Boolean.TRUE.equals(
                     pinned.queryForObject("SELECT to_regclass(?) IS NOT NULL", Boolean.class, OFFSET_STORAGE_TABLE))) {
@@ -55,6 +65,7 @@ public class SlotRebuildSession {
     }
 
     public boolean dropSlot() {
+        refuseWhenClosed();
         try {
             pinned.queryForObject("SELECT pg_drop_replication_slot(?)", String.class, slotName);
             return true;
@@ -65,10 +76,22 @@ public class SlotRebuildSession {
     }
 
     public String currentWalLsn() {
+        refuseWhenClosed();
         try {
             return pinned.queryForObject("SELECT pg_current_wal_lsn()::text", String.class);
         } catch (DataAccessException e) {
             throw new PersistenceFailedException("failed to read the current write-ahead log position", e);
+        }
+    }
+
+    void close() {
+        closed = true;
+    }
+
+    private void refuseWhenClosed() {
+        if (closed) {
+            throw new IllegalStateException(
+                    "the slot rebuild session for " + slotName + " outlived the lock it ran under");
         }
     }
 }

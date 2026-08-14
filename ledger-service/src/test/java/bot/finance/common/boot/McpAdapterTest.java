@@ -34,8 +34,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * application's own {@code /.well-known/jwks.json}, so without it every call fails inside the decoder and
  * surfaces as a 500 the logs say nothing about.
  *
- * <p>All three ports are mocked because all three tools register with the one MCP server. A test class declares
- * its own {@code @MockitoBean} for the port it drives, which replaces the one here and is reset per test.
+ * <p>All three ports are mocked here because all three tools register with the one MCP server, and a missing one
+ * fails the whole context. A test class autowires the one it drives; the override is Mockito-managed, so it is
+ * reset between test methods.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -26,11 +26,13 @@ public class ReplicationCatalogue {
             """;
 
     private final JdbcTemplate jdbcTemplate;
-    private final Logger sessionLog;
+    private final LoggerFactory loggerFactory;
+    private final Logger log;
 
     public ReplicationCatalogue(JdbcTemplate jdbcTemplate, LoggerFactory loggerFactory) {
         this.jdbcTemplate = jdbcTemplate;
-        this.sessionLog = loggerFactory.getLogger(SlotRebuildSession.class);
+        this.loggerFactory = loggerFactory;
+        this.log = loggerFactory.getLogger(ReplicationCatalogue.class);
     }
 
     public Optional<ReplicationSlotRetention> findSlotRetention(String slotName) {
@@ -62,9 +64,6 @@ public class ReplicationCatalogue {
      * Runs the sequence while one connection holds the slot's advisory lock, answering empty when another
      * connection already holds it. An advisory lock is session-scoped, so taking it, running the sequence and
      * releasing it on the same connection is what keeps a pooled session from being handed back still holding it.
-     *
-     * <p>An exception the caller's own sequence raises is left alone rather than translated: nothing about the
-     * database failed, and re-labelling it would say otherwise.
      */
     public <T> Optional<T> underSlotLock(String slotName, Function<SlotRebuildSession, T> sequence) {
         try {
@@ -76,14 +75,38 @@ public class ReplicationCatalogue {
                     return Optional.empty();
                 }
 
+                SlotRebuildSession session = new SlotRebuildSession(pinned, slotName, loggerFactory);
                 try {
-                    return Optional.of(sequence.apply(new SlotRebuildSession(pinned, slotName, sessionLog)));
+                    return Optional.of(sequence.apply(session));
                 } finally {
-                    pinned.queryForObject("SELECT pg_advisory_unlock(hashtext(?))", Boolean.class, slotName);
+                    session.close();
+                    release(pinned, slotName);
                 }
             });
         } catch (DataAccessException e) {
             throw new PersistenceFailedException("failed to reach the database for the slot rebuild", e);
+        }
+    }
+
+    /**
+     * A release that throws must not replace whatever the sequence raised, so it is logged rather than thrown.
+     * {@code pg_advisory_unlock_all} is the second attempt: this connection goes back to the pool either way, and
+     * a session that keeps the lock refuses every later rebuild drawing it.
+     */
+    private void release(JdbcTemplate pinned, String slotName) {
+        try {
+            pinned.queryForObject("SELECT pg_advisory_unlock(hashtext(?))", Boolean.class, slotName);
+        } catch (DataAccessException e) {
+            log.error("Failed to release the advisory lock on replication slot {}", slotName, e);
+            releaseEverything(pinned, slotName);
+        }
+    }
+
+    private void releaseEverything(JdbcTemplate pinned, String slotName) {
+        try {
+            pinned.queryForObject("SELECT pg_advisory_unlock_all()", String.class);
+        } catch (DataAccessException e) {
+            log.error("The connection for replication slot {} goes back to the pool still locked", slotName, e);
         }
     }
 }
