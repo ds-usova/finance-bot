@@ -16,6 +16,7 @@ bot.finance
     │   ├── TheWholeApplication   # role — every bean, a random port, the containerized database
     │   ├── TheDatabaseSlice      # role — Spring Data JDBC against the real database, transaction rolled back
     │   ├── OnTheContainerizedDatabase # role — the Postgres singleton, skipped when Docker is down
+    │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
     │   ├── AbstractSystemTest    # full-application base class
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
@@ -62,7 +63,7 @@ bot.finance
     └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
 
-The three roles at the top of `boot` are what the annotations below them are assembled from, so each reads as a
+The four roles at the top of `boot` are what the annotations below them are assembled from, so each reads as a
 role plus the one thing that distinguishes it. A new annotation composes them rather than restating what they
 hold.
 
@@ -101,11 +102,12 @@ where its role is honest.
 - `containers/` (`PostgresContainers`, `WireMockSupport`, `Network`, `GrpcStubServer`) — JVM-wide singletons for
   the containerized Postgres, the WireMock stub server, and a real in-JVM gRPC server on a dynamic port
   fronting the AI connector's contract. Tests never manage their lifecycle. `@Testcontainers(disabledWithoutDocker
-  = true)` applies to the container-backed singletons only, directly or via `AbstractSystemTest`, so the suite
-  skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such annotation.
-- `AbstractSystemTest` — the full-application base class, wiring the containerized database via
-  `@ImportTestcontainers(PostgresContainers.class)` and `@ServiceConnection`; subclasses declare nothing.
-  System tests extend it; outbound-adapter and slice tests do not.
+  = true)` reaches a class through `OnTheContainerizedDatabase`, or through `CdcAdapterTestOnItsOwnDatabase` for
+  a class declaring its own container, so the suite skips rather than errors without Docker; `GrpcStubServer`
+  needs no Docker and carries no such annotation.
+- `AbstractSystemTest` — the full-application base class, reaching the containerized database through
+  `TheWholeApplication`; subclasses declare nothing. System tests extend it; outbound-adapter and slice tests do
+  not.
 - `PersistenceAdapterTest` — boots the `@DataJdbcTest` slice against the containerized Postgres, never the full
   context. The test class adds `@Import(<AdapterUnderTest>.class)` and calls the adapter directly. Each test
   runs in a rolled-back transaction; use `@Commit` plus explicit cleanup only when committed state matters.

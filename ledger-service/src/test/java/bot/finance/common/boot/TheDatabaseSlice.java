@@ -14,8 +14,8 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
  * database the context is configured with, never an in-memory replacement. Which database that is comes from
  * {@link OnTheContainerizedDatabase} or from the class's own container.
  *
- * <p>The slice's rolled-back transaction is left on, since it is what makes a persistence test cheap. A class
- * that needs its writes committed says so itself, and says why.
+ * <p>Each test runs in a transaction the slice rolls back. A class that needs its writes committed says so
+ * itself, and says why.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -14,8 +14,7 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
  * Boots the full application over a random HTTP port, reachable at {@code /mcp}, for the inbound MCP-tool
  * adapter test. Isolation comes from {@code @MockitoBean} on {@code CreateExpenseProposalPort} in the test
  * class, not from a framework slice - the same shape {@code GrpcAdapterTest} gives the AI Connector's gRPC
- * inbound adapter. Wires the containerized Postgres the same way {@link AbstractSystemTest} does, since the
- * context needs a datasource to start.
+ * inbound adapter.
  *
  * <p>{@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type
  * cannot declare, so the telegram bot API redirect to {@link WireMockSupport} - required because polling is on
