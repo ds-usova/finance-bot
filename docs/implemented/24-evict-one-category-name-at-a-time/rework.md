@@ -21,8 +21,9 @@ is either.
   name on every later change entry, which a consumer of the change stream reads directly.
 - A rename of a grouping reaches the categories under it. Broken, a consumer sees the old grouping name on
   entries for categories nothing touched.
-- An id no row carries is still cached as absent. Broken, a run of change events for a deleted category reads
-  the database once per event.
+- An id no row carries is still cached as absent, which `CategoryRowCacheTest` asserts since R03. A store that
+  answers one `Optional` per id cannot tell "not cached" from "cached as absent" and loses this silently.
+  Broken, a run of change events for a deleted category reads the database once per event.
 - The cache never holds more than `cdc.category-cache-size` entries, which `CategoryNameResolverTest` asserts.
   Broken, it shows as heap growth under a large category tree.
 - `resolve` and `evict` stay `synchronized`. One thread reaches them: Debezium's task pool, sized by
@@ -68,6 +69,17 @@ is the behaviour-preserved claim.
   - then: the entry under that id is dropped and every other entry stays cached, a renamed grouping included
   - needs: the cache is keyed by the row a change event names, which R01 makes true
   - docs: none — this narrows the staleness `contracts/out/change-stream.md` bounds, without changing the bound
+
+- [x] R03 · extract · the bounded store moves out of the resolver into `CategoryRowCache`
+  - files:
+    - `ledger-service/src/main/java/bot/finance/adapter/cdc/CategoryRowCache.java`
+    - `ledger-service/src/main/java/bot/finance/adapter/cdc/CategoryNameResolver.java`
+  - test-files:
+    - `ledger-service/src/test/java/bot/finance/adapter/cdc/CategoryRowCacheTest.java`
+  - frozen: `CategoryNameResolverTest`
+  - cover: `CategoryRowCacheTest`
+  - needs: `resolve` and `evict` keep their signatures, so the resolver's own tests never change
+  - docs: none — no type crosses a port and no setting changes name
 
 ## Open Questions
 
