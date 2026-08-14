@@ -20,6 +20,9 @@ import org.springframework.test.context.TestPropertySource;
  * {@link ReplicationSlotMonitor} and calls its own {@link ReplicationSlotMonitor#readSlot()} directly against the
  * real containerized Postgres; nothing is mocked. The slot itself is created and dropped through raw SQL rather
  * than through {@link ChangeStreamReader}, since the monitor's own point is that it needs no engine.
+ *
+ * <p>Only what needs that real slot is here. What the monitor records from a retention row is
+ * {@link ReplicationSlotMeteringTest}'s.
  */
 @CdcCaptureTest
 @TestPropertySource(
@@ -55,19 +58,6 @@ class ReplicationSlotMonitorTest {
     class ReadSlot {
 
         @Test
-        @DisplayName("when a slot exists with log retained behind it - then both meters record it")
-        void whenSlotHasRetainedLogBehindIt_thenBothMetersRecordIt() {
-            createSlotDirectly();
-            growWalPastZero();
-
-            replicationSlotMonitor.readSlot();
-
-            assertThat(retainedBytesGauge()).isNotNull();
-            assertThat(retainedBytesGauge().value()).isGreaterThan(0.0);
-            assertThat(walStatusGauge()).isNotNull();
-        }
-
-        @Test
         @DisplayName("when no engine in this JVM holds the slot - then the same two numbers are still recorded")
         void whenNoEngineHoldsTheSlot_thenSameTwoNumbersAreStillRecorded() {
             createSlotDirectly();
@@ -76,17 +66,6 @@ class ReplicationSlotMonitorTest {
 
             assertThat(retainedBytesGauge()).isNotNull();
             assertThat(walStatusGauge()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("when no slot of that name exists at all - then retained bytes is zero and wal_status is absent")
-        void whenNoSlotOfThatNameExistsAtAll_thenRetainedBytesIsZeroAndWalStatusIsAbsent() {
-            replicationSlotMonitor.readSlot();
-
-            assertThat(retainedBytesGauge()).isNotNull();
-            assertThat(retainedBytesGauge().value()).isZero();
-            assertThat(walStatusGauge()).isNotNull();
-            assertThat(walStatusGauge().value()).isEqualTo(ReplicationSlotState.ABSENT.ordinal());
         }
 
         @Test
@@ -104,11 +83,6 @@ class ReplicationSlotMonitorTest {
 
         private void createSlotDirectly() {
             jdbcTemplate.execute("SELECT pg_create_logical_replication_slot('" + SLOT_NAME + "', 'pgoutput')");
-        }
-
-        /** Emits a WAL record no reader will ever confirm, so the slot's retained log moves off zero. */
-        private void growWalPastZero() {
-            jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
         }
 
         private Gauge retainedBytesGauge() {
