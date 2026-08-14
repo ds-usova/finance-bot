@@ -45,7 +45,8 @@ public class ChangeStreamRecovery {
     private SlotRecoveryOutcome runSequence(SlotRebuildSession session) {
         Optional<ReplicationSlotPosition> slot = session.findSlot();
 
-        if (slot.isPresent() && walStatusOf(slot.get()) != ReplicationSlotState.LOST) {
+        if (slot.isPresent()
+                && ReplicationSlotState.fromNullableWalStatus(slot.get().walStatus()) != ReplicationSlotState.LOST) {
             return SlotRecoveryOutcome.refusal(SlotRecoveryOutcome.Status.SLOT_NOT_LOST);
         }
 
@@ -70,9 +71,5 @@ public class ChangeStreamRecovery {
         changeStreamReader.start();
 
         return SlotRecoveryOutcome.rebuilt(abandonedPosition, resumedPosition);
-    }
-
-    private ReplicationSlotState walStatusOf(ReplicationSlotPosition slot) {
-        return ReplicationSlotState.fromNullableWalStatus(slot.walStatus());
     }
 }

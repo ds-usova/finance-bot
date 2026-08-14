@@ -12,8 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
@@ -34,7 +32,6 @@ import org.springframework.test.context.TestPropertySource;
 class ChangeStreamRecoveryTest {
 
     private static final String SLOT_NAME = "change_stream_recovery_test";
-    private static final String STREAM_KEY = "change-stream-recovery-test.cdc";
     private static final int WAL_CHUNKS_PAST_THE_BOUND = 25;
 
     @Autowired
@@ -99,17 +96,16 @@ class ChangeStreamRecoveryTest {
                     .hasValueSatisfying(walStatus -> assertThat(walStatus).isIn("reserved", "extended")));
         }
 
-        @ParameterizedTest(name = "wal_status {0}")
-        @ValueSource(strings = {"reserved"})
+        @Test
         @DisplayName("when the slot's wal_status is only behind, never lost - then the rebuild is refused")
-        void whenSlotWalStatusIsOnlyBehind_thenRefusedSlotUntouchedReaderNotStopped(String expectedWalStatus) {
+        void whenSlotWalStatusIsOnlyBehind_thenRefusedSlotUntouchedReaderNotStopped() {
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
             SlotRecoveryOutcome outcome = changeStreamRecovery.recover();
 
             assertThat(outcome.status()).isEqualTo(SlotRecoveryOutcome.Status.SLOT_NOT_LOST);
-            assertThat(currentWalStatus()).isEqualTo(expectedWalStatus);
+            assertThat(currentWalStatus()).isEqualTo("reserved");
             assertThat(changeStreamReader.state()).isEqualTo(ChangeStreamState.STREAMING);
         }
 
@@ -150,13 +146,14 @@ class ChangeStreamRecoveryTest {
                     });
         }
 
+        /**
+         * A rebuilt slot is only re-created when the engine next starts, so between a recovery and that start
+         * there is legitimately no row at all - answered as {@code null} rather than as a failed query.
+         */
         private String currentWalStatus() {
-            // A rebuilt slot is only re-created when the engine next starts, so between a recovery and that
-            // start there is legitimately no row at all - answered as absent rather than as a failed query.
             return currentWalStatusIfPresent().orElse(null);
         }
 
-        /** Unlike {@link #currentWalStatus()}, answers a slot that does not exist as absent rather than throwing. */
         private Optional<String> currentWalStatusIfPresent() {
             return ReplicationSlots.walStatus(jdbcTemplate, SLOT_NAME);
         }

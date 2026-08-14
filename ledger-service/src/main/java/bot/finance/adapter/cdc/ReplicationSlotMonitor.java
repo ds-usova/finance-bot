@@ -63,14 +63,6 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
         return scheduledFuture != null;
     }
 
-    private void readSlotSafely() {
-        try {
-            readSlot();
-        } catch (RuntimeException e) {
-            log.error("Failed to read replication slot {} on schedule", properties.slotName(), e);
-        }
-    }
-
     public void readSlot() {
         Optional<ReplicationSlotRetention> retention = replicationCatalogue.findSlotRetention(properties.slotName());
 
@@ -80,8 +72,16 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
             return;
         }
 
-        meters.setSlotRetainedBytes(retention.get().retainedBytes());
-        meters.setSlotWalStatus(
-                ReplicationSlotState.fromNullableWalStatus(retention.get().walStatus()));
+        ReplicationSlotRetention slot = retention.get();
+        meters.setSlotRetainedBytes(slot.retainedBytes());
+        meters.setSlotWalStatus(ReplicationSlotState.fromNullableWalStatus(slot.walStatus()));
+    }
+
+    private void readSlotSafely() {
+        try {
+            readSlot();
+        } catch (RuntimeException e) {
+            log.error("Failed to read replication slot {} on schedule", properties.slotName(), e);
+        }
     }
 }

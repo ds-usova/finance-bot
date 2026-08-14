@@ -56,7 +56,7 @@ bot.finance
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
     ├── LogCapture            # Logback appender, for asserting on log output
-    └── ReplicationSlots      # reads a slot's wal_status, drops one, and burns WAL past the retention bound
+    └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at

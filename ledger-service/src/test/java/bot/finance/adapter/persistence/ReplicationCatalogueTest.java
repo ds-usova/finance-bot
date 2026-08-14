@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -41,8 +42,7 @@ class ReplicationCatalogueTest {
 
     @AfterEach
     void dropSlotIfPresent() {
-        jdbcTemplate.execute("SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots "
-                + "WHERE slot_name = '" + slotName + "' AND NOT active");
+        ReplicationSlots.dropIfUnheld(jdbcTemplate, slotName);
     }
 
     @Nested
@@ -219,11 +219,10 @@ class ReplicationCatalogueTest {
     }
 
     private void createSlot() {
-        jdbcTemplate.execute("SELECT pg_create_logical_replication_slot('" + slotName + "', 'pgoutput')");
+        ReplicationSlots.create(jdbcTemplate, slotName);
     }
 
-    /** Emits a WAL record no reader will ever confirm, so the slot's retained log moves off zero. */
     private void growWalPastZero() {
-        jdbcTemplate.execute("SELECT pg_logical_emit_message(true, 'test', repeat('x', 1000000))");
+        ReplicationSlots.emitOneMegabyteOfWal(jdbcTemplate);
     }
 }

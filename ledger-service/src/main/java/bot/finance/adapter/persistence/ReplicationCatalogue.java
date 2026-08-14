@@ -26,11 +26,11 @@ public class ReplicationCatalogue {
             """;
 
     private final JdbcTemplate jdbcTemplate;
-    private final Logger log;
+    private final Logger sessionLog;
 
     public ReplicationCatalogue(JdbcTemplate jdbcTemplate, LoggerFactory loggerFactory) {
         this.jdbcTemplate = jdbcTemplate;
-        this.log = loggerFactory.getLogger(SlotRebuildSession.class);
+        this.sessionLog = loggerFactory.getLogger(SlotRebuildSession.class);
     }
 
     public Optional<ReplicationSlotRetention> findSlotRetention(String slotName) {
@@ -77,7 +77,7 @@ public class ReplicationCatalogue {
                 }
 
                 try {
-                    return Optional.of(sequence.apply(new SlotRebuildSession(pinned, slotName, log)));
+                    return Optional.of(sequence.apply(new SlotRebuildSession(pinned, slotName, sessionLog)));
                 } finally {
                     pinned.queryForObject("SELECT pg_advisory_unlock(hashtext(?))", Boolean.class, slotName);
                 }

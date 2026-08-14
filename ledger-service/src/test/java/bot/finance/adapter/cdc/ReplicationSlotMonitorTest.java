@@ -3,6 +3,7 @@ package bot.finance.adapter.cdc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -49,8 +50,7 @@ class ReplicationSlotMonitorTest {
     @AfterEach
     void dropSlotIfPresent() {
         changeStreamReader.stop(Duration.ofSeconds(5));
-        jdbcTemplate.execute("SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '"
-                + SLOT_NAME + "'");
+        ReplicationSlots.dropIfUnheld(jdbcTemplate, SLOT_NAME);
     }
 
     @Nested
@@ -82,7 +82,7 @@ class ReplicationSlotMonitorTest {
         }
 
         private void createSlotDirectly() {
-            jdbcTemplate.execute("SELECT pg_create_logical_replication_slot('" + SLOT_NAME + "', 'pgoutput')");
+            ReplicationSlots.create(jdbcTemplate, SLOT_NAME);
         }
 
         private Gauge retainedBytesGauge() {

@@ -50,7 +50,7 @@ class ChangeStreamRecoveryOutcomeTest {
         when(session.deleteStoredPosition()).thenReturn(true);
         when(session.dropSlot()).thenReturn(true);
         when(session.currentWalLsn()).thenReturn("0/9F9F9F9");
-        runTheSequence();
+        stubTheLockHandingOverTheSession();
 
         changeStreamRecovery = new ChangeStreamRecovery(
                 changeStreamReader,
@@ -60,7 +60,7 @@ class ChangeStreamRecoveryOutcomeTest {
     }
 
     /** The catalogue hands the sequence a session and answers whatever it returns, the way the real one does. */
-    private void runTheSequence() {
+    private void stubTheLockHandingOverTheSession() {
         when(replicationCatalogue.underSlotLock(eq(SLOT_NAME), any())).thenAnswer(invocation -> {
             Function<SlotRebuildSession, Object> sequence = invocation.getArgument(1);
             return Optional.of(sequence.apply(session));
