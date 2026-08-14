@@ -130,9 +130,14 @@ class ChangeStreamRecoveryOutcomeTest {
             verify(changeStreamReader, never()).start();
         }
 
+        /**
+         * The recovery carries nothing between calls, so a refusal cannot make the next one refuse too. Written
+         * against the drop because that is the refusal an operator actually retries; it guards the day someone
+         * gives {@link ChangeStreamRecovery} a field remembering what the last attempt did.
+         */
         @Test
-        @DisplayName("when a drop that failed is retried and succeeds - then the second call rebuilds the slot")
-        void whenDropThatFailedIsRetriedAndSucceeds_thenSecondCallRebuildsTheSlot() {
+        @DisplayName("when a rebuild is retried after a refusal - then nothing from the first attempt is carried")
+        void whenRebuildIsRetriedAfterARefusal_thenNothingFromTheFirstAttemptIsCarried() {
             when(session.dropSlot()).thenReturn(false);
             assertThat(changeStreamRecovery.recover().status()).isEqualTo(SlotRecoveryOutcome.Status.SLOT_NOT_DROPPED);
 

@@ -3,16 +3,22 @@ package bot.finance.adapter.cdc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
+import bot.finance.common.fixtures.ChangeStreamEntries;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
@@ -32,6 +38,7 @@ import org.springframework.test.context.TestPropertySource;
 class ChangeStreamRecoveryTest {
 
     private static final String SLOT_NAME = "change_stream_recovery_test";
+    private static final String STREAM_KEY = "change-stream-recovery-test.cdc";
     private static final int WAL_CHUNKS_PAST_THE_BOUND = 25;
 
     @Autowired
@@ -42,6 +49,12 @@ class ChangeStreamRecoveryTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private JdbcAggregateTemplate jdbcAggregateTemplate;
+
+    @Autowired
+    private UserEntityRepository userEntityRepository;
 
     @BeforeEach
     void dropAnyLeftoverSlot() {
@@ -112,12 +125,28 @@ class ChangeStreamRecoveryTest {
         @Test
         @DisplayName("when captured rows changed while invalidated - then none of them is ever offered")
         void whenCapturedRowsChangedWhileSlotInvalidated_thenNoneOfThoseChangesIsEverOfferedOnceStreamingResumes() {
+            long userId = UserRowUtils.storedUserId(userEntityRepository, "recovery-test-" + UUID.randomUUID());
             invalidateSlot();
-            jdbcTemplate.update("UPDATE cdc_heartbeat SET beat_at = now()");
+
+            // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
+            // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
+            long groupingId = CategoryRowUtils.storedGroupingId(
+                    jdbcAggregateTemplate, userId, "Groceries " + UUID.randomUUID());
 
             changeStreamRecovery.recover();
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
+
+            // A later change does reach the stream, which is what makes the absence above a real absence rather
+            // than a stream nobody ever wrote to.
+            CategoryRowUtils.storedCategoryId(
+                    jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(
+                            ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                    .hasSize(1));
+            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                    .extracting(entry -> entry.after().path("id").asLong())
+                    .doesNotContain(groupingId);
 
             assertThat(currentWalStatus()).isIn("reserved", "extended");
         }

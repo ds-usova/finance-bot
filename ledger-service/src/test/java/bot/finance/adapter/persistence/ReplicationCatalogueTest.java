@@ -191,8 +191,42 @@ class ReplicationCatalogueTest {
         }
 
         @Test
+        @DisplayName("when the offset table holds a stored position - then deleting it empties the table")
+        void whenOffsetTableHoldsAStoredPosition_thenDeletingItEmptiesTheTable() {
+            // The engine owns this table's shape and creates it when it starts, so the scenario stands up its own
+            // rather than inheriting whichever columns the last capture test left behind.
+            jdbcTemplate.execute("DROP TABLE IF EXISTS debezium_offset_storage");
+            jdbcTemplate.execute(
+                    """
+                    CREATE TABLE debezium_offset_storage (
+                        id VARCHAR(36) NOT NULL,
+                        offset_key VARCHAR(1255),
+                        offset_val VARCHAR(1255),
+                        record_insert_ts TIMESTAMP NOT NULL,
+                        record_insert_seq INTEGER NOT NULL
+                    )
+                    """);
+            jdbcTemplate.update(
+                    "INSERT INTO debezium_offset_storage VALUES (?, ?, ?, now(), 1)",
+                    UUID.randomUUID().toString(),
+                    "a-key",
+                    "a-position");
+
+            Optional<Boolean> deleted =
+                    replicationCatalogue.underSlotLock(slotName, SlotRebuildSession::deleteStoredPosition);
+
+            assertThat(deleted).contains(true);
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM debezium_offset_storage", Integer.class))
+                    .isZero();
+        }
+
+        @Test
         @DisplayName("when the offset table the engine owns is absent - then deleting the stored position succeeds")
         void whenOffsetTableTheEngineOwnsIsAbsent_thenDeletingTheStoredPositionSucceeds() {
+            // A capture test's engine creates this table when it starts, so absence is arranged rather than
+            // assumed - without this the scenario passes on whichever state the run happened to leave behind.
+            jdbcTemplate.execute("DROP TABLE IF EXISTS debezium_offset_storage");
+
             Optional<Boolean> deleted =
                     replicationCatalogue.underSlotLock(slotName, SlotRebuildSession::deleteStoredPosition);
 

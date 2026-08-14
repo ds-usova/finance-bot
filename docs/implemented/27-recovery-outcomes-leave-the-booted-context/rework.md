@@ -44,7 +44,8 @@ were private methods on the classes under test, so there was nothing to answer d
   - survives: the slot cannot be dropped, so the rebuild reports it and a later call still finishes · a mocked
     `SlotRebuildSession` answering `false`, where it ran against a real slot held open on another connection ·
     `ChangeStreamRecoveryOutcomeTest#whenSlotCannotBeDropped_thenRebuildReportsItAndEngineIsNotStarted` and
-    `#whenDropThatFailedIsRetriedAndSucceeds_thenSecondCallRebuildsTheSlot`
+    `#whenRebuildIsRetriedAfterARefusal_thenNothingFromTheFirstAttemptIsCarried` — the second half, that a later
+    call finishes, is a property of the recovery carrying no state rather than of a slot being reachable again
   - survives: the abandoned position and its wall-clock time are logged at error · a mocked session answering a
     lost slot with a confirmed position, where it ran against a really-invalidated slot ·
     `ChangeStreamRecoveryOutcomeTest#whenLostSlotIsRebuilt_thenAbandonedPositionAndItsTimeAreLoggedAtError`
