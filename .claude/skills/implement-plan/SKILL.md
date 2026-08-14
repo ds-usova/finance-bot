@@ -153,66 +153,7 @@ When every pipeline has returned:
    has to look at, which no step implemented and no test closed. Follow the conventions index to whatever the
    module says its finished work leaves open.
 
-   ```
-   # Review: <task name>
-
-   **<the counts by section, or that nothing is open>**
-
-   ## Critical
-   ```
-
-   **The first line is the whole file when the task is clean**: `**Nothing open.** <one clause>`. A reader who
-   sees it stops there. A missing file and a clean task must never look the same, which is why the file is
-   written either way.
-
-   Sections are these four, in this order, and a section with nothing in it is left out:
-
-   | Section                   | Holds                                       | Shape                                            |
-   |---------------------------|---------------------------------------------|--------------------------------------------------|
-   | **Critical**              | fix before the next task starts             | one block per defect, in the form below          |
-   | **Bug**                   | real, and it can wait                       | one block per defect, in the form below          |
-   | **Refactoring candidate** | nothing behaves wrong                       | table — module · what · why the task left it |
-   | **Manual test**           | what no test can see, so a person must look | one block per check, in the form below           |
-
-   **A defect is reported as a case, not as a description.** Whoever picks it up reproduces it before fixing it,
-   and a paragraph about a class does not tell them how:
-
-   ```
-   **`<module>` — <the symptom, in one line>**
-
-   - **Given** <the state the system is in>
-   - **When** <what happens>
-   - **Then** <what should follow>
-   - **Actual** <what follows instead>
-   - **Fix** <the proposal> · `<class or file>`
-   ```
-
-   **Four of those lines are observations; `Fix` is not.** `Given`, `When`, `Then` and `Actual` are what the run
-   saw. The fix is a proposal, and whoever picks it up implements it as written — so where this run did not
-   exercise the mechanism behind it, the line says `unverified`. A design records the same distinction as
-   `Basis:`; a findings file without it reads a guess and a tested conclusion in one voice.
-
-   **A manual check is the same block, minus what has not happened yet.** No `Actual`, since nobody has looked,
-   and no `Fix`, since nothing is claimed to be wrong:
-
-   ```
-   **[ ] `<module>` — <what this check decides, in one line>**
-
-   - **Given** <the state to arrange, and where on screen>
-   - **When** <what the person does; "it renders" where they only look>
-   - **Then** <the one thing that must hold>
-   ```
-
-   **`Then` states one observable.** A check that needs three is three blocks — bundled into one sentence, a
-   person who sees two of them hold has no way to record the third failing, which is the whole reason the list
-   exists. The tick rides on the heading, so a half-worked list still says where it stopped.
-
-   **The module comes first** — in a defect's heading, in a check's heading, and in the first cell of a table
-   row, unless every entry in the section shares one module, which the section's opening line then names.
-   Nothing is *grouped* by module: a reader triages by what an entry costs them, and this tells them where to go
-   once they have.
-
-   **Write what a person hits, not the mechanism.** The class is the last thing on the line, never the sentence.
+   The shape is [`findings.md`](../../templates/findings.md). A task fills all four of its sections.
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.

@@ -32,6 +32,11 @@ lives" — a repository keeping everything in one file has an index one line lon
 The same holds for anything a skill invokes: it lives in `scripts/` and assumes nothing about the tree around
 it.
 
+## A skill is read once, by someone tired
+
+Short plain sentences. No aside between dashes, no clause hanging off a clause. A skill is read while the
+reader is mid-task and will not go back over a paragraph to find the rule inside it.
+
 ## A skill points at a rule it does not own
 
 Where the repository writes a rule down, the skill names the file and lets the agent read it. A paraphrase in a

@@ -234,6 +234,10 @@ step reports:
 Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
 renumbered once the plan is written — a dropped step leaves a gap.
 
+**An `update:` bullet is written from the test's body, never from its name.** Open the method, read what it
+asserts, and say what changes about those assertions. `plan.sh validate` only checks that the method exists, so
+a bullet written off the name passes and reaches a step agent describing work nobody verified.
+
 `plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines,
 dependency cycles, a `given:`/`when:`/`then:` left as a placeholder, an `update:` bullet naming a test method that
 exists nowhere in the repository, and — once the review has run — a finding missing its `Resolution:`, or a

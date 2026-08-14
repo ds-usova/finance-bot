@@ -27,6 +27,12 @@ thing once. If the arms differ in *who* takes part, it is a sequence diagram.
 A flow with both — several participants *and* real branching — is two diagrams, not one overloaded diagram: a
 sequence diagram for the exchange, an activity diagram for the decision it turns on. Neither restates the other.
 
+## A README's C3 Illustrates One Use Case
+
+A service README carries one component diagram, and it shows the primary use case end to end rather than every
+component the service has. A diagram of everything is read by scrolling, and a reader arriving at the README
+wants to see how one thing works. The per-use-case diagrams live on the `docs/usecases/` pages.
+
 ## Component Boundaries
 
 A component diagram carries one boundary per layer — `domain`, `application` — and then **one boundary per partner

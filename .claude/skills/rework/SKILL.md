@@ -69,13 +69,17 @@ The directory carries the number and the name; the file does not repeat them.
 **This file is the artifact**, and a fresh session resumes from it. Write it under the repository's
 documentation conventions like any other document.
 
+**`Source:` is one line and holds a path, not a relative link.** The directory moves when the rework is
+archived, so a link written from where the file sat resolves to nothing from where it ends up. A value wrapped
+onto a second line is read by neither a person scanning the header nor anything else.
+
 **It is written at code level.** A step names the file it edits and the test class that holds it.
 
 ```
 # Rework: <what changes>
 
 **Affected Modules:** `module-a`
-**Source:** <the findings row, the file, or the request>
+**Source:** <one line — a findings file and the row's number, a file, or the request>
 **Baseline:** <the commit the suite was green at>
 
 ## What the code does now
@@ -92,6 +96,9 @@ documentation conventions like any other document.
 <one line per invariant no test asserts, and how it would be noticed if it broke>
 
 ## Steps
+
+| #   | What changes | What proves it |
+|-----|--------------|----------------|
 
 <the checklist — see below>
 
@@ -110,108 +117,23 @@ marks every class the rework creates that way. A class it deletes is drawn only 
 **Draw them only when the rework moves responsibility between classes, creates one, or removes one.** Where none
 is drawn, the section is left out rather than left empty.
 
-### The Step Format
+### Steps
 
-Every step carries an ID, its kind, and one line of what it does. IDs are `R01` upward, assigned once, never
-renumbered.
-
-**`rework.sh validate` checks the result** — a duplicate ID, an unrecognized kind, a line the kind does not
-take, a line the kind owes, a placeholder value, a `files:` with no bullet under it, a `survives:` naming no
-tier, a `needs:` pointing at nothing, and an Open Question with no answer. Run it before handing the file over, and again after writing any answer
-into it. The script ships with these instructions at `scripts/rework/rework.sh` — under `${CLAUDE_PLUGIN_ROOT}`
-when installed as a plugin, under `.claude/` in a plain checkout.
+**The table comes first, and it is the whole rework to anyone not applying it.** One row per step: its ID, what
+changes in a clause, and what proves it in a clause. A reader who wants the shape of the change reads six rows
+and stops.
 
 ```
-- [ ] R01 · extract · <what moves, and where to>
-  - files:
-    - `path/to/A`
-    - `path/to/NewB`
-  - test-files:
-    - `path/to/NewBTest`
-  - frozen: `ATest`
-  - cover: `NewBTest`
-
-- [ ] R02 · tests · <what is restructured>
-  - test-files:
-    - `path/to/OneTest`
-    - `path/to/TwoTest`
-  - survives: <one scenario per line> · <what it runs against>
-  - measures: <the number this step claims to move> <before> -> <after>
-
-- [ ] R03 · pin · <what is now enforced, set, or dropped>
-  - test-files:
-    - `path/to/TheCheck`
-  - needs: <what must already be true for this step's run to be green>
-  - proves: <the mutation and the failure it produced, or why there is none>
-
-- [ ] R04 · stabilize · <the signature that moves>
-  - files:
-    - `path/to/Port`
-    - `path/to/OneCaller`
-  - test-files:
-    - `path/to/OneCallerTest`
-    - `path/to/SomeTest`
-  - disables: `SomeTest#aMethod` — cleared by R05
-
-- [ ] R05 · inline · <what is reshaped>
-  - files:
-    - `path/to/D`
-  - runs: `DTest`
-
-- [ ] R06 · behaviour · <what the code starts doing instead>
-  - files:
-    - `path/to/C`
-  - test-files:
-    - `path/to/CTest`
-  - runs: `CTest#theMethodThatChanges`
-  - now: <what the code does today>
-  - then: <what it does after this step>
-  - docs: `<module>/docs/contracts/out/<counterpart>.md`
+| #   | What changes                                  | What proves it              |
+|-----|-----------------------------------------------|-----------------------------|
+| R01 | the slot read moves to a persistence catalogue | `ReplicationSlotMonitorTest` |
 ```
 
-| Line             | On which kinds        | Holds                                                                     |
-|------------------|-----------------------|---------------------------------------------------------------------------|
-| `files:`         | all but `tests`       | every production file the step may edit, one per bullet under the label   |
-| `test-files:`    | all                   | every test file the step may edit, one per bullet under the label         |
-| `runs:`          | `inline`, `behaviour` | what runs after it                                                        |
-| `frozen:`        | `extract`             | what must stay green **and unedited** — the behaviour-preserved claim     |
-| `cover:`         | `extract`             | the tests written for the moved code, each of which gets a mutation check |
-| `survives:`      | `tests`               | the scenarios that must still run, each with what it runs against         |
-| `measures:`      | `tests`               | the number the step's claim is about, before and after                    |
-| `needs:`         | any                   | what must already be true for this step's run to be green                 |
-| `proves:`        | `pin`                 | how the step was shown to hold                                            |
-| `disables:`      | `stabilize`           | each test it turns off, and the step that clears it                       |
-| `now:` / `then:` | `behaviour`           | the behaviour before and after                                            |
-| `docs:`          | all                   | the pages this step invalidates — none on most `inline` and `tests` steps |
+The checklist underneath is for the agent applying a step and for `rework.sh`. Its grammar — the labelled lines,
+which kind owes which, what `validate` refuses — is [`step-format.md`](step-format.md), beside this file.
 
-**A step whose claim is a number carries `measures:`**, taken before and after. Narrowing what a test boots is
-the case: every scenario still runs and the suite is green whether it happened or not. This is the step's own
-claim, not a count of tests.
-
-**`needs:` states a fact, not a schedule.** It says what must hold for the step's run to be green, never when
-either step runs.
-
-**`files:` and `test-files:` carry one path per bullet under the label.** A run of paths on the label line is
-read by scanning for commas, and a step's boundary is the thing a reader has to see at a glance. The label line
-itself stays empty, and `validate` refuses one with no bullet under it.
-
-**Together `files:` and `test-files:` are the boundary**, plus whatever a mutation temporarily breaks and then
-restores. Anything outside all of that is another step's.
-
-**`cover:` is mutated one test method at a time**, not once per class, and only the methods this step wrote.
-Extracting into a class that already has tests owes nothing for the ones that were already there.
-
-**`survives:` names behaviour, never a method.** "A proposal is accepted" survives being moved into a different
-class under a different name; `whenAccepted_thenRecorded` does not.
-
-**A scenario keeps what it was proven against.** Swapping the real thing for a mock changes what the test
-proves, so it is a decision, asked under **Open Questions**. An answered `yes` is written into the line as
-`<before> -> <after>`, and the step is then held to what the line now says, not to what it said before.
-
-**`frozen:` is a claim about the moment its step ran**, so a later step may restructure the same class.
-
-**A step carries `docs:` where its change is visible outside the code** — a port, a contract, a stored shape, a
-configuration knob, an operation, or a conventions page whose rule the step invalidates.
+**Write the table from the steps, never the steps from the table.** A row that cannot be written in two clauses
+is a step doing two things.
 
 ## Phase 2 — Stop
 
@@ -316,30 +238,69 @@ guardrail the commit follows.
 - A test is never deleted or weakened to make a step green. A `stabilize` step may disable one, under the rule
   above.
 - A defect found along the way is reported, never fixed. It is a new rework or a new task.
-- Nothing outside the steps is improved because it was nearby.
+- Nothing outside the steps is improved because it was nearby. What the steps add up to is looked at once, by
+  the refactor round in phase 4, and never by a step reaching past its own boundary.
 
 ## Phase 4 — Finish
 
 1. **Full build and full suite of every affected module, green**, with nothing left in `disables:` still off.
-   Anything red or still disabled names the step that left it, and the directory is not archived.
+   Anything red or still disabled names the step that left it, and the directory is not archived. An invariant
+   from **What must stay true** that could not be kept, and a step abandoned, are reported here rather than
+   filed — a rework that did not do what it set out to do is not finished work.
 2. Whatever else the module's **build** conventions require of a finished change — a coverage guardrail, a
-   formatting gate. What runs *after* a change is finished is item 5, not this one.
-3. **Write `review/findings.md`** into the rework's own directory, in the shape and sections
-   [`implement-plan`](../implement-plan/SKILL.md) defines for it, and skip its module-first rule where the
-   rework touched one module — the section's opening line names it instead, as that skill's own rule says. A
-   defect this run found goes in its defect block. An invariant from **What must stay true** that could not be
-   kept, and a step abandoned, are **Refactoring candidate** rows. A rework with nothing open still gets the
-   file, so a clean one and a missing one never look the same.
-4. **Archive** on a clean closing gate and `rework.sh status` reporting every step ticked — a manual check still
+   formatting gate. What runs *after* a change is finished is item 7, not this one.
+3. **A refactor round over the whole diff**, spawned as a sub-agent — see below. It runs before the findings
+   file, so what it changes is judged with everything else.
+
+4. **Write `review/findings.md`** into the rework's own directory, in the shape
+   [`findings.md`](../../templates/findings.md) gives. A rework fills **Critical**, **Bug**, and **Manual test**
+   where the change needs a person to look. Skip the module-first rule where the rework touched one module: the
+   section's opening line names it instead.
+
+   **A rework files no refactoring candidates.** That section belongs to a task, which is the first sighting of
+   an area and legitimately produces a list. A rework is a closing action on one row of such a list, and giving
+   it the same output turns the list into a queue that refills itself — six rounds later nobody can say what is
+   left. Something worth doing later goes in the report to the user, who decides whether it becomes a rework.
+
+   A rework with nothing open still gets the file, so a clean one and a missing one never look the same.
+5. **Close the row this rework came from.** Where `Source:` names a findings file and a row, open that file and
+   set the row's `Status`: `done · <this rework's number>` where the row is fully closed, or leave it `open`
+   with one added clause naming what still remains. Re-emit the opening count line. The report says which row
+   was set and to what.
+
+   **Nothing here blocks.** A row left `open` on purpose — deferred by the user, or half-closed by design — is
+   a true statement about the work, and a gate that refused to archive over it would be answered by marking the
+   row done, which is the one thing this item exists to prevent.
+
+6. **Archive** on a clean closing gate and `rework.sh status` reporting every step ticked — a manual check still
    open in `review/findings.md` is what that file is for, and never blocks: move the whole `docs/<n>-<name>/` directory into
    `docs/implemented/`, and commit the move where the conventions commit at all.
-5. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
+7. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
    change is complete — a measurement, a documentation pass. Follow the conventions index to wherever they say
    it, and run that list in its order, passing each entry the archived `rework.md`. An entry listed by several
    affected modules runs once. Each states its own commit behaviour.
 
+### The Refactor Round
+
+A step sees its own boundary and nothing else. Duplication two steps wrote independently, an idiom that drifted
+between them, a helper one step added that another reimplemented: none of it is visible from inside a step, and
+all of it is visible in the diff they add up to.
+
+**One sub-agent, once, over everything the rework changed** — the refactor agent the module's conventions name
+for a finished body of work, spawned the way they say. It is handed three things:
+
+| It gets                                      | So that                                                  |
+|----------------------------------------------|----------------------------------------------------------|
+| the diff from the **Baseline:** commit       | it sees what the steps add up to, not what any one did   |
+| the rework file, as its brief                | a shape contradicting what the rework set out to do is refused, and reported instead |
+| the module's conventions, by name            | it applies this repository's priorities                  |
+
+The suite runs over the result before anything else in this phase.
+
 ## Report
 
+- **What is left where this rework came from**, in one line: `<that file> — 1 of 4 open (R1)`. It answers "does
+  this ever end" every round, for the cost of one read, and a stale line here is visible rather than binding.
 - Each step, its kind, and the files it touched.
 - **The failure text of every `behaviour` step's red run**, quoted.
 - **The mutation results of every step that ran one** — what was broken, and which test or check caught it. A
