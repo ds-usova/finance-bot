@@ -14,12 +14,18 @@ order is the same in every fix.
 - **the module it belongs to**, or every module on the seam where your file is `shared/fix.md`;
 - **your module's baseline figures** — the suite's total and skipped counts, and the commit, measured before
   anything changed;
-- **whatever a shared fix already disabled in your module**, where one ran. Those skips are against your
-  baseline and are not yours to account for;
+- **whatever a shared fix already disabled in your module**, where one ran, as its `disables:` lines say it.
+  Your baseline was measured before that fix landed, so those skips sit on top of it and are not yours to clear;
 - **`bug.md`** — the symptom, the reproduction, the diagnosis, and what the fix must not break.
 
-**Two gates already ran above you, and you repeat neither.** The bug was reproduced and every module's baseline
-was measured. The tree has moved since, so a fresh measurement would not be a baseline.
+**Two gates already ran above you, and you repeat neither** — the bug was reproduced, and every module's
+baseline was measured. **This is about those two and nothing else.** Your own stages each run the module's
+suite, and the run after the last `stabilize` step is the only thing that catches a stabilization that changed
+behaviour.
+
+**Read the `fix-bug` skill's own `SKILL.md` before the first step**, along with the three files beside it named
+below. It holds what is never done, the order the kinds run in, and the run counts an intermittent bug takes —
+rules you are bound by and that are stated nowhere else.
 
 **Read `<module>/docs/conventions.md` for your module, and the repository-wide conventions**, following the
 conventions index. They are the source of truth for the build command, the test commands, the architecture check,
@@ -90,15 +96,18 @@ improvising a retry.
 
 ## What You Write Into Your File
 
-Two things, and nothing else. Both are yours alone, since no other agent may open this file.
+These, and nothing else. They are yours alone, since no other agent may open this file.
 
 **`## Attempts`, as each approach fails.** Its format and its rules are `attempts.md`, in the `fix-bug` skill
 directory. Read it before the first step.
 
 **The `**In flight:**` header line**, rewritten when a step starts and emptied when it ticks: the step's ID and
-what you are currently trying, in a clause. The attempt log holds what already failed. This holds the approach
-still being tried, and it is what a resumed run reads to know where to pick up. A run stopped between the two
-leaves nothing.
+what you are currently trying, in a clause. The attempt log holds what already failed; this holds the approach
+still being tried, so that a resumed run inherits it rather than starting the same reasoning over. **It is not
+how a resume finds its place** — the first unticked step is.
+
+**A third thing, only when you return blocked**: a numbered question under `## Open Questions`, saying what you
+need decided. Nothing else, ever, and never a step's own text.
 
 ## Where You Stop And Ask
 
@@ -114,8 +123,8 @@ either way, and return. Three more end here too:
 - **The cause is outside your module.** Return and name where it is. Never edit another module, and never widen
   a step to reach one.
 
-**Record what you are blocked on in your file before you return**, as a numbered question under
-`## Open Questions`. Your report is read once; the file is what a resumed run has.
+**Record what you are blocked on in your file before you return.** Your report is read once; the file is what a
+resumed run has.
 
 ## Out of Scope
 

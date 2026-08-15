@@ -51,19 +51,22 @@ function a(word) {
 # A step ID mentioned inside a labelled line. Scanned with its own boundaries: "S3UploadTest" holds
 # the characters of a step ID and is a test class, and a disabled test whose name happens to start
 # that way must not be reported as a reference to a step nothing defines.
-function scan_refs(who, label, text, line,   rest, id, before, after) {
+function scan_refs(who, label, text, line,   rest, id, before, after, found) {
     # A step in another file is named with that file, and cannot be resolved from here: a shared
     # stabilize step is cleared by a module's red step, and that module's red step needs the shared
-    # one. Both are legitimate, and neither file holds the other's IDs.
-    if (text ~ /\.md/) {
-        return
+    # one. Both are legitimate, and neither file holds the other's IDs. "fixes:" never crosses, so a
+    # file named there is the mistake rather than the reason to stop looking.
+    if (text ~ /\.md/ && label != "fixes") {
+        return 1
     }
+    found = 0
     rest = text
     while (match(rest, /[SRG][0-9]+/)) {
         id = substr(rest, RSTART, RLENGTH)
         before = (RSTART > 1) ? substr(rest, RSTART - 1, 1) : ""
         after = substr(rest, RSTART + RLENGTH, 1)
         if (before !~ /[A-Za-z0-9]/ && after !~ /[A-Za-z0-9]/) {
+            found = 1
             ref_count++
             ref_who[ref_count] = who
             ref_label[ref_count] = label
@@ -72,6 +75,7 @@ function scan_refs(who, label, text, line,   rest, id, before, after) {
         }
         rest = substr(rest, RSTART + RLENGTH)
     }
+    return found
 }
 
 function close_step() {
@@ -128,18 +132,32 @@ BEGIN {
     attempt_requires = "why result evidence ruled-out"
 }
 
+# A checkout with CRLF endings otherwise leaves a carriage return on the end of every line: a fence
+# never closes, an empty label never reads as empty, and the file is parsed as half of itself. Git
+# Bash's awk strips it already; the awks this has to run on elsewhere do not.
+{ sub(/\r$/, "") }
+
 # A fenced block holds the format's own example, or an attempt's evidence. Counting its bullets as
 # steps would give every fix the template's phantom IDs.
 #
 # The marker's length decides what closes it, as in Markdown itself. Evidence is pasted output and
 # routinely contains a fence of its own, and a document quoting this format nests one example inside
 # another - both are unreadable to a parser that closes on the first three backticks it sees.
-/^[ \t]*`{3,}/ {
+/^[ \t]*```/ || /^[ \t]*~~~/ {
     fence = $0
+    indented = ($0 ~ /^[ \t]/)
     sub(/^[ \t]+/, "", fence)
-    match(fence, /^`+/)
+    char = substr(fence, 1, 1)
+    # A regex literal in an expression is a match against $0, so each one has to sit in match()'s own
+    # argument position rather than be chosen between beforehand.
+    if (char == "`") {
+        match(fence, /^`+/)
+    } else {
+        match(fence, /^~+/)
+    }
     if (fenced) {
-        if (RLENGTH >= fence_len && trim(substr(fence, RLENGTH + 1)) == "") {
+        # Closed only by the same character, at least as long, carrying no info string.
+        if (char == fence_char && RLENGTH >= fence_len && trim(substr(fence, RLENGTH + 1)) == "") {
             fenced = 0
             fence_len = 0
             awaiting_evidence = ""
@@ -147,9 +165,13 @@ BEGIN {
     } else {
         fenced = 1
         fence_len = RLENGTH
+        fence_char = char
         fence_line = NR
+        fence_in_step = (cur != "" && indented)
     }
-    if (cur != "") {
+    # A block belongs to the step above it only where it is indented under it. An unindented one is
+    # the document's, and "show" would otherwise hand a step agent somebody else's code.
+    if (fence_in_step) {
         end_line[cur] = NR
     }
     next
@@ -158,7 +180,7 @@ fenced {
     if (awaiting_evidence != "" && trim($0) != "") {
         evidence_seen[awaiting_evidence] = 1
     }
-    if (cur != "") {
+    if (fence_in_step) {
         end_line[cur] = NR
     }
     next
@@ -176,12 +198,15 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
 }
 
 # - [ ] R01 · red · what reproduces the bug
-/^[ \t]*-[ \t]+\[[ xX]\][ \t]+/ {
+#
+# At the left margin only. A checkbox indented under a step is part of that step's own text - reading
+# it as a peer both invents a step nothing can tick and truncates the block "show" hands over.
+/^-[ \t]+\[[ xX]\][ \t]+/ {
     close_step()
 
     line = $0
     ticked = (line ~ /\[[xX]\]/)
-    sub(/^[ \t]*-[ \t]+\[[ xX]\][ \t]+/, "", line)
+    sub(/^-[ \t]+\[[ xX]\][ \t]+/, "", line)
 
     id = ""
     if (match(line, /^[A-Za-z]+[0-9]+/)) {
@@ -194,9 +219,9 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
     # Steps do not live in the attempt log. One that appears to is pasted output whose own fence
     # closed the evidence block early, leaving the rest of it parsed as document.
     if (in_attempts) {
-        problem(FILENAME ":" NR ": " id " is defined inside the Attempts section, which holds no steps" \
-                " - an evidence block above it probably closed early")
+        problem(FILENAME ":" NR ": " id " is defined inside the Attempts section, which holds no steps")
         cur = ""
+        cur_attempt = ""
         next
     }
     if (id in start_line) {
@@ -312,17 +337,19 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
     }
     seen[cur "\t" name] = 1
 
-    if (name == "needs" || name == "fixes") {
+    if (name == "needs") {
         scan_refs(cur, name, value, NR)
     }
-    # "disables:" names a test, then the step that clears it. Only the second half is a reference.
-    if (name == "disables") {
-        cleared = index(value, "cleared by")
-        if (cleared > 0) {
-            scan_refs(cur, name, substr(value, cleared), NR)
-        } else {
-            problem(FILENAME ":" NR ": " cur " disables a test and names no step that clears it")
-        }
+    # A "fixes:" that names no step at all is the pairing missing, not prose: the label exists only
+    # to name one.
+    if (name == "fixes" && !scan_refs(cur, name, value, NR)) {
+        problem(FILENAME ":" NR ": " cur "'s \"fixes:\" names no step")
+    }
+    # "disables:" carries a test name and the step that clears it. The whole value is scanned rather
+    # than a phrase after a fixed wording, since the format states no wording - and a test class
+    # whose name starts like a step ID is not a reference, which the scan's own boundaries settle.
+    if (name == "disables" && !scan_refs(cur, name, value, NR)) {
+        problem(FILENAME ":" NR ": " cur " disables a test and names no step that clears it")
     }
     next
 }
@@ -387,8 +414,8 @@ END {
         }
         match(id, /^[A-Za-z]+/)
         if (substr(id, 1, RLENGTH) != prefix_of[k]) {
-            problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step and its ID must start with " \
-                    prefix_of[k])
+            problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step, whose ID is " \
+                    prefix_of[k] " and a number")
         }
     }
 
@@ -452,6 +479,12 @@ END {
             print problems[i]
         }
         if (problem_count == 0) {
+            # Nothing at all is not a clean fix file: it is almost always the wrong path, and
+            # "no problems" would be the last thing such a reader needs to hear.
+            if (step_count == 0 && attempt_count == 0) {
+                print FILENAME ": no steps and no attempts - is this a fix file?"
+                exit 1
+            }
             print FILENAME ": " step_count (step_count == 1 ? " step, " : " steps, ") \
                   attempt_count (attempt_count == 1 ? " attempt, " : " attempts, ") "no problems"
         }

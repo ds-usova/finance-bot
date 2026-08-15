@@ -51,12 +51,24 @@ guard clause that hides the bad value is not a fix where the bad value is the bu
 **It exists so the red step can be written at all** — an interface the test needs, a signature the fix requires,
 a contract between two services the bug spans. It is the precondition of whatever works against what it moved.
 
-**It changes no behaviour.** A changed signature keeps its logic and gains a `TODO`, a new method gets a stub with
-an intent comment, a test that cannot compile is disabled rather than removed, in the form the module's
-conventions give for a disabled test. Whatever it disables, `disables:` names, and a `red` step clears it.
+**It changes no behaviour that anything already asks for.** A changed signature keeps its logic and gains a
+`TODO`, a new method gets a stub with an intent comment, a test that cannot compile is disabled rather than
+removed, in the form the module's conventions give for a disabled test. Whatever it disables, `disables:` names,
+and a `red` step clears it.
 
-**A `stabilize` that finds a call site its `files:` does not name** widens the line in the fix file and says so in
-the report. It never widens into a behaviour change.
+**A schema change is a `stabilize` step, and it is the exception the rule needs stating for.** A migration
+adding a column, a constraint or an index changes what the store will accept, and the reproduction cannot be
+written until it has. What makes it a `stabilize` step is that no code path behaves differently yet: the column
+is unread, the constraint refuses only what nothing writes. A migration that changes what an existing path does
+is a `green` step, and it needs a reproduction like any other.
+
+**A migration that has run is not undone by reverting its file.** Say so in the report, and say what putting the
+store back would take. The abandonment path in the skill owes the same.
+
+**A `stabilize` that finds a call site its `files:` does not name, or a test its `disables:` does not name,
+widens that line and says so in the report.** Widening a boundary the step already owns is the one edit to a
+step's own text its agent may make. Adding a step, removing one, or changing what a step does is not, and goes
+back to the level that owns the file. It never widens into a behaviour change.
 
 ## Where a step refuses
 
@@ -73,10 +85,8 @@ Each of these reverts the step, writes the attempt, and puts it back to the user
 not revert is the second cause above**: that step is right and unfinished, and undoing it would lose a correct
 fix.
 
-## Two things look like refusals and are not
+## One thing looks like a refusal and is not
 
-- **A step whose run is red for a reason other than its own claim** is waiting on what its `needs:` names. It is
-  not finished, it does not commit, and it is not put back to the user either.
-- **A `green` step that failed twice and landed on the third approach** is a normal step with two attempts
-  logged. The log is where those go, and the report says how many. Three *failures* is where the step stops
-  and goes back to the user.
+**A `green` step that failed twice and landed on the third approach** is a normal step with two attempts logged.
+The log is where those go, and the report says how many. Three *failures* is where the step stops and goes back
+to the user.

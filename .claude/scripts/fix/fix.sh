@@ -107,16 +107,23 @@ parse() {
     awk -v mode="$1" -f "$parser" "$fix_file"
 }
 
-# A checklist is not a fix. Every other document in this repository holding "- [ ] <ID> · …" would
-# otherwise be counted, ticked and reported on confidently by a reader that only looks at boxes.
+# A checklist is not a fix, and the kinds do not tell them apart: a rework's steps have kinds of
+# their own and one of them is also called "stabilize". Only the name does, which is why the format
+# fixes it. This guards the write path - ticking somebody else's checklist rewrites their file.
 assert_is_fix() {
-    local kind
-    while IFS=$'\t' read -r _ _ kind _ _; do
-        case "$kind" in
-            stabilize|red|green) return 0 ;;
-        esac
-    done < <(parse list)
-    die "$fix_file defines no stabilize, red or green step - is it a fix file?" 1
+    case "$(basename "$fix_file")" in
+        fix.md) return 0 ;;
+    esac
+    die "$fix_file is not a fix.md - $(basename "$fix_file") belongs to another format" 1
+}
+
+# Read-only commands say so and carry on, since a file under another name may still be one being
+# written, and answering is more use than refusing.
+warn_unless_fix() {
+    case "$(basename "$fix_file")" in
+        fix.md|bug.md) ;;
+        *) echo "note: $fix_file is neither fix.md nor bug.md, and is read as one anyway" >&2 ;;
+    esac
 }
 
 cmd_status() {
@@ -132,7 +139,7 @@ cmd_status() {
     done < <(parse list)
 
     [ "$total" -gt 0 ] || die "$fix_file defines no steps" 1
-    assert_is_fix
+    warn_unless_fix
 
     printf '%s\n  %d/%d\n' "$fix_file" "$done_count" "$total"
     if [ -n "$open" ]; then
@@ -357,11 +364,24 @@ case "$command" in
         ;;
 esac
 
+# A path given positionally names the file on every command, as it does on validate and task. Without
+# this, "status docs/7-x/module-a/fix.md" would answer for whichever fix.md the default resolution
+# found, which on a multi-module bug is the wrong one and says nothing about it.
+rest=()
+for arg in ${args[@]+"${args[@]}"}; do
+    if [ -f "$arg" ]; then
+        fix_file="$arg"
+    else
+        rest+=("$arg")
+    fi
+done
+args=(${rest[@]+"${rest[@]}"})
+
 locate_fix
 
 case "$command" in
     status)   cmd_status ;;
-    show)     cmd_show "${args[@]}" ;;
+    show)     warn_unless_fix; cmd_show "${args[@]}" ;;
     tick)     cmd_tick "${args[@]}" ;;
-    validate) parse validate ;;
+    validate) warn_unless_fix; parse validate ;;
 esac

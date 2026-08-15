@@ -69,8 +69,9 @@ attempt without its output is a rumour the next session has to reproduce.
 **`ruled-out:` is the value of the entry.** Everything above it says what happened; this line says what it means.
 An attempt that rules nothing out says so, and names what it would take to settle the question.
 
-**Three attempts in a row on a hard bug is what the section expects.** What it refuses is the fourth one
-repeating the first.
+**Two failed attempts on one step is what the section expects.** The third failure is where the step stops and
+goes back to the user, because a fourth approach from inside the same context is the one most likely to repeat
+the first.
 
 **An attempt whose failure changed the tree is reverted before the next one starts.** Where it was not — a schema
 left migrated, a dependency left added — the entry says so. The tree the next attempt runs against has to be the

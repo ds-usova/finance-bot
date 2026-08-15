@@ -83,6 +83,10 @@ step here defines.
 **`fixes:` never crosses.** A reproduction and the code that fixes it are the same module's, and `validate`
 refuses a `fixes:` naming anything but a `red` step in the same file.
 
-**A step carries `docs:` where its change is visible outside the code** — a port, a contract, a stored shape, a
-configuration knob, or an operation. A `green` step usually carries one: the page said the old behaviour was the
-behaviour.
+**A step carries `docs:` where its change makes a page wrong** — a port, a contract, a stored shape, a
+configuration knob, or an operation. Often a `green` step does, because the page described the old behaviour as
+the behaviour. **A page that already says what the fix makes true carries no line**: the code was wrong, not the
+page, and naming it sends the archiving pass looking for a change nobody made.
+
+**A schema, a migration, or any other file the build reads is a production file**, and goes in `files:`. Where
+it also states a promise a reader relies on, its page goes in `docs:` as well.

@@ -74,8 +74,12 @@ anywhere else, and anything red no step accounts for, stops the resume and is re
 
 **The revert is this level's, and it happens before any agent is spawned**, while no file has an owner.
 
-**Otherwise, reproduce the bug before anything else.** Run what the report describes — the test, the request,
-the command.
+**Otherwise, the affected modules are clean before anything is run**, whatever else the tree carries.
+Uncommitted work under an affected module: name the files and stop. Uncommitted work elsewhere is left alone,
+and so is an untracked file that is nobody's work — a crash dump, a log, an editor's leavings. Say which those
+were rather than stopping on them.
+
+**Then reproduce the bug.** Run what the report describes — the test, the request, the command.
 
 - **There is something to run, and it fails every time**: record exactly what it produced. That output is what
   `reproduces:` is written against, and what the fix is measured by. **Run it twice before believing "every
@@ -108,23 +112,30 @@ gates are repeated instead of run once, and `reproduces:` carries the rate as `<
   failures refuses it: what Phase 0 saw is not what the test reproduces.
 - **The `green` step runs three times whatever the `red` step needed**, and passes every time.
 
-**Both counts go in the fix file, and Phase 2 asks whether they are enough**, as a numbered Open Question. They
-are a floor derived from one measurement, not a confidence bound, and a rare bug against an expensive suite is
-a cost only the user can accept. Where they answer with a number, that number binds instead.
+**Phase 2 asks whether those counts are enough**, as a numbered Open Question. They are a floor derived from one
+measurement, not a confidence bound, and a rare bug against an expensive suite is a cost only the user can
+accept.
+
+**Whatever the answer settles is written into `reproduces:`**, beside the rate, in the words the step's agent
+will read. An answer left in an Open Question reaches nobody: the agent is handed the step.
 
 **A rate nobody could establish is a bug that does not reproduce**, and it takes the branch above.
 
-**Then the affected modules are clean**, whatever else the tree carries. Uncommitted work under an affected
-module: name the files and stop. Uncommitted work elsewhere is left alone.
+**Then run the full build and the entire test suite of every affected module**, using each module's own
+commands. A probe written to reproduce the bug is reverted first, so this measures the tree as it stands.
 
-Then run the full build and the entire test suite of every affected module, using each module's own commands.
-
-- **Green**: record the commit and the total and skipped counts it was measured at. Those figures are what every
-  later guardrail compares against.
+- **Green**: record the commit, and **per module** its total and skipped counts. Those figures are what every
+  later guardrail compares against, and each module's agent is handed its own.
 - **Red only where the bug already has a failing test**: that is the baseline, and the failing test is named.
-  The `red` step still exists. It names that test in `test-files:` and in `runs:`, and its work is to make the
-  test assert the reported symptom rather than whatever it asserts today.
+  The `red` step still exists and names that test in `test-files:` and `runs:`. Its work is to make the test
+  assert the reported symptom — unless the test already asserts it and fails for exactly that reason, in which
+  case the step's work is to run it and record the failure, and it edits nothing.
 - **Anything else red**: stop, change nothing, report the failures. Fixing them is not this fix's scope.
+
+**A skipped count is only comparable against the same machine in the same state.** Where a module's conventions
+say its suite skips whole classes when something is absent — a container runtime, a credential — record that
+state beside the counts. A change in it between here and Phase 4 is a re-baseline, not a failure, and the
+report says it happened.
 
 **A measurement is not repeated over an unchanged tree.** Where a whole-suite run already answers for the commit
 this starts from, its figures are read rather than taken again. The condition is checkable: whoever is about to
@@ -139,8 +150,9 @@ anything.** A log line, a counter, a breakpoint condition, a query run by hand, 
 a class is doing: a chain of causes cannot always be read out of the source, and the alternative to a probe is a
 diagnosis with unverified links.
 
-- **Every probe's edits are reverted before the files are written.** Phase 2 presents a tree nothing has been
-  written to.
+- **Every probe's edits are reverted before Phase 2 presents anything**, and before the baseline suite runs.
+  The files are written while probes may still be in the tree; what the user is shown is a tree nothing has
+  been written to.
 - **A probe that failed is an attempt**, filed under `diagnosis`.
 - **A probe that worked is not lost.** Where the fix needs it again — the seam a `red` step will drive, the
   metric that will prove the symptom is gone — it becomes a `stabilize` step, and the diagnosis says which one.
@@ -148,6 +160,11 @@ diagnosis with unverified links.
 - **A test written to make the bug fail is a probe like any other**, and it is the commonest one: a symptom no
   existing test can see is observed by writing the test that sees it. Its output is the reproduction, it is
   reverted with the rest, and Phase 3 writes it again as the `red` step.
+
+**Which kind of test that is, is a decision worth a sentence in the diagnosis.** A module's conventions map its
+parts to test types, and the same symptom can often be reproduced at more than one of them — cheaply, close to
+the wrong code, or expensively, close to what the user saw. **Take the cheapest type that fails for the bug's
+own reason.** Where only the expensive one fails for that reason, take it and say why the cheap one does not.
 
 **A probe is never left in the tree and never committed.** The only thing that survives Phase 1 is a written
 file and a step.
@@ -318,8 +335,9 @@ handler that schema declares does not — the module serving it fixes it in its 
 
 **A reproduction runs inside one module.** Where the bug only shows with two services really running, it belongs
 to the module that owns the entry point, with the counterpart at whatever boundary that module's conventions give
-its integration tests: a stub server, a test broker. Where no module can host it, say so. The reproduction
-becomes a **Manual test** in `review/findings.md`, and the fix says which module's `red` step comes closest.
+its integration tests: a stub server, a test broker. **Where no module can host it, the fix stops here**, on
+the same terms as a bug that cannot be reproduced at all. A `green` step with no reproduction behind it is a
+change nothing verified, and the file holding it will not validate.
 
 **Where the counterpart's stand-in is itself wrong, correcting it is a `stabilize` step in the module that owns
 it.** A bug in what two services believe about each other is usually a bug the stand-in shares, so the
@@ -328,8 +346,8 @@ lands before the `red` step, and it changes no production behaviour.
 
 **No module's `red` step may depend on another module's `green` step.** Where the diagnosis says one does, the
 fix is written the other way round: the module whose `green` step comes first owns the reproduction, and the
-second module's part is a `stabilize` step or nothing. `validate` enforces the mechanical half of this — no step
-names a step in another file — and the diagnosis owes the rest. A fix that cannot be written this way is one
+second module's part is a `stabilize` step or nothing. `validate` enforces the mechanical half of this — a
+`fixes:` never crosses a file — and the diagnosis owes the rest. A fix that cannot be written this way is one
 bug reported as two, and it is put to the user in Phase 2 rather than started.
 
 ## Phase 2 — Stop
@@ -393,11 +411,17 @@ nothing about a step, and never edit a file an agent owns.
 **The diagnosis is a hypothesis, and applying the steps is what tests it.** Three things routinely disprove it
 mid-run, and none of them is a reason to end the run with a failing test committed:
 
-| What the run found                                             | What changes                                                          |
-|----------------------------------------------------------------|-----------------------------------------------------------------------|
-| the symptom survives a correct `green` step — a second cause | a new `red` and `green` pair, written into the same file              |
-| the cause is in another module                                 | a step is added to that module's file, and the original is struck out |
-| a step's kind was wrong                                        | the step is re-classified                                             |
+| What the run found                                             | What changes                                             |
+|----------------------------------------------------------------|----------------------------------------------------------|
+| the symptom survives a correct `green` step — a second cause | a new `red` and `green` pair, written into the same file |
+| the cause is in another module                                 | the pair moves whole, to that module's file              |
+| a step's kind was wrong                                        | the step is re-classified                                |
+
+**A pair moves whole or not at all.** A reproduction and the step that fixes it are one unit, and `fixes:`
+cannot cross a file, so striking out one half leaves the other paired with nothing and the file will not
+validate. Moving a cause to another module strikes out both steps and writes both again in the other file.
+Where the reproduction belongs where it is and only the fix moves, the bug was two bugs, and it goes back to
+the user as two.
 
 **Only this level amends a file, and only with the user's answer.** An agent that finds one of these returns and
 says so. Put it to the user as a numbered Open Question in the file it belongs to, write the answer in, re-run
@@ -459,25 +483,38 @@ When every agent has returned:
    the skipped count back to phase 0's. Anything red or still disabled names the step that left it, and the
    directory is not archived. A behaviour from **What the fix must not break** that could not be kept, and a step
    abandoned, are reported here rather than filed.
-3. Whatever else the modules' **build** conventions require of a finished change — a coverage guardrail, a
+3. **The diff says what the steps claimed.** Read the diff from the `**Baseline:**` commit and check two things
+   against the fix files, both of which cost one read and neither of which any agent can report its way past:
+
+   - **Every test file the diff touches is named in some step's `test-files:`.** A test changed under no step
+     is a `green` step that edited its own proof, which is the one edit this skill exists to prevent. It is
+     reported as a defect whatever the suite says.
+   - **Where the conventions commit, each `red` step's commit carries no production file**, and lands before
+     the `green` step that names it. That is the only durable evidence the reproduction preceded the fix.
+
+   **Where the conventions commit nothing, say so in the report.** The ordering then rests on the agent's own
+   account, and a reader deserves to know which of the two they are holding.
+4. Whatever else the modules' **build** conventions require of a finished change — a coverage guardrail, a
    formatting gate. **Where one of those commands runs the suite itself, it is item 2**, not a second run of it.
-4. **A refactor round over the whole diff**, spawned as a sub-agent — see below.
-5. **Write `review/findings.md`** into the fix's own directory, in the shape
+   A guardrail that fails is reported with its own verdict and blocks the archive; it is not argued with.
+5. **A refactor round over the whole diff**, spawned as a sub-agent — see below.
+6. **Write `review/findings.md`** into the fix's own directory, in the shape
    [`findings.md`](../../templates/findings.md) gives. A fix fills **Critical**, **Bug**, and **Manual test** —
-   the last is where a reproduction no module could host ends up. Skip the module-first rule where the fix
+   the last is where whatever the suite cannot see ends up. Skip the module-first rule where the fix
    touched one module: the section's opening line names it instead.
 
    **A fix files no refactoring candidates.** Something worth doing later goes in the report to the user, who
    decides whether it becomes a rework.
 
    A fix with nothing open still gets the file.
-6. **Close the row this fix came from.** Where `Source:` names a findings file and a row, open that file and set
-   the row's `Status`: `done · <this fix's number>` where the row is fully closed, or leave it `open` with one
-   added clause naming what still remains. Re-emit the opening count line. **Nothing here blocks.**
-7. **Archive** on a clean closing gate and `fix.sh task` reporting every file complete. Move the whole
+7. **Close the row this fix came from.** Where `Source:` names a findings file and a row, open that file and set
+   the row's `Status` in the form that file's own template gives, naming this fix. Where the row is not fully
+   closed, leave it `open` with one added clause naming what still remains. Re-emit the opening count line.
+   **Nothing here blocks.**
+8. **Archive** on a clean closing gate and `fix.sh task` reporting every file complete. Move the whole
    `docs/<n>-<name>/` directory into `docs/implemented/`, and commit the move where the conventions commit at
    all. A manual check still open in `review/findings.md` never blocks this.
-8. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
+9. **What the conventions run over finished work.** Every affected module's conventions say what happens once a
    change is complete — a measurement, a documentation pass. Follow the conventions index to wherever they say
    it, and run that list in its order. An entry listed by several affected modules runs once. Each states its
    own commit behaviour.
