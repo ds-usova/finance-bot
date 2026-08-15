@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class BrowseGroupingsCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
 
     @Nested
     @DisplayName("constructing a new browse groupings command")

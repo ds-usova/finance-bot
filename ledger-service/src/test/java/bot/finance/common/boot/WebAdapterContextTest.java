@@ -3,6 +3,7 @@ package bot.finance.common.boot;
 import bot.finance.adapter.telegram.TelegramLoginVerifier;
 import bot.finance.adapter.web.SessionController;
 import bot.finance.application.port.InitializeUserPort;
+import bot.finance.application.port.ReadSessionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -26,6 +27,9 @@ class WebAdapterContextTest {
 
     @MockitoBean
     private InitializeUserPort initializeUserPort;
+
+    @MockitoBean
+    private ReadSessionPort readSessionPort;
 
     @Test
     void contextLoads() {}

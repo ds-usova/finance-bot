@@ -63,7 +63,7 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
                 + "are listed, sorted by name")
         void whenToolCallNamesGrouping_thenSeededCategoriesAreListedSortedByName() {
             User user = seedUserWithDefaultCategories("list-categories-happy-path-user");
-            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+            String token = McpTokens.tokenFor(accessTokenMinter, user.id().orElseThrow());
 
             String requestBody = McpRequests.listCategories("Groceries");
 
@@ -93,7 +93,7 @@ class ListCategoriesMcpToolSystemTest extends AbstractSystemTest {
                 + "error says so")
         void whenToolCallNamesCategory_thenToolErrorSaysItIsACategoryNotAGrouping() {
             User user = seedUserWithDefaultCategories("list-categories-unhappy-path-user");
-            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+            String token = McpTokens.tokenFor(accessTokenMinter, user.id().orElseThrow());
 
             String requestBody = McpRequests.listCategories("Supermarkets");
 

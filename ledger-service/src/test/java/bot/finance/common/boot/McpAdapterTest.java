@@ -1,48 +1,65 @@
 package bot.finance.common.boot;
 
-import bot.finance.LedgerServiceApplication;
-import bot.finance.common.containers.PostgresContainers;
-import bot.finance.common.containers.WireMockSupport;
+import bot.finance.adapter.mcp.CreateExpenseProposalMcpTool;
+import bot.finance.adapter.mcp.ListCategoriesMcpTool;
+import bot.finance.adapter.mcp.SummarizeSpendingMcpTool;
+import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.adapter.security.JwksController;
+import bot.finance.application.port.CreateExpenseProposalPort;
+import bot.finance.application.port.ListCategoriesPort;
+import bot.finance.application.port.SummarizeSpendingPort;
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistrar;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * Boots the full application over a random HTTP port, reachable at {@code /mcp}, for the inbound MCP-tool
- * adapter test. Isolation comes from {@code @MockitoBean} on {@code CreateExpenseProposalPort} in the test
- * class, not from a framework slice - the same shape {@code GrpcAdapterTest} gives the AI Connector's gRPC
- * inbound adapter. Wires the containerized Postgres the same way {@link AbstractSystemTest} does, since the
- * context needs a datasource to start.
+ * Boots the MCP tools over a random HTTP port, reachable at {@code /mcp}, with {@link TheSecurityChain} that
+ * mints and validates their tokens. Isolation comes from {@code @MockitoBean} on the inbound port in the test
+ * class, not from a framework slice - the same shape {@link AiConnectorAdapterTest} gives the AI Connector's
+ * gRPC inbound adapter.
  *
- * <p>{@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type
- * cannot declare, so the telegram bot API redirect to {@link WireMockSupport} - required because polling is on
- * by default - is a {@link DynamicPropertyRegistrar} bean instead, as {@code AiConnectorAdapterTest} does for
- * its own stub target.
+ * <p>Autoconfiguration is left on, since the MCP server, the web layer and the security filter chains are all
+ * autoconfigured. What narrows this is the bean list, which component-scans nothing, and the two exclusions:
+ * without them a datasource and a Redis connection factory are built for beans no scenario reaches.
+ *
+ * <p>{@link JwksController} is not optional. The MCP token decoder fetches the signing keys over HTTP from this
+ * application's own {@code /.well-known/jwks.json}, so without it every call fails inside the decoder and
+ * surfaces as a 500 the logs say nothing about.
+ *
+ * <p>All three ports are mocked here because all three tools register with the one MCP server, and a missing one
+ * fails the whole context. A test class autowires the one it drives; the override is Mockito-managed, so it is
+ * reset between test methods.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 @ActiveProfiles("test")
-@Testcontainers(disabledWithoutDocker = true)
-@ImportTestcontainers(PostgresContainers.class)
-@SpringBootTest(classes = LedgerServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(McpAdapterTest.TelegramStubTargetConfiguration.class)
+@TestPropertySource(
+        properties = "spring.autoconfigure.exclude="
+                + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+                + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration")
+@MockitoBean(types = {ListCategoriesPort.class, CreateExpenseProposalPort.class, SummarizeSpendingPort.class})
+@SpringBootTest(
+        classes = McpAdapterTest.McpAdapterConfiguration.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public @interface McpAdapterTest {
 
-    @TestConfiguration(proxyBeanMethods = false)
-    class TelegramStubTargetConfiguration {
-
-        @Bean
-        DynamicPropertyRegistrar telegramApiUrl() {
-            return registry -> registry.add("telegram.bot.api-url", () -> WireMockSupport.baseUrl() + "/bot");
-        }
-    }
+    @EnableAutoConfiguration
+    @TheSecurityChain
+    @Import({
+        ListCategoriesMcpTool.class,
+        CreateExpenseProposalMcpTool.class,
+        SummarizeSpendingMcpTool.class,
+        JwksController.class,
+        AccessTokenMinter.class,
+    })
+    class McpAdapterConfiguration {}
 }

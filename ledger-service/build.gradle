@@ -91,6 +91,13 @@ dependencies {
     implementation "org.flywaydb:flyway-database-postgresql"
     implementation "org.postgresql:postgresql"
 
+    // Change data capture
+    implementation "io.debezium:debezium-embedded:${debeziumVersion}"
+    implementation "io.debezium:debezium-connector-postgres:${debeziumVersion}"
+    implementation "io.debezium:debezium-storage-jdbc:${debeziumVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+
     // Telegram Bot API
     implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
 
@@ -112,6 +119,7 @@ dependencies {
 
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
     testImplementation "org.testcontainers:testcontainers-postgresql"
+    testImplementation "org.testcontainers:testcontainers-toxiproxy"
 
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
     testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
@@ -120,8 +128,27 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
+// Keeps every Kafka Connect artifact debezium-embedded pulls in on the version it was built against (see the
+// comment on kafkaConnectVersion in gradle.properties) instead of the newer one Spring Boot's own dependency
+// management would otherwise select for it.
+dependencyManagement {
+    dependencies {
+        dependency "org.apache.kafka:connect-api:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-runtime:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-json:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-file:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:connect-transforms:${kafkaConnectVersion}"
+        dependency "org.apache.kafka:kafka-clients:${kafkaConnectVersion}"
+    }
+}
+
 test {
     useJUnitPlatform()
+
+    // The suite holds one booted application for every system test, one per capture class, and the cached
+    // adapter slices. Gradle's default worker heap does not survive them: the suite dies part-way through with
+    // OutOfMemoryError rather than failing a test.
+    maxHeapSize = "1g"
 
     // A developer's shell may export a real TELEGRAM_BOT_TOKEN for running the bot locally. Spring Boot's
     // environment-variable property source outranks the "test" profile's own application-test.yaml, so an
@@ -134,11 +161,18 @@ jacoco {
     toolVersion = "${jacocoVersion}"
 }
 
-// Generated protobuf and gRPC stubs compile into main output and are never exercised directly.
+// Generated sources compile into main output and are never exercised directly. The OpenAPI generator needs two
+// entries: apiPackage and modelPackage put its types under bot/finance/api, and it emits a converter
+// configuration into a package of its own that neither setting reaches.
 // The report and the rule share one filter, so a reported percentage is the one being enforced.
 def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
-        fileTree(dir: it, exclude: ["bot/finance/ai/adapter/grpc/v1/**", "bot/finance/api/**", "**/*Application.class"])
+        fileTree(dir: it, exclude: [
+            "bot/finance/ai/adapter/grpc/v1/**",
+            "bot/finance/api/**",
+            "org/openapitools/**",
+            "**/*Application.class"
+        ])
     }))
 }
 

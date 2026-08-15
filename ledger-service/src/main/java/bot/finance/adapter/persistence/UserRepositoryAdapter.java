@@ -36,6 +36,15 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findById(long userId) {
+        try {
+            return userEntityRepository.findById(userId).map(UserEntity::toDomain);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find user " + userId, e);
+        }
+    }
+
+    @Override
     @Transactional
     public User create(User user, List<Grouping> groupings) {
         ColumnLimits.validateExternalId(user.externalId());

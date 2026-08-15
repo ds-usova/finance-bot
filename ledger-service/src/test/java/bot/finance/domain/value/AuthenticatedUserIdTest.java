@@ -13,24 +13,45 @@ import org.junit.jupiter.params.provider.ValueSource;
 class AuthenticatedUserIdTest {
 
     @Nested
-    @DisplayName("constructing an authenticated user id")
-    class AuthenticatedUserIdConstructor {
+    @DisplayName("resolving an authenticated user id from a subject")
+    class Of {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"1", "42"})
+        @DisplayName("when the subject is a positive number - then the record carries it as its userId")
+        void whenSubjectIsAPositiveNumber_thenRecordCarriesItAsUserId(String subject) {
+            AuthenticatedUserId authenticatedUserId = AuthenticatedUserId.of(subject);
+
+            assertThat(authenticatedUserId.userId()).isEqualTo(Long.parseLong(subject));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"not-a-number", "99999999999999999999"})
+        @DisplayName("when the subject is not a number, or overflows long - then throws InvalidUserException, "
+                + "never NumberFormatException")
+        void whenSubjectIsNotANumberOrOverflowsLong_thenThrowsInvalidUserExceptionNeverNumberFormatException(
+                String subject) {
+            assertThatThrownBy(() -> AuthenticatedUserId.of(subject)).isInstanceOf(InvalidUserException.class);
+        }
 
         @ParameterizedTest
         @NullSource
         @ValueSource(strings = {"", "   "})
-        @DisplayName("when the external id is absent, empty or whitespace-only - then InvalidUserException is thrown")
-        void whenExternalIdIsAbsentEmptyOrWhitespace_thenThrowsInvalidUserException(String externalId) {
-            assertThatThrownBy(() -> new AuthenticatedUserId(externalId)).isInstanceOf(InvalidUserException.class);
+        @DisplayName("when the subject is absent, empty or whitespace-only - then throws InvalidUserException")
+        void whenSubjectIsAbsentEmptyOrWhitespaceOnly_thenThrowsInvalidUserException(String subject) {
+            assertThatThrownBy(() -> AuthenticatedUserId.of(subject)).isInstanceOf(InvalidUserException.class);
         }
+    }
+
+    @Nested
+    @DisplayName("constructing an authenticated user id")
+    class AuthenticatedUserIdConstructor {
 
         @ParameterizedTest
-        @ValueSource(strings = {"user-123", "auth0|abc123"})
-        @DisplayName("when the external id is non-blank - then the record carries it unchanged")
-        void whenExternalIdIsNonBlank_thenRecordCarriesItUnchanged(String externalId) {
-            AuthenticatedUserId authenticatedUserId = new AuthenticatedUserId(externalId);
-
-            assertThat(authenticatedUserId.externalId()).isEqualTo(externalId);
+        @ValueSource(longs = {0L, -1L})
+        @DisplayName("when the id is zero or negative - then throws InvalidUserException")
+        void whenIdIsZeroOrNegative_thenThrowsInvalidUserException(long userId) {
+            assertThatThrownBy(() -> new AuthenticatedUserId(userId)).isInstanceOf(InvalidUserException.class);
         }
     }
 }

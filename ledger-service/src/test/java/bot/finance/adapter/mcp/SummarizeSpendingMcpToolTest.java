@@ -37,7 +37,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Integration test for the inbound MCP-tool adapter. Enters through the protocol - a JSON-RPC {@code tools/call}
@@ -56,15 +55,15 @@ class SummarizeSpendingMcpToolTest {
     @Autowired
     private AccessTokenMinter accessTokenMinter;
 
-    @MockitoBean
+    @Autowired
     private SummarizeSpendingPort summarizeSpendingPort;
 
-    private String token(String externalId) {
-        return McpTokens.tokenFor(accessTokenMinter, externalId);
+    private String token(long userId) {
+        return McpTokens.tokenFor(accessTokenMinter, userId);
     }
 
-    private String tokenWithReference(String externalId, IncomingMessageId reference) {
-        return McpTokens.tokenFor(accessTokenMinter, externalId, reference);
+    private String tokenWithReference(long userId, IncomingMessageId reference) {
+        return McpTokens.tokenFor(accessTokenMinter, userId, reference);
     }
 
     private Response postSummarizeSpending(String token, String from, String to) {
@@ -72,13 +71,13 @@ class SummarizeSpendingMcpToolTest {
     }
 
     /**
-     * Stubs the port to accept {@code from}..{@code to}, then calls summarize_spending as {@code externalId} under
+     * Stubs the port to accept {@code from}..{@code to}, then calls summarize_spending as {@code userId} under
      * a token carrying {@code reference} as its mrf claim.
      */
-    private Response postAcceptedSummary(String externalId, IncomingMessageId reference, String from, String to) {
+    private Response postAcceptedSummary(long userId, IncomingMessageId reference, String from, String to) {
         when(summarizeSpendingPort.summarize(any()))
                 .thenReturn(new SpendingPeriod(LocalDate.parse(from), LocalDate.parse(to)));
-        return postSummarizeSpending(tokenWithReference(externalId, reference), from, to);
+        return postSummarizeSpending(tokenWithReference(userId, reference), from, to);
     }
 
     private Response postMcp(String token, String body) {
@@ -103,16 +102,16 @@ class SummarizeSpendingMcpToolTest {
         @DisplayName("when summarize_spending is called - then the port receives the token's identity, its "
                 + "reference and both written days")
         void whenSummarizeSpendingIsCalled_thenPortReceivesIdentityReferenceAndBothDays() {
-            String externalId = "user-101";
+            long userId = 101L;
             IncomingMessageId reference = newIncomingMessageId();
             String from = "2026-07-27";
             String to = "2026-08-02";
 
-            postAcceptedSummary(externalId, reference, from, to);
+            postAcceptedSummary(userId, reference, from, to);
 
             ArgumentCaptor<SummarizeSpendingCommand> command = ArgumentCaptor.forClass(SummarizeSpendingCommand.class);
             verify(summarizeSpendingPort).summarize(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
             assertThat(command.getValue().reference()).isEqualTo(reference);
             assertThat(command.getValue().from()).isEqualTo(from);
             assertThat(command.getValue().to()).isEqualTo(to);
@@ -124,7 +123,7 @@ class SummarizeSpendingMcpToolTest {
             String from = "2026-07-27";
             String to = "2026-08-02";
 
-            Response response = postAcceptedSummary("user-101", newIncomingMessageId(), from, to);
+            Response response = postAcceptedSummary(101L, newIncomingMessageId(), from, to);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
@@ -145,7 +144,7 @@ class SummarizeSpendingMcpToolTest {
             when(summarizeSpendingPort.summarize(any()))
                     .thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
 
-            Response response = postSummarizeSpending(token("user-1"), "2026-08-05", "2026-08-01");
+            Response response = postSummarizeSpending(token(1L), "2026-08-05", "2026-08-01");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -159,7 +158,7 @@ class SummarizeSpendingMcpToolTest {
                 String description, RuntimeException failure) {
             when(summarizeSpendingPort.summarize(any())).thenThrow(failure);
 
-            Response response = postSummarizeSpending(token("user-2"), "2026-08-01", "2026-08-05");
+            Response response = postSummarizeSpending(token(2L), "2026-08-01", "2026-08-05");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("invalid");
@@ -172,7 +171,7 @@ class SummarizeSpendingMcpToolTest {
             when(summarizeSpendingPort.summarize(any()))
                     .thenThrow(new EntityNotFoundException("User", "no user stored for external id user-000456"));
 
-            Response response = postSummarizeSpending(token("user-5"), "2026-08-01", "2026-08-05");
+            Response response = postSummarizeSpending(token(5L), "2026-08-01", "2026-08-05");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -189,7 +188,7 @@ class SummarizeSpendingMcpToolTest {
                             "duplicate key value violates unique constraint \"pk_spending_query\" on table \"spending_query\"",
                             new RuntimeException("cause")));
 
-            Response response = postSummarizeSpending(token("user-6"), "2026-08-01", "2026-08-05");
+            Response response = postSummarizeSpending(token(6L), "2026-08-01", "2026-08-05");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -203,7 +202,7 @@ class SummarizeSpendingMcpToolTest {
         @DisplayName(
                 "when a token carrying no mrf claim is used - then the catch-all tool error is returned and the port is never called")
         void whenTokenCarriesNoMrfClaim_thenCatchAllToolErrorReturnedAndPortNeverCalled() {
-            String noMrfToken = McpTokens.noReferenceToken("user-44");
+            String noMrfToken = McpTokens.noReferenceToken(44L);
 
             Response response = postSummarizeSpending(noMrfToken, "2026-08-01", "2026-08-05");
 
@@ -220,7 +219,7 @@ class SummarizeSpendingMcpToolTest {
             String secretMessage = "connection pool exhausted on host db-primary-9";
             when(summarizeSpendingPort.summarize(any())).thenThrow(new RuntimeException(secretMessage));
 
-            Response response = postSummarizeSpending(token("user-7"), "2026-08-01", "2026-08-05");
+            Response response = postSummarizeSpending(token(7L), "2026-08-01", "2026-08-05");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).doesNotContain(secretMessage);
@@ -232,7 +231,7 @@ class SummarizeSpendingMcpToolTest {
         void whenPortThrowsAnyFailure_thenLoggedFailureNamesItsClassAndMessageLeakingNoToken() {
             String failureMessage = "spending query is invalid";
             when(summarizeSpendingPort.summarize(any())).thenThrow(new InvalidSpendingQueryException(failureMessage));
-            String issuedToken = token("user-secret-77");
+            String issuedToken = token(999123177L);
 
             try (LogCapture logCapture = LogCapture.attachedTo(SummarizeSpendingMcpTool.class)) {
                 postSummarizeSpending(issuedToken, "2026-08-01", "2026-08-05");
@@ -262,7 +261,7 @@ class SummarizeSpendingMcpToolTest {
             when(summarizeSpendingPort.summarize(any()))
                     .thenThrow(new InvalidSpendingPeriodException(exceptionMessage));
 
-            Response response = postSummarizeSpending(token("user-8"), from, to);
+            Response response = postSummarizeSpending(token(8L), from, to);
 
             ArgumentCaptor<SummarizeSpendingCommand> command = ArgumentCaptor.forClass(SummarizeSpendingCommand.class);
             verify(summarizeSpendingPort).summarize(command.capture());
@@ -292,7 +291,7 @@ class SummarizeSpendingMcpToolTest {
                     }
                     """;
 
-            Response response = postMcp(token("user-9"), body);
+            Response response = postMcp(token(9L), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("from");
@@ -318,7 +317,7 @@ class SummarizeSpendingMcpToolTest {
                     }
                     """;
 
-            Response response = postMcp(token("user-10"), body);
+            Response response = postMcp(token(10L), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("to");

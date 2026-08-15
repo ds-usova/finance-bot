@@ -22,12 +22,12 @@ public class SessionTokenMinter {
         this.signingKeys = signingKeys;
     }
 
-    public String mint(String userExternalId) {
+    public String mint(long userId) {
         Date issuedAt = new Date();
         Date expiresAt = new Date(issuedAt.getTime() + properties.ttl().toMillis());
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(userExternalId)
+                .subject(Long.toString(userId))
                 .issuer(properties.issuer())
                 .audience(properties.audience())
                 .issueTime(issuedAt)

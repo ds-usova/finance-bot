@@ -30,14 +30,23 @@ class AuthenticatedCallerTest {
     class AuthenticatedUserIdMethod {
 
         @Test
-        @DisplayName("when the token's subject is an external id - then returns an AuthenticatedUserId carrying "
-                + "that subject")
-        void whenContextHoldsValidatedTokenWithExternalIdSubject_thenReturnsAuthenticatedUserIdCarryingThatSubject() {
-            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithSubject("ext-123")));
+        @DisplayName("when the token's subject is a numeric internal id - then returns an AuthenticatedUserId "
+                + "carrying that id")
+        void whenContextHoldsValidatedTokenWithNumericSubject_thenReturnsAuthenticatedUserIdCarryingThatId() {
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwtWithSubject("42")));
 
             AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
 
-            assertThat(userId).isEqualTo(new AuthenticatedUserId("ext-123"));
+            assertThat(userId).isEqualTo(new AuthenticatedUserId(42L));
+        }
+
+        @Test
+        @DisplayName("when the token's subject is not a number - then throws InvalidUserException")
+        void whenContextHoldsValidatedTokenWithNonNumericSubject_thenThrowsInvalidUserException() {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new JwtAuthenticationToken(jwtWithSubject("not-a-number")));
+
+            assertThatThrownBy(AuthenticatedCaller::authenticatedUserId).isInstanceOf(InvalidUserException.class);
         }
 
         @Test

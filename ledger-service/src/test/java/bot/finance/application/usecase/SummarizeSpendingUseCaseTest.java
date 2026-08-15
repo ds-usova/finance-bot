@@ -53,12 +53,12 @@ class SummarizeSpendingUseCaseTest {
     }
 
     private SummarizeSpendingCommand newCommand(IncomingMessageId reference, String from, String to) {
-        return new SummarizeSpendingCommand(new AuthenticatedUserId(EXTERNAL_ID), reference, from, to);
+        return new SummarizeSpendingCommand(new AuthenticatedUserId(USER_ID), reference, from, to);
     }
 
     /** Stores a user under {@code userId}, and answers the query the use case writes for EXPECTED_PERIOD. */
     private void stubStoredUserAndCreatedQuery(long userId, IncomingMessageId reference) {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(userId, EXTERNAL_ID));
         when(spendingQueryRepository.create(any()))
                 .thenReturn(SpendingQuery.stored(9L, userId, EXPECTED_PERIOD, reference, FIXED_INSTANT));
     }
@@ -97,7 +97,7 @@ class SummarizeSpendingUseCaseTest {
         @Test
         @DisplayName("when nothing is stored under the command's external id - then throws EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-08-01", "2026-08-05");
 
@@ -150,7 +150,7 @@ class SummarizeSpendingUseCaseTest {
         @DisplayName("when the spending query repository raises PersistenceFailedException - then the "
                 + "exception propagates unchanged")
         void whenSpendingQueryRepositoryThrowsPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
             when(spendingQueryRepository.create(any())).thenThrow(failure);
             SummarizeSpendingCommand command = newCommand(newIncomingMessageId(), "2026-07-27", "2026-08-02");

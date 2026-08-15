@@ -11,7 +11,7 @@ $p = $path -replace '\\', '/'
 # What ships as a plugin: the skills, the sub-agents they spawn, the mechanics those invoke, the templates they
 # point at. Hooks are the exception - they are wired from this repository's settings.json, are pulled nowhere,
 # and exist precisely to name the tooling they enforce.
-if ($p -notmatch '\.claude/(commands|agents|templates|scripts)/') {
+if ($p -notmatch '\.claude/(skills|agents|templates|scripts)/') {
     return
 }
 if ($p -match '\.claude/scripts/hooks/') {

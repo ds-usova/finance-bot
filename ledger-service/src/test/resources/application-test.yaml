@@ -1,3 +1,14 @@
+spring:
+  datasource:
+    hikari:
+      # The production pool holds five idle connections per application. A test JVM keeps every distinct Spring
+      # context in the framework's context cache, so that sizing multiplies by the number of cached contexts and
+      # exhausts the shared container's connection slots — a later context then fails to migrate with
+      # "sorry, too many clients already". A test context releases what it is not using instead.
+      minimum-idle: 0
+      maximum-pool-size: 5
+      idle-timeout: 10000
+
 telegram:
   bot:
     token: default-test-token
@@ -6,3 +17,16 @@ telegram:
       limit: 100
       timeout-seconds: 1
       sleep-millis: 50
+
+cdc:
+  enabled: false
+  # A blank secret stops startup, so every test context needs one whether or not it posts the recovery
+  # operation. A class that asserts on the operation itself declares its own.
+  recovery-secret: default-test-recovery-secret
+
+management:
+  server:
+    port: 0
+  health:
+    redis:
+      enabled: false

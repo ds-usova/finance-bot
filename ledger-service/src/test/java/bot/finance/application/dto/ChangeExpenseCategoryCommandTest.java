@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ChangeExpenseCategoryCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
     private static final ExpenseStatus STATUS = ExpenseStatus.PENDING;
     private static final long ENTRY_ID = 42L;
     private static final long CATEGORY_ID = 7L;

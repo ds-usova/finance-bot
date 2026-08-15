@@ -11,7 +11,7 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 |------------------------|----------------------------------------------------------------------------------------------|
 | Language / framework   | Java 25, Spring Boot                                                                         |
 | Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                                      |
-| Messaging, caching     | none of either                                                                               |
+| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else                     |
 | Services consumed      | Telegram Bot API and the Transcription Service over HTTP, the AI Connector Service over gRPC |
 | APIs exposed           | [MCP](../contracts/in/mcp.md), and HTTP under `/api/v1` for the browser client               |
 | Contract-first codegen | `proto/` for the AI connector, `openapi/` for the browser client                             |
@@ -44,8 +44,7 @@ conventions, the conventions win.
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
   supplies, and what breaks without them.
-- Manual requests: [`docs/requests/`](../requests/) — one `.http` file per HTTP boundary this service exposes,
-  for driving an endpoint by hand against a running service.
+- Manual requests: [`docs/requests/`](../requests/) — for driving an endpoint by hand against a running service.
 - ADRs / design decisions: [`docs/adr/`](../adr/) — decisions the code cannot explain by itself, whose
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.

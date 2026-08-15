@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 class ChangeExpenseCategoryUseCaseTest {
 
     private static final String EXTERNAL_ID = "555";
-    private static final AuthenticatedUserId CALLER = new AuthenticatedUserId(EXTERNAL_ID);
+    private static final AuthenticatedUserId CALLER = new AuthenticatedUserId(1L);
     private static final long USER_ID = 1L;
     private static final long ENTRY_ID = 10L;
     private static final long CATEGORY_ID = 2L;
@@ -136,7 +136,7 @@ class ChangeExpenseCategoryUseCaseTest {
                 + "propagates")
         void whenNoUserRowStoredForExternalId_thenEntityNotFoundExceptionPropagatesAndNothingElseTouched() {
             EntityNotFoundException failure = new EntityNotFoundException("user", "no user stored");
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenThrow(failure);
+            when(userRepository.requireById(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
                     .isSameAs(failure);
@@ -192,7 +192,7 @@ class ChangeExpenseCategoryUseCaseTest {
     }
 
     private void stubStoredUser() {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     private void stubCategoryAdmitted() {

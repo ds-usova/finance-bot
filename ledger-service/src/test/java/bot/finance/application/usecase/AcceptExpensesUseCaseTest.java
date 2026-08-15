@@ -62,11 +62,11 @@ class AcceptExpensesUseCaseTest {
     }
 
     private AcceptExpensesCommand commandFor(List<Long> ids) {
-        return new AcceptExpensesCommand(new AuthenticatedUserId(EXTERNAL_ID), ProposalIds.of(ids));
+        return new AcceptExpensesCommand(new AuthenticatedUserId(USER_ID), ProposalIds.of(ids));
     }
 
     private void stubStoredUser() {
-        when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+        when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
     }
 
     @Nested
@@ -141,7 +141,7 @@ class AcceptExpensesUseCaseTest {
         @Test
         @DisplayName("when no user is stored for the caller's external id - then EntityNotFoundException is thrown")
         void whenNoUserRowForCallersExternalId_thenEntityNotFoundExceptionThrownAndNothingMovedOrDispatched() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.accept(commandFor(List.of(1L))))

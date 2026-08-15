@@ -54,7 +54,10 @@ class CleanArchitectureTest {
                     "com.google.protobuf..",
                     "bot.finance.ai..",
                     "bot.finance.api..",
-                    "io.modelcontextprotocol..")
+                    "io.modelcontextprotocol..",
+                    "io.debezium..",
+                    "org.apache.kafka..",
+                    "org.springframework.data.redis..")
             .allowEmptyShould(true);
 
     /**
@@ -161,9 +164,37 @@ class CleanArchitectureTest {
     }
 
     /**
+     * A JDBC type reaching another adapter is how that adapter ends up opening its own connections. A test
+     * drives the database directly and is excluded, along with the shared test infrastructure in
+     * {@code bot.finance.common}.
+     *
+     * <p>It cannot see a statement handed to something that connects for itself: the embedded capture engine is
+     * configured with SQL and a table list in {@code adapter/cdc} and dials the database on its own.
+     */
+    @ArchTest
+    static final ArchRule onlyThePersistenceAdapterNamesAJdbcType = noClasses()
+            .that()
+            .resideOutsideOfPackage("bot.finance.adapter.persistence..")
+            .and(DescribedPredicate.not(topLevelClassNameEndingWithTest()))
+            .and()
+            .resideOutsideOfPackage("bot.finance.common..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                    "java.sql..",
+                    "javax.sql..",
+                    "org.postgresql..",
+                    "com.zaxxer.hikari..",
+                    "org.springframework.jdbc..",
+                    "org.springframework.boot.jdbc..",
+                    "org.springframework.data.jdbc..")
+            .allowEmptyShould(true);
+
+    /**
      * {@code @AnalyzeClasses(packages = "bot.finance")} scans test classes too, so a fixture that builds an
      * {@link AuthenticatedUserId} for a test is excluded rather than flagged: a class whose top-level name ends
-     * with {@code Test}, and any class in {@code bot.finance.common}.
+     * with {@code Test}, and any class in {@code bot.finance.common}. {@link AuthenticatedUserId} itself is
+     * excluded too, since its own {@code of} factory calls its canonical constructor.
      */
     @ArchTest
     static final ArchRule authenticatedUserIdIsConstructedOnlyBySecurityAdapter = noClasses()
@@ -172,8 +203,12 @@ class CleanArchitectureTest {
             .and(DescribedPredicate.not(topLevelClassNameEndingWithTest()))
             .and()
             .resideOutsideOfPackage("bot.finance.common..")
+            .and()
+            .areNotAssignableTo(AuthenticatedUserId.class)
             .should()
             .callConstructor(AuthenticatedUserId.class)
+            .orShould()
+            .callMethod(AuthenticatedUserId.class, "of", String.class)
             .allowEmptyShould(true);
 
     private static DescribedPredicate<JavaClass> topLevelClassNameEndingWithTest() {

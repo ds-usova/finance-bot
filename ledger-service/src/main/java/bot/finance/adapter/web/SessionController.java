@@ -8,9 +8,12 @@ import bot.finance.adapter.telegram.TelegramLoginVerifier;
 import bot.finance.api.SessionApi;
 import bot.finance.api.model.CurrentSession200Response;
 import bot.finance.application.dto.InitializeUserCommand;
+import bot.finance.application.dto.ReadSessionCommand;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.ReadSessionPort;
+import bot.finance.domain.model.User;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -25,6 +28,7 @@ public class SessionController implements SessionApi {
 
     private final TelegramLoginVerifier loginVerifier;
     private final InitializeUserPort initializeUserPort;
+    private final ReadSessionPort readSessionPort;
     private final SessionTokenMinter sessionTokenMinter;
     private final WebSessionProperties cookieProperties;
     private final Duration sessionTtl;
@@ -33,12 +37,14 @@ public class SessionController implements SessionApi {
     public SessionController(
             TelegramLoginVerifier loginVerifier,
             InitializeUserPort initializeUserPort,
+            ReadSessionPort readSessionPort,
             SessionTokenMinter sessionTokenMinter,
             WebSessionProperties cookieProperties,
             SessionTokenProperties sessionTokenProperties,
             LoggerFactory loggerFactory) {
         this.loginVerifier = loginVerifier;
         this.initializeUserPort = initializeUserPort;
+        this.readSessionPort = readSessionPort;
         this.sessionTokenMinter = sessionTokenMinter;
         this.cookieProperties = cookieProperties;
         this.sessionTtl = sessionTokenProperties.ttl();
@@ -53,9 +59,10 @@ public class SessionController implements SessionApi {
         requestBody.forEach((key, value) -> telegramLoginPayload.put(key, String.valueOf(value)));
         String externalId = loginVerifier.verify(telegramLoginPayload, Instant.now());
 
-        initializeUserPort.initialize(new InitializeUserCommand(externalId));
-        String token = sessionTokenMinter.mint(externalId);
-        logger.info("opened a browser session for user {}", externalId);
+        User user = initializeUserPort.initialize(new InitializeUserCommand(externalId));
+        long userId = user.id().orElseThrow();
+        String token = sessionTokenMinter.mint(userId);
+        logger.info("opened a browser session for user {}", userId);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie(token, sessionTtl))
@@ -64,8 +71,8 @@ public class SessionController implements SessionApi {
 
     @Override
     public ResponseEntity<CurrentSession200Response> currentSession() {
-        return ResponseEntity.ok(new CurrentSession200Response(
-                AuthenticatedCaller.authenticatedUserId().externalId()));
+        User user = readSessionPort.read(new ReadSessionCommand(AuthenticatedCaller.authenticatedUserId()));
+        return ResponseEntity.ok(new CurrentSession200Response(user.externalId()));
     }
 
     @Override

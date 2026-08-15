@@ -30,7 +30,7 @@ class IntentProtoMapperTest {
                     List.of("Groceries", "Transport", "Other"),
                     "Other",
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id",
+                    42L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
@@ -53,7 +53,7 @@ class IntentProtoMapperTest {
                     List.of("Groceries", "Other"),
                     "Other",
                     Optional.empty(),
-                    "user-external-id",
+                    42L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
@@ -70,7 +70,7 @@ class IntentProtoMapperTest {
                     List.of("Groceries", "Other"),
                     "Other",
                     Optional.empty(),
-                    "user-external-id",
+                    42L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 

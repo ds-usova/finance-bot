@@ -10,8 +10,8 @@ import static bot.finance.common.fixtures.TelegramFixtures.voiceMessageUpdate;
 import static bot.finance.common.stubs.TelegramTestBot.LISTENER_TOKEN;
 import static bot.finance.common.stubs.TelegramTestBot.forToken;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
+import static bot.finance.common.stubs.WireMockStubs.telegramDeliversOnce;
 import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
-import static bot.finance.common.stubs.WireMockStubs.telegramReturnsOnFirstPoll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -121,7 +121,7 @@ class TelegramUpdateListenerTest {
         @DisplayName(
                 "when a text-message update is polled - then the port handles the mapped command and the batch is confirmed")
         void whenTextMessageUpdateIsPolled_thenPortHandlesMappedCommandAndBatchIsConfirmed() {
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
@@ -138,7 +138,7 @@ class TelegramUpdateListenerTest {
         @DisplayName("when a callback_query update is polled - then only resolve is called and the batch is confirmed")
         void whenCallbackQueryUpdateIsPolled_thenResolveIsCalledWithMappedCommandAndBatchIsConfirmed() {
             IncomingMessageId reference = newIncomingMessageId();
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(callbackQueryUpdate(
                             CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "accept:" + reference.value())));
@@ -168,7 +168,7 @@ class TelegramUpdateListenerTest {
             doThrow(new InvalidIncomingMessageException("incoming message is invalid"))
                     .when(handleIncomingMessagePort)
                     .handle(any());
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN, updatesResponse(textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT)));
 
             startLoop();
@@ -183,7 +183,7 @@ class TelegramUpdateListenerTest {
                     .when(resolveProposalsPort)
                     .resolve(any());
             IncomingMessageId reference = newIncomingMessageId();
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(callbackQueryUpdate(
                             CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "accept:" + reference.value())));
@@ -202,7 +202,7 @@ class TelegramUpdateListenerTest {
         @DisplayName(
                 "when a voice-message update is polled - then the port is never called and the batch is still confirmed")
         void whenVoiceMessageUpdateIsPolled_thenPortIsNeverCalledAndBatchIsStillConfirmed() {
-            telegramReturnsOnFirstPoll(LISTENER_TOKEN, updatesResponse(voiceMessageUpdate(TEXT_UPDATE_ID, CHAT_ID)));
+            telegramDeliversOnce(LISTENER_TOKEN, updatesResponse(voiceMessageUpdate(TEXT_UPDATE_ID, CHAT_ID)));
 
             startLoop();
 
@@ -214,7 +214,7 @@ class TelegramUpdateListenerTest {
         @DisplayName("when a batch mixes a text and a voice update - then only the text is handled and the batch "
                 + "is confirmed")
         void whenBatchMixingTextAndVoiceUpdateIsPolled_thenOnlyTextUpdateIsHandledAndWholeBatchIsConfirmed() {
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(
                             textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT),
@@ -234,7 +234,7 @@ class TelegramUpdateListenerTest {
         @DisplayName(
                 "when a text-message update without a from is polled - then the port is never called and the batch is still confirmed")
         void whenTextMessageUpdateWithoutFromIsPolled_thenPortIsNeverCalledAndBatchIsStillConfirmed() {
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(textMessageUpdateWithoutFrom(TEXT_UPDATE_ID, CHAT_ID, MESSAGE_TEXT)));
 
@@ -248,7 +248,7 @@ class TelegramUpdateListenerTest {
         @DisplayName(
                 "when a callback_query carries unrecognised data - then neither port is called and the batch is confirmed")
         void whenCallbackQueryUpdateWithUnrecognisedDataIsPolled_thenNeitherPortIsCalledAndBatchIsStillConfirmed() {
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(callbackQueryUpdate(CALLBACK_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_ID, "noop")));
 
@@ -264,7 +264,7 @@ class TelegramUpdateListenerTest {
         void
                 whenBatchPairingTextAndCallbackQueryUpdateIsPolled_thenEachPortIsCalledExactlyOnceAndWholeBatchIsConfirmed() {
             IncomingMessageId reference = newIncomingMessageId();
-            telegramReturnsOnFirstPoll(
+            telegramDeliversOnce(
                     LISTENER_TOKEN,
                     updatesResponse(
                             textMessageUpdate(TEXT_UPDATE_ID, USER_ID, CHAT_ID, MESSAGE_TEXT),

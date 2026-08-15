@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 class SessionTokenMinterTest {
 
-    private static final String USER_EXTERNAL_ID = "user-external-id-42";
+    private static final long USER_ID = 42L;
 
     private final SessionTokenProperties properties = SessionTokens.properties();
 
@@ -33,7 +33,7 @@ class SessionTokenMinterTest {
         void whenMintIsCalledAndTheTokenIsParsed_thenItCarriesTheExpectedClaims() throws ParseException {
             JWTClaimsSet claims = mintedClaims();
 
-            assertThat(claims.getSubject()).isEqualTo(USER_EXTERNAL_ID);
+            assertThat(claims.getSubject()).isEqualTo(Long.toString(USER_ID));
             assertThat(claims.getIssuer()).isEqualTo(properties.issuer());
             assertThat(claims.getAudience()).containsExactly(properties.audience());
             assertThat(claims.getJWTID()).isNotBlank();
@@ -50,13 +50,13 @@ class SessionTokenMinterTest {
         }
 
         private JWTClaimsSet mintedClaims() throws ParseException {
-            return SignedJWT.parse(minter.mint(USER_EXTERNAL_ID)).getJWTClaimsSet();
+            return SignedJWT.parse(minter.mint(USER_ID)).getJWTClaimsSet();
         }
 
         @Test
         @DisplayName("when the minted token is parsed - then it carries no mrf claim")
         void whenTheMintedTokenIsParsed_thenItCarriesNoMrfClaim() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_ID);
 
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
 
@@ -66,7 +66,7 @@ class SessionTokenMinterTest {
         @Test
         @DisplayName("when the minted token is parsed - then its audience is not the audience an MCP token carries")
         void whenTheMintedTokenIsParsed_thenItsAudienceIsNotTheAudienceAnMcpTokenCarries() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_ID);
 
             JWTClaimsSet claims = SignedJWT.parse(token).getJWTClaimsSet();
 
@@ -75,14 +75,12 @@ class SessionTokenMinterTest {
 
         @Test
         @DisplayName(
-                "when mint() is called twice for the same external id - then the two tokens carry different jti values")
-        void whenMintIsCalledTwiceForTheSameExternalId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
-            String firstJti = SignedJWT.parse(minter.mint(USER_EXTERNAL_ID))
-                    .getJWTClaimsSet()
-                    .getJWTID();
-            String secondJti = SignedJWT.parse(minter.mint(USER_EXTERNAL_ID))
-                    .getJWTClaimsSet()
-                    .getJWTID();
+                "when mint() is called twice for the same user id - then the two tokens carry different jti values")
+        void whenMintIsCalledTwiceForTheSameUserId_thenTheTwoTokensCarryDifferentJtiValues() throws ParseException {
+            String firstJti =
+                    SignedJWT.parse(minter.mint(USER_ID)).getJWTClaimsSet().getJWTID();
+            String secondJti =
+                    SignedJWT.parse(minter.mint(USER_ID)).getJWTClaimsSet().getJWTID();
 
             assertThat(firstJti).isNotEqualTo(secondJti);
         }
@@ -95,7 +93,7 @@ class SessionTokenMinterTest {
         @Test
         @DisplayName("when the minted token's header is read - then the algorithm is RS256 and the signature verifies")
         void whenTheMintedTokenHeaderIsRead_thenTheAlgorithmIsRs256AndTheSignatureVerifies() throws Exception {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_ID);
 
             SignedJWT signedJwt = SignedJWT.parse(token);
 
@@ -107,7 +105,7 @@ class SessionTokenMinterTest {
         @Test
         @DisplayName("when the minted token's header is read - then its kid is the alias the JWK Set publishes")
         void whenTheMintedTokenHeaderIsRead_thenItsKidIsTheAliasTheJwkSetPublishes() throws ParseException {
-            String token = minter.mint(USER_EXTERNAL_ID);
+            String token = minter.mint(USER_ID);
 
             assertThat(SignedJWT.parse(token).getHeader().getKeyID()).isEqualTo(SigningKeys.KEY_ALIAS);
         }

@@ -30,7 +30,7 @@ public class ListCategoriesUseCase implements ListCategoriesPort {
         if (command == null) {
             throw new InvalidGroupingException("list categories command is absent");
         }
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long userId = user.id().orElseThrow();
         StoredGrouping grouping = resolveGrouping(userId, command.groupingName());
         return groupingRepository.findCategoryNames(userId, grouping);

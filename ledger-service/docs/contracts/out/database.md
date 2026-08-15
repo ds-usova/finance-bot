@@ -9,9 +9,6 @@ periods they have asked about, and where each report they were sent was posted, 
 - **Schema:** below. No file holds the current state — it is spread across every migration ever applied, so this
   diagram is the one place it is written down. Read from `src/main/resources/db/migration/`.
 
-This page carries the schema, not the statements run against it. What each use case reads and writes is on its
-own page, which lists this contract as a collaborator.
-
 ## Schema
 
 ```plantuml
@@ -82,6 +79,12 @@ entity "proposal_report" as proposal_report {
   * updated_at : TIMESTAMPTZ
 }
 
+entity "cdc_heartbeat" as cdc_heartbeat {
+  * id : BOOLEAN <<PK>> <<check id>>
+  --
+  * beat_at : TIMESTAMPTZ
+}
+
 app_user ||--o{ category
 category ||--o{ category
 app_user ||--o{ expense
@@ -92,6 +95,9 @@ app_user ||--o{ spending_query
 app_user ||--o{ proposal_report
 @enduml
 ```
+
+The database also carries `debezium_offset_storage`, which no migration declares, and a replica identity on
+three of the tables above. Both are [Change capture](change-capture.md)'s.
 
 Indexes beyond the constraints above:
 
@@ -114,6 +120,7 @@ Indexes beyond the constraints above:
 | `expense_proposal` | [Expense proposal](../../domain/expense-proposal.md)  | spending read out of a message, awaiting the person's decision     |
 | `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
 | `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
+| `cdc_heartbeat`    | none                                                  | no use case writes it — see [Change capture](change-capture.md)    |
 
 - A grouping and a category are the same table. The parent is what tells them apart.
 - `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all four tables
@@ -125,8 +132,7 @@ Indexes beyond the constraints above:
 
 ## Compatibility
 
-Migrations are append-only. An applied migration is never edited — a change is a new one, so every database
-reaches the same state by the same path.
+Migrations are append-only. An applied migration is never edited; a change is a new one.
 
 Widening a column or adding a nullable one costs callers nothing. Narrowing one, or adding a constraint the
 stored rows already violate, breaks the migration itself rather than the caller.

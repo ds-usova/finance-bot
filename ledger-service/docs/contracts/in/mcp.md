@@ -1,9 +1,8 @@
 # Agent acting for a user — the ledger's tools (MCP over HTTP)
 
 A language model acting for a user acts on their message here, one tool call per thing the message asks for.
-This is the boundary an AI agent reaches the ledger through. Three things cross it: which categories one of the
-caller's own groupings holds, a proposed expense, which a human reviews before it becomes one, and a period the
-caller wants their spending totalled over.
+Three things cross this boundary: which categories one of the caller's own groupings holds, a proposed expense,
+which a human reviews before it becomes one, and a period the caller wants their spending totalled over.
 
 - **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
   acting for the user whose message it was handed
@@ -40,8 +39,7 @@ message it belongs to, both come off the token and nothing else
 ### What `create_expense_proposal` answers with
 
 The stored proposal: its id, the category name it was filed under, the description, the merchant, the amount in
-the currency's main unit, the currency code, and the instant it was created. It carries no identity — the caller
-already knows whose token it sent, and everything returned enters a model's context.
+the currency's main unit, the currency code, and the instant it was created. It carries no identity.
 
 ### What `list_categories` takes
 
@@ -61,15 +59,14 @@ ordered by name. It carries no identity and no stored id.
 | `from`   | the first day of the period, counted, as `YYYY-MM-DD`      | yes      |
 | `to`     | the last day of the period, counted, as `YYYY-MM-DD`       | yes      |
 
-Both days are calendar dates written `YYYY-MM-DD`. A relative phrase — "last week", "since Friday" — is never sent: the
-caller works the period out against [the day the turn states](../out/ai-connector.md) and sends two days.
+A relative phrase — "last week", "since Friday" — is never sent. The caller works the period out against
+[the day the turn states](../out/ai-connector.md) and sends two days.
 
 ### What `summarize_spending` answers with
 
 Under `from` and `to`, the period that was accepted, as the two days it was stored as. **No amount, no count and
 no expense.** What the caller asked about is put in front of the user by
-[the turn](../../usecases/handle-incoming-message.md), and never returned here, so a total no model has read is
-a total no model can restate.
+[the turn](../../usecases/handle-incoming-message.md), and never returned here.
 
 ## What a repeated call leaves behind
 
@@ -108,7 +105,8 @@ note over Connector, Tools : one token per call — no session.\nA turn making s
 ```
 
 - The token is a short-lived RS256 JSON Web Token, issued and validated by this service itself.
-- It names the user as its subject, `ledger-service` as its issuer, and `mcp-adapter` as its audience.
+- Its subject is the [id the ledger stores the caller under](../../domain/authenticated-user-id.md), never the
+  identity Telegram knows them by. Its issuer is `ledger-service` and its audience `mcp-adapter`.
 - It carries the instant it was issued, the instant it expires, a unique id, and the
   [incoming message id](../../domain/incoming-message-id.md) of the message being handled.
 - The signing key comes from a keystore read at startup. Its public half is published, unauthenticated, at
@@ -117,7 +115,7 @@ note over Connector, Tools : one token per call — no session.\nA turn making s
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
 - A token outlives the turn it was minted for by design. Nothing revokes one early.
 
-Monitoring endpoints stay reachable without a token. Every other address on the service answers to nobody.
+Every other address on this port answers to nobody.
 
 ## Failures
 
@@ -132,6 +130,7 @@ Monitoring endpoints stay reachable without a token. Every other address on the 
 | A day of a period is blank, or is not written `YYYY-MM-DD`                              | a tool error naming the day at fault and the value it could not read |
 | A period's last day is before its first                                                 | a tool error saying the period ends before it starts                 |
 | The token's subject names no stored user                                                | a tool error saying the user is unknown                              |
+| The token's subject is not a stored user's id at all                                    | a tool error naming the request invalid                              |
 | The token carries no readable incoming message id, on a proposal call                   | a tool error saying the proposal could not be created                |
 | The token carries no readable incoming message id, on a summary call                    | a tool error saying the spending could not be summarized             |
 | The proposal or the period cannot be stored, or the categories cannot be read           | a tool error saying so, naming no table, constraint or stack frame   |
@@ -158,7 +157,6 @@ ship together, so an argument is renamed or made required in place.
 
 A rename in place is only safe while the two ship together. A client that read the list before the rename goes
 on sending the old argument name, and every call of that tool fails until it restarts and reads the list again.
-Deploying the two independently makes a rename a new tool instead.
 
 What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
 token untouched, so a claim added there is neither read nor rewritten on the way

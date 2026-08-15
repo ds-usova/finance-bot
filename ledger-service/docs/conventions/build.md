@@ -27,6 +27,16 @@ endpoint answers `ListExpenses200Response`; the same holds for `Category`, `Grou
 
 Reordering the paths renames those five and breaks this module's build; no caller notices.
 
+## Dependencies
+
+What is shared with every Java module is [Building a Java Module](../../../docs/conventions/java-build.md#dependencies).
+
+**Pinned on purpose:**
+
+| Property              | Held at | Because                                                                                                                       |
+|-----------------------|---------|-------------------------------------------------------------------------------------------------------------------------------|
+| `kafkaConnectVersion` | `3.9.0` | Debezium 3.1.1 is built against it; the newer `kafka-clients` the Spring Boot BOM would pull dropped a call its engine makes |
+
 ## Docker
 
 Container-based tests need Docker running; without it they skip silently, and the summary says so when a whole

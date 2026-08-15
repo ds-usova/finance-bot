@@ -291,7 +291,7 @@ class ExpenseWebMapperTest {
     @DisplayName("mapping a category-change document into the change-category command")
     class ToChangeExpenseCategoryCommand {
 
-        private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
+        private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(1L);
 
         @Test
         @DisplayName("when the document replaces /categoryId under RECORDED - then the command carries the caller, "

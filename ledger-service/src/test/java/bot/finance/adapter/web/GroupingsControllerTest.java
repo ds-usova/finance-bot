@@ -37,7 +37,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class GroupingsControllerTest {
 
     private static final String PATH = "/api/v1/groupings";
-    private static final String EXTERNAL_ID = "334455667";
+    private static final long USER_ID = 334455667L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,7 +57,7 @@ class GroupingsControllerTest {
 
             ArgumentCaptor<BrowseGroupingsCommand> command = ArgumentCaptor.forClass(BrowseGroupingsCommand.class);
             verify(browseGroupingsPort).browse(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(EXTERNAL_ID));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
         }
 
         @Test
@@ -96,6 +96,6 @@ class GroupingsControllerTest {
     }
 
     private static Cookie sessionCookie() {
-        return BrowserSessions.cookieFor(EXTERNAL_ID);
+        return BrowserSessions.cookieFor(USER_ID);
     }
 }

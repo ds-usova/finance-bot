@@ -5,11 +5,27 @@ $c = $j.tool_input.command
 # The quotes themselves stay, so every segment keeps its leading token.
 $bare = $c -replace "'[^']*'", "''" -replace '"[^"]*"', '""'
 
-if ($bare -notmatch '(;|&&|\|\|)') {
+# A redirect hands the command's output to a path, so it writes wherever that path points while the allow rule
+# only ever saw the leading token. `sleep 1 > important` truncates a file through a rule that permits sleeping.
+if ($bare -match '>') {
+    @{
+        hookSpecificOutput = @{
+            hookEventName = "PreToolUse"
+            permissionDecision = "deny"
+            permissionDecisionReason = 'A redirect writes to a path the allow rule never saw: the rule matches ' +
+                'the command''s leading token, and everything after ">" is a file this call would create or ' +
+                'truncate. Use the Write tool for a file, and the run directories a wrapper already makes for ' +
+                "output. Refused: '$c'."
+        }
+    } | ConvertTo-Json -Compress
     return
 }
 
-$segments = $bare -split '(?:;|&&|\|\|)' |
+if ($bare -notmatch '(;|&&|\|)') {
+    return
+}
+
+$segments = $bare -split '(?:;|&&|\|)' |
     ForEach-Object { $_.Trim() } |
     Where-Object { $_ -ne '' }
 

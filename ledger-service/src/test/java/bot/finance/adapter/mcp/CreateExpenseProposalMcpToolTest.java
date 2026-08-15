@@ -41,7 +41,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Integration test for the inbound MCP-tool adapter. Enters through the protocol - a JSON-RPC {@code tools/call}
@@ -62,11 +61,11 @@ class CreateExpenseProposalMcpToolTest {
     @Autowired
     private AccessTokenMinter accessTokenMinter;
 
-    @MockitoBean
+    @Autowired
     private CreateExpenseProposalPort createExpenseProposalPort;
 
-    private String token(String externalId) {
-        return McpTokens.tokenFor(accessTokenMinter, externalId);
+    private String token(long userId) {
+        return McpTokens.tokenFor(accessTokenMinter, userId);
     }
 
     private Response postCreateExpenseProposal(
@@ -125,15 +124,15 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName("when create_expense_proposal is called - then the port receives the token's subject and the "
                 + "grouping name")
         void whenCreateExpenseProposalIsCalled_thenPortReceivesTokenSubjectAndGroupingName() {
-            String externalId = "user-42";
+            long userId = 42L;
 
             postAcceptedProposal(
-                    token(externalId), IncomingMessageId.of(UUID.randomUUID().toString()));
+                    token(userId), IncomingMessageId.of(UUID.randomUUID().toString()));
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
             verify(createExpenseProposalPort).create(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
             assertThat(command.getValue().groupingName()).isEqualTo("Dining");
         }
 
@@ -141,7 +140,7 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName("when create_expense_proposal is called - then the result carries the stored proposal")
         void whenCreateExpenseProposalIsCalled_thenResultCarriesStoredProposal() {
             Response response = postAcceptedProposal(
-                    token("user-42"), IncomingMessageId.of(UUID.randomUUID().toString()));
+                    token(42L), IncomingMessageId.of(UUID.randomUUID().toString()));
 
             String body = response.getBody().asString();
             assertThat(body)
@@ -158,16 +157,16 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName("when the caller token carries an mrf claim - then the port receives it as the command's "
                 + "message reference")
         void whenTokenCarriesMrfClaim_thenPortReceivesItAsTheCommandsMessageReference() {
-            String externalId = "user-43";
+            long userId = 43L;
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
 
-            postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, externalId, reference), reference);
+            postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, userId, reference), reference);
 
             ArgumentCaptor<CreateExpenseProposalCommand> command =
                     ArgumentCaptor.forClass(CreateExpenseProposalCommand.class);
             verify(createExpenseProposalPort).create(command.capture());
             assertThat(command.getValue().incomingMessageId()).isEqualTo(reference);
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(externalId));
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
         }
     }
 
@@ -183,7 +182,7 @@ class CreateExpenseProposalMcpToolTest {
                     .thenThrow(new InvalidExpenseProposalException("description must be present"));
 
             Response response =
-                    postCreateExpenseProposal(token("user-1"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(1L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -200,7 +199,7 @@ class CreateExpenseProposalMcpToolTest {
                     .thenThrow(new InvalidUserException("authenticated user id is blank"));
 
             Response response =
-                    postCreateExpenseProposal(token("user-2"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(2L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("invalid");
@@ -211,7 +210,7 @@ class CreateExpenseProposalMcpToolTest {
                 + "port is untouched")
         void whenCurrencyCodeUnusable_thenToolErrorNamesInvalidRequestAndPortUntouched() {
             Response response =
-                    postCreateExpenseProposal(token("user-3"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "ZZZ");
+                    postCreateExpenseProposal(token(3L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "ZZZ");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains("ZZZ");
@@ -225,8 +224,8 @@ class CreateExpenseProposalMcpToolTest {
             String exceptionMessage = "category 'Utilities' is a grouping - choose one of [Electricity, Water]";
             when(createExpenseProposalPort.create(any())).thenThrow(new InvalidCategoryException(exceptionMessage));
 
-            Response response = postCreateExpenseProposal(
-                    token("user-4"), "Utilities", "Utilities", "lunch", "Cafe", "5.00", "EUR");
+            Response response =
+                    postCreateExpenseProposal(token(4L), "Utilities", "Utilities", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -239,8 +238,8 @@ class CreateExpenseProposalMcpToolTest {
             String exceptionMessage = "no grouping named Utilities is stored for this user";
             when(createExpenseProposalPort.create(any())).thenThrow(new InvalidGroupingException(exceptionMessage));
 
-            Response response = postCreateExpenseProposal(
-                    token("user-45"), "Electricity", "Utilities", "lunch", "Cafe", "5.00", "EUR");
+            Response response =
+                    postCreateExpenseProposal(token(45L), "Electricity", "Utilities", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
@@ -253,7 +252,7 @@ class CreateExpenseProposalMcpToolTest {
                     .thenThrow(new EntityNotFoundException("User", "no user stored for external id user-000123"));
 
             Response response =
-                    postCreateExpenseProposal(token("user-5"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(5L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -272,7 +271,7 @@ class CreateExpenseProposalMcpToolTest {
                             new RuntimeException("cause")));
 
             Response response =
-                    postCreateExpenseProposal(token("user-6"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(6L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -290,7 +289,7 @@ class CreateExpenseProposalMcpToolTest {
             when(createExpenseProposalPort.create(any())).thenThrow(new RuntimeException(secretMessage));
 
             Response response =
-                    postCreateExpenseProposal(token("user-7"), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(7L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).doesNotContain(secretMessage);
@@ -303,10 +302,11 @@ class CreateExpenseProposalMcpToolTest {
             String secretCategory = "SecretCategory123";
             String secretDescription = "SecretDescription123";
             String secretMerchant = "SecretMerchant123";
-            String secretExternalId = "secret-user-123";
+            long secretUserId = 999123123L;
+            String secretExternalId = Long.toString(secretUserId);
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new InvalidCategoryException("category is unknown"));
-            String issuedToken = token(secretExternalId);
+            String issuedToken = token(secretUserId);
 
             try (LogCapture logCapture = LogCapture.attachedTo(CreateExpenseProposalMcpTool.class)) {
                 postCreateExpenseProposal(
@@ -337,7 +337,7 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName(
                 "when the caller token carries no mrf claim - then the result is a tool error and the port is never called")
         void whenTokenCarriesNoMrfClaim_thenResultIsToolErrorAndPortNeverCalled() {
-            String token = McpTokens.noReferenceToken("user-10");
+            String token = McpTokens.noReferenceToken(10L);
 
             Response response =
                     postCreateExpenseProposal(token, "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
@@ -350,7 +350,7 @@ class CreateExpenseProposalMcpToolTest {
         @DisplayName(
                 "when the caller token's mrf claim is not a UUID - then the result is a tool error and the port is never called")
         void whenTokenMrfClaimIsNotUuid_thenResultIsToolErrorAndPortNeverCalled() {
-            String token = McpTokens.malformedReferenceToken("user-11");
+            String token = McpTokens.malformedReferenceToken(11L);
 
             Response response =
                     postCreateExpenseProposal(token, "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
@@ -369,7 +369,7 @@ class CreateExpenseProposalMcpToolTest {
                 "when amount is absent - then the tool error names an invalid request and the port is never called")
         void whenAmountAbsent_thenToolErrorNamesInvalidRequestAndPortNeverCalled() {
             Response response =
-                    postCreateExpenseProposal(token("user-8"), "Restaurants", "Dining", "lunch", "Cafe", null, "EUR");
+                    postCreateExpenseProposal(token(8L), "Restaurants", "Dining", "lunch", "Cafe", null, "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("amount");
@@ -400,7 +400,7 @@ class CreateExpenseProposalMcpToolTest {
                     }
                     """;
 
-            Response response = postMcp(token("user-9"), body);
+            Response response = postMcp(token(9L), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(createExpenseProposalPort, never()).create(any());
@@ -429,7 +429,7 @@ class CreateExpenseProposalMcpToolTest {
                     }
                     """;
 
-            Response response = postMcp(token("user-44"), body);
+            Response response = postMcp(token(44L), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             verify(createExpenseProposalPort, never()).create(any());
@@ -442,7 +442,7 @@ class CreateExpenseProposalMcpToolTest {
         void whenAmountIsInvalid_thenToolErrorNamesInvalidRequestAndPortNeverCalled(
                 String description, String amount, String currencyCode, String expectedMessageFragment) {
             Response response = postCreateExpenseProposal(
-                    token("user-12"), "Restaurants", "Dining", "lunch", "Cafe", amount, currencyCode);
+                    token(12L), "Restaurants", "Dining", "lunch", "Cafe", amount, currencyCode);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
@@ -493,7 +493,7 @@ class CreateExpenseProposalMcpToolTest {
                     }
                     """;
 
-            Response response = postMcp(token("user-13"), body);
+            Response response = postMcp(token(13L), body);
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).containsIgnoringCase("grouping");
@@ -505,7 +505,7 @@ class CreateExpenseProposalMcpToolTest {
                 "when grouping is blank - then the tool error names an invalid request with no grouping and the port is never called")
         void whenGroupingBlank_thenToolErrorNamesInvalidRequestWithNoGroupingAndPortNeverCalled() {
             Response response =
-                    postCreateExpenseProposal(token("user-14"), "Restaurants", "   ", "lunch", "Cafe", "5.00", "EUR");
+                    postCreateExpenseProposal(token(14L), "Restaurants", "   ", "lunch", "Cafe", "5.00", "EUR");
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text"))

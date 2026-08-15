@@ -46,13 +46,13 @@ class AiConnectorIntentExtractionAdapterTest {
         GrpcStubServer.reset();
     }
 
-    private static IntentExtractionRequest requestFor(String userExternalId, IncomingMessageId reference) {
+    private static IntentExtractionRequest requestFor(long userId, IncomingMessageId reference) {
         return new IntentExtractionRequest(
                 "spent 15 on milk",
                 List.of("Groceries"),
                 "Groceries",
                 Optional.of(CurrencyCode.of("USD")),
-                userExternalId,
+                userId,
                 reference,
                 CURRENT_DATE);
     }
@@ -81,7 +81,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     List.of("Groceries", "Other"),
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
@@ -100,21 +100,20 @@ class AiConnectorIntentExtractionAdapterTest {
         void whenRequestCarriesCurrentDate_thenServerReceivedRequestCarriesCurrentDateAsIso8601Text() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id", newIncomingMessageId()));
+            adapter.extract(requestFor(1L, newIncomingMessageId()));
 
             ExtractIntentsRequest receivedRequest = GrpcStubServer.lastExtractionRequest();
             assertThat(receivedRequest.getCurrentDate()).isEqualTo(CURRENT_DATE.toString());
         }
 
         @Test
-        @DisplayName("when extract is called - then the metadata carries a bearer token whose sub claim is the "
-                + "userExternalId")
-        void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserExternalId() throws ParseException {
+        @DisplayName("when extract is called - then the metadata carries a bearer token whose sub claim is the userId")
+        void whenExtractIsCalled_thenMetadataCarriesBearerTokenWithSubClaimAsUserId() throws ParseException {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
 
-            adapter.extract(requestFor("user-external-id-77", newIncomingMessageId()));
+            adapter.extract(requestFor(77L, newIncomingMessageId()));
 
-            assertThat(bearerClaims().getSubject()).isEqualTo("user-external-id-77");
+            assertThat(bearerClaims().getSubject()).isEqualTo("77");
         }
 
         @Test
@@ -124,7 +123,7 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IncomingMessageId reference = newIncomingMessageId();
 
-            adapter.extract(requestFor("user-external-id", reference));
+            adapter.extract(requestFor(1L, reference));
 
             assertThat(bearerClaims().getStringClaim(McpTokens.INCOMING_MESSAGE_ID_CLAIM))
                     .isEqualTo(reference.value());
@@ -150,7 +149,7 @@ class AiConnectorIntentExtractionAdapterTest {
                     List.of("Other"),
                     "Other",
                     Optional.empty(),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 

@@ -16,19 +16,18 @@ import java.util.List;
 
 /**
  * The single home for pointing a real pengrad {@link TelegramBot} at the WireMock singleton, for the bot tokens
- * the tests use, and for reading back the {@code getUpdates} polls the stub server recorded.
+ * the tests use, for the scenarios that share one, and for reading back what the stub server recorded.
  *
- * <p>The token is part of every Bot API URL ({@code <apiUrl><token>/<method>}), which makes it the partitioning
- * key for the whole suite: a test that owns a token owns a WireMock path no other test's poll loop can reach,
- * and — for a system test declaring it with {@code @TestPropertySource} — a Spring context, and therefore a poll
- * loop, of its own. Every token constant lives here so a test's stubs and its bot cannot disagree about which
- * one it is using.
+ * <p>The token is part of every Bot API URL ({@code <apiUrl><token>/<method>}), so it partitions the stub
+ * server's paths. A test that builds a bot of its own takes a token of its own; every system test runs against
+ * the fully wired application, which is configured with {@link #PROFILE_DEFAULT_TOKEN}, and tells its scenario
+ * from the next one by the {@link TelegramScenario} it owns.
  */
 public final class TelegramTestBot {
 
     /**
-     * The {@code telegram.bot.token} the {@code test} profile configures, shared by every class that declares no
-     * {@code @TestPropertySource} override of its own because it triggers no poll-loop scenario.
+     * The {@code telegram.bot.token} the {@code test} profile configures, and therefore the one every system
+     * test's poll loop and every system test's stubs use.
      */
     public static final String PROFILE_DEFAULT_TOKEN = "default-test-token";
 
@@ -43,49 +42,63 @@ public final class TelegramTestBot {
     public static final String SUBSCRIBER_TOKEN = "subscriber-test-token";
 
     /**
-     * Token owned by {@code ReceiveTelegramMessageSystemTest}.
-     */
-    public static final String RECEIVE_MESSAGE_TOKEN = "receive-message-test-token";
-
-    /**
-     * Token owned by {@code TelegramPollFailureRecoverySystemTest}.
-     */
-    public static final String POLL_RECOVERY_TOKEN = "poll-recovery-test-token";
-
-    /**
-     * Token owned by {@code HandleIncomingMessageFailureSystemTest}.
-     */
-    public static final String HANDLE_MESSAGE_FAILURE_TOKEN = "handle-message-failure-test-token";
-
-    /**
      * Token owned by {@code TelegramMessageDeliveryAdapterTest}.
      */
     public static final String DELIVERY_TOKEN = "delivery-test-token";
 
     /**
-     * Token owned by {@code ResolveProposalsSystemTest}.
+     * What tells one poll-loop scenario from another: the update it is delivered as, the Telegram user who sends
+     * it, the conversation it arrives in, and — for a tap — the callback query that carries it.
+     *
+     * <p>The constants below are the whole allocation, so that no two scenarios sharing an id is something a
+     * reader can check by looking at one list. The user matters beyond the poll loop: a user's first message
+     * seeds their entire category tree, and a user who already exists is not seeded again, so two scenarios on
+     * one id would depend on which ran first against the shared database.
      */
-    public static final String RESOLVE_PROPOSALS_TOKEN = "resolve-proposals-test-token";
+    public record TelegramScenario(int updateId, long userId, long chatId) {
+
+        public String userExternalId() {
+            return String.valueOf(userId);
+        }
+
+        public String conversationId() {
+            return String.valueOf(chatId);
+        }
+
+        /** The {@code offset} pengrad polls with once it has confirmed this scenario's batch. */
+        public String nextOffset() {
+            return String.valueOf(updateId + 1);
+        }
+
+        /** A {@code callback_query.id} no other scenario's tap carries. */
+        public String callbackQueryId() {
+            return "callback-query-%d".formatted(updateId);
+        }
+    }
+
+    /** Scenario owned by {@code ReceiveTelegramMessageSystemTest}. */
+    public static final TelegramScenario RECEIVE_MESSAGE = new TelegramScenario(101, 1001, 2001);
+
+    /** Scenario owned by {@code SummarizeSpendingReplySystemTest}. */
+    public static final TelegramScenario SUMMARIZE_SPENDING = new TelegramScenario(201, 1002, 2002);
+
+    /** Scenario owned by {@code ResolveProposalsSystemTest}. */
+    public static final TelegramScenario RESOLVE_PROPOSALS = new TelegramScenario(301, 1003, 2003);
+
+    /** Scenario owned by {@code ResolveUnknownProposalsSystemTest}. */
+    public static final TelegramScenario RESOLVE_UNKNOWN_PROPOSALS = new TelegramScenario(401, 1004, 2004);
+
+    /** Scenario owned by {@code HandleIncomingMessageFailureSystemTest}. */
+    public static final TelegramScenario HANDLE_MESSAGE_FAILURE = new TelegramScenario(501, 1005, 2005);
+
+    /** Scenario owned by {@code TelegramPollFailureRecoverySystemTest}. */
+    public static final TelegramScenario POLL_RECOVERY = new TelegramScenario(601, 1006, 2006);
 
     /**
-     * Token owned by {@code ResolveUnknownProposalsSystemTest}.
+     * Scenario owned by {@code AcceptExpensesSystemTest}. Nothing is polled here — the clearing it asserts on is
+     * dispatched off the request thread, and the conversation is what tells it from another class's traffic.
      */
-    public static final String RESOLVE_UNKNOWN_PROPOSALS_TOKEN = "resolve-unknown-proposals-test-token";
-
-    /**
-     * Token owned by the system test covering {@code summarize_spending}.
-     */
-    public static final String SUMMARIZE_SPENDING_TOKEN = "summarize-spending-test-token";
-
-    /**
-     * Token owned by {@code WebSessionSystemTest}, which signs its Login Widget payloads with it.
-     */
-    public static final String WEB_SESSION_TOKEN = "web-session-test-token";
-
-    /**
-     * Token owned by {@code AcceptExpensesSystemTest}, whose clearing reaches a stub path no other class can.
-     */
-    public static final String ACCEPT_EXPENSES_TOKEN = "accept-expenses-test-token";
+    public static final TelegramScenario ACCEPT_EXPENSES = new TelegramScenario(701, 1007, 2007);
 
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
@@ -159,6 +172,35 @@ public final class TelegramTestBot {
      */
     public static List<LoggedRequest> recordedSendMessages(String token) {
         return WireMockSupport.SERVER.findAll(postRequestedFor(urlPathEqualTo(sendMessagePath(token))));
+    }
+
+    /**
+     * The recorded {@code sendMessage} calls addressed to this scenario's conversation.
+     *
+     * <p>A turn still running when the next test starts writes into that test's journal, and the conversation is
+     * what tells the two apart once every scenario shares one token and one poll loop.
+     */
+    public static List<LoggedRequest> recordedSendMessagesFor(String token, TelegramScenario scenario) {
+        return recordedFor(sendMessagePath(token), "chat_id", scenario.conversationId());
+    }
+
+    /**
+     * The recorded {@code editMessageReplyMarkup} calls addressed to this scenario's conversation.
+     */
+    public static List<LoggedRequest> recordedEditMessageReplyMarkupsFor(String token, TelegramScenario scenario) {
+        return recordedFor(editMessageReplyMarkupPath(token), "chat_id", scenario.conversationId());
+    }
+
+    /**
+     * The recorded {@code answerCallbackQuery} calls answering this scenario's own tap.
+     */
+    public static List<LoggedRequest> recordedAnswerCallbackQueriesFor(String token, TelegramScenario scenario) {
+        return recordedFor(answerCallbackQueryPath(token), "callback_query_id", scenario.callbackQueryId());
+    }
+
+    private static List<LoggedRequest> recordedFor(String path, String formParameter, String value) {
+        return WireMockSupport.SERVER.findAll(
+                postRequestedFor(urlPathEqualTo(path)).withFormParam(formParameter, equalTo(value)));
     }
 
     /**

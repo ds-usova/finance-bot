@@ -23,6 +23,7 @@ public class PostgresContainers {
                 .withUsername("ledger_user")
                 .withPassword("ledger_password")
                 .withReuse(false)
+                .withCommand("postgres", "-c", "wal_level=logical", "-c", "max_slot_wal_keep_size=16MB")
                 .waitingFor(Wait.forListeningPort());
 
         POSTGRES_CONTAINER.start();

@@ -38,7 +38,7 @@ class BrowseGroupingsUseCaseTest {
     }
 
     private BrowseGroupingsCommand newCommand() {
-        return new BrowseGroupingsCommand(new AuthenticatedUserId(EXTERNAL_ID));
+        return new BrowseGroupingsCommand(new AuthenticatedUserId(USER_ID));
     }
 
     @Nested
@@ -49,7 +49,7 @@ class BrowseGroupingsUseCaseTest {
         @DisplayName("when the repository answers the seeded groupings - then every grouping is answered with "
                 + "its id and name")
         void whenRepositoryAnswersSeededGroupings_thenEveryGroupingIsAnsweredWithIdAndName() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             List<GroupingEntry> groupings =
                     List.of(new GroupingEntry(1L, "Groceries"), new GroupingEntry(2L, "Transport"));
             when(groupingRepository.findAllForUser(USER_ID)).thenReturn(groupings);
@@ -67,7 +67,7 @@ class BrowseGroupingsUseCaseTest {
                 + "that stored id")
         void whenStoredUserIdDiffersFromExternalId_thenRepositoryReceivesStoredUserIdNotExternalId() {
             long differentUserId = 42L;
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             when(groupingRepository.findAllForUser(differentUserId)).thenReturn(List.of());
 
             useCase.browse(newCommand());
@@ -79,7 +79,7 @@ class BrowseGroupingsUseCaseTest {
         @DisplayName(
                 "when no user row is stored under the caller's external id - then throws " + "EntityNotFoundException")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundException() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.browse(newCommand())).isInstanceOf(EntityNotFoundException.class);

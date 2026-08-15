@@ -39,7 +39,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class CategoriesControllerTest {
 
     private static final String PATH = "/api/v1/categories";
-    private static final String EXTERNAL_ID = "223344556";
+    private static final long USER_ID = 223344556L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -152,6 +152,6 @@ class CategoriesControllerTest {
     }
 
     private static Cookie sessionCookie() {
-        return BrowserSessions.cookieFor(EXTERNAL_ID);
+        return BrowserSessions.cookieFor(USER_ID);
     }
 }

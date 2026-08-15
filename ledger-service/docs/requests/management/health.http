@@ -1,0 +1,14 @@
+### Health — GET /actuator/health
+# Whether the service and each of its parts is up. Answers to anyone reaching the port. What each state of the
+# change-capture component means: ../../contracts/in/operations.md
+
+@host = http://localhost:1010
+
+### The whole aggregate, with every component.
+GET {{host}}/actuator/health
+
+### Readiness alone, as a probe reads it.
+GET {{host}}/actuator/health/readiness
+
+### Liveness alone.
+GET {{host}}/actuator/health/liveness

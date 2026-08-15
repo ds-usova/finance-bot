@@ -14,21 +14,17 @@ Two stored users with the same `id` are the same user. An unstored one equals on
 
 ## Lifecycle
 
-One state, entered once and never left.
-
 | Event   | By                                                                  | Notes                                                          |
 |---------|---------------------------------------------------------------------|-----------------------------------------------------------------|
 | Created | [Initialize a new user](../usecases/initialize-a-new-user.md)       | find-or-create; a second sign-in resolves to the row already there |
 | Changed | never                                                               | the external identity is the whole of it                       |
 | Removed | never                                                               | nothing deletes a user, and everything else cascades from one  |
 
-Creation also stores the default [groupings](grouping.md) and [categories](category.md), so a user never exists
-without a tree to file spending under.
-
 ## Made of / held by
 
 An external identity, plus the store's id once there is one.
 
+- [Authenticated user id](authenticated-user-id.md) — what a request names a person by, once they are signed in.
 - [Grouping](grouping.md) — a catalogue of them, holding the [categories](category.md) a user files spending
   under, is stored with them at creation.
 - How long an identity may be is checked where it is stored

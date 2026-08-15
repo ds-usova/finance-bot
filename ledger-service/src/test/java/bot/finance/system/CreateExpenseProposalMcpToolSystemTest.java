@@ -87,7 +87,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
             long supermarketsCategoryId = storedCategory(userId, "Supermarkets").id();
-            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+            String token = McpTokens.tokenFor(accessTokenMinter, userId);
 
             String requestBody = McpRequests.createExpenseProposal(
                     "Supermarkets", "Groceries", DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
@@ -138,7 +138,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         void whenToolCallNamesCategoryUnderTheWrongGrouping_thenNothingIsStoredAndMismatchIsNamed() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-unhappy-path-user");
             long userId = user.id().orElseThrow();
-            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+            String token = McpTokens.tokenFor(accessTokenMinter, userId);
 
             String requestBody = McpRequests.createExpenseProposal(
                     "Supermarkets", "Dining", DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
@@ -168,7 +168,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
         void whenToolCallHasNoGrouping_thenNothingIsStoredAndMissingGroupingIsNamed() {
             User user = seedUserWithDefaultCategories("create-expense-proposal-no-grouping-user");
             long userId = user.id().orElseThrow();
-            String token = McpTokens.tokenFor(accessTokenMinter, user.externalId());
+            String token = McpTokens.tokenFor(accessTokenMinter, userId);
 
             String requestBody =
                     """

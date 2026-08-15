@@ -54,7 +54,7 @@ class BrowseExpensesUseCaseTest {
     }
 
     private BrowseExpensesCommand newCommand(ExpenseFilter filter) {
-        return new BrowseExpensesCommand(new AuthenticatedUserId(EXTERNAL_ID), filter);
+        return new BrowseExpensesCommand(new AuthenticatedUserId(USER_ID), filter);
     }
 
     @Nested
@@ -65,7 +65,7 @@ class BrowseExpensesUseCaseTest {
         @DisplayName("when the repository answers a page and a total - then the answered page carries them and "
                 + "the filter's paging")
         void whenRepositoryAnswersPageAndTotal_thenAnsweredPageCarriesEntriesTotalLimitAndOffset() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             List<ExpenseEntry> entries = List.of(new ExpenseEntry(
                     ExpenseStatus.RECORDED,
@@ -91,7 +91,7 @@ class BrowseExpensesUseCaseTest {
                 "when the stored user's id differs from the external id - then both reads receive that " + "stored id")
         void whenStoredUserIdDiffersFromExternalId_thenBothReadsReceiveStoredUserIdNotExternalId() {
             long differentUserId = 42L;
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             when(expenseRepository.findPage(differentUserId, filter)).thenReturn(List.of());
             when(expenseRepository.countMatching(differentUserId, filter)).thenReturn(0L);
@@ -106,7 +106,7 @@ class BrowseExpensesUseCaseTest {
         @DisplayName("when no user is stored under the caller's external id - then throws EntityNotFoundException "
                 + "and nothing is read")
         void whenNoUserExistsForExternalId_thenThrowsEntityNotFoundExceptionAndExpenseRepositoryUntouched() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID))
+            when(userRepository.requireById(USER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under external id " + EXTERNAL_ID));
 
             assertThatThrownBy(() -> useCase.browse(newCommand(newFilter())))
@@ -119,7 +119,7 @@ class BrowseExpensesUseCaseTest {
         @DisplayName("when the expense repository raises PersistenceFailedException - then it reaches the caller "
                 + "unchanged")
         void whenExpenseRepositoryRaisesPersistenceFailedException_thenExceptionPropagatesUnchanged() {
-            when(userRepository.requireByExternalId(EXTERNAL_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
+            when(userRepository.requireById(USER_ID)).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             ExpenseFilter filter = newFilter();
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(expenseRepository.findPage(USER_ID, filter)).thenThrow(failure);

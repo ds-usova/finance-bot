@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ExpenseProposalToolMapperTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("user-1");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(1L);
     private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     private static CreateExpenseProposalToolRequest requestWith(String amount, String currencyCode) {

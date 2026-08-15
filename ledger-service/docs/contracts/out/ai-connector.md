@@ -28,7 +28,7 @@ outcome, no text for the user.
 ## What this service decides
 
 - Only grouping names are sent. No category name crosses.
-- Only groupings holding at least one category are sent. There is nothing to file under an empty one.
+- Only groupings holding at least one category are sent.
 - A category is reached from the other side, through [the tool the connector calls back on](../in/mcp.md).
 - Groupings travel in alphabetical order. Nothing depends on the position of one.
 - One grouping is designated the catch-all, so a fit always exists.
@@ -40,9 +40,10 @@ outcome, no text for the user.
   are. No user's own time zone is recorded anywhere.
 - The period itself never crosses here. The connector works it out and asks for it over
   [the tool it calls back on](../in/mcp.md).
-- The credential is minted per call and names the user as its subject.
-- It also names the [message](../../domain/incoming-message-id.md) the turn is about, so everything recorded
-  during it can be found again
+- The credential is minted per call, and its subject is the
+  [id the ledger stores the user under](../../domain/authenticated-user-id.md) — the payload carries no identity
+  at all.
+- It also names the [message](../../domain/incoming-message-id.md) the turn is about
   ([ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 - The connector forwards it untouched. Nothing riding it is part of what the schema agreed. Its whole path is
   [drawn where it is spent](../in/mcp.md#how-a-caller-authenticates).

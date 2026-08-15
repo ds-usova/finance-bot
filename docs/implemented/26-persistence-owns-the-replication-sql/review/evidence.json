@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/26-persistence-owns-the-replication-sql/rework.md",
+  "commit": "94f4267",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-14T14:48:02Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 92, "passed": 92, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "96.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1156, "passed": 1156, "failed": 0, "skipped": 0, "instructions": "96.8%", "branches": "92.8%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}

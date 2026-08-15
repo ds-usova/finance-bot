@@ -6,33 +6,6 @@
 
 *Implemented by `InitializeUserUseCase`.*
 
-## The catalogue
-
-A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories](../domain/category.md).
-
-| Grouping          | Categories                                                                  |
-|-------------------|-----------------------------------------------------------------------------|
-| Housing           | Rent, Mortgage, HOA, Property Tax, Home Insurance, Repairs, Furniture       |
-| Groceries         | Supermarkets, Markets, Household Supplies                                   |
-| Dining            | Restaurants, Cafés, Fast Food, Delivery                                     |
-| Transportation    | Fuel, Public Transport, Parking, Taxis/Uber, Car Maintenance, Car Insurance |
-| Utilities         | Electricity, Gas, Water, Internet, Mobile Phone                             |
-| Healthcare        | Doctors, Pharmacy, Dental, Vision, Health Insurance                         |
-| Education         | Tuition, Books, Courses, Certifications                                     |
-| Shopping          | Clothing, Electronics, Home Goods, Gifts                                    |
-| Entertainment     | Movies, Games, Hobbies                                                      |
-| Travel            | Hotels, Flights, Vacation, Attractions                                      |
-| Pets              | Food, Vet, Grooming                                                         |
-| Family & Children | Childcare, School Supplies, Toys                                            |
-| Financial         | Taxes, Bank Fees, Loan Payments, Interest                                   |
-| Investments       | Brokerage, Retirement, Crypto, Savings Transfers                            |
-| Gifts & Donations | Charity, Birthday Gifts, Holidays                                           |
-| Work              | Office Supplies, Business Expenses                                          |
-| Insurance         | Life, Home, Vehicle, Travel                                                 |
-| Personal Care     | Haircuts, Cosmetics, Gym, Spa                                               |
-| Subscriptions     | Streaming, Music, Cloud Storage, Apps & Software                            |
-| Miscellaneous     | Uncategorized Expenses                                                      |
-
 ## Collaborators
 
 | Direction | Collaborator                                          | Through                                                                           | For                                                       |
@@ -43,13 +16,13 @@ A new user is given 20 [groupings](../domain/grouping.md) holding 77 [categories
 
 ## Outcomes
 
-| Outcome                | When                                             | Result                                                                     |
-|------------------------|--------------------------------------------------|----------------------------------------------------------------------------|
-| User created           | nothing is stored under the identity             | the user and the catalogue are stored together, and the creation is logged |
-| Existing user returned | a user is already stored under the identity      | that user is returned and nothing is written                               |
-| Request rejected       | the request is absent or carries no identity     | invalid user — nothing is looked up                                        |
-| Identity too long      | the identity is over 255 characters              | invalid user — nothing is stored                                           |
-| Storage failed         | the store cannot be reached or refuses the write | the failure reaches the caller                                             |
+| Outcome                | When                                                                   | Result                                                                                                       |
+|------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| User created           | nothing is stored under the identity                                   | the user and [the starting catalogue](../domain/grouping.md) are stored together, and the creation is logged |
+| Existing user returned | a user is already stored under the identity                            | that user is returned and nothing is written                                                                 |
+| Request rejected       | the request is absent or carries no identity                           | invalid user — nothing is looked up                                                                          |
+| Identity too long      | the identity is longer than [its column](../contracts/out/database.md) | invalid user — nothing is stored                                                                             |
+| Storage failed         | the store cannot be reached or refuses the write                       | the failure reaches the caller                                                                               |
 
 ## Components
 
@@ -123,3 +96,5 @@ end
   why the starting catalogue can carry one name twice
 - [ADR 0004: Column widths are checked in the persistence adapter](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md) —
   where an identity too long is refused
+- [Read the current session](read-the-current-session.md) — how a browser is answered on every request after the
+  first, once a row stands

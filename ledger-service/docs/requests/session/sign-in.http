@@ -1,0 +1,20 @@
+### Sign in — POST /api/v1/session
+# Opens a session. The body is exactly what the Telegram Login Widget hands the page, hash included; paste a
+# real payload rather than editing these fields, since the hash covers every one of them. What it answers and
+# refuses: ../../contracts/in/web-session-api.md
+
+@host = http://localhost:1000
+# Set from the XSRF-TOKEN cookie current-session.http returns; every write needs it.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### Open a session.
+POST {{host}}/api/v1/session
+Content-Type: application/json
+Cookie: XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "id": "123456789",
+  "auth_date": "1700000000",
+  "hash": "the-widget's-hash-over-every-other-field"
+}

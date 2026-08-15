@@ -1,0 +1,38 @@
+### Changing an entry's category — PATCH /api/v1/expenses/{status}/{id}
+# Refiles one of the signed-in person's entries under a different category. The status says which table the id
+# names, the document replaces /categoryId and nothing else, and the answer is the entry as it now stands. Needs
+# an open session and the CSRF header, since it writes.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie a "read the session" response returns — see ../session/current-session.http.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### A recorded expense.
+PATCH {{host}}/api/v1/expenses/RECORDED/12
+Content-Type: application/json-patch+json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+[
+  {
+    "op": "replace",
+    "path": "/categoryId",
+    "value": 42
+  }
+]
+
+### A pending proposal — the same document, the other status.
+PATCH {{host}}/api/v1/expenses/PENDING/7
+Content-Type: application/json-patch+json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+[
+  {
+    "op": "replace",
+    "path": "/categoryId",
+    "value": 42
+  }
+]

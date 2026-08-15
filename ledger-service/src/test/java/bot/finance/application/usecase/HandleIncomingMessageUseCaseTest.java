@@ -196,7 +196,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
             assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
             assertThat(request.defaultCurrency()).isEmpty();
-            assertThat(request.userExternalId()).isEqualTo(EXTERNAL_ID);
+            assertThat(request.userId()).isEqualTo(USER_ID);
             assertThat(request.currentDate()).isEqualTo(LocalDate.now(clock));
         }
 
@@ -706,7 +706,9 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            IncomingMessageId reference = capturedExtractionRequest().incomingMessageId();
+            IntentExtractionRequest request = capturedExtractionRequest();
+            IncomingMessageId reference = request.incomingMessageId();
+            assertThat(request.userId()).isEqualTo(differentUserId);
 
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);

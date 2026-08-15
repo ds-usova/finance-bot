@@ -31,7 +31,7 @@ public class SummarizeSpendingUseCase implements SummarizeSpendingPort {
         }
 
         SpendingPeriod period = SpendingPeriod.of(command.from(), command.to());
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long userId = user.id().orElseThrow();
         Instant now = clock.instant();
         spendingQueryRepository.create(SpendingQuery.newQuery(userId, period, command.reference(), now));

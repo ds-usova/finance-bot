@@ -26,7 +26,7 @@ public class BrowseExpensesUseCase implements BrowseExpensesPort {
 
     @Override
     public ExpensePage browse(BrowseExpensesCommand command) {
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long userId = user.id().orElseThrow();
 
         List<ExpenseEntry> entries = expenseRepository.findPage(userId, command.filter());

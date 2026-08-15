@@ -18,6 +18,11 @@ public interface UserRepository {
     Optional<User> findByExternalId(String externalId);
 
     /**
+     * @throws PersistenceFailedException if the lookup fails
+     */
+    Optional<User> findById(long userId);
+
+    /**
      * The caller a use case is acting for, refused where the store holds none. Every use case that acts on
      * somebody's own ledger needs the stored id before it can read or write anything, and an absent row is the
      * same refusal each time — a session outliving its user, or a tool called for somebody who never signed in.
@@ -30,6 +35,18 @@ public interface UserRepository {
         return findByExternalId(externalId)
                 .orElseThrow(
                         () -> new EntityNotFoundException("user", "no user stored under external id " + externalId));
+    }
+
+    /**
+     * The caller a use case is acting for, refused where the store holds none, resolved by internal id rather
+     * than external id.
+     *
+     * @throws EntityNotFoundException if no user is stored under that id
+     * @throws PersistenceFailedException if the lookup fails
+     */
+    default User requireById(long userId) {
+        return findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("user", "no user stored under id " + userId));
     }
 
     /**

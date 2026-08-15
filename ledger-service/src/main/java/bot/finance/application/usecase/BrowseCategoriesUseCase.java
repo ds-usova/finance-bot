@@ -20,7 +20,7 @@ public class BrowseCategoriesUseCase implements BrowseCategoriesPort {
 
     @Override
     public List<CategoryEntry> browse(BrowseCategoriesCommand command) {
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
 
         return categoryRepository.findAllForUser(user.id().orElseThrow(), command.groupingId());
     }

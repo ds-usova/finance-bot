@@ -72,7 +72,7 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
             String externalId = "summarize-spending-happy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
             IncomingMessageId reference = newIncomingMessageId();
-            String token = McpTokens.tokenFor(accessTokenMinter, externalId, reference);
+            String token = McpTokens.tokenFor(accessTokenMinter, userId, reference);
 
             String requestBody = McpRequests.summarizeSpending(FROM, TO);
 
@@ -113,7 +113,7 @@ class SummarizeSpendingMcpToolSystemTest extends AbstractSystemTest {
         void whenLastDayIsBeforeFirst_thenNothingIsRecordedAndPeriodIsRefused() {
             String externalId = "summarize-spending-unhappy-path-user";
             long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
-            String token = McpTokens.tokenFor(accessTokenMinter, externalId);
+            String token = McpTokens.tokenFor(accessTokenMinter, userId);
 
             String requestBody = McpRequests.summarizeSpending(TO, FROM);
 

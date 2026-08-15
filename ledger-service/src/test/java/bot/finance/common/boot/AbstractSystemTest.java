@@ -1,6 +1,5 @@
 package bot.finance.common.boot;
 
-import bot.finance.LedgerServiceApplication;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.WireMockSupport;
@@ -12,27 +11,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@ActiveProfiles("test")
-@Testcontainers(disabledWithoutDocker = true)
-@ImportTestcontainers(PostgresContainers.class)
-@SpringBootTest(classes = LedgerServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@TheWholeApplication
 public abstract class AbstractSystemTest {
 
     protected static final Logger log = LoggerFactory.getLogger(AbstractSystemTest.class);
 
     @LocalServerPort
     protected int port;
+
+    @LocalManagementPort
+    protected int managementPort;
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;

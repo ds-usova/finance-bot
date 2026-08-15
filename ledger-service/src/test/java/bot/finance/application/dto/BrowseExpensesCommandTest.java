@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class BrowseExpensesCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
     private static final ExpenseFilter FILTER = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
     @Nested

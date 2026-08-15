@@ -1,7 +1,7 @@
 # Plan Step Formats
 
 The exact shape of every checklist item in a plan's **Red Phase** and **Green Phase**, and the rule for deciding
-which phase a step belongs to. Written by [`plan-task`](../commands/plan-task.md), consumed by the step agents
+which phase a step belongs to. Written by [`plan-task`](../skills/plan-task/SKILL.md), consumed by the step agents
 a pipeline spawns.
 
 Read this when writing or reviewing a step. The stage order, the ID scheme, the group and section structure, and

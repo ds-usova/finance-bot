@@ -1,0 +1,8 @@
+### Meters — GET /actuator/prometheus
+# Every meter in the Prometheus text format. Answers to anyone reaching the port. What each change-capture meter
+# says, and the ordinals two of them report: ../../contracts/in/operations.md
+
+@host = http://localhost:1010
+
+### Everything the collector scrapes.
+GET {{host}}/actuator/prometheus

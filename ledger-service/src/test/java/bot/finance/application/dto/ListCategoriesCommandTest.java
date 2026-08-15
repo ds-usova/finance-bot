@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ListCategoriesCommandTest {
 
-    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId("555");
+    private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(555L);
     private static final String GROUPING_NAME = "Groceries";
 
     @Nested

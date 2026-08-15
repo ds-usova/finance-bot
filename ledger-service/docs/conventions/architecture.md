@@ -25,6 +25,8 @@ src/main
 │       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── mcp         # the MCP server's tools and their wire types
 │       ├── security    # the filter chain, the token decoder, the minter and the JWKS endpoint
+│       ├── cdc         # the embedded Debezium engine, its recovery operation and its meters
+│       ├── redis       # the change stream writer
 │       ├── web
 │       └── persistence
 └── resources
@@ -32,10 +34,10 @@ src/main
         └── migration   # Flyway migrations
 ```
 
-`model` holds entities, equal by identity. `value` holds value objects, equal by attributes.
+Entities are equal by identity, values by attributes.
 
 Dependencies point inward: `adapter` → `application` → `domain`, never the reverse. `domain` and `application`
-depend on nothing outside the JDK — no Spring, no `jakarta.*`, no external logging API. Hence:
+depend on nothing outside the JDK. Hence:
 
 - use cases are plain classes, declared as beans from the adapter layer;
 - transaction boundaries live in adapters, never in `domain`/`application`;
@@ -43,19 +45,16 @@ depend on nothing outside the JDK — no Spring, no `jakarta.*`, no external log
 
 Bean declaration — Java configuration is for classes that cannot be annotated, everything else is annotated:
 
-- core classes and third-party classes (a library client, e.g. the Telegram Bot API client) get `@Bean` methods;
+- core classes and third-party classes get `@Bean` methods;
 - the module's own adapters are `@Component`s, component-scanned, never listed as `@Bean` methods. Conditional
   registration goes on the class as `@ConditionalOnProperty`.
 
-Configuration placement: adapter-specific config lives in the adapter subpackage it configures — persistence
-config in `adapter/persistence`, web config in `adapter/web`. Use-case wiring is the exception, living in
-`adapter/config`, which holds nothing else.
+Adapter-specific config lives in the adapter subpackage it configures. Use-case wiring is the exception, living
+in `adapter/config`, which holds nothing else.
 
-External services get one adapter subpackage each, holding everything that fronts that system — outbound
-clients *and* any inbound adapter it drives. `adapter/telegram` holds the long-polling listener and, in time,
-the file fetch and notification clients; `adapter/aiconnector` holds the gRPC client, and every generated proto
-type stays inside it; `adapter/transcription` follows. `adapter/web` is for HTTP endpoints this service exposes,
-not for every inbound adapter.
+External services get one adapter subpackage each, holding everything that fronts that system — outbound clients
+*and* any inbound adapter it drives, generated types included. `adapter/web` is for the HTTP endpoints this
+service exposes, and no other inbound adapter.
 
 ## Naming Across the Layer Boundary
 
@@ -67,7 +66,7 @@ So a second messenger, transcriber or data store can be added without touching t
 - **No type in `domain`/`application` carries a transport-shaped field.** `HandleIncomingMessageCommand` identifies
   a conversation with a `String conversationId`; a `long chatId` would be a Telegram fact leaking inward.
 
-The first is enforced below; the second by review. How a command is named is enforced below too.
+The first is enforced below, along with how a command is named. The second by review.
 
 ## File Locations
 
@@ -78,27 +77,31 @@ The first is enforced below; the second by review. How a command is named is enf
 - API schema: repo-root `openapi/ledger-api.yaml`, whose `components/schemas` holds every schema. Paths,
   parameters and responses stay layered under `openapi/paths/` and `openapi/components/`. Generated Java lands in
   `build/generated/sources/openapi/`, never edited or committed.
-- Manual `.http` request files: `ledger-service/docs/requests/`, one file per endpoint — `expenses.http`,
-  `categories.http`, `groupings.http` and `session.http`.
+- Manual `.http` request files: `ledger-service/docs/requests/<tag>/<operation>.http` — one file per endpoint,
+  in a directory per tag the API schema declares, named after the operation. An endpoint outside the schema goes
+  under `management/`.
 
 ## Architecture Enforcement
 
 - Tool: ArchUnit (JUnit 5 integration).
-- Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in
-  [Build](build.md)).
+- Test class: `bot.finance.architecture.CleanArchitectureTest` (run command in [Build](build.md)). It holds the
+  current list behind every rule below; a list repeated here drifts.
 - Rules:
   - the layer-dependency rules;
-  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `com.pengrad..`, `io.grpc..`, `com.google.protobuf..`,
-    `bot.finance.ai..` — the generated gRPC schema's own package — `bot.finance.api..` — the generated OpenAPI
-    schema's own package — and `io.modelcontextprotocol..` banned from `domain`/`application`; each new
-    external-service library joins the list as its adapter lands;
-  - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `Telegram`,
-    `Whisper`, `Postgres`, `AiConnector`, `Grpc`, `Proto`, `Mcp` or `Jwt`; the list grows the same way;
+  - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC
+    and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
+    `bot.finance.api..`. A library joins as its adapter lands;
+  - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
+    system's, such as `Telegram`, `Postgres` or `Mcp`;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`;
   - `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` — no class outside `bot.finance.adapter.security`
-    constructs `AuthenticatedUserId`.
+    constructs `AuthenticatedUserId`;
+  - `onlyThePersistenceAdapterNamesAJdbcType` — no class outside `bot.finance.adapter.persistence` depends on
+    `java.sql..`, `javax.sql..`, `com.zaxxer.hikari..`, `org.springframework.jdbc..` or
+    `org.springframework.data.jdbc..`. Another adapter needing the database takes a collaborator `persistence`
+    owns. Test classes and `bot.finance.common` are excluded, since a test drives the database directly.
 
 ## Diagram Format
 

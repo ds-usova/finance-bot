@@ -12,7 +12,7 @@ public record IntentExtractionRequest(
         List<String> categoryGroupings,
         String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
-        String userExternalId,
+        long userId,
         IncomingMessageId incomingMessageId,
         LocalDate currentDate) {
 
@@ -36,8 +36,8 @@ public record IntentExtractionRequest(
             throw new InvalidExtractionRequestException(
                     "Default currency must not be null; use Optional.empty() when absent");
         }
-        if (userExternalId == null || userExternalId.isBlank()) {
-            throw new InvalidExtractionRequestException("User external id must not be null or blank");
+        if (userId <= 0) {
+            throw new InvalidExtractionRequestException("User id must be positive");
         }
         if (incomingMessageId == null) {
             throw new InvalidExtractionRequestException("Incoming message id must not be null");

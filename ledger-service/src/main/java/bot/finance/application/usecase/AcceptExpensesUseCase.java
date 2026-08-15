@@ -43,7 +43,7 @@ public class AcceptExpensesUseCase implements AcceptExpensesPort {
             throw new InvalidExpenseAcceptanceException("accept-expenses command is absent");
         }
 
-        User user = userRepository.requireByExternalId(command.userId().externalId());
+        User user = userRepository.requireById(command.userId().userId());
         long userId = user.id().orElseThrow();
 
         List<IncomingMessageId> movedMessages =

@@ -1,13 +1,12 @@
 package bot.finance.system;
 
-import static bot.finance.common.stubs.TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS_TOKEN;
-import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueries;
-import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkups;
+import static bot.finance.common.stubs.TelegramTestBot.recordedAnswerCallbackQueriesFor;
+import static bot.finance.common.stubs.TelegramTestBot.recordedEditMessageReplyMarkupsFor;
 import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsAnswerCallbackQuery;
 import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageReplyMarkup;
+import static bot.finance.common.stubs.WireMockStubs.telegramDeliversOnce;
 import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
-import static bot.finance.common.stubs.WireMockStubs.telegramReturnsOnFirstPoll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -17,6 +16,7 @@ import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.common.stubs.TelegramTestBot;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.util.List;
@@ -27,22 +27,20 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 /**
- * The bot token below is what isolates this class: a differing property defeats Spring's context cache, so the
- * class gets its own context, a poll loop starting at offset 0, and a {@code /bot<token>/getUpdates} path no
- * other class's poller reaches.
+ * Covers a tap whose reference names no stored proposal or expense: nothing is resolved, and the buttons come
+ * off anyway.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
 class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
-    private static final int UPDATE_ID = 42;
-    private static final long FROM_ID = 777L;
-    private static final long CHAT_ID = 555L;
-    private static final String FROM_ID_STRING = String.valueOf(FROM_ID);
-    private static final String NEXT_OFFSET = String.valueOf(UPDATE_ID + 1);
-    private static final String CALLBACK_QUERY_ID = "callback-query-id";
+    private static final String TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
+
+    private static final TelegramTestBot.TelegramScenario SCENARIO = TelegramTestBot.RESOLVE_UNKNOWN_PROPOSALS;
+
+    private static final String FROM_ID_STRING = SCENARIO.userExternalId();
+    private static final String NEXT_OFFSET = SCENARIO.nextOffset();
+    private static final String CALLBACK_QUERY_ID = SCENARIO.callbackQueryId();
     private static final String EXPECTED_ANSWER_TEXT = "There is nothing left to resolve.";
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -66,13 +64,18 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
     void stubTelegram() {
         userId = UserRowUtils.storedUserId(userEntityRepository, FROM_ID_STRING);
 
-        telegramReturnsNoUpdates(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
-        telegramAcceptsAnswerCallbackQuery(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
-        telegramAcceptsEditMessageReplyMarkup(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
-        telegramReturnsOnFirstPoll(
-                RESOLVE_UNKNOWN_PROPOSALS_TOKEN,
+        telegramReturnsNoUpdates(TOKEN);
+        telegramAcceptsAnswerCallbackQuery(TOKEN);
+        telegramAcceptsEditMessageReplyMarkup(TOKEN);
+        telegramDeliversOnce(
+                TOKEN,
                 TelegramFixtures.updatesResponse(TelegramFixtures.callbackQueryUpdate(
-                        UPDATE_ID, FROM_ID, CHAT_ID, TelegramFixtures.MESSAGE_ID, "discard:" + unknownReference)));
+                        SCENARIO.updateId(),
+                        CALLBACK_QUERY_ID,
+                        SCENARIO.userId(),
+                        SCENARIO.chatId(),
+                        TelegramFixtures.MESSAGE_ID,
+                        "discard:" + unknownReference)));
     }
 
     @Nested
@@ -86,10 +89,9 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
             // then: the tap is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(TIMEOUT)
-                    .untilAsserted(
-                            () -> assertThat(recordedPollsWithOffset(RESOLVE_UNKNOWN_PROPOSALS_TOKEN, NEXT_OFFSET))
-                                    .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
-                                    .isNotEmpty());
+                    .untilAsserted(() -> assertThat(recordedPollsWithOffset(TOKEN, NEXT_OFFSET))
+                            .as("follow-up getUpdates polls carrying offset=%s", NEXT_OFFSET)
+                            .isNotEmpty());
 
             // then: a reference naming nothing of this user's records nothing
             List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
@@ -97,10 +99,10 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
             // then: the tap is still answered, saying there was nothing to resolve
             await("one answerCallbackQuery is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedAnswerCallbackQueries(RESOLVE_UNKNOWN_PROPOSALS_TOKEN))
-                    .as("answerCallbackQuery requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
+                            recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO))
+                    .as("answerCallbackQuery requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> answers = recordedAnswerCallbackQueries(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
+            List<LoggedRequest> answers = recordedAnswerCallbackQueriesFor(TOKEN, SCENARIO);
             assertThat(answers).as("exactly one answerCallbackQuery recorded").hasSize(1);
             LoggedRequest answer = answers.get(0);
             assertThat(answer.formParameter("callback_query_id").getValues())
@@ -112,15 +114,15 @@ class ResolveUnknownProposalsSystemTest extends AbstractSystemTest {
 
             // then: the buttons come off anyway, which is what repairs a report whose earlier edit was lost
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            recordedEditMessageReplyMarkups(RESOLVE_UNKNOWN_PROPOSALS_TOKEN))
-                    .as("editMessageReplyMarkup requests recorded for token %s", RESOLVE_UNKNOWN_PROPOSALS_TOKEN)
+                            recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO))
+                    .as("editMessageReplyMarkup requests recorded for token %s", TOKEN)
                     .isNotEmpty());
-            List<LoggedRequest> edits = recordedEditMessageReplyMarkups(RESOLVE_UNKNOWN_PROPOSALS_TOKEN);
+            List<LoggedRequest> edits = recordedEditMessageReplyMarkupsFor(TOKEN, SCENARIO);
             assertThat(edits).as("exactly one editMessageReplyMarkup recorded").hasSize(1);
             LoggedRequest edit = edits.get(0);
             assertThat(edit.formParameter("chat_id").getValues())
                     .as("editMessageReplyMarkup chat_id form param")
-                    .containsExactly(String.valueOf(CHAT_ID));
+                    .containsExactly(SCENARIO.conversationId());
             assertThat(edit.formParameter("message_id").getValues())
                     .as("editMessageReplyMarkup message_id form param")
                     .containsExactly(String.valueOf(TelegramFixtures.MESSAGE_ID));

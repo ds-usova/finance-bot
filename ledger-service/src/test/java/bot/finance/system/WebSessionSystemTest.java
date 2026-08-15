@@ -8,28 +8,35 @@ import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
+import bot.finance.common.fixtures.SessionTokens;
 import bot.finance.common.fixtures.TelegramLoginPayloads;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import com.nimbusds.jwt.SignedJWT;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 /**
  * Covers the browser session end to end against the fully wired application, and the boundary between it and the
  * MCP endpoint: the two token kinds are signed by one key pair, so nothing but the audience and the way each is
  * carried keeps them apart.
  */
-@TestPropertySource(properties = "telegram.bot.token=" + TelegramTestBot.WEB_SESSION_TOKEN)
 class WebSessionSystemTest extends AbstractSystemTest {
 
-    private static final String BOT_TOKEN = TelegramTestBot.WEB_SESSION_TOKEN;
+    private static final String BOT_TOKEN = TelegramTestBot.PROFILE_DEFAULT_TOKEN;
     private static final String SESSION_COOKIE = BrowserSessions.COOKIE_NAME;
     private static final String CSRF_COOKIE = BrowserSessions.CSRF_COOKIE;
     private static final String CSRF_HEADER = BrowserSessions.CSRF_HEADER;
@@ -39,6 +46,9 @@ class WebSessionSystemTest extends AbstractSystemTest {
 
     @Autowired
     private UserEntityRepository userEntityRepository;
+
+    @Autowired
+    private JdbcAggregateTemplate jdbcAggregateTemplate;
 
     @BeforeEach
     void configureRestAssured() {
@@ -70,9 +80,16 @@ class WebSessionSystemTest extends AbstractSystemTest {
             Response response = signIn(externalId);
 
             response.then().statusCode(200);
-            assertThat(response.getCookie(SESSION_COOKIE)).isNotBlank();
+            String sessionCookie = response.getCookie(SESSION_COOKIE);
+            assertThat(sessionCookie).isNotBlank();
             assertThat(response.jsonPath().getString("externalId")).isEqualTo(externalId);
-            assertThat(userEntityRepository.findByExternalId(externalId)).isPresent();
+            long storedUserId = userEntityRepository
+                    .findByExternalId(externalId)
+                    .orElseThrow()
+                    .id();
+
+            // then: the cookie's token names the stored row's id, not an invented identifier
+            assertThat(subjectOf(sessionCookie)).isEqualTo(String.valueOf(storedUserId));
         }
 
         @Test
@@ -165,6 +182,99 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .isZero();
             assertThat(signOut.getCookie(SESSION_COOKIE)).isBlank();
         }
+
+        @Test
+        @DisplayName("when a signed-in person browses and refiles - then each acts on their own ledger under "
+                + "their user_id")
+        void whenASignedInPersonBrowsesAndRefiles_thenEachActsOnTheirOwnLedgerUnderTheirUserId() {
+            String externalId = "web-session-browse-refile-user";
+            Response signInResponse = signIn(externalId);
+            signInResponse.then().statusCode(200);
+            String sessionCookie = signInResponse.getCookie(SESSION_COOKIE);
+            long userId = userEntityRepository
+                    .findByExternalId(externalId)
+                    .orElseThrow()
+                    .id();
+
+            // then: the session's subject is that same user_id
+            assertThat(subjectOf(sessionCookie)).isEqualTo(String.valueOf(userId));
+
+            long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Refiling");
+            long firstCategoryId =
+                    CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, "Refiled From");
+            long secondCategoryId =
+                    CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, "Refiled To");
+            long expenseId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            firstCategoryId,
+                            "groceries",
+                            "Market",
+                            1500L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            Instant.now())
+                    .id();
+
+            // when: they browse
+            Response browseResponse = RestAssured.given()
+                    .cookie(SESSION_COOKIE, sessionCookie)
+                    .when()
+                    .get("/api/v1/expenses");
+            logResponse(browseResponse);
+
+            // then: the browse acts on their own ledger
+            browseResponse.then().statusCode(200);
+            assertThat(browseResponse.jsonPath().getList("items.description", String.class))
+                    .as("the browse lists only this person's own expense")
+                    .containsExactly("groceries");
+
+            // when: they refile it
+            String csrfToken = freshCsrfToken();
+            Response refileResponse = RestAssured.given()
+                    .contentType("application/json-patch+json")
+                    .cookie(SESSION_COOKIE, sessionCookie)
+                    .cookie(CSRF_COOKIE, csrfToken)
+                    .header(CSRF_HEADER, csrfToken)
+                    .body(List.of(Map.of("op", "replace", "path", "/categoryId", "value", secondCategoryId)))
+                    .when()
+                    .patch("/api/v1/expenses/RECORDED/" + expenseId);
+            logResponse(refileResponse);
+
+            // then: the refile acts on their own ledger
+            refileResponse.then().statusCode(200);
+            assertThat(refileResponse.jsonPath().getLong("categoryId"))
+                    .as("the refile's new category")
+                    .isEqualTo(secondCategoryId);
+        }
+
+        @Test
+        @DisplayName("when a pre-change session token names no stored user - then 404 and signing in again works")
+        void whenAPreChangeSessionTokenNamesNoStoredUser_then404AndSigningInAgainWorks() {
+            String legacySubjectToken = SessionTokens.tokenFor(918_273_645L);
+
+            Response response = RestAssured.given()
+                    .cookie(SESSION_COOKIE, legacySubjectToken)
+                    .when()
+                    .get("/api/v1/session");
+            logResponse(response);
+
+            // then: it is refused as an unknown caller
+            response.then().statusCode(404);
+            assertThat(response.jsonPath().getString("message"))
+                    .as("the refusal names the caller, not the token")
+                    .isEqualTo("the caller is unknown");
+
+            // then: signing in again issues a usable session
+            String externalId = "web-session-legacy-subject-user";
+            String freshSessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
+            Response readAfterSignIn = RestAssured.given()
+                    .cookie(SESSION_COOKIE, freshSessionCookie)
+                    .when()
+                    .get("/api/v1/session");
+            logResponse(readAfterSignIn);
+            readAfterSignIn.then().statusCode(200);
+        }
     }
 
     @Nested
@@ -192,8 +302,8 @@ class WebSessionSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when an MCP token is presented as the session cookie - then it is refused")
         void whenAnMcpTokenIsPresentedAsTheSessionCookie_thenItIsRefused() {
-            String externalId = "web-session-mcp-token-as-cookie-user";
-            String mcpToken = McpTokens.tokenFor(accessTokenMinter, externalId);
+            long userId = 900001L;
+            String mcpToken = McpTokens.tokenFor(accessTokenMinter, userId);
 
             Response response =
                     RestAssured.given().cookie(SESSION_COOKIE, mcpToken).when().get("/api/v1/session");
@@ -205,8 +315,8 @@ class WebSessionSystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when a valid MCP token is posted to the MCP endpoint - then it still succeeds")
         void whenAValidMcpTokenIsPostedToTheMcpEndpoint_thenItStillSucceeds() {
-            String externalId = "web-session-mcp-still-works-user";
-            String mcpToken = McpTokens.tokenFor(accessTokenMinter, externalId);
+            long userId = 900002L;
+            String mcpToken = McpTokens.tokenFor(accessTokenMinter, userId);
 
             Response response = RestAssured.given()
                     .contentType(ContentType.JSON)
@@ -231,5 +341,13 @@ class WebSessionSystemTest extends AbstractSystemTest {
 
     private Response postSignIn(Map<String, String> payload) {
         return BrowserSessions.postSignIn(payload);
+    }
+
+    private String subjectOf(String token) {
+        try {
+            return SignedJWT.parse(token).getJWTClaimsSet().getSubject();
+        } catch (ParseException e) {
+            throw new IllegalStateException("failed to parse session token", e);
+        }
     }
 }

@@ -71,6 +71,31 @@ class UserRepositoryAdapterTest {
     }
 
     @Nested
+    @DisplayName("finding a user by its id")
+    class FindById {
+
+        @Test
+        @DisplayName("when a user row is stored under the id - then returns that user with its id and external id")
+        void whenUserRowStoredUnderTheId_thenReturnsThatUserWithItsIdAndExternalId() {
+            UserEntity stored = userEntityRepository.save(new UserEntity(null, "existing-id-external-id"));
+
+            Optional<User> found = adapter.findById(stored.id());
+
+            assertThat(found).isPresent();
+            assertThat(found.get().id()).contains(stored.id());
+            assertThat(found.get().externalId()).isEqualTo("existing-id-external-id");
+        }
+
+        @Test
+        @DisplayName("when nothing is stored under the id - then returns an empty result")
+        void whenNothingStoredUnderTheId_thenReturnsEmptyResult() {
+            Optional<User> found = adapter.findById(-1L);
+
+            assertThat(found).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("creating a user")
     class Create {
 
@@ -243,6 +268,19 @@ class UserRepositoryAdapterTest {
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.findByExternalId("unreachable-external-id"))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when the database is unreachable - then findById() throws PersistenceFailedException wrapping it")
+        void whenDatabaseIsUnreachable_thenFindByIdThrowsPersistenceFailedExceptionWrappingIt() {
+            DataAccessResourceFailureException frameworkException =
+                    new DataAccessResourceFailureException("connection refused");
+            when(mockedUserEntityRepository.findById(42L)).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findById(42L))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

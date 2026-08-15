@@ -13,13 +13,32 @@ bot.finance
 ├── system          # system tests — one class per end-to-end flow
 └── common          # shared test infrastructure
     ├── boot                  # what a test starts, and how
+    │   ├── TheWholeApplication   # role — every bean, a random port, the containerized database
+    │   ├── TheDatabaseSlice      # role — Spring Data JDBC against the real database, transaction rolled back
+    │   ├── OnTheContainerizedDatabase # role — the Postgres singleton, skipped when Docker is down
+    │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
+    │   ├── TheSecurityChain      # role — the real filter chains, their signing keys and the secret filter
     │   ├── AbstractSystemTest    # full-application base class
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
-    │   └── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
+    │   ├── CaptureAdapterConfiguration # the capture adapter's beans, a meter registry and a Redis template
+    │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
+    │   ├── CdcAdapterTestOnItsOwnDatabase # the same, for a class declaring its own Postgres container
+    │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired
+    │                             #   in, on the application's own slot and stream key
+    │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
+    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the four whose bean
+    │                             #   graph only proves itself at runtime
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
+    │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
+    │   ├── PostgresContainers    # JVM-wide singleton, the containerized Postgres
+    │   ├── RedisContainers       # JVM-wide singleton, the containerized Redis, its URL, and started Lettuce
+    │   │                         #   factories — one at the singleton, one at a closed port — with a template
+    │   ├── ToxiproxyContainers   # fronts RedisContainers on the same network, for the outage-and-recovery capture test
+    │   ├── WireMockSupport       # JVM-wide singleton, the WireMock stub server
+    │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
@@ -29,6 +48,10 @@ bot.finance
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
+    │   ├── CdcConfigurations     # CdcProperties for a test building a capture component itself, by slot or by stream
+    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by source.table and user_id
+    │   ├── ChangeStreamHealth    # reads the engine's state off /actuator/health on the management port
+    │   ├── ExpensePatches        # the JSON Patch bodies a browser sends to /api/v1/expenses
     │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
@@ -39,12 +62,20 @@ bot.finance
     │   └── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
-    │   └── TelegramTestBot       # Telegram client wiring, bot tokens, poll verification, Bot API method recording
-    └── LogCapture            # Logback appender, for asserting on log output
+    │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
+    │                             #   verification, and Bot API method recording
+    ├── LogCapture            # Logback appender, for asserting on log output
+    └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
 ```
 
-A new helper joins the subpackage its role names, and is listed above. `LogCapture` sits at the root because it
-belongs to none of them — a bucket of one is worth less than the honesty of leaving it where it is.
+The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus
+the one thing that distinguishes it. An annotation naming an explicit bean list — `AiConnectorAdapterTest`,
+`McpAdapterTest`, `WebAdapterTest` — composes the roles it can and names the rest, rather than restating what a
+role already holds.
+
+A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
+the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper
+where its role is honest.
 
 ## Test Layers
 
@@ -53,13 +84,21 @@ belongs to none of them — a bucket of one is worth less than the honesty of le
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context.
 - **Integration, outbound** — `adapter/persistence/` and future outbound HTTP adapters, one subpackage per
   external system. Wire only the adapter under test and call its public methods directly against real test
-  infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`.
+  infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`; the change-capture
+  adapter uses `@CdcAdapterTest`, which is the same slice plus the capture beans, a Redis template and no
+  rolled-back transaction — an uncommitted row never reaches the write-ahead log the engine reads.
 - **Integration, inbound** — `adapter/web/` through `@WebMvcTest` with the inbound-port beans mocked. Owns
   validation, binding, delegation and error-to-response mapping; never business logic or real infrastructure.
 
   An inbound adapter whose protocol is not HTTP has no slice, so it is entered through its own protocol:
   `adapter/telegram/TelegramUpdateListener` is driven by a real Telegram client polling WireMock, with the
   inbound port mocked.
+
+  An inbound adapter reached over HTTP that no framework slice covers — an MCP tool, an actuator `@Endpoint` —
+  is booted from an explicit bean list with autoconfiguration on, over a random port, with the collaborator
+  behind it mocked. `McpAdapterTest` and `CdcRecoveryEndpointTest` are the two. Autoconfiguration supplies beans
+  a bean list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
+  repository was enough.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
 - **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`
@@ -72,14 +111,14 @@ belongs to none of them — a bucket of one is worth less than the honesty of le
 
 - JUnit 5, AssertJ, Mockito, WireMock, Awaitility. API-level client: **RestAssured** (with `json-path`) against
   the booted application's random port.
-- `containers/` (`PostgresContainers`, `WireMockSupport`, `Network`, `GrpcStubServer`) — JVM-wide singletons for
-  the containerized Postgres, the WireMock stub server, and a real in-JVM gRPC server on a dynamic port
-  fronting the AI connector's contract. Tests never manage their lifecycle. `@Testcontainers(disabledWithoutDocker
-  = true)` applies to the container-backed singletons only, directly or via `AbstractSystemTest`, so the suite
-  skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such annotation.
-- `AbstractSystemTest` — the full-application base class, wiring the containerized database via
-  `@ImportTestcontainers(PostgresContainers.class)` and `@ServiceConnection`; subclasses declare nothing.
-  System tests extend it; outbound-adapter and slice tests do not.
+- `containers/` — JVM-wide singletons, listed in the tree above. Tests never manage their lifecycle.
+  `@Testcontainers(disabledWithoutDocker = true)` reaches most classes through `OnTheContainerizedDatabase` or
+  `CdcAdapterTestOnItsOwnDatabase`, and a class starting a container of its own carries it directly, so the
+  suite skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such
+  annotation.
+- `AbstractSystemTest` — the full-application base class, reaching the containerized database through
+  `TheWholeApplication`; subclasses declare nothing. System tests extend it; outbound-adapter and slice tests do
+  not.
 - `PersistenceAdapterTest` — boots the `@DataJdbcTest` slice against the containerized Postgres, never the full
   context. The test class adds `@Import(<AdapterUnderTest>.class)` and calls the adapter directly. Each test
   runs in a rolled-back transaction; use `@Commit` plus explicit cleanup only when committed state matters.
@@ -111,11 +150,26 @@ belongs to none of them — a bucket of one is worth less than the honesty of le
 The Telegram listener's poll loop starts with the application context and runs continuously, so a system test
 stubs the Bot API and waits for the outcome rather than calling the inbound port.
 
-Each such system test class declares its own bot token via
-`@TestPropertySource(properties = "telegram.bot.token=…")`. A differing property gives the class its own entry
-in Spring's context cache — a fresh loop from a clean offset — and, since the token forms part of the request
-path, a stub path no other class can reach. Consequence: **one triggered scenario per class**, since a second
-would inherit the first's advanced state. Give each new class a token constant in `TelegramTestBot`.
+Every such class runs on the one shared context, so it runs against **one poll loop and one stub path**, and
+what separates two scenarios is the data each carries: a `TelegramScenario` in `TelegramTestBot` naming its
+update id, its Telegram user, its conversation and its callback query. Give a new scenario its own entry there,
+and read its outcome back through the scenario-scoped accessors rather than the token-wide ones — a turn still
+running when the next test starts otherwise lands in that test's journal.
+
+**A batch is delivered by `WireMockStubs.telegramDeliversOnce`**, whose scenario state is what makes it exactly
+once. Never match on an absent `offset` form param: pengrad omits it only until it has confirmed a batch, so a
+stub keyed on it needs a poll loop that has confirmed nothing, and that is a booted application per class.
+
+### Sharing the capture engine
+
+Every `@CdcCaptureTest` class runs on the application's own `cdc.slot-name` and `cdc.stream-key`, so they share
+one context, one engine and one slot. Postgres allows a slot one active consumer, so a class overriding either
+property founds a second engine rather than joining the first.
+
+What separates two classes' entries on the shared stream is the user each creates: read them back through
+`ChangeStreamEntries.entriesOnFor(key, table, userId)`, never off the whole stream. A class booting a database
+of its own is the exception, since its `user_id` values repeat ids another class already published under — it
+names a stream key of its own and reads that stream whole.
 
 ## Naming Conventions
 

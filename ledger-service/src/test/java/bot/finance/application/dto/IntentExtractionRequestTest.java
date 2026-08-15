@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class IntentExtractionRequestTest {
 
@@ -31,7 +32,7 @@ class IntentExtractionRequestTest {
                 List.of("groceries", "transport"),
                 "transport",
                 Optional.empty(),
-                "user-external-id",
+                1L,
                 newIncomingMessageId(),
                 CURRENT_DATE);
     }
@@ -48,7 +49,7 @@ class IntentExtractionRequestTest {
                     List.of("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
@@ -58,7 +59,7 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when text, two groupings, an empty currency and an external id are valid - then every "
+        @DisplayName("when text, two groupings, an empty currency and a userId are valid - then every "
                 + "component reads back unchanged")
         void whenEveryComponentIsValid_thenEveryComponentReadsBackUnchanged() {
             IntentExtractionRequest request = requestWithTwoGroupings();
@@ -67,7 +68,7 @@ class IntentExtractionRequestTest {
             assertThat(request.categoryGroupings()).containsExactly("groceries", "transport");
             assertThat(request.catchAllGrouping()).isEqualTo("transport");
             assertThat(request.defaultCurrency()).isEmpty();
-            assertThat(request.userExternalId()).isEqualTo("user-external-id");
+            assertThat(request.userId()).isEqualTo(1L);
         }
 
         @Test
@@ -88,7 +89,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -108,7 +109,7 @@ class IntentExtractionRequestTest {
                             categoryGroupings,
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -129,7 +130,7 @@ class IntentExtractionRequestTest {
                             categoryGroupings,
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -149,7 +150,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries"),
                             catchAllGrouping,
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -168,7 +169,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries", "transport"),
                             "utilities",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -182,7 +183,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries"),
                             "groceries",
                             null,
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -196,30 +197,26 @@ class IntentExtractionRequestTest {
                     List.of("groceries"),
                     "groceries",
                     Optional.empty(),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
             assertThat(request.defaultCurrency()).isEmpty();
         }
 
-        @ParameterizedTest(name = "userExternalId={0}")
-        @MethodSource("nullOrBlankUserExternalId")
-        @DisplayName("when userExternalId is null or blank - then throws InvalidExtractionRequestException")
-        void whenUserExternalIdIsNullOrBlank_thenThrowsInvalidExtractionRequestException(String userExternalId) {
+        @ParameterizedTest(name = "userId={0}")
+        @ValueSource(longs = {0L, -1L})
+        @DisplayName("when userId is zero or negative - then throws InvalidExtractionRequestException")
+        void whenUserIdIsZeroOrNegative_thenThrowsInvalidExtractionRequestException(long userId) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
                             "lunch 12 euro",
                             List.of("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            userExternalId,
+                            userId,
                             newIncomingMessageId(),
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
-        }
-
-        static Stream<Arguments> nullOrBlankUserExternalId() {
-            return Stream.of(arguments((Object) null), arguments("   "));
         }
 
         @Test
@@ -233,7 +230,7 @@ class IntentExtractionRequestTest {
                     mutableGroupings,
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
             mutableGroupings.add("transport");
@@ -251,7 +248,7 @@ class IntentExtractionRequestTest {
                     List.of("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id",
+                    1L,
                     incomingMessageId,
                     CURRENT_DATE);
 
@@ -266,7 +263,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             null,
                             CURRENT_DATE))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -280,7 +277,7 @@ class IntentExtractionRequestTest {
                             List.of("groceries"),
                             "groceries",
                             Optional.of(CurrencyCode.of("EUR")),
-                            "user-external-id",
+                            1L,
                             newIncomingMessageId(),
                             null))
                     .isInstanceOf(InvalidExtractionRequestException.class);
@@ -295,7 +292,7 @@ class IntentExtractionRequestTest {
                     List.of("groceries"),
                     "groceries",
                     Optional.of(CurrencyCode.of("EUR")),
-                    "user-external-id",
+                    1L,
                     newIncomingMessageId(),
                     CURRENT_DATE);
 
