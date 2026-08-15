@@ -10,7 +10,8 @@ file states what they are trying to achieve, so a session picking them up does n
 A skill states what it needs to know — the build command, the test-type mapping, the diagram language, the models, the
 commit policy. It never states the answer. Every answer lives in the repository's own conventions, at the
 repository tier or the module tier, and is written by `init-conventions` from what the repository already does.
-Where those files sit is the repository's business, and no skill assumes it.
+The one location a skill assumes is the index `init-conventions` writes: `docs/conventions.md` at the root and
+`<module>/docs/conventions.md` per module. What each index links to, and where, is the repository's business.
 
 That is what makes `skills/`, `agents/`, `scripts/` and `templates/` liftable into another repository as a
 plugin. A fact about *this* project inside a skill is the defect this split exists to prevent.

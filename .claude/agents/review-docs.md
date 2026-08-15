@@ -12,8 +12,10 @@ It does not shorten prose. That is the `tighten` skill's job, and it runs after 
 
 ## 1. Read the Rules First
 
-- `docs/conventions/documentation.md` — the repository's own writing rules.
-- `<module>/docs/conventions/documentation.md`, where the module has one. It wins where the two differ.
+- The repository-wide conventions index, `docs/conventions.md`, and whatever it links on how documents are
+  written — the repository's own writing rules.
+- The module's index, `<module>/docs/conventions.md`, and its page on the same, where the module has one. It
+  wins where the two differ.
 
 The rules below are how to apply those. Where the repository states something different, the repository wins.
 
