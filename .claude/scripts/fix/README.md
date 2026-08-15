@@ -73,31 +73,37 @@ value on its own line.
 
 ### What `validate` checks
 
-| Check                                                              | Catches                                                                 |
-|--------------------------------------------------------------------|-------------------------------------------------------------------------|
-| Duplicate IDs, a step with no ID                                   | a step nothing can address                                              |
-| A kind the format does not define                                  | a typo that silently exempts the step from every rule                   |
-| An ID whose prefix contradicts its kind                            | a `red` step numbered `G02`, which every report then misreads           |
-| A labelled line the kind does not take                             | `test-files:` on a `green` step, which is the one thing it may not edit |
-| A labelled line the kind owes and does not carry                   | a `red` step with no `reproduces:`, a failure nobody named              |
-| A `stabilize` step naming neither `files:` nor `test-files:`       | a step that stabilizes nothing                                          |
-| A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                                       |
-| A `files:` or `test-files:` with no bullet under it                | a boundary that names nothing                                           |
-| `needs:` or `fixes:` naming a step nothing defines                 | a green step paired with a reproduction that was dropped                |
-| `disables:` naming no step at all                                  | a test turned off with nothing owing its return                         |
-| `fixes:` naming no step at all                                     | a green step whose pairing was never written                            |
-| A `fixes:` naming itself, or naming a step that is not a `red` one | a pairing that proves nothing                                           |
-| A `red` step no `green` step fixes                                 | a reproduction that would be committed and left failing                 |
-| A duplicate attempt number                                         | two entries the log cannot tell apart                                   |
-| An attempt outside an `## Attempts` section                        | a log written where nothing reads it                                    |
-| A step inside an `## Attempts` section                             | pasted output whose own fence closed the evidence block early           |
-| An attempt missing `why:`, `result:`, `evidence:` or `ruled-out:`  | a failure recorded without what it settles                              |
-| An `evidence:` with no fenced block directly under it              | an attempt whose output nobody kept                                     |
-| An attempt filed under neither `diagnosis` nor a defined step      | a log entry attached to a step that was renumbered                      |
-| A fenced block that never closes                                   | pasted output whose own fence swallowed the rest of the file            |
-| An Open Question whose `- A:` is empty                             | a run about to start on a decision nobody made                          |
+| Check                                                                        | Catches                                                                 |
+|------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Duplicate IDs, a step with no ID                                             | a step nothing can address                                              |
+| A kind the format does not define                                            | a typo that silently exempts the step from every rule                   |
+| An ID whose prefix contradicts its kind                                      | a `red` step numbered `G02`, which every report then misreads           |
+| A labelled line the kind does not take                                       | `test-files:` on a `green` step, which is the one thing it may not edit |
+| A labelled line the kind owes and does not carry                             | a `red` step with no `reproduces:`, a failure nobody named              |
+| A `stabilize` step naming neither `files:` nor `test-files:`                 | a step that stabilizes nothing                                          |
+| A value left empty, `TBD`, `—`, or still in `<angle brackets>`             | a step agent given no instruction                                       |
+| A `files:` or `test-files:` with no bullet under it                          | a boundary that names nothing                                           |
+| A `files:`, `test-files:` or `evidence:` carrying its value beside the label | a boundary a reader has to scan for commas                              |
+| The same labelled line written twice on one step                             | a half-finished edit, where the second silently wins                    |
+| `needs:` or `fixes:` naming a step nothing defines                           | a green step paired with a reproduction that was dropped                |
+| `disables:` naming no step at all                                            | a test turned off with nothing owing its return                         |
+| `fixes:` naming no step at all                                               | a green step whose pairing was never written                            |
+| A `fixes:` naming itself, or naming a step that is not a `red` one           | a pairing that proves nothing                                           |
+| A `red` step no `green` step fixes                                           | a reproduction that would be committed and left failing                 |
+| A duplicate attempt number                                                   | two entries the log cannot tell apart                                   |
+| An attempt outside an `## Attempts` section                                  | a log written where nothing reads it                                    |
+| A step inside an `## Attempts` section                                       | pasted output whose own fence closed the evidence block early           |
+| An attempt missing `why:`, `result:`, `evidence:` or `ruled-out:`            | a failure recorded without what it settles                              |
+| An `evidence:` with no fenced block directly under it                        | an attempt whose output nobody kept                                     |
+| An attempt filed under neither `diagnosis` nor a defined step                | a log entry attached to a step that was renumbered                      |
+| A fenced block that never closes                                             | pasted output whose own fence swallowed the rest of the file            |
+| An Open Question whose `- A:` is empty                                       | a run about to start on a decision nobody made                          |
 
 A clean file prints its step and attempt counts, so "no problems" and "not a fix file" never look the same.
+
+**`status`, `show` and `tick` refuse a file whose fenced block never closed**, since everything below it went
+unread and half a file answers as confidently as a whole one. `validate` reports it and carries on, because
+reporting is what `validate` is for.
 
 **A duplicate ID's own block is not judged.** The second `R01` is reported and its lines are skipped. A file
 carrying a duplicate ID or an unrecognized kind is also spared the pairing check. Fix those and run again.

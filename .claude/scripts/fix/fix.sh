@@ -107,6 +107,12 @@ parse() {
     awk -v mode="$1" -f "$parser" "$fix_file"
 }
 
+# A truncated read must not answer as a whole one. Only validate reports it and carries on, since
+# reporting it is the whole of what validate does.
+assert_read_whole() {
+    parse fence || die "$fix_file was read as far as an unclosed fenced block - nothing below it counted" 1
+}
+
 # A checklist is not a fix, and the kinds do not tell them apart: a rework's steps have kinds of
 # their own and one of them is also called "stabilize". Only the name does, which is why the format
 # fixes it. This guards the write path - ticking somebody else's checklist rewrites their file.
@@ -192,9 +198,12 @@ cmd_tick() {
         lines="${lines:+$lines,}$start"
     done
 
+    # Anchored to the checkbox at the head of the line. An unanchored substitution rewrites the first
+    # "[ ]" anywhere on it, which on an already-ticked step is somewhere in its prose - a silent edit
+    # to a step's text that nothing else would ever report.
     rewrite_file awk -v targets="$lines" '
         BEGIN { n = split(targets, t, ","); for (i = 1; i <= n; i++) mark[t[i]] = 1 }
-        NR in mark { sub(/\[ \]/, "[x]") }
+        NR in mark { sub(/^-[ \t]+\[ \]/, "- [x]") }
         { print }
     ' "$fix_file" || die "could not write $fix_file"
 
@@ -380,8 +389,8 @@ args=(${rest[@]+"${rest[@]}"})
 locate_fix
 
 case "$command" in
-    status)   cmd_status ;;
-    show)     warn_unless_fix; cmd_show "${args[@]}" ;;
-    tick)     cmd_tick "${args[@]}" ;;
+    status)   assert_read_whole; cmd_status ;;
+    show)     warn_unless_fix; assert_read_whole; cmd_show "${args[@]}" ;;
+    tick)     assert_read_whole; cmd_tick "${args[@]}" ;;
     validate) warn_unless_fix; parse validate ;;
 esac

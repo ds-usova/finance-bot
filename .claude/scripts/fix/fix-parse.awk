@@ -24,7 +24,7 @@ function trim(s) {
 function is_placeholder(v) {
     return v == "" || v == "-" || v == "--" || v == "\xe2\x80\x94" || v == "\xe2\x80\x93" \
         || v == "..." || v == "\xe2\x80\xa6" || v == "TBD" || v == "tbd" || v == "TODO" \
-        || v == "todo" || v == "N/A" || v == "n/a" || v ~ /^</
+        || v == "todo" || v == "N/A" || v == "n/a" || v ~ /^<[^>]*>$/
 }
 
 function problem(text) {
@@ -56,12 +56,13 @@ function scan_refs(who, label, text, line,   rest, id, before, after, found) {
     # stabilize step is cleared by a module's red step, and that module's red step needs the shared
     # one. Both are legitimate, and neither file holds the other's IDs. "fixes:" never crosses, so a
     # file named there is the mistake rather than the reason to stop looking.
-    # A file is named only where a step in it is, so the reference is the ID beside it - and a value
-    # merely mentioning a path names no step at all.
-    if (text ~ /\.md[^ ]* *\xc2\xb7/ && label != "fixes") {
-        return 1
-    }
+    # Only the cross-file part of the value is exempt. A value naming a step in another file and one
+    # in this file still owes the local one, and a value merely mentioning a path names no step.
     found = 0
+    if (label != "fixes" && text ~ /\.md[^ ]* *\xc2\xb7/) {
+        found = 1
+        gsub(/[^ ,;]*\.md[^ ]* *\xc2\xb7 *[A-Za-z]+[0-9]+/, "", text)
+    }
     rest = text
     while (match(rest, /[SRG][0-9]+/)) {
         id = substr(rest, RSTART, RLENGTH)
@@ -198,8 +199,9 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
 
 /^#/ {
     close_step()
-    in_questions = ($0 ~ /^#+[ \t]+Open Questions/)
-    in_attempts  = ($0 ~ /^#+[ \t]+Attempts/)
+    # Forgiving about the plural: a heading typo would otherwise turn a whole check off in silence.
+    in_questions = ($0 ~ /^#+[ \t]+[Oo]pen [Qq]uestions?/)
+    in_attempts  = ($0 ~ /^#+[ \t]+[Aa]ttempts?/)
     next
 }
 
@@ -333,13 +335,23 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
         index(" " allowed " ", " " step_kind[cur] " ") == 0) {
         problem(FILENAME ":" NR ": " cur " is " a(step_kind[cur]) " step and cannot carry \"" name ":\"")
     }
+    empty_label = 0
     if (is_placeholder(value)) {
+        empty_label = 1
         if (value == "" && (name in below)) {
             awaiting = cur "\t" name
             awaiting_line = NR
         } else {
             problem(FILENAME ":" NR ": " cur "'s \"" name ":\" is empty or still a placeholder")
         }
+    } else if (name in below) {
+        # The value belongs under the label, one path per bullet. A run of paths beside it is read by
+        # scanning for commas, and a boundary has to be readable at a glance.
+        problem(FILENAME ":" NR ": " cur "'s \"" name ":\" carries its value on the label line" \
+                " - one path per bullet under it")
+    }
+    if ((cur "\t" name) in seen) {
+        problem(FILENAME ":" NR ": " cur " carries \"" name ":\" twice")
     }
     seen[cur "\t" name] = 1
 
@@ -348,13 +360,13 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
     }
     # A "fixes:" that names no step at all is the pairing missing, not prose: the label exists only
     # to name one.
-    if (name == "fixes" && !scan_refs(cur, name, value, NR)) {
+    if (name == "fixes" && !scan_refs(cur, name, value, NR) && !empty_label) {
         problem(FILENAME ":" NR ": " cur "'s \"fixes:\" names no step")
     }
     # "disables:" carries a test name and the step that clears it. The whole value is scanned rather
     # than a phrase after a fixed wording, since the format states no wording - and a test class
     # whose name starts like a step ID is not a reference, which the scan's own boundaries settle.
-    if (name == "disables" && !scan_refs(cur, name, value, NR)) {
+    if (name == "disables" && !scan_refs(cur, name, value, NR) && !empty_label) {
         problem(FILENAME ":" NR ": " cur " disables a test and names no step that clears it")
     }
     next
@@ -371,6 +383,11 @@ awaiting != "" && /^[ \t]+-[ \t]+[^ \t]/ {
 
 cur != "" && /^[ \t]+[^ \t]/ { end_line[cur] = NR; next }
 
+# An unindented line that is none of the above is the document's again, and everything after it
+# belongs to nobody. Without this a note written between the last step and the next heading is handed
+# to a step agent as part of its step.
+cur != "" && /^[^ \t]/ { close_step() }
+
 # - **Q1:** … / - A:
 in_questions && /^[ \t]*-[ \t]+\*\*Q[0-9]+/ {
     if (open_question != "") {
@@ -382,7 +399,7 @@ in_questions && /^[ \t]*-[ \t]+\*\*Q[0-9]+/ {
     question_line = NR
     next
 }
-in_questions && /^[ \t]+-[ \t]+A:/ {
+in_questions && /^[ \t]*-[ \t]+\**A\**:/ {
     if (trim(substr($0, index($0, ":") + 1)) != "") {
         open_question = ""
     }
@@ -473,6 +490,12 @@ END {
             problem(FILENAME ":" attempt_phase_line[aid] ": " aid " is filed under " attempt_phase[aid] \
                     ", which is neither \"diagnosis\" nor a step this file defines")
         }
+    }
+
+    # Every command asks this before trusting a read: a file whose fence never closed was parsed as
+    # half of itself, and half a file answers status, show and tick as confidently as a whole one.
+    if (mode == "fence") {
+        exit (fenced ? 1 : 0)
     }
 
     if (mode == "list") {
