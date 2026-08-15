@@ -1,6 +1,6 @@
 # ADR 0009: The connector does not authenticate its caller
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 0017](../../ai-connector-service/docs/adr/0017-the-connector-verifies-its-caller-token-and-keeps-the-message-it-names.md)
 - **Date:** 2026-08-02
 - **Source:** [The Ledger's Tools on the Chat Client](../implemented/10-ledger-tools-on-the-chat-client/plan.md)
 

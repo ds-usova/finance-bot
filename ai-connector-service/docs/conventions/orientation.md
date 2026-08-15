@@ -7,13 +7,13 @@ Where things are and what the module is built from.
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
 `src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
 
-| What                         | This module                                                                 |
-|------------------------------|-----------------------------------------------------------------------------|
-| Language / framework         | Java 25, Spring Boot                                                        |
-| Database, messaging, caching | none of any: the service holds no state                                     |
-| Exposed interface            | gRPC only, on a Netty transport                                             |
-| Services consumed            | an OpenAI-compatible chat-completions API, through Spring AI's `ChatClient` |
-| Contract-first codegen       | the `.proto` schema is the contract                                         |
+| What                         | This module                                                                                          |
+|------------------------------|------------------------------------------------------------------------------------------------------|
+| Language / framework         | Java 25, Spring Boot                                                                                 |
+| Database, messaging, caching | Postgres, one table of the messages the service is handed                                            |
+| Exposed interface            | gRPC only, on a Netty transport                                                                      |
+| Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient`, and the ledger's key set |
+| Contract-first codegen       | the `.proto` schema is the contract                                                                  |
 
 Two things the table cannot carry:
 

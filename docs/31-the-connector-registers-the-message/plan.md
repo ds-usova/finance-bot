@@ -560,16 +560,16 @@ a step id — `CommentConventionsTest` fails the run on one.
 These are the pages `archive-knowledge` does not write; the use-case page, the new `contracts/out/` page for the
 database and the key-set read on the ledger's page are its output and are not listed here.
 
-- [ ] P01 · Correct [Orientation](../../ai-connector-service/docs/conventions/orientation.md): the stack row
+- [x] P01 · Correct [Orientation](../../ai-connector-service/docs/conventions/orientation.md): the stack row
   "none of any: the service holds no state" names Postgres, and the consumed services gain the ledger's key set.
-- [ ] P02 · Correct [`README.md`](../../ai-connector-service/README.md): "It holds no state" is no longer true.
-- [ ] P03 · Correct [Architecture](../../ai-connector-service/docs/conventions/architecture.md): the adapter
+- [x] P02 · Correct [`README.md`](../../ai-connector-service/README.md): "It holds no state" is no longer true.
+- [x] P03 · Correct [Architecture](../../ai-connector-service/docs/conventions/architecture.md): the adapter
   subpackages gain `persistence`, `security` and `scheduling` (a timer that fires an inbound port, fronting no
   external system — beside `config` and `logging`), the banned-import list gains the packages ST10 added, and
   the name list gains its three. State that `memory.*` binds in `adapter/scheduling` and is read from
   `adapter/config` to build the purge use case, and that `memory.enabled` gates `persistence`, `security` and
   `scheduling` alike.
-- [ ] P04 · Correct [Testing](../../ai-connector-service/docs/conventions/testing.md): **Test Layers** maps
+- [x] P04 · Correct [Testing](../../ai-connector-service/docs/conventions/testing.md): **Test Layers** maps
   `adapter/persistence/` to the outbound integration type via `@PersistenceAdapterTest` and `adapter/security/`
   via `@SecurityAdapterTest`, and `adapter/scheduling/` to the system type alone, its one class carrying no
   logic (Q3); **Package Structure** lists
@@ -577,15 +577,15 @@ database and the key-set read on the ledger's page are its output and are not li
   `WireMockUrlConfiguration`, `LedgerJwksStubs`, `CallerTokens` and the new `rows/IncomingMessageRowUtils`.
   Correct [Build](../../ai-connector-service/docs/conventions/build.md): **Test Isolation** now names the
   containerized database beside the stub server, and that a run without Docker skips those classes.
-- [ ] P05 · Correct [Configuration](../../ai-connector-service/docs/configuration.md): the design's variable table,
+- [x] P05 · Correct [Configuration](../../ai-connector-service/docs/configuration.md): the design's variable table,
   and a note that `MEMORY_ENABLED=false` runs the service with no database and the token forwarded unread.
-- [ ] P06 · Correct [the ledger's Configuration](../../ledger-service/docs/configuration.md): its database is
+- [x] P06 · Correct [the ledger's Configuration](../../ledger-service/docs/configuration.md): its database is
   `finance_ledger` under its own role on the shared instance, created by the compose init script on a fresh volume,
   and an initialized developer volume is wiped (F8, F15).
 
 #### ADRs
 
-- [ ] P07 · Write ADR: the connector verifies the caller token against the ledger's published key set and reads the
+- [x] P07 · Write ADR: the connector verifies the caller token against the ledger's published key set and reads the
   person and the message it names; it keeps a store of its own for what it is handed; and that store never fails a
   turn. It supersedes ADR 0009, whose `Status:` flips with it (Q2).
 

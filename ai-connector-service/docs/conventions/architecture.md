@@ -22,7 +22,10 @@ src/main
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── grpc        # gRPC service implementation, proto mapping, status mapping
 │       ├── ai          # everything fronting the AI provider
-│       └── ledger      # everything fronting the ledger's MCP tools
+│       ├── ledger      # everything fronting the ledger's MCP tools
+│       ├── persistence # everything fronting the connector's own database
+│       ├── security    # the caller token, read against the ledger's published key set
+│       └── scheduling  # the timer the purge runs on, and the memory's settings
 └── resources
     └── prompts         # prompt templates
 ```
@@ -49,11 +52,15 @@ Bean declaration — Java configuration is for classes that cannot be annotated,
   `@ConditionalOnProperty`.
 
 Configuration placement: adapter-specific config lives in the adapter subpackage it configures. Use-case wiring
-is the exception, living in `adapter/config`, which holds nothing else.
+is the exception, living in `adapter/config`, which holds nothing else. `memory.*` binds in
+`adapter/scheduling`, and `adapter/config` reads it from there to build the purge use case. `memory.enabled`
+gates `adapter/persistence`, `adapter/security` and `adapter/scheduling` alike: with it off, none of the three
+registers a bean.
 
 External services get one adapter subpackage each, holding everything that fronts that system —
 `adapter/ai` for the AI provider. `adapter/grpc` is named for its transport instead, being the module's own
-front door rather than a client of anything.
+front door rather than a client of anything. `adapter/scheduling` fronts no external system either: it holds a
+timer that fires an inbound port, the way `adapter/config` and `adapter/logging` front nothing outside.
 
 ## Naming Across the Layer Boundary
 
@@ -82,10 +89,12 @@ The first is enforced below; the second by review.
   [Build](build.md)).
 - Rules:
   - the layer-dependency rules;
-  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..` and `com.google.protobuf..` banned from
+  - `org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..`, `com.google.protobuf..`,
+    `io.modelcontextprotocol..`, `org.springframework.data..`, `org.springframework.jdbc..`,
+    `org.springframework.security..`, `com.nimbusds..` and `org.flywaydb..` banned from
     `domain`/`application`; each new external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `OpenAi`,
-    `Grpc` or `Proto`; the list grows the same way;
+    `Grpc`, `Proto`, `Mcp`, `Jdbc`, `Jwt` or `Jwks`; the list grows the same way;
   - `adaptersReachUseCasesThroughPorts` — no class in `adapter..` may depend on `application.usecase..`,
     `adapter/config..` exempt. The layer rule permits `adapter` → `application` wholesale, so without this an
     inbound adapter can inject a use-case class instead of its port and still compile;

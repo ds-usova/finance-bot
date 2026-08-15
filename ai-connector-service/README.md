@@ -4,7 +4,9 @@ The [Finance Bot](../README.md) system's boundary with the AI provider. It takes
 and puts it to a language model with the Ledger Service's tools attached, so the model records each expense the
 message names — one recording call per expense, as the caller whose token arrived with the request.
 
-It holds no state: a call carries its own text, its own set of category groupings, and its own credential.
+A call carries its own text, its own set of category groupings, and its own credential. What the service keeps of
+it is the message itself, stored under the person and the message the caller's token names, for as long as
+`MEMORY_MAX_AGE` allows.
 
 For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture); C3 is below.
 Package structure is in the

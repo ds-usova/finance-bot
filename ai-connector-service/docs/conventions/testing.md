@@ -14,25 +14,37 @@ bot.finance.ai
 └── common          # shared test infrastructure
     ├── boot                   # what a test starts, and how
     │   ├── AbstractSystemTest     # full-application base class
+    │   ├── AbstractMemorySystemTest # the same with the memory on, against the containerized database
     │   ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
-    │   └── AiAdapterTest          # composed annotation — outbound-adapter tests
-    ├── containers             # stub-server lifecycle
-    │   └── WireMockSupport        # JVM-wide stub-server singleton
+    │   ├── AiAdapterTest          # composed annotation — outbound-adapter tests
+    │   ├── PersistenceAdapterTest # composed annotation — the persistence slice on the containerized database
+    │   ├── SecurityAdapterTest    # composed annotation — the token reader on the stubbed key-set endpoint
+    │   ├── WireMockUrlConfiguration # points the provider and the ledger at the stub server's runtime port
+    │   └── InProcessGrpcTransportConfiguration # the in-process gRPC transport, one server name per context
+    ├── containers             # stub-server and database lifecycle
+    │   ├── WireMockSupport        # JVM-wide stub-server singleton
+    │   └── PostgresContainers     # JVM-wide Postgres container singleton, on the pgvector image
     ├── fixtures               # payloads a test sends, and the loader for the ones kept on disk
     │   ├── JsonUtils              # loads JSON fixtures from src/test/resources
     │   ├── ChatCompletionFixtures # provider response bodies
+    │   ├── CallerTokens           # the test signing key, its key set, and the caller tokens it mints
     │   └── RequestFixtures        # valid ExtractIntentsRequest builders
+    ├── rows                   # what a test writes into and reads back from a table directly
+    │   └── IncomingMessageRowUtils # rows of incoming_message, by identity and by received_at
     ├── stubs                  # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs          # stub registration, one static method per endpoint
     │   ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
+    │   ├── LedgerJwksStubs        # stubs the ledger's key-set endpoint, served, unreachable or slow
     │   ├── AuthorizedStubs        # attaches an authorization header to a generated stub
     │   └── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
-    └── LogCapture             # Logback appender, for asserting on log output
+    ├── LogCapture             # Logback appender, for asserting on log output
+    └── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
 ```
 
-A new helper joins the subpackage its role names, and is listed above. `LogCapture` sits at the root because it
-belongs to none of them — a bucket of one is worth less than the honesty of leaving it where it is. The same five
-names carry the same meanings in `ledger-service`, so a helper is looked for in the same place in either module.
+A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `MockedLoggerUtils` sit
+at the root because they belong to none of them — a bucket of two is worth less than the honesty of leaving them
+where they are. The same names carry the same meanings in `ledger-service`, so a helper is looked for in the same
+place in either module.
 
 ## Test Layers
 
@@ -43,10 +55,15 @@ names carry the same meanings in `ledger-service`, so a helper is looked for in 
   doing something non-trivial — branching logic with no infrastructure of its own, like
   `LedgerToolFailureProcessor` or `CallerTokenMcpRequestCustomizer`; a class whose behaviour is trivial is left
   to its adapter's integration test instead.
-- **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`. Wire only the adapter under test, call its
-  public methods directly, mock nothing. Owns the request Spring AI sends, the tool calls it makes against a
-  stubbed ledger, and how a stubbed response, a tool refusal, a transport failure and a malformed body map onto
-  the port's result or exception.
+- **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/persistence/` via
+  `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`. Wire only the adapter under test,
+  call its public methods directly, and mock nothing the container or the stub server can stand in for.
+  `adapter/ai/` owns the request Spring AI sends, the tool calls it makes against a stubbed ledger, and how a
+  stubbed response, a tool refusal, a transport failure and a malformed body map onto the port's result or
+  exception. `adapter/persistence/` runs against the containerized database and owns what a statement writes,
+  what it leaves untouched, and how a store failure becomes the port's exception. `adapter/security/` runs
+  against the stubbed key-set endpoint and owns which caller tokens are read, which are refused, and what an
+  unreachable or slow key set answers.
 - **Integration, inbound** — `adapter/grpc/` via `@GrpcAdapterTest`, entered through a generated blocking stub
   with the inbound port mocked. Owns request binding, delegation, proto mapping, and the RPC's validation
   matrix and status-code contract.
@@ -55,6 +72,8 @@ names carry the same meanings in `ledger-service`, so a helper is looked for in 
   production behaviour: an in-process run replaces the server factory, so it proves nothing about the service
   binding its port or serving a real channel. One happy path and one representative error path per RPC;
   several scenarios may share a class. Actuator's HTTP surface is covered the same way, through its own port.
+  `adapter/scheduling/` is covered here and nowhere else: its one class carries no logic of its own, so what is
+  worth proving is that the timer fires and the purge happens.
 
 ## Test Tooling
 
@@ -67,8 +86,11 @@ names carry the same meanings in `ledger-service`, so a helper is looked for in 
 - Building a stub is `AbstractSystemTest`'s and `@GrpcAdapterTest`'s job, never a test class's. A test that
   hand-builds a channel picks a transport by accident, which is exactly the distinction these two exist to
   hold apart.
-- `@GrpcAdapterTest` — `@SpringBootTest` + `@AutoConfigureTestGrpcTransport` + the test profile. Isolation
-  comes from `@MockitoBean` on the inbound port, not from a framework slice.
+- `@GrpcAdapterTest` — `@SpringBootTest` + `InProcessGrpcTransportConfiguration` + the test profile. Isolation
+  comes from `@MockitoBean` on the inbound port, not from a framework slice. The transport is imported rather
+  than autoconfigured because Boot's test transport holds one in-process server name for the whole JVM, so a
+  second context configuration — a nested group carrying its own mocked bean — cannot start while the first
+  context is cached. `InProcessGrpcTransportConfiguration` gives each context a server name of its own.
 - `@AiAdapterTest` — boots the adapter under test, its `ChatClient` configuration, the `adapter/ledger` MCP
   classes and Spring AI's OpenAI, MCP-client, transport and tool-callback autoconfigurations, with both
   `base-url` and the ledger connection's `url` on the stub server. A real client over a stubbed transport is what
