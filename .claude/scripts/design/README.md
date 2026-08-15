@@ -70,6 +70,7 @@ defined by the `design-task` skill this ships with; a worked example is at
 |--------------------------------------------------------------------------|----------------------------------------------------------|
 | The `**Affected Modules:**` line, and every required section, in order   | a design missing the context the plan reads it for       |
 | Duplicate `D` IDs, an entry outside the Decisions section                | a decision nothing can address                           |
+| A Design Findings row numbered below the row above it                    | a row inserted at the wrong line — the table reads in ascending order |
 | A missing or repeated `Answer:` / `Basis:`                               | an entry no gate can classify                            |
 | A basis that is not one of the four, or one with nothing after it        | an assumption with no evidence — a `must-decide` in disguise |
 | A `must-decide` carrying an answer, or any other basis carrying none     | an entry whose two halves disagree                       |
@@ -78,6 +79,10 @@ defined by the `design-task` skill this ships with; a worked example is at
 
 A `must-decide` entry is **not** a problem here: a design in flight is expected to have them, and that is exactly
 what `settled` is for. `validate` asks whether the file is well-formed; `settled` asks whether it is finished.
+
+A clean run prints the design's size — `####` sections under **Proposed Solution**, scenarios, decisions,
+findings. The counts are a mirror, not a gate: a design carrying more than one subject is split into one task per
+subject (`design-task`, **One Subject per Task**), and the counts are what show the moment to do it.
 
 Placeholder values — empty, `-`, `—`, `TBD`, `N/A` — count as unfilled, the same set `plan.sh` rejects in a
 `given:`/`when:`/`then:`.

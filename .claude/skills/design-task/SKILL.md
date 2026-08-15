@@ -8,7 +8,7 @@ argument-hint: [ description of the feature or task to design ]
 Settle **what** the change does and **what it does when things go wrong**. Record every judgment call it makes as
 an answered decision.
 
-This skill produces one file and stops. It writes no checklist items, no test scenarios, and no step IDs.
+This skill produces one file per task and stops. It writes no checklist items, no test scenarios, and no step IDs.
 
 **It works one level above the code.** What the change adds at the module's edges — what calls it, what it calls,
 what it stores — and how it behaves at each of them. Package structure, layering and classes are the plan's, and
@@ -26,6 +26,22 @@ there. The directory carries the number and the task name; the files do not repe
 
 > **Archiving rule:** active work lives in `docs/`, completed work in `docs/implemented/`. A design is never
 > archived here: this skill leaves the directory in `docs/`.
+
+### One Subject per Task
+
+A request that adds more than one subject — a new store *and* a new consumer *and* a new prompt — is one task per
+subject, each with its own directory and design, numbered in dependency order. Every task is then one grill, one
+plan and one delivery. The first design names the sequence in its **Objective**; a later one cites an earlier
+one's `D` and `F` by task number, the way it cites an implemented design's, and lists it in **Context**.
+
+Split **before** writing, not after the grill: a design that reaches a second `####` section on a subject its
+**Objective** did not name has already crossed the line. The measure is subjects, not lines — a plan grows with
+the former, and a design that is mostly diagrams may run long. `design.sh validate` prints the counts so the size
+is in front of the session on every run.
+
+The seam between two tasks is a stored table, a flag, or a message shape the earlier one ships. Where the split
+leaves nothing user-visible until the last task lands, every task ships behind the same flag, and the design says
+so.
 
 ## 2. Read Module Conventions
 
@@ -318,7 +334,9 @@ Read the file's **Decisions** section back after the grill has run and act on it
   fresh context and does not know what this session has already read. An entry the code answers stops being an
   entry: it becomes a **Design Findings** row with its evidence, and the user never sees it.
 - **Ask the rest in a single round**, via `AskUserQuestion` — every remaining `must-decide` in one batch, each with
-  the options that are actually defensible and a recommendation first.
+  the options that are actually defensible and a recommendation first. One question is one entry. Where there are
+  more entries than the tool takes in one call, the rest go in a second call in the same turn — never two entries
+  folded into one question, since one answer would then settle two calls.
 - **Write the answers back into the file** as `Basis: decided — [choice] (user, <date>)` with `Answer:` filled in.
   The chat answer is not the record; the file is. Anything the user's answer invalidates elsewhere in the file — a
   sequence diagram branch, a paragraph of the solution — is corrected in the same edit.

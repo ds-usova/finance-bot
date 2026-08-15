@@ -51,6 +51,13 @@ inventing a finding to fill a row is the failure mode this list creates. Ask eac
 and every scenario has a branch. A branch with no scenario is behaviour nobody agreed to; a scenario with no
 branch is a flow the diagram is missing. Both are findings, and both are usually cheaper than a new decision.
 
+**And over the diagram's shape.** A flow diagram whose branches are a chain of mutually exclusive conditions, each
+ending in one action and an exit, or whose branching nests deeper than two levels, is a table of condition and
+result rather than a picture — the repository's diagram conventions already say so, and a design that draws one
+anyway has spent a screen on what five rows say. Report it as "this is a table", naming the branches that are
+one-guard-one-write, and the one branch, if any, whose shape — a loop, arms that rejoin, an order dependency —
+carries meaning and stays drawn.
+
 ## 3. Answer It Yourself First
 
 For every question the interrogation raises, attempt the answer against the repository before writing it down as a
