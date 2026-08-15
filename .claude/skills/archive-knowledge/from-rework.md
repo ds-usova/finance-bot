@@ -5,8 +5,9 @@ skill itself.
 
 ## The Input
 
-**The rework file** — the path given, else the one applied in this conversation. Read it whole. Three things
-carry the run: **What the code does now**, the step list with each step's kind, and every `docs:` line.
+**The rework file** — the path given, else the one applied in this conversation. Read it whole, and every
+`<module>/steps.md` and `shared/steps.md` beside it. Three things carry the run: **What the code does now**, the
+step list with each step's kind, and every `docs:` line.
 
 **The diff is the `**Baseline:**` commit in its header, against the tree as archived.**
 
@@ -31,14 +32,13 @@ writes a page for every domain type in the service.
 
 Which steps normally owe what:
 
-| Step kind   | What it normally moves                                                          |
+| Step kind   | What it normally moves                                                            |
 |-------------|-----------------------------------------------------------------------------------|
-| `behaviour` | a use-case Outcome, a contract, a domain invariant — the pages a reader relies on |
-| `extract`   | structure only, so usually a diagram in a README rather than a page's content    |
+| `extract`   | structure only, so usually a diagram in a README rather than a page's content     |
 | `pin`       | a conventions page, where the check now enforces what the page described in prose |
-| `stabilize` | nothing on its own; whatever the step that cleared it changed                    |
-| `inline`    | nothing                                                                          |
-| `tests`     | nothing, unless a conventions page described the shape it restructured           |
+| `stabilize` | nothing on its own; whatever the step that cleared it changed                     |
+| `inline`    | nothing, unless it relocated a file a README's diagram places                     |
+| `tests`     | nothing, unless a conventions page described the shape it restructured            |
 
 **A `docs:` line is a claim to check, not an instruction to obey.** The step named the page before the edit
 existed, so read the page against the code and write what is true now.

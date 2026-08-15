@@ -31,12 +31,15 @@ Five skills carry one change from "someone asked for it" to "implemented and doc
 `tighten` and `teachme` sit outside it too — one shortens a file without changing what it says, the other
 teaches a subject a decision depends on.
 
-`rework` is a shorter line beside it, for code that already exists. Nothing new is being designed, so the suite
-that is already green is the safety net, and every guardrail it has exists to keep that green honest.
+`rework` is a shorter line beside it, for code that already exists and keeps doing what it does. Nothing about
+behaviour is being decided, so the suite that is already green is the safety net, and every guardrail it has
+exists to keep that green honest.
 
 **It is one skill, not a pipeline, because it has one reader.** The chain above splits by audience: a person
-approves what the change does, a model executes how it is built. A rework decides nothing a person approves
-that a model does not also execute, so a handoff between the two would carry an empty file.
+approves what the change does, a model executes how it is built. A rework changes no behaviour, so there is
+nothing for a person to approve beyond the shape, and a handoff between design and plan would carry an empty
+file. It parallelizes the way `fix-bug` does: one `rework-module` agent per module's steps file, after any
+shared `stabilize` steps have landed alone.
 
 `fix-bug` is the third line, for behaviour the repository already promises and does not deliver. It has three
 kinds of step and no others: `stabilize` moves whatever has to exist first, `red` is one test that reproduces

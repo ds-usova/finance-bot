@@ -5,7 +5,7 @@ marking a step done, and whether the file's grammar holds.
 
 ## Why it exists
 
-A rework's step format is decided by its kind. Six kinds, and each owes some labelled lines and may not carry
+A rework's step format is decided by its kind. Five kinds, and each owes some labelled lines and may not carry
 others: an `extract` owes `frozen:` and `cover:`, a `tests` step owes `survives:` and may not name a production
 file at all. Every one of those mistakes is silent — a stray `frozen:` on a `tests` step does nothing, and a
 missing `proves:` turns a `pin` into a claim nobody checked.
@@ -13,8 +13,8 @@ missing `proves:` turns a `pin` into a claim nobody checked.
 The second reason is addressing. A step handed to a sub-agent has to arrive as the file wrote it, not as a
 prompt remembered it. `show` is what makes that possible.
 
-There is no scheduling command. A rework declares no order, and `needs:` states a fact rather than a sequence,
-so there is nothing for a `next` to compute.
+There is no scheduling command. Steps run in ID order, and `needs:` only says which earlier work a run depends
+on, so there is nothing for a `next` to compute.
 
 ## Where it lives
 
@@ -47,8 +47,8 @@ Run it with bash, from anywhere inside the project:
 Exit codes: **0** done, **1** no such step or `validate` found problems, **2** bad usage.
 
 `--file <rework>` names the file, and is accepted on every subcommand. Without one, the single `rework.md` in
-flight under `docs/` is used. An archived one under `docs/implemented/` has to be named explicitly, and so does
-one of two reworks in flight at once.
+flight under `docs/` is used. A multi-module rework's `<module>/steps.md`, an archived rework under
+`docs/implemented/`, and one of two reworks in flight at once all have to be named explicitly.
 
 ### Step IDs
 
@@ -66,6 +66,7 @@ label line is empty by design. Every other label keeps its value on its own line
 | A kind the format does not define                                | a typo that silently exempts the step from every rule  |
 | A labelled line the kind does not take                           | `frozen:` on a `tests` step, which does nothing        |
 | A labelled line the kind owes and does not carry                 | a `pin` with no `proves:` — a claim nobody checked     |
+| A `pin` naming neither `files:` nor `test-files:`                | a check or setting that edits nothing                  |
 | A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                      |
 | A `files:` or `test-files:` with no bullet under it              | a boundary that names nothing                          |
 | A `survives:` with nothing after the middot                      | a scenario that never said what it was proven against  |

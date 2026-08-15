@@ -64,29 +64,27 @@ BEGIN {
     lists_below["test-files"] = 1
 
     # Every labelled line a step may carry, and the kinds that take it. "*" means any kind.
-    takes["files"]      = "inline extract behaviour pin stabilize"
+    takes["files"]      = "inline extract pin stabilize"
     takes["test-files"] = "*"
-    takes["runs"]       = "inline behaviour"
+    takes["runs"]       = "inline"
     takes["frozen"]     = "extract"
     takes["cover"]      = "extract"
     takes["survives"]   = "tests"
     takes["measures"]   = "tests"
     takes["proves"]     = "pin"
     takes["disables"]   = "stabilize"
-    takes["now"]        = "behaviour"
-    takes["then"]       = "behaviour"
     takes["needs"]      = "*"
     takes["docs"]       = "*"
 
-    # What each kind cannot be written without.
+    # What each kind cannot be written without. A pin edits a check or a setting, so it owes one of
+    # "files:"/"test-files:" rather than either in particular; that pair is checked in END.
     requires["inline"]    = "files runs"
     requires["extract"]   = "files test-files frozen cover"
-    requires["behaviour"] = "files test-files runs now then"
     requires["tests"]     = "test-files survives"
-    requires["pin"]       = "test-files proves"
+    requires["pin"]       = "proves"
     requires["stabilize"] = "files"
 
-    kinds = " inline extract behaviour tests pin stabilize "
+    kinds = " inline extract tests pin stabilize "
 }
 
 # A fenced block holds the format's own example. Counting its bullets as steps would give every
@@ -234,6 +232,9 @@ END {
             if (!((id "\t" need[j]) in seen)) {
                 problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step and owes \"" need[j] ":\"")
             }
+        }
+        if (k == "pin" && !((id "\tfiles") in seen) && !((id "\ttest-files") in seen)) {
+            problem(FILENAME ":" start_line[id] ": " id " is a pin step and owes \"files:\" or \"test-files:\"")
         }
     }
 

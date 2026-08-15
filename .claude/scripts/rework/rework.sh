@@ -37,8 +37,8 @@ Commands:
             the kind owes and does not carry, a placeholder value, a "survives:" naming no tier,
             "needs:"/"disables:" pointing at a step nothing defines, and an unanswered Open Question.
 
---file defaults to the single rework.md in flight under docs/. An archived one under
-docs/implemented/ is addressed by passing --file explicitly.
+--file defaults to the single rework.md in flight under docs/. A <module>/steps.md, and an
+archived rework under docs/implemented/, are addressed by passing --file explicitly.
 
 Exit codes: 0 done - 1 nothing matched or validate found problems - 2 bad usage.
 EOF
@@ -199,7 +199,7 @@ locate_rework
 
 case "$command" in
     status)   cmd_status ;;
-    show)     cmd_show "${args[@]:-}" ;;
-    tick)     cmd_tick "${args[@]:-}" ;;
+    show)     cmd_show ${args[@]+"${args[@]}"} ;;
+    tick)     cmd_tick ${args[@]+"${args[@]}"} ;;
     validate) parse validate ;;
 esac
