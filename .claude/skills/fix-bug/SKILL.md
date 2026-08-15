@@ -62,9 +62,14 @@ were rather than stopping on them.
   time".** One run cannot tell the two branches below apart, and which branch this is governs every gate that
   follows.
 - **There is nothing to run yet**, because the symptom is only visible through a test nobody has written.
-  **Write that test now, as a probe**, under the probe rules in Phase 1, which say what becomes of it.
-  **This is not the `red` step arriving early**: nothing is committed, and the fix is still approved before a
-  source file is kept.
+  **Write that test now**, take its failure as the reproduction, and revert it before the baseline suite runs.
+  Phase 3 writes it again as the `red` step, from the file rather than from memory. **This is not the `red` step
+  arriving early**: nothing is committed, and the fix is still approved before a source file is kept.
+
+  **Which kind of test it is, is a decision worth a sentence in the diagnosis.** A module's conventions map its
+  parts to test types, and the same symptom can often be reproduced at more than one of them — cheaply, close to
+  the wrong code, or expensively, close to what the user saw. **Take the cheapest type that fails for the bug's
+  own reason.** Where only the expensive one fails for that reason, take it and say why the cheap one does not.
 - **It fails sometimes**: this is an intermittent bug, and [`an-intermittent-bug.md`](an-intermittent-bug.md)
   governs its rate and every run count after it.
 - **It does not reproduce here, and could**: stop and say so, with what was run and what happened instead. Ask
@@ -108,34 +113,25 @@ module agents running concurrently, "nothing relevant moved" is not something an
 Work out why the bug happens, then write the fix down: one `bug.md`, and one `fix.md` per module, with every
 step it will take. Nothing is applied here.
 
-### Making the Bug Observable
+### Proving a Link
 
-**A probe is allowed here, and it is the one thing that may touch a source file before the user approves
-anything.** A log line, a counter, a breakpoint condition, a query run by hand, a seam that lets a test see what
-a class is doing.
+**A chain of causes cannot always be read out of the source, and a probe is how a link is proved.** A log line,
+a counter, a breakpoint condition, a query run by hand, a seam that lets a test see what a class is doing. It is
+the one thing that may touch a source file before the user approves anything.
 
-- **Every probe's edits are reverted before Phase 2 presents anything**, and before the baseline suite runs.
-  The files are written while probes may still be in the tree; what the user is shown is a tree nothing has
-  been written to.
+- **Every probe's edits are reverted before the files are presented**, and before any suite is measured.
 - **A probe that failed is an attempt**, filed under `diagnosis`.
 - **A probe that worked is not lost.** Where the fix needs it again — the seam a `red` step will drive, the
   metric that will prove the symptom is gone — it becomes a `stabilize` step, and the diagnosis says which one.
   Where the fix does not need it, the `## Why it happens` link it established says how it was established.
-- **A test written to make the bug fail is a probe like any other**, and it is the commonest one: a symptom no
-  existing test can see is observed by writing the test that sees it. Its output is the reproduction, it is
-  reverted with the rest, and Phase 3 writes it again as the `red` step.
 
-**Which kind of test that is, is a decision worth a sentence in the diagnosis.** A module's conventions map its
-parts to test types, and the same symptom can often be reproduced at more than one of them — cheaply, close to
-the wrong code, or expensively, close to what the user saw. **Take the cheapest type that fails for the bug's
-own reason.** Where only the expensive one fails for that reason, take it and say why the cheap one does not.
+**A probe is never left in the tree and never committed.** This holds for every source file touched before the
+user approves anything, the test Phase 0 wrote to reproduce the bug included.
 
-**A probe is never left in the tree and never committed.**
-
-**Reverting a file does not revert what the probe did.** An applied migration, a consumed offset, a burned log,
-a written row: where the effect outlives the edit, say so in the diagnosis and in the attempt, name what was
-left changed, and put the machine back by hand where that is possible. A probe whose effect cannot be undone is
-one to ask about before running, not to explain afterwards.
+**Reverting a file does not revert what it did.** An applied migration, a consumed offset, a burned log, a
+written row: where the effect outlives the edit, say so in the diagnosis and in the attempt, name what was left
+changed, and put the machine back by hand where that is possible. An effect that cannot be undone is one to ask
+about before running, not to explain afterwards.
 
 **A run stopped during Phase 1 leaves probes and no directory**, so nothing can resume it. Write `bug.md` as
 soon as the symptom and the reproduction are known, before the diagnosis is finished, and the attempts have
