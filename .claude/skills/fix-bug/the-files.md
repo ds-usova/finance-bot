@@ -72,8 +72,8 @@ Phase 2 has something to ask.
 
 ## Steps
 
-| #   | What changes | What proves it |
-|-----|--------------|----------------|
+| #   | Kind | What changes | Touches |
+|-----|------|--------------|---------|
 
 <the checklist — see step-format.md>
 
@@ -82,8 +82,10 @@ Phase 2 has something to ask.
 <see attempts.md — this module's failed approaches>
 ```
 
-**The table is the whole fix to anyone not applying it**: one row per step, its ID, what changes, what proves it.
-Write the table from the steps, never the steps from the table.
+**The table is the whole fix to anyone not applying it.** `What changes` starts with a verb and is one clause —
+a row that needs two is two steps. `Touches` is the one class or package the step reaches, so the blast radius
+is read down one column. What proves a step is its kind's, and is not repeated per row. Write the table from
+the steps, never the steps from the table.
 
 **`In flight:` is what a stopped run otherwise leaves nowhere.** `fix.sh start` writes it when a step starts,
 `fix.sh tick` empties it. A resumed run reads it for what was being tried and for nothing else — the first

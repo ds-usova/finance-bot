@@ -79,6 +79,20 @@ artifact a fresh session resumes from.** Every file follows the repository's doc
 <the change in one sentence, then what that sentence needs to be believed — the mechanism it turns on, or the
 chain of causes it cuts and where. Where diagrams follow, say so and stop.>
 
+## What changes
+
+**<the first move, in a clause>**
+
+| #   | Kind | What changes | Touches |
+|-----|------|--------------|---------|
+
+**<the next move>**
+
+| #   | Kind | What changes | Touches |
+|-----|------|--------------|---------|
+
+**Not changed:** <one line — what a reader might fear this rework alters and it does not>
+
 ## What the code does now
 
 | What | Where | What is wrong with it |
@@ -88,7 +102,8 @@ chain of causes it cuts and where. Where diagrams follow, say so and stop.>
 
 <Now and Target component diagrams, in the module's diagram language and under its rules for boundaries and
 marking. Only where the rework moves responsibility between classes, creates one or removes one; otherwise the
-section is left out. A created class is marked as an addition in Target; a deleted one is drawn only in Now.>
+section is left out. A created class is marked as an addition in Target; a deleted one is drawn only in Now.
+Whatever moves between the two is labelled with the step IDs that move it.>
 
 ## What must stay true
 
@@ -105,8 +120,24 @@ section is left out. A created class is marked as an addition in Target; a delet
 ```
 
 A `<module>/steps.md` carries `**Affected Module:**` and `**Rework:** [<the rework>](../rework.md)` above its
-`## Steps`; `shared/steps.md` names every module on the seam. **A step's header line is the step to anyone not
-applying it** — one clause after its kind. A step that cannot be said in one clause is two steps.
+`## Steps`; `shared/steps.md` names every module on the seam. **`## What changes` stays in `rework.md`** and
+covers every steps file.
+
+### What changes
+
+**This section is the rework to a person.** A reader who agrees with **The fix** and these tables can stop; the
+rest is evidence.
+
+- **Rows are grouped by the move they make**, under a bold clause saying what that group achieves. A rework is
+  usually three or four moves; twenty rows in ID order are not readable.
+- **`What changes` starts with a verb** — `move`, `split`, `rename`, `narrow`, `add check`, `drop` — and is one
+  clause. A row that needs two is two steps.
+- **`Touches` is the one class or package the step reaches**, so the blast radius is read down one column.
+- **`Not changed:` names what a reader would fear this rework alters and it does not** — the SQL text, a test
+  assertion, a public port.
+
+**Write the tables from the checklist, never the checklist from the tables.** They are written once at Phase 1;
+a step re-classified in Phase 2 edits both. Ticks live in the checklist only.
 
 ## Phase 2 — Stop
 
