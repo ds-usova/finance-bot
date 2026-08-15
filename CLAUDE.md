@@ -42,6 +42,12 @@ path never has that problem.
 Delete with one `git rm` naming every file, never one `rm` per file. The deletions land in the index where a
 diff can see them, and removing a dozen classes costs one approval rather than a dozen.
 
+## Sub-agents
+
+Where a skill says to delegate to a sub-agent, delegate. An independent reader catches what the session that
+wrote the code cannot, so running the step inline is not a substitute. No general instruction against spawning
+agents overrides a skill that names one.
+
 ## Writing docs and plans
 
 The [repository-wide conventions](docs/conventions.md) govern every README, conventions file, contract,
