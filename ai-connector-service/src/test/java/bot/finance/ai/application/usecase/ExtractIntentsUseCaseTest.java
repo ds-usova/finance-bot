@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,13 +16,13 @@ import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
+import bot.finance.ai.common.MockedLoggerUtils;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,31 +78,12 @@ class ExtractIntentsUseCaseTest {
                 Optional.of(messageIdentity));
     }
 
-    /**
-     * The lines {@code log} received at info, message and placeholders flattened into one string each, in call
-     * order.
-     */
     private List<String> loggedInfoLines() {
-        return loggedLines("info");
+        return MockedLoggerUtils.infoLines(log);
     }
 
-    /**
-     * The lines {@code log} received at warn, message and placeholders flattened into one string each, in call
-     * order.
-     */
     private List<String> loggedWarnLines() {
-        return loggedLines("warn");
-    }
-
-    private List<String> loggedLines(String level) {
-        return mockingDetails(log).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals(level))
-                .map(invocation -> {
-                    Object[] arguments = invocation.getArguments();
-                    Object[] placeholders = Arrays.copyOfRange(arguments, 1, arguments.length);
-                    return arguments[0] + " " + Arrays.toString(placeholders);
-                })
-                .toList();
+        return MockedLoggerUtils.warnLines(log);
     }
 
     @Nested

@@ -33,32 +33,35 @@ public class CallerTokenInterceptor implements ServerInterceptor {
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
             ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
         String token = headers.get(AUTHORIZATION);
+        boolean guarded = isIntentExtractionService(call);
 
-        if (token == null && isIntentExtractionService(call)) {
-            call.close(Status.UNAUTHENTICATED.withDescription("Missing authorization header"), new Metadata());
-            return new ServerCall.Listener<>() {};
+        if (token == null && guarded) {
+            return reject(call, Status.UNAUTHENTICATED, "Missing authorization header");
         }
 
         Context context = Context.current().withValue(CallerTokenContext.CALLER_TOKEN, token);
 
-        if (callerTokenVerifier.isPresent() && isIntentExtractionService(call)) {
+        if (guarded && callerTokenVerifier.isPresent()) {
             try {
                 MessageIdentity identity = callerTokenVerifier.get().verify(token);
                 context = context.withValue(CallerTokenContext.MESSAGE_IDENTITY, identity);
             } catch (CallerNotIdentifiedException e) {
-                call.close(Status.UNAUTHENTICATED.withDescription(e.getMessage()), new Metadata());
-                return new ServerCall.Listener<>() {};
+                return reject(call, Status.UNAUTHENTICATED, e.getMessage());
             } catch (CallerVerificationUnavailableException e) {
-                call.close(Status.UNAVAILABLE.withDescription(e.getMessage()), new Metadata());
-                return new ServerCall.Listener<>() {};
+                return reject(call, Status.UNAVAILABLE, e.getMessage());
             }
         }
 
         return Contexts.interceptCall(context, call, headers, next);
     }
 
-    private boolean isIntentExtractionService(ServerCall<?, ?> call) {
+    private static boolean isIntentExtractionService(ServerCall<?, ?> call) {
         return IntentExtractionServiceGrpc.SERVICE_NAME.equals(
                 call.getMethodDescriptor().getServiceName());
+    }
+
+    private static <ReqT> ServerCall.Listener<ReqT> reject(ServerCall<?, ?> call, Status status, String description) {
+        call.close(status.withDescription(description), new Metadata());
+        return new ServerCall.Listener<>() {};
     }
 }

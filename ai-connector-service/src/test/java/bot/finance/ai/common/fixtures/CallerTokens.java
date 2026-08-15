@@ -39,99 +39,52 @@ public final class CallerTokens {
     }
 
     public static String bearer(long userId, String incomingMessageId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(
-                SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), incomingMessageId);
+        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
 
     public static String bearerSignedByUnpublishedKey(long userId, String incomingMessageId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(
-                UNPUBLISHED_KEY,
-                Long.toString(userId),
-                ISSUER,
-                AUDIENCE,
-                issuedAt,
-                issuedAt.plus(TTL),
-                incomingMessageId);
+        return bearerToken(UNPUBLISHED_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
 
     public static String bearerExpired(long userId, String incomingMessageId) {
         Instant issuedAt = Instant.now().minus(TTL).minusSeconds(60);
-        return bearerToken(
-                SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), incomingMessageId);
+        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, issuedAt, incomingMessageId);
     }
 
     public static String bearerWrongIssuer(long userId, String incomingMessageId) {
-        Instant issuedAt = Instant.now();
         return bearerToken(
-                SIGNING_KEY,
-                Long.toString(userId),
-                "some-other-issuer",
-                AUDIENCE,
-                issuedAt,
-                issuedAt.plus(TTL),
-                incomingMessageId);
+                SIGNING_KEY, Long.toString(userId), "some-other-issuer", AUDIENCE, Instant.now(), incomingMessageId);
     }
 
     public static String bearerWrongAudience(long userId, String incomingMessageId) {
-        Instant issuedAt = Instant.now();
         return bearerToken(
-                SIGNING_KEY,
-                Long.toString(userId),
-                ISSUER,
-                "some-other-audience",
-                issuedAt,
-                issuedAt.plus(TTL),
-                incomingMessageId);
+                SIGNING_KEY, Long.toString(userId), ISSUER, "some-other-audience", Instant.now(), incomingMessageId);
     }
 
     public static String bearerNoSubject(String incomingMessageId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(SIGNING_KEY, null, ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), incomingMessageId);
+        return bearerToken(SIGNING_KEY, null, ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
 
     public static String bearerNonNumericSubject(String incomingMessageId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(
-                SIGNING_KEY, "not-a-number", ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), incomingMessageId);
+        return bearerToken(SIGNING_KEY, "not-a-number", ISSUER, AUDIENCE, Instant.now(), incomingMessageId);
     }
 
     public static String bearerNoIncomingMessageId(long userId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), null);
+        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), null);
     }
 
     public static String bearerBlankIncomingMessageId(long userId) {
-        Instant issuedAt = Instant.now();
-        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, issuedAt, issuedAt.plus(TTL), "   ");
+        return bearerToken(SIGNING_KEY, Long.toString(userId), ISSUER, AUDIENCE, Instant.now(), "   ");
     }
 
     private static String bearerToken(
-            RSAKey key,
-            String subject,
-            String issuer,
-            String audience,
-            Instant issuedAt,
-            Instant expiresAt,
-            String incomingMessageId) {
-        return "Bearer " + sign(key, subject, issuer, audience, issuedAt, expiresAt, incomingMessageId);
-    }
-
-    private static String sign(
-            RSAKey key,
-            String subject,
-            String issuer,
-            String audience,
-            Instant issuedAt,
-            Instant expiresAt,
-            String incomingMessageId) {
+            RSAKey key, String subject, String issuer, String audience, Instant issuedAt, String incomingMessageId) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .issuer(issuer)
                     .audience(audience)
                     .issueTime(Date.from(issuedAt))
-                    .expirationTime(Date.from(expiresAt))
+                    .expirationTime(Date.from(issuedAt.plus(TTL)))
                     .jwtID(UUID.randomUUID().toString());
             if (subject != null) {
                 claims.subject(subject);
@@ -145,7 +98,7 @@ public final class CallerTokens {
                             .build(),
                     claims.build());
             jwt.sign(new RSASSASigner(key.toRSAPrivateKey()));
-            return jwt.serialize();
+            return "Bearer " + jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException("failed to sign test caller token", e);
         }

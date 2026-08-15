@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,13 +14,13 @@ import static org.mockito.Mockito.when;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
+import bot.finance.ai.common.MockedLoggerUtils;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,14 +52,7 @@ class PurgeMessagesUseCaseTest {
     }
 
     private List<String> loggedWarnLines() {
-        return mockingDetails(log).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals("warn"))
-                .map(invocation -> {
-                    Object[] arguments = invocation.getArguments();
-                    Object[] placeholders = Arrays.copyOfRange(arguments, 1, arguments.length);
-                    return arguments[0] + " " + Arrays.toString(placeholders);
-                })
-                .toList();
+        return MockedLoggerUtils.warnLines(log);
     }
 
     @Nested
