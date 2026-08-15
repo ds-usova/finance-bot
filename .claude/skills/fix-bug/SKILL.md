@@ -26,7 +26,7 @@ feature.
 
 **Every fix ends with a `red` step that failed and a `green` step that made it pass.** Their grammar is
 [`step-format.md`](step-format.md). **Every approach that failed on the way is written into `## Attempts`**,
-with the output it produced — [`attempts.md`](attempts.md).
+with the output it produced — [`attempts.md`](../../templates/attempts.md).
 
 ## The Files
 

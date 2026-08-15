@@ -2,7 +2,7 @@
 
 Applies to READMEs, `docs/conventions/**`, `docs/contracts/**`, `docs/usecases/**`, `docs/domain/**`, and every
 document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, a `rework.md`, a `bug.md` and each
-`fix.md` beside it, and what `review/` holds.
+`fix.md` beside it, an `upgrade.md` and its `steps.md` files, and what `review/` holds.
 
 - **Every sentence earns its place.** Cut preamble, restatement and hedging.
 - **State a fact once.** Each fact has one owning document; everywhere else links to it.

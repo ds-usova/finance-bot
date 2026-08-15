@@ -15,8 +15,8 @@ Apply one fix file, start to finish: every `stabilize` step, then every `red`, t
   anything changed — and what a shared fix already disabled in your module, which sits on top of them;
 - **`bug.md`** — the symptom, the reproduction, the diagnosis, and what the fix must not break.
 
-**Read before the first step**: `applying-a-step.md`, `step-format.md` and `attempts.md` in the `fix-bug` skill
-directory, and your module's `docs/conventions.md` with the repository-wide conventions it extends. They are the
+**Read before the first step**: `applying-a-step.md` and `step-format.md` in the `fix-bug` skill directory,
+`attempts.md` in the `templates` directory beside the skills, and your module's `docs/conventions.md` with the repository-wide conventions it extends. They are the
 source of truth for the build command, the test commands, the layering check, how a test is disabled, what runs
 before a commit, and the commit policy. Never guess a build command.
 

@@ -46,7 +46,7 @@ agents run concurrently, so two of them never write the same file.
 
 ## Attempts
 
-<see attempts.md — the diagnosis's failed approaches>
+<see templates/attempts.md — the diagnosis's failed approaches>
 ```
 
 **`## Why it happens` is a chain, and every link is evidence.** A link nothing proved is marked `unverified` on
@@ -79,7 +79,7 @@ Phase 2 has something to ask.
 
 ## Attempts
 
-<see attempts.md — this module's failed approaches>
+<see templates/attempts.md — this module's failed approaches>
 ```
 
 **The table is the whole fix to anyone not applying it.** `What changes` starts with a verb and is one clause —

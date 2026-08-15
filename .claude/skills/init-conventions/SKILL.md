@@ -23,6 +23,7 @@ downstream trusts it.
 | Modules          | build files, workspace/settings manifests, top-level directories holding their own build file |
 | Tech stack       | dependency manifests and lock files, framework entry-point classes, container/compose files   |
 | Build & test     | build scripts, CI workflow files, `tools/`-style wrapper scripts, task definitions            |
+| Dependencies     | manifest and lock file, a versions or audit plugin in the build, a comment pinning a version   |
 | Package layout   | the source tree itself — the real folders, not an idealized version of them                   |
 | Architecture     | an existing dependency-rule test or lint config; failing that, the import directions in code  |
 | Test conventions | the existing test classes — naming, assertion library, base classes, fixtures, containers     |

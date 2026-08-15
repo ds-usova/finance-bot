@@ -15,7 +15,26 @@ Where those files sit is the repository's business, and no skill assumes it.
 That is what makes `skills/`, `agents/`, `scripts/` and `templates/` liftable into another repository as a
 plugin. A fact about *this* project inside a skill is the defect this split exists to prevent.
 
-## The pipeline
+## The four lines
+
+Every change a developer makes is one of four kinds of work, and each kind has its own line of skills.
+
+| Line         | For                                                    | Skills                                                               | Safety net                                           | Readers            |
+|--------------|--------------------------------------------------------|----------------------------------------------------------------------|------------------------------------------------------|--------------------|
+| Feature      | behaviour nobody promised yet                          | `design-task` → `plan-task` → `implement-plan` → `archive-knowledge` | a red test per scenario, then green                  | person, then model |
+| Rework       | code that keeps doing what it does                     | `rework`                                                             | the suite already green, kept green after every step | one                |
+| Bug          | behaviour the repository promises and does not deliver | `fix-bug`                                                            | one `red` test that failed on the symptom            | one                |
+| Dependencies | the versions a module depends on                       | `upgrade-deps`                                                       | the suite already green, kept green after every step | one                |
+
+Outside every line: `init-conventions` writes what is true about the repository before any change; `retro`
+reflects on a finished session and proposes changes to the skills; `tighten` shortens a file without changing
+what it says; `teachme` teaches a subject a decision depends on.
+
+**Each line's output is the whole handoff.** The next phase starts in a fresh context and reads the file, not
+the conversation. A design a cold session cannot plan from was underspecified; a plan a cold agent cannot
+implement was underspecified. Discovering that is the point of the split, not a cost of it.
+
+### The feature line
 
 Five skills carry one change from "someone asked for it" to "implemented and documented".
 
@@ -27,40 +46,47 @@ Five skills carry one change from "someone asked for it" to "implemented and doc
 | Implement   | `implement-plan`    | nobody        | nothing — it executes the plan and verifies each stage | anything the plan left open         |
 | Archive     | `archive-knowledge` | the developer | what outlives the plan                                 | anything the implementation settled |
 
-`retro` sits outside the line: it reflects on a finished session and proposes changes to the skills above.
-`tighten` and `teachme` sit outside it too — one shortens a file without changing what it says, the other
-teaches a subject a decision depends on.
+**It is a pipeline because it has two readers.** A person approves what the change does; a model executes how
+it is built. The handoff between them is the design file.
 
-`rework` is a shorter line beside it, for code that already exists and keeps doing what it does. Nothing about
-behaviour is being decided, so the suite that is already green is the safety net, and every guardrail it has
-exists to keep that green honest.
+### The rework line
 
-**It is one skill, not a pipeline, because it has one reader.** The chain above splits by audience: a person
-approves what the change does, a model executes how it is built. A rework changes no behaviour, so there is
-nothing for a person to approve beyond the shape, and a handoff between design and plan would carry an empty
-file. It parallelizes the way `fix-bug` does: one `rework-module` agent per module's steps file, after any
-shared `stabilize` steps have landed alone.
+- **One skill, because it has one reader.** A rework changes no behaviour, so there is nothing for a person to
+  approve beyond the shape, and a design–plan handoff would carry an empty file.
+- **The suite already green is the safety net.** Every guardrail the skill has exists to keep that green honest.
+- **Parallel by module**: one `rework-module` agent per module's steps file, after any shared `stabilize` steps
+  have landed alone.
 
-`fix-bug` is the third line, for behaviour the repository already promises and does not deliver. It has three
-kinds of step and no others: `stabilize` moves whatever has to exist first, `red` is one test that reproduces
-the bug, `green` is the code that makes it pass. **A bug closed without a test that first failed on its symptom
-is a bug closed on someone's word**, so the pairing is compulsory and `fix.sh` refuses a `green` step that names
-no `red` one.
+### The bug line
 
-It splits its files the way a task splits its plans, and for the same reason — `bug.md` holds the symptom, the
-reproduction and the diagnosis, and one `fix.md` per module holds that module's steps. The seam between two
-services is a `shared/fix.md` of `stabilize` steps, landed alone before any module agent starts.
+- **Three kinds of step and no others**: `stabilize` moves whatever has to exist first, `red` is one test that
+  reproduces the bug, `green` is the code that makes it pass.
+- **The red/green pair is compulsory.** A bug closed without a test that first failed on its symptom is a bug
+  closed on someone's word; `fix.sh` refuses a `green` step that names no `red` one.
+- **Files split the way a task's plans do**: `bug.md` holds the symptom, the reproduction and the diagnosis;
+  one `fix.md` per module holds that module's steps; `shared/fix.md` holds the seam's `stabilize` steps, landed
+  alone before any module agent starts.
+- **What is new is the attempt log.** Every approach that failed goes into `## Attempts` the moment it fails,
+  with the output that killed it and what it rules out. Debugging is the one phase where most work produces no
+  diff, so a run stopped halfway otherwise leaves nothing.
+- **`bug.md` is the handoff.** Its `**Attempts:**` header line names every entry in every file. A session given
+  that path reads one file, skips everything `ruled-out:`, and looks for a new hypothesis. A fix is resumed by
+  that path, never by scanning `docs/` for something unfinished.
 
-**What is new is the attempt log.** Every approach that failed is written into `## Attempts` the moment it fails,
-with the output that killed it and what it rules out. Debugging is the one phase where most of the work produces
-no diff, so a run stopped halfway otherwise leaves nothing — and the next session starts by trying what the last
-one already disproved. **`bug.md` is the handoff for that too.** Its `**Attempts:**` header line names every
-entry in every file, so a session given only that path reads one file, skips everything `ruled-out:`, and looks
-for a new hypothesis. A fix is resumed by that path and never by scanning `docs/` for something unfinished.
+### The dependencies line
 
-**Each phase's output is the whole handoff.** The next phase starts in a fresh context and reads the file, not
-the conversation. A design a cold session cannot plan from was underspecified; a plan a cold agent cannot
-implement was underspecified. Discovering that is the point of the split, not a cost of it.
+- **Libraries and nothing else.** The runtime, the build tool and the base image are not its scope.
+- **Two kinds of step**: `bump`, a version line and nothing more; `migrate`, the version plus every change the
+  release's own guide asks for.
+- **The same safety net as a rework**: the suite green before, and green after every step.
+- **What is new is `## Kept back`.** A guide can ask for a class that carries a bug, or an API the module's
+  other dependencies still bind. Forcing it ships a worse module than staying on the old call under the new
+  version. A change that fails three attempts is undone alone, the version stays where the suite is green, and
+  the row says what was asked, what was tried and what would unblock it. The attempt log serves it as it serves
+  a bug.
+- **The scanner is the conventions' answer.** Nothing is guessed into a build file. Where the conventions are
+  silent the run uses what the stack ships, or the manifest against the registry, and names the option in its
+  report.
 
 ## Design is for a person
 
