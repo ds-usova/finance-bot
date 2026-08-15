@@ -28,8 +28,9 @@ baseline and green after every step is the whole guardrail**; an upgrade writes 
 ## Input Resolution
 
 The argument is a module — one, by default. Several modules are several arguments. A dependency name narrows the
-survey to it. **A path to an existing `upgrade.md` resumes it** at its first unticked step, and re-reads nothing
-its `## Kept back` and `## Attempts` already settle.
+survey to it. **A path to an existing `upgrade.md` resumes it** under
+[`resuming.md`](../../templates/resuming.md), which replaces Phase 0 and Phase 1: it re-reads nothing its
+`## Kept back` and `## Attempts` already settle.
 
 Read the repository-wide conventions and `<module>/docs/conventions.md` for every module named. Beyond the build
 and test commands, the parallelism and the commit policy, they answer four questions this skill has no default
@@ -121,8 +122,9 @@ in a major. Ask them in the same batch and write each answer in as `- A:`.
 **`upgrade.sh validate` exits 0 on every steps file before the first build file is touched**, again after any
 answer written in Phase 2.
 
-1. **`shared/steps.md` first, alone**, applied by the session under [`applying-a-step.md`](applying-a-step.md).
-   Its exit: every module on the catalog compiles and its suite stands where phase 0 left it.
+1. **`shared/steps.md` first, alone**, where there is one, by its own `upgrade-deps-module` agent given every
+   module on the catalog. Its exit: every module on the catalog compiles and its suite stands where phase 0 left
+   it. Nothing else starts until it lands.
 2. **One `upgrade-deps-module` agent per steps file, concurrently.** Each gets its file path, its module, its
    phase-0 figures, `upgrade.md`, and the conventions by name. Cap the count and pick the model by what the
    conventions say about parallelism and sub-agent models.

@@ -10,7 +10,7 @@ Apply one steps file, start to finish, in ID order.
 ## What You Are Given
 
 - **the steps file path** — the only file you read steps from, tick, or edit;
-- **the module it belongs to**;
+- **the module it belongs to**, or every module on the catalog where your file is `shared/steps.md`;
 - **your module's baseline figures** — the suite's total and skipped counts and the commit — and what
   `shared/steps.md` already moved in your module's catalog;
 - **`upgrade.md`** — the survey, what changes, and the policy.
@@ -78,7 +78,8 @@ Return when the file is finished or genuinely blocked — never while waiting. B
 question into your file, revert the step it concerns, then return and say what you need.
 
 - **Every refusal in `applying-a-step.md`.**
-- **A `change:` that lands outside your module.** Name where. Never edit another module, never a shared catalog.
+- **A `change:` that lands outside your module.** Name where. Never edit another module; never a shared catalog
+  unless your file is `shared/steps.md`.
 - **A test asserting the old behaviour.** Name the test and the assertion; never edit it.
 - **A step abandoned** — the level above decides whether the upgrade continues without it.
 
@@ -88,7 +89,7 @@ detail to reproduce, not treated as a step failure.**
 ## Out of Scope
 
 - **Any file but yours.** `upgrade.md` you read and never write. Another module's `steps.md` you never open.
-- **Any module but the one your file names.**
+- **Any module but the one your file names** — except a `shared/steps.md`, whose modules are all of them.
 - **Adding, removing or replacing a dependency.**
 - **`review/findings.md`, the closing survey and archiving** — the level above's.
 - **A defect you find along the way.** Report it; never fix it.

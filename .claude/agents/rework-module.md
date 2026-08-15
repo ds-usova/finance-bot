@@ -10,7 +10,7 @@ Apply one steps file, start to finish, in ID order.
 ## What You Are Given
 
 - **the steps file path** — the only file you read steps from, tick, or edit;
-- **the module it belongs to**;
+- **the module it belongs to**, or every module on the seam where your file is `shared/steps.md`;
 - **your module's baseline figures** — the suite's total and skipped counts and the commit, measured before
   anything changed — and what `shared/steps.md` already disabled in your module, which sits on top of them;
 - **`rework.md`** — the fix, what the code does now, the structure, and what must stay true.
@@ -81,7 +81,7 @@ to reproduce, not treated as a step failure.** A test this rework broke is never
 ## Out of Scope
 
 - **Any file but yours.** `rework.md` you read and never write. Another module's `steps.md` you never open.
-- **Any module but the one your file names.**
+- **Any module but the one your file names** — except a `shared/steps.md`, whose modules are all of them.
 - **The refactor round, `review/findings.md` and archiving** — the level above's, over the whole diff.
 - **A second defect you find along the way.** Report it; never fix it.
 
