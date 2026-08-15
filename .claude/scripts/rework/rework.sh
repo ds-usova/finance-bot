@@ -176,6 +176,12 @@ while [ "$#" -gt 0 ]; do
             usage
             exit 0
             ;;
+        # A mistyped flag must not fall through to the step IDs. "show"/"tick" would report it as a step
+        # nothing defines, and "status"/"validate" take no IDs at all - so a wrong flag naming a rework
+        # would be discarded in silence and the command answered for whichever file --file defaulted to.
+        --*)
+            die "unknown option '$1' (try --help)"
+            ;;
         *)
             args+=("$1")
             shift
