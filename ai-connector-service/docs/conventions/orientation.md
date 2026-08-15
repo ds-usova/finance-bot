@@ -5,12 +5,12 @@ Where things are and what the module is built from.
 ## Tech Stack
 
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
-`src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
+`src/main/resources/application.yaml` — neither is repeated here.
 
 | What                         | This module                                                                                          |
 |------------------------------|------------------------------------------------------------------------------------------------------|
 | Language / framework         | Java 25, Spring Boot                                                                                 |
-| Database, messaging, caching | Postgres, one table of the messages the service is handed                                            |
+| Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md)                                        |
 | Exposed interface            | gRPC only, on a Netty transport                                                                      |
 | Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient`, and the ledger's key set |
 | Contract-first codegen       | the `.proto` schema is the contract                                                                  |
@@ -19,15 +19,13 @@ Two things the table cannot carry:
 
 - **Spring AI owns the exchange** — the transport, the request and response shape, and the JSON-schema-based
   structured output. This service supplies the model name, the prompt and the target record. The provider is
-  addressed through `spring.ai.openai.base-url`, which is what lets a test point the whole client at a stub
-  server.
+  addressed through `spring.ai.openai.base-url`.
 - **Generated sources are never edited or committed.** Changing the contract means changing the `.proto`; its
   location and the generator's output path are in [File Locations](architecture.md#file-locations).
 
 ## Documentation References
 
-Background reading before making changes. These documents provide context; where they disagree with the
-conventions, the conventions win.
+Background reading before making changes. Where one disagrees with the conventions, the conventions win.
 
 - Architecture / diagrams: [`ai-connector-service/README.md`](../../README.md) — a C4 **C3 Component** diagram
   (PlantUML) of one primary use case, not of every port and adapter. The repo-root `README.md` holds C1
@@ -35,7 +33,7 @@ conventions, the conventions win.
 - Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
   with, in the product's words, and a C3 of the components, ports and external systems that use case touches.
 - Domain: [`docs/domain/`](../domain/) — one page per value object, what it represents and the invariants under
-  which it refuses to exist. A type's own rules live here, not in the use cases that apply them.
+  which it refuses to exist.
 - Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
@@ -47,6 +45,6 @@ conventions, the conventions win.
   per implemented task, holding its `design.md` and `plan.md`.
 - API reference: the Protocol Buffers schema itself (see
   [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
+- Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.
 
 How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).
-- Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.

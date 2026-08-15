@@ -1,8 +1,6 @@
 # Agent acting for a user — the ledger's tools (MCP over HTTP)
 
 A language model acting for a user acts on their message here, one tool call per thing the message asks for.
-Three things cross this boundary: which categories one of the caller's own groupings holds, a proposed expense,
-which a human reviews before it becomes one, and a period the caller wants their spending totalled over.
 
 - **Counterpart:** [the AI Connector Service](../../../../ai-connector-service/docs/contracts/out/ledger-mcp.md),
   acting for the user whose message it was handed
@@ -31,9 +29,8 @@ which a human reviews before it becomes one, and a period the caller wants their
 | `amount`       | the amount as the message writes it, in the currency's main unit — 7200 for 7200 HUF   | yes      |
 | `currencyCode` | ISO 4217, three letters                                                                | yes      |
 
-**There is no identity argument, and no message argument.** Who the proposal is recorded against, and which
-message it belongs to, both come off the token and nothing else
-([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md),
+**Who the proposal is recorded against, and which message it belongs to, both come off the token and nothing
+else** ([ADR 0007](../../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md),
 [ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
 
 ### What `create_expense_proposal` answers with
@@ -59,14 +56,14 @@ ordered by name. It carries no identity and no stored id.
 | `from`   | the first day of the period, counted, as `YYYY-MM-DD`      | yes      |
 | `to`     | the last day of the period, counted, as `YYYY-MM-DD`       | yes      |
 
-A relative phrase — "last week", "since Friday" — is never sent. The caller works the period out against
-[the day the turn states](../out/ai-connector.md) and sends two days.
+The caller works the period out against [the day the turn states](../out/ai-connector.md) and sends two days. A
+relative phrase is never sent.
 
 ### What `summarize_spending` answers with
 
 Under `from` and `to`, the period that was accepted, as the two days it was stored as. **No amount, no count and
 no expense.** What the caller asked about is put in front of the user by
-[the turn](../../usecases/handle-incoming-message.md), and never returned here.
+[the turn](../../usecases/handle-incoming-message.md).
 
 ## What a repeated call leaves behind
 
@@ -78,9 +75,6 @@ no expense.** What the caller asked about is put in front of the user by
 
 ## How a caller authenticates
 
-The ledger both mints the token and validates it. It leaves this service, crosses two boundaries, and comes
-back:
-
 ```plantuml
 @startuml McpCallerToken-Sequence
 participant "Ledger — act on a message" as Turn
@@ -90,7 +84,7 @@ participant "Ledger — MCP tools" as Tools
 
 Turn -> Turn : mint a token\nsubject: the user\nimi: this message
 Turn -> Connector : ExtractIntents + token, as call metadata
-note right of Connector : opaque here\nnever parsed, logged or stored
+note right of Connector : forwarded unchanged
 
 Connector -> Provider : the message and the tool schemas
 Provider --> Connector : call a tool
@@ -113,7 +107,7 @@ note over Connector, Tools : one token per call — no session.\nA turn making s
   `/.well-known/jwks.json`.
 - A rotation is a new key in the keystore and a restart. A client re-reads the keys and needs no change.
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
-- A token outlives the turn it was minted for by design. Nothing revokes one early.
+- A token outlives the turn it was minted for. Nothing revokes one early.
 
 Every other address on this port answers to nobody.
 
@@ -145,8 +139,8 @@ arguments reach the log only at debug level.
 ## Compatibility
 
 The caller is a language model: it picks a tool out of the published list by its name and description, and fills
-each argument from the description published beside it. Both are part of the contract — rewording one changes
-what arrives, with no schema to compare against and nothing failing at build time.
+each argument from the description published beside it. Both are part of the contract. Rewording one changes
+what arrives, and nothing fails at build time.
 
 A tool added here reaches a client when it next reads the published list, and a client that has already read one
 goes on offering only what it read.
@@ -155,14 +149,13 @@ Adding an optional argument costs a client nothing. For a client outside this re
 making an optional one required, is a new tool rather than an edit. Inside it, the tools and their one caller
 ship together, so an argument is renamed or made required in place.
 
-A rename in place is only safe while the two ship together. A client that read the list before the rename goes
-on sending the old argument name, and every call of that tool fails until it restarts and reads the list again.
+A client that read the list before a rename goes on sending the old argument name, and every call of that tool
+fails until it restarts and reads the list again.
 
-What the ledger hands its own tool through the token costs a client nothing either: the caller forwards the
-token untouched, so a claim added there is neither read nor rewritten on the way
-([ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)). A caller
-that mints its own tokens instead would have to carry that claim, which the proposal and summary tools both
-refuse a call without.
+What the ledger hands its own tool through the token costs a client nothing either
+([ADR 0015](../../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
+A caller minting its own tokens would have to carry that claim, which the proposal and summary tools both refuse
+a call without.
 
 Moving to an identity provider outside this service means the tokens are minted and the keys published
 elsewhere. Callers change where they get a token; the tools and their arguments do not change.

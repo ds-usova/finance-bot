@@ -30,11 +30,15 @@ matches on it.
 - The reference cannot be set by the model, for the same reason the caller's identity cannot
   ([ADR 0007](0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md)): it is read server-side
   from a token the ledger signed, not from an argument a prompt injection could dictate.
-- The two services stay decoupled on this: correlation data is added by extending a token the ledger owns
-  end-to-end, so no cross-service contract is versioned for it.
+- The two services stay decoupled: the correlation extends a token the ledger owns end-to-end, so no
+  cross-service contract is versioned for it.
 - The claim is bounded by the token's lifetime, so it correlates one extraction and nothing longer. A correlation
-  that must outlive a single call needs a different carrier.
-- Anything else the ledger later wants to hand its own tools follows the same route, which is a mint-side change
-  rather than a schema negotiation.
+  outliving a single call needs a different carrier.
+- Anything else the ledger later hands its own tools follows the same route: a mint-side change, not a schema
+  negotiation.
 - The reference is minted rather than derived from the Telegram message id, so a redelivered update produces a
-  second reference and a second report. Deriving it from the message id is what would make the retry idempotent.
+  second reference and a second report. Deriving it from the message id would make the retry idempotent.
+- **2026-08-15:** "neither reads nor rewrites its claims" no longer holds. The connector now verifies the token
+  and reads its subject and message id for a store of its own
+  ([ADR 0017](../../../docs/adr/0017-the-connector-verifies-its-caller-token-and-keeps-the-message-it-names.md));
+  it still forwards the token verbatim.

@@ -44,17 +44,14 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 
 ## The database compose supplies
 
-The service shares one Postgres instance with the AI Connector, and reads and writes `finance_ledger` there,
-under a role of its own that owns that database and nothing else. The role carries the `REPLICATION` attribute
-the change-capture slot needs. `infrastructure/postgres/init/create-databases.sh` creates both from
-`FINANCE_BOT_LEDGER_DB`, `FINANCE_BOT_LEDGER_DB_USER` and `FINANCE_BOT_LEDGER_DB_PASSWORD` in
-`infrastructure/.env`. The image's own `POSTGRES_USER` and `POSTGRES_DB` are the bootstrap superuser and its
-database, used by neither service.
+The service reads and writes the database `FINANCE_BOT_LEDGER_DB` names, on the Postgres instance the
+compose stack runs, under a role of its own that owns that database and nothing else.
+`infrastructure/postgres/init/create-databases.sh` creates both from `FINANCE_BOT_LEDGER_DB`,
+`FINANCE_BOT_LEDGER_DB_USER` and `FINANCE_BOT_LEDGER_DB_PASSWORD` in `infrastructure/.env`.
 
-**The image runs that script on an empty volume only.** A developer whose `finance-bot-postgres` volume was
-initialized before this arrangement gets no `finance_ledger` and no role, and the data already in the old
-database stays where it is. Wiping the volume is what puts both services on the arrangement above, and it
-discards that data.
+**The image runs that script on an empty volume only.** A `finance-bot-postgres` volume initialized before this
+arrangement gets no such database and no role. Wiping the volume is what puts the service on the arrangement
+above, and it discards the data already in the old database.
 
 ## What the database is given, not the service
 
@@ -64,5 +61,4 @@ discards that data.
 
 [Compose](../../infrastructure/docker-compose.yaml) passes it as `postgres -c max_slot_wal_keep_size=1GB`.
 **A value passed that way cannot be widened without restarting the container**: a command-line setting outranks
-`ALTER SYSTEM` plus `pg_reload_conf()`, even though the setting is itself reloadable. `wal_level` cannot be
-changed without a restart at all.
+`ALTER SYSTEM` plus `pg_reload_conf()`. `wal_level` cannot be changed without a restart at all.
