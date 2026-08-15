@@ -5,7 +5,18 @@ argument-hint: [ a bug report, a failing test, a stack trace, or a findings entr
 
 # Fix Bug
 
-Three kinds of step put a bug right, and no others.
+Make code that already exists do what the repository already promised.
+
+## When Not To Use It
+
+**A bug is behaviour the repository already promises and does not deliver.** Where nobody promised it, this is a
+feature.
+
+- **New behaviour** — a feature, an endpoint, a field nobody serves yet. That is `design-task`, then `plan-task`.
+- **Restructuring code that behaves correctly** — that is `rework`.
+- **A failure inside a plan that is still being implemented** — its own green phase owns that diff.
+
+## The Three Kinds of Step
 
 | Kind        | What it does                                                                                               |
 |-------------|------------------------------------------------------------------------------------------------------------|
@@ -13,19 +24,11 @@ Three kinds of step put a bug right, and no others.
 | `red`       | one test that reproduces the bug and fails on its symptom                                                  |
 | `green`     | production code, until that test passes and the suite stays green                                          |
 
-**Every fix ends with a `red` step that failed and a `green` step that made it pass.**
+**Every fix ends with a `red` step that failed and a `green` step that made it pass.** Their grammar is
+[`step-format.md`](step-format.md).
 
 **Everything that fails on the way is written down**, in the fix's `## Attempts` log, with the output it
 produced.
-
-## When Not To Use It
-
-- **New behaviour** — a feature, an endpoint, a field nobody serves yet. That is `design-task`, then `plan-task`.
-- **Restructuring code that behaves correctly** — that is `rework`.
-- **A failure inside a plan that is still being implemented** — its own green phase owns that diff.
-
-**A bug is behaviour the repository already promises and does not deliver.** Where nobody promised it, this is a
-feature.
 
 ## Input Resolution
 
