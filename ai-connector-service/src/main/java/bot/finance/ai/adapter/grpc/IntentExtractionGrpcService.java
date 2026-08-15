@@ -8,6 +8,7 @@ import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import java.util.Optional;
 import org.springframework.grpc.server.service.GrpcService;
 
 @GrpcService
@@ -23,7 +24,9 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
     public void extractIntents(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         ExtractIntentsCommand command;
         try {
-            command = ExtractIntentsRequestReader.toCommand(request);
+            // TODO: read the identity CallerTokenContext.messageIdentity() carries, once the interceptor puts it
+            // there
+            command = ExtractIntentsRequestReader.toCommand(request, Optional.empty());
         } catch (InvalidValueException e) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());

@@ -19,20 +19,15 @@ import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfigura
 import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistrar;
 
 /**
  * Boots {@link AiExpenseRecordingAdapter}, {@link ChatClientConfiguration}, {@link LedgerMcpConfiguration},
  * {@link CallerTokenMcpRequestCustomizer}, {@link LedgerToolFailureProcessor} and Spring AI's OpenAI, MCP client,
  * streamable-HTTP transport and tool-callback autoconfigurations — no gRPC server, no other adapter.
  * {@code spring.ai.openai.base-url} and the ledger connection's {@code url} are redirected to
- * {@link WireMockSupport}'s dynamic port through a {@link DynamicPropertyRegistrar} bean, because
- * {@code @DynamicPropertySource} needs a static method inside a class body, which an annotation type cannot
- * declare.
+ * {@link WireMockSupport}'s dynamic port through {@link WireMockUrlConfiguration}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -54,18 +49,5 @@ import org.springframework.test.context.DynamicPropertyRegistrar;
     StreamableHttpHttpClientTransportAutoConfiguration.class,
     McpToolCallbackAutoConfiguration.class
 })
-@Import(AiAdapterTest.WireMockBaseUrlConfiguration.class)
-public @interface AiAdapterTest {
-
-    @TestConfiguration(proxyBeanMethods = false)
-    class WireMockBaseUrlConfiguration {
-
-        @Bean
-        DynamicPropertyRegistrar wireMockBaseUrl() {
-            return registry -> {
-                registry.add("spring.ai.openai.base-url", WireMockSupport::openAiBaseUrl);
-                registry.add("spring.ai.mcp.client.streamable-http.connections.ledger.url", WireMockSupport::baseUrl);
-            };
-        }
-    }
-}
+@Import(WireMockUrlConfiguration.class)
+public @interface AiAdapterTest {}

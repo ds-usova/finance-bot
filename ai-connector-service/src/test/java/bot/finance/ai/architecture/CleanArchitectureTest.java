@@ -47,7 +47,12 @@ class CleanArchitectureTest {
                     "org.slf4j..",
                     "io.grpc..",
                     "com.google.protobuf..",
-                    "io.modelcontextprotocol..")
+                    "io.modelcontextprotocol..",
+                    "org.springframework.data..",
+                    "org.springframework.jdbc..",
+                    "org.springframework.security..",
+                    "com.nimbusds..",
+                    "org.flywaydb..")
             .allowEmptyShould(true);
 
     /**
@@ -67,6 +72,12 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Proto")
             .orShould()
             .haveSimpleNameContaining("Mcp")
+            .orShould()
+            .haveSimpleNameContaining("Jdbc")
+            .orShould()
+            .haveSimpleNameContaining("Jwt")
+            .orShould()
+            .haveSimpleNameContaining("Jwks")
             .allowEmptyShould(true);
 
     /**
