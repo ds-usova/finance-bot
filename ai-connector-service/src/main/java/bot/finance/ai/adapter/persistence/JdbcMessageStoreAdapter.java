@@ -1,9 +1,11 @@
 package bot.finance.ai.adapter.persistence;
 
 import bot.finance.ai.application.port.MessageStorePort;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.Instant;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,14 +20,19 @@ public class JdbcMessageStoreAdapter implements MessageStorePort {
 
     @Override
     public void register(MessageIdentity identity, String text) {
-        // inserts the row under (user_id, incoming_message_id), leaving an existing row untouched, and
-        // translates any store failure into MessageStoreFailedException
+        try {
+            repository.insertIgnoringConflict(identity.userId(), identity.incomingMessageId(), text);
+        } catch (DataAccessException e) {
+            throw new MessageStoreFailedException("failed to register incoming message", e);
+        }
     }
 
     @Override
     public int deleteReceivedBefore(Instant cut, int batch) {
-        // deletes one batch of rows received before the cut, claiming only rows no other purge holds,
-        // and translates any store failure into MessageStoreFailedException
-        return 0;
+        try {
+            return repository.deleteReceivedBefore(cut, batch);
+        } catch (DataAccessException e) {
+            throw new MessageStoreFailedException("failed to delete incoming messages", e);
+        }
     }
 }

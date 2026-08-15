@@ -114,35 +114,6 @@ class CallerTokenVerifierTest {
         }
 
         @Test
-        @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
-        @DisplayName("when the key-set endpoint fails the connection - then CallerVerificationUnavailableException "
-                + "is thrown")
-        void whenKeySetEndpointUnreachableAndNoKeySetCached_thenThrowsCallerVerificationUnavailableException() {
-            LedgerJwksStubs.stubKeySetUnreachable();
-            String bearer = CallerTokens.bearer(USER_ID, INCOMING_MESSAGE_ID);
-
-            assertThatThrownBy(() -> verifier.verify(bearer))
-                    .isInstanceOf(CallerVerificationUnavailableException.class);
-        }
-
-        @Test
-        @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
-        @DisplayName("when the key-set endpoint answers slower than jwksTimeout - then "
-                + "CallerVerificationUnavailableException is thrown")
-        void whenKeySetEndpointSlowerThanTimeoutAndNoKeySetCached_thenThrowsWithinTimeoutPlusMargin() {
-            Duration timeout = properties.jwksTimeout();
-            LedgerJwksStubs.stubKeySetDelayed(timeout.plusSeconds(5));
-            String bearer = CallerTokens.bearer(USER_ID, INCOMING_MESSAGE_ID);
-
-            Instant start = Instant.now();
-            assertThatThrownBy(() -> verifier.verify(bearer))
-                    .isInstanceOf(CallerVerificationUnavailableException.class);
-            Duration elapsed = Duration.between(start, Instant.now());
-
-            assertThat(elapsed).isLessThan(timeout.plus(Duration.ofSeconds(2)));
-        }
-
-        @Test
         @DisplayName("when the endpoint becomes unreachable after a first verification - then the second token's "
                 + "identity comes from cache")
         void whenEndpointUnreachableAfterFirstVerification_thenSecondTokenAnsweredFromCachedKeySet() {
@@ -155,6 +126,39 @@ class CallerTokenVerifierTest {
 
             assertThat(identity.userId()).isEqualTo(USER_ID);
             assertThat(identity.incomingMessageId()).isEqualTo(secondIncomingMessageId);
+        }
+
+        @Nested
+        @DisplayName("verify() with no key set cached")
+        @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
+        class VerifyWithNoKeySetCached {
+
+            @Test
+            @DisplayName("when the key-set endpoint fails the connection - then "
+                    + "CallerVerificationUnavailableException is thrown")
+            void whenKeySetEndpointUnreachableAndNoKeySetCached_thenThrowsCallerVerificationUnavailableException() {
+                LedgerJwksStubs.stubKeySetUnreachable();
+                String bearer = CallerTokens.bearer(USER_ID, INCOMING_MESSAGE_ID);
+
+                assertThatThrownBy(() -> verifier.verify(bearer))
+                        .isInstanceOf(CallerVerificationUnavailableException.class);
+            }
+
+            @Test
+            @DisplayName("when the key-set endpoint answers slower than jwksTimeout - then "
+                    + "CallerVerificationUnavailableException is thrown")
+            void whenKeySetEndpointSlowerThanTimeoutAndNoKeySetCached_thenThrowsWithinTimeoutPlusMargin() {
+                Duration timeout = properties.jwksTimeout();
+                LedgerJwksStubs.stubKeySetDelayed(timeout.plusSeconds(5));
+                String bearer = CallerTokens.bearer(USER_ID, INCOMING_MESSAGE_ID);
+
+                Instant start = Instant.now();
+                assertThatThrownBy(() -> verifier.verify(bearer))
+                        .isInstanceOf(CallerVerificationUnavailableException.class);
+                Duration elapsed = Duration.between(start, Instant.now());
+
+                assertThat(elapsed).isLessThan(timeout.plus(Duration.ofSeconds(2)));
+            }
         }
     }
 }

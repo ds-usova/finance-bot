@@ -4,8 +4,11 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.application.port.PurgeMessagesPort;
+import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 
 public class PurgeMessagesUseCase implements PurgeMessagesPort {
 
@@ -17,7 +20,13 @@ public class PurgeMessagesUseCase implements PurgeMessagesPort {
 
     public PurgeMessagesUseCase(
             MessageStorePort messageStorePort, Clock clock, Duration maxAge, int batch, LoggerFactory loggerFactory) {
-        // refuses a zero or negative maxAge or batch as InvalidValueException, so a bad purge config fails at startup
+        if (maxAge.isZero() || maxAge.isNegative()) {
+            throw new InvalidValueException("maxAge must be positive");
+        }
+        if (batch <= 0) {
+            throw new InvalidValueException("batch must be positive");
+        }
+
         this.messageStorePort = messageStorePort;
         this.clock = clock;
         this.maxAge = maxAge;
@@ -27,7 +36,15 @@ public class PurgeMessagesUseCase implements PurgeMessagesPort {
 
     @Override
     public void purge() {
-        // deletes rows received before clock.now() - maxAge in batches of `batch` until a batch deletes none,
-        // logging a store failure at WARN and leaving the next run to try again
+        Instant cut = clock.instant().minus(maxAge);
+
+        try {
+            int deleted;
+            do {
+                deleted = messageStorePort.deleteReceivedBefore(cut, batch);
+            } while (deleted > 0);
+        } catch (MessageStoreFailedException e) {
+            log.warn("Purge failed, retrying on next run: {}", e.getMessage());
+        }
     }
 }

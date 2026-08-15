@@ -531,27 +531,27 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `MessageIdentity` · test: `MessageIdentityTest`
-- [ ] GU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU01
-- [ ] GU03 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU01, GU02
-- [ ] GU04 · `PurgeMessagesUseCase` · test: `PurgeMessagesUseCaseTest`
+- [x] GU01 · `MessageIdentity` · test: `MessageIdentityTest`
+- [x] GU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · after: GU01
+- [x] GU03 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU01, GU02
+- [x] GU04 · `PurgeMessagesUseCase` · test: `PurgeMessagesUseCaseTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `JdbcMessageStoreAdapter` · test: `JdbcMessageStoreAdapterTest` · after: GU01
-- [ ] GI02 · `CallerTokenVerifier` · test: `CallerTokenVerifierTest` · after: GU01
-- [ ] GI03 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `IntentExtractionService/ExtractIntents` ·
+- [x] GI01 · `JdbcMessageStoreAdapter` · test: `JdbcMessageStoreAdapterTest` · after: GU01
+- [x] GI02 · `CallerTokenVerifier` · test: `CallerTokenVerifierTest` · after: GU01
+- [x] GI03 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `IntentExtractionService/ExtractIntents` ·
   mocks: `ExtractIntentsPort`, `CallerTokenVerifier` · after: GU01
-- [ ] GI04 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] GI04 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService/ExtractIntents` · mocks: `ExtractIntentsPort`, `CallerTokenVerifier` · after: GU01, GU02, GI03
 
 `NoMessageStoreAdapter` has no green step: ST07 writes it whole, and it carries no logic.
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `RegisterMessageSystemTest` · covers: `IntentExtractionService/ExtractIntents`
-- [ ] GS02 · `PurgeMessagesSystemTest` · covers: `MemoryPurgeScheduler.run()`
-- [ ] GS03 · `MemoryHealthSystemTest` · covers: `GET /actuator/health`
+- [x] GS01 · `RegisterMessageSystemTest` · covers: `IntentExtractionService/ExtractIntents`
+- [x] GS02 · `PurgeMessagesSystemTest` · covers: `MemoryPurgeScheduler.run()`
+- [x] GS03 · `MemoryHealthSystemTest` · covers: `GET /actuator/health`
 
 ### Post-Implementation Steps
 

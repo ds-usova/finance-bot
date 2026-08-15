@@ -7,6 +7,8 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.value.MessageIdentity;
 
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
@@ -27,9 +29,7 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             throw new InvalidValueException("Command must not be null");
         }
 
-        // TODO: register the message under the command's identity, when present, before the expense is recorded;
-        // a MessageStoreFailedException is logged once at WARN naming the user id and message id (never the text)
-        // and swallowed, so the turn goes on and the INFO line below is still logged
+        command.messageIdentity().ifPresent(identity -> registerMessage(identity, command.text()));
 
         expenseRecordingPort.record(
                 command.text(),
@@ -41,5 +41,13 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
         log.info(
                 "Acted on turn with {} groupings offered",
                 command.categoryGroupings().size());
+    }
+
+    private void registerMessage(MessageIdentity identity, String text) {
+        try {
+            messageStorePort.register(identity, text);
+        } catch (MessageStoreFailedException e) {
+            log.warn("Failed to register message {} for user {}", identity.incomingMessageId(), identity.userId());
+        }
     }
 }

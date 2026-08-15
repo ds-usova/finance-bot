@@ -39,8 +39,9 @@ public record ExtractIntentsCommand(
         if (currentDate == null) {
             throw new InvalidValueException("Current date must not be null");
         }
-        // TODO: refuse a null messageIdentity Optional as InvalidValueException, the same rule defaultCurrency
-        // follows
+        if (messageIdentity == null) {
+            throw new InvalidValueException("Message identity Optional must not be null");
+        }
 
         categoryGroupings = List.copyOf(categoryGroupings);
     }

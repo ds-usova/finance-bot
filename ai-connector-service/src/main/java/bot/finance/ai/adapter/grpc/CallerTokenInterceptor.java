@@ -2,6 +2,9 @@ package bot.finance.ai.adapter.grpc;
 
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc;
 import bot.finance.ai.adapter.security.CallerTokenVerifier;
+import bot.finance.ai.domain.exception.CallerNotIdentifiedException;
+import bot.finance.ai.domain.exception.CallerVerificationUnavailableException;
+import bot.finance.ai.domain.value.MessageIdentity;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Metadata;
@@ -36,10 +39,21 @@ public class CallerTokenInterceptor implements ServerInterceptor {
             return new ServerCall.Listener<>() {};
         }
 
-        // TODO: when the verifier is present and the call is IntentExtractionService, verify the token and put
-        // the identity in context, closing the call as UNAUTHENTICATED or UNAVAILABLE on a domain exception
-
         Context context = Context.current().withValue(CallerTokenContext.CALLER_TOKEN, token);
+
+        if (callerTokenVerifier.isPresent() && isIntentExtractionService(call)) {
+            try {
+                MessageIdentity identity = callerTokenVerifier.get().verify(token);
+                context = context.withValue(CallerTokenContext.MESSAGE_IDENTITY, identity);
+            } catch (CallerNotIdentifiedException e) {
+                call.close(Status.UNAUTHENTICATED.withDescription(e.getMessage()), new Metadata());
+                return new ServerCall.Listener<>() {};
+            } catch (CallerVerificationUnavailableException e) {
+                call.close(Status.UNAVAILABLE.withDescription(e.getMessage()), new Metadata());
+                return new ServerCall.Listener<>() {};
+            }
+        }
+
         return Contexts.interceptCall(context, call, headers, next);
     }
 
