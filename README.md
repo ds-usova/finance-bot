@@ -59,7 +59,8 @@ System_Boundary(financeBot, "Finance Bot") {
   Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates, persists, confirms")
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Speech to text")
   Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Reads a message with the model")
-  ContainerDb(db, "Database", "PostgreSQL + pgvector", "A database per service")
+  ContainerDb(ledgerDb, "Ledger Database", "PostgreSQL, wal_level=logical", "Users, expenses; a replication slot")
+  ContainerDb(connectorDb, "Connector Database", "PostgreSQL, pgvector", "The messages received")
   ContainerQueue(changeStream, "Change Stream", "Redis", "Ledger row changes")
 }
 
@@ -78,9 +79,9 @@ Rel_L(transcriber, ledger, "Transcript", "REST")
 Rel_R(ledger, aiConnector, "Message + token", "gRPC")
 Rel_L(aiConnector, ledger, "Tool calls, key set", "MCP, HTTP")
 Rel_R(aiConnector, aiProvider, "Extraction", "HTTPS")
-Rel_D(aiConnector, db, "Messages", "JDBC")
-Rel_D(ledger, db, "Users, expenses", "JDBC")
-Rel_U(db, ledger, "Row changes", "logical replication")
+Rel_D(aiConnector, connectorDb, "Messages", "JDBC")
+Rel_D(ledger, ledgerDb, "Users, expenses", "JDBC")
+Rel_U(ledgerDb, ledger, "Row changes", "logical replication")
 Rel_D(ledger, changeStream, "Row changes", "RESP")
 
 SHOW_LEGEND()
@@ -89,13 +90,14 @@ SHOW_LEGEND()
 
 ## Services
 
-| Container             | Stack                        | Responsibility                                                                    | Docs                                     | Ports |
-|-----------------------|------------------------------|-----------------------------------------------------------------------------------|------------------------------------------|-------|
-| Web App               | TypeScript, React, nginx     | Telegram sign-in and browsing the ledger                                          | [README](web-app/README.md)              | 1003  |
-| Ledger Service        | Java, Spring Boot            | Orchestration, persistence, Telegram integration                                  | [README](ledger-service/README.md)       | 1000  |
-| Transcription Service | Python, FasterWhisper        | Speech-to-text                                                                    | -                                        | -     |
-| AI Connector Service  | Java, Spring Boot, Spring AI | Structured expense extraction from text                                           | [README](ai-connector-service/README.md) | 1001  |
-| Database              | PostgreSQL + pgvector        | A database per service: the ledger's users and expenses, the connector's messages | -                                        | 5432  |
+| Container             | Stack                           | Responsibility                                   | Docs                                                            | Ports |
+|-----------------------|---------------------------------|--------------------------------------------------|-----------------------------------------------------------------|-------|
+| Web App               | TypeScript, React, nginx        | Telegram sign-in and browsing the ledger         | [README](web-app/README.md)                                     | 1003  |
+| Ledger Service        | Java, Spring Boot               | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)                              | 1000  |
+| Transcription Service | Python, FasterWhisper           | Speech-to-text                                   | -                                                               | -     |
+| AI Connector Service  | Java, Spring Boot, Spring AI    | Structured expense extraction from text          | [README](ai-connector-service/README.md)                        | 1001  |
+| Ledger Database       | PostgreSQL, `wal_level=logical` | Users and expenses                               | [contract](ledger-service/docs/contracts/out/database.md)       | 5432  |
+| Connector Database    | PostgreSQL, pgvector            | The messages received                            | [contract](ai-connector-service/docs/contracts/out/database.md) | 5432  |
 
 Container definitions live in [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml); how the
 stack is set up is [`infrastructure/README.md`](infrastructure/README.md).
