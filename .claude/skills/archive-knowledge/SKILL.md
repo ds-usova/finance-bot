@@ -1,6 +1,6 @@
 ---
-description: Turn finished work into the documentation that outlives it — per-service use-case docs with diagrams, the in/out contracts with other systems, the conventions it invalidated, and the ADRs for the decisions it made. Takes an implemented plan or a finished rework. Writes files and reports back; narrates nothing.
-argument-hint: [ an implemented plan or rework file path ]
+description: Turn finished work into the documentation that outlives it — per-service use-case docs with diagrams, the in/out contracts with other systems, the conventions it invalidated, and the ADRs for the decisions it made. Takes an implemented plan, a finished rework, or a fixed bug. Writes files and reports back; narrates nothing.
+argument-hint: [ an implemented plan, rework, or bug file path ]
 ---
 
 # Archive Knowledge
@@ -31,10 +31,11 @@ Each is new or updated in place. A second file on the same subject is a defect.
 1. **The finished work**, and how to read it. Two kinds arrive here, and each answers this run's inputs, its
    gate, its inventory and its ADR authorization differently:
 
-   | Handed a    | Read                                       |
-   |-------------|--------------------------------------------|
-   | `plan.md`   | [`from-plan.md`](from-plan.md), beside this file   |
+   | Handed a    | Read                                                 |
+   |-------------|------------------------------------------------------|
+   | `plan.md`   | [`from-plan.md`](from-plan.md), beside this file     |
    | `rework.md` | [`from-rework.md`](from-rework.md), beside this file |
+   | `bug.md`    | [`from-fix.md`](from-fix.md), beside this file       |
 
    Read the one that matches before anything else, and treat it as part of these instructions. A file that is
    neither: report that and write nothing.

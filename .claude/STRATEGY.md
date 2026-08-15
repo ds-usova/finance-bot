@@ -38,6 +38,21 @@ that is already green is the safety net, and every guardrail it has exists to ke
 approves what the change does, a model executes how it is built. A rework decides nothing a person approves
 that a model does not also execute, so a handoff between the two would carry an empty file.
 
+`fix-bug` is the third line, for behaviour the repository already promises and does not deliver. It has three
+kinds of step and no others: `stabilize` moves whatever has to exist first, `red` is one test that reproduces
+the bug, `green` is the code that makes it pass. **A bug closed without a test that first failed on its symptom
+is a bug closed on someone's word**, so the pairing is compulsory and `fix.sh` refuses a `green` step that names
+no `red` one.
+
+It splits its files the way a task splits its plans, and for the same reason — `bug.md` holds the symptom, the
+reproduction and the diagnosis, and one `fix.md` per module holds that module's steps. The seam between two
+services is a `shared/fix.md` of `stabilize` steps, landed alone before any module agent starts.
+
+**What is new is the attempt log.** Every approach that failed is written into `## Attempts` the moment it fails,
+with the output that killed it and what it rules out. Debugging is the one phase where most of the work produces
+no diff, so a run stopped halfway otherwise leaves nothing — and the next session starts by trying what the last
+one already disproved.
+
 **Each phase's output is the whole handoff.** The next phase starts in a fresh context and reads the file, not
 the conversation. A design a cold session cannot plan from was underspecified; a plan a cold agent cannot
 implement was underspecified. Discovering that is the point of the split, not a cost of it.
@@ -138,6 +153,10 @@ The framework parallelizes at three levels, and each level only coordinates the 
 | task  | one plan each | the seam has landed, and the machine's limit allows     |
 | plan  | one stage     | never — stages are sequential and gated                 |
 | step  | one bundle    | the plan's `after:` graph and the module's cap allow it |
+
+`fix-bug` parallelizes at two of those levels, not three: one `fix-bug-module` agent per module fix, and no step
+agents under it. A fix is a handful of steps built on one diagnosis, and that diagnosis is exactly the context a
+fresh step agent would not have.
 
 A frontend and a backend implementing the same feature are two plans and run at once. What has to happen before
 they can is the whole shape of a task run:
