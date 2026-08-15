@@ -85,10 +85,9 @@ were rather than stopping on them.
   time".** One run cannot tell the two branches below apart, and which branch this is governs every gate that
   follows.
 - **There is nothing to run yet**, because the symptom is only visible through a test nobody has written.
-  **Write that test now, as a probe**, under the probe rules in Phase 1. Its failure is the reproduction, its
-  output is what gets quoted, and it is reverted with every other probe. Phase 3 writes it again as the `red`
-  step, from the file rather than from memory. **This is not the `red` step arriving early**: nothing is
-  committed, and the fix is still approved before a source file is kept.
+  **Write that test now, as a probe**, under the probe rules in Phase 1, which say what becomes of it.
+  **This is not the `red` step arriving early**: nothing is committed, and the fix is still approved before a
+  source file is kept.
 - **It fails sometimes**: run it enough times to see it fail twice, and record both numbers — failures and
   runs. That pair is the rate, and it governs the rule below.
 - **It does not reproduce here, and could**: stop and say so, with what was run and what happened instead. Ask
@@ -130,12 +129,19 @@ commands. A probe written to reproduce the bug is reverted first, so this measur
 
 **A skipped count is only comparable against the same machine in the same state.** Where a module's conventions
 say its suite skips whole classes when something is absent — a container runtime, a credential — record that
-state beside the counts. A change in it between here and Phase 4 is a re-baseline, not a failure, and the
-report says it happened.
+state beside the counts.
 
-**A measurement is not repeated over an unchanged tree.** Where a whole-suite run already answers for the commit
-this starts from, its figures are read rather than taken again. The condition is checkable: whoever is about to
-run knows what has been written since. This holds at every gate in this skill.
+**Only a state recorded here can explain a count later**, and only for the classes those conventions name. A
+skipped count above the baseline is otherwise a test some step turned off and nothing turned back on, which is
+a failure and never a re-baseline. Where the state really did change, the honest answer is to restore it and
+measure again; a re-baseline is what happens when it cannot be restored, and the report says which.
+
+**This baseline is not re-measured over an unchanged tree.** Where a whole-suite run already answers for the
+commit this starts from, and nothing has been written since, its figures are read rather than taken again.
+
+**This is the baseline and nothing else.** Every guardrail after it gates a change that has just been written,
+so each one runs. A run that declines a guardrail because it believes nothing relevant moved is a run with no
+guardrails, and under concurrent module agents it cannot know what moved anyway.
 
 ## Phase 1 — Diagnose, and Write the Files
 
@@ -197,6 +203,12 @@ services can usually be cut in either of them, and the two fixes are not equival
 behaving exactly as its contract says is not the bug, however clearly the cause passes through it — changing it
 is a design change, and it goes to `design-task`. Say which cut was chosen in `## Why it happens`, and name the
 one rejected.
+
+**Where every module matches its own contract and the outcome is still wrong, the contracts disagree with each
+other.** That is a real bug, and the promise it breaks is the one a page states about the system rather than
+about a module: a use case's **Outcomes**, or what a caller was told would happen. Name that page as the promise
+broken. **Where no page states it either, stop here** — nothing was promised, so this is design work, and
+writing the files first only to ask afterwards wastes the writing.
 
 Write these files under the repository's documentation conventions like any other document.
 
@@ -325,6 +337,17 @@ compiling. It is a `fix.md` in every other respect, and its header names every m
 handler that schema declares does not — the module serving it fixes it in its own file, and the consumer's own
 `red` step drives its side at its own test boundary.
 
+**A seam with no file still needs this one, and that is the case it matters most in.** Where the shape crossing
+between two modules is published over a protocol rather than held in a schema, no call site breaks, both
+modules compile throughout, and each side's tests pass against its own idea of the shape. The consumer's
+stand-in is taught the new shape by a `stabilize` step; the producer's `green` step then emits whatever it
+emits. **Both modules go green while disagreeing, and nothing in this skill would notice.**
+
+**So the agreed shape is written down before either module starts.** That is `shared/fix.md`'s step: a
+`stabilize` step whose `files:` names the contract page or the schema, stating exactly what the producer will
+send and the consumer will expect. Each module's steps are then held to a written shape rather than to each
+other, and Phase 4 reads both sides against it.
+
 **A reproduction runs inside one module.** Where the bug only shows with two services really running, it belongs
 to the module that owns the entry point, with the counterpart at whatever boundary that module's conventions give
 its integration tests: a stub server, a test broker. **Where no module can host it, the fix stops here**, on
@@ -350,6 +373,10 @@ into its file as its `- A:`.
 **Do not touch a source file until the user asks for the steps to be applied.** A step whose kind the user
 disputes is re-classified in the file first.
 
+**A fix the user turns down here has nothing to revert and is not archived.** Write the answer into the file
+that killed it, leave the directory where it is, and say in the report that it is closed and why. **Then say so
+in `bug.md`'s title line**, so the next run's resume scan sees a decided bug rather than an interrupted one.
+
 **A fix that settles a decision worth recording asks here whether to record it**, as a numbered Open Question
 like any other. An answered `yes` is what authorizes the archiving pass to write it down. Most bug fixes settle
 none and ask nothing.
@@ -364,13 +391,13 @@ it and no step schedules it.
 
 1. **`shared/fix.md`, alone**, where the directory holds one. It is applied by its own `fix-bug-module` agent,
    given every module on the seam, and nothing else starts until it lands. Its exit condition is that every one
-   of those modules compiles, passes whatever its conventions name as the check on its layering rule, and still
-   has the suite phase 0 measured. A module whose conventions name no such check owes the other two. A blocked
+   of those modules compiles, passes whatever its conventions name as the check on its layering rule, and has
+   the suite phase 0 measured plus exactly the tests its own `disables:` lines turned off. A module whose conventions name no such check owes the other two. A blocked
    shared fix stops the run here, with no module agent started.
 
-   **Write it only where the contract change breaks something.** A schema edit that changes a description, an
-   example or a comment regenerates identical code and stabilizes nothing, so it belongs in `files:` of the step
-   that needs it. A shared file is there for call sites that will not compile.
+   **Write it where anything crosses that both modules must agree on** — a schema they build from, or a shape
+   only a protocol carries. A schema edit that changes a description, an example or a comment, and that no
+   module's steps depend on agreeing about, belongs in `files:` of the step that needs it. A shared file is there for call sites that will not compile.
 2. **One `fix-bug-module` sub-agent per `fix.md`**, spawned concurrently. Each is given its own file path, its
    module's phase-0 figures, and the conventions its module names. Nothing waits: the shared file landed
    everything that crosses, so the module fixes are independent by construction.
@@ -474,12 +501,17 @@ When every agent has returned:
    the skipped count back to phase 0's. Anything red or still disabled names the step that left it, and the
    directory is not archived. A behaviour from **What the fix must not break** that could not be kept, and a step
    abandoned, are reported here rather than filed.
-3. **The diff says what the steps claimed.** Read the diff from the `**Baseline:**` commit and check two things
-   against the fix files, both of which cost one read and neither of which any agent can report its way past:
+3. **The diff says what the steps claimed.** Read the diff from the `**Baseline:**` commit and check three
+   things against the fix files. They cost one read, and they are the only claims in this skill an agent's own
+   report cannot settle:
 
    - **Every test file the diff touches is named in some step's `test-files:`.** A test changed under no step
      is a `green` step that edited its own proof, which is the one edit this skill exists to prevent. It is
      reported as a defect whatever the suite says.
+   - **What each step actually changed is inside what it named.** A `test-files:` listing more than the step
+     needed passes the check above and defeats it, so read the list against the diff rather than the other way
+     round. A test-support file — a stub, a fixture, a builder — is a test file for this purpose, and belongs
+     to the `stabilize` step that prepared it or the `red` step that needed it.
    - **Where the conventions commit, each `red` step's commit carries no production file**, and lands before
      the `green` step that names it. That is the only durable evidence the reproduction preceded the fix.
 
@@ -533,7 +565,8 @@ rewrites it removes the evidence. Say so in the prompt.
 **The diff is one module's, so a fix spanning two gets one pass each**, under that module's own conventions —
 never one pass across two stacks, which is a diff no single set of refactoring conventions describes.
 
-The suite runs over the result before anything else in this phase.
+**Run the suite again once the agent returns**, before the phase continues. This pass is the last edit the fix
+receives and the only one no step's own run covered.
 
 ## Version Control
 

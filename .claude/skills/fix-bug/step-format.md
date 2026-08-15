@@ -48,9 +48,9 @@ under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a 
 | `needs:`      | any                  | what must already be true for this step's run to be green               |
 | `docs:`       | any                  | the pages this step invalidates                                         |
 
-**`green` carries no `test-files:`.** The test was written by the `red` step and stays as it was written. A
-`green` step that cannot pass without changing it goes back to the user: the reproduction was wrong, and the
-diagnosis rests on it.
+**`green` carries no `test-files:`.** A fix proven by a test the same step edited is proven by nothing. The test
+was written by the `red` step and stays as it was written. A `green` step that cannot pass without changing it
+goes back to the user: the reproduction was wrong, and the diagnosis rests on it.
 
 **`reproduces:` names the symptom, not the assertion.** "The second call charges the account twice" is the
 symptom. `assertEquals(1, charges.size())` is how a test says it, and how it says it is `runs:`. The symptom is
@@ -70,6 +70,12 @@ either step runs. The order the kinds run in is the skill's, and it is the same 
 
 **Together `files:` and `test-files:` are the boundary.** Anything outside them is another step's, or another
 fix's.
+
+**A path is written from the repository root**, so a step in one module's file and a step in another's read the
+same way.
+
+**A `stabilize` step may carry no `files:` at all.** Preparing a stub, a fixture or a builder so the `red` step
+can be written is what the kind is for, and that work is all `test-files:`.
 
 **A step lives in the file of the module it edits.** A bug crossing two services has a `stabilize` step in
 `shared/fix.md` for the contract, and its own `red` and `green` steps in each module's file.

@@ -79,11 +79,13 @@ back to the level that owns the file. It never widens into a behaviour change.
 - **A `stabilize` step that has to change what something does** is a `green` step in disguise, and the fix file
   is corrected before it is applied.
 
-Each of these reverts the step, writes the attempt, and puts it back to the user. **The one refusal that does
-not revert is the second cause above**: that step is right and unfinished.
+Each of these reverts the step, writes the attempt, and puts it back to the user.
+
+**A symptom surviving a correct `green` step is the one case that does not revert**, and it is not in that list:
+the step is right and unfinished, and undoing it would lose a correct fix.
 
 ## One thing looks like a refusal and is not
 
 **A `green` step that failed twice and landed on the third approach** is a normal step with two attempts logged.
-The log is where those go, and the report says how many. Three *failures* is where the step stops and goes back
-to the user.
+The log is where those go, and the report says how many. The count at which a step stops instead is
+`attempts.md`'s.

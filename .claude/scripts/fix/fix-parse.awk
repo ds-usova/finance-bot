@@ -115,8 +115,10 @@ BEGIN {
     takes["needs"]       = "*"
     takes["docs"]        = "*"
 
-    # What each kind cannot be written without.
-    requires["stabilize"] = "files"
+    # What each kind cannot be written without. A stabilize step owes one of "files:" and
+    # "test-files:" rather than either in particular: preparing a stub so the red step can be
+    # written is the kind's own work, and touches no production file.
+    requires["stabilize"] = ""
     requires["red"]       = "test-files reproduces runs"
     requires["green"]     = "files fixes runs"
 
@@ -411,6 +413,10 @@ END {
             if (!((id "\t" need[j]) in seen)) {
                 problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step and owes \"" need[j] ":\"")
             }
+        }
+        if (k == "stabilize" && !((id "\tfiles") in seen) && !((id "\ttest-files") in seen)) {
+            problem(FILENAME ":" start_line[id] ": " id " names neither \"files:\" nor \"test-files:\"" \
+                    " - a stabilize step that touches nothing stabilizes nothing")
         }
         match(id, /^[A-Za-z]+/)
         if (substr(id, 1, RLENGTH) != prefix_of[k]) {

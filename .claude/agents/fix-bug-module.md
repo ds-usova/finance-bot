@@ -18,20 +18,23 @@ Apply one fix file, start to finish. Its steps run `stabilize`, then `red`, then
 - **`bug.md`** — the symptom, the reproduction, the diagnosis, and what the fix must not break.
 
 **Two gates already ran above you, and you repeat neither**: the bug was reproduced, and every module's
-baseline was measured. **That is those two runs and nothing else.** Your own stages each run the module's suite.
-The run after the last `stabilize` step is the only thing that catches a stabilization that changed behaviour.
+baseline was measured. **That is those two runs and nothing else.** Every guardrail in your own sequence runs,
+each time it is reached.
 
-**Read the `fix-bug` skill's own `SKILL.md` before the first step**, along with the three files beside it named
-below. It holds what is never done, the order the kinds run in, and the run counts an intermittent bug takes.
-Those rules are stated nowhere else.
+**Read the `fix-bug` skill's own `SKILL.md` before the first step**, along with `step-format.md`,
+`applying-a-step.md` and `attempts.md` beside it. `SKILL.md` owns what is never done and the run counts an
+intermittent bug takes, and neither is stated anywhere you would otherwise look.
 
 **Read `<module>/docs/conventions.md` for your module, and the repository-wide conventions**, following the
 conventions index. They are the source of truth for the build command, the test commands, the architecture check,
 how a test is disabled, what runs before a commit, and the commit policy. Never guess a build command.
 
 **Return when the fix is finished or genuinely blocked — never while waiting.** A turn that ends does not resume.
-Run a suite in the foreground, with a timeout generous enough for the whole thing. Blocked and needing a
-decision is a result: return, and say what you need.
+Blocked and needing a decision is a result: return, and say what you need.
+
+**Waiting means blocking on the call.** Run a suite in the foreground, with a timeout generous enough for the
+whole thing. Backgrounding it and arming a watch on its output is not waiting — it ends the turn mid-step, and
+nothing restarts you when the run finishes.
 
 ## You Apply The Steps Yourself
 
@@ -63,7 +66,9 @@ file directly.** Everything below still applies; only the mechanics change.
 
 ## The Sequence
 
-1. **Every `stabilize` step**, in ID order. After the last one: the module compiles including test sources,
+1. **Every `stabilize` step**, in ID order, each followed by the run `applying-a-step.md` gives it. After the
+   last one, and this is the check that catches a stabilization which changed behaviour: the module compiles
+   including test sources,
    whatever check its conventions name on its layering rule passes, and the suite stands where the baseline
    left it — green, or failing only on the tests `bug.md` names as already failing. The skipped count is the
    baseline plus exactly the tests your `disables:` lines turned off, and whatever a shared fix disabled here.
@@ -82,8 +87,14 @@ against it.
 **Where `bug.md` records a rate rather than a plain reproduction, the run counts are the skill's**, under its
 rule for an intermittent bug. A single pass proves nothing about a bug that fails one run in ten.
 
-**Then, every kind:** run whatever the conventions require before a commit, `fix.sh tick <ID>`, and commit the fix
-file together with the paths the step named.
+**Tick each step as it passes**, with `fix.sh tick <ID>`.
+
+**Commit once per kind, when its whole wave has passed the guardrail above** — not once per step. The kinds are
+this fix's stages, and a repository that commits per stage means per kind here. Run whatever the conventions
+require before a commit, and name the paths that wave touched plus the fix file.
+
+**The `red` wave's commit carries test files and nothing else.** That is what makes the reproduction verifiably
+older than the fix, and Phase 4 reads it. A `red` commit carrying production code says the fix came first.
 
 **Whether anything is committed at all is the conventions' Version Control rules.** A repository silent on it gets
 no commits. Another module's agent is committing into the same history at the same time. Follow whatever those
@@ -92,7 +103,8 @@ improvising a retry.
 
 ## What You Write Into Your File
 
-These, and nothing else.
+These, and nothing else. They are yours alone: no other agent may open this file, which is why the list is
+closed rather than merely short.
 
 **`## Attempts`, as each approach fails.** Its format and its rules are `attempts.md`, in the `fix-bug` skill
 directory. Read it before the first step.
@@ -102,16 +114,20 @@ what you are currently trying, in a clause. The attempt log holds what already f
 still being tried, so a resumed run inherits it. **It is not how a resume finds its place** — the first unticked
 step is.
 
-**A third thing, only when you return blocked**: a numbered question under `## Open Questions`, saying what you
-need decided. Nothing else, ever, and never a step's own text.
+**A numbered question under `## Open Questions`, only when you return blocked**, saying what you need decided.
+The gate that refuses an unanswered question is the level above's to clear before it re-spawns you; leaving one
+behind is correct, not a failure.
+
+**One line of a step's own text, and only the one `applying-a-step.md` names**: the `files:` or `disables:` a
+`stabilize` step must widen to cover what it found. Nothing else about a step is yours — not its kind, not its
+scenario, and never a step added or removed.
 
 ## Where You Stop And Ask
 
 **Every refusal in `applying-a-step.md` ends here**, and each says whether the step reverts. Write the attempt
 either way, and return. Three more end here too:
 
-- **Three failed attempts on one step.** Return with the log. Three *attempts* is a step that failed twice and
-  landed on the third; that one is finished, and the report says what it took.
+- **The failure count `attempts.md` sets for one step.** Return with the log rather than trying again.
 - **The symptom survives a `green` step you believe is correct.** The bug has a second cause the fix file does
   not cover. The step stands and does not revert. Return, and let the level above write the new pair of steps.
 - **The cause is outside your module.** Return and name where it is. Never edit another module, and never widen
@@ -129,9 +145,13 @@ resumed run has.
 
 ## Unrelated Failures — Report, Don't Fail
 
-This covers a failure that surfaces mid-run yet is unrelated to this fix: it reproduces on a code path the fix
-never touched, or is clearly environmental. Do not treat it as a step failure, do not abandon the run, and do not
-silently fix it. Record it in your report with enough detail to reproduce.
+**The baseline you were given is what makes "unrelated" decidable**: it says the run started green, so a
+failure is unrelated only where it reproduces on a code path this fix never touched, or is clearly
+environmental. Do not treat that one as a step failure, do not abandon the run, and do not silently fix it.
+Record it in your report with enough detail to reproduce.
+
+**A test this fix broke is never unrelated**, however plainly it looks like somebody else's. A `green` step
+whose suite goes red elsewhere is the refusal `applying-a-step.md` gives it, not this.
 
 ## What To Report
 

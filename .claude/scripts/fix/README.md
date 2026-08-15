@@ -58,9 +58,8 @@ used. A `bug.md` is always named explicitly — `validate` reads it for its Atte
 archived file under `docs/implemented/`, or one of two fixes in flight at once.
 
 **`tick` writes, so it refuses anything but a `fix.md`.** The kinds cannot tell the formats apart — a rework's
-steps have kinds of their own and one of them is also called `stabilize` — so only the name does. `status` and
-`validate` read, and say so before answering for a file under another name. `status` also refuses a file that
-defines no steps at all.
+steps have kinds of their own and one of them is also called `stabilize` — so only the name does. The reading
+commands say so and answer anyway. `status` also refuses a file that defines no steps at all.
 
 ### Step IDs
 
@@ -81,6 +80,7 @@ value on its own line.
 | An ID whose prefix contradicts its kind                            | a `red` step numbered `G02`, which every report then misreads           |
 | A labelled line the kind does not take                             | `test-files:` on a `green` step, which is the one thing it may not edit |
 | A labelled line the kind owes and does not carry                   | a `red` step with no `reproduces:`, a failure nobody named              |
+| A `stabilize` step naming neither `files:` nor `test-files:`       | a step that stabilizes nothing                                          |
 | A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                                       |
 | A `files:` or `test-files:` with no bullet under it                | a boundary that names nothing                                           |
 | `needs:` or `fixes:` naming a step nothing defines                 | a green step paired with a reproduction that was dropped                |

@@ -53,9 +53,7 @@ Since each file numbers its own, anything outside the file cites both: `module-a
 of two causes leaves the symptom, so it gets an entry: `result: failed — the symptom survived`, and a
 `ruled-out:` saying which cause is now gone. That entry is what turns one step into two.
 
-**A probe that made the bug observable is not an entry either, and it is not lost.** Where the fix needs it
-again, it becomes a `stabilize` step. Where it does not, the diagnosis link it established says how it was
-established.
+**A probe that made the bug observable is not an entry either.** What becomes of it is the skill's Phase 1.
 
 **Evidence is pasted, never described.** The stack trace, the assertion diff, the compiler error, the exit
 status — whatever the tool actually printed. Trim it to the frames that carry the failure; never rewrite them.
@@ -73,5 +71,5 @@ the first.
 **An attempt whose failure changed the tree is reverted before the next one starts.** Where it was not — a schema
 left migrated, a dependency left added — the entry says so.
 
-**The log is not the whole record of a stopped run.** It holds what failed; the fix file's `**In flight:**` line
-holds the approach still being tried. Neither answers for the other.
+**The approach still being tried is not an entry.** It belongs on the fix file's `**In flight:**` line, whose
+rules are the skill's.
