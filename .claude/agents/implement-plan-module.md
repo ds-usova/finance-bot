@@ -123,8 +123,9 @@ not cover, rather than improvising a scope or a retry.
 **Nothing precedes Stage 1 for you.** The readiness gate and the baseline both ran above you, and what they
 produced is in **What You Are Given**. Start at Stage 1.
 
-**No automatic re-review.** A plan is reviewed once, by `plan-task`. Editing it afterwards triggers no second
-pass, not even when a mid-run blocker forces a change. Defects a review would have caught surface at the stage
+**No automatic re-review.** A plan is reviewed once, by `plan-task`; the readiness gate above you may offer the
+user one more before you start. Editing it afterwards triggers no second pass, not even when a mid-run blocker
+forces a change. Defects a review would have caught surface at the stage
 guardrails instead, against real compiler and test output. When a step agent reports a plan defect, record it
 under `### Open Questions / Blockers` and fix the plan text in place. Do not spawn a review to confirm it.
 

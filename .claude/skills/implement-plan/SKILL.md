@@ -66,6 +66,10 @@ opened. Check every plan in the task directory, `shared/plan.md` included:
   instead, and that passes.
 - If an `Action:` or `A:` prescribes a change to the plan's steps or scenarios, confirm the plan text was
   actually updated to match. A decision written next to a finding but never applied to the step is unresolved.
+- **A plan edited since its review is offered a re-review, never given one.** Where a step, scenario or
+  signature changed after the last **Review Findings** entry — an `Action:` applied by hand, an answer that
+  reshaped a step — say so once and ask, via `AskUserQuestion`, whether to spawn `review-plan` on it before
+  going on. Declined, the gate proceeds; accepted, its findings join the plan and are actioned like the rest.
 
 **One unready plan stops the task, with nothing started.** List what is unresolved and ask the user. If they
 resolve it in the conversation, write their answers into the plan file, apply the resulting step changes, and

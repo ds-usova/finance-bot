@@ -40,12 +40,13 @@ Duplicate IDs, items with no ID, `after:` naming an ID nothing defines, dependen
 given/when/then values, and `update:` bullets naming a test method that exists nowhere in the repository are its
 job — do not re-derive them by hand and do not report them again as findings.
 
-- Confirm every section required by `plan-task.md`'s **4. Plan Structure** is present, and in the fixed order —
+- Confirm every section required by the `plan-task` skill's **4. Plan Structure** (`skills/plan-task/SKILL.md`,
+  beside this agents directory) is present, and in the fixed order —
   including the `**Design:**` header line, and that it resolves to a file whose **Decisions** carry no
   `Basis: must-decide`.
 - Confirm the **Step-by-Step Implementation Map** nests correctly: the four `### <Group>` headings — Stabilization,
   Red Phase, Green Phase, Post-Implementation Steps — appear in that fixed order, and every `#### <Section>`
-  heading sits under the group `plan-task.md` assigns it to (e.g. no `TDD Unit Red Phase` section floating outside
+  heading sits under the group the `plan-task` skill assigns it to (e.g. no `TDD Unit Red Phase` section floating outside
   the Red Phase group, no stabilization section appearing under Green Phase).
 - Confirm every step under **TDD Unit Red Phase**, **TDD Integration Red Phase**, and **TDD System Test Red Phase**
   follows its mandated step format exactly (`<TargetClass>` · test: `<TestClass>` · covers: line — plus `mocks:`
@@ -147,7 +148,7 @@ State a finding once. A second finding that turns on the same fact says so and d
 open ones in front of the user. Eleven findings in one review is an unreadable inbox when nine of them have one
 possible answer. Classify by a single test:
 
-- **`mechanical`** — the fix is fully determined by something already written down: a rule in `plan-task.md`, a
+- **`mechanical`** — the fix is fully determined by something already written down: a rule in the `plan-task` skill, a
   module's conventions file, or the code as it exists. One correct outcome, no taste involved.
 - **`decision`** — resolving it means choosing between outcomes that are each defensible. What the system should
   do, what a value object should permit, which of two acceptable designs to take: a decision, however obvious the
@@ -172,9 +173,9 @@ ran.
 
 ## 4. Re-Reviews
 
-A plan is re-reviewed whenever it is materially edited after its first review (the `implement-plan` skill's
-plan-readiness gate triggers this). The session says so when it spawns or resumes this agent, and the plan's
-**Review Findings** section shows what the last pass settled. On a re-review:
+Nothing triggers a re-review by itself; a session spawns this agent again when the user asks for one after a
+material edit. The session says so when it spawns or resumes this agent, and the plan's **Review Findings**
+section shows what the last pass settled. On a re-review:
 
 - Judge the plan **as it now stands**. A finding already answered with a decision stands as decided; do not
   re-report it. One recorded as applied is likewise settled: report what the applied fix got wrong, never the
