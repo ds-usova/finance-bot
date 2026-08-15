@@ -1,6 +1,7 @@
 # [Conventions](../conventions.md) > Code Style
 
-Idioms for production code and guidance for refactoring.
+Idioms for production code and guidance for refactoring, on top of the repository-wide
+[Code Style](../../../docs/conventions/code-style.md).
 
 ## Production-Code Style
 
