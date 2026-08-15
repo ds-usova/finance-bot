@@ -3,10 +3,6 @@
 What was tried and did not work, written down as it happens. `## Attempts` is a section of `bug.md` and of every
 `fix.md`, and `fix.sh validate` reads it.
 
-A bug whose fix is obvious produces an empty log. A bug that is not produces the section this skill exists for:
-the next session — or the same one after the user stops it — starts from what has already been ruled out instead
-of trying it again.
-
 ## The entry
 
 ````
@@ -58,15 +54,13 @@ of two causes leaves the symptom, so it gets an entry: `result: failed — the s
 **Evidence is pasted, never described.** The stack trace, the assertion diff, the compiler error, the exit
 status — whatever the tool actually printed. Trim it to the frames that carry the failure; never rewrite them.
 An attempt whose failure produced no output says so in `evidence:` and quotes what it did produce: the query plan,
-the log line, the response body. `validate` refuses an `evidence:` with no fenced block under it, because an
-attempt without its output is a rumour the next session has to reproduce.
+the log line, the response body. `validate` refuses an `evidence:` with no fenced block under it.
 
 **`ruled-out:` is the value of the entry.** An attempt that rules nothing out says so, and names what it would
 take to settle the question.
 
-**Two failed attempts on one step is what the section expects.** The third failure is where the step stops and
-goes back to the user, because a fourth approach from inside the same context is the one most likely to repeat
-the first.
+**Two failed attempts on one step is what the section expects. The third failure is where the step stops and
+goes back to the user.**
 
 **An attempt whose failure changed the tree is reverted before the next one starts.** Where it was not — a schema
 left migrated, a dependency left added — the entry says so.

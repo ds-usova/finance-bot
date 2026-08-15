@@ -18,7 +18,7 @@ What a finished fix tells the user, once phase 4 is done.
 - **What is left where this fix came from**, in one line: `<that file> — 1 of 4 open (R1)`. It costs one read of
   that file.
 - Steps re-classified or abandoned, and why. **A fix abandoned entirely says what was reverted, what would not
-  revert, and what the log rules out** — that last is the whole value such a run produced.
+  revert, and what the log rules out.**
 - Defects found and not fixed.
 - **What the conventions' finished-work list did**, per entry — the pages rewritten from the `docs:` lines, and
   any page a step named that the pass left alone.

@@ -38,8 +38,8 @@ nothing restarts you when the run finishes.
 
 ## You Apply The Steps Yourself
 
-Unlike a plan's pipeline, you do the work rather than delegating each step. A fix's steps are built on one
-diagnosis, which a fresh step agent would not have. Splitting `red` from `green` across two agents loses it twice.
+You do the work rather than delegating each step. A fix's steps are built on one diagnosis, which a fresh step
+agent would not have.
 
 **Addressing the file.** Every step carries an ID (`R01`), and `fix.sh` is how you read and write them. It ships
 with the `fix-bug` skill at `scripts/fix/fix.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and

@@ -5,7 +5,7 @@ argument-hint: [ a bug report, a failing test, a stack trace, or a findings entr
 
 # Fix Bug
 
-Something the repository already does is wrong. Three kinds of step put it right, and no others.
+Three kinds of step put a bug right, and no others.
 
 | Kind        | What it does                                                                                               |
 |-------------|------------------------------------------------------------------------------------------------------------|
@@ -15,8 +15,8 @@ Something the repository already does is wrong. Three kinds of step put it right
 
 **Every fix ends with a `red` step that failed and a `green` step that made it pass.**
 
-**Everything that fails on the way is written down**, in the fix's `## Attempts` log, with the output it produced.
-That log is what a stopped run leaves behind, and what stops the next session repeating the last one.
+**Everything that fails on the way is written down**, in the fix's `## Attempts` log, with the output it
+produced.
 
 ## When Not To Use It
 
@@ -94,8 +94,7 @@ were rather than stopping on them.
 - **It fails sometimes**: run it enough times to see it fail twice, and record both numbers — failures and
   runs. That pair is the rate, and it governs the rule below.
 - **It does not reproduce here, and could**: stop and say so, with what was run and what happened instead. Ask
-  for the missing condition. Never write a fix for a bug nobody has seen fail. A `red` step for a symptom that
-  was guessed at will pass, and the run will call that a fix.
+  for the missing condition. Never write a fix for a bug nobody has seen fail.
 - **It cannot reproduce here at all** — it needs production data, a load level, or an environment this machine
   does not have. **Stop, and say what would be needed.** Report the diagnosis, and put the reproduction where a
   person can run it: a **Manual test** in a findings file, or a task to build the environment. Whether to fix it
@@ -147,9 +146,8 @@ step named there brings it back down.
 **This baseline is not re-measured over an unchanged tree.** Where a whole-suite run already answers for the
 commit this starts from, and nothing has been written since, its figures are read rather than taken again.
 
-**This is the baseline and nothing else.** Every guardrail after it gates a change that has just been written,
-so each one runs. A run that declines a guardrail because it believes nothing relevant moved is a run with no
-guardrails, and under concurrent module agents it cannot know what moved anyway.
+**This is the baseline and nothing else.** Every guardrail after it runs, whatever the tree looks like: with
+module agents running concurrently, "nothing relevant moved" is not something any of them can know.
 
 ## Phase 1 — Diagnose, and Write the Files
 
@@ -196,8 +194,8 @@ number and the name; the files do not repeat them.
 | several                             | `bug.md`, `<module>/fix.md` for each |
 | several, on a contract between them | one more: `shared/fix.md`            |
 
-**Every `fix.md` is owned by exactly one module.** The module agents run concurrently and each writes its own
-attempt log, so two of them must never hold the same file open.
+**Every `fix.md` is owned by exactly one module**, and the module agents run concurrently, so two of them must
+never hold the same file open.
 
 **Which modules the fix reaches is a decision, not a reading of the diagnosis.** A chain of causes crossing two
 services can usually be cut in either of them, and the two fixes are not equivalent:
@@ -324,8 +322,7 @@ that failed; this holds the one still being tried, which is the thing a stopped 
 suite would then assert both answers.
 
 **That test is the `red` step's, and the step rewrites it.** It goes in `test-files:`, the step changes the
-assertion to the reported symptom, and the run fails as any `red` step must. This is not weakening a test. The
-test asserted something the repository was wrong about, and `bug.md` is where that is argued.
+assertion to the reported symptom, and the run fails as any `red` step must. This is not weakening a test.
 
 **A test whose assertion this fix inverts is named in `## What the fix must not break`**, with what it was
 protecting and why that is not lost.
@@ -419,8 +416,8 @@ it and no step schedules it.
    only a protocol carries. A schema edit no module's steps depend on agreeing about belongs in `files:` of the
    step that needs it. A shared file is there for call sites that will not compile.
 2. **One `fix-bug-module` sub-agent per `fix.md`**, spawned concurrently. Each is given its own file path, its
-   module's phase-0 figures, `bug.md`, and the conventions its module names. Nothing waits: the shared file landed
-   everything that crosses, so the module fixes are independent by construction.
+   module's phase-0 figures, `bug.md`, and the conventions its module names. **No module agent waits on
+   another**: the shared file landed everything that crosses.
 
    **Each is also given whatever the shared fix disabled in its module**, as the `disables:` lines say it. An
    agent measuring its module against a baseline taken before the shared fix landed would otherwise find skipped
@@ -466,9 +463,9 @@ the user as two.
 says so. Put it to the user as a numbered Open Question in the file it belongs to, write the answer in, re-run
 `fix.sh validate`, and re-spawn the module's agent, which starts at the first unticked step.
 
-**A file is amended only once its own agent has returned.** Module A returning with "the cause is in module B"
-almost always arrives while B's agent is still running, and B's agent is writing that file. Wait for it. Where
-it is still running and the amendment cannot wait, say so and stop it first.
+**A file is amended only once its own agent has returned**, since that agent is writing it. Module A returning
+with "the cause is in module B" almost always arrives while B's agent is still running. **Wait for it.** Where
+it cannot be waited for, say so and stop it first.
 
 **A step that turns out to be unnecessary is struck from the checklist**, and its row in the **Steps** table
 stays, with `abandoned — <why>` in place of what proved it. Its ID is retired and never reused, so no other
@@ -476,13 +473,11 @@ step renumbers. **A struck step that had already landed is reverted first**, on 
 
 **Striking a step out is not free, and `validate` says why.** Removing a `green` step leaves its `red` step
 paired with nothing, and the file will not validate. Either both go, or the reproduction stays and something
-fixes it. That refusal is correct: a committed test that reproduces a bug nobody fixed is the one thing this
-skill must never leave behind.
+fixes it.
 
 ### Abandoning a Fix
 
 A fix the user calls off, or one whose diagnosis is disproved with nothing to replace it, does not simply stop.
-What the run already committed is behaviour nobody chose.
 
 **This is the other half of Phase 0's resume.** An interrupted directory is picked up or abandoned, and which
 one is the user's answer when the diagnosis is what failed. Ask before resuming a fix whose log says the chain
@@ -499,7 +494,7 @@ Then, at this level, never inside an agent:
    the tree as it is: the choice between reverting further and keeping the stabilization is the user's.
 2. **Run every affected module's suite** and confirm the baseline's figures are back.
 3. **Keep the directory**, with every attempt log intact, and say in the report that the fix was abandoned and
-   what the log rules out. That is the whole value the run produced.
+   what the log rules out.
 4. **The directory is not archived**, and nothing in `docs/implemented/` refers to it.
 
 **Where the conventions commit, the revert is committed too**, on the same terms as the steps were.

@@ -38,9 +38,9 @@ weaken the other test and do not edit it. Report both failures and what the othe
 foreseen, the fix file already says so and the test is in a `red` step's `test-files:`. Where it was not, this
 step stops and the file is amended.
 
-**A symptom that survives a step you believe is correct is a second cause.** Stop. The step is not wrong and
-does not revert; it is incomplete, and only the level that owns the fix file may add the pair of steps that
-finishes it. Write the attempt, saying which cause is now gone.
+**A symptom that survives a step you believe is correct is a second cause.** Stop, and **do not revert**: the
+step is right and unfinished. Only the level that owns the fix file may add the pair of steps that finishes it.
+Write the attempt, saying which cause is now gone.
 
 **The fix is the smallest one that makes the symptom impossible**, not the largest one the diagnosis permits. A
 guard clause that hides the bad value is not a fix where the bad value is the bug.
