@@ -1,9 +1,7 @@
 # Configuration
 
-Every value below is read from the environment at startup. The defaults suit a developer's machine;
-[`infrastructure/docker-compose.yaml`](../../infrastructure/docker-compose.yaml) supplies the key, the ledger's
-container address and the database on the shared Postgres, and holds the ports the service is reached on, which
-are not configurable from the environment.
+Every value below is read from the environment at startup. The defaults suit a developer's machine; a
+deployment supplies its own. The ports the service is reached on are not configurable from the environment.
 
 | Variable                | What it sets                                                                                                                                                                                                              | Default                                       | Required          | Secret |
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|-------------------|--------|

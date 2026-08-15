@@ -3,7 +3,7 @@
 Everything this service remembers: one row per message it was asked to act on, filed under the person and the
 message the caller's token named.
 
-- **Counterpart:** the service's own database on the shared PostgreSQL instance — its address is
+- **Counterpart:** the service's own PostgreSQL database — its address is
   [configuration](../../configuration.md)
 - **Transport:** SQL over JDBC
 - **Schema:** below, and in `src/main/resources/db/migration/`.

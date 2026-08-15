@@ -42,17 +42,6 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 
 **One key pair signs both tokens the service issues.** Rotating it rotates both at once.
 
-## The database compose supplies
-
-The service reads and writes the database `FINANCE_BOT_LEDGER_DB` names, on the Postgres instance the
-compose stack runs, under a role of its own that owns that database and nothing else.
-`infrastructure/postgres/init/create-databases.sh` creates both from `FINANCE_BOT_LEDGER_DB`,
-`FINANCE_BOT_LEDGER_DB_USER` and `FINANCE_BOT_LEDGER_DB_PASSWORD` in `infrastructure/.env`.
-
-**The image runs that script on an empty volume only.** A `finance-bot-postgres` volume initialized before this
-arrangement gets no such database and no role. Wiping the volume is what puts the service on the arrangement
-above, and it discards the data already in the old database.
-
 ## What the database is given, not the service
 
 `max_slot_wal_keep_size` bounds the log a replication slot may retain. The service reads the effect through

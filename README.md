@@ -97,7 +97,8 @@ SHOW_LEGEND()
 | AI Connector Service  | Java, Spring Boot, Spring AI | Structured expense extraction from text                                           | [README](ai-connector-service/README.md) | 1001  |
 | Database              | PostgreSQL + pgvector        | A database per service: the ledger's users and expenses, the connector's messages | -                                        | 5432  |
 
-Container definitions live in [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml).
+Container definitions live in [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml); how the
+stack is set up is [`infrastructure/README.md`](infrastructure/README.md).
 
 ## Data Model (MVP)
 
