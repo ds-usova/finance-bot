@@ -41,10 +41,10 @@ A change touching anything under [What the Suite Cannot See](testing.md#what-the
 by a person. **No plan step carries that, and nothing waits for it.** The task archives, the follow-up runs, and
 the looking happens whenever its reader gets to it.
 
-**The level that finishes the task writes that list**, into the task's `review/findings.md`, under this module's
-own heading: the screens and the states to check, carried from the design rather than invented. An agent
-implementing one plan writes neither the list nor the file — what it has for them goes under its own plan's
-`### Open Questions / Blockers`, which is the one place it may write outside its module.
+**The level that finishes the task writes that list**, into the task's `review/findings.md`, in whatever shape
+that file's own template gives: the screens and the states to check, carried from the design rather than
+invented. An agent implementing one plan writes neither the list nor the file — what it has for them goes under
+its own plan's `### Open Questions / Blockers`, which is the one place it may write outside its module.
 
 ## Reaching for a Tunnel
 
