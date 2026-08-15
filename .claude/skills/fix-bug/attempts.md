@@ -49,7 +49,8 @@ Since each file numbers its own, anything outside the file cites both: `module-a
 of two causes leaves the symptom, so it gets an entry: `result: failed — the symptom survived`, and a
 `ruled-out:` saying which cause is now gone. That entry is what turns one step into two.
 
-**A probe that made the bug observable is not an entry either.** What becomes of it is the skill's Phase 1.
+**A probe that made the bug observable is not an entry either.** What becomes of it is Phase 1's, in the
+skill itself.
 
 **Evidence is pasted, never described.** The stack trace, the assertion diff, the compiler error, the exit
 status — whatever the tool actually printed. Trim it to the frames that carry the failure; never rewrite them.
@@ -66,4 +67,4 @@ goes back to the user.**
 left migrated, a dependency left added — the entry says so.
 
 **The approach still being tried is not an entry.** It belongs on the fix file's `**In flight:**` line, whose
-rules are the skill's.
+rules are [`the-files.md`](the-files.md)'s.
