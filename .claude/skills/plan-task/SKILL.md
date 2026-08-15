@@ -188,7 +188,7 @@ predates the bundled stdlib, fall back to
 - **Draw the dependency between each pair**, pointing the way the dependency really runs. An arrow the conventions'
   dependency rule forbids is a violation, and this is where it costs a line instead of a rewrite. Where they state
   no such rule, the arrows are still drawn.
-- **One diagram per subject, not one per change.** A change touching expenses and the category tree draws one each.
+- **One diagram per subject, not one per change.** A change touching widgets and their parents draws one each.
   Where no arrow crosses between two groups of boxes, they were never one diagram.
 - **Keep it small.** An untouched class is drawn only where an arrow needs it. A class belonging to no subject — a
   filter chain, an exception handler — is left to the table.
@@ -434,7 +434,7 @@ Apply every finding the reviewer marked `Resolution: mechanical` to the plan, th
 A finding marked `Resolution: decision` keeps that classification — this step never regrades the reviewer's verdict.
 It still gets **attempted against the repository**: the sibling service's code, the module conventions, an existing
 ADR, the schema. Answer it when the evidence is there and write the evidence into `Action:`
-(`resolved — the connector's own `ExpenseIntent` imposes no `UPDATE` rule`). Leave `Action:` empty for the user only
+(`resolved — the sibling service's own `WidgetPort` imposes no `UPDATE` rule`). Leave `Action:` empty for the user only
 when the answer is a product, operational, or business rule that exists nowhere yet — and add a
 `- Missing: [what the repository does not say]` line beside it, nested under the finding like the rest, so the user
 answers a question rather than picking from a menu.
@@ -448,7 +448,7 @@ How to apply them:
   `- Resolution:` / `- Action:` shape, so `plan.sh validate` and the readiness gate are unaffected:
 
   ```
-  - **F1:** RU07's `toIntents` matrix omitted `OPERATION_DELETE` and the generated `UNRECOGNIZED` constant.
+  - **F1:** RU01's scenarios omitted the unknown `parentId` and the duplicate name under one parent.
   - Resolution: mechanical
   - Action: applied — added both scenarios.
   ```
