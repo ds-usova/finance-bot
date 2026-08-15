@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -169,6 +170,39 @@ class ExtractIntentsCommandTest {
                     TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE, Optional.empty());
 
             assertThat(command.currentDate()).isEqualTo(CURRENT_DATE);
+        }
+
+        @Test
+        @DisplayName("when a present message identity is given - then messageIdentity() reads it back unchanged")
+        void whenMessageIdentityPresent_thenMessageIdentityReadsBackUnchanged() {
+            MessageIdentity messageIdentity = new MessageIdentity(42L, "incoming-id");
+
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT,
+                    CATEGORY_GROUPINGS,
+                    CATCH_ALL_GROUPING,
+                    Optional.empty(),
+                    CURRENT_DATE,
+                    Optional.of(messageIdentity));
+
+            assertThat(command.messageIdentity()).contains(messageIdentity);
+        }
+
+        @Test
+        @DisplayName("when the message identity is empty - then the command is valid and messageIdentity() is empty")
+        void whenMessageIdentityEmpty_thenCommandValidAndMessageIdentityEmpty() {
+            ExtractIntentsCommand command = new ExtractIntentsCommand(
+                    TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE, Optional.empty());
+
+            assertThat(command.messageIdentity()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when the messageIdentity Optional is null - then throws InvalidValueException")
+        void whenMessageIdentityOptionalIsNull_thenThrowsInvalidValueException() {
+            assertThatThrownBy(() -> new ExtractIntentsCommand(
+                            TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, Optional.empty(), CURRENT_DATE, null))
+                    .isInstanceOf(InvalidValueException.class);
         }
     }
 }

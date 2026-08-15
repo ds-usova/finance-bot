@@ -328,7 +328,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `MessageIdentity` · test: `MessageIdentityTest` · covers: `of()`, the compact constructor · scenarios: A4
+- [x] RU01 · `MessageIdentity` · test: `MessageIdentityTest` · covers: `of()`, the compact constructor · scenarios: A4
     - `of()`:
         - given: a subject that is a positive decimal number and a non-blank message id
           when: of() is called
@@ -344,7 +344,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown, never NullPointerException
 
-- [ ] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor ·
+- [x] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: the compact constructor ·
   scenarios: A1, A6
     - the compact constructor:
         - given: a present message identity
@@ -357,7 +357,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown
 
-- [ ] RU03 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` · scenarios:
+- [x] RU03 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` · scenarios:
   A1, A3, A6
     - `extractIntents()`:
         - given: a command carrying a message identity
@@ -375,7 +375,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: extractIntents() is called
           then: the INFO line the turn already logs is still logged once
 
-- [ ] RU04 · `PurgeMessagesUseCase` · test: `PurgeMessagesUseCaseTest` · covers: the constructor, `purge()` ·
+- [x] RU04 · `PurgeMessagesUseCase` · test: `PurgeMessagesUseCaseTest` · covers: the constructor, `purge()` ·
   scenarios: A7, A8
     - the constructor:
         - given: a `maxAge` that is zero or negative, or a `batch` that is zero or negative
@@ -397,7 +397,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `JdbcMessageStoreAdapter` · test: `JdbcMessageStoreAdapterTest` · covers: `register()`,
+- [x] RI01 · `JdbcMessageStoreAdapter` · test: `JdbcMessageStoreAdapterTest` · covers: `register()`,
   `deleteReceivedBefore()` · scenarios: A1, A2, A3, A7, A8, A9
     - `register()`:
         - given: no row under the identity
@@ -430,7 +430,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: deleteReceivedBefore() is called
           then: MessageStoreFailedException is thrown wrapping it
 
-- [ ] RI02 · `CallerTokenVerifier` · test: `CallerTokenVerifierTest` · covers: `verify()` · scenarios: A4, A5
+- [x] RI02 · `CallerTokenVerifier` · test: `CallerTokenVerifierTest` · covers: `verify()` · scenarios: A4, A5
     - `verify()`:
         - given: the key set published and a token minted for a user and a message
           when: verify() is called with its Bearer value
@@ -458,7 +458,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: verify() is called with a second token under the same key
           then: the identity is answered from the cached key set
 
-- [ ] RI03 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `IntentExtractionService/ExtractIntents` ·
+- [x] RI03 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers: `IntentExtractionService/ExtractIntents` ·
   mocks: `ExtractIntentsPort`, `CallerTokenVerifier` · scenarios: A4, A5, A6
     - Happy Path:
         - given: a nested group carrying a `@MockitoBean CallerTokenVerifier` that answers an identity, and a stub
@@ -481,7 +481,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           refusal's scope is proven with a verifier present rather than absent
     - Validation: none — the header's presence is already covered by the class's existing tests
 
-- [ ] RI04 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] RI04 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService/ExtractIntents` · mocks: `ExtractIntentsPort`, `CallerTokenVerifier` · scenarios: A1, A6
     - Happy Path:
         - given: a nested group carrying a `@MockitoBean CallerTokenVerifier` that answers an identity
@@ -495,7 +495,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `RegisterMessageSystemTest` · covers: `IntentExtractionService/ExtractIntents` · scenarios: A1, A2, A4
+- [x] RS01 · `RegisterMessageSystemTest` · covers: `IntentExtractionService/ExtractIntents` · scenarios: A1, A2, A4
     - Happy Path:
         - given: the memory on, the key set published, a provider stubbed to record one expense, and no row under
           the token's identity
@@ -510,7 +510,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the RPC is called
           then: it fails with UNAUTHENTICATED, the provider is never called, and no row is stored
 
-- [ ] RS02 · `PurgeMessagesSystemTest` · covers: `MemoryPurgeScheduler.run()` · scenarios: A7
+- [x] RS02 · `PurgeMessagesSystemTest` · covers: `MemoryPurgeScheduler.run()` · scenarios: A7
     - Happy Path:
         - given: the memory on with its purge interval at one second, a row received longer ago than the max age
           and a row received now, both inserted through `IncomingMessageRowUtils`
@@ -519,7 +519,7 @@ a step id — `CommentConventionsTest` fails the run on one.
     - Unhappy Path: none reachable — A8's refused delete is RU04's WARN scenario and RI01's translation scenario;
       a store the context booted against cannot be made to refuse mid-run
 
-- [ ] RS03 · `MemoryHealthSystemTest` · covers: `GET /actuator/health` · scenarios: A10
+- [x] RS03 · `MemoryHealthSystemTest` · covers: `GET /actuator/health` · scenarios: A10
     - Happy Path:
         - given: the memory on and the container reachable
           when: the endpoint is requested
@@ -618,6 +618,13 @@ database and the key-set read on the ledger's page are its output and are not li
   it exercises `ledger-service`. Should the user run `docker compose up` on a fresh volume once ST12 lands and
   report, with a failing ledger pipeline becoming a `fix-bug` of its own? (Recommended: yes.)
   - A: Yes, I'll run it.
+
+- **B1 (red phase, resolved):** `@GrpcAdapterTest` relied on Boot's `@AutoConfigureTestGrpcTransport`, whose
+  in-process server name is one `static` per JVM, so a second `@GrpcAdapterTest` context configuration — RI03's
+  and RI04's nested groups carrying `@MockitoBean CallerTokenVerifier` — failed to start with
+  `name already registered` while the outer context was cached. Fixed in the shared infrastructure:
+  `common/boot/InProcessGrpcTransportConfiguration` mirrors Boot's test transport with a name per context, and
+  `GrpcAdapterTest` imports it in place of the annotation. P04 lists it.
 
 ## Review Findings
 

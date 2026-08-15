@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.verify;
@@ -18,7 +19,9 @@ import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 class ExtractIntentsUseCaseTest {
 
@@ -64,13 +68,36 @@ class ExtractIntentsUseCaseTest {
                 text, categoryGroupings, catchAllGrouping, Optional.of(defaultCurrency), currentDate, Optional.empty());
     }
 
+    private static ExtractIntentsCommand commandWithIdentity(
+            String text, List<String> categoryGroupings, String catchAllGrouping, MessageIdentity messageIdentity) {
+        return new ExtractIntentsCommand(
+                text,
+                categoryGroupings,
+                catchAllGrouping,
+                Optional.empty(),
+                CURRENT_DATE,
+                Optional.of(messageIdentity));
+    }
+
     /**
      * The lines {@code log} received at info, message and placeholders flattened into one string each, in call
      * order.
      */
     private List<String> loggedInfoLines() {
+        return loggedLines("info");
+    }
+
+    /**
+     * The lines {@code log} received at warn, message and placeholders flattened into one string each, in call
+     * order.
+     */
+    private List<String> loggedWarnLines() {
+        return loggedLines("warn");
+    }
+
+    private List<String> loggedLines(String level) {
         return mockingDetails(log).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals("info"))
+                .filter(invocation -> invocation.getMethod().getName().equals(level))
                 .map(invocation -> {
                     Object[] arguments = invocation.getArguments();
                     Object[] placeholders = Arrays.copyOfRange(arguments, 1, arguments.length);
@@ -151,6 +178,71 @@ class ExtractIntentsUseCaseTest {
 
             assertThat(loggedInfoLines()).hasSize(1);
             assertThat(loggedInfoLines().get(0)).contains("2").doesNotContain(TEXT);
+        }
+
+        @Test
+        @DisplayName("when a command carries a message identity - then the store registers it before the "
+                + "expense is recorded")
+        void whenCommandCarriesMessageIdentity_thenStoreRegistersItWithTextBeforeExpenseIsRecorded() {
+            MessageIdentity identity = new MessageIdentity(42L, "msg-123");
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = commandWithIdentity(TEXT, categoryGroupings, "Food", identity);
+
+            useCase.extractIntents(command);
+
+            InOrder inOrder = inOrder(messageStorePort, expenseRecordingPort);
+            inOrder.verify(messageStorePort).register(eq(identity), eq(TEXT));
+            inOrder.verify(expenseRecordingPort).record(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when a command carries no message identity - then the store is never touched and the "
+                + "expense is still recorded")
+        void whenCommandCarriesNoMessageIdentity_thenStoreNeverTouchedAndExpenseStillRecorded() {
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
+
+            useCase.extractIntents(command);
+
+            verifyNoInteractions(messageStorePort);
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("when register() throws MessageStoreFailedException - then WARN names the identity and "
+                + "no text, expense still recorded")
+        void whenRegisterThrowsMessageStoreFailedException_thenOneWarnLineNamesIdentityAndExpenseStillRecorded() {
+            MessageIdentity identity = new MessageIdentity(42L, "msg-123");
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = commandWithIdentity(TEXT, categoryGroupings, "Food", identity);
+            doThrow(new MessageStoreFailedException("store unreachable"))
+                    .when(messageStorePort)
+                    .register(any(), any());
+
+            useCase.extractIntents(command);
+
+            assertThat(loggedWarnLines()).hasSize(1);
+            assertThat(loggedWarnLines().get(0))
+                    .contains("42")
+                    .contains("msg-123")
+                    .doesNotContain(TEXT);
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName(
+                "when register() throws MessageStoreFailedException - then the INFO line is still logged " + "once")
+        void whenRegisterThrowsMessageStoreFailedException_thenInfoLineStillLoggedOnce() {
+            MessageIdentity identity = new MessageIdentity(42L, "msg-123");
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = commandWithIdentity(TEXT, categoryGroupings, "Food", identity);
+            doThrow(new MessageStoreFailedException("store unreachable"))
+                    .when(messageStorePort)
+                    .register(any(), any());
+
+            useCase.extractIntents(command);
+
+            assertThat(loggedInfoLines()).hasSize(1);
         }
     }
 }
