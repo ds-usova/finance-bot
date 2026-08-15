@@ -40,13 +40,13 @@ one pass, and takes two more:
 
 Read the file whole, then label each paragraph, bullet and table cell:
 
-| Label           | What it is                                                        | What happens to it                           |
-|-----------------|---------------------------------------------------------------------|----------------------------------------------|
-| **rule**        | something must, must not, or happens in a stated order            | kept, tightened only                         |
-| **contract**    | a format a parser reads, a path, a command, a name, a threshold   | kept verbatim                                |
-| **rationale**   | why the rule is right                                             | cut, unless it changes what someone would do |
-| **example**     | an illustration of a rule                                         | cut, unless it *is* the format specification |
-| **restatement** | a fact this file, or another file, already states                 | cut, and link if the owner is elsewhere      |
+| Label           | What it is                                                      | What happens to it                           |
+|-----------------|-----------------------------------------------------------------|----------------------------------------------|
+| **rule**        | something must, must not, or happens in a stated order          | kept, tightened only                         |
+| **contract**    | a format a parser reads, a path, a command, a name, a threshold | kept verbatim                                |
+| **rationale**   | why the rule is right                                           | cut, unless it changes what someone would do |
+| **example**     | an illustration of a rule                                       | cut, unless it *is* the format specification |
+| **restatement** | a fact this file, or another file, already states               | cut, and link if the owner is elsewhere      |
 
 **The biggest saving is never word-level.** A fact stated in two files costs every session that loads both. Look
 for restatement across files before polishing sentences inside one.
@@ -64,9 +64,28 @@ Concretely, so it can be found rather than sensed:
 - An enumeration of what the thing is not, where saying what it is would do.
 - A parenthetical that repeats the sentence it sits in.
 
-## 5. Rewrite, Then Prove Nothing Was Lost
+## 5. What Looks Like Fluff And Is Not
 
-Rewrite the file in place. Then, before reporting, do the check that makes this safe:
+**A clause hanging off a rule is not always the reason for it.** Three other things wear the same shape, and
+each one is load-bearing:
+
+| It looks like | It is                                         | Cutting it means                                             |
+|---------------|-----------------------------------------------|--------------------------------------------------------------|
+| a "why" tail  | **the rule's scope**                          | the rule reads as absolute, and is applied where it must not |
+| a "why" tail  | **what separates it from the rule beside it** | the two collapse, and the reader obeys the wrong one         |
+| a restatement | **the other half of the rule**                | half a rule survives, and reads as a complete one            |
+
+**Test each one by deleting it and reading the rule alone.** A rule that still says one thing was carrying a
+reason. A rule that now says two things was carrying its scope, and the clause goes back.
+
+**Suspect any clause that follows an absolute.** "Never X" and "always Y" are exactly the rules that need a
+boundary, and the boundary is usually the clause a pass reads as justification.
+
+## 6. Rewrite, Then Prove Nothing Moved
+
+Rewrite the file in place. Then, before reporting, do the two checks that make this safe.
+
+**First, that no rule was lost:**
 
 1. List every **rule** and **contract** in the original.
 2. List every one in the rewrite.
@@ -74,12 +93,23 @@ Rewrite the file in place. Then, before reporting, do the check that makes this 
 
 A rule that survived only as an implication is a rule that was cut. State it.
 
-## 6. Report
+**Second, that no rule was loosened.** A rule can survive the first check word for word and still mean something
+wider. For every place a clause was removed, read the surviving rule cold, as one pass, and answer:
+
+1. Does it now read two ways? Say what both are.
+2. Which one does a reader take who wants to finish? That is the reading you have written.
+3. Does it now overlap a rule elsewhere in the file that it used to be distinct from?
+
+**Any yes restores the clause.** This is the check that catches what the first one cannot: the first asks
+whether the rule is still there, and this asks whether it still says the same thing.
+
+## 7. Report
 
 - Lines before and after.
 - What was cut, by label from the table above, one line each.
 - Anything that reads as fluff and was **kept**, with what rule it carries — this is the list that stops the next
-  pass from cutting it.
+  pass from cutting it. **A file that has been tightened before has one of these in its history**; read it before
+  cutting, or the same clause is removed once per pass until one pass removes it for good.
 - Anything the file states that another file owns, named, so the duplication can be settled separately.
 
 Show the diff. Commit nothing: the file's owner decides whether shorter is better here.
