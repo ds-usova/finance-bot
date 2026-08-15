@@ -4,7 +4,8 @@ The grammar of a fix's checklist, read by `fix.sh` and by the agent applying a s
 and what proves it, is the skill's.
 
 Every step carries an ID, its kind, and one line of what it does. IDs are `S01`, `R01`, `G01` upward, one
-sequence per kind, assigned once and never renumbered.
+sequence per kind, assigned once and never renumbered. **The letter is the kind**, and `validate` refuses a step
+whose prefix says something its kind does not.
 
 **`fix.sh validate` checks the result** — a duplicate ID, an unrecognized kind, a line the kind does not take, a
 line the kind owes, a placeholder value, a `files:` with no bullet under it, a `fixes:` or `needs:` pointing at
@@ -36,16 +37,16 @@ over, and again after writing any answer into it. The script ships with the skil
   - runs: `TheBugTest#theScenario`
 ```
 
-| Line          | On which kinds     | Holds                                                                   |
-|---------------|--------------------|-------------------------------------------------------------------------|
+| Line          | On which kinds       | Holds                                                                   |
+|---------------|----------------------|-------------------------------------------------------------------------|
 | `files:`      | `stabilize`, `green` | every production file the step may edit, one per bullet under the label |
-| `test-files:` | `stabilize`, `red` | every test file the step may edit, one per bullet under the label       |
-| `runs:`       | `red`, `green`     | the test that must fail, then pass                                      |
-| `reproduces:` | `red`              | the symptom the test's failure must show                                |
-| `fixes:`      | `green`            | the `red` step whose test this one turns green                          |
-| `disables:`   | `stabilize`        | each test it turns off, and the step that clears it                     |
-| `needs:`      | any                | what must already be true for this step's run to be green               |
-| `docs:`       | any                | the pages this step invalidates                                         |
+| `test-files:` | `stabilize`, `red`   | every test file the step may edit, one per bullet under the label       |
+| `runs:`       | `red`, `green`       | the test that must fail, then pass                                      |
+| `reproduces:` | `red`                | the symptom the test's failure must show                                |
+| `fixes:`      | `green`              | the `red` step whose test this one turns green                          |
+| `disables:`   | `stabilize`          | each test it turns off, and the step that clears it                     |
+| `needs:`      | any                  | what must already be true for this step's run to be green               |
+| `docs:`       | any                  | the pages this step invalidates                                         |
 
 **`green` carries no `test-files:`.** A fix proven by a test the same run edited is proven by nothing. The test
 was written by the `red` step and stays as it was written; a `green` step that cannot pass without changing it
@@ -55,8 +56,11 @@ goes back to the user, because the reproduction was wrong and the diagnosis rest
 symptom. `assertEquals(1, charges.size())` is how a test says it, and how it says it is `runs:`. The symptom is
 what the user reported, restated precisely enough that a passing test can be recognized as the wrong test.
 
-**Every `red` step has a `green` step naming it, and every `green` step names one `red` step.** That pairing is
-the whole verification model of this skill: nothing is fixed that was not first reproduced.
+**Where the bug is intermittent, `reproduces:` carries the rate** the diagnosis measured, and the step's run
+count comes from the skill's rule for one.
+
+**Every `red` step has a `green` step naming it, and every `green` step names one `red` step.** Nothing is fixed
+that was not first reproduced, and `validate` refuses a reproduction nothing fixes.
 
 **`needs:` states a fact, not a schedule.** It says what must hold for the step's run to be green, never when
 either step runs. The order the kinds run in is the skill's, and it is the same in every fix.

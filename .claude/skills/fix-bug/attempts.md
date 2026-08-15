@@ -9,26 +9,29 @@ of trying it again.
 
 ## The entry
 
-```
-- **A1** · diagnosis · Swapped the `LEFT JOIN` for a correlated subquery, to see whether the duplicate rows
-  came from the join.
-  - why: the row count doubled exactly when a user had two active budgets.
+````
+- **A1** · diagnosis · Rewrote the read so it could not return a row twice, to find out whether the duplication
+  came from the query.
+  - why: the count doubled exactly when a record had two active children.
   - result: failed — the duplicates survived the rewrite.
   - evidence:
     ```
     expected: 1 but was: 2
-      at ExpenseQueryTest.listsOneRowPerExpense(ExpenseQueryTest.java:88)
+      at <the assertion that failed>
     ```
-  - ruled-out: the join is not the source. The duplication is upstream of the query.
-```
+  - ruled-out: the query is not the source. The duplication is upstream of it.
+````
 
-| Line         | Holds                                                                                  |
-|--------------|----------------------------------------------------------------------------------------|
-| the header   | `A<n>`, the phase, and what was tried, in a sentence                                   |
-| `why:`       | what made it look like it would work — the observation, not the hunch                  |
-| `result:`    | `failed — <what happened instead>`                                                     |
-| `evidence:`  | a fenced block of the runner's, compiler's or process's **own output**                 |
-| `ruled-out:` | what the next person no longer has to try, and why this attempt settles it             |
+| Line         | Holds                                                                      |
+|--------------|----------------------------------------------------------------------------|
+| the header   | `A<n>`, the phase, and what was tried, in a sentence                       |
+| `why:`       | what made it look like it would work — the observation, not the hunch    |
+| `result:`    | `failed — <what happened instead>`                                       |
+| `evidence:`  | a fenced block of the runner's, compiler's or process's **own output**     |
+| `ruled-out:` | what the next person no longer has to try, and why this attempt settles it |
+
+**A fence inside `evidence:` needs a longer fence around the entry**, as above, where the output being pasted
+carries a fence of its own. `validate` refuses a block that never closes.
 
 **The phase is `diagnosis` or a step ID.** `diagnosis` for an attempt made while working out what is wrong —
 those live in `bug.md`. A step ID for an approach that failed while applying that step — those live in that
@@ -41,8 +44,16 @@ module's `fix.md`, under the step that was being applied. `validate` refuses a p
 **An attempt is written the moment it fails, before the next one starts.** A log written at the end is a summary,
 and a summary is what a stopped run does not have.
 
-**Only failures are entries.** The approach that worked is the step. A log with the successful approach in it is
-a diary, and a reader looking for what to avoid has to work out which is which.
+**Only failures are entries.** The approach that worked is the step, and a log holding both is one a reader has
+to sort before it is useful.
+
+**An approach that was right and insufficient is a failure for this purpose.** A `green` step that removes one
+of two causes leaves the symptom, so it gets an entry: `result: failed — the symptom survived`, and a
+`ruled-out:` saying which cause is now gone. That entry is what turns one step into two.
+
+**A probe that made the bug observable is not an entry either, and it is not lost.** Where the fix needs it
+again, it becomes a `stabilize` step. Where it does not, the diagnosis link it established says how it was
+established.
 
 **Evidence is pasted, never described.** The stack trace, the assertion diff, the compiler error, the exit
 status — whatever the tool actually printed. Trim it to the frames that carry the failure; never rewrite them.
@@ -53,9 +64,12 @@ attempt without its output is a rumour the next session has to reproduce.
 **`ruled-out:` is the value of the entry.** Everything above it says what happened; this line says what it means.
 An attempt that rules nothing out says so, and names what it would take to settle the question.
 
-**An attempt is not a defeat.** Three of them in a row on a hard bug is what the section expects. What the section
-refuses is the fourth one repeating the first.
+**Three attempts in a row on a hard bug is what the section expects.** What it refuses is the fourth one
+repeating the first.
 
-**An attempt whose failure changed the tree is reverted before the next one starts**, and the entry says so where
-it was not — a schema left migrated, a dependency left added. The tree the next attempt runs against has to be
-the one the log describes.
+**An attempt whose failure changed the tree is reverted before the next one starts.** Where it was not — a schema
+left migrated, a dependency left added — the entry says so. The tree the next attempt runs against has to be the
+one the log describes.
+
+**The log is not the whole record of a stopped run.** It holds what failed; the fix file's `**In flight:**` line
+holds the approach still being tried. Neither answers for the other.

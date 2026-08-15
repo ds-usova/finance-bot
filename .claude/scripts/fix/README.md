@@ -44,7 +44,7 @@ Run it with bash, from anywhere inside the project:
 | Command        | Effect                                                                                     |
 |----------------|--------------------------------------------------------------------------------------------|
 | `status`       | Done/total, and the IDs still open.                                                        |
-| `show <ID>...` | One step: its header and everything indented under it. Several print blank-line separated.  |
+| `show <ID>...` | One step: its header and everything indented under it. Several print blank-line separated. |
 | `tick <ID>...` | Mark the steps done. Every ID is resolved before any is written.                           |
 | `validate`     | See [What `validate` checks](#what-validate-checks).                                       |
 | `task`         | Every fix file the bug directory holds, its done/total, and whether all of them are done.  |
@@ -69,27 +69,37 @@ value on its own line.
 
 ### What `validate` checks
 
-| Check                                                          | Catches                                                    |
-|----------------------------------------------------------------|------------------------------------------------------------|
-| Duplicate IDs, a step with no ID                               | a step nothing can address                                 |
-| A kind the format does not define                              | a typo that silently exempts the step from every rule      |
-| A labelled line the kind does not take                         | `test-files:` on a `green` step, which is the one thing it may not edit |
-| A labelled line the kind owes and does not carry               | a `red` step with no `reproduces:` — a failure nobody named |
-| A value left empty, `TBD`, `—`, or still in `<angle brackets>` | a step agent given no instruction                          |
-| A `files:` or `test-files:` with no bullet under it            | a boundary that names nothing                              |
-| `needs:`, `disables:` or `fixes:` naming a step nothing defines | a green step paired with a reproduction that was dropped   |
-| A duplicate attempt number                                     | two entries the log cannot tell apart                      |
-| An attempt missing `why:`, `result:`, `evidence:` or `ruled-out:` | a failure recorded without what it settles               |
-| An `evidence:` with no fenced block under it                   | an attempt whose output nobody kept                        |
-| An attempt filed under neither `diagnosis` nor a defined step  | a log entry attached to a step that was renumbered         |
-| An Open Question whose `- A:` is empty                         | a run about to start on a decision nobody made             |
+| Check                                                              | Catches                                                                 |
+|--------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Duplicate IDs, a step with no ID                                   | a step nothing can address                                              |
+| A kind the format does not define                                  | a typo that silently exempts the step from every rule                   |
+| An ID whose prefix contradicts its kind                            | a `red` step numbered `G02`, which every report then misreads           |
+| A labelled line the kind does not take                             | `test-files:` on a `green` step, which is the one thing it may not edit |
+| A labelled line the kind owes and does not carry                   | a `red` step with no `reproduces:`, a failure nobody named              |
+| A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                                       |
+| A `files:` or `test-files:` with no bullet under it                | a boundary that names nothing                                           |
+| `needs:` or `fixes:` naming a step nothing defines                 | a green step paired with a reproduction that was dropped                |
+| `disables:` naming no step after "cleared by"                      | a test turned off with nothing owing its return                         |
+| A `fixes:` naming itself, or naming a step that is not a `red` one | a pairing that proves nothing                                           |
+| A `red` step no `green` step fixes                                 | a reproduction that would be committed and left failing                 |
+| A duplicate attempt number                                         | two entries the log cannot tell apart                                   |
+| An attempt outside an `## Attempts` section                        | a log written where nothing reads it                                    |
+| An attempt missing `why:`, `result:`, `evidence:` or `ruled-out:`  | a failure recorded without what it settles                              |
+| An `evidence:` with no fenced block directly under it              | an attempt whose output nobody kept                                     |
+| An attempt filed under neither `diagnosis` nor a defined step      | a log entry attached to a step that was renumbered                      |
+| A fenced block that never closes                                   | pasted output whose own fence swallowed the rest of the file            |
+| An Open Question whose `- A:` is empty                             | a run about to start on a decision nobody made                          |
+
+A clean file prints its step and attempt counts, so "no problems" and "not a fix file" never look the same.
 
 **A duplicate ID's own block is not judged.** The second `R01` is reported and its lines are skipped, since
 attributing them to an ID that already means something else would report the same step twice. Fix the ID and run
 again.
 
 Bullets inside fenced code blocks are skipped, so a fix quoting the step format does not acquire phantom steps
-from the example — and an attempt's evidence, which is a fence by design, contributes none either.
+from the example. **What closes a fence is a marker at least as long as the one that opened it**, as in Markdown
+itself: an attempt's evidence is a fence inside a fence, and a document quoting this format nests one example
+inside another.
 
 ## Where it stops
 
@@ -101,8 +111,9 @@ it claims to be. Those are the questions phase 2's approval and the step's own r
 
 It runs on macOS, Linux and Windows. What that costs:
 
-- **`bash`, `awk`, `sed`, `git`, `find`, `grep`** — nothing else, and no GNU-only spellings. The parser is strict
-  POSIX awk, so `mawk` and BSD `awk` serve as well as `gawk`.
+- **`bash`, `awk`, `sed`, `git`, `find`, `grep`** — nothing else, and no GNU-only spellings. The parser runs on
+  `mawk`, BSD `awk` and `gawk` alike. Its one departure from POSIX is the `\x` escape it spells the middot
+  with, which `gawk --posix` rejects.
 - **Edits go through a sibling temp file, not `sed -i`**, whose argument differs between GNU and BSD.
 - **Windows** needs a **Git Bash** prompt, which supplies all of the above.
 - `*.sh` and `*.awk` must be pinned to LF in `.gitattributes` — a CRLF checkout fails on the first line — and

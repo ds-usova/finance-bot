@@ -14,6 +14,8 @@ order is the same in every fix.
 - **the module it belongs to**, or every module on the seam where your file is `shared/fix.md`;
 - **your module's baseline figures** — the suite's total and skipped counts, and the commit, measured before
   anything changed;
+- **whatever a shared fix already disabled in your module**, where one ran. Those skips are against your
+  baseline and are not yours to account for;
 - **`bug.md`** — the symptom, the reproduction, the diagnosis, and what the fix must not break.
 
 **Two gates already ran above you, and you repeat neither.** The bug was reproduced and every module's baseline
@@ -37,29 +39,44 @@ attempt log exists to preserve. Splitting `red` from `green` across two agents l
 `scripts/fix/fix.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under `.claude/` in a plain
 checkout — is how you read and write them. Its README sits beside it.
 
-| Need                 | Command                                       |
-|----------------------|-----------------------------------------------|
-| Where the run stands | `fix.sh status --file <fix>`                  |
-| One step's text      | `fix.sh show R01 G01 --file <fix>`            |
-| Mark a step done     | `fix.sh tick R01 --file <fix>`                |
-| Check the grammar    | `fix.sh validate --file <fix>`                |
+| Need                 | Command                            |
+|----------------------|------------------------------------|
+| Where the run stands | `fix.sh status --file <fix>`       |
+| One step's text      | `fix.sh show R01 G01 --file <fix>` |
+| Mark a step done     | `fix.sh tick R01 --file <fix>`     |
+| Check the grammar    | `fix.sh validate --file <fix>`     |
+
+**`--file` is mandatory on every call.** Several fix files are in flight at once and the default resolution
+refuses to guess between them.
 
 **Read a step from `fix.sh show`, never by extracting it from the file by hand.** Refer to steps by ID in
 everything you report back.
 
+**A step is ticked only once you have verified it yourself**, never on the strength of what you expected the run
+to do. Never hand-edit a checkbox: `tick` addresses the step by ID, so it does not depend on the wording being
+what it was when the run started.
+
+**If the script is genuinely absent — an incomplete install — say so and fall back to reading and editing the
+file directly.** Everything below still applies; only the mechanics change.
+
 ## The Sequence
 
 1. **Every `stabilize` step**, in ID order. After the last one: the module compiles including test sources, the
-   architecture check passes, the suite is green, and the skipped count names exactly the tests your `disables:`
-   lines turned off — each naming the `red` step that clears it. Nothing else may have left the tree.
-2. **Every `red` step**, in ID order. Each one's `runs:` **must fail, with the symptom `reproduces:` names**.
-   Record the failure output verbatim — it is the step's proof and it goes in your report. A red step that passes
-   is not done; see below.
-3. **Every `green` step**, in ID order. Each one's `runs:` passes, then the module's whole suite is green and
-   nothing left in `disables:` is still off.
+   architecture check passes, the suite is green, and the skipped count is the baseline plus exactly the tests
+   your `disables:` lines turned off. Nothing else may have left the tree.
+2. **Every `red` step**, in ID order.
+3. **Every `green` step**, in ID order. After the last one the module's whole suite is green, and nothing left
+   in `disables:` is still off.
 
-**What each kind may edit, what it runs, and where it refuses** is `applying-a-step.md`, in the `fix-bug` skill
-directory beside the fix file's format. Read it before the first step and apply every step against it.
+**A resumed run starts at the first unticked step**, and re-runs it from its own beginning. `fix.sh status`
+names it.
+
+**What each kind may edit, what it runs, what proves it, and where it refuses** is `applying-a-step.md`, in the
+`fix-bug` skill directory beside the fix file's format. Read it before the first step and apply every step
+against it.
+
+**Where `bug.md` records a rate rather than a plain reproduction, the run counts are the skill's**, under its
+rule for an intermittent bug. A single pass proves nothing about a bug that fails one run in ten.
 
 **Then, every kind:** run whatever the conventions require before a commit, `fix.sh tick <ID>`, and commit the fix
 file together with the paths the step named.
@@ -69,31 +86,33 @@ no commits. Another module's agent is committing into the same history at the sa
 rules say about scoping a commit and about a concurrent one, and report a refusal they do not cover rather than
 improvising a retry.
 
-## The Attempt Log
+## What You Write Into Your File
 
-**You own your file's `## Attempts` section, and you write to it as things fail** — not at the end. Its format is
-`attempts.md`, in the `fix-bug` skill directory. What it demands: what was tried, why it looked right, what
-happened, the tool's own output in a fenced block, and what it rules out.
+Two things, and nothing else. Both are yours alone, since no other agent may open this file.
 
-**An entry is written the moment an approach fails, before the next one starts.** If you are stopped mid-run, that
-log is the whole of what survives, and a log written at the end is not written at all.
+**`## Attempts`, as each approach fails.** Its format and its rules are `attempts.md`, in the `fix-bug` skill
+directory. Read it before the first step.
 
-**Only failures are entries.** The approach that worked is the step.
-
-**Revert what a failed attempt changed before the next one starts**, or say in the entry that you did not and why.
+**The `**In flight:**` header line**, rewritten when a step starts and emptied when it ticks: the step's ID and
+what you are currently trying, in a clause. The attempt log holds what already failed. This holds the approach
+still being tried, and it is what a resumed run reads to know where to pick up. A run stopped between the two
+leaves nothing.
 
 ## Where You Stop And Ask
 
-- **A `red` step that passes before any production code is touched.** The reproduction does not reach the bug.
-  Write the attempt, and return — the diagnosis in `bug.md` is what has to change, and it is not yours.
-- **A `green` step that cannot pass without editing the test.** The reproduction was wrong. Revert, write the
-  attempt, return.
-- **A `green` step whose fix reds another test.** Never weaken it. Report both failures and what the other test
-  was asserting — it usually means something relied on the old, wrong behaviour, and that is the user's call.
-- **A `stabilize` step that has to change what something does.** It is a `green` step in disguise; the file is
-  corrected before it is applied.
-- **Three failed attempts on one step.** Stop and return with the log. A fourth attempt from inside the same
-  context is the one most likely to repeat the first.
+**Every refusal in `applying-a-step.md` ends here**, with the step reverted, the attempt written, and you
+returning. Three more end here too:
+
+- **Three failed attempts on one step.** Return with the log. A fourth attempt from inside the same context is
+  the one most likely to repeat the first. This is not the same as a step that took three approaches and landed:
+  that one is finished, and the report says how many it took.
+- **The symptom survives a `green` step you believe is correct.** The bug has a second cause, which the fix
+  file does not cover. Return; a new pair of steps is the level above's to write.
+- **The cause is outside your module.** Return and name where it is. Never edit another module, and never widen
+  a step to reach one.
+
+**Record what you are blocked on in your file before you return**, as a numbered question under
+`## Open Questions`. Your report is read once; the file is what a resumed run has.
 
 ## Out of Scope
 

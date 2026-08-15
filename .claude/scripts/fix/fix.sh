@@ -29,7 +29,7 @@ Usage:
   <plugin>/scripts/fix/fix.sh status   [--file <fix>]
   <plugin>/scripts/fix/fix.sh show     <ID>... [--file <fix>]
   <plugin>/scripts/fix/fix.sh tick     <ID>... [--file <fix>]
-  <plugin>/scripts/fix/fix.sh validate [--file <fix>]
+  <plugin>/scripts/fix/fix.sh validate [--file <fix> | <bug directory>]
   <plugin>/scripts/fix/fix.sh task     [<fix directory> | <fix>]
 
 Commands:
@@ -38,10 +38,12 @@ Commands:
             separated by a blank line.
   tick      Mark the steps done. Several IDs are one batch: all are resolved before any is written,
             so a name nothing defines ticks none of them.
-  validate  Duplicate or missing IDs, an unrecognized kind, a line the kind does not take, a line
-            the kind owes and does not carry, a placeholder value, "needs:"/"disables:"/"fixes:"
-            pointing at a step nothing defines, an attempt missing its reasoning, its result, its
-            evidence or what it rules out, and an unanswered Open Question.
+  validate  Duplicate or missing IDs, an unrecognized kind, an ID whose prefix contradicts it, a
+            line the kind does not take, a line the kind owes and does not carry, a placeholder
+            value, "needs:"/"disables:"/"fixes:" pointing at a step nothing defines, a reproduction
+            no green step fixes, an attempt missing its reasoning, its result, its evidence or what
+            it rules out, and an unanswered Open Question. Given a bug directory rather than a file,
+            it validates bug.md and every fix.md the directory holds, in one call.
   task      Every fix file the bug holds, its done/total, and whether all of them are finished.
 
 --file defaults to the single fix.md in flight under docs/. A bug owns a directory holding bug.md
@@ -185,11 +187,31 @@ bug_dir_of() {
     while [ "$dir" != "/" ] && [ "$dir" != "$repo_root_abs" ]; do
         parent="$(dirname "$dir")"
         if [ "$parent" = "$repo_root_abs/docs" ] || [ "$parent" = "$repo_root_abs/docs/implemented" ]; then
-            break
+            echo "$dir"
+            return 0
         fi
         dir="$parent"
     done
-    echo "$dir"
+    # Walking off the top means the file sits outside docs/. Answering with the repository root would
+    # then report every fix.md in the tree as one bug's.
+    die "$1 is not inside a bug directory under docs/"
+}
+
+# A bug's files are validated together, so the gate before the first source edit is one call however
+# many modules the bug reaches. bug.md is included: it is where the diagnosis attempts live.
+cmd_validate_dir() {
+    local dir="$1" f found=0 failed=0
+    [ -d "$dir" ] || die "no such directory: $dir"
+
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        found=$((found + 1))
+        fix_file="$f"
+        parse validate || failed=1
+    done < <(find "$dir" -maxdepth 2 \( -name 'fix.md' -o -name 'bug.md' \) -type f | sort)
+
+    [ "$found" -gt 0 ] || die "${dir} holds no bug.md or fix.md" 1
+    return "$failed"
 }
 
 cmd_task() {
@@ -198,12 +220,13 @@ cmd_task() {
         bug_dir="$(cd "$given" && pwd)"
     elif [ -n "$given" ]; then
         [ -f "$given" ] || die "no such fix file or bug directory: $given"
-        bug_dir="$(bug_dir_of "$given")"
+        # bug_dir_of dies in a subshell, so its exit status is what carries the refusal out.
+        bug_dir="$(bug_dir_of "$given")" || exit "$?"
     else
         local dirs=() f d
         while IFS= read -r f; do
             [ -n "$f" ] || continue
-            d="$(bug_dir_of "$f")"
+            d="$(bug_dir_of "$f")" || exit "$?"
             case " ${dirs[*]:-} " in
                 *" $d "*) ;;
                 *) dirs+=("$d") ;;
@@ -293,16 +316,30 @@ case "$command" in
     *) die "unknown command '$command' (try --help)" ;;
 esac
 
-if [ "$command" = "task" ]; then
-    cmd_task "${args[0]:-}"
-    exit 0
-fi
+case "$command" in
+    task)
+        # --file names a fix as it does everywhere else; the bug it belongs to is derived from it.
+        cmd_task "${args[0]:-$fix_file}"
+        exit 0
+        ;;
+    validate)
+        if [ "${#args[@]}" -gt 0 ]; then
+            cmd_validate_dir "${args[0]}"
+            exit "$?"
+        fi
+        ;;
+    show|tick)
+        # An empty array expands to one empty string, which would reach the command as an ID nothing
+        # defines and be reported as a missing step rather than as the usage error it is.
+        [ "${#args[@]}" -gt 0 ] || die "$command needs at least one ID"
+        ;;
+esac
 
 locate_fix
 
 case "$command" in
     status)   cmd_status ;;
-    show)     cmd_show "${args[@]:-}" ;;
-    tick)     cmd_tick "${args[@]:-}" ;;
+    show)     cmd_show "${args[@]}" ;;
+    tick)     cmd_tick "${args[@]}" ;;
     validate) parse validate ;;
 esac

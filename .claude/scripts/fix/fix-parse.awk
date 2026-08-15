@@ -3,9 +3,9 @@
 # Parses a bug fix's checklist and its attempt log into one record per entry, and answers the query
 # named by -v mode=.
 #
-# A step is "- [ ] <ID> · <kind> · <text>"; its block runs to the next step or heading, so the
-# labelled lines under it stay attached. The kind decides which of those lines the step owes and
-# which it may not carry, which is what validate checks.
+# A step is "- [ ] <ID> · <kind> · <text>"; its block runs to the last line indented under it. The
+# kind decides which of those lines the step owes and which it may not carry, which is what validate
+# checks.
 #
 # An attempt is "- **A1** · <phase> · <text>" under "## Attempts". It owes its reasoning, its
 # result, a fenced block of the runner's own output, and what it rules out - a failed approach
@@ -48,12 +48,30 @@ function a(word) {
     return (word ~ /^[aeiou]/ ? "an " : "a ") word
 }
 
+# A step ID mentioned inside a labelled line. Scanned with its own boundaries: "S3UploadTest" holds
+# the characters of a step ID and is a test class, and a disabled test whose name happens to start
+# that way must not be reported as a reference to a step nothing defines.
+function scan_refs(who, label, text, line,   rest, id, before, after) {
+    rest = text
+    while (match(rest, /[SRG][0-9]+/)) {
+        id = substr(rest, RSTART, RLENGTH)
+        before = (RSTART > 1) ? substr(rest, RSTART - 1, 1) : ""
+        after = substr(rest, RSTART + RLENGTH, 1)
+        if (before !~ /[A-Za-z0-9]/ && after !~ /[A-Za-z0-9]/) {
+            ref_count++
+            ref_who[ref_count] = who
+            ref_label[ref_count] = label
+            ref_id[ref_count] = id
+            ref_line[ref_count] = line
+        }
+        rest = substr(rest, RSTART + RLENGTH)
+    }
+}
+
 function close_step() {
     flush_awaiting()
-    if (cur != "") {
-        end_line[cur] = NR - 1
-    }
     cur = ""
+    cur_attempt = ""
 }
 
 BEGIN {
@@ -61,12 +79,15 @@ BEGIN {
     step_count = 0
     attempt_count = 0
     problem_count = 0
+    ref_count = 0
     fenced = 0
+    fence_len = 0
     in_questions = 0
     in_attempts = 0
     open_question = ""
     awaiting = ""
     awaiting_evidence = ""
+    cur = ""
     cur_attempt = ""
 
     # The labels whose value sits below them rather than on the label line.
@@ -89,6 +110,11 @@ BEGIN {
     requires["red"]       = "test-files reproduces runs"
     requires["green"]     = "files fixes runs"
 
+    # One ID sequence per kind, so a reader knows what a step is before reading it.
+    prefix_of["stabilize"] = "S"
+    prefix_of["red"]       = "R"
+    prefix_of["green"]     = "G"
+
     kinds = " stabilize red green "
 
     # An attempt owes all four: why it looked right, what happened, the output, and what it rules out.
@@ -98,12 +124,24 @@ BEGIN {
 
 # A fenced block holds the format's own example, or an attempt's evidence. Counting its bullets as
 # steps would give every fix the template's phantom IDs.
-/^[ \t]*```/ {
+#
+# The marker's length decides what closes it, as in Markdown itself. Evidence is pasted output and
+# routinely contains a fence of its own, and a document quoting this format nests one example inside
+# another - both are unreadable to a parser that closes on the first three backticks it sees.
+/^[ \t]*`{3,}/ {
+    fence = $0
+    sub(/^[ \t]+/, "", fence)
+    match(fence, /^`+/)
     if (fenced) {
-        fenced = 0
-        awaiting_evidence = ""
+        if (RLENGTH >= fence_len && trim(substr(fence, RLENGTH + 1)) == "") {
+            fenced = 0
+            fence_len = 0
+            awaiting_evidence = ""
+        }
     } else {
         fenced = 1
+        fence_len = RLENGTH
+        fence_line = NR
     }
     next
 }
@@ -114,9 +152,12 @@ fenced {
     next
 }
 
+# "evidence:" is answered by the block that follows it, not by the next block anywhere in the file.
+# Anything else written in between ends the claim, and the attempt is reported as having none.
+awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
+
 /^#/ {
     close_step()
-    cur_attempt = ""
     in_questions = ($0 ~ /^#+[ \t]+Open Questions/)
     in_attempts  = ($0 ~ /^#+[ \t]+Attempts/)
     next
@@ -164,12 +205,18 @@ fenced {
 }
 
 # - **A1** · S02 · what was tried
-in_attempts && /^[ \t]*-[ \t]+\*\*A[0-9]+\*\*/ {
+/^[ \t]*-[ \t]+\*\*A[0-9]+\*\*/ {
     flush_awaiting()
+    cur = ""
     line = $0
     match(line, /A[0-9]+/)
     aid = substr(line, RSTART, RLENGTH)
 
+    if (!in_attempts) {
+        problem(FILENAME ":" NR ": " aid " is written outside an \"Attempts\" section, where nothing reads it")
+        cur_attempt = ""
+        next
+    }
     if (aid in attempt_line) {
         problem(FILENAME ":" NR ": duplicate attempt " aid " (first at line " attempt_line[aid] ")")
         cur_attempt = ""
@@ -243,11 +290,14 @@ in_attempts && /^[ \t]*-[ \t]+\*\*A[0-9]+\*\*/ {
     }
     seen[cur "\t" name] = 1
 
-    if (name == "needs" || name == "disables" || name == "fixes") {
-        rest = value
-        while (match(rest, /[SRG][0-9]+/)) {
-            referenced[cur "\t" substr(rest, RSTART, RLENGTH)] = NR
-            rest = substr(rest, RSTART + RLENGTH)
+    if (name == "needs" || name == "fixes") {
+        scan_refs(cur, name, value, NR)
+    }
+    # "disables:" names a test, then the step that clears it. Only the second half is a reference.
+    if (name == "disables") {
+        cleared = index(value, "cleared by")
+        if (cleared > 0) {
+            scan_refs(cur, name, substr(value, cleared), NR)
         }
     }
     next
@@ -284,7 +334,10 @@ in_questions && /^[ \t]+-[ \t]+A:/ {
 
 END {
     close_step()
-    flush_awaiting()
+
+    if (fenced) {
+        problem(FILENAME ":" fence_line ": a fenced block opens here and never closes")
+    }
 
     if (open_question != "") {
         problem(FILENAME ":" question_line ": " open_question " has no answer")
@@ -301,6 +354,37 @@ END {
             if (!((id "\t" need[j]) in seen)) {
                 problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step and owes \"" need[j] ":\"")
             }
+        }
+        match(id, /^[A-Za-z]+/)
+        if (substr(id, 1, RLENGTH) != prefix_of[k]) {
+            problem(FILENAME ":" start_line[id] ": " id " is " a(k) " step and its ID must start with " \
+                    prefix_of[k])
+        }
+    }
+
+    for (i = 1; i <= ref_count; i++) {
+        if (!(ref_id[i] in start_line)) {
+            problem(FILENAME ":" ref_line[i] ": " ref_who[i] " names " ref_id[i] \
+                    ", which no step defines")
+            continue
+        }
+        if (ref_label[i] != "fixes") {
+            continue
+        }
+        if (ref_id[i] == ref_who[i]) {
+            problem(FILENAME ":" ref_line[i] ": " ref_who[i] " names itself as the step it fixes")
+        } else if (step_kind[ref_id[i]] != "red") {
+            problem(FILENAME ":" ref_line[i] ": " ref_who[i] " fixes " ref_id[i] ", which is " \
+                    a(step_kind[ref_id[i]]) " step rather than a reproduction")
+        } else {
+            fixed[ref_id[i]] = 1
+        }
+    }
+
+    for (i = 1; i <= step_count; i++) {
+        id = order[i]
+        if (step_kind[id] == "red" && !(id in fixed)) {
+            problem(FILENAME ":" start_line[id] ": " id " reproduces the bug and no green step fixes it")
         }
     }
 
@@ -321,13 +405,6 @@ END {
         }
     }
 
-    for (key in referenced) {
-        split(key, part, "\t")
-        if (!(part[2] in start_line)) {
-            problem(FILENAME ":" referenced[key] ": " part[1] " names " part[2] ", which no step defines")
-        }
-    }
-
     if (mode == "list") {
         for (i = 1; i <= step_count; i++) {
             id = order[i]
@@ -340,6 +417,10 @@ END {
     if (mode == "validate") {
         for (i = 1; i <= problem_count; i++) {
             print problems[i]
+        }
+        if (problem_count == 0) {
+            print FILENAME ": " step_count (step_count == 1 ? " step, " : " steps, ") \
+                  attempt_count (attempt_count == 1 ? " attempt, " : " attempts, ") "no problems"
         }
         exit (problem_count > 0 ? 1 : 0)
     }

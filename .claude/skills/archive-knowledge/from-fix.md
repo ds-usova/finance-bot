@@ -24,21 +24,21 @@ directory>` lists them.
 
 **The diff is the filter**, since a fix's steps do not map onto layers the way a plan's do.
 
-| Artifact      | The inventory                                                             |
-|---------------|---------------------------------------------------------------------------|
-| Use case      | the usecase classes the diff touched, and no others                       |
-| Domain        | the domain types the diff touched, and no others                          |
+| Artifact      | The inventory                                                                            |
+|---------------|------------------------------------------------------------------------------------------|
+| Use case      | the usecase classes the diff touched, and no others                                      |
+| Domain        | the domain types the diff touched, and no others                                         |
 | Contract      | every edge a `stabilize` step moved, and every edge a `green` step changed the answer of |
-| Configuration | updated where a step touched a knob                                       |
-| Conventions   | a page whose rule any step's edit contradicts, `docs:` line or not        |
+| Configuration | updated where a step touched a knob                                                      |
+| Conventions   | a page whose rule any step's edit contradicts, `docs:` line or not                       |
 
 Which steps normally owe what:
 
-| Step kind   | What it normally moves                                                                 |
-|-------------|------------------------------------------------------------------------------------------|
+| Step kind   | What it normally moves                                                                                                               |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | `green`     | a use-case **Outcome**, a contract's failure description, a domain invariant — the page said the wrong behaviour was the behaviour |
-| `stabilize` | a contract, where it moved a signature or a message shape                              |
-| `red`       | nothing — it writes a test                                                             |
+| `stabilize` | a contract, where it moved a signature or a message shape                                                                            |
+| `red`       | nothing — it writes a test                                                                                                         |
 
 **A page that documented the bug is the case this run exists for.** A fix is the one kind of work whose finished
 state contradicts something already written down as true. Read every page the diff's classes own, not only the

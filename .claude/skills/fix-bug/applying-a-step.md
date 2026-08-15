@@ -4,11 +4,11 @@ What each kind of step edits, what it runs, and when it refuses. Read beside the
 `fix.sh show <ID>` prints. The sequence around a step is the skill's: the validate gate, the order the kinds run
 in, the commit, and what is never done.
 
-| Kind        | Edit                                                       | Then run                                                            |
-|-------------|------------------------------------------------------------|---------------------------------------------------------------------|
-| `stabilize` | carry each broken call site back to compiling, nothing more | the module's whole suite · the architecture check                   |
-| `red`       | only `test-files:`, and no production file at all          | `runs:` — **it must fail, with the symptom `reproduces:` names**    |
-| `green`     | only `files:`, and no test file at all                     | `runs:` — it passes · then the module's whole suite                 |
+| Kind        | Edit                                                        | Then run                                                           |
+|-------------|-------------------------------------------------------------|--------------------------------------------------------------------|
+| `stabilize` | carry each broken call site back to compiling, nothing more | the module's whole suite · the architecture check                 |
+| `red`       | only `test-files:`, and no production file at all           | `runs:` — **it must fail, with the symptom `reproduces:` names** |
+| `green`     | only `files:`, and no test file at all                      | `runs:` — it passes · then the module's whole suite             |
 
 ## The red step is the one that can lie
 
@@ -32,9 +32,16 @@ step is measured against.
 editing the test refuses: the reproduction was wrong, and everything downstream of it rests on the reproduction.
 Revert, write the attempt, and put it back to the user.
 
-**Then the module's whole suite.** A fix that greens its own test and reds another is not a fix, and the second
-failure is the more interesting of the two — it says the old behaviour was relied on. Do not weaken the other
-test. Report both.
+**Then the module's whole suite.** A fix that greens its own test and reds another is not finished. Do not
+weaken the other test and do not edit it. Report both failures and what the other test was asserting.
+
+**A test asserting the old, wrong behaviour is the `red` step's to rewrite, not this one's.** Where that was
+foreseen, the fix file already says so and the test is in a `red` step's `test-files:`. Where it was not, this
+step stops and the file is amended.
+
+**A symptom that survives a step you believe is correct is a second cause.** Stop. The step is not wrong and
+does not revert; it is incomplete, and only the level that owns the fix file may add the pair of steps that
+finishes it. Write the attempt, saying which cause is now gone.
 
 **The fix is the smallest one that makes the symptom impossible**, not the largest one the diagnosis permits. A
 guard clause that hides the bad value is not a fix where the bad value is the bug.
@@ -53,7 +60,9 @@ the report. It never widens into a behaviour change.
 
 ## Where a step refuses
 
-- **A `red` step that passes before any production code is touched** reproduces nothing.
+- **A `red` step that passes before any production code is touched** reproduces nothing. Where `reproduces:`
+  carries a rate, it takes the run count the skill's rule for an intermittent bug gives, and only that count
+  refuses it.
 - **A `green` step that needs the test edited** rests on a reproduction that was wrong.
 - **A `green` step whose suite goes red elsewhere** is reported with both failures, not made green by editing the
   other test.
