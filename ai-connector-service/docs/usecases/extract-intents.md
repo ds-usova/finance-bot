@@ -110,16 +110,19 @@ SHOW_LEGEND()
 
 ## Flow
 
+Three diagrams: the turn every message goes through, then what happens inside it when the model records
+spending, and when it answers a spending question.
+
+### The turn
+
 ```plantuml
-@startuml ExtractIntents-Sequence
+@startuml ExtractIntents-Turn
 participant "Ledger Service" as Caller
 participant "AI Connector Service" as Service
 participant "Ledger Key Set" as KeySet
 participant "Message Store" as Store
+participant "Ledger Tools" as Tools
 participant "AI Provider" as Provider
-participant "Category Lookup Tool" as Lookup
-participant "Expense Proposal Tool" as Tool
-participant "Spending Summary Tool" as Summary
 
 Caller -> Service : text, groupings, catch-all grouping, today, assumed currency, token
 Service -> KeySet : the ledger's signing keys, on first use
@@ -129,64 +132,89 @@ alt no token, the token does not verify, or it names no person and message
     Service --> Caller : caller not identified
 else the key set cannot be read in time
     Service --> Caller : unavailable
-else the token names a person and a message
-    alt the request cannot be used
-        Service --> Caller : invalid argument
-    else the request is usable
-        Service -> Store : keep this message, under that person and message
-        Store --> Service : kept, already there, or refused
-        Service -> Lookup : list the tools, as the caller
+else the request cannot be used
+    Service --> Caller : invalid argument
+else the request is usable
+    Service -> Store : keep this message, under that person and message
+    Store --> Service : kept, already there, or refused
+    Service -> Tools : list the tools, as the caller
 
-        alt the ledger cannot be reached
-            Lookup --> Service : transport failure
+    alt the ledger cannot be reached
+        Tools --> Service : transport failure
+        Service --> Caller : unavailable
+    else the tools are known
+        Service -> Provider : the standing instructions, the message, the groupings, the catch-all, today, the tool schemas
+
+        alt the provider fails
+            Provider --> Service : failure
             Service --> Caller : unavailable
-        else the tools are known
-            Service -> Provider : the standing instructions, the message, the groupings, the catch-all, today, the tool schemas
-
-            alt the provider fails
-                Provider --> Service : failure
-                Service --> Caller : unavailable
-            else the message names no spending and asks nothing
-                Provider --> Service : an answer with no tool call
-                Service --> Caller : acted on
-            else the message asks what was spent
-                Provider -> Service : summarize this period
-                Service -> Summary : the first and last day, as the token's subject
-                Summary --> Service : the period accepted, or a refusal
-                Service -> Provider : the result
-                Provider --> Service : an answer with no further tool call
-                Service --> Caller : acted on
-            else the message names spending
-                loop each expense, in the user's order
-                    loop until a grouping answers its categories
-                        Provider -> Service : list this grouping's categories
-                        Service -> Lookup : the grouping, as the token's subject
-                        Lookup --> Service : the grouping's categories, or a refusal
-                        Service -> Provider : the result
-                    end
-
-                    Provider -> Service : record this expense
-                    Service -> Tool : the expense, as the token's subject
-
-                    alt refused
-                        Tool --> Service : what to retry with
-                        Service -> Provider : the refusal
-                        Provider -> Service : the corrected call, once
-                        Service -> Tool : the corrected expense
-                    else the ledger cannot be reached
-                        Tool --> Service : transport failure
-                        Service --> Caller : unavailable
-                    else recorded
-                        Tool --> Service : the stored proposal
-                        Service -> Provider : the result
-                    end
-                end
-                Provider --> Service : an answer with no further tool call
-                Service --> Caller : acted on
-            end
+        else the message names no spending and asks nothing
+            Provider --> Service : an answer with no tool call
+            Service --> Caller : acted on
+        else the message names spending
+            ref over Service, Tools, Provider : Recording spending
+            Service --> Caller : acted on
+        else the message asks what was spent
+            ref over Service, Tools, Provider : Answering a spending question
+            Service --> Caller : acted on
         end
     end
 end
+@enduml
+```
+
+### Recording spending
+
+Every arm ends with the model answering without a further tool call, which is the turn's "acted on" above; a
+ledger that cannot be reached ends the turn as unavailable instead.
+
+```plantuml
+@startuml ExtractIntents-RecordingSpending
+participant "AI Connector Service" as Service
+participant "AI Provider" as Provider
+participant "Category Lookup Tool" as Lookup
+participant "Expense Proposal Tool" as Tool
+
+loop each expense, in the user's order
+    loop until a grouping answers its categories
+        Provider -> Service : list this grouping's categories
+        Service -> Lookup : the grouping, as the token's subject
+        Lookup --> Service : the grouping's categories, or a refusal
+        Service -> Provider : the result
+    end
+
+    Provider -> Service : record this expense
+    Service -> Tool : the expense, as the token's subject
+
+    alt refused
+        Tool --> Service : what to retry with
+        Service -> Provider : the refusal
+        Provider -> Service : the corrected call, once
+        Service -> Tool : the corrected expense
+    else the ledger cannot be reached
+        Tool --> Service : transport failure
+    else recorded
+        Tool --> Service : the stored proposal
+        Service -> Provider : the result
+    end
+end
+Provider --> Service : an answer with no further tool call
+@enduml
+```
+
+### Answering a spending question
+
+```plantuml
+@startuml ExtractIntents-SpendingQuestion
+participant "AI Connector Service" as Service
+participant "AI Provider" as Provider
+participant "Spending Summary Tool" as Summary
+
+Provider -> Service : summarize this period
+Service -> Summary : the first and last day, as the token's subject
+Summary --> Service : the period accepted, or a refusal
+Service -> Provider : the result
+Provider --> Service : an answer with no further tool call
 @enduml
 ```
 
