@@ -87,14 +87,14 @@ against it.
 **Where `bug.md` records a rate rather than a plain reproduction, the run counts are the skill's**, under its
 rule for an intermittent bug. A single pass proves nothing about a bug that fails one run in ten.
 
-**Tick each step as it passes**, with `fix.sh tick <ID>`.
+**Then, every step:** run whatever the conventions require before a commit, `fix.sh tick <ID>`, and commit the
+fix file together with the paths that step named.
 
-**Commit once per kind, when its whole wave has passed the guardrail above** — not once per step. The kinds are
-this fix's stages, and a repository that commits per stage means per kind here. Run whatever the conventions
-require before a commit, and name the paths that wave touched plus the fix file.
+**A step's own run is the guardrail its commit follows.** A fix has no stages in the sense a plan has, so where
+the conventions say what to do with work that has none, that is the rule they give it.
 
-**The `red` wave's commit carries test files and nothing else.** That is what makes the reproduction verifiably
-older than the fix, and Phase 4 reads it. A `red` commit carrying production code says the fix came first.
+**A `red` step's commit carries test files and nothing else.** A production file in it says the fix was written
+first, whatever the report claims.
 
 **Whether anything is committed at all is the conventions' Version Control rules.** A repository silent on it gets
 no commits. Another module's agent is committing into the same history at the same time. Follow whatever those
@@ -118,8 +118,8 @@ step is.
 The gate that refuses an unanswered question is the level above's to clear before it re-spawns you; leaving one
 behind is correct, not a failure.
 
-**One line of a step's own text, and only the one `applying-a-step.md` names**: the `files:` or `disables:` a
-`stabilize` step must widen to cover what it found. Nothing else about a step is yours — not its kind, not its
+**One line of a step's own text, and only where `applying-a-step.md` says so**: a boundary line a `stabilize`
+step must widen to cover what it found. Nothing else about a step is yours — not its kind, not its
 scenario, and never a step added or removed.
 
 ## Where You Stop And Ask

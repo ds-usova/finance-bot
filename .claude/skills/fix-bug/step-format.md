@@ -71,8 +71,9 @@ either step runs. The order the kinds run in is the skill's, and it is the same 
 **Together `files:` and `test-files:` are the boundary.** Anything outside them is another step's, or another
 fix's.
 
-**A path is written from the repository root**, so a step in one module's file and a step in another's read the
-same way.
+**A path under `files:` or `test-files:` is written from the repository root**, so a step in one module's file
+and a step in another's read the same way. A reference to another fix file names it as it sits beside this one:
+`shared/fix.md · S01`.
 
 **A `stabilize` step may carry no `files:` at all.** Preparing a stub, a fixture or a builder so the `red` step
 can be written is what the kind is for, and that work is all `test-files:`.

@@ -63,8 +63,8 @@ is a `green` step, and it needs a reproduction like any other.
 **A migration that has run is not undone by reverting its file.** Say so in the report, and say what putting the
 store back would take. The abandonment path in the skill owes the same.
 
-**A `stabilize` that finds a call site its `files:` does not name, or a test its `disables:` does not name,
-widens that line and says so in the report.** Widening a boundary the step already owns is the one edit to a
+**A `stabilize` that finds a file its `files:`, `test-files:` or `disables:` does not name widens that line and
+says so in the report.** Widening a boundary the step already owns is the one edit to a
 step's own text its agent may make. Adding a step, removing one, or changing what a step does is not, and goes
 back to the level that owns the file. It never widens into a behaviour change.
 

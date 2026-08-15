@@ -56,7 +56,9 @@ function scan_refs(who, label, text, line,   rest, id, before, after, found) {
     # stabilize step is cleared by a module's red step, and that module's red step needs the shared
     # one. Both are legitimate, and neither file holds the other's IDs. "fixes:" never crosses, so a
     # file named there is the mistake rather than the reason to stop looking.
-    if (text ~ /\.md/ && label != "fixes") {
+    # A file is named only where a step in it is, so the reference is the ID beside it - and a value
+    # merely mentioning a path names no step at all.
+    if (text ~ /\.md[^ ]* *\xc2\xb7/ && label != "fixes") {
         return 1
     }
     found = 0
@@ -158,8 +160,10 @@ BEGIN {
         match(fence, /^~+/)
     }
     if (fenced) {
-        # Closed only by the same character, at least as long, carrying no info string.
-        if (char == fence_char && RLENGTH >= fence_len && trim(substr(fence, RLENGTH + 1)) == "") {
+        # Closed only by the same character, at exactly the opening length, carrying no info string.
+        # A longer run is content: a row of tildes underlining a line is how compilers and query
+        # planners point at a column, and it appears in pasted output constantly.
+        if (char == fence_char && RLENGTH == fence_len && trim(substr(fence, RLENGTH + 1)) == "") {
             fenced = 0
             fence_len = 0
             awaiting_evidence = ""
