@@ -38,19 +38,16 @@ those live in `bug.md`. A step ID for an approach that failed while applying tha
 module's `fix.md`. `validate` refuses a phase that is neither.
 
 **Every entry goes in the `## Attempts` section, whatever its phase names.** The step ID is how an entry says
-which step it belongs to. An entry written under the step's own checklist bullet is one `validate` refuses, and
-one nothing reads.
+which step it belongs to. An entry written under the step's own checklist bullet is one `validate` refuses.
 
 **Numbers are `A1` upward, per file, assigned once and never renumbered.** A withdrawn attempt keeps its number.
 Since each file numbers its own, anything outside the file cites both: `module-a/fix.md · A3`.
 
 ## The rules
 
-**An attempt is written the moment it fails, before the next one starts.** A log written at the end is a summary,
-and a summary is what a stopped run does not have.
+**An attempt is written the moment it fails, before the next one starts.**
 
-**Only failures are entries.** The approach that worked is the step, and a log holding both is one a reader has
-to sort before it is useful.
+**Only failures are entries.** The approach that worked is the step.
 
 **An approach that was right and insufficient is a failure for this purpose.** A `green` step that removes one
 of two causes leaves the symptom, so it gets an entry: `result: failed — the symptom survived`, and a
@@ -66,16 +63,15 @@ An attempt whose failure produced no output says so in `evidence:` and quotes wh
 the log line, the response body. `validate` refuses an `evidence:` with no fenced block under it, because an
 attempt without its output is a rumour the next session has to reproduce.
 
-**`ruled-out:` is the value of the entry.** Everything above it says what happened; this line says what it means.
-An attempt that rules nothing out says so, and names what it would take to settle the question.
+**`ruled-out:` is the value of the entry.** An attempt that rules nothing out says so, and names what it would
+take to settle the question.
 
 **Two failed attempts on one step is what the section expects.** The third failure is where the step stops and
 goes back to the user, because a fourth approach from inside the same context is the one most likely to repeat
 the first.
 
 **An attempt whose failure changed the tree is reverted before the next one starts.** Where it was not — a schema
-left migrated, a dependency left added — the entry says so. The tree the next attempt runs against has to be the
-one the log describes.
+left migrated, a dependency left added — the entry says so.
 
 **The log is not the whole record of a stopped run.** It holds what failed; the fix file's `**In flight:**` line
 holds the approach still being tried. Neither answers for the other.

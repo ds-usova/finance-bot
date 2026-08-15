@@ -22,7 +22,7 @@ directory>` lists them.
 
 ## Where the Survey's Inventory Comes From
 
-**The diff is the filter**, since a fix's steps do not map onto layers the way a plan's do.
+**The diff is the filter.** A fix's steps do not map onto layers the way a plan's do.
 
 | Artifact      | The inventory                                                                            |
 |---------------|------------------------------------------------------------------------------------------|
@@ -44,14 +44,13 @@ Which steps normally owe what:
 state contradicts something already written down as true. Read every page the diff's classes own, not only the
 ones a `docs:` line named: the step named the page before it knew what the fix would be.
 
-**The `## Attempts` log is never archived.** It is the record of how the fix was found, and it stays in the
-directory. Nothing in it is a fact about the system.
+**The `## Attempts` log is never archived.** It stays in the directory; nothing in it is a fact about the system.
 
 ## What Authorizes an ADR
 
 An **Open Question** in `bug.md` or in a `fix.md`, answered `yes`, asking whether a technical decision the fix
-settles should be recorded. A bug fix rarely settles one — the commonest candidate is a mechanism the fix
+settles should be recorded. A bug fix rarely settles one. The commonest candidate is a mechanism the fix
 introduced to make a whole class of the bug impossible, such as where idempotency is now enforced.
 
-**"We fixed a bug" is never an ADR.** Nor is the diagnosis, however hard it was. A fix whose Open Questions hold
-no answered question of that kind yields no ADR.
+**"We fixed a bug" is never an ADR.** Nor is the diagnosis. A fix whose Open Questions hold no answered question
+of that kind yields no ADR.

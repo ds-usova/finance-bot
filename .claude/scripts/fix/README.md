@@ -5,13 +5,13 @@ done, whether the file's grammar holds, and whether every module's fix is comple
 
 ## Why it exists
 
-A fix's step format is decided by its kind. Three kinds, and each owes some labelled lines and may not carry
-others: a `red` step owes `reproduces:` and may not name a production file, a `green` step owes `fixes:` and may
-not name a test file at all. Every one of those mistakes is silent — a `green` step that quietly edits the test
-it is proven by turns the whole verification model into a formality.
+A fix's step format is decided by its kind. Each of the three owes some labelled lines and may not carry others:
+a `red` step owes `reproduces:` and may not name a production file, a `green` step owes `fixes:` and may not name
+a test file at all. Every one of those mistakes is silent: a `green` step that quietly edits the test it is
+proven by turns the whole verification model into a formality.
 
 It also reads the `## Attempts` log, where the same silence costs more: an attempt written without the output
-that killed it is a rumour the next session has to reproduce, and nothing else in the repository would notice.
+that killed it is a rumour the next session has to reproduce.
 
 The second reason is addressing. A step handed to a sub-agent has to arrive as the file wrote it, not as a prompt
 remembered it. `show` is what makes that possible.
@@ -26,8 +26,7 @@ installed, `.claude/` in a plain checkout. `fix-parse.awk` sits beside it and is
 the pair travels together.
 
 The **fix file** is found the other way round, from `git rev-parse --show-toplevel` (falling back to the working
-directory). Once installed, this script runs from a cache directory outside any checkout, so nothing about the
-project can be derived from where the script is.
+directory), since once installed the script runs from a cache directory outside any checkout.
 
 ## Usage
 
@@ -58,8 +57,10 @@ accepts a bug directory or any fix inside one. Without either, the single `fix.m
 used. A `bug.md` is always named explicitly — `validate` reads it for its Attempts section — and so is an
 archived file under `docs/implemented/`, or one of two fixes in flight at once.
 
-`status` and `tick` refuse a file that defines no `stabilize`, `red` or `green` step. Every checklist in this
-repository looks alike to a reader that only counts boxes, and ticking the wrong one rewrites it.
+**`tick` writes, so it refuses anything but a `fix.md`.** The kinds cannot tell the formats apart — a rework's
+steps have kinds of their own and one of them is also called `stabilize` — so only the name does. `status` and
+`validate` read, and say so before answering for a file under another name. `status` also refuses a file that
+defines no steps at all.
 
 ### Step IDs
 
@@ -83,7 +84,8 @@ value on its own line.
 | A value left empty, `TBD`, `—`, or still in `<angle brackets>`   | a step agent given no instruction                                       |
 | A `files:` or `test-files:` with no bullet under it                | a boundary that names nothing                                           |
 | `needs:` or `fixes:` naming a step nothing defines                 | a green step paired with a reproduction that was dropped                |
-| `disables:` naming no step after "cleared by"                      | a test turned off with nothing owing its return                         |
+| `disables:` naming no step at all                                  | a test turned off with nothing owing its return                         |
+| `fixes:` naming no step at all                                     | a green step whose pairing was never written                            |
 | A `fixes:` naming itself, or naming a step that is not a `red` one | a pairing that proves nothing                                           |
 | A `red` step no `green` step fixes                                 | a reproduction that would be committed and left failing                 |
 | A duplicate attempt number                                         | two entries the log cannot tell apart                                   |
@@ -97,10 +99,8 @@ value on its own line.
 
 A clean file prints its step and attempt counts, so "no problems" and "not a fix file" never look the same.
 
-**A duplicate ID's own block is not judged.** The second `R01` is reported and its lines are skipped, since
-attributing them to an ID that already means something else would report the same step twice. A file carrying a
-duplicate ID or an unrecognized kind is also spared the pairing check, whose complaint would be about the
-reported mistake rather than about the pairing. Fix those and run again.
+**A duplicate ID's own block is not judged.** The second `R01` is reported and its lines are skipped. A file
+carrying a duplicate ID or an unrecognized kind is also spared the pairing check. Fix those and run again.
 
 Bullets inside fenced code blocks are skipped, so a fix quoting the step format does not acquire phantom steps
 from the example. **What closes a fence is a marker at least as long as the one that opened it**, as in Markdown

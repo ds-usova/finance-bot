@@ -48,9 +48,9 @@ under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a 
 | `needs:`      | any                  | what must already be true for this step's run to be green               |
 | `docs:`       | any                  | the pages this step invalidates                                         |
 
-**`green` carries no `test-files:`.** A fix proven by a test the same run edited is proven by nothing. The test
-was written by the `red` step and stays as it was written; a `green` step that cannot pass without changing it
-goes back to the user, because the reproduction was wrong and the diagnosis rests on it.
+**`green` carries no `test-files:`.** The test was written by the `red` step and stays as it was written. A
+`green` step that cannot pass without changing it goes back to the user: the reproduction was wrong, and the
+diagnosis rests on it.
 
 **`reproduces:` names the symptom, not the assertion.** "The second call charges the account twice" is the
 symptom. `assertEquals(1, charges.size())` is how a test says it, and how it says it is `runs:`. The symptom is
@@ -59,15 +59,14 @@ what the user reported, restated precisely enough that a passing test can be rec
 **Where the bug is intermittent, `reproduces:` carries the rate** the diagnosis measured, and the step's run
 count comes from the skill's rule for one.
 
-**Every `red` step has a `green` step naming it, and every `green` step names one `red` step.** Nothing is fixed
-that was not first reproduced, and `validate` refuses a reproduction nothing fixes.
+**Every `red` step has a `green` step naming it, and every `green` step names one `red` step.** `validate`
+refuses a reproduction nothing fixes.
 
 **`needs:` states a fact, not a schedule.** It says what must hold for the step's run to be green, never when
 either step runs. The order the kinds run in is the skill's, and it is the same in every fix.
 
-**`files:` and `test-files:` carry one path per bullet under the label.** A run of paths on the label line is
-read by scanning for commas, and a step's boundary is the thing a reader has to see at a glance. The label line
-itself stays empty, and `validate` refuses one with no bullet under it.
+**`files:` and `test-files:` carry one path per bullet under the label.** The label line itself stays empty, and
+`validate` refuses one with no bullet under it.
 
 **Together `files:` and `test-files:` are the boundary.** Anything outside them is another step's, or another
 fix's.

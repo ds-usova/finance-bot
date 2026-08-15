@@ -13,8 +13,7 @@ Something the repository already does is wrong. Three kinds of step put it right
 | `red`       | one test that reproduces the bug and fails on its symptom                                                  |
 | `green`     | production code, until that test passes and the suite stays green                                          |
 
-**Every fix ends with a `red` step that failed and a `green` step that made it pass.** A bug closed without a
-test that first reproduced it is a bug closed on someone's word.
+**Every fix ends with a `red` step that failed and a `green` step that made it pass.**
 
 **Everything that fails on the way is written down**, in the fix's `## Attempts` log, with the output it produced.
 That log is what a stopped run leaves behind, and what stops the next session repeating the last one.
@@ -26,7 +25,7 @@ That log is what a stopped run leaves behind, and what stops the next session re
 - **A failure inside a plan that is still being implemented** — its own green phase owns that diff.
 
 **A bug is behaviour the repository already promises and does not deliver.** Where nobody promised it, this is a
-feature, however much it feels like a defect.
+feature.
 
 ## Input Resolution
 
@@ -85,22 +84,20 @@ were rather than stopping on them.
   `reproduces:` is written against, and what the fix is measured by. **Run it twice before believing "every
   time".** One run cannot tell the two branches below apart, and which branch this is governs every gate that
   follows.
-- **There is nothing to run yet**, because the symptom is only visible through a test nobody has written — the
-  common case for a defect in code the suite reaches but no test covers. **Write that test now, as a probe**,
-  under the probe rules in Phase 1. Its failure is the reproduction, its output is what gets quoted, and it is
-  reverted with every other probe. Phase 3 writes it again as the `red` step, from the file rather than from
-  memory. **This is not the `red` step arriving early**: nothing is committed, and the fix is still approved
-  before a source file is kept.
+- **There is nothing to run yet**, because the symptom is only visible through a test nobody has written.
+  **Write that test now, as a probe**, under the probe rules in Phase 1. Its failure is the reproduction, its
+  output is what gets quoted, and it is reverted with every other probe. Phase 3 writes it again as the `red`
+  step, from the file rather than from memory. **This is not the `red` step arriving early**: nothing is
+  committed, and the fix is still approved before a source file is kept.
 - **It fails sometimes**: run it enough times to see it fail twice, and record both numbers — failures and
   runs. That pair is the rate, and it governs the rule below.
 - **It does not reproduce here, and could**: stop and say so, with what was run and what happened instead. Ask
   for the missing condition. Never write a fix for a bug nobody has seen fail. A `red` step for a symptom that
   was guessed at will pass, and the run will call that a fix.
 - **It cannot reproduce here at all** — it needs production data, a load level, or an environment this machine
-  does not have. **Stop, and say what would be needed.** This skill fixes what it can first make fail, and a
-  fix with no reproduction is not one it can verify or even validate. Report the diagnosis, and put the
-  reproduction where a person can run it: a **Manual test** in a findings file, or a task to build the
-  environment. Whether to fix it blind is the user's call, and it is not this skill's run.
+  does not have. **Stop, and say what would be needed.** Report the diagnosis, and put the reproduction where a
+  person can run it: a **Manual test** in a findings file, or a task to build the environment. Whether to fix it
+  blind is the user's call, and it is not this skill's run.
 
 ### An Intermittent Bug
 
@@ -113,8 +110,7 @@ gates are repeated instead of run once, and `reproduces:` carries the rate as `<
 - **The `green` step runs three times whatever the `red` step needed**, and passes every time.
 
 **Phase 2 asks whether those counts are enough**, as a numbered Open Question. They are a floor derived from one
-measurement, not a confidence bound, and a rare bug against an expensive suite is a cost only the user can
-accept.
+measurement, not a confidence bound.
 
 **Whatever the answer settles is written into `reproduces:`**, beside the rate, in the words the step's agent
 will read. An answer left in an Open Question reaches nobody: the agent is handed the step.
@@ -147,8 +143,7 @@ run knows what has been written since. This holds at every gate in this skill.
 
 **A probe is allowed here, and it is the one thing that may touch a source file before the user approves
 anything.** A log line, a counter, a breakpoint condition, a query run by hand, a seam that lets a test see what
-a class is doing: a chain of causes cannot always be read out of the source, and the alternative to a probe is a
-diagnosis with unverified links.
+a class is doing.
 
 - **Every probe's edits are reverted before Phase 2 presents anything**, and before the baseline suite runs.
   The files are written while probes may still be in the tree; what the user is shown is a tree nothing has
@@ -166,8 +161,7 @@ parts to test types, and the same symptom can often be reproduced at more than o
 the wrong code, or expensively, close to what the user saw. **Take the cheapest type that fails for the bug's
 own reason.** Where only the expensive one fails for that reason, take it and say why the cheap one does not.
 
-**A probe is never left in the tree and never committed.** The only thing that survives Phase 1 is a written
-file and a step.
+**A probe is never left in the tree and never committed.**
 
 **Reverting a file does not revert what the probe did.** An applied migration, a consumed offset, a burned log,
 a written row: where the effect outlives the edit, say so in the diagnosis and in the attempt, name what was
@@ -204,8 +198,7 @@ behaving exactly as its contract says is not the bug, however clearly the cause 
 is a design change, and it goes to `design-task`. Say which cut was chosen in `## Why it happens`, and name the
 one rejected.
 
-**These files are the artifact**, and a fresh session resumes from them. Write them under the repository's
-documentation conventions like any other document.
+Write these files under the repository's documentation conventions like any other document.
 
 ### `bug.md`
 
@@ -314,8 +307,7 @@ assertion to the reported symptom, and the run fails as any `red` step must. Thi
 test asserted something the repository was wrong about, and `bug.md` is where that is argued.
 
 **A test whose assertion this fix inverts is named in `## What the fix must not break`**, with what it was
-protecting and why that is not lost. A `red` step that rewrites a test nobody discussed is the one edit in this
-skill that can silently delete a requirement.
+protecting and why that is not lost.
 
 ### `shared/fix.md`
 
@@ -378,8 +370,7 @@ it and no step schedules it.
 
    **Write it only where the contract change breaks something.** A schema edit that changes a description, an
    example or a comment regenerates identical code and stabilizes nothing, so it belongs in `files:` of the step
-   that needs it. A shared file costs a whole sequential run before anything else starts, and it is there for
-   call sites that will not compile.
+   that needs it. A shared file is there for call sites that will not compile.
 2. **One `fix-bug-module` sub-agent per `fix.md`**, spawned concurrently. Each is given its own file path, its
    module's phase-0 figures, and the conventions its module names. Nothing waits: the shared file landed
    everything that crosses, so the module fixes are independent by construction.
@@ -408,8 +399,8 @@ nothing about a step, and never edit a file an agent owns.
 
 ### Amending an Approved Fix
 
-**The diagnosis is a hypothesis, and applying the steps is what tests it.** Three things routinely disprove it
-mid-run, and none of them is a reason to end the run with a failing test committed:
+Three things routinely disprove the diagnosis mid-run, and none of them is a reason to end the run with a
+failing test committed:
 
 | What the run found                                             | What changes                                             |
 |----------------------------------------------------------------|----------------------------------------------------------|
@@ -493,7 +484,7 @@ When every agent has returned:
      the `green` step that names it. That is the only durable evidence the reproduction preceded the fix.
 
    **Where the conventions commit nothing, say so in the report.** The ordering then rests on the agent's own
-   account, and a reader deserves to know which of the two they are holding.
+   account.
 4. Whatever else the modules' **build** conventions require of a finished change — a coverage guardrail, a
    formatting gate. **Where one of those commands runs the suite itself, it is item 2**, not a second run of it.
    A guardrail that fails is reported with its own verdict and blocks the archive; it is not argued with.

@@ -4,8 +4,7 @@ What a finished fix tells the user, once phase 4 is done.
 
 - **The symptom, and that it no longer reproduces** — the same command from `## How it reproduces`, and what it
   produces now. Where the bug was intermittent, the run counts both gates actually used.
-- **The failure text of every `red` step's run**, quoted. That is the proof the bug was reproduced before it was
-  fixed, and it is the one thing a reader cannot reconstruct from the diff.
+- **The failure text of every `red` step's run**, quoted.
 - **Each step, its kind, and the files it touched**, per module. A step struck out mid-run is listed with what
   replaced it.
 - **How many attempts each module logged, and what they ruled out** — one line each, pointing at the log rather

@@ -29,8 +29,7 @@ step is measured against.
 ## The green step
 
 **It changes production code until `runs:` passes, and touches no test.** A `green` step that cannot pass without
-editing the test refuses: the reproduction was wrong, and everything downstream of it rests on the reproduction.
-Revert, write the attempt, and put it back to the user.
+editing the test refuses: the reproduction was wrong. Revert, write the attempt, and put it back to the user.
 
 **Then the module's whole suite.** A fix that greens its own test and reds another is not finished. Do not
 weaken the other test and do not edit it. Report both failures and what the other test was asserting.
@@ -49,16 +48,15 @@ guard clause that hides the bad value is not a fix where the bad value is the bu
 ## The stabilize step
 
 **It exists so the red step can be written at all** — an interface the test needs, a signature the fix requires,
-a contract between two services the bug spans. It is the precondition of whatever works against what it moved.
+a contract between two services the bug spans.
 
 **It changes no behaviour that anything already asks for.** A changed signature keeps its logic and gains a
 `TODO`, a new method gets a stub with an intent comment, a test that cannot compile is disabled rather than
 removed, in the form the module's conventions give for a disabled test. Whatever it disables, `disables:` names,
 and a `red` step clears it.
 
-**A schema change is a `stabilize` step, and it is the exception the rule needs stating for.** A migration
-adding a column, a constraint or an index changes what the store will accept, and the reproduction cannot be
-written until it has. What makes it a `stabilize` step is that no code path behaves differently yet: the column
+**A schema change is a `stabilize` step.** A migration adding a column, a constraint or an index changes what
+the store will accept, and the reproduction cannot be written until it has. What makes it a `stabilize` step is that no code path behaves differently yet: the column
 is unread, the constraint refuses only what nothing writes. A migration that changes what an existing path does
 is a `green` step, and it needs a reproduction like any other.
 
@@ -82,8 +80,7 @@ back to the level that owns the file. It never widens into a behaviour change.
   is corrected before it is applied.
 
 Each of these reverts the step, writes the attempt, and puts it back to the user. **The one refusal that does
-not revert is the second cause above**: that step is right and unfinished, and undoing it would lose a correct
-fix.
+not revert is the second cause above**: that step is right and unfinished.
 
 ## One thing looks like a refusal and is not
 

@@ -5,8 +5,7 @@ description: 'Spawned by fix-bug to apply one module''s fix file. Not for direct
 
 # Fix Bug — Module Agent
 
-Apply one fix file, start to finish. Its steps are `stabilize`, then `red`, then `green`, in that order, and that
-order is the same in every fix.
+Apply one fix file, start to finish. Its steps run `stabilize`, then `red`, then `green`, in every fix.
 
 ## What You Are Given
 
@@ -18,14 +17,13 @@ order is the same in every fix.
   Your baseline was measured before that fix landed, so those skips sit on top of it and are not yours to clear;
 - **`bug.md`** — the symptom, the reproduction, the diagnosis, and what the fix must not break.
 
-**Two gates already ran above you, and you repeat neither** — the bug was reproduced, and every module's
-baseline was measured. **This is about those two and nothing else.** Your own stages each run the module's
-suite, and the run after the last `stabilize` step is the only thing that catches a stabilization that changed
-behaviour.
+**Two gates already ran above you, and you repeat neither**: the bug was reproduced, and every module's
+baseline was measured. **That is those two runs and nothing else.** Your own stages each run the module's suite.
+The run after the last `stabilize` step is the only thing that catches a stabilization that changed behaviour.
 
 **Read the `fix-bug` skill's own `SKILL.md` before the first step**, along with the three files beside it named
-below. It holds what is never done, the order the kinds run in, and the run counts an intermittent bug takes —
-rules you are bound by and that are stated nowhere else.
+below. It holds what is never done, the order the kinds run in, and the run counts an intermittent bug takes.
+Those rules are stated nowhere else.
 
 **Read `<module>/docs/conventions.md` for your module, and the repository-wide conventions**, following the
 conventions index. They are the source of truth for the build command, the test commands, the architecture check,
@@ -33,17 +31,16 @@ how a test is disabled, what runs before a commit, and the commit policy. Never 
 
 **Return when the fix is finished or genuinely blocked — never while waiting.** A turn that ends does not resume.
 Run a suite in the foreground, with a timeout generous enough for the whole thing. Blocked and needing a
-decision? That is a result — return, and say what you need.
+decision is a result: return, and say what you need.
 
 ## You Apply The Steps Yourself
 
-Unlike a plan's pipeline, you do the work rather than delegating each step. A fix is a handful of steps built on
-one diagnosis, and the diagnosis is exactly the context a fresh step agent would not have — the same context the
-attempt log exists to preserve. Splitting `red` from `green` across two agents loses it twice.
+Unlike a plan's pipeline, you do the work rather than delegating each step. A fix's steps are built on one
+diagnosis, which a fresh step agent would not have. Splitting `red` from `green` across two agents loses it twice.
 
-**Addressing the file.** Every step carries an ID (`R01`), and `fix.sh` — which ships with the `fix-bug` skill at
-`scripts/fix/fix.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and under `.claude/` in a plain
-checkout — is how you read and write them. Its README sits beside it.
+**Addressing the file.** Every step carries an ID (`R01`), and `fix.sh` is how you read and write them. It ships
+with the `fix-bug` skill at `scripts/fix/fix.sh`, under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin and
+under `.claude/` in a plain checkout. Its README sits beside it.
 
 | Need                 | Command                            |
 |----------------------|------------------------------------|
@@ -59,8 +56,7 @@ guess between them.
 everything you report back.
 
 **A step is ticked only once you have verified it yourself**, never on the strength of what you expected the run
-to do. Never hand-edit a checkbox: `tick` addresses the step by ID, so it does not depend on the wording being
-what it was when the run started.
+to do. Never hand-edit a checkbox; `tick` addresses the step by ID.
 
 **If the script is genuinely absent — an incomplete install — say so and fall back to reading and editing the
 file directly.** Everything below still applies; only the mechanics change.
@@ -90,21 +86,21 @@ rule for an intermittent bug. A single pass proves nothing about a bug that fail
 file together with the paths the step named.
 
 **Whether anything is committed at all is the conventions' Version Control rules.** A repository silent on it gets
-no commits. Another module's agent is committing into the same history at the same time — follow whatever those
-rules say about scoping a commit and about a concurrent one, and report a refusal they do not cover rather than
+no commits. Another module's agent is committing into the same history at the same time. Follow whatever those
+rules say about scoping a commit and about a concurrent one. Report a refusal they do not cover rather than
 improvising a retry.
 
 ## What You Write Into Your File
 
-These, and nothing else. They are yours alone, since no other agent may open this file.
+These, and nothing else.
 
 **`## Attempts`, as each approach fails.** Its format and its rules are `attempts.md`, in the `fix-bug` skill
 directory. Read it before the first step.
 
 **The `**In flight:**` header line**, rewritten when a step starts and emptied when it ticks: the step's ID and
 what you are currently trying, in a clause. The attempt log holds what already failed; this holds the approach
-still being tried, so that a resumed run inherits it rather than starting the same reasoning over. **It is not
-how a resume finds its place** — the first unticked step is.
+still being tried, so a resumed run inherits it. **It is not how a resume finds its place** — the first unticked
+step is.
 
 **A third thing, only when you return blocked**: a numbered question under `## Open Questions`, saying what you
 need decided. Nothing else, ever, and never a step's own text.
@@ -114,12 +110,10 @@ need decided. Nothing else, ever, and never a step's own text.
 **Every refusal in `applying-a-step.md` ends here**, and each says whether the step reverts. Write the attempt
 either way, and return. Three more end here too:
 
-- **Three failed attempts on one step.** Return with the log. A fourth attempt from inside the same context is
-  the one most likely to repeat the first. Three *attempts* is a step that failed twice and landed on the
-  third — that one is finished, and the report says what it took.
+- **Three failed attempts on one step.** Return with the log. Three *attempts* is a step that failed twice and
+  landed on the third; that one is finished, and the report says what it took.
 - **The symptom survives a `green` step you believe is correct.** The bug has a second cause the fix file does
-  not cover. The step stands and does not revert; it is incomplete rather than wrong. Return, and let the level
-  above write the new pair of steps.
+  not cover. The step stands and does not revert. Return, and let the level above write the new pair of steps.
 - **The cause is outside your module.** Return and name where it is. Never edit another module, and never widen
   a step to reach one.
 
@@ -135,10 +129,9 @@ resumed run has.
 
 ## Unrelated Failures — Report, Don't Fail
 
-The baseline taken above you guarantees the run starts from a known state, so this covers a failure that surfaces
-mid-run yet is unrelated to this fix — it reproduces on a code path the fix never touched, or is clearly
-environmental. Do not treat it as a step failure, do not abandon the run, and do not silently fix it. Record it in
-your report with enough detail to reproduce.
+This covers a failure that surfaces mid-run yet is unrelated to this fix: it reproduces on a code path the fix
+never touched, or is clearly environmental. Do not treat it as a step failure, do not abandon the run, and do not
+silently fix it. Record it in your report with enough detail to reproduce.
 
 ## What To Report
 
