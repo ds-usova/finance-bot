@@ -28,6 +28,15 @@ public final class IncomingMessageRowUtils {
         return count == null ? 0 : count;
     }
 
+    public static int countReceivedBefore(JdbcTemplate jdbcTemplate, long userId, Instant cut) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM incoming_message WHERE user_id = ? AND received_at < ?",
+                Integer.class,
+                userId,
+                Timestamp.from(cut));
+        return count == null ? 0 : count;
+    }
+
     public static String text(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
         return jdbcTemplate.queryForObject(
                 "SELECT text FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",

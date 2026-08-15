@@ -199,10 +199,8 @@ class JdbcMessageStoreAdapterTest {
                 int secondTotal = results.get(1).get();
 
                 assertThat(firstTotal + secondTotal).isEqualTo(OLD_ROW_COUNT);
-                long remaining = oldMessageIds.stream()
-                        .filter(id -> IncomingMessageRowUtils.count(jdbcTemplate, USER_ID, id) == 1)
-                        .count();
-                assertThat(remaining).isZero();
+                assertThat(IncomingMessageRowUtils.countReceivedBefore(jdbcTemplate, USER_ID, cut))
+                        .isZero();
             } finally {
                 executor.shutdownNow();
                 oldMessageIds.forEach(id -> jdbcTemplate.update(
