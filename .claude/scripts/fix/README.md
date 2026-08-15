@@ -1,7 +1,8 @@
 # The Fix Reader
 
-`fix.sh` reads and updates a bug fix's checklist by step ID — what is done, what one step says, marking a step
-done, whether the file's grammar holds, and whether every module's fix is complete.
+`fix.sh` reads and updates a bug fix's checklist by step ID — what is done, what one step says, what is being
+tried right now, marking a step done, whether the file's grammar holds, whether every module's fix is complete,
+and what the attempt logs add up to.
 
 ## Why it exists
 
@@ -12,6 +13,11 @@ proven by turns the whole verification model into a formality.
 
 It also reads the `## Attempts` log, where the same silence costs more: an attempt written without the output
 that killed it is a rumour the next session has to reproduce.
+
+Two lines are maintained rather than checked, and for the same reason. `**In flight:**` and `bug.md`'s
+`**Attempts:**` are what a stopped run leaves behind, and both go stale exactly when nobody is watching — one
+when a step lands, the other when a module agent logs its third failure. `start`, `tick` and `attempts` write
+them from the files themselves, so neither depends on somebody remembering.
 
 The second reason is addressing. A step handed to a sub-agent has to arrive as the file wrote it, not as a prompt
 remembered it. `show` is what makes that possible.
@@ -35,29 +41,41 @@ Run it with bash, from anywhere inside the project:
 ```
 .claude/scripts/fix/fix.sh status
 .claude/scripts/fix/fix.sh show R01
+.claude/scripts/fix/fix.sh start G01 guarding on the persisted request id
 .claude/scripts/fix/fix.sh tick S01 R01
 .claude/scripts/fix/fix.sh validate --file docs/7-double-charge/bug.md
 .claude/scripts/fix/fix.sh task docs/7-double-charge/
+.claude/scripts/fix/fix.sh attempts docs/7-double-charge/
 ```
 
-| Command        | Effect                                                                                     |
-|----------------|--------------------------------------------------------------------------------------------|
-| `status`       | Done/total, and the IDs still open.                                                        |
-| `show <ID>...` | One step: its header and everything indented under it. Several print blank-line separated. |
-| `tick <ID>...` | Mark the steps done. Every ID is resolved before any is written.                           |
-| `validate`     | See [What `validate` checks](#what-validate-checks).                                       |
-| `task`         | Every fix file the bug directory holds, its done/total, and whether all of them are done.  |
+| Command             | Effect                                                                                     |
+|---------------------|--------------------------------------------------------------------------------------------|
+| `status`            | Done/total, and the IDs still open.                                                        |
+| `show <ID>...`      | One step: its header and everything indented under it. Several print blank-line separated. |
+| `start <ID> <text>` | Write `**In flight:**` — the step and, in a clause, the approach being tried.             |
+| `tick <ID>...`      | Mark the steps done and empty `**In flight:**`. Every ID is resolved before any is written. |
+| `validate`          | See [What `validate` checks](#what-validate-checks).                                       |
+| `task`              | Every fix file the bug directory holds, its done/total, and whether all of them are done.  |
+| `attempts`          | The attempt IDs every file of the bug holds, as one line, written into `bug.md`.           |
 
 Exit codes: **0** done, **1** no such step, `validate` found problems, or `task` found something open, **2** bad
 usage.
 
-`--file <fix>` names the file, on every subcommand. `validate` and `task` also take a path positionally:
-`validate` accepts a bug directory, which validates `bug.md` and every `fix.md` under it in one call, and `task`
-accepts a bug directory or any fix inside one. Without either, the single `fix.md` in flight under `docs/` is
+`--file <fix>` names the file, on every subcommand. `validate`, `task` and `attempts` also take a path
+positionally: `validate` accepts a bug directory, which validates `bug.md` and every `fix.md` under it in one
+call, and `task` and `attempts` accept a bug directory or any fix inside one.
+
+**`attempts` prints `bug.md · A1–A3, module-a/fix.md · A1, module-b/fix.md · —`** — a range where a file's
+numbers run without a gap, the list where they do not, an em dash where a file logged none. Where `bug.md`
+carries an `**Attempts:**` header line, that line is rewritten to the same string; a `bug.md` without one gets
+none added.
+
+**`start` refuses a file with no `**In flight:**` line**, on the same principle: it maintains a line the format
+declares, and never invents one. Without either, the single `fix.md` in flight under `docs/` is
 used. A `bug.md` is always named explicitly — `validate` reads it for its Attempts section — and so is an
 archived file under `docs/implemented/`, or one of two fixes in flight at once.
 
-**`tick` writes, so it refuses anything but a `fix.md`.** The kinds cannot tell the formats apart — a rework's
+**`tick` and `start` write, so they refuse anything but a `fix.md`.** The kinds cannot tell the formats apart — a rework's
 steps have kinds of their own and one of them is also called `stabilize` — so only the name does. The reading
 commands say so and answer anyway. `status` also refuses a file that defines no steps at all.
 
@@ -101,7 +119,7 @@ value on its own line.
 
 A clean file prints its step and attempt counts, so "no problems" and "not a fix file" never look the same.
 
-**`status`, `show` and `tick` refuse a file whose fenced block never closed**, since everything below it went
+**`status`, `show`, `start` and `tick` refuse a file whose fenced block never closed**, since everything below it went
 unread and half a file answers as confidently as a whole one. `validate` reports it and carries on, because
 reporting is what `validate` is for.
 

@@ -507,6 +507,14 @@ END {
         exit 0
     }
 
+    # One attempt ID per line, in file order, for the summary line bug.md carries.
+    if (mode == "attempts") {
+        for (i = 1; i <= attempt_count; i++) {
+            print attempt_order[i]
+        }
+        exit 0
+    }
+
     if (mode == "validate") {
         for (i = 1; i <= problem_count; i++) {
             print problems[i]

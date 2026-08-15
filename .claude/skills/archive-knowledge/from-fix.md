@@ -13,12 +13,9 @@ directory>` lists them.
 
 **The diff is the `**Baseline:**` commit in `bug.md`, against the tree as archived.**
 
-**`review/findings.md`**, beside them, for what the fix left open.
-
 ## The Gate
 
-`bug.md` is in its directory under `docs/implemented/`, no `fix.md` beside it holds a `- [ ]`, and
-`review/findings.md` exists.
+`bug.md` is in its directory under `docs/implemented/`, and no `fix.md` beside it holds a `- [ ]`.
 
 ## Where the Survey's Inventory Comes From
 
@@ -48,8 +45,8 @@ ones a `docs:` line named: the step named the page before it knew what the fix w
 
 ## What Authorizes an ADR
 
-An **Open Question** in `bug.md` or in a `fix.md`, answered `yes`, asking whether a technical decision the fix
-settles should be recorded. A bug fix rarely settles one. The commonest candidate is a mechanism the fix
+An **Open Question** in `bug.md`, answered `yes`, asking whether a technical decision the fix settles should be
+recorded. A bug fix rarely settles one. The commonest candidate is a mechanism the fix
 introduced to make a whole class of the bug impossible, such as where idempotency is now enforced.
 
 **"We fixed a bug" is never an ADR.** Nor is the diagnosis. A fix whose Open Questions hold no answered question

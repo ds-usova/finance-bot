@@ -56,8 +56,8 @@ goes back to the user: the reproduction was wrong, and the diagnosis rests on it
 symptom. `assertEquals(1, charges.size())` is how a test says it, and how it says it is `runs:`. The symptom is
 what the user reported, restated precisely enough that a passing test can be recognized as the wrong test.
 
-**Where the bug is intermittent, `reproduces:` carries the rate** the diagnosis measured, and
-[`an-intermittent-bug.md`](an-intermittent-bug.md) gives the step's run count.
+**Where the bug is intermittent, `reproduces:` carries the rate** the diagnosis measured, as `<failures> in
+<runs>`, and `SKILL.md`'s Phase 0 gives the step's run count.
 
 **Every `red` step has a `green` step naming it, and every `green` step names one `red` step.** `validate`
 refuses a reproduction nothing fixes.

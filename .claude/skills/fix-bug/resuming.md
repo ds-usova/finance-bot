@@ -1,29 +1,17 @@
-# Resuming an interrupted run
+# Resuming an existing bug
 
-Read this only where Phase 0 found a directory to resume. A run that starts from a bug report reads none of it.
+Read this only where the argument is the path of an existing `bug.md`. It replaces Phase 0 and Phase 1.
 
-## What counts as one
+**A `bug.md` under `docs/implemented/`, or one carrying a `**Closed:**` line, is not resumed.** Say so; where the
+user wants it reopened, the `**Closed:**` line goes and the run continues from here.
 
-**A directory directly under `docs/` holding a `bug.md`**, where `fix.sh task <that directory>` reports
-anything open.
+## Read before acting
 
-**A `bug.md` carrying a `**Closed:**` header line is not one** — report it and leave it alone. Nothing under
-`docs/implemented/` is one either.
+`bug.md`, every `fix.md` beside it, and every `## Attempts` entry. **Nothing in a `ruled-out:` line is tried
+again.** The value of the log is that this session starts where the last one stopped, with new hypotheses rather
+than the old ones.
 
-**It is resumed only where it is the same bug.** Compare its `# Bug:` line and its `## What happens` against
-what was asked. A different symptom means the argument is a new bug, and the interrupted one is named in the
-report rather than continued. Where the two might be the same, ask.
-
-**Ask before resuming a fix whose log says the chain of causes was disproved.** Picking it up and abandoning it
-are both available, and which one is the user's answer.
-
-## What the tree looks like, and what it does not mean
-
-**Read everything before acting** — `bug.md`, every `fix.md`, and every `## Attempts` entry — so that what has
-already been ruled out is not tried again.
-
-A resumed run keeps the original `**Baseline:**`, and Phase 0's gates do not apply to what the run itself
-produced. Expect all three of these, and none of them is a reason to stop:
+The original `**Baseline:**` stands. Three things on disk are the run working, not a reason to stop:
 
 | On disk                                    | Because                                             |
 |--------------------------------------------|-----------------------------------------------------|
@@ -31,28 +19,16 @@ produced. Expect all three of these, and none of them is a reason to stop:
 | tests disabled by a `stabilize` step       | the `red` step named in `disables:` has not run yet |
 | uncommitted edits under the step in flight | the run was stopped inside it                       |
 
-**An unanswered Open Question stops the resume here, not in Phase 3.** An agent that blocked wrote one into its
-own file, and `fix.sh validate` refuses that file until it is answered. Ask it now, the way Phase 2 asks, and
-write the answer in.
+Uncommitted work anywhere else, and anything red no step accounts for, stops the resume and is reported.
 
 ## Where to pick up
 
-**The step to resume is the first unticked one**, which `fix.sh status` names.
+| The log says                                             | Do                                                                                                                                            |
+|----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| the diagnosis holds and steps are open                   | revert what is uncommitted under the first unticked step (`fix.sh status` names it), continue at Phase 3 from that step                       |
+| a step failed three times, or a `green` left the symptom | the diagnosis is what needs work: go back to Phase 1 for a new hypothesis, log its probes as new attempts, amend the files, stop for approval |
+| the chain of causes was disproved                        | ask whether to pick it up with a new diagnosis or abandon it                                                                                  |
+| an Open Question is unanswered                           | ask it now, write the answer in, then continue                                                                                                |
 
-**The `**In flight:**` line says what was being tried, and it is read for that alone. It never decides what to
-revert.** It is written by hand around an operation that commits, so it goes stale exactly when a step lands,
-and reverting on its word would undo work that is finished.
-
-**Revert what is uncommitted under that step, and start it again from its own beginning.** Uncommitted work
-anywhere else, and anything red no step accounts for, stops the resume and is reported.
-
-**The revert belongs to this skill, not to an agent, and it happens before any agent is spawned**, while no file
-has an owner.
-
-Then continue at Phase 3.
-
-## Where this hands back instead
-
-**A directory that is not this bug's leaves Phase 0 exactly where it started.** Report it and go on with the
-reproduce-and-baseline path: the tree is checked clean, the bug is reproduced, the baseline is measured, and a
-new directory is numbered in Phase 1. Nothing about the interrupted one carries over.
+**The revert belongs to this skill, never to an agent**, and happens before any agent is spawned. Attempt numbers
+continue from where each file's log stopped; nothing is renumbered.

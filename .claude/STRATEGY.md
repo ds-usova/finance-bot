@@ -51,7 +51,9 @@ services is a `shared/fix.md` of `stabilize` steps, landed alone before any modu
 **What is new is the attempt log.** Every approach that failed is written into `## Attempts` the moment it fails,
 with the output that killed it and what it rules out. Debugging is the one phase where most of the work produces
 no diff, so a run stopped halfway otherwise leaves nothing — and the next session starts by trying what the last
-one already disproved.
+one already disproved. **`bug.md` is the handoff for that too.** Its `**Attempts:**` header line names every
+entry in every file, so a session given only that path reads one file, skips everything `ruled-out:`, and looks
+for a new hypothesis. A fix is resumed by that path and never by scanning `docs/` for something unfinished.
 
 **Each phase's output is the whole handoff.** The next phase starts in a fresh context and reads the file, not
 the conversation. A design a cold session cannot plan from was underspecified; a plan a cold agent cannot

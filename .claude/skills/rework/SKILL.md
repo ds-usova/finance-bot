@@ -211,8 +211,8 @@ guardrail the commit follows.
 
 ### The Refactor Round
 
-**One sub-agent, once, over everything the rework changed** — the refactor agent the module's conventions name
-for a finished body of work, spawned the way they say. It is handed three things:
+**One `tdd-refactor-phase` agent, once, over everything the rework changed**, on the model the module's
+conventions name for the refactor pass — the session's model where they name none. It is handed three things:
 
 | It gets                                | So that                                                        |
 |----------------------------------------|---------------------------------------------------------------|

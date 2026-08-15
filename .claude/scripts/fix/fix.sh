@@ -28,16 +28,20 @@ usage() {
 Usage:
   <plugin>/scripts/fix/fix.sh status   [--file <fix>]
   <plugin>/scripts/fix/fix.sh show     <ID>... [--file <fix>]
+  <plugin>/scripts/fix/fix.sh start    <ID> <what is being tried...> [--file <fix>]
   <plugin>/scripts/fix/fix.sh tick     <ID>... [--file <fix>]
   <plugin>/scripts/fix/fix.sh validate [--file <fix> | <bug directory>]
   <plugin>/scripts/fix/fix.sh task     [<fix directory> | <fix>]
+  <plugin>/scripts/fix/fix.sh attempts [<bug directory> | <fix>]
 
 Commands:
   status    Done/total, and the IDs still open.
   show      One step: its header and everything indented under it. Several IDs print in order,
             separated by a blank line.
-  tick      Mark the steps done. Several IDs are one batch: all are resolved before any is written,
-            so a name nothing defines ticks none of them.
+  start     Write the "**In flight:**" header line: the step's ID and, in a clause, what is being
+            tried. Run it when a step starts and whenever the approach changes.
+  tick      Mark the steps done and empty the "**In flight:**" line. Several IDs are one batch: all
+            are resolved before any is written, so a name nothing defines ticks none of them.
   validate  Duplicate or missing IDs, an unrecognized kind, an ID whose prefix contradicts it, a
             line the kind does not take, a line the kind owes and does not carry, a placeholder
             value, "needs:"/"disables:"/"fixes:" pointing at a step nothing defines, a reproduction
@@ -45,12 +49,15 @@ Commands:
             it rules out, and an unanswered Open Question. Given a bug directory rather than a file,
             it validates bug.md and every fix.md the directory holds, in one call.
   task      Every fix file the bug holds, its done/total, and whether all of them are finished.
+  attempts  The attempt IDs every file of the bug holds, as one line - "bug.md · A1-A3,
+            module-a/fix.md · A1, module-b/fix.md · -" - and, where bug.md carries an
+            "**Attempts:**" header line, that line rewritten to say so.
 
---file names a file on every subcommand. validate and task also take a path positionally: validate
-accepts a bug directory and validates everything in it, task accepts a bug directory or any fix
-inside one. Without either, the single fix.md in flight under docs/ is used. A bug owns a directory
-holding bug.md and one fix per module it touches: fix.md for a single-module bug, <module>/fix.md
-for each of several. An archived one under docs/implemented/ is addressed explicitly, and so is a
+--file names a file on every subcommand. validate, task and attempts also take a path positionally:
+validate accepts a bug directory and validates everything in it, task and attempts accept a bug
+directory or any fix inside one. Without either, the single fix.md in flight under docs/ is used. A
+bug owns a directory holding bug.md and one fix per module it touches: fix.md for a single-module
+bug, <module>/fix.md for each of several. An archived one under docs/implemented/ is addressed explicitly, and so is a
 bug.md, which validate reads for its Attempts section.
 
 Exit codes: 0 done - 1 nothing matched, validate found problems, or task found something open -
@@ -207,7 +214,99 @@ cmd_tick() {
         { print }
     ' "$fix_file" || die "could not write $fix_file"
 
+    # A ticked step is no longer in flight. Emptied here so the line cannot go stale exactly when a
+    # step lands, which is the one moment a resumed run would misread it.
+    set_in_flight ""
+
     echo "ticked: $*"
+}
+
+# The "**In flight:**" header line names the step being applied and the approach being tried. Only
+# the value changes; a file with no such line is one this format did not write, and gets none added.
+set_in_flight() {
+    local value="$1"
+    grep -q '^\*\*In flight:\*\*' "$fix_file" || return 1
+    rewrite_file awk -v value="$value" '
+        /^\*\*In flight:\*\*/ { print "**In flight:**" (value == "" ? "" : " " value); next }
+        { print }
+    ' "$fix_file" || die "could not write $fix_file"
+}
+
+cmd_start() {
+    [ "$#" -ge 1 ] || die "start needs a step ID and what is being tried"
+    assert_is_fix
+
+    local id="$1" matched="" rid
+    shift
+    while IFS=$'\t' read -r rid _ _ _ _; do
+        [ "$rid" = "$id" ] && matched=1 && break
+    done < <(parse list)
+    [ -n "$matched" ] || die "no such step: $id" 1
+
+    local text="$*"
+    [ -n "$text" ] || die "start needs what is being tried, in a clause, after the ID"
+
+    set_in_flight "$id"$' \xc2\xb7 '"$text" || die "$fix_file carries no \"**In flight:**\" line" 1
+    echo "in flight: $id"$' \xc2\xb7 '"$text"
+}
+
+# "A1-A3" where the IDs run 1..n without a gap, the list otherwise, "-" for none.
+attempt_range() {
+    local ids=("$@") n="$#"
+    [ "$n" -gt 0 ] || { printf '%s' $'\xe2\x80\x94'; return; }
+    [ "$n" -gt 1 ] || { printf '%s' "${ids[0]}"; return; }
+    local i=1 contiguous=1
+    while [ "$i" -le "$n" ]; do
+        [ "${ids[$((i - 1))]}" = "A$i" ] || { contiguous=0; break; }
+        i=$((i + 1))
+    done
+    if [ "$contiguous" = 1 ]; then
+        printf '%s' "${ids[0]}"$'\xe2\x80\x93'"${ids[$((n - 1))]}"
+    else
+        local IFS=,
+        printf '%s' "${ids[*]}"
+    fi
+}
+
+cmd_attempts() {
+    local given="${1:-}" bug_dir
+    if [ -n "$given" ] && [ -d "$given" ]; then
+        bug_dir="$(cd "$given" && pwd)"
+    elif [ -n "$given" ]; then
+        [ -f "$given" ] || die "no such fix file or bug directory: $given"
+        bug_dir="$(bug_dir_of "$given")" || exit "$?"
+    else
+        die "attempts needs a bug directory or a fix inside one"
+    fi
+
+    local files=() f
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        files+=("$f")
+    done < <(find "$bug_dir" -maxdepth 2 \( -name 'bug.md' -o -name 'fix.md' \) -type f | sort)
+    [ "${#files[@]}" -gt 0 ] || die "${bug_dir#"$repo_root_abs/"} holds no bug.md or fix.md" 1
+
+    local summary="" ids part
+    for f in "${files[@]}"; do
+        fix_file="$f"
+        ids=()
+        while IFS= read -r part; do
+            [ -n "$part" ] && ids+=("$part")
+        done < <(parse attempts)
+        summary="${summary:+$summary, }${f#"$bug_dir/"}"$' \xc2\xb7 '"$(attempt_range ${ids[@]+"${ids[@]}"})"
+    done
+
+    echo "$summary"
+
+    local bug_md="$bug_dir/bug.md"
+    if [ -f "$bug_md" ] && grep -q '^\*\*Attempts:\*\*' "$bug_md"; then
+        fix_file="$bug_md"
+        rewrite_file awk -v value="$summary" '
+            /^\*\*Attempts:\*\*/ { print "**Attempts:** " value; next }
+            { print }
+        ' "$bug_md" || die "could not write $bug_md"
+        echo "written to ${bug_md#"$repo_root_abs/"}"
+    fi
 }
 
 # A bug owns one directory directly under docs/, and its fix files sit either in it or one level
@@ -343,7 +442,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$command" in
-    status|show|tick|validate|task) ;;
+    status|show|start|tick|validate|task|attempts) ;;
     --help|-h) usage; exit 0 ;;
     *) die "unknown command '$command' (try --help)" ;;
 esac
@@ -352,6 +451,10 @@ case "$command" in
     task)
         # --file names a fix as it does everywhere else; the bug it belongs to is derived from it.
         cmd_task "${args[0]:-$fix_file}"
+        exit 0
+        ;;
+    attempts)
+        cmd_attempts "${args[0]:-$fix_file}"
         exit 0
         ;;
     validate)
@@ -366,7 +469,7 @@ case "$command" in
             fix_file="${args[0]}"
         fi
         ;;
-    show|tick)
+    show|start|tick)
         # An empty array expands to one empty string, which would reach the command as an ID nothing
         # defines and be reported as a missing step rather than as the usage error it is.
         [ "${#args[@]}" -gt 0 ] || die "$command needs at least one ID"
@@ -391,6 +494,7 @@ locate_fix
 case "$command" in
     status)   assert_read_whole; cmd_status ;;
     show)     warn_unless_fix; assert_read_whole; cmd_show "${args[@]}" ;;
+    start)    assert_read_whole; cmd_start "${args[@]}" ;;
     tick)     assert_read_whole; cmd_tick "${args[@]}" ;;
     validate) warn_unless_fix; parse validate ;;
 esac
