@@ -61,7 +61,7 @@ is unread, the constraint refuses only what nothing writes. A migration that cha
 is a `green` step, and it needs a reproduction like any other.
 
 **A migration that has run is not undone by reverting its file.** Say so in the report, and say what putting the
-store back would take. The abandonment path in the skill owes the same.
+store back would take. [`changing-course.md`](changing-course.md) owes the same where a fix is abandoned.
 
 **A `stabilize` that finds a file its `files:`, `test-files:` or `disables:` does not name widens that line and
 says so in the report.** Widening a boundary the step already owns is the one edit to a
@@ -71,7 +71,7 @@ back to the level that owns the file. It never widens into a behaviour change.
 ## Where a step refuses
 
 - **A `red` step that passes before any production code is touched** reproduces nothing. Where `reproduces:`
-  carries a rate, it takes the run count the skill's rule for an intermittent bug gives, and only that count
+  carries a rate, [`an-intermittent-bug.md`](an-intermittent-bug.md) gives the run count, and only that count
   refuses it.
 - **A `green` step that needs the test edited** rests on a reproduction that was wrong.
 - **A `green` step whose suite goes red elsewhere** is reported with both failures, not made green by editing the

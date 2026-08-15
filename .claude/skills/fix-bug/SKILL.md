@@ -40,42 +40,13 @@ the last.
 
 ## Phase 0 — Resume, or Reproduce and Baseline
 
-**First, look for a run to resume.** A directory directly under `docs/` holding a `bug.md` is an interrupted
-run, and `fix.sh task <that directory>` says whether anything in it is open. **A `bug.md` carrying a
-`**Closed:**` header line is not one** — report it and leave it alone. Nothing under `docs/implemented/` is
-one either.
+**First, look for a run to resume.** A directory directly under `docs/` holding a `bug.md`, where `fix.sh task
+<that directory>` reports something open and the `bug.md` carries no `**Closed:**` header line, is an
+interrupted run. Where there is one, [`resuming.md`](resuming.md) takes over Phase 0 and hands back to Phase 3.
+**It can also hand back here** — a directory that turns out to be a different bug is reported and left alone,
+and this phase carries on as if there were none.
 
-**It is resumed only where it is the same bug.** Compare its `# Bug:` line and its `## What happens` against
-what was asked. A different symptom means the argument is a new bug, and the interrupted one is named in the
-report rather than continued. Where the two might be the same, ask.
-
-**A resumed run reads everything before it acts** — `bug.md`, every `fix.md`, and every `## Attempts` entry — so
-that what has already been ruled out is not tried again. Then it goes to Phase 3.
-
-**An unanswered Open Question stops the resume here, not in Phase 3.** An agent that blocked wrote one into its
-own file, and `fix.sh validate` refuses that file until it is answered. Ask it now, the way Phase 2 asks, and
-write the answer in.
-
-A resumed run keeps the original `**Baseline:**`, and the gates below do not apply to what the run itself
-produced. Expect all three of these, and none of them is a reason to stop:
-
-| On disk                                    | Because                                             |
-|--------------------------------------------|-----------------------------------------------------|
-| a committed `red` test that fails          | that is the step working                            |
-| tests disabled by a `stabilize` step       | the `red` step named in `disables:` has not run yet |
-| uncommitted edits under the step in flight | the run was stopped inside it                       |
-
-**The step to resume is the first unticked one**, which `fix.sh status` names. The `**In flight:**` line says
-what was being tried, and it is read for that alone. **It never decides what to revert.** It is written by hand
-around an operation that commits, so it goes stale exactly when a step lands, and reverting on its word would
-undo work that is finished.
-
-**Revert what is uncommitted under that step, and start it again from its own beginning.** Uncommitted work
-anywhere else, and anything red no step accounts for, stops the resume and is reported.
-
-**The revert is this level's, and it happens before any agent is spawned**, while no file has an owner.
-
-**Where there is no run to resume, the tree is clean before anything is run.** Which modules the bug reaches is
+**Otherwise the tree is clean before anything is run.** Which modules the bug reaches is
 not settled yet, so this looks at every module the report or the failing test points at, and widens with the
 diagnosis. Uncommitted work under one of them: name the files and stop. Uncommitted work elsewhere is left alone,
 and so is an untracked file that is nobody's work — a crash dump, a log, an editor's leavings. Say which those
@@ -91,34 +62,14 @@ were rather than stopping on them.
   **Write that test now, as a probe**, under the probe rules in Phase 1, which say what becomes of it.
   **This is not the `red` step arriving early**: nothing is committed, and the fix is still approved before a
   source file is kept.
-- **It fails sometimes**: run it enough times to see it fail twice, and record both numbers — failures and
-  runs. That pair is the rate, and it governs the rule below.
+- **It fails sometimes**: this is an intermittent bug, and [`an-intermittent-bug.md`](an-intermittent-bug.md)
+  governs its rate and every run count after it.
 - **It does not reproduce here, and could**: stop and say so, with what was run and what happened instead. Ask
   for the missing condition. Never write a fix for a bug nobody has seen fail.
 - **It cannot reproduce here at all** — it needs production data, a load level, or an environment this machine
   does not have. **Stop, and say what would be needed.** Report the diagnosis, and put the reproduction where a
   person can run it: a **Manual test** in a findings file, or a task to build the environment. Whether to fix it
   blind is the user's call, and it is not this skill's run.
-
-### An Intermittent Bug
-
-**A single green run proves nothing about a bug that fails one run in ten.** Where Phase 0 recorded a rate, both
-gates are repeated instead of run once, and `reproduces:` carries the rate as `<failures> in <runs>`.
-
-Call `P` the number of runs Phase 0 took to see two failures.
-
-- **The `red` step runs until it has failed twice, and stops at `3 × P` runs.** Failing twice is the step
-  passing its own gate. Reaching `3 × P` without two failures refuses it: what Phase 0 saw is not what the test
-  reproduces.
-- **The `green` step runs three times the number of runs the `red` step actually took**, and passes every time.
-
-**Phase 2 asks whether those counts are enough**, as a numbered Open Question. They are a floor derived from one
-measurement, not a confidence bound.
-
-**Whatever the answer settles is written into `reproduces:`**, beside the rate, in the words the step's agent
-will read. An answer left in an Open Question reaches nobody: the agent is handed the step.
-
-**A rate nobody could establish is a bug that does not reproduce**, and it takes the branch above.
 
 **Then run the full build and the entire test suite of every affected module**, using each module's own
 commands. A probe written to reproduce the bug is reverted first, so this measures the tree as it stands.
@@ -197,25 +148,9 @@ number and the name; the files do not repeat them.
 **Every `fix.md` is owned by exactly one module**, and the module agents run concurrently, so two of them must
 never hold the same file open.
 
-**Which modules the fix reaches is a decision, not a reading of the diagnosis.** A chain of causes crossing two
-services can usually be cut in either of them, and the two fixes are not equivalent:
-
-| Cut it where                       | When that is right                                                    |
-|------------------------------------|-----------------------------------------------------------------------|
-| the module whose promise is broken | its own contract or documentation already says what it should do      |
-| the module the cause is in         | the promise it breaks is one it makes to everybody, not to one caller |
-
-**Prefer the smallest scope that makes the symptom impossible without contradicting a contract.** A module
-behaving exactly as its contract says is not the bug, however clearly the cause passes through it — changing it
-is a design change, and it goes to `design-task`. Say which cut was chosen in `## Why it happens`, and name the
-one rejected.
-
-**Where every module matches its own contract and the outcome is still wrong, the contracts disagree with each
-other.** That is a real bug, and the promise it breaks is the one a page states about the system rather than
-about a module: a use case's **Outcomes**, or what a caller was told would happen. Name that page as the promise
-broken. **Where no page states it either, stop here.** Nothing was promised, so this is design work. `bug.md`
-already exists by now and keeps everything the diagnosis established: close it with its `**Closed:**` line
-naming `design-task`, and say so in the report.
+**Where the diagnosis reaches more than one module, [`crossing-modules.md`](crossing-modules.md) decides which
+one the fix is cut in, whether the seam gets its own file, and where the reproduction lives.** It is read before
+the files are written, because it changes what they are.
 
 Write these files under the repository's documentation conventions like any other document.
 
@@ -327,57 +262,6 @@ assertion to the reported symptom, and the run fails as any `red` step must. Thi
 **A test whose assertion this fix inverts is named in `## What the fix must not break`**, with what it was
 protecting and why that is not lost.
 
-### `shared/fix.md`
-
-**Written only where the bug spans something two modules must agree on.** It holds `stabilize` steps and
-nothing else — the schema or the page that states the shape, each consuming module's wiring to it, and every
-call site the change breaks, carried back to compiling. A seam carried by a protocol breaks no call site and
-still gets the file, for the shape alone. It is a `fix.md` in every other respect, and its header names every module on the seam:
-
-```
-**Affected Modules:** `module-a`, `module-b`
-**Bug:** [<the bug>](../bug.md)
-**In flight:** <as in any other fix file>
-```
-
-**The contract is shared; the behaviour behind it is not.** A schema both modules build from goes here. The
-handler that schema declares does not — the module serving it fixes it in its own file, and the consumer's own
-`red` step drives its side at its own test boundary.
-
-**A seam with no file still needs this one, and that is the case it matters most in.** Where the shape crossing
-between two modules is published over a protocol rather than held in a schema, no call site breaks, both
-modules compile throughout, and each side's tests pass against its own idea of the shape. The consumer's
-stand-in is taught the new shape by a `stabilize` step; the producer's `green` step then emits whatever it
-emits. **Both modules go green while disagreeing, and nothing in this skill would notice.**
-
-**So the agreed shape is written down before either module starts.** That is `shared/fix.md`'s step: a
-`stabilize` step whose `files:` names the contract page or the schema, stating exactly what the producer will
-send and the consumer will expect. Each module's steps are then held to a written shape rather than to each
-other.
-
-**A written shape narrows the disagreement; it cannot catch one.** Nothing runs a page. Where a module's
-conventions give a test type that drives the real counterpart rather than a stand-in, the seam gets one, in the
-module that owns the entry point. Where none does, the fix says so and `review/findings.md` carries the
-**Manual test** that stands in for it: two services, started together, exchanging the shape. **Say plainly in
-the report which of the two this fix got.**
-
-**A reproduction runs inside one module.** Where the bug only shows with two services really running, it belongs
-to the module that owns the entry point, with the counterpart at whatever boundary that module's conventions give
-its integration tests: a stub server, a test broker. **Where no module can host it, the fix stops here**, on
-the same terms as a bug that cannot be reproduced at all. A `green` step with no reproduction behind it is a
-change nothing verified, and the file holding it will not validate.
-
-**Where the counterpart's stand-in is itself wrong, correcting it is a `stabilize` step in the module that owns
-it.** A bug in what two services believe about each other is usually a bug the stand-in shares, so the
-reproduction is unwritable until the stand-in tells the truth. That correction is named in the diagnosis, it
-lands before the `red` step, and it changes no production behaviour.
-
-**No module's `red` step may depend on another module's `green` step.** Where the diagnosis says one does, the
-fix is written the other way round: the module whose `green` step comes first owns the reproduction, and the
-second module's part is a `stabilize` step or nothing. `validate` enforces the mechanical half of this — a
-`fixes:` never crosses a file — and the diagnosis owes the rest. A fix that cannot be written this way is one
-bug reported as two, and it is put to the user in Phase 2 rather than started.
-
 ## Phase 2 — Stop
 
 Present the files and stop. Ask every Open Question in one batch via `AskUserQuestion`, and write each answer
@@ -405,23 +289,12 @@ and every `fix.md` the bug holds. Anything it reports is fixed in the file first
 **The order is the same in every fix: every `stabilize`, then every `red`, then every `green`.** No file declares
 it and no step schedules it.
 
-1. **`shared/fix.md`, alone**, where the directory holds one. It is applied by its own `fix-bug-module` agent,
-   given every module on the seam, and nothing else starts until it lands. Its exit condition is that every one
-   of those modules compiles, passes whatever its conventions name as the check on its layering rule, and its
-   suite stands where phase 0 left it apart from exactly the tests this file's `disables:` lines turned off.
-   **It is handed every listed module's phase-0 figures**, since it is the one agent measuring more than one. A module whose conventions name no such check owes the other two. A blocked
-   shared fix stops the run here, with no module agent started.
-
-   **Write it where anything crosses that both modules must agree on** — a schema they build from, or a shape
-   only a protocol carries. A schema edit no module's steps depend on agreeing about belongs in `files:` of the
-   step that needs it. A shared file is there for call sites that will not compile.
+1. **`shared/fix.md`, alone**, where the directory holds one, on the terms
+   [`crossing-modules.md`](crossing-modules.md) gives. Nothing else starts until it lands.
 2. **One `fix-bug-module` sub-agent per `fix.md`**, spawned concurrently. Each is given its own file path, its
-   module's phase-0 figures, `bug.md`, and the conventions its module names. **No module agent waits on
-   another**: the shared file landed everything that crosses.
-
-   **Each is also given whatever the shared fix disabled in its module**, as the `disables:` lines say it. An
-   agent measuring its module against a baseline taken before the shared fix landed would otherwise find skipped
-   tests it cannot account for and cannot look up.
+   module's phase-0 figures, `bug.md`, the conventions its module names, and — where a shared fix ran — what it
+   disabled in that module. **No module agent waits on another**: the shared file landed everything that
+   crosses.
 3. **How many start at once is the repository tier's answer.** One machine runs every module, and a module's own
    conventions cannot see what a sibling is doing. Read the **Parallelism** rules at the level that binds all the
    modules and start no more agents than they allow, starting the next as a running one finishes. If no such
@@ -441,63 +314,10 @@ nothing about a step, and never edit a file an agent owns.
 
 **Report per module as each returns.** One finishing does not wait for another.
 
-### Amending an Approved Fix
-
-Three things routinely disprove the diagnosis mid-run, and none of them is a reason to end the run with a
-failing test committed:
-
-| What the run found                                             | What changes                                             |
-|----------------------------------------------------------------|----------------------------------------------------------|
-| the symptom survives a correct `green` step — a second cause | a new `red` and `green` pair, written into the same file |
-| the cause is in another module                                 | the pair moves whole, to that module's file              |
-| a step's kind was wrong                                        | the step is re-classified                                |
-| a test asserting the old behaviour surfaced after the red wave | a new `red` and `green` pair, naming that test           |
-
-**A pair moves whole or not at all.** A reproduction and the step that fixes it are one unit, and `fixes:`
-cannot cross a file, so striking out one half leaves the other paired with nothing and the file will not
-validate. Moving a cause to another module strikes out both steps and writes both again in the other file.
-Where the reproduction belongs where it is and only the fix moves, the bug was two bugs, and it goes back to
-the user as two.
-
-**Only this level amends a file, and only with the user's answer.** An agent that finds one of these returns and
-says so. Put it to the user as a numbered Open Question in the file it belongs to, write the answer in, re-run
-`fix.sh validate`, and re-spawn the module's agent, which starts at the first unticked step.
-
-**A file is amended only once its own agent has returned**, since that agent is writing it. Module A returning
-with "the cause is in module B" almost always arrives while B's agent is still running. **Wait for it.** Where
-it cannot be waited for, say so and stop it first.
-
-**A step that turns out to be unnecessary is struck from the checklist**, and its row in the **Steps** table
-stays, with `abandoned — <why>` in place of what proved it. Its ID is retired and never reused, so no other
-step renumbers. **A struck step that had already landed is reverted first**, on the terms below.
-
-**Striking a step out is not free, and `validate` says why.** Removing a `green` step leaves its `red` step
-paired with nothing, and the file will not validate. Either both go, or the reproduction stays and something
-fixes it.
-
-### Abandoning a Fix
-
-A fix the user calls off, or one whose diagnosis is disproved with nothing to replace it, does not simply stop.
-
-**This is the other half of Phase 0's resume.** An interrupted directory is picked up or abandoned, and which
-one is the user's answer when the diagnosis is what failed. Ask before resuming a fix whose log says the chain
-of causes was disproved.
-
-Then, at this level, never inside an agent:
-
-1. **Revert every step that landed**, newest first — the `green` edits, the `red` test, and each `stabilize`
-   step, so nothing in `disables:` is left off. A skipped count above the baseline blocks the next fix in that
-   module, and a disabled test naming a step that will never run is never noticed again.
-
-   **A revert that conflicts stops here.** Work that landed after a `stabilize` step may be built on the
-   signature it moved, and undoing it would break code this fix never touched. Report what conflicts and leave
-   the tree as it is: the choice between reverting further and keeping the stabilization is the user's.
-2. **Run every affected module's suite** and confirm the baseline's figures are back.
-3. **Keep the directory**, with every attempt log intact, and say in the report that the fix was abandoned and
-   what the log rules out.
-4. **The directory is not archived**, and nothing in `docs/implemented/` refers to it.
-
-**Where the conventions commit, the revert is committed too**, on the same terms as the steps were.
+**A fix already under way sometimes has to change**, and [`changing-course.md`](changing-course.md) is how. Read
+it whenever an agent returns with a diagnosis that did not hold, a cause in another module, a step of the wrong
+kind, or a test nobody foresaw — and whenever the user calls the fix off. Amending and abandoning both belong to
+this skill, never to an agent it spawned.
 
 ### What Is Never Done
 
@@ -524,15 +344,15 @@ When every agent has returned:
    things against the fix files. They cost one read, and they are the only claims in this skill an agent's own
    report cannot settle:
 
-   - **Every test file the diff touches is named in some step's `test-files:`.** A test changed under no step
-     is a `green` step that edited its own proof, which is the one edit this skill exists to prevent. It is
-     reported as a defect whatever the suite says.
-   - **What each step actually changed is inside what it named.** A `test-files:` listing more than the step
-     needed passes the check above and defeats it, so read the list against the diff rather than the other way
-     round. A test-support file — a stub, a fixture, a builder — is a test file for this purpose, and belongs
-     to the `stabilize` step that prepared it or the `red` step that needed it.
-   - **Where the conventions commit, each `red` step's commit carries no production file**, and lands before
-     the commit of the `green` step that names it.
+    - **Every test file the diff touches is named in some step's `test-files:`.** A test changed under no step
+      is a `green` step that edited its own proof, which is the one edit this skill exists to prevent. It is
+      reported as a defect whatever the suite says.
+    - **What each step actually changed is inside what it named.** A `test-files:` listing more than the step
+      needed passes the check above and defeats it, so read the list against the diff rather than the other way
+      round. A test-support file — a stub, a fixture, a builder — is a test file for this purpose, and belongs
+      to the `stabilize` step that prepared it or the `red` step that needed it.
+    - **Where the conventions commit, each `red` step's commit carries no production file**, and lands before
+      the commit of the `green` step that names it.
 
    **That last one corroborates the ordering and does not prove it.** A commit names the paths it takes, so an
    agent holding both edits can stage the test alone and produce the same history. Only running the `red`

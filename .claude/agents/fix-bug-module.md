@@ -22,8 +22,11 @@ baseline was measured. **That is those two runs and nothing else.** Every guardr
 each time it is reached.
 
 **Read the `fix-bug` skill's own `SKILL.md` before the first step**, along with `step-format.md`,
-`applying-a-step.md` and `attempts.md` beside it. `SKILL.md` owns what is never done and the run counts an
-intermittent bug takes, and neither is stated anywhere you would otherwise look.
+`applying-a-step.md` and `attempts.md` beside it. `SKILL.md` owns what is never done, and it is stated nowhere
+you would otherwise look.
+
+**Where `bug.md` records a rate rather than a plain reproduction, read `an-intermittent-bug.md` too.** It owns
+every run count your gates take, and a single pass proves nothing about a bug that fails one run in ten.
 
 **Read `<module>/docs/conventions.md` for your module, and the repository-wide conventions**, following the
 conventions index. They are the source of truth for the build command, the test commands, the architecture check,
@@ -84,8 +87,8 @@ names it.
 `fix-bug` skill directory beside the fix file's format. Read it before the first step and apply every step
 against it.
 
-**Where `bug.md` records a rate rather than a plain reproduction, the run counts are the skill's**, under its
-rule for an intermittent bug. A single pass proves nothing about a bug that fails one run in ten.
+**Where `bug.md` records a rate, every run count comes from `an-intermittent-bug.md`**, in the `fix-bug` skill
+directory.
 
 **Then, every step:** run whatever the conventions require before a commit, `fix.sh tick <ID>`, and commit the
 fix file together with the paths that step named.
