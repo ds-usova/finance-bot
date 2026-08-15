@@ -33,11 +33,16 @@ of trying it again.
 **A fence inside `evidence:` needs a longer fence around the entry**, as above, where the output being pasted
 carries a fence of its own. `validate` refuses a block that never closes.
 
-**The phase is `diagnosis` or a step ID.** `diagnosis` for an attempt made while working out what is wrong —
-those live in `bug.md`. A step ID for an approach that failed while applying that step — those live in that
-module's `fix.md`, under the step that was being applied. `validate` refuses a phase that is neither.
+**The phase is `diagnosis` or a step ID.** `diagnosis` for an attempt made while working out what is wrong;
+those live in `bug.md`. A step ID for an approach that failed while applying that step; those live in that
+module's `fix.md`. `validate` refuses a phase that is neither.
+
+**Every entry goes in the `## Attempts` section, whatever its phase names.** The step ID is how an entry says
+which step it belongs to. An entry written under the step's own checklist bullet is one `validate` refuses, and
+one nothing reads.
 
 **Numbers are `A1` upward, per file, assigned once and never renumbered.** A withdrawn attempt keeps its number.
+Since each file numbers its own, anything outside the file cites both: `module-a/fix.md · A3`.
 
 ## The rules
 

@@ -52,10 +52,14 @@ Run it with bash, from anywhere inside the project:
 Exit codes: **0** done, **1** no such step, `validate` found problems, or `task` found something open, **2** bad
 usage.
 
-`--file <fix>` names the file, and is accepted on every subcommand but `task`, which takes the bug directory or a
-fix file positionally. Without one, the single `fix.md` in flight under `docs/` is used. A `bug.md` is always
-named explicitly — `validate` reads it for its Attempts section — and so is an archived file under
-`docs/implemented/`, or one of two fixes in flight at once.
+`--file <fix>` names the file, on every subcommand. `validate` and `task` also take a path positionally:
+`validate` accepts a bug directory, which validates `bug.md` and every `fix.md` under it in one call, and `task`
+accepts a bug directory or any fix inside one. Without either, the single `fix.md` in flight under `docs/` is
+used. A `bug.md` is always named explicitly — `validate` reads it for its Attempts section — and so is an
+archived file under `docs/implemented/`, or one of two fixes in flight at once.
+
+`status` and `tick` refuse a file that defines no `stabilize`, `red` or `green` step. Every checklist in this
+repository looks alike to a reader that only counts boxes, and ticking the wrong one rewrites it.
 
 ### Step IDs
 
@@ -84,6 +88,7 @@ value on its own line.
 | A `red` step no `green` step fixes                                 | a reproduction that would be committed and left failing                 |
 | A duplicate attempt number                                         | two entries the log cannot tell apart                                   |
 | An attempt outside an `## Attempts` section                        | a log written where nothing reads it                                    |
+| A step inside an `## Attempts` section                             | pasted output whose own fence closed the evidence block early           |
 | An attempt missing `why:`, `result:`, `evidence:` or `ruled-out:`  | a failure recorded without what it settles                              |
 | An `evidence:` with no fenced block directly under it              | an attempt whose output nobody kept                                     |
 | An attempt filed under neither `diagnosis` nor a defined step      | a log entry attached to a step that was renumbered                      |
@@ -93,8 +98,9 @@ value on its own line.
 A clean file prints its step and attempt counts, so "no problems" and "not a fix file" never look the same.
 
 **A duplicate ID's own block is not judged.** The second `R01` is reported and its lines are skipped, since
-attributing them to an ID that already means something else would report the same step twice. Fix the ID and run
-again.
+attributing them to an ID that already means something else would report the same step twice. A file carrying a
+duplicate ID or an unrecognized kind is also spared the pairing check, whose complaint would be about the
+reported mistake rather than about the pairing. Fix those and run again.
 
 Bullets inside fenced code blocks are skipped, so a fix quoting the step format does not acquire phantom steps
 from the example. **What closes a fence is a marker at least as long as the one that opened it**, as in Markdown

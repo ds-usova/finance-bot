@@ -52,6 +52,12 @@ function a(word) {
 # the characters of a step ID and is a test class, and a disabled test whose name happens to start
 # that way must not be reported as a reference to a step nothing defines.
 function scan_refs(who, label, text, line,   rest, id, before, after) {
+    # A step in another file is named with that file, and cannot be resolved from here: a shared
+    # stabilize step is cleared by a module's red step, and that module's red step needs the shared
+    # one. Both are legitimate, and neither file holds the other's IDs.
+    if (text ~ /\.md/) {
+        return
+    }
     rest = text
     while (match(rest, /[SRG][0-9]+/)) {
         id = substr(rest, RSTART, RLENGTH)
@@ -143,11 +149,17 @@ BEGIN {
         fence_len = RLENGTH
         fence_line = NR
     }
+    if (cur != "") {
+        end_line[cur] = NR
+    }
     next
 }
 fenced {
     if (awaiting_evidence != "" && trim($0) != "") {
         evidence_seen[awaiting_evidence] = 1
+    }
+    if (cur != "") {
+        end_line[cur] = NR
     }
     next
 }
@@ -179,8 +191,17 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
         problem(FILENAME ":" NR ": a step with no ID")
         next
     }
+    # Steps do not live in the attempt log. One that appears to is pasted output whose own fence
+    # closed the evidence block early, leaving the rest of it parsed as document.
+    if (in_attempts) {
+        problem(FILENAME ":" NR ": " id " is defined inside the Attempts section, which holds no steps" \
+                " - an evidence block above it probably closed early")
+        cur = ""
+        next
+    }
     if (id in start_line) {
         problem(FILENAME ":" NR ": duplicate ID " id " (first at line " start_line[id] ")")
+        structural = 1
         next
     }
 
@@ -193,6 +214,7 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
     }
     if (kind == "" || index(kinds, " " kind " ") == 0) {
         problem(FILENAME ":" NR ": " id " has no recognized kind (got \"" kind "\")")
+        structural = 1
     }
 
     order[++step_count] = id
@@ -298,6 +320,8 @@ awaiting_evidence != "" && /[^ \t]/ { awaiting_evidence = "" }
         cleared = index(value, "cleared by")
         if (cleared > 0) {
             scan_refs(cur, name, substr(value, cleared), NR)
+        } else {
+            problem(FILENAME ":" NR ": " cur " disables a test and names no step that clears it")
         }
     }
     next
@@ -335,8 +359,14 @@ in_questions && /^[ \t]+-[ \t]+A:/ {
 END {
     close_step()
 
+    # Reported in every mode, not only validate: an unclosed fence hides every step under it, so
+    # status, show and tick would otherwise answer confidently for a file they read half of.
     if (fenced) {
         problem(FILENAME ":" fence_line ": a fenced block opens here and never closes")
+        if (mode != "validate") {
+            print FILENAME ":" fence_line ": a fenced block opens here and never closes;" \
+                  " everything below it was not read" > "/dev/stderr"
+        }
     }
 
     if (open_question != "") {
@@ -365,7 +395,7 @@ END {
     for (i = 1; i <= ref_count; i++) {
         if (!(ref_id[i] in start_line)) {
             problem(FILENAME ":" ref_line[i] ": " ref_who[i] " names " ref_id[i] \
-                    ", which no step defines")
+                    ", which this file defines no step for - a step in another file is named with it")
             continue
         }
         if (ref_label[i] != "fixes") {
@@ -373,15 +403,18 @@ END {
         }
         if (ref_id[i] == ref_who[i]) {
             problem(FILENAME ":" ref_line[i] ": " ref_who[i] " names itself as the step it fixes")
-        } else if (step_kind[ref_id[i]] != "red") {
+        } else if (step_kind[ref_id[i]] == "red") {
+            fixed[ref_id[i]] = 1
+        } else if (step_kind[ref_id[i]] in requires) {
             problem(FILENAME ":" ref_line[i] ": " ref_who[i] " fixes " ref_id[i] ", which is " \
                     a(step_kind[ref_id[i]]) " step rather than a reproduction")
-        } else {
-            fixed[ref_id[i]] = 1
         }
     }
 
-    for (i = 1; i <= step_count; i++) {
+    # A file with a duplicate ID or an unrecognized kind is judged no further: the pairing it appears
+    # to be missing is usually the one the reported mistake took away, and reporting both blames the
+    # wrong step.
+    for (i = 1; i <= step_count && !structural; i++) {
         id = order[i]
         if (step_kind[id] == "red" && !(id in fixed)) {
             problem(FILENAME ":" start_line[id] ": " id " reproduces the bug and no green step fixes it")

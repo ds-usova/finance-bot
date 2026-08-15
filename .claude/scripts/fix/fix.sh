@@ -46,10 +46,12 @@ Commands:
             it validates bug.md and every fix.md the directory holds, in one call.
   task      Every fix file the bug holds, its done/total, and whether all of them are finished.
 
---file defaults to the single fix.md in flight under docs/. A bug owns a directory holding bug.md
-and one fix per module it touches: fix.md for a single-module bug, <module>/fix.md for each of
-several. An archived one under docs/implemented/ is addressed by passing --file explicitly, and so
-is a bug.md, which validate reads for its Attempts section.
+--file names a file on every subcommand. validate and task also take a path positionally: validate
+accepts a bug directory and validates everything in it, task accepts a bug directory or any fix
+inside one. Without either, the single fix.md in flight under docs/ is used. A bug owns a directory
+holding bug.md and one fix per module it touches: fix.md for a single-module bug, <module>/fix.md
+for each of several. An archived one under docs/implemented/ is addressed explicitly, and so is a
+bug.md, which validate reads for its Attempts section.
 
 Exit codes: 0 done - 1 nothing matched, validate found problems, or task found something open -
 2 bad usage.
@@ -105,6 +107,18 @@ parse() {
     awk -v mode="$1" -f "$parser" "$fix_file"
 }
 
+# A checklist is not a fix. Every other document in this repository holding "- [ ] <ID> · …" would
+# otherwise be counted, ticked and reported on confidently by a reader that only looks at boxes.
+assert_is_fix() {
+    local kind
+    while IFS=$'\t' read -r _ _ kind _ _; do
+        case "$kind" in
+            stabilize|red|green) return 0 ;;
+        esac
+    done < <(parse list)
+    die "$fix_file defines no stabilize, red or green step - is it a fix file?" 1
+}
+
 cmd_status() {
     local total=0 done_count=0 open=""
     while IFS=$'\t' read -r id state _ _ _; do
@@ -118,6 +132,7 @@ cmd_status() {
     done < <(parse list)
 
     [ "$total" -gt 0 ] || die "$fix_file defines no steps" 1
+    assert_is_fix
 
     printf '%s\n  %d/%d\n' "$fix_file" "$done_count" "$total"
     if [ -n "$open" ]; then
@@ -152,6 +167,7 @@ cmd_show() {
 
 cmd_tick() {
     [ "$#" -gt 0 ] || die "tick needs at least one ID"
+    assert_is_fix
 
     # Every ID is resolved before any line is written, so a typo ticks nothing.
     local lines="" id start matched
@@ -323,9 +339,15 @@ case "$command" in
         exit 0
         ;;
     validate)
+        # A directory validates the whole bug; a path to one file is the same as naming it with
+        # --file, since that is the spelling a reader reaches for first.
         if [ "${#args[@]}" -gt 0 ]; then
-            cmd_validate_dir "${args[0]}"
-            exit "$?"
+            if [ -d "${args[0]}" ]; then
+                cmd_validate_dir "${args[0]}"
+                exit "$?"
+            fi
+            [ -f "${args[0]}" ] || die "no such file or directory: ${args[0]}"
+            fix_file="${args[0]}"
         fi
         ;;
     show|tick)

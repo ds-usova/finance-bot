@@ -7,11 +7,10 @@ Every step carries an ID, its kind, and one line of what it does. IDs are `S01`,
 sequence per kind, assigned once and never renumbered. **The letter is the kind**, and `validate` refuses a step
 whose prefix says something its kind does not.
 
-**`fix.sh validate` checks the result** — a duplicate ID, an unrecognized kind, a line the kind does not take, a
-line the kind owes, a placeholder value, a `files:` with no bullet under it, a `fixes:` or `needs:` pointing at
-nothing, an attempt missing its evidence, and an Open Question with no answer. Run it before handing the file
-over, and again after writing any answer into it. The script ships with the skill at `scripts/fix/fix.sh` — under
-`${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a plain checkout.
+**`fix.sh validate` checks the result**, and what it catches is listed in the script's own README. Run it before
+handing the file over, and again after writing any answer into it. Given the bug's directory rather than one
+file, it checks `bug.md` and every `fix.md` at once. The script ships with the skill at `scripts/fix/fix.sh` —
+under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a plain checkout.
 
 ```
 - [ ] S01 · stabilize · <the signature, interface or contract that moves>
@@ -22,6 +21,7 @@ over, and again after writing any answer into it. The script ships with the skil
     - `path/to/OneCallerTest`
   - disables: `SomeTest#aMethod` — cleared by R01
   - docs: `<module>/docs/contracts/out/<counterpart>.md`
+  # in shared/fix.md the same line names the file: cleared by module-a/fix.md · R01
 
 - [ ] R01 · red · <the test that reproduces the bug>
   - test-files:
@@ -73,8 +73,15 @@ itself stays empty, and `validate` refuses one with no bullet under it.
 fix's.
 
 **A step lives in the file of the module it edits.** A bug crossing two services has a `stabilize` step in
-`shared/fix.md` for the contract, and its own `red` and `green` steps in each module's file. No step names a step
-in another file, and `validate` refuses an ID it cannot find.
+`shared/fix.md` for the contract, and its own `red` and `green` steps in each module's file.
+
+**A step in another file is named with that file** — `needs: shared/fix.md · S01`, or
+`disables: `SomeTest#aMethod` — cleared by module-a/fix.md · R01`. Only `needs:` and `disables:` may cross, and
+`validate` does not resolve what it cannot see. A bare ID always means this file, and `validate` refuses one no
+step here defines.
+
+**`fixes:` never crosses.** A reproduction and the code that fixes it are the same module's, and `validate`
+refuses a `fixes:` naming anything but a `red` step in the same file.
 
 **A step carries `docs:` where its change is visible outside the code** — a port, a contract, a stored shape, a
 configuration knob, or an operation. A `green` step usually carries one: the page said the old behaviour was the

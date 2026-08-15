@@ -69,11 +69,14 @@ the report. It never widens into a behaviour change.
 - **A `stabilize` step that has to change what something does** is a `green` step in disguise, and the fix file
   is corrected before it is applied.
 
-Each of these reverts the step, writes the attempt, and puts it back to the user.
+Each of these reverts the step, writes the attempt, and puts it back to the user. **The one refusal that does
+not revert is the second cause above**: that step is right and unfinished, and undoing it would lose a correct
+fix.
 
 ## Two things look like refusals and are not
 
 - **A step whose run is red for a reason other than its own claim** is waiting on what its `needs:` names. It is
   not finished, it does not commit, and it is not put back to the user either.
-- **A `green` step that took three approaches to land** is a normal step with three attempts logged. The log is
-  where that goes; the report says how many.
+- **A `green` step that failed twice and landed on the third approach** is a normal step with two attempts
+  logged. The log is where those go, and the report says how many. Three *failures* is where the step stops
+  and goes back to the user.

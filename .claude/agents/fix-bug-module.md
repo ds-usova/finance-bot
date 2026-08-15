@@ -46,8 +46,8 @@ checkout — is how you read and write them. Its README sits beside it.
 | Mark a step done     | `fix.sh tick R01 --file <fix>`     |
 | Check the grammar    | `fix.sh validate --file <fix>`     |
 
-**`--file` is mandatory on every call.** Several fix files are in flight at once and the default resolution
-refuses to guess between them.
+**Name your file on every call.** Several fix files are in flight at once, and the default resolution refuses to
+guess between them.
 
 **Read a step from `fix.sh show`, never by extracting it from the file by hand.** Refer to steps by ID in
 everything you report back.
@@ -61,9 +61,11 @@ file directly.** Everything below still applies; only the mechanics change.
 
 ## The Sequence
 
-1. **Every `stabilize` step**, in ID order. After the last one: the module compiles including test sources, the
-   architecture check passes, the suite is green, and the skipped count is the baseline plus exactly the tests
-   your `disables:` lines turned off. Nothing else may have left the tree.
+1. **Every `stabilize` step**, in ID order. After the last one: the module compiles including test sources,
+   whatever check its conventions name on its layering rule passes, and the suite stands where the baseline
+   left it — green, or failing only on the tests `bug.md` names as already failing. The skipped count is the
+   baseline plus exactly the tests your `disables:` lines turned off, and whatever a shared fix disabled here.
+   Nothing else may have left the tree.
 2. **Every `red` step**, in ID order.
 3. **Every `green` step**, in ID order. After the last one the module's whole suite is green, and nothing left
    in `disables:` is still off.
@@ -100,14 +102,15 @@ leaves nothing.
 
 ## Where You Stop And Ask
 
-**Every refusal in `applying-a-step.md` ends here**, with the step reverted, the attempt written, and you
-returning. Three more end here too:
+**Every refusal in `applying-a-step.md` ends here**, and each says whether the step reverts. Write the attempt
+either way, and return. Three more end here too:
 
 - **Three failed attempts on one step.** Return with the log. A fourth attempt from inside the same context is
-  the one most likely to repeat the first. This is not the same as a step that took three approaches and landed:
-  that one is finished, and the report says how many it took.
-- **The symptom survives a `green` step you believe is correct.** The bug has a second cause, which the fix
-  file does not cover. Return; a new pair of steps is the level above's to write.
+  the one most likely to repeat the first. Three *attempts* is a step that failed twice and landed on the
+  third — that one is finished, and the report says what it took.
+- **The symptom survives a `green` step you believe is correct.** The bug has a second cause the fix file does
+  not cover. The step stands and does not revert; it is incomplete rather than wrong. Return, and let the level
+  above write the new pair of steps.
 - **The cause is outside your module.** Return and name where it is. Never edit another module, and never widen
   a step to reach one.
 
