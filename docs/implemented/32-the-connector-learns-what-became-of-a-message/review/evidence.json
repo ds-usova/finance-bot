@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/32-the-connector-learns-what-became-of-a-message/plan.md",
+  "commit": "a529c05",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-16T16:44:46Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 275, "passed": 275, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "91.9%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1164, "passed": 1164, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "93.0%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}
