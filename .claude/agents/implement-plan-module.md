@@ -44,6 +44,11 @@ whole thing. Backgrounding it and arming a watch on its output file is not waiti
 plan mid-stage. The test wrapper queues per module, so a blocking call joins the queue behind a run already in
 flight rather than racing it, and returns that run's verdict.
 
+**The same for a spawn.** Every `Agent` call passes `run_in_background: false`. A parallel wave is several such
+calls in one message: they run concurrently and the message returns when the last of them has. A step agent
+spawned in the background is a turn that ends with the wave mid-flight — nothing re-invokes you when it reports,
+and the plan stands still until the level above notices.
+
 **Model per sub-agent.** Every spawn passes the `model` parameter, taken from the module conventions'
 **Sub-Agent Models** section: the step agents (stabilization, red, green) run on the model it names for execution
 work, and the refactor agent on the one it names for deciding work. Only if the module has no such section does a
