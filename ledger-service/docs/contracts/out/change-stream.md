@@ -4,9 +4,9 @@ Every row change the ledger makes to its own spending tables is republished onto
 the database committed it. It is how something outside the service learns that spending was recorded, refiled or
 discarded without asking the ledger for it.
 
-Nothing consumes the stream yet. The entries are written and trimmed regardless.
+`ai-connector-service` consumes the stream, as consumer group `ai-connector`.
 
-- **Counterpart:** a stream consumer — none exists
+- **Counterpart:** a stream consumer — `ai-connector-service`, group `ai-connector`
 - **Transport:** Redis, one stream, appended to with `XADD`
 - **Schema:** none held in a file — the entry is the database's own change event, and its shape is below
 

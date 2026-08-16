@@ -14,29 +14,39 @@ bot.finance.ai
 └── common          # shared test infrastructure
     ├── boot                   # what a test starts, and how
     │   ├── AbstractSystemTest     # full-application base class
-    │   ├── AbstractMemorySystemTest # the same with the memory on, against the containerized database
+    │   ├── AbstractMemorySystemTest # the same with the memory on, against the containerized database and Redis
     │   ├── GrpcAdapterTest        # composed annotation — inbound-adapter tests
     │   ├── AiAdapterTest          # composed annotation — outbound-adapter tests
     │   ├── PersistenceAdapterTest # composed annotation — the persistence slice on the containerized database
     │   ├── SecurityAdapterTest    # composed annotation — the token reader on the stubbed key-set endpoint
+    │   ├── RedisAdapterTest       # composed annotation — the change-stream consumer on the containerized Redis
+    │   ├── RedisPropertiesConfiguration # the Redis URL and a stream key of its own, shared by AbstractMemorySystemTest and RedisAdapterTest
     │   ├── WireMockUrlConfiguration # points the provider and the ledger at the stub server's runtime port
     │   └── InProcessGrpcTransportConfiguration # the in-process gRPC transport, one server name per context
     ├── containers             # stub-server and database lifecycle
     │   ├── WireMockSupport        # JVM-wide stub-server singleton
-    │   └── PostgresContainers     # JVM-wide Postgres container singleton, on the pgvector image
+    │   ├── PostgresContainers     # JVM-wide Postgres container singleton, on the pgvector image
+    │   ├── RedisContainers        # JVM-wide Redis container singleton, and the connection factories a test builds against it
+    │   ├── Network                # the Testcontainers network Redis and Toxiproxy share
+    │   └── ToxiproxyContainers    # fronts the Redis singleton, for a test that cuts and restores the connection
     ├── fixtures               # payloads a test sends, and the loader for the ones kept on disk
     │   ├── JsonUtils              # loads JSON fixtures from src/test/resources
     │   ├── ChatCompletionFixtures # provider response bodies
     │   ├── CallerTokens           # the test signing key, its key set, and the caller tokens it mints
-    │   └── RequestFixtures        # valid ExtractIntentsRequest builders
+    │   ├── RequestFixtures        # valid ExtractIntentsRequest builders
+    │   ├── ChangeStreamEntryFixtures # change-stream entry bodies, in the shape the ledger's stream carries
+    │   └── RecordedChangeFixtures # RecordedChange values, and the SpendingRow/CategoryRow they hold
     ├── rows                   # what a test writes into and reads back from a table directly
-    │   └── IncomingMessageRowUtils # rows of incoming_message, by identity and by received_at
+    │   ├── IncomingMessageRowUtils # rows of incoming_message, by identity and by received_at
+    │   ├── RecordedExpenseRowUtils # rows of recorded_expense, by proposal id, by expense id and by message
+    │   └── StreamEntryFailureRowUtils # rows of stream_entry_failure, by entry id
     ├── stubs                  # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs          # stub registration, one static method per endpoint
     │   ├── McpLedgerStubs         # stubs the ledger's /mcp endpoint, one static method per outcome
     │   ├── LedgerJwksStubs        # stubs the ledger's key-set endpoint, served, unreachable or slow
     │   ├── AuthorizedStubs        # attaches an authorization header to a generated stub
-    │   └── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
+    │   ├── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
+    │   └── LedgerChangeStreamStubs # stands in for the ledger's writes to the change stream, and a second consumer
     ├── LogCapture             # Logback appender, for asserting on log output
     └── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
 ```
@@ -54,14 +64,18 @@ helper is looked for in the same place in either module.
   infrastructure of its own, like `LedgerToolFailureProcessor` or `CallerTokenMcpRequestCustomizer`; a class
   whose behaviour is trivial is left to its adapter's integration test instead.
 - **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/persistence/` via
-  `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`. Wire only the adapter under test,
-  call its public methods directly, and mock nothing the container or the stub server can stand in for.
-  `adapter/ai/` owns the request Spring AI sends, the tool calls it makes against a stubbed ledger, and how a
-  stubbed response, a tool refusal, a transport failure and a malformed body map onto the port's result or
-  exception. `adapter/persistence/` runs against the containerized database and owns what a statement writes,
-  what it leaves untouched, and how a store failure becomes the port's exception. `adapter/security/` runs
-  against the stubbed key-set endpoint and owns which caller tokens are read, which are refused, and what an
-  unreachable or slow key set answers.
+  `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`, `adapter/redis/`'s consumer,
+  `ChangeStreamConsumer`, via `@RedisAdapterTest` against the containerized Redis with the inbound port
+  (`LearnMessageOutcomePort`) mocked. Wire only the adapter under test, call its public methods directly, and
+  mock nothing the container or the stub server can stand in for. `adapter/ai/` owns the request Spring AI
+  sends, the tool calls it makes against a stubbed ledger, and how a stubbed response, a tool refusal, a
+  transport failure and a malformed body map onto the port's result or exception. `adapter/persistence/` runs
+  against the containerized database and owns what a statement writes, what it leaves untouched, and how a
+  store failure becomes the port's exception. `adapter/security/` runs against the stubbed key-set endpoint and
+  owns which caller tokens are read, which are refused, and what an unreachable or slow key set answers.
+  `adapter/redis/`'s consumer owns reading the stream, claiming and acknowledging entries, and how the store's
+  answer decides retry, acknowledgement or drop; its reader, `ChangeStreamEntryReader`, is a unit target instead
+  — stateless parsing with no infrastructure of its own.
 - **Integration, inbound** — `adapter/grpc/` via `@GrpcAdapterTest`, entered through a generated blocking stub
   with the inbound port mocked. Owns request binding, delegation, proto mapping, and the RPC's validation
   matrix and status-code contract.

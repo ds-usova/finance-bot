@@ -8,11 +8,11 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 `src/main/resources/application.yaml` — neither is repeated here.
 
 | What                         | This module                                                                                          |
-|------------------------------|------------------------------------------------------------------------------------------------------|
+|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Language / framework         | Java 25, Spring Boot                                                                                 |
-| Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md)                                        |
+| Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md); Redis, read as the ledger's change stream |
 | Exposed interface            | gRPC only, on a Netty transport                                                                      |
-| Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient`, and the ledger's key set |
+| Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient`, the ledger's key set, and the ledger's [change stream](../../../ledger-service/docs/contracts/out/change-stream.md) |
 | Contract-first codegen       | the `.proto` schema is the contract                                                                  |
 
 Two things the table cannot carry:
