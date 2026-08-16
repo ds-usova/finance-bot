@@ -101,23 +101,24 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
             publishProposalDeleted(proposalId, userId, incomingMessageId, txId);
             publishExpenseCreated(expenseId, userId, incomingMessageId, txId);
 
-            Awaitility.await().atMost(BOUND).untilAsserted(() -> {
-                var row = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId);
-                log.info("row: {}", row);
-                assertThat(row).isPresent();
-                RecordedExpenseRow recordedExpenseRow = row.orElseThrow();
-                assertThat(recordedExpenseRow.status()).isEqualTo("ACCEPTED");
-                assertThat(recordedExpenseRow.proposalId()).isEqualTo(proposalId);
-                assertThat(recordedExpenseRow.expenseId()).isEqualTo(expenseId);
-                assertThat(recordedExpenseRow.amountMinorUnits()).isEqualTo(AMOUNT_MINOR_UNITS);
-                assertThat(recordedExpenseRow.currencyCode()).isEqualTo(CURRENCY_CODE);
-                assertThat(recordedExpenseRow.categoryId()).isEqualTo(CATEGORY_ID);
-                assertThat(recordedExpenseRow.categoryName()).isEqualTo(CATEGORY_NAME);
-                assertThat(recordedExpenseRow.groupingName()).isEqualTo(GROUPING_NAME);
-            });
+            Awaitility.await().atMost(BOUND).until(() -> RecordedExpenseRowUtils.findByProposalId(
+                            jdbcTemplate, proposalId)
+                    .filter(row -> "ACCEPTED".equals(row.status()) && row.expenseId() != null)
+                    .isPresent());
             Awaitility.await().atMost(BOUND).untilAsserted(() -> assertThat(
                             LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
                     .isZero());
+
+            RecordedExpenseRow recordedExpenseRow = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId)
+                    .orElseThrow();
+            log.info("row: {}", recordedExpenseRow);
+            assertThat(recordedExpenseRow.proposalId()).isEqualTo(proposalId);
+            assertThat(recordedExpenseRow.expenseId()).isEqualTo(expenseId);
+            assertThat(recordedExpenseRow.amountMinorUnits()).isEqualTo(AMOUNT_MINOR_UNITS);
+            assertThat(recordedExpenseRow.currencyCode()).isEqualTo(CURRENCY_CODE);
+            assertThat(recordedExpenseRow.categoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(recordedExpenseRow.categoryName()).isEqualTo(CATEGORY_NAME);
+            assertThat(recordedExpenseRow.groupingName()).isEqualTo(GROUPING_NAME);
         }
 
         @Test
