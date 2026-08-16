@@ -36,7 +36,7 @@
 |-------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | Turn acted on           | the model finished the turn                                                       | an empty answer                                                                      |
 | Message kept            | the token names a person and a message                                            | the message is stored under that pair before the model is called                     |
-| Message already known   | the same person and message arrive a second time                                  | the turn runs again                                                                  |
+| Message already known   | the same person and message arrive a second time                                  | the first row and its text stand; the turn runs again                                |
 | Message not kept        | the store refuses the write                                                       | an empty answer; the turn runs as if it had been kept                                |
 | Nothing recorded        | the message names no spending                                                     | an empty answer                                                                      |
 | Summary asked for       | the message asks what was spent over a period                                     | an empty answer                                                                      |
@@ -165,9 +165,6 @@ end
 
 ### Recording spending
 
-Every arm ends with the model answering without a further tool call, which is the turn's "acted on" above; a
-ledger that cannot be reached ends the turn as unavailable instead.
-
 ```plantuml
 @startuml ExtractIntents-RecordingSpending
 participant "AI Connector Service" as Service
@@ -226,4 +223,6 @@ Provider --> Service : an answer with no further tool call
   why the token is verified here and what the store is for
 - [ADR 0010: A message reference rides the caller token](../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md) —
   why the request carries no message id
+- [Learn what the ledger did with a message](learn-message-outcome.md) — what becomes of the message once the
+  ledger has acted on it
 - [Delete the messages kept past their age](purge-messages.md) — what removes a kept message again

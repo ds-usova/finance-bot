@@ -60,7 +60,7 @@ System_Boundary(financeBot, "Finance Bot") {
   Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Speech to text")
   Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Reads a message with the model")
   ContainerDb(ledgerDb, "Ledger Database", "PostgreSQL, wal_level=logical", "Users, expenses; a replication slot")
-  ContainerDb(connectorDb, "Connector Database", "PostgreSQL, pgvector", "The messages received")
+  ContainerDb(connectorDb, "Connector Database", "PostgreSQL, pgvector", "The messages received, what became of them")
   ContainerQueue(changeStream, "Change Stream", "Redis", "Ledger row changes")
 }
 
@@ -83,6 +83,7 @@ Rel_D(aiConnector, connectorDb, "Messages", "JDBC")
 Rel_D(ledger, ledgerDb, "Users, expenses", "JDBC")
 Rel_U(ledgerDb, ledger, "Row changes", "logical replication")
 Rel_D(ledger, changeStream, "Row changes", "RESP")
+Rel_R(changeStream, aiConnector, "Row changes", "RESP")
 
 SHOW_LEGEND()
 @enduml
@@ -97,7 +98,7 @@ SHOW_LEGEND()
 | Transcription Service | Python, FasterWhisper           | Speech-to-text                                   | -                                                               | -     |
 | AI Connector Service  | Java, Spring Boot, Spring AI    | Structured expense extraction from text          | [README](ai-connector-service/README.md)                        | 1001  |
 | Ledger Database       | PostgreSQL, `wal_level=logical` | Users and expenses                               | [contract](ledger-service/docs/contracts/out/database.md)       | 5432  |
-| Connector Database    | PostgreSQL, pgvector            | The messages received                            | [contract](ai-connector-service/docs/contracts/out/database.md) | 5432  |
+| Connector Database    | PostgreSQL, pgvector            | The messages received, and what became of them   | [contract](ai-connector-service/docs/contracts/out/database.md) | 5432  |
 
 Container definitions live in [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml); how the
 stack is set up is [`infrastructure/README.md`](infrastructure/README.md).
