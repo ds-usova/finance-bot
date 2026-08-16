@@ -1,0 +1,102 @@
+package bot.finance.ai.common.rows;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Optional;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+/** Static helpers over a {@link JdbcTemplate}, for a test that reaches the {@code recorded_expense} table directly. */
+public final class RecordedExpenseRowUtils {
+
+    private static final String SELECT =
+            """
+            SELECT status, proposal_id, expense_id, category_id, category_name, grouping_name, moved_in_tx
+            FROM recorded_expense
+            """;
+
+    private RecordedExpenseRowUtils() {}
+
+    /** One row's status, both ids, category id, both names and the transaction it moved in. */
+    public record RecordedExpenseRow(
+            String status,
+            Long proposalId,
+            Long expenseId,
+            long categoryId,
+            String categoryName,
+            String groupingName,
+            String movedInTx) {}
+
+    public static void insert(
+            JdbcTemplate jdbcTemplate,
+            long messageId,
+            long userId,
+            Long proposalId,
+            Long expenseId,
+            String description,
+            String merchant,
+            long amountMinorUnits,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            String groupingName,
+            String status,
+            String movedInTx,
+            Instant updatedAt) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO recorded_expense (message_id, user_id, proposal_id, expense_id, description, merchant,
+                                               amount_minor_units, currency_code, category_id, category_name,
+                                               grouping_name, status, moved_in_tx, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                messageId,
+                userId,
+                proposalId,
+                expenseId,
+                description,
+                merchant,
+                amountMinorUnits,
+                currencyCode,
+                categoryId,
+                categoryName,
+                groupingName,
+                status,
+                movedInTx,
+                Timestamp.from(updatedAt));
+    }
+
+    public static Optional<RecordedExpenseRow> findByProposalId(JdbcTemplate jdbcTemplate, long proposalId) {
+        return jdbcTemplate
+                .query(SELECT + " WHERE proposal_id = ?", RecordedExpenseRowUtils::mapRow, proposalId)
+                .stream()
+                .findFirst();
+    }
+
+    public static Optional<RecordedExpenseRow> findByExpenseId(JdbcTemplate jdbcTemplate, long expenseId) {
+        return jdbcTemplate.query(SELECT + " WHERE expense_id = ?", RecordedExpenseRowUtils::mapRow, expenseId).stream()
+                .findFirst();
+    }
+
+    public static int countByMessage(JdbcTemplate jdbcTemplate, long messageId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM recorded_expense WHERE message_id = ?", Integer.class, messageId);
+        return count == null ? 0 : count;
+    }
+
+    public static void deleteAll(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM recorded_expense");
+    }
+
+    private static RecordedExpenseRow mapRow(ResultSet rs, int rowNum) throws SQLException {
+        return new RecordedExpenseRow(
+                rs.getString("status"),
+                (Long) rs.getObject("proposal_id"),
+                (Long) rs.getObject("expense_id"),
+                rs.getLong("category_id"),
+                rs.getString("category_name"),
+                rs.getString("grouping_name"),
+                rs.getString("moved_in_tx"));
+    }
+}

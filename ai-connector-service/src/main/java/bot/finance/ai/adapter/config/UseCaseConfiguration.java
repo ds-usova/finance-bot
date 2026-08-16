@@ -1,12 +1,16 @@
 package bot.finance.ai.adapter.config;
 
 import bot.finance.ai.adapter.scheduling.MemoryProperties;
+import bot.finance.ai.application.port.ChangeAttemptStorePort;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
+import bot.finance.ai.application.port.LearnMessageOutcomePort;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
 import bot.finance.ai.application.port.PurgeMessagesPort;
+import bot.finance.ai.application.port.RecordedExpenseStorePort;
 import bot.finance.ai.application.usecase.ExtractIntentsUseCase;
+import bot.finance.ai.application.usecase.LearnMessageOutcomeUseCase;
 import bot.finance.ai.application.usecase.PurgeMessagesUseCase;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,5 +32,16 @@ public class UseCaseConfiguration {
             MessageStorePort messageStorePort, MemoryProperties properties, Clock clock, LoggerFactory loggerFactory) {
         return new PurgeMessagesUseCase(
                 messageStorePort, clock, properties.maxAge(), properties.purgeBatch(), loggerFactory);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "memory.enabled", havingValue = "true")
+    LearnMessageOutcomePort learnMessageOutcomePort(
+            RecordedExpenseStorePort recordedExpenseStorePort,
+            ChangeAttemptStorePort changeAttemptStorePort,
+            MemoryProperties properties,
+            LoggerFactory loggerFactory) {
+        return new LearnMessageOutcomeUseCase(
+                recordedExpenseStorePort, changeAttemptStorePort, properties.entryAttempts(), loggerFactory);
     }
 }

@@ -1,12 +1,17 @@
 package bot.finance.ai.adapter.persistence;
 
 import java.time.Instant;
+import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
 public interface IncomingMessageEntityRepository extends CrudRepository<IncomingMessageEntity, Long> {
+
+    @Query(
+            "SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId FOR UPDATE")
+    Optional<Long> lockId(@Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
 
     @Modifying
     @Query(
