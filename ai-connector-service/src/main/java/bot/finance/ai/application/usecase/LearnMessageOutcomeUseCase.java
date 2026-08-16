@@ -139,8 +139,8 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
                 "Dropping delivery {} after repeated failures on {} {} row {}: {}",
                 command.deliveryId(),
                 kindOf(change),
-                opOf(change),
-                rowId(change),
+                change.op(),
+                change.rowId(),
                 e.getMessage());
 
         if (change instanceof SpendingRowChange spendingChange) {
@@ -151,25 +151,10 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
         return LearnOutcome.DROPPED;
     }
 
-    private Object kindOf(RecordedChange change) {
+    private String kindOf(RecordedChange change) {
         return switch (change) {
-            case SpendingRowChange spendingChange -> spendingChange.kind();
+            case SpendingRowChange spendingChange -> spendingChange.kind().name();
             case CategoryRowChange ignored -> "CATEGORY";
-        };
-    }
-
-    private ChangeOperation opOf(RecordedChange change) {
-        return switch (change) {
-            case SpendingRowChange spendingChange -> spendingChange.op();
-            case CategoryRowChange categoryChange -> categoryChange.op();
-        };
-    }
-
-    private long rowId(RecordedChange change) {
-        return switch (change) {
-            case SpendingRowChange spendingChange -> spendingChange.row().id();
-            case CategoryRowChange categoryChange ->
-                categoryChange.after().or(categoryChange::before).orElseThrow().id();
         };
     }
 

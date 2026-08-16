@@ -1,16 +1,12 @@
 package bot.finance.ai.adapter.persistence;
 
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
-import bot.finance.ai.domain.exception.MessageStoreFailedException;
-import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
 import bot.finance.ai.domain.value.MessageIdentity;
 import bot.finance.ai.domain.value.SpendingRow;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +36,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                     identity.get().incomingMessageId(),
                     proposal.id(),
                     proposal.description(),
-                    proposal.merchant().orElse(""),
+                    proposal.merchant().orElse(null),
                     proposal.amountMinorUnits(),
                     proposal.currencyCode().code(),
                     proposal.categoryId(),
@@ -48,7 +44,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                     proposal.groupingName().orElse(null),
                     Instant.now());
         } catch (DataAccessException e) {
-            throw translate(e, "failed to record proposed expense");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to record proposed expense");
         }
     }
 
@@ -84,7 +80,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                 repository.markDiscarded(proposal.id(), transactionId, now);
             }
         } catch (DataAccessException e) {
-            throw translate(e, "failed to settle a proposal deletion");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to settle a proposal deletion");
         }
     }
 
@@ -130,7 +126,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                         Instant.now());
             }
         } catch (DataAccessException e) {
-            throw translate(e, "failed to settle an expense insert");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to settle an expense insert");
         }
     }
 
@@ -144,7 +140,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                     expense.groupingName().orElse(null),
                     Instant.now());
         } catch (DataAccessException e) {
-            throw translate(e, "failed to refile a recorded expense");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to refile a recorded expense");
         }
     }
 
@@ -153,7 +149,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
         try {
             repository.deleteByExpenseId(expenseId);
         } catch (DataAccessException e) {
-            throw translate(e, "failed to remove a recorded expense");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to remove a recorded expense");
         }
     }
 
@@ -162,7 +158,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
         try {
             repository.renameCategory(categoryId, name, Instant.now());
         } catch (DataAccessException e) {
-            throw translate(e, "failed to rename a category");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to rename a category");
         }
     }
 
@@ -171,7 +167,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
         try {
             repository.renameGrouping(userId, from, to, Instant.now());
         } catch (DataAccessException e) {
-            throw translate(e, "failed to rename a grouping");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to rename a grouping");
         }
     }
 
@@ -180,14 +176,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
         try {
             repository.markUnknown(message.userId(), message.incomingMessageId(), transactionId, Instant.now());
         } catch (DataAccessException e) {
-            throw translate(e, "failed to abandon an acceptance");
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to abandon an acceptance");
         }
-    }
-
-    private RuntimeException translate(DataAccessException e, String message) {
-        if (e instanceof DataAccessResourceFailureException || e instanceof TransientDataAccessException) {
-            return new MessageStoreUnavailableException(message, e);
-        }
-        return new MessageStoreFailedException(message, e);
     }
 }

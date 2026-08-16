@@ -18,25 +18,17 @@ public record SpendingRowChange(
         if (kind == null) {
             throw new InvalidValueException("Kind must not be null");
         }
-        if (op == null) {
-            throw new InvalidValueException("Op must not be null");
-        }
-        if (before == null || after == null) {
-            throw new InvalidValueException("Before and after must not be null");
-        }
-        if (op == ChangeOperation.CREATED && after.isEmpty()) {
-            throw new InvalidValueException("Created change must carry an after row");
-        }
-        if (op == ChangeOperation.DELETED && before.isEmpty()) {
-            throw new InvalidValueException("Deleted change must carry a before row");
-        }
-        if (op == ChangeOperation.UPDATED && (before.isEmpty() || after.isEmpty())) {
-            throw new InvalidValueException("Updated change must carry both before and after rows");
-        }
+
+        RecordedChange.requireSidesFor(op, before, after);
     }
 
     public SpendingRow row() {
         return after.orElseGet(() -> before.orElseThrow());
+    }
+
+    @Override
+    public long rowId() {
+        return row().id();
     }
 
     public Optional<MessageIdentity> messageIdentity() {

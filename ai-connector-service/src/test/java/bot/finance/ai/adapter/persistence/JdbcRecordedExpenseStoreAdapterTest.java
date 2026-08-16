@@ -177,10 +177,16 @@ class JdbcRecordedExpenseStoreAdapterTest {
 
     private void insertAccepted(
             long messageId, long expenseId, long categoryId, String categoryName, String groupingName) {
+        insertAccepted(
+                messageId, RecordedChangeFixtures.DEFAULT_USER_ID, expenseId, categoryId, categoryName, groupingName);
+    }
+
+    private void insertAccepted(
+            long messageId, long userId, long expenseId, long categoryId, String categoryName, String groupingName) {
         RecordedExpenseRowUtils.insert(
                 jdbcTemplate,
                 messageId,
-                RecordedChangeFixtures.DEFAULT_USER_ID,
+                userId,
                 null,
                 expenseId,
                 RecordedChangeFixtures.DEFAULT_DESCRIPTION,
@@ -192,6 +198,44 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 groupingName,
                 "ACCEPTED",
                 null,
+                Instant.now());
+    }
+
+    private void insertProposed(long messageId, long proposalId) {
+        RecordedExpenseRowUtils.insert(
+                jdbcTemplate,
+                messageId,
+                RecordedChangeFixtures.DEFAULT_USER_ID,
+                proposalId,
+                null,
+                RecordedChangeFixtures.DEFAULT_DESCRIPTION,
+                null,
+                RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
+                RecordedChangeFixtures.DEFAULT_CURRENCY,
+                RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
+                RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
+                RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
+                "PROPOSED",
+                null,
+                Instant.now());
+    }
+
+    private void insertPairedAccepted(long messageId, long proposalId, long expenseId, String transactionId) {
+        RecordedExpenseRowUtils.insert(
+                jdbcTemplate,
+                messageId,
+                RecordedChangeFixtures.DEFAULT_USER_ID,
+                proposalId,
+                expenseId,
+                RecordedChangeFixtures.DEFAULT_DESCRIPTION,
+                null,
+                RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
+                RecordedChangeFixtures.DEFAULT_CURRENCY,
+                RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
+                RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
+                RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
+                "ACCEPTED",
+                transactionId,
                 Instant.now());
     }
 
@@ -232,22 +276,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long messageId = registerMessage(RecordedChangeFixtures.DEFAULT_USER_ID, incomingMessageId);
             long proposalId = 9002L;
             long expenseId = 9102L;
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
-                    messageId,
-                    RecordedChangeFixtures.DEFAULT_USER_ID,
-                    proposalId,
-                    expenseId,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
-                    "ACCEPTED",
-                    null,
-                    Instant.now());
+            insertPairedAccepted(messageId, proposalId, expenseId, null);
 
             adapter.recordProposed(spendingRow(proposalId, incomingMessageId, "Restaurants"));
 
@@ -280,22 +309,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             String incomingMessageId = "settle-proposal-deleted-lone-message";
             long messageId = registerMessage(RecordedChangeFixtures.DEFAULT_USER_ID, incomingMessageId);
             long proposalId = 9101L;
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
-                    messageId,
-                    RecordedChangeFixtures.DEFAULT_USER_ID,
-                    proposalId,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
-                    "PROPOSED",
-                    null,
-                    Instant.now());
+            insertProposed(messageId, proposalId);
             String transactionId = "settle-proposal-deleted-tx-1";
 
             adapter.settleProposalDeleted(spendingRow(proposalId, incomingMessageId), transactionId);
@@ -314,22 +328,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long proposalId = 9111L;
             long expenseId = 9211L;
             String transactionId = "settle-proposal-deleted-tx-2";
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
-                    messageId,
-                    RecordedChangeFixtures.DEFAULT_USER_ID,
-                    proposalId,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
-                    "PROPOSED",
-                    null,
-                    Instant.now());
+            insertProposed(messageId, proposalId);
             insertLoneAccepted(messageId, expenseId, transactionId);
 
             adapter.settleProposalDeleted(spendingRow(proposalId, incomingMessageId), transactionId);
@@ -372,22 +371,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long proposalId = 9131L;
             long expenseId = 9231L;
             String transactionId = "settle-proposal-deleted-tx-4";
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
-                    messageId,
-                    RecordedChangeFixtures.DEFAULT_USER_ID,
-                    proposalId,
-                    expenseId,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
-                    RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
-                    "ACCEPTED",
-                    transactionId,
-                    Instant.now());
+            insertPairedAccepted(messageId, proposalId, expenseId, transactionId);
 
             adapter.settleProposalDeleted(spendingRow(proposalId, incomingMessageId), transactionId);
 
@@ -584,22 +568,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                     long proposalId = 8_000_000L + i * 2L;
                     long expenseId = proposalId + 1;
                     String transactionId = "settle-concurrently-tx-" + i;
-                    RecordedExpenseRowUtils.insert(
-                            jdbcTemplate,
-                            messageId,
-                            USER_ID,
-                            proposalId,
-                            null,
-                            RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                            null,
-                            RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                            RecordedChangeFixtures.DEFAULT_CURRENCY,
-                            RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
-                            RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                            RecordedChangeFixtures.DEFAULT_GROUPING_NAME,
-                            "PROPOSED",
-                            null,
-                            Instant.now());
+                    insertProposed(messageId, proposalId);
 
                     SpendingRow proposalRow = spendingRow(proposalId, incomingMessageId);
                     SpendingRow expenseRow = spendingRow(expenseId, incomingMessageId);
@@ -738,38 +707,20 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long secondMessageId = registerMessage(secondUserId, "rename-grouping-second-user-message");
             long firstExpenseId = 9611L;
             long secondExpenseId = 9612L;
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
+            insertAccepted(
                     firstMessageId,
                     firstUserId,
-                    null,
                     firstExpenseId,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
                     RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
                     RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    "Dining",
-                    "ACCEPTED",
-                    null,
-                    Instant.now());
-            RecordedExpenseRowUtils.insert(
-                    jdbcTemplate,
+                    "Dining");
+            insertAccepted(
                     secondMessageId,
                     secondUserId,
-                    null,
                     secondExpenseId,
-                    RecordedChangeFixtures.DEFAULT_DESCRIPTION,
-                    null,
-                    RecordedChangeFixtures.DEFAULT_AMOUNT_MINOR_UNITS,
-                    RecordedChangeFixtures.DEFAULT_CURRENCY,
                     RecordedChangeFixtures.DEFAULT_CATEGORY_ID,
                     RecordedChangeFixtures.DEFAULT_CATEGORY_NAME,
-                    "Dining",
-                    "ACCEPTED",
-                    null,
-                    Instant.now());
+                    "Dining");
 
             adapter.renameGrouping(firstUserId, "Dining", "Food");
 
@@ -867,7 +818,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                             anyString(),
                             anyLong(),
                             anyString(),
-                            anyString(),
+                            any(),
                             anyLong(),
                             anyString(),
                             anyLong(),
@@ -894,7 +845,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                             anyString(),
                             anyLong(),
                             anyString(),
-                            anyString(),
+                            any(),
                             anyLong(),
                             anyString(),
                             anyLong(),

@@ -39,15 +39,10 @@ public final class LedgerChangeStreamStubs {
                 .read(Consumer.from(group, consumer), StreamOffset.create(key, ReadOffset.lastConsumed()));
     }
 
-    /** Deletes the whole stream key. */
-    public static void deleteStream(String key) {
-        TEMPLATE.delete(key);
-    }
-
     /**
      * Acknowledges every one of the group's pending entries and trims the stream to empty, leaving the stream key
-     * and its consumer group - and the group's cursor - in place. Unlike {@link #deleteStream}, which destroys the
-     * group along with the stream key it lives on.
+     * and its consumer group - and the group's cursor - in place. Deleting the key instead would destroy the
+     * group along with it.
      */
     public static void drain(String key, String group) {
         PendingMessages pendingMessages =

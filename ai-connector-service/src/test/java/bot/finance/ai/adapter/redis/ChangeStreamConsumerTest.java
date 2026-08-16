@@ -119,19 +119,12 @@ class ChangeStreamConsumerTest {
         @DisplayName("when the first entry retries and the second is applied - then the second never precedes "
                 + "the first's last offer")
         void whenFirstEntryRetriesAndSecondApplied_thenSecondNeverPrecedesFirstsLastOffer() {
-            // A single answer keyed on the delivery id, rather than two argThat-matched stubs: the id an entry
-            // is published under is only known once publish() returns it, so the stub can only be registered
-            // after publishing - and the consumer polls continuously, so it can read and offer an entry before
-            // that registration lands. An unstubbed enum method answers null by default, and offer()'s switch on
-            // that null NPEs - uncaught there, that silently kills the consumer's background thread for the rest
-            // of the class. Keying the one answer on an AtomicReference set right after each publish keeps every
-            // window before that safe: an id the reference doesn't recognize yet is simply retried, exactly like
-            // firstEntryId is meant to be.
-            //
-            // The first entry's own last offer is what the assertions are keyed on, so it needs to have one: two
-            // RETRY_LATER answers, then APPLIED from the third, rather than retrying forever - a retry that never
-            // resolves is the starvation the design intends (a retrying entry holds up the stream until the use
-            // case drops it), not a scenario a mocked port, which never drops anything, can stand in for.
+            // One answer keyed on the delivery id, rather than two argThat-matched stubs: an entry's id is only
+            // known once publish() returns it, so a per-id stub can only be registered after publishing, and the
+            // consumer can read and offer that entry first. An unstubbed answer would be null, and offer()'s
+            // switch on it would NPE on the consumer's background thread, killing it for the rest of the class.
+            // The first entry answers RETRY_LATER twice and then APPLIED, so it has a last offer for the
+            // assertions below to key on.
             AtomicReference<String> secondEntryIdRef = new AtomicReference<>();
             AtomicInteger firstEntryOfferCount = new AtomicInteger();
             when(learnMessageOutcomePort.learn(any())).thenAnswer(invocation -> {
@@ -191,10 +184,8 @@ class ChangeStreamConsumerTest {
                 + "acknowledged, and skipped")
         void whenBodyWithNoPayloadIsPublished_thenItIsWarnLoggedAcknowledgedAndSkipped() {
             try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamConsumer.class)) {
-                // ChangeStreamEntryFixtures.withNoPayload() answers an empty map, which XADD refuses outright
-                // (it requires at least one field); a body carrying no "payload" key is published directly here
-                // instead.
-                String entryId = LedgerChangeStreamStubs.publish(properties.key(), Map.of("enrichment", "{}"));
+                String entryId =
+                        LedgerChangeStreamStubs.publish(properties.key(), ChangeStreamEntryFixtures.withNoPayload());
 
                 await().atMost(DEFAULT_TIMEOUT).untilAsserted(() -> {
                     assertThat(logCapture.messages()).anyMatch(message -> message.contains(entryId));
@@ -209,9 +200,8 @@ class ChangeStreamConsumerTest {
         @DisplayName("when an entry idles past claimIdle under another consumer - then it is claimed, offered, "
                 + "and acknowledged")
         void whenEntryIdlesPastClaimIdleUnderAnotherConsumer_thenItIsClaimedOfferedAndAcknowledged() {
-            // No explicit createGroup: start() already created it, and drain() (unlike the delete this @AfterEach
-            // used to call) leaves it standing between tests, so creating it again here would only race the
-            // consumer's own idempotent re-affirmation for a BUSYGROUP error.
+            // No explicit createGroup: start() created it and drain() leaves it standing between tests, so
+            // creating it again here would only race the consumer's own re-affirmation for a BUSYGROUP error.
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.APPLIED);
 
             String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(6L, "tx-6"));

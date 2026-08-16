@@ -39,39 +39,6 @@ public final class ChangeStreamEntryFixtures {
         return entry("expense_proposal", "c", null, after, txId, null, enrichmentSide(categoryName, groupingName));
     }
 
-    public static Map<String, String> proposalUpdated(
-            long proposalId,
-            long userId,
-            String incomingMessageId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            long categoryId,
-            String beforeCategoryName,
-            String beforeGroupingName,
-            String afterCategoryName,
-            String afterGroupingName,
-            String txId) {
-        String row = spendingRowJson(
-                proposalId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
-        return entry(
-                "expense_proposal",
-                "u",
-                row,
-                row,
-                txId,
-                enrichmentSide(beforeCategoryName, beforeGroupingName),
-                enrichmentSide(afterCategoryName, afterGroupingName));
-    }
-
     public static Map<String, String> proposalDeleted(
             long proposalId,
             long userId,
@@ -149,28 +116,6 @@ public final class ChangeStreamEntryFixtures {
                 txId,
                 enrichmentSide(beforeCategoryName, beforeGroupingName),
                 enrichmentSide(afterCategoryName, afterGroupingName));
-    }
-
-    public static Map<String, String> expenseDeleted(
-            long expenseId,
-            long userId,
-            String incomingMessageId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            long categoryId,
-            String txId) {
-        String before = spendingRowJson(
-                expenseId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
-        return entry("expense", "d", before, null, txId, null, null);
     }
 
     public static Map<String, String> categoryUpdatedWithParent(
