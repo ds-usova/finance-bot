@@ -69,6 +69,7 @@ orchestrator is not addressable by name, so never send it a message; anything yo
 report as a blocker.
 
 - per item id: done, or blocked and why;
+- every stub written, per class and method, and every `TODO` left on a changed signature;
 - every test disabled, with its class, method and the step its reason names; every file an item named for
   deletion that was deleted;
 - the checks' verdicts: compile, architecture test, suite total and skipped against the baseline;
