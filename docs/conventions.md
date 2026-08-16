@@ -13,6 +13,7 @@ them.
 - [Building a Node Module](conventions/node-build.md) — the npm scripts, the coverage guardrail, the
   formatting gate and dependency versions, for every npm/TypeScript module.
 - [Code Style](conventions/code-style.md) — what holds for production code in every module, whatever its stack.
+- [Testing](conventions/testing.md) — what holds for tests in every module, whatever its stack.
 - [Diagrams](conventions/diagrams.md) — the diagram language, its includes, and what each C4 level shows.
 - [Version Control](conventions/version-control.md) — when a change is committed, what a message says, and how a
   commit is scoped while another module is being worked.

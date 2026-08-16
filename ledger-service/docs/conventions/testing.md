@@ -1,6 +1,7 @@
 # [Conventions](../conventions.md) > Testing Conventions
 
-How tests are built, named, and styled.
+How tests are built, named, and styled, on top of the repository-wide
+[Testing](../../../docs/conventions/testing.md).
 
 ## Package Structure
 
