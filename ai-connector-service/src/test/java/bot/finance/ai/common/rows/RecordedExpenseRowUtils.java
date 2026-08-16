@@ -12,13 +12,16 @@ public final class RecordedExpenseRowUtils {
 
     private static final String SELECT =
             """
-            SELECT status, proposal_id, expense_id, category_id, category_name, grouping_name, moved_in_tx
+            SELECT status, proposal_id, expense_id, category_id, category_name, grouping_name, moved_in_tx,
+                   description, merchant, amount_minor_units, currency_code
             FROM recorded_expense
             """;
 
     private RecordedExpenseRowUtils() {}
 
-    /** One row's status, both ids, category id, both names and the transaction it moved in. */
+    /**
+     * One row's status, both ids, category id, both names, the transaction it moved in and its content columns.
+     */
     public record RecordedExpenseRow(
             String status,
             Long proposalId,
@@ -26,7 +29,11 @@ public final class RecordedExpenseRowUtils {
             long categoryId,
             String categoryName,
             String groupingName,
-            String movedInTx) {}
+            String movedInTx,
+            String description,
+            String merchant,
+            long amountMinorUnits,
+            String currencyCode) {}
 
     public static void insert(
             JdbcTemplate jdbcTemplate,
@@ -97,6 +104,10 @@ public final class RecordedExpenseRowUtils {
                 rs.getLong("category_id"),
                 rs.getString("category_name"),
                 rs.getString("grouping_name"),
-                rs.getString("moved_in_tx"));
+                rs.getString("moved_in_tx"),
+                rs.getString("description"),
+                rs.getString("merchant"),
+                rs.getLong("amount_minor_units"),
+                rs.getString("currency_code"));
     }
 }

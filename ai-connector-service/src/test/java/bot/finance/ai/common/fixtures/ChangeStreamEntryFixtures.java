@@ -195,8 +195,9 @@ public final class ChangeStreamEntryFixtures {
         return entry("app_user", "c", null, "{\"id\":1}", txId, null, null);
     }
 
+    /** A body with no {@code payload} field but still publishable — Redis XADD refuses an entry with none. */
     public static Map<String, String> withNoPayload() {
-        return Map.of();
+        return Map.of("enrichment", "{}");
     }
 
     private static Map<String, String> entry(
