@@ -14,12 +14,13 @@ the call, always, in one of these shapes:
 | To                                              | Do                                                                                                                                                                                                                       |
 |-------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | run one agent and use its result                | `Agent` with `run_in_background: false`; the call returns its report                                                                                                                                                      |
-| run several at once                             | several such `Agent` calls **in one message**; they run concurrently and the message returns when the last has                                                                                                             |
+| run several at once — a wave                    | every `Agent` call with `run_in_background: true`, then one `TaskOutput(<its id>, block: true, timeout)` per agent, in the same turn, before anything else. Several blocking calls in one message would also run concurrently, but nothing makes them share a message — a wave issued that way ran four bundles one after another — so the background-then-block shape is the wave's shape |
 | continue an agent with the context it built     | `SendMessage` to its id — the harness resumes it **in the background**, whatever it says — and, as the very next call, `TaskOutput(<its id>, block: true, timeout)` with a timeout generous enough for the work; that call's result is the resumed turn's report |
 | run a suite or a script                         | the foreground shell with a timeout for the whole thing; a background run with a watch on its file is not waiting                                                                                                          |
 
-A spawn in the background, a resume not followed by `TaskOutput`, or a run backgrounded and watched, all end the
-turn with the work mid-flight. Where the level above sees such an agent return with children in flight, it
+A background spawn or a resume not followed by its `TaskOutput`, or a run backgrounded and watched, all end the
+turn with the work mid-flight. `TaskOutput` is the wait; the notification the harness sends when a background
+agent finishes re-invokes nobody. Where the level above sees such an agent return with children in flight, it
 resumes that agent with one message once they finish; the harness's task-notification is the signal, and it
 arrives at that level.
 

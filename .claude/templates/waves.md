@@ -27,6 +27,11 @@ different layers write beside each other; take bundles from different groupings 
 pair in the next wave. Among the rest, take them in the order the scheduler gives — it ranks by longest remaining
 dependency chain, which is what sets the phase's wall time.
 
+## Launching a wave
+
+A wave is launched as [`sub-agents.md`](sub-agents.md) says for running several agents at once. Bundles spawned
+and awaited one at a time are not a wave; they are the phase run serially at the wave's cost.
+
 ## Who verifies a wave
 
 **Who runs the guardrail depends on how many agents share a source set.**
