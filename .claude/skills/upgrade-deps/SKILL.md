@@ -125,7 +125,8 @@ answer written in Phase 2.
 1. **`shared/steps.md` first, alone**, where there is one, by its own `upgrade-deps-module` agent given every
    module on the catalog. Its exit: every module on the catalog compiles and its suite stands where phase 0 left
    it. Nothing else starts until it lands.
-2. **One `upgrade-deps-module` agent per steps file, concurrently.** Each gets its file path, its module, its
+2. **One `upgrade-deps-module` agent per steps file, concurrently**, spawned and waited for as
+   [`templates/sub-agents.md`](../../templates/sub-agents.md) says. Each gets its file path, its module, its
    phase-0 figures, `upgrade.md`, and the conventions by name. Cap the count and pick the model by what the
    conventions say about parallelism and sub-agent models.
 3. **What happens inside an agent is its own** — its steps, its attempts, its kept-back entries, its ticks.

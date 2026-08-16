@@ -121,7 +121,8 @@ agent is still writing.
 is, that it carries no planned-versus-implemented axis, and that wherever its instructions say "the plan" they
 mean this file.
 
-Model: the one **Sub-Agent Models** names for deciding work. Respect the **Parallelism** cap.
+Model: the one **Sub-Agent Models** names for deciding work. Respect the **Parallelism** cap. Spawn and wait as
+[`templates/sub-agents.md`](../../templates/sub-agents.md) says.
 
 **Guardrail**: every listed file exists, none outside its service, every diagram a fenced block in the language
 the module conventions' **Diagram Format** section names, and nothing restated that a schema, a conventions file,

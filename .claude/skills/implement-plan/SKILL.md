@@ -125,11 +125,15 @@ by its own `implement-plan-module` agent.
 
 ## Phase 2 — One Pipeline Per Plan
 
-Spawn one `implement-plan-module` sub-agent per module plan. Give each its plan path, its module's phase-0
+Spawn one `implement-plan-module` sub-agent per module plan, in the shape
+[`templates/sub-agents.md`](../../templates/sub-agents.md) gives. Give each its plan path, its module's phase-0
 figures, and the section name if the user narrowed the run to one.
 
 - **Nothing waits.** Phase 1 landed everything that crosses, so the module plans are independent by
   construction. One blocking does not stop the rest.
+- **A pipeline that returns with children in flight is resumed, not restarted.** The harness's task-notification
+  says it stopped; once its children have reported, send it one message to continue. It picks up its own plan and
+  ticks.
 - **How many start at once is the repository tier's answer.** One machine runs every module, and a module's own
   conventions cannot see what a sibling is doing. Read the **Parallelism** rules at the level that binds all the
   modules and start no more pipelines than they allow, starting the next as a running one finishes. If no such

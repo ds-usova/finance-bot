@@ -64,9 +64,8 @@ reported as such, with the failure verbatim, and left alone.
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - per item id: done, or blocked and why;
 - every stub written, per class and method, and every `TODO` left on a changed signature;

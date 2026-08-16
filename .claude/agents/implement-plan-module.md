@@ -35,15 +35,12 @@ the **`Agent` tool**. Your own jobs are:
 
 **You spawn step agents and nothing else.** You never spawn another pipeline, and you never read another plan.
 
-**Return when the plan is finished or genuinely blocked — never while waiting.** A turn that ends does not
-resume. Nothing restarts you when a run you started finishes or a step agent reports, so the plan stands still
-until the level above notices and sends you a message. Started a suite, or spawned a step agent? Read its result
-before you return. Blocked and needing a decision? That is a result — return, and say what you need.
-
-**Waiting means blocking on the call.** Run a suite in the foreground, with a timeout generous enough for the
-whole thing. Backgrounding it and arming a watch on its output file is not waiting — it ends the turn with the
-plan mid-stage. The test wrapper queues per module, so a blocking call joins the queue behind a run already in
-flight rather than racing it, and returns that run's verdict.
+**Return when the plan is finished or genuinely blocked — never while waiting.** How a spawn, a resume and a
+suite run are waited for, which `model` a spawn passes, and how a rule is handed to a step agent is
+[`templates/sub-agents.md`](../templates/sub-agents.md), read before the first spawn. Started a suite, or
+spawned a step agent? Read its result before you return. Blocked and needing a decision? That is a result —
+return, and say what you need. The test wrapper queues per module, so a blocking run joins the queue behind a
+run already in flight rather than racing it, and returns that run's verdict.
 
 **A measurement is not repeated over an unchanged tree.** Where the last run was the module's full suite and
 nothing has been written since — a wave's verification followed by the stage's exit check, the refactor
@@ -51,21 +48,8 @@ guardrail followed by the whole-plan guardrail with no post-implementation chang
 next guardrail: read its output again rather than re-running it. A run filtered to some classes, or a tree any
 agent has written to since, answers nothing.
 
-**The same for a spawn.** Every `Agent` call passes `run_in_background: false`. A parallel wave is several such
-calls in one message: they run concurrently and the message returns when the last of them has. A step agent
-spawned in the background is a turn that ends with the wave mid-flight — nothing re-invokes you when it reports,
-and the plan stands still until the level above notices.
-
-**Model per sub-agent.** Every spawn passes the `model` parameter, taken from the module conventions'
-**Sub-Agent Models** section: the step agents (stabilization, red, green) run on the model it names for execution
-work, and the refactor agent on the one it names for deciding work. Only if the module has no such section does a
-spawn fall back to the default model.
-
-**Point a sub-agent at the rule; do not restate it.** A rule the repository writes down is passed as the file
-that owns it, named so the agent reads it there — never as a remembered version of what that file says. The same
-applies to counts and
-inventories drawn from the tree: read them, never recall them. A prompt carries the step's own context — its
-target class, its scenarios, what it may not touch — and pointers for everything else.
+**A step agent's model** is the one the module conventions name for executing work; the refactor agent's is the
+one for deciding work.
 
 ## Reading What You Run
 

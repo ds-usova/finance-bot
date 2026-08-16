@@ -103,9 +103,8 @@ record it in your report instead of filling it yourself.
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - tests written/updated (count) and the test class path;
 - compile status, and RED confirmation: which tests fail as expected, plus any negative-assertion tests listed as

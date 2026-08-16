@@ -88,9 +88,8 @@ editing the test.
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - confirmation the full test class is green, with the passing-test count;
 - the methods implemented, and any uncovered stubs left untouched;

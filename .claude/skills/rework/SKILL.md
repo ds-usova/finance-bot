@@ -83,7 +83,8 @@ answer or re-classification written in Phase 2.
    on the seam. Its exit condition: every module on the seam compiles, passes its layering check, and its suite
    stands where phase 0 left it apart from exactly what its `disables:` turned off. A blocked shared file stops
    the run there.
-2. **One `rework-module` agent per steps file, concurrently**, each handed its file's path, its module, its
+2. **One `rework-module` agent per steps file, concurrently**, spawned and waited for as
+   [`templates/sub-agents.md`](../../templates/sub-agents.md) says, each handed its file's path, its module, its
    baseline figures, what the shared file disabled in its module, and `rework.md`. It applies its steps in ID
    order and returns finished or blocked. A blocked agent's question is written into its file; answer it there
    and spawn the agent again.

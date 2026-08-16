@@ -106,10 +106,11 @@ closed. The disabled reproduction test is reverted.
 
 1. **`shared/fix.md` first, alone**, where there is one, by its own `fix-bug-module` agent given every module on
    the seam. Nothing else starts until it lands.
-2. **One `fix-bug-module` agent per `fix.md`, concurrently.** Each gets its file path, `bug.md`, its module's
-   phase-0 figures, the conventions its module names, and what the shared fix disabled in that module. Cap the
-   number running at once, and pick the model, by what the conventions say about parallelism and sub-agent
-   models.
+2. **One `fix-bug-module` agent per `fix.md`, concurrently**, spawned and waited for as
+   [`templates/sub-agents.md`](../../templates/sub-agents.md) says. Each gets its file path, `bug.md`, its
+   module's phase-0 figures, the conventions its module names, and what the shared fix disabled in that module.
+   Cap the number running at once, and pick the model, by what the conventions say about parallelism and
+   sub-agent models.
 3. **What happens inside an agent is its own** — its steps, its guardrails, its attempt log, its ticks. Never
    edit a file an agent owns while it runs. Report per module as each returns.
 
