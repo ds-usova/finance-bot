@@ -132,30 +132,17 @@ under `### Open Questions / Blockers` and fix the plan text in place. Do not spa
 ## Stage 1 — Stabilization
 
 Covers the plan's **Stabilization** group — its **API Contract**, **Database**, and **Interface-First / Build
-Stabilization** sections, in that order. Delegate them as one sub-agent task (they are small, sequential, and share
-context), passing the plan's checklist items verbatim plus the module conventions.
+Stabilization** sections, in that order. Spawn **one `stabilization-step` agent** for the whole group, on the
+execution model, passing the plan path, every item id in listed order, the ids of the red steps whose scenarios
+the stubs must agree with, the module's baseline figures and the conventions. What it may and may not do is
+`stabilizing.md` in the `templates` directory beside the skills — the agent reads it as its brief; you verify
+against it below.
 
-**A test method never disappears from the run.** Stabilization changes signatures, and an existing test written
-against the old one often cannot compile against the new. Whatever is done to it, it stays something the runner
-still reports — **disabled**, by whatever mechanism the module's test framework provides, so it counts as
-*skipped* rather than vanishing:
-
-- **It compiles but would now fail** — disable it where it stands, body intact.
-- **It cannot compile** — keep the method, disable it, and comment out only the lines inside it. The husk stays
-  *within* the method rather than the method being commented out whole.
-
-Either way the reason names the red-phase step that owns the rework (`RU08`), so the skip list is the list of what
-is owed. The red agent then adapts a real scenario instead of writing one from nothing, and the plan's `update:`
-bullets still name methods that exist.
-
-**Stabilization disables; the Red Phase deletes.** A test that is obsolete rather than owed a rework is removed by
-the step that owns it — a red step's `update: … — delete` bullet — not here. Stabilization removes only what a
-checklist item names by path, as a file to `git rm`. Between them those two are the *only* authority for a test
-leaving the tree; a stage that deletes on its own initiative is a defect wherever it happens.
-
-This is what makes the guardrails below cheap. A commented-out method is an invisible subtraction, and a total
-that balances hides it — one removal paying for another. A skipped one is loud, self-clearing, and cannot be
-lost track of.
+The two rules of that file this stage's arithmetic rests on: **a test method never disappears from the run** —
+disabled and named for the red step that owes it, never deleted, never commented out whole — and **stabilization
+disables; the Red Phase deletes**, so the only authority for a test leaving the tree is a checklist item naming
+the file or a red step's `update: … — delete` bullet. A skipped test is loud and self-clearing; a commented-out
+one is a subtraction a balancing total hides.
 
 **Stabilization guardrail** — verify yourself before ticking the sections and moving on:
 

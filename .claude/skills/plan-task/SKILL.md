@@ -260,29 +260,24 @@ installed as a plugin, under `.claude/` in a plain checkout.
   sub-groups (bold labels, not headings), in this order — include only the sub-groups the task actually needs, omit
   one entirely rather than leaving it empty:
 
+  How each item is carried out — the stub's intent comment, the `TODO` on a changed signature, what a comment
+  may never name, how a broken test is disabled — is
+  [`.claude/templates/stabilizing.md`](../../templates/stabilizing.md), the one statement of it for every
+  workflow that stabilizes. An item here says *what* is created or changed; that file says *how*. The worked
+  stub shape is in [`example-plan.md`](../../templates/example-plan.md).
+
   **Interface & Signature Sync**
 
     - sync all affected API/interface contracts and method signatures,
-    - for **new** methods/fields: generate temporary stub implementations — each stub body MUST contain a short
-      inline comment describing what the method is supposed to do (implementation intent). Use this when a
-      documentation comment alone does not capture the implementation detail (see the worked example in
-      `.claude/templates/example-plan.md`).
-    - for **existing** methods whose signature changes (e.g., return type): keep all existing logic intact, add a
-      `TODO` comment at the insertion point describing what needs to be implemented there, and add the minimal
-      return/change needed to get back to build-green. Do NOT replace or stub out existing functionality.
-    - update immediate call sites and get the project back to build-green state before full logic implementation.
-    - **a stub's comment and a `TODO` name the work, never the step that owes it.** The green-phase agent is
-      handed its step; nothing finds its work by searching the tree for `GI02`. A module whose conventions ban
-      citing a plan step in a comment enforces that from stabilization onward, so a `TODO GI02:` fails the
-      stage guardrail that writes it. The one place a step id belongs is a disabled test's reason, which is an
-      annotation rather than a comment.
+    - for **new** methods and fields: an item per stub, its intent stated,
+    - for **existing** methods whose signature changes: an item naming the change and the call sites it breaks,
+      test tree included, until the module builds green.
 
   **Configuration**
 
-    - add or update any configuration this task's design requires — e.g. an outbound HTTP client's base URL, a
-      schedule expression, a connection-pool setting, a new environment variable/property and its default. Config
-      belongs here, never inside a step agent's scope: a red-phase test should fail on an assertion, never on a
-      missing property a step agent had to invent on the fly.
+    - add or update any configuration this task's design requires — an outbound client's address, a schedule
+      expression, a pool setting, a new environment variable and its default. Config belongs here, never inside
+      a step agent's scope: a red-phase test fails on an assertion, never on a missing property.
 
   **Shared Test Infrastructure**
 
