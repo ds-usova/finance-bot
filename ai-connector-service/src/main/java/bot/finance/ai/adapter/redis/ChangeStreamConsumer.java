@@ -137,8 +137,6 @@ public class ChangeStreamConsumer implements SmartLifecycle {
         boolean skipClaim = false;
 
         while (running) {
-            createGroup(streamOperations);
-
             boolean retryNeeded = false;
             if (!skipClaim) {
                 retryNeeded = processEntries(streamOperations, claimIdleEntries(streamOperations, consumerName), false);
