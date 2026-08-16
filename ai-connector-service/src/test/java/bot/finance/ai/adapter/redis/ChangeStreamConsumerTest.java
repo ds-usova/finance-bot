@@ -204,8 +204,22 @@ class ChangeStreamConsumerTest {
             // creating it again here would only race the consumer's own re-affirmation for a BUSYGROUP error.
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.APPLIED);
 
+            // The consumer under test is taken out of the group while the entry is published and read by the
+            // other consumer: a blocking read already waiting would otherwise be served the entry first, and the
+            // claim path would never run. Its loop may still be inside a one-second blocking read after stop(),
+            // so the pause outlasts that.
+            changeStreamConsumer.stop();
+            await().pollDelay(Duration.ofSeconds(2))
+                    .atMost(Duration.ofSeconds(4))
+                    .untilAsserted(
+                            () -> assertThat(changeStreamConsumer.isRunning()).isFalse());
+
             String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(6L, "tx-6"));
             LedgerChangeStreamStubs.readAsOther(properties.key(), GROUP, "other-consumer");
+            assertThat(LedgerChangeStreamStubs.pending(properties.key(), GROUP)).isEqualTo(1);
+            verify(learnMessageOutcomePort, never()).learn(any());
+
+            changeStreamConsumer.start();
 
             await().atMost(CLAIM_TIMEOUT).untilAsserted(() -> {
                 verify(learnMessageOutcomePort)
