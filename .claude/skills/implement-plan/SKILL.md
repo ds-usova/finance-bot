@@ -161,6 +161,11 @@ When every pipeline has returned:
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.
+
+   **Every `R` row it files is appended to `docs/backlog.md`**, one pointer each, in the shape
+   [`backlog.md`](../../templates/backlog.md) gives — with the link written to the archived path, since that
+   is where the file is about to move. The findings file stays the row's owner; the backlog is how the row is
+   found once the task directory has left `docs/`.
 3. **Archive**, on exit 0 and on nothing else: move the **whole task directory** — every `plan.md`, the
    `design.md` they link, `review/`, and anything else the task accumulated — into `docs/implemented/`. Moving the
    directory rather than the files keeps every link inside it working.

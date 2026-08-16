@@ -115,7 +115,8 @@ follows, and the commit is provisional: the closing full run proves the whole.
    the file.
 4. **Close the row this rework came from.** Where `Source:` names a findings file and a row, set the row's
    `Status`: `done · <this rework's number>`, or leave it `open` with one clause naming what remains. Re-emit the
-   count line. Nothing here blocks.
+   count line. A row set to `done` leaves `docs/backlog.md` in the same edit
+   ([`backlog.md`](../../templates/backlog.md)); one left `open` keeps its backlog row. Nothing here blocks.
 5. **Archive** once the closing gate is clean and `rework.sh status` reports every steps file ticked — a manual
    check open in `review/findings.md` never blocks: move `docs/<n>-<name>/` into `docs/implemented/`, and commit
    the move where the conventions commit at all.
