@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/31-the-connector-registers-the-message/plan.md",
+  "commit": "e1d324b",
+  "branch": "dev",
+  "workingTree": "6 uncommitted file(s)",
+  "generated": "2026-08-15T22:04:57Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 155, "passed": 155, "failed": 0, "skipped": 0, "instructions": "97.7%", "branches": "96.0%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1164, "passed": 1164, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "93.0%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}

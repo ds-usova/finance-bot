@@ -4,6 +4,7 @@ import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -27,7 +28,7 @@ final class ExtractIntentsRequestReader {
      * @throws InvalidValueException if the request carries something the service cannot act on; the message is
      *     the description the caller is refused with
      */
-    static ExtractIntentsCommand toCommand(ExtractIntentsRequest request) {
+    static ExtractIntentsCommand toCommand(ExtractIntentsRequest request, Optional<MessageIdentity> messageIdentity) {
         if (request.getText().isBlank()) {
             throw new InvalidValueException("Text must not be blank");
         }
@@ -54,7 +55,8 @@ final class ExtractIntentsRequestReader {
                 request.getCategoryGroupingsList(),
                 request.getCatchAllGrouping(),
                 defaultCurrency,
-                currentDate);
+                currentDate,
+                messageIdentity);
     }
 
     private static LocalDate currentDate(ExtractIntentsRequest request) {

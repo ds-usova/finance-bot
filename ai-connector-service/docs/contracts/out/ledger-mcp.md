@@ -1,11 +1,13 @@
 # Ledger Service — the ledger's tools (MCP over HTTP)
 
-The model calls the ledger's tools itself. This service carries the calls and forwards the caller's token. It
-assembles no argument and reads no answer.
+The model calls the ledger's tools itself. This service carries the calls and forwards the caller's token. It also
+reads the keys the ledger signs that token with.
 
 - **Counterpart:** [the ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) — what each
-  tool takes, answers, and refuses
-- **Transport:** MCP over Streamable HTTP. The address is [configuration](../../configuration.md).
+  tool takes, answers, and refuses, and
+  [how the token is minted and published](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates)
+- **Transport:** MCP over Streamable HTTP, and HTTP for the key set. The address is
+  [configuration](../../configuration.md).
 - **Schema:** none held here. The ledger publishes each tool's arguments over the protocol.
 
 ## Operations
@@ -27,10 +29,18 @@ Every one is driven by [Record the spending a user's message names](../../usecas
 - Reads the tool list once, on the first turn that needs it, and keeps it for the life of the process.
 - Offers every published tool to the model as published.
 
-The token is never parsed, never logged, never stored. Forwarding it untouched is what carries the ledger's own
-claims across — the reference tying a turn's proposals to its message rides the token, and this service never
-sees it. Its whole path is
+The token is never logged and never stored. Its whole path is
 [drawn on the ledger's side](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
+
+## The ledger's key set
+
+- Read from the address the tools are reached under, at the path the ledger publishes it on.
+- Read on the first token this service verifies, not at startup.
+- Kept for the life of the process once read, so a later outage refuses nothing.
+- Bounded by `LEDGER_JWKS_TIMEOUT`, for reaching the ledger and for reading the answer alike.
+- Read unauthenticated.
+
+What the keys are then used for is [the inbound side's](../in/intent-extraction.md#the-token).
 
 ## What this service does not do
 
@@ -38,12 +48,10 @@ sees it. Its whole path is
 - Read anything out of an answer. Results go back to the model as that call's result.
 - Send anything at all when the turn holds no token.
 
-A summary answers the period the ledger accepted, never an amount. Totals reach the user from the ledger, so no
-total enters the model's context.
+A summary answers the period the ledger accepted, never an amount, so no total enters the model's context.
 
 ## How a turn behaves
 
-- Expenses are sent in the order the user said them.
 - A grouping is looked up before an expense is filed under it. Reusing a listing from the same turn is allowed.
 - A lookup stores nothing, so repeating one changes nothing.
 - Recording is not deduplicated. The same message handled twice records two proposals.
@@ -64,12 +72,14 @@ turn:
 | The ledger cannot be reached, times out, or refuses the token | the turn fails; the caller is told the service is unavailable           |
 | The tools cannot be listed                                    | the same, before any expense is attempted                               |
 | No caller token is held for the turn                          | the same; nothing is sent and the model is never prompted               |
+| The key set cannot be read, before any token has been verified | the call is refused as unavailable; the model is never prompted        |
+| The key set is answered slower than `LEDGER_JWKS_TIMEOUT`     | the same                                                                |
 
 A transport failure ends the turn. What was already recorded stands.
 
 ## Compatibility
 
-The model picks a tool from the published list and fills it from the same list. Nothing here is wired per tool.
+Nothing here is wired per tool.
 
 | Change on the ledger's side | Effect here                                                                  |
 |-----------------------------|-------------------------------------------------------------------------------|
@@ -79,9 +89,9 @@ The model picks a tool from the published list and fills it from the same list. 
 | An argument renamed         | calls carrying the old name are refused until this process restarts          |
 | The endpoint is switched off | every turn fails as unavailable                                              |
 
-A published change reaches this service only on restart. That makes a new tool a matter of **restart order**, not
-a compatibility window: the ledger must serve it before this service starts. Until then the model is never
-offered it, and the message is answered with whatever else the model can do.
+A published change reaches this service only on restart, which makes a new tool a matter of **restart order**:
+the ledger must serve it before this service starts. Until then the model is never offered it, and the message is
+answered with whatever else the model can do.
 
 How an argument is filled comes from the description the ledger publishes beside it, never from this service's
 instructions.

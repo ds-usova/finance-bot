@@ -34,6 +34,12 @@ function unfilled(v) {
     return 0
 }
 
+# The number inside a D<n> or F<n> id, for ordering.
+function idnum(id) {
+    sub(/^[A-Za-z]+/, "", id)
+    return id + 0
+}
+
 function close_entry() {
     if (cur > 0) eline[cur] = lastcontent
     cur = 0
@@ -46,7 +52,7 @@ function problem(msg) {
 
 BEGIN {
     nent = 0; nsec = 0; cur = 0; problems = 0; infence = 0; nrow = 0
-    lastcontent = 0; seen_modules = 0; grilled = 0
+    lastcontent = 0; seen_modules = 0; grilled = 0; nsub = 0; nsce = 0
     nreq = split("## Objective,## Context,## Proposed Solution,## Acceptance Scenarios,## Decisions,## Design Findings", req, ",")
 }
 
@@ -68,6 +74,12 @@ BEGIN {
 }
 
 section == "## Design Findings" && /Grilled \(/ { grilled = 1 }
+
+# The size report. A design grows with the subjects it carries, and a #### section under Proposed
+# Solution is where a subject shows: the counts are printed with the verdict so the session sees the
+# size on every run and splits the task before the file outgrows its reader.
+section == "## Proposed Solution" && /^#### / { nsub++ }
+section == "## Acceptance Scenarios" && /^- \*\*A[0-9]+:\*\*/ { nsce++ }
 
 # A Design Findings row carries an F id in its first cell. Numbered on the same terms as a D entry, so the
 # same duplicate check applies - the body cites these.
@@ -229,9 +241,16 @@ END {
         seenrow[rowid[i]] = 1
     }
 
+    # Findings numbers are assigned once and never reused, so the table is read in ascending order. A row
+    # inserted above a higher-numbered one is the edit that anchored on the wrong line, and it is caught here
+    # rather than by a grep after the fact. Decisions are not checked: a design may group them by subject.
+    for (i = 2; i <= nrow; i++)
+        if (idnum(rowid[i]) < idnum(rowid[i - 1]))
+            problem(rowid[i] " comes after " rowid[i - 1] " - findings rows keep ascending order")
+
     if (!grilled)
         problem("Design Findings carries no 'Grilled (<date>):' line - the grill has not run")
 
-    if (!problems) print nent " decisions, " nrow " findings, no problems"
+    if (!problems) print nsub " solution sections, " nsce " scenarios, " nent " decisions, " nrow " findings, no problems"
     exit problems
 }

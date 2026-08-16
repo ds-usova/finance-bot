@@ -2,7 +2,7 @@ name: finance-bot-infrastructure
 
 services:
   finance-postgres:
-    image: postgres:18
+    image: pgvector/pgvector:pg18
     container_name: finance-bot-postgres
     command: [ "postgres", "-c", "wal_level=logical", "-c", "max_slot_wal_keep_size=1GB" ]
     ports:
@@ -12,8 +12,15 @@ services:
       POSTGRES_USER: ${FINANCE_BOT_DB_USER}
       POSTGRES_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+      FINANCE_BOT_LEDGER_DB: ${FINANCE_BOT_LEDGER_DB}
+      FINANCE_BOT_LEDGER_DB_USER: ${FINANCE_BOT_LEDGER_DB_USER}
+      FINANCE_BOT_LEDGER_DB_PASSWORD: ${FINANCE_BOT_LEDGER_DB_PASSWORD}
+      FINANCE_BOT_AI_DB: ${FINANCE_BOT_AI_DB}
+      FINANCE_BOT_AI_DB_USER: ${FINANCE_BOT_AI_DB_USER}
+      FINANCE_BOT_AI_DB_PASSWORD: ${FINANCE_BOT_AI_DB_PASSWORD}
     volumes:
       - finance-bot-postgres:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${FINANCE_BOT_DB_USER} -d ${FINANCE_BOT_DB}" ]
       interval: 10s
@@ -35,9 +42,9 @@ services:
     ports:
       - "1000:1000"
     environment:
-      DB_JDBC_URL: jdbc:postgresql://finance-postgres:5432/${FINANCE_BOT_DB}
-      DB_USER: ${FINANCE_BOT_DB_USER}
-      DB_PASSWORD: ${FINANCE_BOT_DB_PASSWORD}
+      DB_JDBC_URL: jdbc:postgresql://finance-postgres:5432/${FINANCE_BOT_LEDGER_DB}
+      DB_USER: ${FINANCE_BOT_LEDGER_DB_USER}
+      DB_PASSWORD: ${FINANCE_BOT_LEDGER_DB_PASSWORD}
       AI_CONNECTOR_GRPC_TARGET: static://ai-connector-service:1001
       TELEGRAM_BOT_TOKEN: ${FINANCE_BOT_TELEGRAM_BOT_TOKEN}
       # The browser reaches the web app over the tunnel's HTTPS, so the session cookie must be Secure.
@@ -70,6 +77,12 @@ services:
     environment:
       OPENAI_API_KEY: ${FINANCE_BOT_OPENAI_API_KEY}
       LEDGER_MCP_URL: http://ledger-service:1000
+      DB_JDBC_URL: jdbc:postgresql://finance-postgres:5432/${FINANCE_BOT_AI_DB}
+      DB_USER: ${FINANCE_BOT_AI_DB_USER}
+      DB_PASSWORD: ${FINANCE_BOT_AI_DB_PASSWORD}
+    depends_on:
+      finance-postgres:
+        condition: service_healthy
     networks:
       - backend
 

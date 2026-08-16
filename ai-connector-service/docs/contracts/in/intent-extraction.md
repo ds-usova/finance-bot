@@ -20,42 +20,31 @@ the day the turn runs on, and optionally the currency to assume. It decides noth
 
 ## The token
 
-The caller mints it and the caller checks it. Its whole path is
+The caller mints it. Its whole path is
 [the ledger's, drawn there](../../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates).
 What this boundary promises about it:
 
 - Every extraction call carries it as call metadata, not as a field.
 - It is the identity every expense is recorded against, and the only identity this boundary carries.
 - A health check carries none.
-- Everything on it is opaque here. The service forwards it and reads nothing out of it.
-- It is required, but never verified here.
-- So a caller this boundary has not authenticated records nothing, but does reach the model
-  ([ADR 0009](../../../../docs/adr/0009-the-connector-does-not-authenticate-its-caller.md)).
+- It is required, and verified here before the request is looked at: signature against
+  [the key set the ledger publishes](../out/ledger-mcp.md#the-ledgers-key-set), expiry, issuer and audience.
+- Two claims are read off it — the person the call acts for, and the message that started the turn. Both are
+  what a kept message is [filed under](../../domain/message-identity.md).
+- Everything else on it is opaque here, and the whole token is forwarded to the ledger untouched.
+- With `MEMORY_ENABLED` off none of that reading happens and the token is forwarded unread
+  ([ADR 0017](../../../../docs/adr/0017-the-connector-verifies-its-caller-token-and-keeps-the-message-it-names.md)).
 
-## What the caller sends
+## What is kept of a call
 
-| Field                    | Rule                                                                         |
-|--------------------------|------------------------------------------------------------------------------|
-| The text                 | what the user said, unread by the caller                                    |
-| The groupings            | a closed set, non-empty, each a name of its own, none blank                 |
-| The catch-all grouping   | one of the groupings sent, so a fit always exists                           |
-| The day the turn runs on | a calendar date written `YYYY-MM-DD`, required                              |
-| The currency to assume   | optional; any casing; a code ISO 4217 knows                                 |
-
-- No category crosses this boundary. The service asks the
-  [ledger's tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) which categories a grouping
-  holds.
-- Every expense is filed under one of those, never under a grouping itself.
+- Never answered back over this boundary. What is kept is
+  [the store's](../out/database.md) and no operation here reads it.
 - The service never invents a name.
-- The assumed currency applies only where the user stated an amount with no currency.
-- The day the turn runs on is the caller's to choose, and is checked against no clock here. A day in the past or
-  the future is accepted as sent.
-- Every period read out of a relative phrase is anchored on that day. The week counted from it starts on Monday.
+- The day the turn runs on is the caller's to choose, and is checked against no clock here.
 
 ## What the answer means
 
 - A successful call answers with nothing at all.
-- No count, no per-entry outcome, no total, no text for the user.
 - It says only that the message was acted on.
 - A summary the message asked for reaches the user from the ledger, never through this boundary.
 
@@ -64,30 +53,20 @@ What this boundary promises about it:
 - Only spending is recorded, and only spending is summarized
   ([Record the spending a user's message names](../../usecases/extract-intents.md)).
 - A message asking for anything else records nothing and still succeeds.
-- Expenses are recorded in the order the user expressed them. Nothing is reordered or merged.
-- An expense the ledger will not record is left unrecorded. The rest of the message is still recorded.
-- The caller is never told which expenses were recorded, or how many.
-- The same text sent twice is acted on twice. Nothing is remembered between calls, so no duplicate is
-  recognized.
 
 ## Failures
 
 | Condition                                                   | Signal                                                               |
 |-------------------------------------------------------------|----------------------------------------------------------------------|
 | No token is sent                                            | the call is refused as unauthenticated; the provider is never called |
-| The text is absent or only whitespace                       | rejected as an invalid argument; no call to the provider is made     |
-| No groupings are sent                                       | rejected as an invalid argument; no call to the provider is made     |
-| A grouping's name is blank                                  | rejected as an invalid argument; no call to the provider is made     |
-| The catch-all grouping is blank or not sent                 | rejected as an invalid argument; no call to the provider is made     |
-| The catch-all grouping is not one of the groupings sent     | rejected as an invalid argument; no call to the provider is made     |
-| An assumed currency is sent that ISO 4217 does not know     | rejected as an invalid argument; no call to the provider is made     |
-| The day the turn runs on is absent or only whitespace       | rejected as an invalid argument; no call to the provider is made     |
-| The day the turn runs on is not written `YYYY-MM-DD`        | rejected as an invalid argument; no call to the provider is made     |
+| The token's signature, expiry, issuer or audience does not hold | the same                                                          |
+| The token names no person, or no message                    | the same                                                             |
+| The ledger's key set cannot be read in time                 | the call fails as unavailable — the caller may retry               |
+| The message cannot be kept                                  | none — the call runs on and answers as it would have               |
+| A field breaks the rule the [schema](../../../../proto/intent_extraction.proto) states for it | rejected as an invalid argument; no call to the provider is made |
 | The provider cannot be reached, refuses the call, or errors | the call fails as unavailable — the caller may retry               |
 | The ledger cannot be reached to record an expense           | the call fails as unavailable — the caller may retry               |
-| The ledger refuses to record an expense                     | none — the call succeeds and that expense is left unrecorded       |
-| The ledger refuses a category lookup                        | none — the model corrects the grouping's name and asks again       |
-| The message under-says an expense                           | none — the call succeeds and that expense is left unrecorded       |
+| A tool call is refused, or the message under-says an expense | none — the call succeeds; what the model does with a refusal is [the ledger tools'](../out/ledger-mcp.md#how-a-turn-behaves) |
 | Anything else fails inside the service                      | the call fails as unknown, with no internal detail in the failure    |
 
 ## Compatibility
@@ -96,10 +75,13 @@ What this boundary promises about it:
   its runtime.
 - No field number is reserved. Neither service is deployed anywhere, so the two are released together and no
   counterpart of an older vintage can be confused by a reused number.
-- What the token carries is the caller's alone to change. A claim it adds reaches
+- A claim the caller adds to the token reaches
   [its own tool endpoint](../../../../ledger-service/docs/contracts/in/mcp.md) untouched, with no change to this
   schema and no release of this service
   ([ADR 0010](../../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md)).
+- The two claims this side reads are not the caller's alone. Renaming or dropping either refuses every call
+  here, and the issuer and audience must keep matching what this side is configured with.
+- Changing the key the caller signs with breaks nothing: the key set is republished and read from there.
 - Widening what the service records breaks nothing.
 
 Three promises cannot be removed without rewriting every caller:
@@ -110,5 +92,5 @@ Three promises cannot be removed without rewriting every caller:
 | An unrecorded expense is not a failure | a partial turn starts arriving as an error |
 | An empty answer means the turn was acted on | success stops being readable          |
 
-That empty answer is also the room to grow. Reporting what was recorded, or a reply for the user, means a
-response body where there is none today. Every caller reads it or ignores it as it chooses.
+That empty answer is also the room to grow: reporting what was recorded, or a reply for the user, means a
+response body where there is none today.

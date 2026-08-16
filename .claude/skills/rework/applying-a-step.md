@@ -44,6 +44,9 @@ each `frozen:` file before editing anything and compare against the copy.
 its layering rule.**
 
 **A `stabilize` step disables the least it can**, in the form the module's conventions give for a disabled test.
+How each of its edits is made — the stub, the `TODO` on a changed signature, the disabled test — is
+`stabilizing.md` in the `templates` directory beside the skills, the one statement of it for every workflow that
+stabilizes.
 
 ## Where a step refuses
 

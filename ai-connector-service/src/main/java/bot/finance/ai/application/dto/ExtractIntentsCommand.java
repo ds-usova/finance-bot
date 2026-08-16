@@ -2,6 +2,7 @@ package bot.finance.ai.application.dto;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +12,8 @@ public record ExtractIntentsCommand(
         List<String> categoryGroupings,
         String catchAllGrouping,
         Optional<CurrencyCode> defaultCurrency,
-        LocalDate currentDate) {
+        LocalDate currentDate,
+        Optional<MessageIdentity> messageIdentity) {
 
     public ExtractIntentsCommand {
         if (text == null || text.isBlank()) {
@@ -36,6 +38,9 @@ public record ExtractIntentsCommand(
         }
         if (currentDate == null) {
             throw new InvalidValueException("Current date must not be null");
+        }
+        if (messageIdentity == null) {
+            throw new InvalidValueException("Message identity Optional must not be null");
         }
 
         categoryGroupings = List.copyOf(categoryGroupings);

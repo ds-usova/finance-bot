@@ -23,7 +23,7 @@ public class IntentExtractionGrpcService extends IntentExtractionServiceGrpc.Int
     public void extractIntents(ExtractIntentsRequest request, StreamObserver<ExtractIntentsResponse> responseObserver) {
         ExtractIntentsCommand command;
         try {
-            command = ExtractIntentsRequestReader.toCommand(request);
+            command = ExtractIntentsRequestReader.toCommand(request, CallerTokenContext.messageIdentity());
         } catch (InvalidValueException e) {
             responseObserver.onError(
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());

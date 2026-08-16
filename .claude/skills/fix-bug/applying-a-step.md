@@ -12,10 +12,10 @@ prints.
 ## The stabilize step
 
 **It exists so the `red` step can be written** — an interface the test needs, a signature the fix requires, a
-contract the bug spans, a schema change no code path reads yet. **It changes no behaviour anything already asks
-for.** A changed signature keeps its logic, a new method gets a stub, a test that cannot compile is disabled in
-the form the conventions give and named in `disables:`. A migration that has run is not undone by reverting its
-file: say so in the report.
+contract the bug spans, a schema change no code path reads yet. How each edit is made — the stub, the `TODO` on
+a changed signature, the disabled test — is `stabilizing.md` in the `templates` directory beside the skills, the
+one statement of it for every workflow that stabilizes. What is a fix step's own: every test it disables is
+named in `disables:`, and a migration that has run is not undone by reverting its file — say so in the report.
 
 **A `stabilize` that finds a file its boundary does not name widens that line and says so** — the one edit to a
 step's text its agent may make. It never widens into a behaviour change.

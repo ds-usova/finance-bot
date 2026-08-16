@@ -50,5 +50,4 @@ A secret belongs in the deployment's secret store, never in a committed file or 
 
 [Compose](../../infrastructure/docker-compose.yaml) passes it as `postgres -c max_slot_wal_keep_size=1GB`.
 **A value passed that way cannot be widened without restarting the container**: a command-line setting outranks
-`ALTER SYSTEM` plus `pg_reload_conf()`, even though the setting is itself reloadable. `wal_level` cannot be
-changed without a restart at all.
+`ALTER SYSTEM` plus `pg_reload_conf()`. `wal_level` cannot be changed without a restart at all.

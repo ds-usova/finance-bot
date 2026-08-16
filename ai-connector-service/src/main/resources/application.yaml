@@ -10,6 +10,15 @@ spring:
   grpc:
     server:
       port: 1001
+  datasource:
+    url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/finance_ai}
+    username: ${DB_USER:}
+    password: ${DB_PASSWORD:}
+  data:
+    jdbc:
+      dialect: postgresql
+  flyway:
+    enabled: ${memory.enabled}
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -34,6 +43,19 @@ ai:
     system-prompt: classpath:prompts/record-expenses.st
     user-message-template: classpath:prompts/user-message.st
 
+memory:
+  enabled: ${MEMORY_ENABLED:true}
+  max-age: ${MEMORY_MAX_AGE:365d}
+  purge-interval: ${MEMORY_PURGE_INTERVAL:1d}
+  purge-batch: ${MEMORY_PURGE_BATCH:1000}
+
+ledger:
+  token:
+    issuer: ${LEDGER_TOKEN_ISSUER:ledger-service}
+    audience: ${LEDGER_TOKEN_AUDIENCE:mcp-adapter}
+    jwks-timeout: ${LEDGER_JWKS_TIMEOUT:3s}
+    jwks-uri: ${spring.ai.mcp.client.streamable-http.connections.ledger.url}/.well-known/jwks.json
+
 management:
   endpoints:
     web:
@@ -55,3 +77,6 @@ management:
           include: livenessState, ping
         readiness:
           include: readinessState
+  health:
+    db:
+      enabled: ${memory.enabled}

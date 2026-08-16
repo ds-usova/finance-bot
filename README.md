@@ -1,16 +1,14 @@
 # Finance Bot
 
-A Telegram bot that lets users record their expenses by simply speaking. A user sends a
-voice message describing a purchase (e.g. *"Spent 15 euros on lunch"*); the system
-transcribes it, extracts the expense details, and stores them per user.
+A Telegram bot that records a user's expenses from a voice message describing a purchase (*"Spent 15 euros on
+lunch"*). The system transcribes it, extracts the expense details, and stores them per user.
 
 ## MVP Flow
 
 1. A user sends a voice message to the Telegram bot.
-2. The **Ledger Service** receives the update from Telegram and downloads the audio file.
-3. The audio is sent to the **Transcription Service**, which returns a text transcript.
-4. The transcript is sent to the **AI Connector Service**, which uses an AI provider to
-   extract structured expense data: category, amount, and (optionally) currency.
+2. The **Ledger Service** takes the update from Telegram and downloads the audio file.
+3. The **Transcription Service** returns a text transcript of that audio.
+4. The **AI Connector Service** extracts the expense details from the transcript, using an AI provider.
 5. The Ledger Service saves the extracted expense against the user in the **database**.
 6. The Ledger Service replies on Telegram confirming what was recorded.
 
@@ -57,32 +55,34 @@ System_Ext(telegram, "Telegram", "Messaging platform; hosts the bot, its audio f
 System_Ext(aiProvider, "AI Provider", "LLM used for expense extraction")
 
 System_Boundary(financeBot, "Finance Bot") {
-  Container(webApp, "Web App", "TypeScript, React, nginx", "Signs a user in with Telegram and lists the expenses and proposals the ledger holds for them")
-  Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates expense capture: coordinates transcription and AI extraction, then persists and confirms the result")
-  Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Converts voice message audio into a text transcript")
-  Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Extracts structured expense data (category, amount, currency) from a transcript using an AI provider")
-  ContainerDb(db, "Database", "PostgreSQL", "Stores users and their recorded expenses, and streams every change to them from its write-ahead log")
-  ContainerQueue(changeStream, "Change Stream", "Redis", "Holds one capped stream of ledger row changes; nothing reads it yet")
+  Container(webApp, "Web App", "TypeScript, React, nginx", "Telegram sign-in; browses the ledger")
+  Container(ledger, "Ledger Service", "Java, Spring Boot", "Orchestrates, persists, confirms")
+  Container(transcriber, "Transcription Service", "Python, FasterWhisper", "Speech to text")
+  Container(aiConnector, "AI Connector Service", "Java, Spring Boot, Spring AI", "Reads a message with the model")
+  ContainerDb(ledgerDb, "Ledger Database", "PostgreSQL, wal_level=logical", "Users, expenses; a replication slot")
+  ContainerDb(connectorDb, "Connector Database", "PostgreSQL, pgvector", "The messages received")
+  ContainerQueue(changeStream, "Change Stream", "Redis", "Ledger row changes")
 }
 
-Rel(user, telegram, "Sends voice message", "Telegram app")
-Rel_L(telegram, user, "Delivers confirmation reply", "Telegram app")
+Rel(user, telegram, "Voice message", "Telegram app")
+Rel_L(telegram, user, "Confirmation", "Telegram app")
 
-Rel_D(webUser, webApp, "Signs in and browses", "HTTPS")
-Rel(webApp, telegram, "Embeds the sign-in widget", "HTTPS")
-Rel_D(webApp, ledger, "Holds a browser session, and reads the expenses and categories behind it", "REST/HTTPS, same origin")
+Rel_D(webUser, webApp, "Signs in, browses", "HTTPS")
+Rel(webApp, telegram, "Sign-in widget", "HTTPS")
+Rel_D(webApp, ledger, "Session, expenses, categories", "REST, same origin")
 
-Rel_L(ledger, telegram, "Polls updates, downloads audio", "Telegram Bot API")
-Rel_R(ledger, telegram, "Sends confirmation reply", "Telegram Bot API")
+Rel_L(ledger, telegram, "Updates, audio", "Bot API")
+Rel_R(ledger, telegram, "Confirmation", "Bot API")
 
-Rel_D(ledger, transcriber, "Sends audio", "REST/HTTPS")
-Rel_L(transcriber, ledger, "Returns transcript", "REST/HTTPS")
-Rel_R(ledger, aiConnector, "Sends text, the user's category groupings and today's date, with a token", "gRPC")
-Rel_L(aiConnector, ledger, "Records expense proposals and asks for spending summaries, as the token's subject", "MCP over HTTP")
-Rel_R(aiConnector, aiProvider, "Requests structured extraction", "HTTPS")
-Rel_D(ledger, db, "Reads/writes users and expenses", "JDBC")
-Rel_U(db, ledger, "Streams committed row changes", "logical replication")
-Rel_D(ledger, changeStream, "Publishes each row change, enriched with its category's name", "RESP")
+Rel_D(ledger, transcriber, "Audio", "REST")
+Rel_L(transcriber, ledger, "Transcript", "REST")
+Rel_R(ledger, aiConnector, "Message + token", "gRPC")
+Rel_L(aiConnector, ledger, "Tool calls, key set", "MCP, HTTP")
+Rel_R(aiConnector, aiProvider, "Extraction", "HTTPS")
+Rel_D(aiConnector, connectorDb, "Messages", "JDBC")
+Rel_D(ledger, ledgerDb, "Users, expenses", "JDBC")
+Rel_U(ledgerDb, ledger, "Row changes", "logical replication")
+Rel_D(ledger, changeStream, "Row changes", "RESP")
 
 SHOW_LEGEND()
 @enduml
@@ -90,21 +90,20 @@ SHOW_LEGEND()
 
 ## Services
 
-| Container             | Stack                        | Responsibility                                   | Docs                                     | Ports |
-|-----------------------|------------------------------|--------------------------------------------------|------------------------------------------|-------|
-| Web App               | TypeScript, React, nginx     | Telegram sign-in and browsing the ledger         | [README](web-app/README.md)              | 1003  |
-| Ledger Service        | Java, Spring Boot            | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)       | 1000  |
-| Transcription Service | Python, FasterWhisper        | Speech-to-text                                   | -                                        | -     |
-| AI Connector Service  | Java, Spring Boot, Spring AI | Structured expense extraction from text          | [README](ai-connector-service/README.md) | 1001  |
-| Database              | PostgreSQL                   | Stores users and expenses                        | -                                        | 5432  |
+| Container             | Stack                           | Responsibility                                   | Docs                                                            | Ports |
+|-----------------------|---------------------------------|--------------------------------------------------|-----------------------------------------------------------------|-------|
+| Web App               | TypeScript, React, nginx        | Telegram sign-in and browsing the ledger         | [README](web-app/README.md)                                     | 1003  |
+| Ledger Service        | Java, Spring Boot               | Orchestration, persistence, Telegram integration | [README](ledger-service/README.md)                              | 1000  |
+| Transcription Service | Python, FasterWhisper           | Speech-to-text                                   | -                                                               | -     |
+| AI Connector Service  | Java, Spring Boot, Spring AI    | Structured expense extraction from text          | [README](ai-connector-service/README.md)                        | 1001  |
+| Ledger Database       | PostgreSQL, `wal_level=logical` | Users and expenses                               | [contract](ledger-service/docs/contracts/out/database.md)       | 5432  |
+| Connector Database    | PostgreSQL, pgvector            | The messages received                            | [contract](ai-connector-service/docs/contracts/out/database.md) | 5432  |
 
-Container definitions and port mappings live in
-[`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml).
+Container definitions live in [`infrastructure/docker-compose.yaml`](infrastructure/docker-compose.yaml); how the
+stack is set up is [`infrastructure/README.md`](infrastructure/README.md).
 
 ## Data Model (MVP)
 
-Each recorded expense is linked to a Telegram user and includes:
-
-- **category** — e.g. food, transport, entertainment
-- **amount** — the numeric value spent
-- **currency** *(optional)* — inferred from the message when possible
+Each recorded expense is linked to a Telegram user and filed under a category, with the amount spent and an
+optional currency, inferred from the message when possible. The full shape is
+[Expense](ledger-service/docs/domain/expense.md).

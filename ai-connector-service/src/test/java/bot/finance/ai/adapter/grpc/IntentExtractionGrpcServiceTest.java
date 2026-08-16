@@ -6,16 +6,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
 import bot.finance.ai.adapter.grpc.v1.IntentExtractionServiceGrpc.IntentExtractionServiceBlockingStub;
+import bot.finance.ai.adapter.security.CallerTokenVerifier;
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.common.boot.GrpcAdapterTest;
 import bot.finance.ai.common.fixtures.RequestFixtures;
 import bot.finance.ai.common.stubs.AuthorizedStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.value.MessageIdentity;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.time.LocalDate;
@@ -100,6 +103,40 @@ class IntentExtractionGrpcServiceTest {
             verify(extractIntentsPort).extractIntents(commandCaptor.capture());
             assertThat(commandCaptor.getValue().currentDate()).isEqualTo(LocalDate.parse(currentDate));
             assertThat(response).isEqualTo(ExtractIntentsResponse.getDefaultInstance());
+        }
+
+        @Test
+        @DisplayName("when memory is disabled under an opaque token - then the command carries no identity and "
+                + "the port is called")
+        void whenValidRequestMadeUnderOpaqueTokenWithMemoryDisabled_thenCommandCarriesNoIdentityAndPortCalled() {
+            authenticatedStub().extractIntents(RequestFixtures.request());
+
+            ArgumentCaptor<ExtractIntentsCommand> commandCaptor = ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+            verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+            assertThat(commandCaptor.getValue().messageIdentity()).isEmpty();
+        }
+
+        @Nested
+        @DisplayName("with the caller identified")
+        class CallerIdentified {
+
+            @MockitoBean
+            private CallerTokenVerifier callerTokenVerifier;
+
+            @Test
+            @DisplayName("when a valid request is made under any authorization header - then the command carries "
+                    + "the verified identity")
+            void whenValidRequestMadeUnderAnyAuthorizationHeader_thenCommandCarriesVerifiedIdentity() {
+                MessageIdentity identity = new MessageIdentity(7L, "incoming-message-42");
+                when(callerTokenVerifier.verify(any())).thenReturn(identity);
+
+                authenticatedStub().extractIntents(RequestFixtures.request());
+
+                ArgumentCaptor<ExtractIntentsCommand> commandCaptor =
+                        ArgumentCaptor.forClass(ExtractIntentsCommand.class);
+                verify(extractIntentsPort).extractIntents(commandCaptor.capture());
+                assertThat(commandCaptor.getValue().messageIdentity()).contains(identity);
+            }
         }
     }
 
