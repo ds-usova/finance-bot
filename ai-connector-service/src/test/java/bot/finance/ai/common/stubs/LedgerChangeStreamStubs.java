@@ -1,10 +1,15 @@
 package bot.finance.ai.common.stubs;
 
 import bot.finance.ai.common.containers.RedisContainers;
+import java.util.List;
 import java.util.Map;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.PendingMessage;
+import org.springframework.data.redis.connection.stream.PendingMessages;
 import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -37,6 +42,22 @@ public final class LedgerChangeStreamStubs {
     /** Deletes the whole stream key. */
     public static void deleteStream(String key) {
         TEMPLATE.delete(key);
+    }
+
+    /**
+     * Acknowledges every one of the group's pending entries and trims the stream to empty, leaving the stream key
+     * and its consumer group - and the group's cursor - in place. Unlike {@link #deleteStream}, which destroys the
+     * group along with the stream key it lives on.
+     */
+    public static void drain(String key, String group) {
+        PendingMessages pendingMessages =
+                TEMPLATE.opsForStream().pending(key, group, Range.unbounded(), Long.MAX_VALUE);
+        List<RecordId> pendingIds =
+                pendingMessages.stream().map(PendingMessage::getId).toList();
+        if (!pendingIds.isEmpty()) {
+            TEMPLATE.opsForStream().acknowledge(key, group, pendingIds.toArray(RecordId[]::new));
+        }
+        TEMPLATE.opsForStream().trim(key, 0, false);
     }
 
     /** Whether the named consumer group exists on the stream, via XINFO GROUPS. */

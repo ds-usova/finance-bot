@@ -23,10 +23,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -35,8 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistrar;
@@ -52,7 +53,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * {@link LedgerChangeStreamStubs}, standing in for the ledger's own writes, since driving the consumer is the only
  * thing under test here.
  */
+// PER_CLASS: JUnit builds a fresh enclosing-instance chain, and re-prepares it, for every nested test method by
+// default - including this class's own @MockitoBean field - and that re-preparation is what races against
+// Start.WhenConnectionCut's own independently-booted context below, since it is re-run while that context is
+// current. One instance for the whole class means the enclosing instance is prepared once, against this class's
+// own context, before any nested context exists to race with.
 @RedisAdapterTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ChangeStreamConsumerTest {
 
     private static final String GROUP = "ai-connector";
@@ -69,12 +76,13 @@ class ChangeStreamConsumerTest {
     @Autowired
     private ChangeStreamProperties properties;
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
     @AfterEach
     void clearStream() {
-        LedgerChangeStreamStubs.deleteStream(properties.key());
+        // Draining rather than deleting: deleting the stream destroys its consumer group too, and the consumer
+        // re-creates that group lazily at "$" - a cursor the next test's entry, published before the group
+        // exists again, would never be visible under. Draining acknowledges what is pending and trims the stream
+        // to empty, leaving the group and its cursor exactly where the design puts them: created once, in start().
+        LedgerChangeStreamStubs.drain(properties.key(), GROUP);
     }
 
     private static Map<String, String> expenseCreatedFixture(long expenseId, String txId) {
@@ -111,19 +119,41 @@ class ChangeStreamConsumerTest {
         @DisplayName("when the first entry retries and the second is applied - then the second never precedes "
                 + "the first's last offer")
         void whenFirstEntryRetriesAndSecondApplied_thenSecondNeverPrecedesFirstsLastOffer() {
+            // A single answer keyed on the delivery id, rather than two argThat-matched stubs: the id an entry
+            // is published under is only known once publish() returns it, so the stub can only be registered
+            // after publishing - and the consumer polls continuously, so it can read and offer an entry before
+            // that registration lands. An unstubbed enum method answers null by default, and offer()'s switch on
+            // that null NPEs - uncaught there, that silently kills the consumer's background thread for the rest
+            // of the class. Keying the one answer on an AtomicReference set right after each publish keeps every
+            // window before that safe: an id the reference doesn't recognize yet is simply retried, exactly like
+            // firstEntryId is meant to be.
+            //
+            // The first entry's own last offer is what the assertions are keyed on, so it needs to have one: two
+            // RETRY_LATER answers, then APPLIED from the third, rather than retrying forever - a retry that never
+            // resolves is the starvation the design intends (a retrying entry holds up the stream until the use
+            // case drops it), not a scenario a mocked port, which never drops anything, can stand in for.
+            AtomicReference<String> secondEntryIdRef = new AtomicReference<>();
+            AtomicInteger firstEntryOfferCount = new AtomicInteger();
+            when(learnMessageOutcomePort.learn(any())).thenAnswer(invocation -> {
+                LearnMessageOutcomeCommand command = invocation.getArgument(0);
+                if (command.deliveryId().equals(secondEntryIdRef.get())) {
+                    return LearnOutcome.APPLIED;
+                }
+                return firstEntryOfferCount.incrementAndGet() <= 2 ? LearnOutcome.RETRY_LATER : LearnOutcome.APPLIED;
+            });
+
             String firstEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(2L, "tx-2"));
             String secondEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(3L, "tx-3"));
-            when(learnMessageOutcomePort.learn(
-                            argThat(command -> command.deliveryId().equals(firstEntryId))))
-                    .thenReturn(LearnOutcome.RETRY_LATER);
-            when(learnMessageOutcomePort.learn(
-                            argThat(command -> command.deliveryId().equals(secondEntryId))))
-                    .thenReturn(LearnOutcome.APPLIED);
+            secondEntryIdRef.set(secondEntryId);
 
             ArgumentCaptor<LearnMessageOutcomeCommand> captor =
                     ArgumentCaptor.forClass(LearnMessageOutcomeCommand.class);
-            await().atMost(RETRY_TIMEOUT).untilAsserted(() -> verify(learnMessageOutcomePort, atLeast(3))
-                    .learn(captor.capture()));
+            await().atMost(RETRY_TIMEOUT).untilAsserted(() -> {
+                verify(learnMessageOutcomePort)
+                        .learn(argThat(command ->
+                                command != null && command.deliveryId().equals(secondEntryIdRef.get())));
+                verify(learnMessageOutcomePort, atLeast(4)).learn(captor.capture());
+            });
 
             List<String> offeredIds = captor.getAllValues().stream()
                     .map(LearnMessageOutcomeCommand::deliveryId)
@@ -135,7 +165,7 @@ class ChangeStreamConsumerTest {
 
             assertThat(firstOfferCount).isGreaterThanOrEqualTo(2);
             assertThat(secondOfferIndex).isNotNegative();
-            assertThat(secondOfferIndex).isLessThan(lastFirstOfferIndex);
+            assertThat(secondOfferIndex).isGreaterThan(lastFirstOfferIndex);
         }
 
         @Test
@@ -179,7 +209,9 @@ class ChangeStreamConsumerTest {
         @DisplayName("when an entry idles past claimIdle under another consumer - then it is claimed, offered, "
                 + "and acknowledged")
         void whenEntryIdlesPastClaimIdleUnderAnotherConsumer_thenItIsClaimedOfferedAndAcknowledged() {
-            redisTemplate.opsForStream().createGroup(properties.key(), ReadOffset.from("0"), GROUP);
+            // No explicit createGroup: start() already created it, and drain() (unlike the delete this @AfterEach
+            // used to call) leaves it standing between tests, so creating it again here would only race the
+            // consumer's own idempotent re-affirmation for a BUSYGROUP error.
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.APPLIED);
 
             String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(6L, "tx-6"));

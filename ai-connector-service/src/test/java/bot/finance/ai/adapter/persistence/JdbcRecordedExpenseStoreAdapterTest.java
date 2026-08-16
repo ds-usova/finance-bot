@@ -626,6 +626,8 @@ class JdbcRecordedExpenseStoreAdapterTest {
                             .orElseThrow();
                     assertThat(row.status()).isEqualTo("ACCEPTED");
                     assertThat(row.expenseId()).isEqualTo(expenseId);
+
+                    RecordedExpenseRowUtils.deleteAll(jdbcTemplate);
                 }
             } finally {
                 executor.shutdownNow();

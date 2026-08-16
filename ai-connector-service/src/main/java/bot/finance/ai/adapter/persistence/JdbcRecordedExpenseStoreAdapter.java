@@ -1,9 +1,16 @@
 package bot.finance.ai.adapter.persistence;
 
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
 import bot.finance.ai.domain.value.MessageIdentity;
 import bot.finance.ai.domain.value.SpendingRow;
+import java.time.Instant;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,48 +29,165 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
 
     @Override
     public void recordProposed(SpendingRow proposal) {
-        // upserts a PROPOSED row keyed by proposal_id, category id and names taking the later copy's, status
-        // untouched on conflict; a message the store lacks is a no-op
+        Optional<MessageIdentity> identity = proposal.messageIdentity();
+        if (identity.isEmpty()) {
+            return;
+        }
+
+        try {
+            repository.upsertProposed(
+                    identity.get().userId(),
+                    identity.get().incomingMessageId(),
+                    proposal.id(),
+                    proposal.description(),
+                    proposal.merchant().orElse(""),
+                    proposal.amountMinorUnits(),
+                    proposal.currencyCode().code(),
+                    proposal.categoryId(),
+                    proposal.categoryName().orElse(null),
+                    proposal.groupingName().orElse(null),
+                    Instant.now());
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to record proposed expense");
+        }
     }
 
     @Override
     @Transactional
     public void settleProposalDeleted(SpendingRow proposal, String transactionId) {
-        // under the message's row lock: an unpaired lone ACCEPTED row of this transaction, same content, takes
-        // the proposal id, and the PROPOSED row's own copy is dropped; else the PROPOSED row becomes DISCARDED,
-        // remembering the transaction; a message the store lacks is a no-op
+        Optional<MessageIdentity> identity = proposal.messageIdentity();
+        if (identity.isEmpty()) {
+            return;
+        }
+
+        try {
+            Optional<Long> messageId = messageRepository.lockId(
+                    identity.get().userId(), identity.get().incomingMessageId());
+            if (messageId.isEmpty()) {
+                return;
+            }
+
+            Optional<RecordedExpenseEntity> match = repository.findLowestLoneAcceptedByExpense(
+                    messageId.get(),
+                    transactionId,
+                    proposal.description(),
+                    proposal.merchant().orElse(null),
+                    proposal.amountMinorUnits(),
+                    proposal.currencyCode().code(),
+                    proposal.categoryId());
+
+            Instant now = Instant.now();
+            if (match.isPresent()) {
+                repository.findByProposalId(proposal.id()).ifPresent(repository::delete);
+                repository.pairWithProposalId(match.get().id(), proposal.id(), now);
+            } else {
+                repository.markDiscarded(proposal.id(), transactionId, now);
+            }
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to settle a proposal deletion");
+        }
     }
 
     @Override
     @Transactional
     public void settleExpenseInserted(SpendingRow expense, String transactionId) {
-        // under the message's row lock: a row already keyed by this expense id takes the entry's names; else the
-        // lowest content-equal DISCARDED row of this transaction becomes ACCEPTED and takes the expense id; else
-        // a lone ACCEPTED row is inserted remembering the transaction; a message the store lacks is a no-op
+        Optional<MessageIdentity> identity = expense.messageIdentity();
+        if (identity.isEmpty()) {
+            return;
+        }
+
+        try {
+            Optional<Long> messageId = messageRepository.lockId(
+                    identity.get().userId(), identity.get().incomingMessageId());
+            if (messageId.isEmpty()) {
+                return;
+            }
+
+            Optional<RecordedExpenseEntity> match = repository.findLowestDiscardedMatch(
+                    messageId.get(),
+                    transactionId,
+                    expense.description(),
+                    expense.merchant().orElse(null),
+                    expense.amountMinorUnits(),
+                    expense.currencyCode().code(),
+                    expense.categoryId());
+
+            if (match.isPresent()) {
+                repository.pairWithExpenseId(match.get().id(), expense.id(), Instant.now());
+            } else {
+                repository.upsertLoneAccepted(
+                        identity.get().userId(),
+                        identity.get().incomingMessageId(),
+                        expense.id(),
+                        expense.description(),
+                        expense.merchant().orElse(null),
+                        expense.amountMinorUnits(),
+                        expense.currencyCode().code(),
+                        expense.categoryId(),
+                        expense.categoryName().orElse(null),
+                        expense.groupingName().orElse(null),
+                        transactionId,
+                        Instant.now());
+            }
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to settle an expense insert");
+        }
     }
 
     @Override
     public void refileExpense(SpendingRow expense) {
-        // the row keyed by expense_id takes the entry's new category id and names; a no-op if none matches
+        try {
+            repository.updateFiling(
+                    expense.id(),
+                    expense.categoryId(),
+                    expense.categoryName().orElse(null),
+                    expense.groupingName().orElse(null),
+                    Instant.now());
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to refile a recorded expense");
+        }
     }
 
     @Override
     public void removeExpense(long expenseId) {
-        // deletes the row keyed by expense_id; the message row stays; a no-op if none matches
+        try {
+            repository.deleteByExpenseId(expenseId);
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to remove a recorded expense");
+        }
     }
 
     @Override
     public void renameCategory(long categoryId, String name) {
-        // every row under categoryId takes the new name; a no-op if none matches
+        try {
+            repository.renameCategory(categoryId, name, Instant.now());
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to rename a category");
+        }
     }
 
     @Override
     public void renameGrouping(long userId, String from, String to) {
-        // every row of userId under grouping "from" takes "to"; a no-op if none matches
+        try {
+            repository.renameGrouping(userId, from, to, Instant.now());
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to rename a grouping");
+        }
     }
 
     @Override
     public void abandonAcceptance(MessageIdentity message, String transactionId) {
-        // every DISCARDED row of that message with that transaction becomes UNKNOWN; a no-op if none matches
+        try {
+            repository.markUnknown(message.userId(), message.incomingMessageId(), transactionId, Instant.now());
+        } catch (DataAccessException e) {
+            throw translate(e, "failed to abandon an acceptance");
+        }
+    }
+
+    private RuntimeException translate(DataAccessException e, String message) {
+        if (e instanceof DataAccessResourceFailureException || e instanceof TransientDataAccessException) {
+            return new MessageStoreUnavailableException(message, e);
+        }
+        return new MessageStoreFailedException(message, e);
     }
 }

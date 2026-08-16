@@ -19,8 +19,8 @@ public interface RecordedExpenseEntityRepository extends CrudRepository<Recorded
             INSERT INTO recorded_expense (message_id, user_id, proposal_id, description, merchant,
                                            amount_minor_units, currency_code, category_id, category_name,
                                            grouping_name, status, updated_at)
-            SELECT im.id, im.user_id, :proposalId, :description, :merchant, :amountMinorUnits, :currencyCode,
-                   :categoryId, :categoryName, :groupingName, 'PROPOSED', :now
+            SELECT im.id, im.user_id, :proposalId, :description, NULLIF(:merchant, ''), :amountMinorUnits,
+                   :currencyCode, :categoryId, :categoryName, :groupingName, 'PROPOSED', :now
             FROM incoming_message im
             WHERE im.user_id = :userId AND im.incoming_message_id = :incomingMessageId
             ON CONFLICT (proposal_id) DO UPDATE

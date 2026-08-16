@@ -1,8 +1,16 @@
 package bot.finance.ai.adapter.persistence;
 
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
+import java.time.Instant;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @ConditionalOnProperty(name = "memory.enabled", havingValue = "true")
@@ -15,13 +23,19 @@ public class JdbcChangeAttemptStoreAdapter implements ChangeAttemptStorePort {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int countFailure(String deliveryId, String error) {
-        // upserts stream_entry_failure in its own transaction, answering the attempts so far
-        return 0;
+        try {
+            return repository.countFailure(deliveryId, error, Instant.now());
+        } catch (DataAccessResourceFailureException | TransientDataAccessException e) {
+            throw new MessageStoreUnavailableException("failed to count stream entry failure", e);
+        } catch (DataAccessException e) {
+            throw new MessageStoreFailedException("failed to count stream entry failure", e);
+        }
     }
 
     @Override
     public void clear(String deliveryId) {
-        // deletes the entry's row, if any
+        repository.deleteById(deliveryId);
     }
 }
