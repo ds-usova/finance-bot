@@ -1,6 +1,10 @@
 package bot.finance.ai.adapter.persistence;
 
+import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.ExampleExpense;
+import bot.finance.ai.domain.value.ExampleOutcome;
 import java.time.Instant;
+import java.util.Optional;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -20,4 +24,16 @@ public record RecordedExpenseEntity(
         String groupingName,
         String status,
         String movedInTx,
-        Instant updatedAt) {}
+        Instant updatedAt) {
+
+    public ExampleExpense toExampleExpense() {
+        CurrencyCode currency = CurrencyCode.of(currencyCode);
+        return new ExampleExpense(
+                description,
+                currency.toDecimal(amountMinorUnits),
+                currency,
+                Optional.ofNullable(categoryName),
+                Optional.ofNullable(groupingName),
+                ExampleOutcome.valueOf(status));
+    }
+}

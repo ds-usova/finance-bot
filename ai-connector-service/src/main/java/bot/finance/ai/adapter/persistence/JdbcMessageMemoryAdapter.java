@@ -4,10 +4,8 @@ import bot.finance.ai.application.dto.ExampleQuery;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.application.port.MessageMemoryPort;
-import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.Embedding;
 import bot.finance.ai.domain.value.ExampleExpense;
-import bot.finance.ai.domain.value.ExampleOutcome;
 import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.Clock;
@@ -153,19 +151,8 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
             IncomingMessageEntity message, List<RecordedExpenseEntity> decided, int exampleLines) {
         List<ExampleExpense> expenses = decided.stream()
                 .limit(exampleLines)
-                .map(JdbcMessageMemoryAdapter::toExampleExpense)
+                .map(RecordedExpenseEntity::toExampleExpense)
                 .toList();
         return new MessageExample(message.text(), expenses);
-    }
-
-    private static ExampleExpense toExampleExpense(RecordedExpenseEntity expense) {
-        CurrencyCode currency = CurrencyCode.of(expense.currencyCode());
-        return new ExampleExpense(
-                expense.description(),
-                currency.toDecimal(expense.amountMinorUnits()),
-                currency,
-                Optional.ofNullable(expense.categoryName()),
-                Optional.ofNullable(expense.groupingName()),
-                ExampleOutcome.valueOf(expense.status()));
     }
 }
