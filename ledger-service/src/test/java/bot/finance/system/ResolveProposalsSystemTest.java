@@ -24,8 +24,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,6 +67,10 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
     private long userId;
 
+    private long proposalId1;
+    private long proposalId2;
+    private Instant createdAt;
+
     /**
      * The order below is load-bearing: the poll loop is already running, so the catch-all and response stubs must
      * be registered before the update-bearing stub, or the loop consumes the update before the response it
@@ -77,29 +81,31 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         userId = UserRowUtils.storedUserId(userEntityRepository, FROM_ID_STRING);
         long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, GROUPING_NAME);
         long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, CATEGORY_NAME);
-        Instant now = Instant.now();
-        ExpenseRowUtils.storedExpense(
-                jdbcAggregateTemplate,
-                userId,
-                categoryId,
-                DESCRIPTION_1,
-                MERCHANT,
-                AMOUNT_MINOR_UNITS,
-                CURRENCY_CODE,
-                reference,
-                now,
-                ExpenseStatus.PENDING);
-        ExpenseRowUtils.storedExpense(
-                jdbcAggregateTemplate,
-                userId,
-                categoryId,
-                DESCRIPTION_2,
-                MERCHANT,
-                AMOUNT_MINOR_UNITS,
-                CURRENCY_CODE,
-                reference,
-                now,
-                ExpenseStatus.PENDING);
+        createdAt = Instant.now();
+        proposalId1 = ExpenseRowUtils.storedExpense(
+                        jdbcAggregateTemplate,
+                        userId,
+                        categoryId,
+                        DESCRIPTION_1,
+                        MERCHANT,
+                        AMOUNT_MINOR_UNITS,
+                        CURRENCY_CODE,
+                        reference,
+                        createdAt,
+                        ExpenseStatus.PENDING)
+                .id();
+        proposalId2 = ExpenseRowUtils.storedExpense(
+                        jdbcAggregateTemplate,
+                        userId,
+                        categoryId,
+                        DESCRIPTION_2,
+                        MERCHANT,
+                        AMOUNT_MINOR_UNITS,
+                        CURRENCY_CODE,
+                        reference,
+                        createdAt,
+                        ExpenseStatus.PENDING)
+                .id();
 
         telegramReturnsNoUpdates(TOKEN);
         telegramAcceptsAnswerCallbackQuery(TOKEN);
@@ -120,7 +126,6 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS01: accept does not yet flip PENDING rows to RECORDED until GI01 adds the status predicate")
         @DisplayName("when the poll loop picks up an accept tap - then both proposals become expenses and the tap is "
                 + "answered")
         void whenRunningPollLoopPicksUpAcceptCallbackQuery_thenProposalsAreAcceptedAndAcknowledged() {
@@ -138,10 +143,15 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
                     .as("PENDING expense rows for user %s", userId)
                     .isEmpty();
 
-            // then: both proposals are now expenses, each still naming the message it came from
+            // then: both proposals are now expenses, under the ids they were seeded with, created_at untouched
             List<ExpenseEntity> expenseRows =
                     ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows).as("expense rows for user %s", userId).hasSize(2);
+            assertThat(expenseRows)
+                    .as("accepted expenses carry the ids and created_at of the proposals they came from")
+                    .extracting(ExpenseEntity::id, ExpenseEntity::createdAt)
+                    .containsExactlyInAnyOrder(
+                            Tuple.tuple(proposalId1, createdAt), Tuple.tuple(proposalId2, createdAt));
             assertThat(expenseRows)
                     .as("every accepted expense carries the resolved message reference")
                     .allSatisfy(row -> assertThat(row.incomingMessageId()).isEqualTo(reference));

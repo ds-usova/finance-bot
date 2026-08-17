@@ -80,7 +80,7 @@ class ResolveProposalsUseCaseTest {
 
         @Test
         @DisplayName("when resolve(null) is called - then throws InvalidIncomingMessageException and none of the "
-                + "four ports is touched")
+                + "three ports is touched")
         void whenCommandIsNull_thenThrowsInvalidIncomingMessageExceptionAndPortsUntouched() {
             assertThatThrownBy(() -> useCase.resolve(null)).isInstanceOf(InvalidIncomingMessageException.class);
 
@@ -183,6 +183,24 @@ class ResolveProposalsUseCaseTest {
             ResolutionAcknowledgement ack = ackCaptor.getValue();
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.NOTHING_TO_RESOLVE);
             assertThat(ack.count()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("when accept resolves nothing and three are already recorded - then acknowledge is "
+                + "ALREADY_ACCEPTED")
+        void whenAcceptResolvesNothingAndThreeAlreadyRecorded_thenAcknowledgeReceivesAlreadyAcceptedWithThree() {
+            stubStoredUser();
+            when(expenseRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(0);
+            when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(3);
+
+            useCase.resolve(newCommand(ProposalResolution.ACCEPT));
+
+            ArgumentCaptor<ResolutionAcknowledgement> ackCaptor =
+                    ArgumentCaptor.forClass(ResolutionAcknowledgement.class);
+            verify(messageDeliveryPort).acknowledge(ackCaptor.capture());
+            ResolutionAcknowledgement ack = ackCaptor.getValue();
+            assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.ALREADY_ACCEPTED);
+            assertThat(ack.count()).isEqualTo(3);
         }
 
         @Test

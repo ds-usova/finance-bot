@@ -64,9 +64,9 @@ class ChangeExpenseCategoryUseCaseTest {
     class Change {
 
         @Test
-        @DisplayName("when called with RECORDED status - then the expense repository is refiled, and the "
-                + "proposal repository is not")
-        void whenCalledWithRecordedStatus_thenExpenseRepositoryIsRefiledAndProposalRepositoryUntouched() {
+        @DisplayName(
+                "when the command names RECORDED - then refile is called with RECORDED and the entry is " + "returned")
+        void whenCommandNamesRecordedAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithRecordedAndEntryReturned() {
             stubStoredUser();
             stubCategoryAdmitted();
             ExpenseEntry entry = newEntry(CATEGORY_ID);
@@ -80,9 +80,9 @@ class ChangeExpenseCategoryUseCaseTest {
         }
 
         @Test
-        @DisplayName("when called with a PENDING status - then the proposal repository is refiled and the "
-                + "expense repository is never touched")
-        void whenCalledWithPendingStatus_thenProposalRepositoryIsRefiledAndExpenseRepositoryUntouched() {
+        @DisplayName(
+                "when the command names PENDING - then refile is called with PENDING and the entry is " + "returned")
+        void whenCommandNamesPendingAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithPendingAndEntryReturned() {
             stubStoredUser();
             stubCategoryAdmitted();
             ExpenseEntry entry = newEntry(CATEGORY_ID);

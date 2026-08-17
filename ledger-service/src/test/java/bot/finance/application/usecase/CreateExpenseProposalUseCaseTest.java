@@ -114,6 +114,19 @@ class CreateExpenseProposalUseCaseTest {
     class Create {
 
         @Test
+        @DisplayName("when a user, grouping and category are resolved - then the stored entry is PENDING "
+                + "and carries the command's message id")
+        void whenUserGroupingAndCategoryAreResolved_thenStoredEntryIsPendingAndCarriesThatMessageId() {
+            stubResolvedGroupingAndCategory();
+
+            useCase.create(newExpenseProposal());
+
+            Expense captured = capturedProposal();
+            assertThat(captured.status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(captured.incomingMessageId()).contains(MESSAGE_REFERENCE);
+        }
+
+        @Test
         @DisplayName("when a grouping and a category are answered - then the proposal carries that category's id")
         void whenGroupingAndCategoryAreAnswered_thenProposalCarriesThatCategorysId() {
             stubResolvedGroupingAndCategory();

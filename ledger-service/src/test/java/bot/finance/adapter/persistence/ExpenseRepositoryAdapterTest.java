@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.dto.ExpenseEntry;
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -22,6 +24,7 @@ import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
+import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -30,8 +33,8 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -298,6 +301,422 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(row.categoryId()).isEqualTo(secondCategoryId);
             });
         }
+
+        @Test
+        @DisplayName(
+                "when called with a PENDING entry carrying a message id - then the row is written with that status and its message id")
+        void whenCalledWithPendingEntryCarryingMessageId_thenRowIsWrittenWithThatStatusAndMessageId() {
+            long userId = storedUserId("pending-expense-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Expense proposal = Expense.newProposal(
+                    userId,
+                    categoryId,
+                    "Awaiting confirmation",
+                    Optional.empty(),
+                    new Money(1500, CurrencyCode.of("USD")),
+                    reference,
+                    Instant.now());
+
+            Expense created = adapter.create(proposal);
+
+            assertThat(created.id()).isPresent();
+            List<ExpenseEntity> rows = expenseRowsFor(userId);
+            assertThat(rows).singleElement().satisfies(row -> {
+                assertThat(row.status()).isEqualTo(ExpenseStatus.PENDING.name());
+                assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when a PENDING row carries no message id - then the database refuses it under ck_expense_pending_has_message")
+        void whenPendingRowCarriesNoMessageId_thenDatabaseRefusesUnderPendingHasMessageConstraint() {
+            long userId = storedUserId("pending-no-message-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+
+            assertThatThrownBy(() -> ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "Awaiting confirmation",
+                            null,
+                            100,
+                            "USD",
+                            null,
+                            Instant.now(),
+                            ExpenseStatus.PENDING))
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_expense_pending_has_message");
+        }
+    }
+
+    @Nested
+    @DisplayName("finding proposal summaries by message reference")
+    class FindSummariesByMessageReference {
+
+        @Test
+        @DisplayName(
+                "when two PENDING entries and one RECORDED share a message - then only the two PENDING ones come back, oldest first")
+        void whenTwoPendingEntriesAndOneRecordedShareMessage_thenOnlyPendingOnesComeBackOldestFirst() {
+            long userId = storedUserId("find-summaries-user");
+            long groupingId = storedGroupingId(userId, "Food");
+            long categoryId = storedCategoryId(userId, groupingId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant base = Instant.now().minusSeconds(60);
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second pending",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    base.plusSeconds(10),
+                    ExpenseStatus.PENDING);
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First pending",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    base,
+                    ExpenseStatus.PENDING);
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Recorded",
+                    null,
+                    300,
+                    "USD",
+                    reference.value(),
+                    base.plusSeconds(20),
+                    ExpenseStatus.RECORDED);
+
+            List<ProposalSummary> summaries = adapter.findSummariesByMessageReference(userId, reference);
+
+            assertThat(summaries).hasSize(2);
+            assertThat(summaries.get(0)).satisfies(summary -> {
+                assertThat(summary.description()).isEqualTo("First pending");
+                assertThat(summary.categoryName()).isEqualTo("Groceries");
+                assertThat(summary.groupingName()).isEqualTo("Food");
+            });
+            assertThat(summaries.get(1).description()).isEqualTo("Second pending");
+        }
+    }
+
+    @Nested
+    @DisplayName("accepting pending entries under a message reference")
+    class Accept {
+
+        @Test
+        @DisplayName(
+                "when two PENDING entries share a message and a third does not - then two are RECORDED and the third is untouched")
+        void whenTwoPendingEntriesShareMessageAndThirdDoesNot_thenTwoAreRecordedAndThirdUntouched() {
+            long userId = storedUserId("accept-two-entries-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId otherReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant createdAt = Instant.now().minusSeconds(60).truncatedTo(ChronoUnit.MICROS);
+            ExpenseEntity first = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    createdAt,
+                    ExpenseStatus.PENDING);
+            ExpenseEntity second = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    createdAt,
+                    ExpenseStatus.PENDING);
+            ExpenseEntity third = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Third",
+                    null,
+                    300,
+                    "USD",
+                    otherReference.value(),
+                    createdAt,
+                    ExpenseStatus.PENDING);
+
+            int accepted = adapter.accept(userId, reference, Instant.now());
+
+            assertThat(accepted).isEqualTo(2);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
+                    .extracting(ExpenseEntity::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id());
+            assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.id()).isEqualTo(third.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when the entries under the message are already RECORDED - then zero is answered and nothing changes")
+        void whenEntriesUnderMessageAlreadyRecorded_thenZeroAnsweredAndNothingChanges() {
+            long userId = storedUserId("accept-already-recorded-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity recorded =
+                    storedExpense(userId, categoryId, "Already recorded", 100, "USD", reference.value());
+
+            int accepted = adapter.accept(userId, reference, Instant.now());
+
+            assertThat(accepted).isEqualTo(0);
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> {
+                assertThat(row.id()).isEqualTo(recorded.id());
+                assertThat(row.status()).isEqualTo(ExpenseStatus.RECORDED.name());
+            });
+        }
+
+        @Test
+        @DisplayName("when two people share a message id value - then accepting for one leaves the other's row PENDING")
+        void whenTwoPeopleShareMessageIdValue_thenAcceptingForOneLeavesOtherPending() {
+            long firstUserId = storedUserId("accept-shared-message-first-user");
+            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long secondUserId = storedUserId("accept-shared-message-second-user");
+            long secondCategoryId = storedGroupingId(secondUserId, "Dining");
+            IncomingMessageId sharedReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    firstUserId,
+                    firstCategoryId,
+                    "First person's entry",
+                    null,
+                    100,
+                    "USD",
+                    sharedReference.value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity secondPersonEntry = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    secondUserId,
+                    secondCategoryId,
+                    "Second person's entry",
+                    null,
+                    200,
+                    "USD",
+                    sharedReference.value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+
+            int accepted = adapter.accept(firstUserId, sharedReference, Instant.now());
+
+            assertThat(accepted).isEqualTo(1);
+            assertThat(expenseRowsFor(secondUserId, ExpenseStatus.PENDING))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.id()).isEqualTo(secondPersonEntry.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when the instant carries nanosecond precision - then the stored updated_at is truncated to microseconds")
+        void whenInstantCarriesNanosecondPrecision_thenStoredUpdatedAtIsTruncatedToMicroseconds() {
+            long userId = storedUserId("accept-nanosecond-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Dinner",
+                    null,
+                    3000,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+            Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
+
+            adapter.accept(userId, reference, nanosecondInstant);
+
+            Instant truncated = nanosecondInstant.truncatedTo(ChronoUnit.MICROS);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.updatedAt()).isEqualTo(truncated));
+        }
+    }
+
+    @Nested
+    @DisplayName("discarding pending entries under a message reference")
+    class Discard {
+
+        @Test
+        @DisplayName(
+                "when two PENDING and one RECORDED entry share a message - then two is answered and no PENDING remains")
+        void whenTwoPendingAndOneRecordedShareMessage_thenTwoAnsweredAndNoPendingRemains() {
+            long userId = storedUserId("discard-two-pending-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity recorded = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Recorded",
+                    null,
+                    300,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.RECORDED);
+
+            int discarded = adapter.discard(userId, reference);
+
+            assertThat(discarded).isEqualTo(2);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING)).isEmpty();
+            assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.id()).isEqualTo(recorded.id()));
+        }
+    }
+
+    @Nested
+    @DisplayName("accepting entries by id")
+    class AcceptByIds {
+
+        @Test
+        @DisplayName(
+                "when two PENDING entries share a reported message - then the message comes back twice and both are RECORDED")
+        void whenTwoPendingEntriesShareReportedMessage_thenMessageComesBackTwiceAndBothRecorded() {
+            long userId = storedUserId("accept-by-ids-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity first = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity second = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity alreadyRecorded = storedExpense(userId, categoryId, "Already recorded", 300, "USD", null);
+
+            List<IncomingMessageId> answer = adapter.acceptByIds(
+                    userId, ProposalIds.of(List.of(first.id(), second.id(), alreadyRecorded.id())), Instant.now());
+
+            assertThat(answer).containsExactlyInAnyOrder(reference, reference);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
+                    .extracting(ExpenseEntity::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id(), alreadyRecorded.id());
+        }
+
+        @Test
+        @DisplayName(
+                "when an id names another person's PENDING entry - then nothing is answered and their row stays PENDING")
+        void whenIdNamesAnotherPersonsPendingEntry_thenNothingAnsweredAndTheirRowStaysPending() {
+            long ownerUserId = storedUserId("accept-by-ids-owner-user");
+            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            ExpenseEntity ownerEntry = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Owner's entry",
+                    null,
+                    100,
+                    "USD",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+            long callerUserId = storedUserId("accept-by-ids-caller-user");
+
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(callerUserId, ProposalIds.of(List.of(ownerEntry.id())), Instant.now());
+
+            assertThat(answer).isEmpty();
+            assertThat(expenseRowsFor(ownerUserId, ExpenseStatus.PENDING))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.id()).isEqualTo(ownerEntry.id()));
+        }
+    }
+
+    @Nested
+    @DisplayName("finding which messages still hold a pending entry")
+    class FindWithPendingProposals {
+
+        @Test
+        @DisplayName(
+                "when one of two messages still holds PENDING and the other holds only RECORDED - then only the first is answered")
+        void whenOneOfTwoMessagesStillHoldsPendingAndOtherOnlyRecorded_thenOnlyFirstAnswered() {
+            long userId = storedUserId("find-with-pending-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId stillPending =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId nowRecorded =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Still pending",
+                    null,
+                    100,
+                    "USD",
+                    stillPending.value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+            storedExpense(userId, categoryId, "Now recorded", 200, "USD", nowRecorded.value());
+
+            Set<IncomingMessageId> answer =
+                    adapter.findWithPendingProposals(userId, List.of(stillPending, nowRecorded));
+
+            assertThat(answer).containsExactly(stillPending);
+        }
     }
 
     @Nested
@@ -453,7 +872,6 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @Disabled("RI01: totalsByCurrency does not yet filter to RECORDED entries, so a PENDING row is still counted")
         @DisplayName(
                 "when a PENDING row exists inside the period and no RECORDED row does - then returns an empty list")
         void whenOnlyProposalRowExistsInsidePeriod_thenReturnsEmptyList() {
@@ -493,7 +911,6 @@ class ExpenseRepositoryAdapterTest {
     }
 
     @Nested
-    @Disabled("RI01: findPage still UNIONs against the dropped expense_proposal table until GI01 rewrites it")
     @DisplayName("finding a page of expenses and proposals")
     class FindPage {
 
@@ -627,8 +1044,8 @@ class ExpenseRepositoryAdapterTest {
 
         @Test
         @DisplayName(
-                "when two rows share a created_at, one in each table - then the order between them is the same on every call")
-        void whenTwoRowsShareCreatedAtOneInEachTable_thenOrderIsTheSameOnEveryCall() {
+                "when two rows share a created_at, one under each status - then the order between them is the same on every call")
+        void whenTwoRowsShareCreatedAtOneUnderEachStatus_thenOrderIsTheSameOnEveryCall() {
             long userId = storedUserId("find-page-tie-break-user");
             long categoryId = storedGroupingId(userId, "Entertainment");
             Instant sharedInstant = Instant.now().minusSeconds(10);
@@ -645,13 +1062,12 @@ class ExpenseRepositoryAdapterTest {
     }
 
     @Nested
-    @Disabled("RI01: countMatching still sums against the dropped expense_proposal table until GI01 rewrites it")
     @DisplayName("counting expenses and proposals matching a filter")
     class CountMatching {
 
         @Test
-        @DisplayName("when the filter is unnarrowed - then the answer is every row the user has, across both tables")
-        void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothTables() {
+        @DisplayName("when the filter is unnarrowed - then the answer is every row the user has, across both statuses")
+        void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothStatuses() {
             long userId = storedUserId("count-matching-unnarrowed-user");
             long categoryId = storedGroupingId(userId, "Groceries");
             storedExpenseAt(userId, categoryId, "First", 100, "USD", Instant.now());
@@ -818,8 +1234,6 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @Disabled("RI01: refile does not yet filter by status, so calling it with RECORDED against a PENDING "
-                + "entry's id still refiles the row")
         @DisplayName(
                 "when the id names a pending proposal, not an expense - then the answer is empty and the proposal row is untouched")
         void whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched() {
@@ -920,6 +1334,84 @@ class ExpenseRepositoryAdapterTest {
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when findSummariesByMessageReference() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindSummariesByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.findSummariesByMessageReference(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findSummariesByMessageReference(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when accept() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenAcceptHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.accept(any(), any(), any())).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.accept(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString()), Instant.now()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when discard() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenDiscardHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.discard(any(), any())).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.discard(
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when acceptByIds() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenAcceptByIdsHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.acceptByIds(any(), any(), any())).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.acceptByIds(1L, ProposalIds.of(List.of(1L)), Instant.now()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when findWithPendingProposals() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindWithPendingProposalsHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.findWithPendingProposals(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findWithPendingProposals(
+                            1L, List.of(IncomingMessageId.of(UUID.randomUUID().toString()))))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when called with an empty collection of message ids - then the answer is empty and no statement runs")
+        void whenCalledWithEmptyCollectionOfMessageIds_thenAnswerIsEmptyAndNoStatementRuns() {
+            Set<IncomingMessageId> answer = mockedAdapter.findWithPendingProposals(1L, List.of());
+
+            assertThat(answer).isEmpty();
+            verifyNoInteractions(mockedExpenseEntityRepository);
         }
 
         @Test

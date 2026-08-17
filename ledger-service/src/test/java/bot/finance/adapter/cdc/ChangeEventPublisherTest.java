@@ -79,12 +79,11 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName("when an expense_proposal insert is published - then the enrichment block carries the after "
-                + "side alone")
-        void whenExpenseProposalInsertIsPublished_thenEnrichmentBlockCarriesAfterSideAlone() {
+        @DisplayName("when an expense insert is published - then the enrichment block carries the after side alone")
+        void whenExpenseInsertIsPublished_thenEnrichmentBlockCarriesAfterSideAlone() {
             String payload =
                     """
-                    {"after":{"category_id":5},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
+                    {"after":{"category_id":5},"source":{"table":"expense","ts_ms":1700000000000},"op":"c"}""";
             ChangeEvent<String, String> event = changeEvent(payload);
             when(categoryNameResolver.resolve(5L)).thenReturn(Optional.of(new CategoryNames("Coffee", "Food")));
             when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
@@ -210,7 +209,7 @@ class ChangeEventPublisherTest {
         void whenWriterRefuses_thenPublishAnswersNotPublishedAndPublishFailureCounted() {
             String payload =
                     """
-                    {"after":{"category_id":2},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
+                    {"after":{"category_id":2},"source":{"table":"expense","ts_ms":1700000000000},"op":"c"}""";
             ChangeEvent<String, String> event = changeEvent(payload);
             when(categoryNameResolver.resolve(2L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
             when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(false);
@@ -227,14 +226,14 @@ class ChangeEventPublisherTest {
         void whenEventPublishes_thenPublishedCounterTaggedAndLagGaugeSetFromSourceTsMs() {
             String payload =
                     """
-                    {"after":{"category_id":2},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
+                    {"after":{"category_id":2},"source":{"table":"expense","ts_ms":1700000000000},"op":"c"}""";
             ChangeEvent<String, String> event = changeEvent(payload);
             when(categoryNameResolver.resolve(2L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
             when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
 
             publisher.publish(event);
 
-            verify(meters).countPublished(eq("expense_proposal"), eq("c"));
+            verify(meters).countPublished(eq("expense"), eq("c"));
             ArgumentCaptor<Instant> lagCaptor = ArgumentCaptor.forClass(Instant.class);
             verify(meters).setEventLag(lagCaptor.capture());
             assertThat(lagCaptor.getValue()).isEqualTo(Instant.ofEpochMilli(1700000000000L));

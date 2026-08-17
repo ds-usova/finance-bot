@@ -7,6 +7,7 @@ import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.port.UserRepository;
 import bot.finance.common.boot.AbstractSystemTest;
+import bot.finance.common.fixtures.IncomingMessages;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.rows.CategoryRowUtils;
@@ -14,6 +15,7 @@ import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Grouping;
+import bot.finance.domain.value.IncomingMessageId;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
@@ -88,7 +90,8 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
             User user = seedUserWithDefaultCategories("create-expense-proposal-happy-path-user");
             long userId = user.id().orElseThrow();
             long supermarketsCategoryId = storedCategory(userId, "Supermarkets").id();
-            String token = McpTokens.tokenFor(accessTokenMinter, userId);
+            IncomingMessageId reference = IncomingMessages.newIncomingMessageId();
+            String token = McpTokens.tokenFor(accessTokenMinter, userId, reference);
 
             String requestBody = McpRequests.createExpenseProposal(
                     "Supermarkets", "Groceries", DESCRIPTION, MERCHANT, AMOUNT, CURRENCY_CODE);
@@ -119,6 +122,7 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
                     .as("stored PENDING expense rows for user %s", userId)
                     .hasSize(1);
             ExpenseEntity row = rows.get(0);
+            assertThat(row.status()).as("stored proposal's status").isEqualTo(ExpenseStatus.PENDING.name());
             assertThat(row.categoryId()).as("stored proposal's category id").isEqualTo(supermarketsCategoryId);
             assertThat(row.description()).as("stored proposal's description").isEqualTo(DESCRIPTION);
             assertThat(row.merchant()).as("stored proposal's merchant").isEqualTo(MERCHANT);
@@ -126,6 +130,12 @@ class CreateExpenseProposalMcpToolSystemTest extends AbstractSystemTest {
                     .as("stored proposal's minor units")
                     .isEqualTo(720000L);
             assertThat(row.currencyCode()).as("stored proposal's currency code").isEqualTo(CURRENCY_CODE);
+            assertThat(row.incomingMessageId())
+                    .as("stored proposal's incoming message id")
+                    .isEqualTo(reference.value());
+            assertThat(toolResult.getLong("id"))
+                    .as("the answer's id is the stored row's id")
+                    .isEqualTo(row.id());
         }
     }
 

@@ -705,7 +705,7 @@ class HandleIncomingMessageUseCaseTest {
             IncomingMessageId reference = request.incomingMessageId();
             assertThat(request.userId()).isEqualTo(differentUserId);
 
-            verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
+            verify(expenseRepository).findSummariesByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);
         }
     }

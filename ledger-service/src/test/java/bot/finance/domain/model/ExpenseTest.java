@@ -1,11 +1,13 @@
 package bot.finance.domain.model;
 
+import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseStatus;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ExpenseTest {
 
     private static final Money MONEY = new Money(1500L, CurrencyCode.of("USD"));
+    private static final IncomingMessageId MESSAGE_REFERENCE = newIncomingMessageId();
 
     @Nested
     @DisplayName("creating a new expense")
@@ -38,6 +41,8 @@ class ExpenseTest {
             assertThat(expense.description()).isEqualTo("Coffee");
             assertThat(expense.merchant()).contains("Blue Bottle");
             assertThat(expense.money()).isEqualTo(MONEY);
+            assertThat(expense.status()).isEqualTo(ExpenseStatus.RECORDED);
+            assertThat(expense.incomingMessageId()).isEmpty();
             assertThat(expense.createdAt()).isEqualTo(now);
             assertThat(expense.updatedAt()).isEqualTo(now);
         }
@@ -106,6 +111,37 @@ class ExpenseTest {
         @DisplayName("when the instant is absent - then throws InvalidExpenseException")
         void whenInstantIsAbsent_thenThrowsInvalidExpenseException() {
             assertThatThrownBy(() -> Expense.newExpense(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when every field is given - then the proposal is PENDING and stamped with the given instant")
+        void whenEveryFieldAndAnIncomingMessageIdAreGiven_thenReturnsAPendingProposalStampedWithThatInstant() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            Expense expense =
+                    Expense.newProposal(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now);
+
+            assertThat(expense.id()).isEmpty();
+            assertThat(expense.userId()).isEqualTo(1L);
+            assertThat(expense.categoryId()).isEqualTo(2L);
+            assertThat(expense.description()).isEqualTo("Coffee");
+            assertThat(expense.merchant()).contains("Blue Bottle");
+            assertThat(expense.money()).isEqualTo(MONEY);
+            assertThat(expense.status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(expense.incomingMessageId()).contains(MESSAGE_REFERENCE);
+            assertThat(expense.createdAt()).isEqualTo(now);
+            assertThat(expense.updatedAt()).isEqualTo(now);
+        }
+
+        @Test
+        @DisplayName("when every other field is valid and no incoming message id is given - then throws "
+                + "InvalidExpenseException")
+        void whenEveryOtherFieldIsValidAndNoIncomingMessageIdIsGiven_thenThrowsInvalidExpenseException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(
+                            () -> Expense.newProposal(1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now))
                     .isInstanceOf(InvalidExpenseException.class);
         }
     }
@@ -200,6 +236,72 @@ class ExpenseTest {
                             createdAt,
                             null))
                     .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when a database id, status and message id are given - then the entry carries them " + "unchanged")
+        void whenDatabaseIdPendingAndAnIncomingMessageIdAreGiven_thenReturnsTheEntryCarryingThemUnchanged() {
+            Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
+            Instant updatedAt = Instant.parse("2026-07-29T11:15:30Z");
+
+            Expense expense = Expense.stored(
+                    42L,
+                    1L,
+                    2L,
+                    "Coffee",
+                    Optional.of("Blue Bottle"),
+                    MONEY,
+                    ExpenseStatus.PENDING,
+                    Optional.of(MESSAGE_REFERENCE),
+                    createdAt,
+                    updatedAt);
+
+            assertThat(expense.id()).contains(42L);
+            assertThat(expense.status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(expense.incomingMessageId()).contains(MESSAGE_REFERENCE);
+            assertThat(expense.createdAt()).isEqualTo(createdAt);
+            assertThat(expense.updatedAt()).isEqualTo(updatedAt);
+        }
+
+        @Test
+        @DisplayName("when a database id, PENDING and no incoming message id are given - then throws "
+                + "InvalidExpenseException")
+        void whenDatabaseIdPendingAndNoIncomingMessageIdAreGiven_thenThrowsInvalidExpenseException() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            "Coffee",
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.PENDING,
+                            Optional.empty(),
+                            now,
+                            now))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when a database id, RECORDED and no incoming message id are given - then the entry is "
+                + "returned with an empty message id")
+        void whenDatabaseIdRecordedAndNoIncomingMessageIdAreGiven_thenReturnsTheEntryWithAnEmptyMessageId() {
+            Instant now = Instant.parse("2026-07-29T10:15:30Z");
+
+            Expense expense = Expense.stored(
+                    42L,
+                    1L,
+                    2L,
+                    "Coffee",
+                    Optional.of("Blue Bottle"),
+                    MONEY,
+                    ExpenseStatus.RECORDED,
+                    Optional.empty(),
+                    now,
+                    now);
+
+            assertThat(expense.incomingMessageId()).isEmpty();
         }
     }
 }

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,7 +51,6 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS03: findPage still UNIONs against the dropped expense_proposal table until GI01 rewrites it")
         @DisplayName("when the list is requested with the session cookie and no filter - then 200 with a page of "
                 + "both kinds, newest first")
         void whenTheListIsRequestedWithTheSessionCookieAndNoFilter_then200WithAPageOfBothKindsNewestFirst() {

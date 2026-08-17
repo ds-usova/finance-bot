@@ -188,6 +188,7 @@ class CreateExpenseProposalMcpToolTest {
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             String message = response.jsonPath().getString("result.content[0].text");
             assertThat(message)
+                    .startsWith("invalid request:")
                     .contains("description must be present")
                     .doesNotContainIgnoringCase("table")
                     .doesNotContainIgnoringCase("constraint");
@@ -267,8 +268,7 @@ class CreateExpenseProposalMcpToolTest {
         void whenPortThrowsPersistenceFailedException_thenToolErrorSaysNotStoredNamingNoInternals() {
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new PersistenceFailedException(
-                            "duplicate key value violates unique constraint \"pk_expense_proposal\" on table "
-                                    + "\"expense_proposal\"",
+                            "duplicate key value violates unique constraint \"pk_expense\" on table \"expense\"",
                             new RuntimeException("cause")));
 
             Response response =
@@ -278,7 +278,7 @@ class CreateExpenseProposalMcpToolTest {
             String message = response.jsonPath().getString("result.content[0].text");
             assertThat(message)
                     .containsIgnoringCase("stored")
-                    .doesNotContain("expense_proposal")
+                    .doesNotContain("expense")
                     .doesNotContainIgnoringCase("constraint");
         }
 

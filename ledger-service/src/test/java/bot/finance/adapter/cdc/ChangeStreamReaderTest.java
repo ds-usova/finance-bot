@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -291,10 +290,8 @@ class ChangeStreamReaderTest {
         }
 
         @Test
-        @Disabled("RI05: the delete lands on expense now, not expense_proposal; RI05 rewrites this against the "
-                + "merged table")
-        @DisplayName("when a pending proposal is discarded as a lone DELETE - then no expense insert shares its "
-                + "transaction")
+        @DisplayName("when a pending proposal is discarded as a lone DELETE - then no other expense entry shares "
+                + "its transaction")
         void whenPendingProposalDiscardedAsLoneDelete_thenOneDeleteEventCarriesWholeRowAndNoExpenseSharesTxn() {
             long userId = seedUser();
             long groupingId = seedGrouping(userId);
@@ -318,10 +315,10 @@ class ChangeStreamReaderTest {
             jdbcAggregateTemplate.delete(proposal);
 
             // The slot outlives each test method, so the seeding insert is captured too. What the discard has
-            // to prove is not how many entries there are but what the delete carries, and that nothing was
+            // to prove is not how many entries there are but what the delete carries, and that nothing else was
             // written to `expense` in the same transaction - which is exactly what separates a discard from an
             // acceptance.
-            ChangeStreamEntry deleteEntry = awaitDeleteFor("expense_proposal", userId, proposal.id());
+            ChangeStreamEntry deleteEntry = awaitDeleteFor("expense", userId, proposal.id());
 
             assertThat(deleteEntry.before().path("id").asLong()).isEqualTo(proposal.id());
             assertThat(deleteEntry.before().path("description").asText()).isEqualTo("Coffee");
@@ -329,7 +326,8 @@ class ChangeStreamReaderTest {
 
             long discardTransactionId = deleteEntry.source().path("txId").asLong();
             assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
-                    .noneMatch(entry -> entry.source().path("txId").asLong() == discardTransactionId);
+                    .filteredOn(entry -> entry.source().path("txId").asLong() == discardTransactionId)
+                    .containsExactly(deleteEntry);
         }
 
         @Test

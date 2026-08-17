@@ -6,6 +6,7 @@ import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -66,8 +66,6 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS02: the listing GETs below call findPage, which still UNIONs against the dropped "
-                + "expense_proposal table until GI01 rewrites it")
         @DisplayName("when both ids are posted with the session cookie and CSRF token - then 200, both recorded, "
                 + "and buttons come off")
         void whenBothIdsArePostedWithTheSessionCookieAndCsrfToken_then200BothRecordedAndButtonsComeOff() {
@@ -105,6 +103,18 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                             now,
                             ExpenseStatus.PENDING)
                     .id();
+            long alreadyRecordedId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "groceries",
+                            "Market",
+                            560L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            now,
+                            ExpenseStatus.RECORDED)
+                    .id();
             String conversationId = SCENARIO.conversationId();
             String sentMessageId = "4242";
             ProposalReportRowUtils.storedReport(
@@ -118,36 +128,24 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .cookie(CSRF_COOKIE, csrfToken)
                     .header(CSRF_HEADER, csrfToken)
-                    .body(Map.of("ids", List.of(firstProposalId, secondProposalId)))
+                    .body(Map.of("ids", List.of(firstProposalId, secondProposalId, alreadyRecordedId)))
                     .when()
                     .post(ACCEPTANCES_PATH);
             logResponse(response);
 
-            // then: the response is 200 with accepted 2 and missing 0
+            // then: the response is 200 with accepted 2 and missing 1 for the already-recorded id
             response.then().statusCode(200);
             assertThat(response.jsonPath().getInt("accepted")).isEqualTo(2);
-            assertThat(response.jsonPath().getInt("missing")).isEqualTo(0);
+            assertThat(response.jsonPath().getInt("missing")).isEqualTo(1);
 
-            // then: a later listing shows both as RECORDED and neither as PENDING
-            Response pending = RestAssured.given()
-                    .cookie(SESSION_COOKIE, sessionCookie)
-                    .queryParam("status", "PENDING")
-                    .when()
-                    .get(EXPENSES_PATH);
-            logResponse(pending);
-            assertThat(pending.jsonPath().getInt("total"))
+            // then: the two posted proposals come back RECORDED under the ids they were posted with
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED))
+                    .as("recorded expenses for user %s", userId)
+                    .extracting(ExpenseEntity::id)
+                    .contains(firstProposalId, secondProposalId);
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING))
                     .as("nothing pending remains for this user")
-                    .isZero();
-
-            Response recorded = RestAssured.given()
-                    .cookie(SESSION_COOKIE, sessionCookie)
-                    .queryParam("status", "RECORDED")
-                    .when()
-                    .get(EXPENSES_PATH);
-            logResponse(recorded);
-            assertThat(recorded.jsonPath().getList("items.description", String.class))
-                    .as("both proposals are now recorded expenses")
-                    .containsExactlyInAnyOrder("coffee", "lunch");
+                    .isEmpty();
 
             // then: the buttons come off that report without its text being resent
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(

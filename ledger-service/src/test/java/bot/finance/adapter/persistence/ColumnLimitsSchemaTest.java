@@ -1,13 +1,21 @@
 package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.common.boot.PersistenceAdapterTest;
-import org.junit.jupiter.api.Disabled;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.UserRowUtils;
+import bot.finance.domain.value.ExpenseStatus;
+import java.time.Instant;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @PersistenceAdapterTest
@@ -24,6 +32,12 @@ class ColumnLimitsSchemaTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private JdbcAggregateTemplate jdbcAggregateTemplate;
+
+    @Autowired
+    private UserEntityRepository userEntityRepository;
 
     @Nested
     @DisplayName("app_user.external_id column width")
@@ -98,50 +112,65 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
-    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
-    @DisplayName("expense_proposal.description column width")
-    class ProposalDescription {
+    @DisplayName("expense_proposal's removal and the status column's guards")
+    class StatusColumn {
 
         @Test
-        @DisplayName(
-                "when the migrated width of expense_proposal.description is read - then it equals ColumnLimits.DESCRIPTION")
-        void whenMigratedColumnWidthRead_thenEqualsDescriptionConstant() {
-            Integer characterMaximumLength =
-                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "description");
+        @DisplayName("when information_schema.tables is read for expense_proposal - then no such table exists")
+        void whenInformationSchemaTablesReadForExpenseProposal_thenNoSuchTableExists() {
+            Integer tableCount = jdbcTemplate.queryForObject(
+                    """
+                    SELECT count(*) FROM information_schema.tables
+                    WHERE table_schema = current_schema() AND table_name = 'expense_proposal'
+                    """,
+                    Integer.class);
 
-            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.DESCRIPTION);
+            assertThat(tableCount).isZero();
         }
-    }
-
-    @Nested
-    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
-    @DisplayName("expense_proposal.merchant column width")
-    class ProposalMerchant {
 
         @Test
         @DisplayName(
-                "when the migrated width of expense_proposal.merchant is read - then it equals ColumnLimits.MERCHANT")
-        void whenMigratedColumnWidthRead_thenEqualsMerchantConstant() {
-            Integer characterMaximumLength =
-                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "merchant");
+                "when expense's status column is read - then it is NOT NULL, has no default, and admits only PENDING and RECORDED")
+        void whenStatusColumnRead_thenNotNullNoDefaultAndAdmitsOnlyPendingAndRecorded() {
+            Map<String, Object> column = jdbcTemplate.queryForMap(
+                    """
+                    SELECT is_nullable, column_default
+                    FROM information_schema.columns
+                    WHERE table_schema = current_schema() AND table_name = 'expense' AND column_name = 'status'
+                    """);
+            assertThat(column.get("is_nullable")).isEqualTo("NO");
+            assertThat(column.get("column_default")).isNull();
 
-            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.MERCHANT);
+            String checkDefinition = jdbcTemplate.queryForObject(
+                    """
+                    SELECT pg_get_constraintdef(oid) FROM pg_constraint
+                    WHERE conrelid = 'expense'::regclass AND contype = 'c'
+                      AND pg_get_constraintdef(oid) LIKE '%PENDING%' AND pg_get_constraintdef(oid) LIKE '%RECORDED%'
+                    """,
+                    String.class);
+            assertThat(checkDefinition).contains("PENDING").contains("RECORDED");
         }
-    }
-
-    @Nested
-    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
-    @DisplayName("expense_proposal.currency_code column width")
-    class ProposalCurrencyCode {
 
         @Test
         @DisplayName(
-                "when the migrated width of expense_proposal.currency_code is read - then it equals ColumnLimits.CURRENCY_CODE")
-        void whenMigratedColumnWidthRead_thenEqualsCurrencyCodeConstant() {
-            Integer characterMaximumLength =
-                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "expense_proposal", "currency_code");
+                "when a PENDING row has no incoming_message_id - then the database refuses it under ck_expense_pending_has_message")
+        void whenPendingRowHasNoIncomingMessageId_thenDatabaseRefusesUnderPendingHasMessageConstraint() {
+            long userId = UserRowUtils.storedUserId(userEntityRepository, "column-limits-pending-no-message-user");
+            long categoryId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries");
 
-            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.CURRENCY_CODE);
+            assertThatThrownBy(() -> ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "Awaiting confirmation",
+                            null,
+                            100,
+                            "USD",
+                            null,
+                            Instant.now(),
+                            ExpenseStatus.PENDING))
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_expense_pending_has_message");
         }
     }
 }
