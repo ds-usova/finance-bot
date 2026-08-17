@@ -14,11 +14,10 @@ public interface IncomingMessageEntityRepository extends CrudRepository<Incoming
             "SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId FOR UPDATE")
     Optional<Long> lockId(@Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
 
-    @Query("SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId")
-    Optional<Long> findIdByIdentity(@Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
-
-    @Query("SELECT embedding::text FROM incoming_message WHERE id = :id")
-    Optional<String> findEmbeddingText(@Param("id") long id);
+    @Query("SELECT id, embedding::text AS embedding FROM incoming_message "
+            + "WHERE user_id = :userId AND incoming_message_id = :incomingMessageId")
+    Optional<MessageEmbeddingRow> findEmbeddingRowByIdentity(
+            @Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
 
     @Modifying
     @Query(

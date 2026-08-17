@@ -643,7 +643,7 @@ class JdbcMessageMemoryAdapterTest {
         void whenRepositoryThrowsResourceFailureException_thenFindThrowsMessageStoreUnavailableExceptionWrappingIt() {
             DataAccessResourceFailureException frameworkException =
                     new DataAccessResourceFailureException("connection refused");
-            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString()))
+            when(mockedMessageRepository.findEmbeddingRowByIdentity(anyLong(), anyString()))
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.find(new MessageIdentity(1L, "mocked-find-failure")))
@@ -658,7 +658,7 @@ class JdbcMessageMemoryAdapterTest {
         void whenRepositoryThrowsAnotherDataAccessException_thenFindThrowsMessageStoreFailedExceptionNotSubtype() {
             DataIntegrityViolationException frameworkException =
                     new DataIntegrityViolationException("constraint violated");
-            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString()))
+            when(mockedMessageRepository.findEmbeddingRowByIdentity(anyLong(), anyString()))
                     .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.find(new MessageIdentity(2L, "mocked-find-failure-2")))

@@ -45,13 +45,14 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     @Override
     public Optional<RegisteredMessage> find(MessageIdentity identity) {
         try {
-            Optional<Long> id = messageRepository.findIdByIdentity(identity.userId(), identity.incomingMessageId());
-            if (id.isEmpty()) {
+            Optional<MessageEmbeddingRow> row =
+                    messageRepository.findEmbeddingRowByIdentity(identity.userId(), identity.incomingMessageId());
+            if (row.isEmpty()) {
                 return Optional.empty();
             }
             Optional<Embedding> embedding =
-                    messageRepository.findEmbeddingText(id.get()).map(VectorText::fromLiteral);
-            return Optional.of(new RegisteredMessage(id.get(), embedding));
+                    Optional.ofNullable(row.get().embedding()).map(VectorText::fromLiteral);
+            return Optional.of(new RegisteredMessage(row.get().id(), embedding));
         } catch (DataAccessException e) {
             throw MessageStoreExceptionMapper.toDomain(e, "failed to find a registered message");
         }
