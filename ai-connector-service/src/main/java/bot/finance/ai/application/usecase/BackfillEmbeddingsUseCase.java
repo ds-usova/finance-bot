@@ -69,7 +69,7 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
             return false;
         }
 
-        if (!messageEmbedder.embedAndStoreAll(claim)) {
+        if (!messageEmbedder.ensureEmbedded(claim)) {
             return false;
         }
         return claim.size() == batch;

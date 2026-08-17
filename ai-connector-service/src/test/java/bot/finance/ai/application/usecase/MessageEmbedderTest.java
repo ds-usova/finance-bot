@@ -78,7 +78,7 @@ class MessageEmbedderTest {
 
     @Nested
     @DisplayName("embedding and storing a message")
-    class EmbedAndStore {
+    class EnsureEmbeddedSingle {
 
         @Test
         @DisplayName("when the provider answers a vector - then it is stored and answered")
@@ -86,7 +86,7 @@ class MessageEmbedderTest {
             Embedding computed = new Embedding(List.of(0.1f, 0.2f));
             when(messageEmbeddingPort.embed(TEXT)).thenReturn(computed);
 
-            Optional<Embedding> result = messageEmbedder.embedAndStore(MESSAGE_ID, TEXT);
+            Optional<Embedding> result = messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT);
 
             assertThat(result).contains(computed);
             verify(messageMemoryPort).storeEmbedding(eq(MESSAGE_ID), eq(computed));
@@ -99,7 +99,7 @@ class MessageEmbedderTest {
             when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("refused"));
             when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS - 1);
 
-            Optional<Embedding> result = messageEmbedder.embedAndStore(MESSAGE_ID, TEXT);
+            Optional<Embedding> result = messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT);
 
             assertThat(result).isEmpty();
             verify(messageMemoryPort).countEmbeddingAttempt(eq(MESSAGE_ID));
@@ -114,7 +114,7 @@ class MessageEmbedderTest {
             when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("refused"));
             when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS);
 
-            Optional<Embedding> result = messageEmbedder.embedAndStore(MESSAGE_ID, TEXT);
+            Optional<Embedding> result = messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT);
 
             assertThat(result).isEmpty();
             assertThat(loggedErrorLines()).hasSize(1);
@@ -132,14 +132,14 @@ class MessageEmbedderTest {
                     .when(messageMemoryPort)
                     .storeEmbedding(eq(MESSAGE_ID), eq(computed));
 
-            assertThatThrownBy(() -> messageEmbedder.embedAndStore(MESSAGE_ID, TEXT))
+            assertThatThrownBy(() -> messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT))
                     .isInstanceOf(MessageStoreFailedException.class);
         }
     }
 
     @Nested
     @DisplayName("embedding and storing a claimed batch")
-    class EmbedAndStoreAll {
+    class EnsureEmbeddedBatch {
 
         @Test
         @DisplayName("when the provider answers a vector for every row - then each is stored and true is answered")
@@ -150,7 +150,7 @@ class MessageEmbedderTest {
             when(messageEmbeddingPort.embedAll(List.of(ROW_1.text(), ROW_2.text())))
                     .thenReturn(List.of(v1, v2));
 
-            boolean result = messageEmbedder.embedAndStoreAll(claim);
+            boolean result = messageEmbedder.ensureEmbedded(claim);
 
             assertThat(result).isTrue();
             verify(messageMemoryPort).storeEmbedding(eq(ROW_1.messageId()), eq(v1));
@@ -164,7 +164,7 @@ class MessageEmbedderTest {
             List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
             when(messageEmbeddingPort.embedAll(any())).thenThrow(new MessageEmbeddingFailedException("refused"));
 
-            boolean result = messageEmbedder.embedAndStoreAll(claim);
+            boolean result = messageEmbedder.ensureEmbedded(claim);
 
             assertThat(result).isFalse();
             verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_1.messageId()));
@@ -180,7 +180,7 @@ class MessageEmbedderTest {
             Embedding v1 = new Embedding(List.of(0.1f));
             when(messageEmbeddingPort.embedAll(any())).thenReturn(List.of(v1));
 
-            boolean result = messageEmbedder.embedAndStoreAll(claim);
+            boolean result = messageEmbedder.ensureEmbedded(claim);
 
             assertThat(result).isFalse();
             verify(messageMemoryPort, never()).storeEmbedding(anyLong(), any());
@@ -201,7 +201,7 @@ class MessageEmbedderTest {
                     .when(messageMemoryPort)
                     .storeEmbedding(eq(ROW_2.messageId()), eq(v2));
 
-            boolean result = messageEmbedder.embedAndStoreAll(claim);
+            boolean result = messageEmbedder.ensureEmbedded(claim);
 
             assertThat(result).isFalse();
             verify(messageMemoryPort).storeEmbedding(eq(ROW_1.messageId()), eq(v1));

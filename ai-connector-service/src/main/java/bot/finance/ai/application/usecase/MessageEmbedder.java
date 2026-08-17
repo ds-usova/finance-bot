@@ -39,7 +39,7 @@ public class MessageEmbedder {
         return embeddingAttempts;
     }
 
-    public Optional<Embedding> embedAndStore(long messageId, String text) {
+    public Optional<Embedding> ensureEmbedded(long messageId, String text) {
         try {
             Embedding computed = messageEmbeddingPort.embed(text);
             messageMemoryPort.storeEmbedding(messageId, computed);
@@ -51,7 +51,7 @@ public class MessageEmbedder {
         }
     }
 
-    public boolean embedAndStoreAll(List<UnembeddedMessage> claim) {
+    public boolean ensureEmbedded(List<UnembeddedMessage> claim) {
         List<String> texts = claim.stream().map(UnembeddedMessage::text).collect(Collectors.toList());
         List<Embedding> vectors;
         try {

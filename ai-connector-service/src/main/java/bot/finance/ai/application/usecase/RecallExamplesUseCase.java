@@ -74,7 +74,7 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
             RegisteredMessage row = registered.get();
             Optional<Embedding> vector = row.embedding().isPresent()
                     ? row.embedding()
-                    : messageEmbedder.embedAndStore(row.messageId(), command.text());
+                    : messageEmbedder.ensureEmbedded(row.messageId(), command.text());
             if (vector.isEmpty()) {
                 return Optional.empty();
             }
