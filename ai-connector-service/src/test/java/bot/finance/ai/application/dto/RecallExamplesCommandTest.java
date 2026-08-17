@@ -33,8 +33,7 @@ class RecallExamplesCommandTest {
         @Test
         @DisplayName("when the identity is null - then throws InvalidValueException")
         void whenIdentityIsNull_thenThrowsInvalidValueException() {
-            assertThatThrownBy(() -> new RecallExamplesCommand(null, TEXT))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> new RecallExamplesCommand(null, TEXT)).isInstanceOf(InvalidValueException.class);
         }
 
         @ParameterizedTest

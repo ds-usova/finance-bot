@@ -42,8 +42,7 @@ class RegisteredMessageTest {
         @DisplayName("when the embedding Optional is null - then throws InvalidValueException, never "
                 + "NullPointerException")
         void whenEmbeddingOptionalIsNull_thenThrowsInvalidValueExceptionNeverNullPointerException() {
-            assertThatThrownBy(() -> new RegisteredMessage(MESSAGE_ID, null))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> new RegisteredMessage(MESSAGE_ID, null)).isInstanceOf(InvalidValueException.class);
         }
     }
 }

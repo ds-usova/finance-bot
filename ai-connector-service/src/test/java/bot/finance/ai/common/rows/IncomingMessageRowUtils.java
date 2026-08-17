@@ -22,6 +22,19 @@ public final class IncomingMessageRowUtils {
                 Timestamp.from(receivedAt));
     }
 
+    /** The generated id of the row under {@code userId} and {@code incomingMessageId}. */
+    public static long id(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
+        Long id = jdbcTemplate.queryForObject(
+                "SELECT id FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
+                Long.class,
+                userId,
+                incomingMessageId);
+        if (id == null) {
+            throw new AssertionError("no incoming_message row for user " + userId + " and " + incomingMessageId);
+        }
+        return id;
+    }
+
     public static int count(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",

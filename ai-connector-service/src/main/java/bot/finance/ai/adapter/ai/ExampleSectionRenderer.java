@@ -20,18 +20,18 @@ public class ExampleSectionRenderer {
             return "none";
         }
 
-        return found.stream().map(this::renderExample).collect(Collectors.joining("\n"));
+        return found.stream().map(ExampleSectionRenderer::renderExample).collect(Collectors.joining("\n"));
     }
 
-    private String renderExample(MessageExample example) {
+    private static String renderExample(MessageExample example) {
         String expenseLines = example.expenses().stream()
-                .map(this::renderExpenseLine)
+                .map(ExampleSectionRenderer::renderExpenseLine)
                 .collect(Collectors.joining("\n"));
 
         return "- \"" + example.text() + "\"\n" + expenseLines;
     }
 
-    private String renderExpenseLine(ExampleExpense expense) {
+    private static String renderExpenseLine(ExampleExpense expense) {
         StringBuilder line = new StringBuilder("  - ")
                 .append(expense.description())
                 .append(", ")
@@ -49,7 +49,7 @@ public class ExampleSectionRenderer {
         return line.toString();
     }
 
-    private String renderCategoryAndGrouping(ExampleExpense expense) {
+    private static String renderCategoryAndGrouping(ExampleExpense expense) {
         Optional<String> category = expense.categoryName();
         Optional<String> grouping = expense.groupingName();
 

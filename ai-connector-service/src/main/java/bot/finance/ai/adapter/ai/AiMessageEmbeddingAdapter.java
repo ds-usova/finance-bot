@@ -29,7 +29,8 @@ public class AiMessageEmbeddingAdapter implements MessageEmbeddingPort {
     private final Logger log;
     private final ExecutorService virtualThreads = Executors.newVirtualThreadPerTaskExecutor();
 
-    public AiMessageEmbeddingAdapter(EmbeddingModel embeddingModel, MemoryProperties properties, LoggerFactory loggerFactory) {
+    public AiMessageEmbeddingAdapter(
+            EmbeddingModel embeddingModel, MemoryProperties properties, LoggerFactory loggerFactory) {
         this.embeddingModel = embeddingModel;
         this.properties = properties;
         this.log = loggerFactory.getLogger(AiMessageEmbeddingAdapter.class);
@@ -46,8 +47,8 @@ public class AiMessageEmbeddingAdapter implements MessageEmbeddingPort {
     }
 
     private List<Embedding> call(List<String> texts, Duration timeout) {
-        Future<EmbeddingResponse> future = virtualThreads.submit(
-                () -> embeddingModel.call(new EmbeddingRequest(texts, EmbeddingOptions.builder().build())));
+        Future<EmbeddingResponse> future = virtualThreads.submit(() -> embeddingModel.call(
+                new EmbeddingRequest(texts, EmbeddingOptions.builder().build())));
 
         EmbeddingResponse response;
         try {

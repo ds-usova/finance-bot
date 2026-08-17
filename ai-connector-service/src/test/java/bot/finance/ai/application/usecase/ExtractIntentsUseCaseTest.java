@@ -136,8 +136,7 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), eq(currentDate), eq(Optional.empty()));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), eq(currentDate), eq(Optional.empty()));
         }
 
         @Test
@@ -150,13 +149,7 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verify(expenseRecordingPort)
-                    .record(
-                            any(),
-                            any(),
-                            any(),
-                            eq(Optional.of(CurrencyCode.of("EUR"))),
-                            any(),
-                            eq(Optional.empty()));
+                    .record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -174,9 +167,7 @@ class ExtractIntentsUseCaseTest {
             List<String> categoryGroupings = List.of("Food");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
-            doThrow(failure)
-                    .when(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
 
             assertThatThrownBy(() -> useCase.extractIntents(command)).isSameAs(failure);
         }
@@ -206,8 +197,7 @@ class ExtractIntentsUseCaseTest {
 
             InOrder inOrder = inOrder(messageStorePort, expenseRecordingPort);
             inOrder.verify(messageStorePort).register(eq(identity), eq(TEXT));
-            inOrder.verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            inOrder.verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -220,8 +210,7 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verifyNoInteractions(messageStorePort);
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -243,8 +232,7 @@ class ExtractIntentsUseCaseTest {
                     .contains("42")
                     .contains("msg-123")
                     .doesNotContain(TEXT);
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -261,8 +249,7 @@ class ExtractIntentsUseCaseTest {
             InOrder inOrder = inOrder(messageStorePort, recallExamplesPort);
             inOrder.verify(messageStorePort).register(eq(identity), eq(TEXT));
             inOrder.verify(recallExamplesPort).recall(eq(new RecallExamplesCommand(identity, TEXT)));
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.of(examples)));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.of(examples)));
         }
 
         @Test
@@ -274,8 +261,7 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verifyNoInteractions(recallExamplesPort);
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -289,8 +275,7 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort)
-                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), eq(Optional.empty()));
             assertThat(loggedInfoLines()).hasSize(1);
         }
 

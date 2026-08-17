@@ -29,11 +29,7 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
 
     private long insertUnembedded(long userId, String incomingMessageId, String text) {
         IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, text, Instant.now());
-        return jdbcTemplate.queryForObject(
-                "SELECT id FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
-                Long.class,
-                userId,
-                incomingMessageId);
+        return IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
     }
 
     @Nested
@@ -81,8 +77,8 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
                 assertThat(secondVector).isNotEmpty();
             });
 
-            RecordedExpenseRow recordedExpenseRow =
-                    RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId).orElseThrow();
+            RecordedExpenseRow recordedExpenseRow = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId)
+                    .orElseThrow();
             log.info("recorded expense row: {}", recordedExpenseRow);
             assertThat(recordedExpenseRow.status()).isEqualTo("ACCEPTED");
             assertThat(recordedExpenseRow.categoryName()).isEqualTo("Restaurants");

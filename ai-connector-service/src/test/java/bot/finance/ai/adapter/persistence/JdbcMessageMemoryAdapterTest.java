@@ -74,8 +74,10 @@ class JdbcMessageMemoryAdapterTest {
     private long insertMessageWithAttempts(
             long userId, String incomingMessageId, String text, Instant receivedAt, int attempts) {
         jdbcTemplate.update(
-                "INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding_attempts) "
-                        + "VALUES (?, ?, ?, ?, ?)",
+                """
+                INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding_attempts)
+                VALUES (?, ?, ?, ?, ?)
+                """,
                 userId,
                 incomingMessageId,
                 text,
@@ -85,12 +87,7 @@ class JdbcMessageMemoryAdapterTest {
     }
 
     private long idFor(long userId, String incomingMessageId) {
-        Long id = jdbcTemplate.queryForObject(
-                "SELECT id FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
-                Long.class,
-                userId,
-                incomingMessageId);
-        return id;
+        return IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
     }
 
     private void setClaimedAt(long messageId, Instant claimedAt) {
@@ -139,7 +136,14 @@ class JdbcMessageMemoryAdapterTest {
             Duration maxAge,
             int exampleLines) {
         return new ExampleQuery(
-                userId, excludeId, new Embedding(embedding), examples, minSimilarity, recentWindow, maxAge, exampleLines);
+                userId,
+                excludeId,
+                new Embedding(embedding),
+                examples,
+                minSimilarity,
+                recentWindow,
+                maxAge,
+                exampleLines);
     }
 
     private ExampleQuery defaultQuery(long userId, long excludeId, List<Float> embedding) {
@@ -270,7 +274,9 @@ class JdbcMessageMemoryAdapterTest {
             List<MessageExample> result =
                     adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
 
-            assertThat(result).extracting(MessageExample::text).containsExactly("closest text", "mid text", "third text");
+            assertThat(result)
+                    .extracting(MessageExample::text)
+                    .containsExactly("closest text", "mid text", "third text");
         }
 
         @Test
@@ -425,16 +431,25 @@ class JdbcMessageMemoryAdapterTest {
             insertDecided(neighbour, userId, 82L, "second", 100L, "EUR", 1L, "Cat", "Grp", "ACCEPTED");
             insertDecided(neighbour, userId, 83L, "third", 100L, "EUR", 1L, "Cat", "Grp", "ACCEPTED");
 
-            List<MessageExample> result = adapter.findExamples(
-                    query(userId, -1L, EmbeddingFixtures.unitVector(0), 3, 0.6, Duration.ofDays(30), Duration.ofDays(365), 2));
+            List<MessageExample> result = adapter.findExamples(query(
+                    userId,
+                    -1L,
+                    EmbeddingFixtures.unitVector(0),
+                    3,
+                    0.6,
+                    Duration.ofDays(30),
+                    Duration.ofDays(365),
+                    2));
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).expenses()).extracting(expense -> expense.description())
+            assertThat(result.get(0).expenses())
+                    .extracting(ExampleExpense::description)
                     .containsExactly("first", "second");
         }
 
         @Test
-        @DisplayName("when a neighbour's expense has no category or grouping name - then both are absent, rest unchanged")
+        @DisplayName(
+                "when a neighbour's expense has no category or grouping name - then both are absent, rest unchanged")
         void whenExpenseHasNoCategoryOrGroupingName_thenBothAbsentRestUnchanged() {
             long userId = 9511L;
             Instant recent = Instant.now().minus(Duration.ofHours(1));
@@ -509,17 +524,18 @@ class JdbcMessageMemoryAdapterTest {
 
             List<UnembeddedMessage> result = adapter.claimUnembedded(10, 3, Duration.ofMinutes(10));
 
-            assertThat(result)
-                    .extracting(UnembeddedMessage::messageId)
-                    .containsExactly(plainA, plainB, staleClaim);
+            assertThat(result).extracting(UnembeddedMessage::messageId).containsExactly(plainA, plainB, staleClaim);
             assertThat(result).extracting(UnembeddedMessage::text).containsExactly("text a", "text b", "text stale");
-            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-plain-a")).isNotNull();
-            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-plain-b")).isNotNull();
-            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-stale")).isNotNull();
-            assertThat(freshClaim).isNotIn(
-                    result.stream().map(UnembeddedMessage::messageId).toList());
-            assertThat(atAttemptBound).isNotIn(
-                    result.stream().map(UnembeddedMessage::messageId).toList());
+            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-plain-a"))
+                    .isNotNull();
+            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-plain-b"))
+                    .isNotNull();
+            assertThat(IncomingMessageRowUtils.backfillClaimedAt(jdbcTemplate, 9601L, "claim-stale"))
+                    .isNotNull();
+            assertThat(freshClaim)
+                    .isNotIn(result.stream().map(UnembeddedMessage::messageId).toList());
+            assertThat(atAttemptBound)
+                    .isNotIn(result.stream().map(UnembeddedMessage::messageId).toList());
         }
 
         @Test
@@ -591,7 +607,8 @@ class JdbcMessageMemoryAdapterTest {
                 List<Future<Integer>> results =
                         executor.invokeAll(List.of(loopUntilEmpty, loopUntilEmpty), 5, TimeUnit.SECONDS);
 
-                assertThat(results).allSatisfy(future -> assertThat(future.isCancelled()).isFalse());
+                assertThat(results)
+                        .allSatisfy(future -> assertThat(future.isCancelled()).isFalse());
                 int firstTotal = results.get(0).get();
                 int secondTotal = results.get(1).get();
 
@@ -617,8 +634,8 @@ class JdbcMessageMemoryAdapterTest {
                 mock(IncomingMessageEntityRepository.class);
         private final RecordedExpenseEntityRepository mockedExpenseRepository =
                 mock(RecordedExpenseEntityRepository.class);
-        private final JdbcMessageMemoryAdapter mockedAdapter = new JdbcMessageMemoryAdapter(
-                mockedMessageRepository, mockedExpenseRepository, Clock.systemUTC());
+        private final JdbcMessageMemoryAdapter mockedAdapter =
+                new JdbcMessageMemoryAdapter(mockedMessageRepository, mockedExpenseRepository, Clock.systemUTC());
 
         @Test
         @DisplayName(
@@ -626,7 +643,8 @@ class JdbcMessageMemoryAdapterTest {
         void whenRepositoryThrowsResourceFailureException_thenFindThrowsMessageStoreUnavailableExceptionWrappingIt() {
             DataAccessResourceFailureException frameworkException =
                     new DataAccessResourceFailureException("connection refused");
-            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString())).thenThrow(frameworkException);
+            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString()))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.find(new MessageIdentity(1L, "mocked-find-failure")))
                     .isInstanceOf(MessageStoreUnavailableException.class)
@@ -640,7 +658,8 @@ class JdbcMessageMemoryAdapterTest {
         void whenRepositoryThrowsAnotherDataAccessException_thenFindThrowsMessageStoreFailedExceptionNotSubtype() {
             DataIntegrityViolationException frameworkException =
                     new DataIntegrityViolationException("constraint violated");
-            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString())).thenThrow(frameworkException);
+            when(mockedMessageRepository.findIdByIdentity(anyLong(), anyString()))
+                    .thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.find(new MessageIdentity(2L, "mocked-find-failure-2")))
                     .isInstanceOf(MessageStoreFailedException.class)

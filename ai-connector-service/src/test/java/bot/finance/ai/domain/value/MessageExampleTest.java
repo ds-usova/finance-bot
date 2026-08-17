@@ -51,7 +51,8 @@ class MessageExampleTest {
                     Arguments.of(Named.of("blank text", "   "), List.of(EXPENSE)),
                     Arguments.of(Named.of("null expense list", "spent 15 on lunch"), (List<ExampleExpense>) null),
                     Arguments.of(
-                            Named.of("empty expense list", "spent 15 on lunch"), Collections.<ExampleExpense>emptyList()),
+                            Named.of("empty expense list", "spent 15 on lunch"),
+                            Collections.<ExampleExpense>emptyList()),
                     Arguments.of(
                             Named.of("expense list holding a null", "spent 15 on lunch"),
                             Arrays.asList(EXPENSE, null)));

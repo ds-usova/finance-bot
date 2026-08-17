@@ -167,7 +167,11 @@ class AiMessageEmbeddingAdapterTest {
         @ActiveProfiles("test")
         @TestPropertySource(properties = "memory.backfill-timeout=1s")
         @SpringBootTest(
-                classes = {AiMessageEmbeddingAdapter.class, MemoryPropertiesConfiguration.class, Slf4jLoggerFactory.class})
+                classes = {
+                    AiMessageEmbeddingAdapter.class,
+                    MemoryPropertiesConfiguration.class,
+                    Slf4jLoggerFactory.class
+                })
         @ImportAutoConfiguration(OpenAiEmbeddingAutoConfiguration.class)
         @Import(WireMockUrlConfiguration.class)
         class WhenBackfillTimeoutIsShort {
@@ -179,8 +183,8 @@ class AiMessageEmbeddingAdapterTest {
             private MemoryProperties propertiesWithShortTimeout;
 
             @Test
-            @DisplayName("when the provider answers after the backfill timeout - then it throws within a bound "
-                    + "of it")
+            @DisplayName(
+                    "when the provider answers after the backfill timeout - then it throws within a bound " + "of it")
             void whenProviderAnswersAfterTimeout_thenThrowsWithinBoundOfTimeout() {
                 WireMockStubs.stubEmbeddingsDelayed(
                         EmbeddingFixtures.embeddingsResponse(EmbeddingFixtures.unitVector(0)),
@@ -191,7 +195,8 @@ class AiMessageEmbeddingAdapterTest {
                         .isInstanceOf(MessageEmbeddingFailedException.class);
                 Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
 
-                assertThat(elapsed).isLessThan(propertiesWithShortTimeout.backfillTimeout().plusSeconds(3));
+                assertThat(elapsed)
+                        .isLessThan(propertiesWithShortTimeout.backfillTimeout().plusSeconds(3));
             }
         }
     }

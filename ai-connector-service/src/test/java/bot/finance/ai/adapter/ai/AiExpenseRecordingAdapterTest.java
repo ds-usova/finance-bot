@@ -366,7 +366,8 @@ class AiExpenseRecordingAdapterTest {
                     Optional.of("Restaurants"),
                     Optional.of("Dining"),
                     ExampleOutcome.ACCEPTED);
-            MessageExample firstExample = new MessageExample("spent 15 euros on lunch yesterday", List.of(lunchExpense));
+            MessageExample firstExample =
+                    new MessageExample("spent 15 euros on lunch yesterday", List.of(lunchExpense));
 
             ExampleExpense coffeeExpense = new ExampleExpense(
                     "coffee",
@@ -391,8 +392,8 @@ class AiExpenseRecordingAdapterTest {
         }
 
         @Test
-        @DisplayName("when record() is called with a present, empty examples retrieval - then the section reads "
-                + "none")
+        @DisplayName(
+                "when record() is called with a present, empty examples retrieval - then the section reads " + "none")
         void whenCalledWithEmptyExamplesRetrieval_thenUserMessageExamplesSectionReadsNone() {
             JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")), Optional.of(List.of()));
 

@@ -189,7 +189,14 @@ class RecallExamplesUseCaseTest {
 
             verifyNoInteractions(messageEmbeddingPort);
             ExampleQuery expectedQuery = new ExampleQuery(
-                    IDENTITY.userId(), MESSAGE_ID, vector, EXAMPLES, MIN_SIMILARITY, RECENT_WINDOW, MAX_AGE, EXAMPLE_LINES);
+                    IDENTITY.userId(),
+                    MESSAGE_ID,
+                    vector,
+                    EXAMPLES,
+                    MIN_SIMILARITY,
+                    RECENT_WINDOW,
+                    MAX_AGE,
+                    EXAMPLE_LINES);
             verify(messageMemoryPort).findExamples(eq(expectedQuery));
             assertThat(result).contains(examples);
         }
@@ -208,7 +215,14 @@ class RecallExamplesUseCaseTest {
 
             verify(messageMemoryPort).storeEmbedding(eq(MESSAGE_ID), eq(computed));
             ExampleQuery expectedQuery = new ExampleQuery(
-                    IDENTITY.userId(), MESSAGE_ID, computed, EXAMPLES, MIN_SIMILARITY, RECENT_WINDOW, MAX_AGE, EXAMPLE_LINES);
+                    IDENTITY.userId(),
+                    MESSAGE_ID,
+                    computed,
+                    EXAMPLES,
+                    MIN_SIMILARITY,
+                    RECENT_WINDOW,
+                    MAX_AGE,
+                    EXAMPLE_LINES);
             verify(messageMemoryPort).findExamples(eq(expectedQuery));
             assertThat(result).contains(examples);
         }
@@ -279,8 +293,7 @@ class RecallExamplesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when embed() fails and the attempt count reaches the bound - then one ERROR names the "
-                + "row")
+        @DisplayName("when embed() fails and the attempt count reaches the bound - then one ERROR names the " + "row")
         void whenEmbedFailsAndAttemptCountReachesBound_thenOneErrorNamesRowAndCarriesNoText() {
             RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
             when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
@@ -290,7 +303,9 @@ class RecallExamplesUseCaseTest {
             useCase.recall(command());
 
             assertThat(loggedErrorLines()).hasSize(1);
-            assertThat(loggedErrorLines().get(0)).contains(String.valueOf(MESSAGE_ID)).doesNotContain(TEXT);
+            assertThat(loggedErrorLines().get(0))
+                    .contains(String.valueOf(MESSAGE_ID))
+                    .doesNotContain(TEXT);
         }
 
         @Test

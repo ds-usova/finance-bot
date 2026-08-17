@@ -34,8 +34,7 @@ class UnembeddedMessageTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("when the text is null, empty, or whitespace-only - then throws InvalidValueException")
         void whenTextIsNullEmptyOrBlank_thenThrowsInvalidValueException(String text) {
-            assertThatThrownBy(() -> new UnembeddedMessage(MESSAGE_ID, text))
-                    .isInstanceOf(InvalidValueException.class);
+            assertThatThrownBy(() -> new UnembeddedMessage(MESSAGE_ID, text)).isInstanceOf(InvalidValueException.class);
         }
     }
 }

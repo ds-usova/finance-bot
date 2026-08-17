@@ -120,8 +120,20 @@ class ExampleSectionRendererTest {
             MessageExample example = new MessageExample(
                     "bought a book and a gift",
                     List.of(
-                            expense("book", "9.99", USD, Optional.empty(), Optional.of("Shopping"), ExampleOutcome.ACCEPTED),
-                            expense("gift", "20.00", USD, Optional.of("Gifts"), Optional.empty(), ExampleOutcome.ACCEPTED)));
+                            expense(
+                                    "book",
+                                    "9.99",
+                                    USD,
+                                    Optional.empty(),
+                                    Optional.of("Shopping"),
+                                    ExampleOutcome.ACCEPTED),
+                            expense(
+                                    "gift",
+                                    "20.00",
+                                    USD,
+                                    Optional.of("Gifts"),
+                                    Optional.empty(),
+                                    ExampleOutcome.ACCEPTED)));
 
             String section = renderer.render(Optional.of(List.of(example)));
 

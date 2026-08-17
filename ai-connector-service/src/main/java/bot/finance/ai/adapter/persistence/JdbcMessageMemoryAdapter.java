@@ -78,44 +78,22 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     @Override
     public List<MessageExample> findExamples(ExampleQuery query) {
         try {
-            String embedding = VectorText.toLiteral(query.embedding());
-            Instant cut = clock.instant().minus(query.maxAge());
-            Instant recentCut = clock.instant().minus(query.recentWindow());
-
-            List<Long> closestIds = messageRepository.findClosestIds(
-                    query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
-            Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
-                    query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);
-
-            Set<Long> ids = new LinkedHashSet<>(closestIds);
-            closestRecentId.ifPresent(ids::add);
-            if (ids.isEmpty()) {
+            List<Long> orderedIds = neighbourIds(query);
+            if (orderedIds.isEmpty()) {
                 return List.of();
             }
 
-            List<Long> orderedIds = new ArrayList<>(ids);
-            Map<Long, IncomingMessageEntity> messagesById = new LinkedHashMap<>();
-            messageRepository.findAllById(orderedIds).forEach(entity -> messagesById.put(entity.id(), entity));
-
-            Map<Long, List<RecordedExpenseEntity>> expensesByMessageId = new LinkedHashMap<>();
-            for (RecordedExpenseEntity expense : expenseRepository.findDecidedByMessageIds(orderedIds)) {
-                expensesByMessageId
-                        .computeIfAbsent(expense.messageId(), key -> new ArrayList<>())
-                        .add(expense);
-            }
+            Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
+            Map<Long, List<RecordedExpenseEntity>> decidedByMessageId = decidedExpensesByMessageId(orderedIds);
 
             List<MessageExample> examples = new ArrayList<>();
             for (Long id : orderedIds) {
                 IncomingMessageEntity message = messagesById.get(id);
-                List<RecordedExpenseEntity> decided = expensesByMessageId.get(id);
+                List<RecordedExpenseEntity> decided = decidedByMessageId.get(id);
                 if (message == null || decided == null || decided.isEmpty()) {
                     continue;
                 }
-                List<ExampleExpense> expenses = decided.stream()
-                        .limit(query.exampleLines())
-                        .map(this::toExampleExpense)
-                        .toList();
-                examples.add(new MessageExample(message.text(), expenses));
+                examples.add(toExample(message, decided, query.exampleLines()));
             }
             return examples;
         } catch (DataAccessException e) {
@@ -123,7 +101,63 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         }
     }
 
-    private ExampleExpense toExampleExpense(RecordedExpenseEntity expense) {
+    @Override
+    public List<UnembeddedMessage> claimUnembedded(int batch, int maxAttempts, Duration staleClaim) {
+        try {
+            Instant now = clock.instant();
+            Instant staleBefore = now.minus(staleClaim);
+            // The claim's ORDER BY sits inside the subquery picking the rows; an UPDATE ... RETURNING does not
+            // carry that order out, so the ascending order the caller relies on is imposed here.
+            return messageRepository.claimUnembedded(now, maxAttempts, staleBefore, batch).stream()
+                    .sorted(Comparator.comparingLong(IncomingMessageEntity::id))
+                    .map(entity -> new UnembeddedMessage(entity.id(), entity.text()))
+                    .toList();
+        } catch (DataAccessException e) {
+            throw MessageStoreExceptionMapper.toDomain(e, "failed to claim unembedded messages");
+        }
+    }
+
+    private List<Long> neighbourIds(ExampleQuery query) {
+        String embedding = VectorText.toLiteral(query.embedding());
+        Instant cut = clock.instant().minus(query.maxAge());
+        Instant recentCut = clock.instant().minus(query.recentWindow());
+
+        List<Long> closestIds = messageRepository.findClosestIds(
+                query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
+        Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
+                query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);
+
+        Set<Long> ids = new LinkedHashSet<>(closestIds);
+        closestRecentId.ifPresent(ids::add);
+        return new ArrayList<>(ids);
+    }
+
+    private Map<Long, IncomingMessageEntity> messagesById(List<Long> ids) {
+        Map<Long, IncomingMessageEntity> messagesById = new LinkedHashMap<>();
+        messageRepository.findAllById(ids).forEach(entity -> messagesById.put(entity.id(), entity));
+        return messagesById;
+    }
+
+    private Map<Long, List<RecordedExpenseEntity>> decidedExpensesByMessageId(List<Long> ids) {
+        Map<Long, List<RecordedExpenseEntity>> decidedByMessageId = new LinkedHashMap<>();
+        for (RecordedExpenseEntity expense : expenseRepository.findDecidedByMessageIds(ids)) {
+            decidedByMessageId
+                    .computeIfAbsent(expense.messageId(), key -> new ArrayList<>())
+                    .add(expense);
+        }
+        return decidedByMessageId;
+    }
+
+    private static MessageExample toExample(
+            IncomingMessageEntity message, List<RecordedExpenseEntity> decided, int exampleLines) {
+        List<ExampleExpense> expenses = decided.stream()
+                .limit(exampleLines)
+                .map(JdbcMessageMemoryAdapter::toExampleExpense)
+                .toList();
+        return new MessageExample(message.text(), expenses);
+    }
+
+    private static ExampleExpense toExampleExpense(RecordedExpenseEntity expense) {
         CurrencyCode currency = CurrencyCode.of(expense.currencyCode());
         return new ExampleExpense(
                 expense.description(),
@@ -132,19 +166,5 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
                 Optional.ofNullable(expense.categoryName()),
                 Optional.ofNullable(expense.groupingName()),
                 ExampleOutcome.valueOf(expense.status()));
-    }
-
-    @Override
-    public List<UnembeddedMessage> claimUnembedded(int batch, int maxAttempts, Duration staleClaim) {
-        try {
-            Instant now = clock.instant();
-            Instant staleBefore = now.minus(staleClaim);
-            return messageRepository.claimUnembedded(now, maxAttempts, staleBefore, batch).stream()
-                    .sorted(Comparator.comparingLong(IncomingMessageEntity::id))
-                    .map(entity -> new UnembeddedMessage(entity.id(), entity.text()))
-                    .toList();
-        } catch (DataAccessException e) {
-            throw MessageStoreExceptionMapper.toDomain(e, "failed to claim unembedded messages");
-        }
     }
 }

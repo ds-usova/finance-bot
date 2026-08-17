@@ -54,7 +54,10 @@ public final class WireMockStubs {
         }
     }
 
-    /** Serves {@code body} — an embeddings response body, built with {@link EmbeddingFixtures} — verbatim. */
+    /**
+     * Serves {@code body} — an embeddings response body, built with
+     * {@link bot.finance.ai.common.fixtures.EmbeddingFixtures} — verbatim.
+     */
     public static void stubEmbeddings(String body) {
         WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(EMBEDDINGS_PATH)).willReturn(okJson(body)));
     }
@@ -65,7 +68,7 @@ public final class WireMockStubs {
 
     /** Serves {@code body} after {@code delay}, for a scenario proving a timeout is honored. */
     public static void stubEmbeddingsDelayed(String body, Duration delay) {
-        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(EMBEDDINGS_PATH))
-                .willReturn(okJson(body).withFixedDelay((int) delay.toMillis())));
+        WireMockSupport.SERVER.stubFor(
+                post(urlPathEqualTo(EMBEDDINGS_PATH)).willReturn(okJson(body).withFixedDelay((int) delay.toMillis())));
     }
 }

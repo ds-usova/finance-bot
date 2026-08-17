@@ -31,12 +31,7 @@ class ExampleExpenseTest {
 
     private static ExampleExpense validExpense() {
         return expense(
-                "lunch",
-                "15.00",
-                EUR,
-                Optional.of("Restaurants"),
-                Optional.of("Dining"),
-                ExampleOutcome.ACCEPTED);
+                "lunch", "15.00", EUR, Optional.of("Restaurants"), Optional.of("Dining"), ExampleOutcome.ACCEPTED);
     }
 
     @Nested
@@ -47,12 +42,7 @@ class ExampleExpenseTest {
         @DisplayName("when every component is given - then every component reads back unchanged")
         void whenEveryComponentGiven_thenEveryComponentReadsBackUnchanged() {
             ExampleExpense expense = expense(
-                    "coffee",
-                    "3.50",
-                    EUR,
-                    Optional.of("Coffee"),
-                    Optional.of("Dining"),
-                    ExampleOutcome.DISCARDED);
+                    "coffee", "3.50", EUR, Optional.of("Coffee"), Optional.of("Dining"), ExampleOutcome.DISCARDED);
 
             assertThat(expense.description()).isEqualTo("coffee");
             assertThat(expense.amount()).isEqualTo("3.50");
@@ -76,21 +66,61 @@ class ExampleExpenseTest {
             ExampleExpense valid = validExpense();
             return Stream.of(
                     Arguments.of(Named.of("null description", (ThrowingCallable) () -> expense(
-                            null, valid.amount(), valid.currency(), valid.categoryName(), valid.groupingName(), valid.outcome()))),
+                            null,
+                            valid.amount(),
+                            valid.currency(),
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("blank description", (ThrowingCallable) () -> expense(
-                            "   ", valid.amount(), valid.currency(), valid.categoryName(), valid.groupingName(), valid.outcome()))),
+                            "   ",
+                            valid.amount(),
+                            valid.currency(),
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("null amount", (ThrowingCallable) () -> expense(
-                            valid.description(), null, valid.currency(), valid.categoryName(), valid.groupingName(), valid.outcome()))),
+                            valid.description(),
+                            null,
+                            valid.currency(),
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("blank amount", (ThrowingCallable) () -> expense(
-                            valid.description(), "   ", valid.currency(), valid.categoryName(), valid.groupingName(), valid.outcome()))),
+                            valid.description(),
+                            "   ",
+                            valid.currency(),
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("null currency", (ThrowingCallable) () -> expense(
-                            valid.description(), valid.amount(), null, valid.categoryName(), valid.groupingName(), valid.outcome()))),
+                            valid.description(),
+                            valid.amount(),
+                            null,
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("null outcome", (ThrowingCallable) () -> expense(
-                            valid.description(), valid.amount(), valid.currency(), valid.categoryName(), valid.groupingName(), null))),
+                            valid.description(),
+                            valid.amount(),
+                            valid.currency(),
+                            valid.categoryName(),
+                            valid.groupingName(),
+                            null))),
                     Arguments.of(Named.of("null categoryName Optional", (ThrowingCallable) () -> expense(
-                            valid.description(), valid.amount(), valid.currency(), null, valid.groupingName(), valid.outcome()))),
+                            valid.description(),
+                            valid.amount(),
+                            valid.currency(),
+                            null,
+                            valid.groupingName(),
+                            valid.outcome()))),
                     Arguments.of(Named.of("null groupingName Optional", (ThrowingCallable) () -> expense(
-                            valid.description(), valid.amount(), valid.currency(), valid.categoryName(), null, valid.outcome()))));
+                            valid.description(),
+                            valid.amount(),
+                            valid.currency(),
+                            valid.categoryName(),
+                            null,
+                            valid.outcome()))));
         }
 
         @ParameterizedTest

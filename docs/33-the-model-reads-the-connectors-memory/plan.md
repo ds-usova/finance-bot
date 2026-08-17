@@ -970,6 +970,22 @@ page `archive-knowledge` writes.
   - A: Neither. Recorded as design D6: no ADR is written, ADR 0017 is not touched, and the configuration page and
     the use-case page carry the bound.
 
+- **Refactor-phase finding:** `ExampleSectionRenderer.renderExpenseLine` calls `expense.outcome().name().toLowerCase()`
+  with no locale — under a Turkish default locale, `DISCARDED` lowercases to `dıscarded` (dotless ı), not
+  `discarded`, changing the prompt text a real deployment could send under that JVM default. Fix is
+  `.toLowerCase(Locale.ROOT)`. Not applied by the refactor pass since it is a behaviour change outside its brief;
+  left as a follow-up.
+
+- **Refactor-phase finding:** the same defect pre-dates this plan, at `CurrencyCode.of`'s
+  `code = code.toUpperCase()` (no locale) — under a Turkish default locale, `CurrencyCode.of("ils")` uppercases to
+  `İLS` and is refused as invalid for a real ISO 4217 code. Outside this plan's authorship; flagged for a separate
+  fix.
+
+- **Refactor-phase finding:** `AiMessageEmbeddingAdapterTest.EmbedAll.whenProviderReturnsTooFewVectorsOrServerError_...`
+  proves two scenarios (a short vector list, then a server error) in one test method, against the
+  one-condition-one-outcome rule in `conventions/testing.md`. Not split here since doing so would change the test
+  count the refactor guardrail pins; left as a follow-up.
+
 ## Review Findings
 
 - **F1:** ST09 left `ExampleSectionRenderer` out of `@AiAdapterTest`'s explicit class list, so RI03's context

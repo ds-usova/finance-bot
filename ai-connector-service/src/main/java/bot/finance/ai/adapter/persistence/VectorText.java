@@ -11,15 +11,14 @@ final class VectorText {
 
     static String toLiteral(Embedding embedding) {
         // pgvector's "[a,b,c]" text form, with no spaces
-        return embedding.values().stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(",", "[", "]"));
+        return embedding.values().stream().map(String::valueOf).collect(Collectors.joining(",", "[", "]"));
     }
 
     static Embedding fromLiteral(String literal) {
         // parses pgvector's "[a,b,c]" text form back into an Embedding, in order
         String inner = literal.substring(1, literal.length() - 1);
-        List<Float> values = Arrays.stream(inner.split(",")).map(Float::parseFloat).toList();
+        List<Float> values =
+                Arrays.stream(inner.split(",")).map(Float::parseFloat).toList();
         return new Embedding(values);
     }
 }

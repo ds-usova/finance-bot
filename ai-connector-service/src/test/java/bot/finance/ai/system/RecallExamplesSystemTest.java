@@ -51,11 +51,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     private long insertEarlierAcceptedMessage(long userId, String incomingMessageId, String text, List<Float> vector) {
         IncomingMessageRowUtils.insertWithVector(
                 jdbcTemplate, userId, incomingMessageId, text, Instant.now().minus(Duration.ofDays(1)), vector, 0);
-        long messageId = jdbcTemplate.queryForObject(
-                "SELECT id FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
-                Long.class,
-                userId,
-                incomingMessageId);
+        long messageId = IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
         RecordedExpenseRowUtils.insert(
                 jdbcTemplate,
                 messageId,
@@ -87,10 +83,10 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             String earlierIncomingMessageId = "message-7001-earlier";
             String newIncomingMessageId = "message-7001-new";
             String earlierText = "spent 15 on lunch and 3.50 coffee";
-            insertEarlierAcceptedMessage(userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0));
+            insertEarlierAcceptedMessage(
+                    userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0));
 
-            WireMockStubs.stubEmbeddings(
-                    EmbeddingFixtures.embeddingsResponse(EmbeddingFixtures.unitVectorAt(0, 0.9)));
+            WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponse(EmbeddingFixtures.unitVectorAt(0, 0.9)));
             stubOneTurn();
 
             String token = CallerTokens.bearer(userId, newIncomingMessageId);
@@ -107,7 +103,10 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             JsonNode firstRequestBody = CapturedRequestUtils.body(chatRequests.getFirst());
             String userMessageContent = CapturedRequestUtils.messageContent(firstRequestBody, "user");
             log.info("user message content: {}", userMessageContent);
-            assertThat(userMessageContent).contains(earlierText).contains(CATEGORY_NAME).contains("accepted");
+            assertThat(userMessageContent)
+                    .contains(earlierText)
+                    .contains(CATEGORY_NAME)
+                    .contains("accepted");
         }
     }
 
@@ -123,7 +122,8 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             String earlierIncomingMessageId = "message-7002-earlier";
             String newIncomingMessageId = "message-7002-new";
             String earlierText = "spent 15 on lunch and 3.50 coffee";
-            insertEarlierAcceptedMessage(userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0));
+            insertEarlierAcceptedMessage(
+                    userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0));
 
             WireMockStubs.stubEmbeddingsServerError();
             stubOneTurn();

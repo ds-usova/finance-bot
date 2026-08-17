@@ -80,16 +80,18 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
             }
 
             RegisteredMessage row = registered.get();
-            Optional<Embedding> vector = row.embedding().isPresent()
-                    ? row.embedding()
-                    : embed(row.messageId(), command.text());
+            Optional<Embedding> vector =
+                    row.embedding().isPresent() ? row.embedding() : embed(row.messageId(), command.text());
             if (vector.isEmpty()) {
                 return Optional.empty();
             }
 
             return Optional.of(findExamples(identity, row.messageId(), vector.get()));
         } catch (MessageStoreFailedException e) {
-            log.warn("Failed to recall examples for message {} of user {}", identity.incomingMessageId(), identity.userId());
+            log.warn(
+                    "Failed to recall examples for message {} of user {}",
+                    identity.incomingMessageId(),
+                    identity.userId());
             return Optional.empty();
         }
     }

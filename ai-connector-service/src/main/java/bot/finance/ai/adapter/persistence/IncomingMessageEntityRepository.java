@@ -14,8 +14,7 @@ public interface IncomingMessageEntityRepository extends CrudRepository<Incoming
             "SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId FOR UPDATE")
     Optional<Long> lockId(@Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
 
-    @Query(
-            "SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId")
+    @Query("SELECT id FROM incoming_message WHERE user_id = :userId AND incoming_message_id = :incomingMessageId")
     Optional<Long> findIdByIdentity(@Param("userId") long userId, @Param("incomingMessageId") String incomingMessageId);
 
     @Query("SELECT embedding::text FROM incoming_message WHERE id = :id")

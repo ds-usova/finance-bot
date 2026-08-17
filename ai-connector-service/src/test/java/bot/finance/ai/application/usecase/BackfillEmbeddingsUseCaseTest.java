@@ -59,7 +59,13 @@ class BackfillEmbeddingsUseCaseTest {
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
         useCase = new BackfillEmbeddingsUseCase(
-                messageMemoryPort, messageEmbeddingPort, BATCH, BATCHES, EMBEDDING_ATTEMPTS, STALE_CLAIM, loggerFactory);
+                messageMemoryPort,
+                messageEmbeddingPort,
+                BATCH,
+                BATCHES,
+                EMBEDDING_ATTEMPTS,
+                STALE_CLAIM,
+                loggerFactory);
     }
 
     private List<String> loggedWarnLines() {
@@ -146,8 +152,7 @@ class BackfillEmbeddingsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when every claim answers a full batch - then exactly the configured number of batches "
-                + "run")
+        @DisplayName("when every claim answers a full batch - then exactly the configured number of batches " + "run")
         void whenEveryClaimAnswersFullBatch_thenExactlyConfiguredBatchesClaimedAndEmbedded() {
             List<UnembeddedMessage> full = List.of(ROW_1, ROW_2);
             Embedding v = new Embedding(List.of(0.1f));
@@ -157,13 +162,14 @@ class BackfillEmbeddingsUseCaseTest {
 
             useCase.backfill();
 
-            verify(messageMemoryPort, times(BATCHES)).claimUnembedded(eq(BATCH), eq(EMBEDDING_ATTEMPTS), eq(STALE_CLAIM));
+            verify(messageMemoryPort, times(BATCHES))
+                    .claimUnembedded(eq(BATCH), eq(EMBEDDING_ATTEMPTS), eq(STALE_CLAIM));
             verify(messageEmbeddingPort, times(BATCHES)).embedAll(any());
         }
 
         @Test
-        @DisplayName("when embedAll() fails on the first batch - then every claimed row is counted and one "
-                + "WARN logs")
+        @DisplayName(
+                "when embedAll() fails on the first batch - then every claimed row is counted and one " + "WARN logs")
         void whenEmbedAllFailsOnFirstBatch_thenEveryRowCountedOneWarnNoSecondClaimNothingPropagates() {
             List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
             when(messageMemoryPort.claimUnembedded(BATCH, EMBEDDING_ATTEMPTS, STALE_CLAIM))
@@ -197,8 +203,7 @@ class BackfillEmbeddingsUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the embedding port answers fewer vectors than the batch held - then nothing is "
-                + "stored")
+        @DisplayName("when the embedding port answers fewer vectors than the batch held - then nothing is " + "stored")
         void whenEmbeddingPortAnswersFewerVectorsThanBatch_thenNothingStoredEveryRowCountedOneWarnLogged() {
             List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
             Embedding v1 = new Embedding(List.of(0.1f));
