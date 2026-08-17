@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,11 +16,9 @@ import bot.finance.ai.application.dto.RecallExamplesCommand;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
-import bot.finance.ai.application.port.MessageEmbeddingPort;
 import bot.finance.ai.application.port.MessageMemoryPort;
 import bot.finance.ai.common.MockedLoggerUtils;
 import bot.finance.ai.domain.exception.InvalidValueException;
-import bot.finance.ai.domain.exception.MessageEmbeddingFailedException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.Embedding;
@@ -49,26 +46,23 @@ class RecallExamplesUseCaseTest {
     private static final Duration RECENT_WINDOW = Duration.ofDays(30);
     private static final Duration MAX_AGE = Duration.ofDays(365);
     private static final int EXAMPLE_LINES = 10;
-    private static final int EMBEDDING_ATTEMPTS = 3;
 
     private static final String TEXT = "spent 15 euros on lunch";
     private static final MessageIdentity IDENTITY = new MessageIdentity(7L, "msg-1");
     private static final long MESSAGE_ID = 99L;
 
     private MessageMemoryPort messageMemoryPort;
-    private MessageEmbeddingPort messageEmbeddingPort;
+    private MessageEmbedder messageEmbedder;
     private Logger log;
     private RecallExamplesUseCase useCase;
 
     @BeforeEach
     void setUp() {
         messageMemoryPort = mock(MessageMemoryPort.class);
-        messageEmbeddingPort = mock(MessageEmbeddingPort.class);
+        messageEmbedder = mock(MessageEmbedder.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
-        MessageEmbedder messageEmbedder =
-                new MessageEmbedder(messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory);
         useCase = new RecallExamplesUseCase(
                 messageMemoryPort,
                 messageEmbedder,
@@ -99,37 +93,28 @@ class RecallExamplesUseCaseTest {
         return MockedLoggerUtils.warnLines(log);
     }
 
-    private List<String> loggedErrorLines() {
-        return MockedLoggerUtils.linesAt(log, "error");
-    }
-
     @Nested
     @DisplayName("constructing a RecallExamplesUseCase")
     class Constructor {
 
         static Stream<Arguments> nonPositiveCounts() {
             return Stream.of(
-                    Arguments.of(0, EXAMPLE_LINES, EMBEDDING_ATTEMPTS),
-                    Arguments.of(-1, EXAMPLE_LINES, EMBEDDING_ATTEMPTS),
-                    Arguments.of(EXAMPLES, 0, EMBEDDING_ATTEMPTS),
-                    Arguments.of(EXAMPLES, -1, EMBEDDING_ATTEMPTS),
-                    Arguments.of(EXAMPLES, EXAMPLE_LINES, 0),
-                    Arguments.of(EXAMPLES, EXAMPLE_LINES, -1));
+                    Arguments.of(0, EXAMPLE_LINES),
+                    Arguments.of(-1, EXAMPLE_LINES),
+                    Arguments.of(EXAMPLES, 0),
+                    Arguments.of(EXAMPLES, -1));
         }
 
         @ParameterizedTest
         @MethodSource("nonPositiveCounts")
-        @DisplayName("when examples, exampleLines or embeddingAttempts is non-positive - then throws "
-                + "InvalidValueException")
-        void whenExamplesOrExampleLinesOrEmbeddingAttemptsIsNonPositive_thenThrowsInvalidValueException(
-                int examples, int exampleLines, int embeddingAttempts) {
+        @DisplayName("when examples or exampleLines is non-positive - then throws InvalidValueException")
+        void whenExamplesOrExampleLinesIsNonPositive_thenThrowsInvalidValueException(int examples, int exampleLines) {
             LoggerFactory loggerFactory = mock(LoggerFactory.class);
             when(loggerFactory.getLogger(any())).thenReturn(mock(Logger.class));
 
             assertThatThrownBy(() -> new RecallExamplesUseCase(
                             messageMemoryPort,
-                            new MessageEmbedder(
-                                    messageMemoryPort, messageEmbeddingPort, embeddingAttempts, loggerFactory),
+                            mock(MessageEmbedder.class),
                             examples,
                             MIN_SIMILARITY,
                             RECENT_WINDOW,
@@ -160,8 +145,7 @@ class RecallExamplesUseCaseTest {
 
             assertThatThrownBy(() -> new RecallExamplesUseCase(
                             messageMemoryPort,
-                            new MessageEmbedder(
-                                    messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory),
+                            mock(MessageEmbedder.class),
                             EXAMPLES,
                             minSimilarity,
                             recentWindow,
@@ -177,9 +161,9 @@ class RecallExamplesUseCaseTest {
     class Recall {
 
         @Test
-        @DisplayName("when the row already holds a vector - then the embedding port is untouched and "
+        @DisplayName("when the row already holds a vector - then the embedder is untouched and "
                 + "findExamples() receives it as the query")
-        void whenRowHoldsVector_thenEmbeddingPortUntouchedAndFindExamplesReceivesStoredVectorAsQuery() {
+        void whenRowHoldsVector_thenEmbedderUntouchedAndFindExamplesReceivesStoredVectorAsQuery() {
             Embedding vector = new Embedding(List.of(0.1f, 0.2f, 0.3f));
             RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.of(vector));
             List<MessageExample> examples = List.of(exampleFixture());
@@ -188,7 +172,7 @@ class RecallExamplesUseCaseTest {
 
             Optional<List<MessageExample>> result = useCase.recall(command());
 
-            verifyNoInteractions(messageEmbeddingPort);
+            verifyNoInteractions(messageEmbedder);
             ExampleQuery expectedQuery = new ExampleQuery(
                     IDENTITY.userId(),
                     MESSAGE_ID,
@@ -203,18 +187,19 @@ class RecallExamplesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the row holds no vector and embedding answers one - then the vector is stored")
-        void whenRowHoldsNoVectorAndEmbeddingAnswers_thenStoreEmbeddingAndFindExamplesReceiveComputedVector() {
+        @DisplayName("when the row holds no vector and the embedder answers one - then findExamples() "
+                + "receives it as the query")
+        void whenRowHoldsNoVectorAndEmbedderAnswers_thenFindExamplesReceivesEmbeddedVectorAsQuery() {
             RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
             Embedding computed = new Embedding(List.of(0.4f, 0.5f));
             List<MessageExample> examples = List.of(exampleFixture());
             when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenReturn(computed);
+            when(messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT)).thenReturn(Optional.of(computed));
             when(messageMemoryPort.findExamples(any())).thenReturn(examples);
 
             Optional<List<MessageExample>> result = useCase.recall(command());
 
-            verify(messageMemoryPort).storeEmbedding(eq(MESSAGE_ID), eq(computed));
+            verify(messageEmbedder).ensureEmbedded(eq(MESSAGE_ID), eq(TEXT));
             ExampleQuery expectedQuery = new ExampleQuery(
                     IDENTITY.userId(),
                     MESSAGE_ID,
@@ -229,15 +214,28 @@ class RecallExamplesUseCaseTest {
         }
 
         @Test
+        @DisplayName("when the row holds no vector and the embedder answers empty - then the answer is empty")
+        void whenRowHoldsNoVectorAndEmbedderAnswersEmpty_thenAnswerEmptyAndFindExamplesUntouched() {
+            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
+            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
+            when(messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT)).thenReturn(Optional.empty());
+
+            Optional<List<MessageExample>> result = useCase.recall(command());
+
+            assertThat(result).isEmpty();
+            verify(messageMemoryPort, never()).findExamples(any());
+        }
+
+        @Test
         @DisplayName("when the store holds no row for the identity - then the answer is empty")
-        void whenStoreHoldsNoRow_thenAnswerEmptyAndEmbeddingPortAndFindExamplesUntouched() {
+        void whenStoreHoldsNoRow_thenAnswerEmptyAndEmbedderAndFindExamplesUntouched() {
             when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.empty());
 
             Optional<List<MessageExample>> result = useCase.recall(command());
 
             verify(messageMemoryPort).find(eq(IDENTITY));
             assertThat(result).isEmpty();
-            verifyNoInteractions(messageEmbeddingPort);
+            verifyNoInteractions(messageEmbedder);
             verify(messageMemoryPort, never()).findExamples(any());
         }
 
@@ -277,53 +275,6 @@ class RecallExamplesUseCaseTest {
         }
 
         @Test
-        @DisplayName("when embed() fails and the attempt count stays below the bound - then one WARN logs")
-        void whenEmbedFailsAndAttemptCountBelowBound_thenAnswerEmptyOneWarnNoErrorFindExamplesUntouched() {
-            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
-            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("provider refused"));
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS - 1);
-
-            Optional<List<MessageExample>> result = useCase.recall(command());
-
-            assertThat(result).isEmpty();
-            verify(messageMemoryPort).countEmbeddingAttempt(eq(MESSAGE_ID));
-            assertThat(loggedWarnLines()).hasSize(1);
-            assertThat(loggedErrorLines()).isEmpty();
-            verify(messageMemoryPort, never()).findExamples(any());
-        }
-
-        @Test
-        @DisplayName("when embed() fails and the attempt count reaches the bound - then one ERROR names the " + "row")
-        void whenEmbedFailsAndAttemptCountReachesBound_thenOneErrorNamesRowAndCarriesNoText() {
-            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
-            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("provider refused"));
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS);
-
-            useCase.recall(command());
-
-            assertThat(loggedErrorLines()).hasSize(1);
-            assertThat(loggedErrorLines().get(0))
-                    .contains(String.valueOf(MESSAGE_ID))
-                    .doesNotContain(TEXT);
-        }
-
-        @Test
-        @DisplayName("when embed() fails and countEmbeddingAttempt() answers past the attempt bound - then "
-                + "nothing is logged at ERROR")
-        void whenEmbedFailsAndAttemptCountPastBound_thenNothingLoggedAtError() {
-            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
-            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("provider refused"));
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS + 1);
-
-            useCase.recall(command());
-
-            assertThat(loggedErrorLines()).isEmpty();
-        }
-
-        @Test
         @DisplayName("when the retrieval answers no neighbour - then the answer is present and empty")
         void whenRetrievalAnswersNoNeighbour_thenAnswerIsPresentAndEmpty() {
             Embedding vector = new Embedding(List.of(0.1f, 0.2f));
@@ -335,41 +286,6 @@ class RecallExamplesUseCaseTest {
 
             assertThat(result).isPresent();
             assertThat(result.get()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("when countEmbeddingAttempt() throws after a failed embedding - then the answer is empty")
-        void whenCountEmbeddingAttemptThrowsAfterFailedEmbedding_thenAnswerEmptyAndNothingPropagates() {
-            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
-            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("provider refused"));
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID))
-                    .thenThrow(new MessageStoreFailedException("failed"));
-
-            AtomicReference<Optional<List<MessageExample>>> result = new AtomicReference<>();
-            assertThatCode(() -> result.set(useCase.recall(command()))).doesNotThrowAnyException();
-
-            assertThat(result.get()).isEmpty();
-            verify(messageMemoryPort).countEmbeddingAttempt(eq(MESSAGE_ID));
-        }
-
-        @Test
-        @DisplayName("when storeEmbedding() throws MessageStoreFailedException - then the answer is empty")
-        void whenStoreEmbeddingThrows_thenAnswerEmptyFindExamplesUntouchedAndOneWarnLogged() {
-            RegisteredMessage registered = new RegisteredMessage(MESSAGE_ID, Optional.empty());
-            Embedding computed = new Embedding(List.of(0.4f, 0.5f));
-            when(messageMemoryPort.find(IDENTITY)).thenReturn(Optional.of(registered));
-            when(messageEmbeddingPort.embed(TEXT)).thenReturn(computed);
-            doThrow(new MessageStoreFailedException("failed"))
-                    .when(messageMemoryPort)
-                    .storeEmbedding(eq(MESSAGE_ID), eq(computed));
-
-            AtomicReference<Optional<List<MessageExample>>> result = new AtomicReference<>();
-            assertThatCode(() -> result.set(useCase.recall(command()))).doesNotThrowAnyException();
-
-            assertThat(result.get()).isEmpty();
-            verify(messageMemoryPort, never()).findExamples(any());
-            assertThat(loggedWarnLines()).hasSize(1);
         }
     }
 }

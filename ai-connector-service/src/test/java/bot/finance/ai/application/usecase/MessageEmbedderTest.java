@@ -27,6 +27,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MessageEmbedderTest {
 
@@ -65,13 +67,15 @@ class MessageEmbedderTest {
     @DisplayName("constructing a MessageEmbedder")
     class Constructor {
 
-        @Test
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
         @DisplayName("when embeddingAttempts is non-positive - then throws InvalidValueException")
-        void whenEmbeddingAttemptsIsNonPositive_thenThrowsInvalidValueException() {
+        void whenEmbeddingAttemptsIsNonPositive_thenThrowsInvalidValueException(int embeddingAttempts) {
             LoggerFactory loggerFactory = mock(LoggerFactory.class);
             when(loggerFactory.getLogger(any())).thenReturn(mock(Logger.class));
 
-            assertThatThrownBy(() -> new MessageEmbedder(messageMemoryPort, messageEmbeddingPort, 0, loggerFactory))
+            assertThatThrownBy(() -> new MessageEmbedder(
+                            messageMemoryPort, messageEmbeddingPort, embeddingAttempts, loggerFactory))
                     .isInstanceOf(InvalidValueException.class);
         }
     }
@@ -121,6 +125,30 @@ class MessageEmbedderTest {
             assertThat(loggedErrorLines().get(0))
                     .contains(String.valueOf(MESSAGE_ID))
                     .doesNotContain(TEXT);
+        }
+
+        @Test
+        @DisplayName("when the provider refuses and countEmbeddingAttempt() answers past the attempt bound - "
+                + "then nothing is logged at ERROR")
+        void whenProviderRefusesAndAttemptCountPastBound_thenNothingLoggedAtError() {
+            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("refused"));
+            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS + 1);
+
+            messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT);
+
+            assertThat(loggedErrorLines()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when the provider refuses and countEmbeddingAttempt() throws MessageStoreFailedException "
+                + "- then it propagates")
+        void whenCountEmbeddingAttemptThrowsAfterProviderRefuses_thenItPropagates() {
+            when(messageEmbeddingPort.embed(TEXT)).thenThrow(new MessageEmbeddingFailedException("refused"));
+            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID))
+                    .thenThrow(new MessageStoreFailedException("failed"));
+
+            assertThatThrownBy(() -> messageEmbedder.ensureEmbedded(MESSAGE_ID, TEXT))
+                    .isInstanceOf(MessageStoreFailedException.class);
         }
 
         @Test
@@ -187,6 +215,24 @@ class MessageEmbedderTest {
             verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_1.messageId()));
             verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_2.messageId()));
             assertThat(loggedWarnLines()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("when the provider refuses and one row's attempt count reaches the bound - then exactly "
+                + "one ERROR names that row")
+        void whenProviderRefusesAndOneRowReachesAttemptBound_thenExactlyOneErrorNamesThatRow() {
+            List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
+            when(messageEmbeddingPort.embedAll(any())).thenThrow(new MessageEmbeddingFailedException("refused"));
+            when(messageMemoryPort.countEmbeddingAttempt(ROW_1.messageId())).thenReturn(EMBEDDING_ATTEMPTS);
+            when(messageMemoryPort.countEmbeddingAttempt(ROW_2.messageId())).thenReturn(EMBEDDING_ATTEMPTS - 1);
+
+            boolean result = messageEmbedder.ensureEmbedded(claim);
+
+            assertThat(result).isFalse();
+            assertThat(loggedErrorLines()).hasSize(1);
+            assertThat(loggedErrorLines().get(0))
+                    .contains(String.valueOf(ROW_1.messageId()))
+                    .doesNotContain(ROW_1.text());
         }
 
         @Test
