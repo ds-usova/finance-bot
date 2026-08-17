@@ -1,6 +1,28 @@
 # Review: One Expense Table, With a Status
 
-**2 refactoring candidates open. No critical defect, no bug, no manual check.**
+**1 bug open, 2 refactoring candidates open. No critical defect, no manual check.**
+
+## Bug
+
+Found while measuring this task, but not caused by it: the timeout predates the change, and nothing in the merge
+touches slot recovery.
+
+**`ledger-service` — slot recovery answers 503 under an instrumented test run**
+
+- **Given** the coverage run — `tools/agent-test/agent-test.sh --module ledger-service --coverage`, which is what
+  `plan-evidence.sh` invokes — with JaCoCo instrumenting the JVM
+- **When** `RecoverSlotSystemTest$HappyPath` posts `/actuator/cdc` against a slot it has invalidated
+- **Then** the operation rebuilds the slot and answers 200
+- **Actual** it answers 503. `ChangeStreamRecovery` waits `ENGINE_STOP_TIMEOUT` = 10s for the Debezium engine to
+  stop, gives up, and returns `ENGINE_DID_NOT_STOP`, which `CdcRecoveryEndpoint` maps to 503. Instrumentation
+  pushes engine shutdown past the deadline. The same suite passes uninstrumented: this task's `--all` runs were
+  green at every stage, and the class passes alone in 23.6s. Task 33's evidence run failed one test on a
+  1164-test tree that `--all` passed clean, so this is the second occurrence; that run records no test name, so
+  the two are the same shape rather than confirmed the same test
+- **Fix** unverified. Raising `ENGINE_STOP_TIMEOUT`, or making it a configurable property, would settle the test.
+  Whether it should be settled that way is a product question this run did not answer: the same 10s applies in
+  production on a loaded host, where an operator gets a 503 and retries — which may be the wanted behaviour, in
+  which case the test is what should change · `ChangeStreamRecovery.java:21`, `CdcRecoveryEndpoint.java:34`
 
 ## Refactoring candidate
 
