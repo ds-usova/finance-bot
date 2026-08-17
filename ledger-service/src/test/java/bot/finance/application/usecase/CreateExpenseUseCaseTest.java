@@ -21,6 +21,7 @@ import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
 import java.time.Instant;
@@ -114,6 +115,8 @@ class CreateExpenseUseCaseTest {
                     "coffee",
                     Optional.of("Starbucks"),
                     new Money(500, CurrencyCode.of("USD")),
+                    ExpenseStatus.RECORDED,
+                    Optional.empty(),
                     FIXED_INSTANT,
                     FIXED_INSTANT);
             when(expenseRepository.create(any())).thenReturn(createdExpense);

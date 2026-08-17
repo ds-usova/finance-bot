@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -120,8 +121,17 @@ class ExpenseTest {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
             Instant updatedAt = Instant.parse("2026-07-29T11:15:30Z");
 
-            Expense expense =
-                    Expense.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, createdAt, updatedAt);
+            Expense expense = Expense.stored(
+                    42L,
+                    1L,
+                    2L,
+                    "Coffee",
+                    Optional.of("Blue Bottle"),
+                    MONEY,
+                    ExpenseStatus.RECORDED,
+                    Optional.empty(),
+                    createdAt,
+                    updatedAt);
 
             assertThat(expense.id()).contains(42L);
             assertThat(expense.userId()).isEqualTo(1L);
@@ -140,8 +150,17 @@ class ExpenseTest {
         void whenDatabaseIdAndBlankDescriptionAreGiven_thenThrowsInvalidExpenseException(String description) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(
-                            () -> Expense.stored(42L, 1L, 2L, description, Optional.of("Blue Bottle"), MONEY, now, now))
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            description,
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.RECORDED,
+                            Optional.empty(),
+                            now,
+                            now))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
@@ -150,8 +169,17 @@ class ExpenseTest {
         void whenDatabaseIdAndAbsentCreatedAtAreGiven_thenThrowsInvalidExpenseException() {
             Instant updatedAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() ->
-                            Expense.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, updatedAt))
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            "Coffee",
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.RECORDED,
+                            Optional.empty(),
+                            null,
+                            updatedAt))
                     .isInstanceOf(InvalidExpenseException.class);
         }
 
@@ -160,8 +188,17 @@ class ExpenseTest {
         void whenDatabaseIdAndAbsentUpdatedAtAreGiven_thenThrowsInvalidExpenseException() {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() ->
-                            Expense.stored(42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, createdAt, null))
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            "Coffee",
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.RECORDED,
+                            Optional.empty(),
+                            createdAt,
+                            null))
                     .isInstanceOf(InvalidExpenseException.class);
         }
     }

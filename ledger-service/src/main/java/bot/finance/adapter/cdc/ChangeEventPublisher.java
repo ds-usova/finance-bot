@@ -13,9 +13,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * Shapes the Debezium envelope into a stream entry, adds the category enrichment for an {@code expense} or
- * {@code expense_proposal} row, hands the resolver the row a {@code category} event carries, and writes the
- * entry to Redis.
+ * Shapes the Debezium envelope into a stream entry, adds the category enrichment for an {@code expense} row,
+ * hands the resolver the row a {@code category} event carries, and writes the entry to Redis.
  */
 @Component
 public class ChangeEventPublisher {

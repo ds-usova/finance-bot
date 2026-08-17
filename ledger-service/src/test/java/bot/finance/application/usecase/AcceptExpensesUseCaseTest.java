@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ReportClearingDispatchPort;
@@ -44,7 +44,7 @@ class AcceptExpensesUseCaseTest {
     private static final IncomingMessageId MESSAGE_B = IncomingMessageId.of("777:2");
 
     private UserRepository userRepository;
-    private ExpenseProposalRepository expenseProposalRepository;
+    private ExpenseRepository expenseRepository;
     private ReportClearingDispatchPort reportClearingDispatchPort;
     private AcceptExpensesUseCase useCase;
 
@@ -54,11 +54,11 @@ class AcceptExpensesUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(AcceptExpensesUseCase.class)).thenReturn(log);
         userRepository = mock(UserRepository.class);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
+        expenseRepository = mock(ExpenseRepository.class);
         reportClearingDispatchPort = mock(ReportClearingDispatchPort.class);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new AcceptExpensesUseCase(
-                userRepository, expenseProposalRepository, reportClearingDispatchPort, clock, loggerFactory);
+                userRepository, expenseRepository, reportClearingDispatchPort, clock, loggerFactory);
     }
 
     private AcceptExpensesCommand commandFor(List<Long> ids) {
@@ -77,7 +77,7 @@ class AcceptExpensesUseCaseTest {
         @DisplayName("when the move answers one id per proposal for two posted - then accepted is 2 and missing is 0")
         void whenMoveAnswersOneIdPerProposalForTwoPosted_thenAcceptedTwoAndMissingZero() {
             stubStoredUser();
-            when(expenseProposalRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
+            when(expenseRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
                     .thenReturn(List.of(MESSAGE_A, MESSAGE_B));
 
             ExpenseAcceptance result = useCase.accept(commandFor(List.of(1L, 2L)));
@@ -86,7 +86,7 @@ class AcceptExpensesUseCaseTest {
             assertThat(result.missing()).isEqualTo(0);
 
             ArgumentCaptor<ProposalIds> idsCaptor = ArgumentCaptor.forClass(ProposalIds.class);
-            verify(expenseProposalRepository).acceptByIds(eq(USER_ID), idsCaptor.capture(), eq(FIXED_INSTANT));
+            verify(expenseRepository).acceptByIds(eq(USER_ID), idsCaptor.capture(), eq(FIXED_INSTANT));
             assertThat(idsCaptor.getValue().ids()).containsExactly(1L, 2L);
         }
 
@@ -94,7 +94,7 @@ class AcceptExpensesUseCaseTest {
         @DisplayName("when the move answers nothing for two posted - then accepted is 0 and missing is 2")
         void whenMoveAnswersNothingForTwoPosted_thenAcceptedZeroMissingTwoAndClearingNeverDispatched() {
             stubStoredUser();
-            when(expenseProposalRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
+            when(expenseRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
                     .thenReturn(List.of());
 
             ExpenseAcceptance result = useCase.accept(commandFor(List.of(1L, 2L)));
@@ -108,7 +108,7 @@ class AcceptExpensesUseCaseTest {
         @DisplayName("when the move answers one id for three posted - then accepted plus missing equals three")
         void whenMoveAnswersOneIdForThreePosted_thenAcceptedPlusMissingEqualsThree() {
             stubStoredUser();
-            when(expenseProposalRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
+            when(expenseRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
                     .thenReturn(List.of(MESSAGE_A));
 
             ExpenseAcceptance result = useCase.accept(commandFor(List.of(1L, 2L, 3L)));
@@ -122,7 +122,7 @@ class AcceptExpensesUseCaseTest {
         void
                 whenMoveAnswersTwoRowsOnOneMessageAndOneOnAnother_thenDispatchedCommandCarriesStoredIdAndEachMessageOnce() {
             stubStoredUser();
-            when(expenseProposalRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
+            when(expenseRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
                     .thenReturn(List.of(MESSAGE_A, MESSAGE_A, MESSAGE_B));
 
             useCase.accept(commandFor(List.of(1L, 2L, 3L)));
@@ -147,7 +147,7 @@ class AcceptExpensesUseCaseTest {
             assertThatThrownBy(() -> useCase.accept(commandFor(List.of(1L))))
                     .isInstanceOf(EntityNotFoundException.class);
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(reportClearingDispatchPort);
         }
 
@@ -157,7 +157,7 @@ class AcceptExpensesUseCaseTest {
         void whenRepositoryThrowsPersistenceFailedException_thenExceptionPropagatesAndNothingDispatched() {
             stubStoredUser();
             PersistenceFailedException failure = new PersistenceFailedException("move failed", new RuntimeException());
-            when(expenseProposalRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
+            when(expenseRepository.acceptByIds(eq(USER_ID), any(), eq(FIXED_INSTANT)))
                     .thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.accept(commandFor(List.of(1L)))).isSameAs(failure);
@@ -172,7 +172,7 @@ class AcceptExpensesUseCaseTest {
             assertThatThrownBy(() -> useCase.accept(null)).isInstanceOf(InvalidExpenseAcceptanceException.class);
 
             verifyNoInteractions(userRepository);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(reportClearingDispatchPort);
         }
     }

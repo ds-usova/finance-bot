@@ -38,7 +38,9 @@ components:
         id:
           type: integer
           format: int64
-          description: Unique within this row's `status`, and not across it.
+          description: >-
+            Unique across every entry of the caller's, whatever its status, and names that entry for its whole
+            life.
         status:
           $ref: '#/components/schemas/ExpenseStatus'
         categoryId:

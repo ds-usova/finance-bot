@@ -3,6 +3,7 @@ package bot.finance.adapter.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.boot.PersistenceAdapterTest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,7 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
+    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
     @DisplayName("expense_proposal.description column width")
     class ProposalDescription {
 
@@ -112,6 +114,7 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
+    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
     @DisplayName("expense_proposal.merchant column width")
     class ProposalMerchant {
 
@@ -127,6 +130,7 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
+    @Disabled("RI03: expense_proposal no longer exists; the merge migration's schema is covered there")
     @DisplayName("expense_proposal.currency_code column width")
     class ProposalCurrencyCode {
 

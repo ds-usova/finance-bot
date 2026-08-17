@@ -1,6 +1,6 @@
 package bot.finance.application.dto;
 
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
@@ -21,23 +21,23 @@ public record CreateExpenseProposalCommand(
             throw new InvalidUserException("new expense proposal has no userId");
         }
         if (categoryName == null || categoryName.isBlank()) {
-            throw new InvalidExpenseProposalException("new expense proposal has no category name");
+            throw new InvalidExpenseException("new expense proposal has no category name");
         }
         if (groupingName == null || groupingName.isBlank()) {
-            throw new InvalidExpenseProposalException("new expense proposal has no grouping name");
+            throw new InvalidExpenseException("new expense proposal has no grouping name");
         }
         if (description == null || description.isBlank()) {
-            throw new InvalidExpenseProposalException("new expense proposal has no description");
+            throw new InvalidExpenseException("new expense proposal has no description");
         }
         if (merchant == null) {
-            throw new InvalidExpenseProposalException("new expense proposal has no merchant");
+            throw new InvalidExpenseException("new expense proposal has no merchant");
         }
         merchant = merchant.filter(m -> !m.isBlank());
         if (money == null) {
-            throw new InvalidExpenseProposalException("new expense proposal has no money");
+            throw new InvalidExpenseException("new expense proposal has no money");
         }
         if (incomingMessageId == null) {
-            throw new InvalidExpenseProposalException("new expense proposal has no incomingMessageId");
+            throw new InvalidExpenseException("new expense proposal has no incomingMessageId");
         }
     }
 }

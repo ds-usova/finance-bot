@@ -21,7 +21,7 @@ public class ChangeStreamConfiguration {
     private static final String THREAD_NAME_PREFIX = "change-stream-";
     private static final String SLOT_MONITOR_THREAD_NAME_PREFIX = "slot-monitor-";
 
-    private static final String CAPTURED_TABLES = "public.expense,public.expense_proposal,public.category";
+    private static final String CAPTURED_TABLES = "public.expense,public.category";
 
     /**
      * Moves the slot forward when nothing captured is written. Its own event is dropped in the reader rather

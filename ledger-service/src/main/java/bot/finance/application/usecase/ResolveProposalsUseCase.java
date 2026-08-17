@@ -4,7 +4,6 @@ import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.dto.ResolutionOutcome;
 import bot.finance.application.dto.ResolveProposalsCommand;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -19,7 +18,6 @@ import java.time.Instant;
 public class ResolveProposalsUseCase implements ResolveProposalsPort {
 
     private final UserRepository userRepository;
-    private final ExpenseProposalRepository expenseProposalRepository;
     private final ExpenseRepository expenseRepository;
     private final MessageDeliveryPort messageDeliveryPort;
     private final Clock clock;
@@ -27,13 +25,11 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
 
     public ResolveProposalsUseCase(
             UserRepository userRepository,
-            ExpenseProposalRepository expenseProposalRepository,
             ExpenseRepository expenseRepository,
             MessageDeliveryPort messageDeliveryPort,
             Clock clock,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;
-        this.expenseProposalRepository = expenseProposalRepository;
         this.expenseRepository = expenseRepository;
         this.messageDeliveryPort = messageDeliveryPort;
         this.clock = clock;
@@ -75,8 +71,8 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
     private int applyResolution(long userId, ResolveProposalsCommand command) {
         IncomingMessageId reference = command.reference();
         return switch (command.resolution()) {
-            case ACCEPT -> expenseProposalRepository.accept(userId, reference, Instant.now(clock));
-            case DISCARD -> expenseProposalRepository.discard(userId, reference);
+            case ACCEPT -> expenseRepository.accept(userId, reference, Instant.now(clock));
+            case DISCARD -> expenseRepository.discard(userId, reference);
         };
     }
 

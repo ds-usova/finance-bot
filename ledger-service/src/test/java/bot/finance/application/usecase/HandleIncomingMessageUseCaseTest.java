@@ -22,7 +22,6 @@ import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.SpendingSummary;
 import bot.finance.application.dto.TurnReport;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.InitializeUserPort;
@@ -70,7 +69,6 @@ class HandleIncomingMessageUseCaseTest {
     private InitializeUserPort initializeUserPort;
     private GroupingRepository groupingRepository;
     private IntentExtractionPort intentExtractionPort;
-    private ExpenseProposalRepository expenseProposalRepository;
     private MessageDeliveryPort messageDeliveryPort;
     private Clock clock;
     private SpendingQueryRepository spendingQueryRepository;
@@ -86,7 +84,6 @@ class HandleIncomingMessageUseCaseTest {
         initializeUserPort = mock(InitializeUserPort.class);
         groupingRepository = mock(GroupingRepository.class);
         intentExtractionPort = mock(IntentExtractionPort.class);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
         clock = Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC);
         spendingQueryRepository = mock(SpendingQueryRepository.class);
@@ -100,7 +97,6 @@ class HandleIncomingMessageUseCaseTest {
                 initializeUserPort,
                 groupingRepository,
                 intentExtractionPort,
-                expenseProposalRepository,
                 messageDeliveryPort,
                 clock,
                 spendingQueryRepository,
@@ -160,7 +156,7 @@ class HandleIncomingMessageUseCaseTest {
             verifyNoInteractions(initializeUserPort);
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(intentExtractionPort);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
 
@@ -168,7 +164,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when handle is called - then initialize receives the command's user external id")
         void whenHandleIsCalled_thenInitializeReceivesTheCommandsUserExternalId() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
             useCase.handle(newCommand());
@@ -184,7 +180,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "and date")
         void whenHandleIsCalled_thenExtractionRequestCarriesTextGroupingsCurrencyAndDate() {
             List<String> categoryGroupings = stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
             useCase.handle(newCommand());
@@ -204,7 +200,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when handle is called - then the reference derived from the command reaches both read-backs")
         void whenHandleIsCalled_thenTheDerivedReferenceReachesBothReadBacks() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
             useCase.handle(newCommand());
@@ -212,7 +208,7 @@ class HandleIncomingMessageUseCaseTest {
             IncomingMessageId derivedReference = IncomingMessageId.of(CONVERSATION_ID, INBOUND_MESSAGE_ID);
             assertThat(capturedExtractionRequest().incomingMessageId()).isEqualTo(derivedReference);
 
-            verify(expenseProposalRepository).findSummariesByMessageReference(USER_ID, derivedReference);
+            verify(expenseRepository).findSummariesByMessageReference(USER_ID, derivedReference);
             verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, derivedReference);
         }
 
@@ -223,7 +219,7 @@ class HandleIncomingMessageUseCaseTest {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", Grouping.catchAllName(), "Auto");
             when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
             useCase.handle(newCommand());
@@ -266,7 +262,7 @@ class HandleIncomingMessageUseCaseTest {
         void whenExtractionSucceedsWithSummaries_thenDeliverReceivesRecordedReport() {
             stubKnownUserAndGroupings();
             List<ProposalSummary> summaries = twoSummaries();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(summaries);
 
             useCase.handle(newCommand());
@@ -287,7 +283,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "NOTHING_IDENTIFIED report")
         void whenExtractionSucceedsWithNoSummaries_thenDeliverReceivesNothingIdentifiedReport() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
@@ -307,7 +303,7 @@ class HandleIncomingMessageUseCaseTest {
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
             List<ProposalSummary> summaries = twoSummaries();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(summaries);
 
             useCase.handle(newCommand());
@@ -324,7 +320,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
@@ -341,7 +337,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
             useCase.handle(newCommand());
@@ -357,7 +353,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when a turn succeeds - then the info line does not carry the user's own words")
         void whenTurnSucceeds_thenInfoLineOmitsTheMessageText() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
 
             useCase.handle(newCommand());
@@ -381,7 +377,7 @@ class HandleIncomingMessageUseCaseTest {
 
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(intentExtractionPort);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
 
@@ -397,7 +393,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(intentExtractionPort);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
 
@@ -407,21 +403,20 @@ class HandleIncomingMessageUseCaseTest {
             stubKnownUserAndGroupings();
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(messageDeliveryPort);
             verifyNoInteractions(spendingQueryRepository);
-            verifyNoInteractions(expenseRepository);
         }
 
         @Test
         @DisplayName("when deliver throws MessageDeliveryFailedException - then that exception propagates")
         void whenDeliverThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(twoSummaries());
             MessageDeliveryFailedException failure =
                     new MessageDeliveryFailedException("delivery failed", new RuntimeException());
@@ -437,7 +432,7 @@ class HandleIncomingMessageUseCaseTest {
                 "when delivery answers a location - then one report row is stored for the turn's own message " + "id")
         void whenDeliveryAnswersALocation_thenOneReportRowIsStoredForTheTurnsOwnMessageId() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             ReportLocation location = new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID);
             when(messageDeliveryPort.deliver(any())).thenReturn(Optional.of(location));
@@ -457,7 +452,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when delivery answers nothing - then no report row is stored and the turn still succeeds")
         void whenDeliveryAnswersNothing_thenNoReportRowIsStoredAndTurnStillSucceeds() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
             assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
@@ -469,7 +464,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when the report row cannot be stored - then the turn still succeeds and nothing propagates")
         void whenReportRowCannotBeStored_thenTurnStillSucceedsAndNothingPropagates() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             ReportLocation location = new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID);
             when(messageDeliveryPort.deliver(any())).thenReturn(Optional.of(location));
@@ -559,7 +554,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "per period")
         void whenPeriodsReadBackNameTwoDistinctPeriods_thenReportCarriesOneSummaryPerPeriod() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             SpendingPeriod firstPeriod = periodOf("2026-07-01", "2026-07-07");
             SpendingPeriod secondPeriod = periodOf("2026-07-08", "2026-07-14");
@@ -582,7 +577,7 @@ class HandleIncomingMessageUseCaseTest {
         @DisplayName("when a period holds nothing - then the report carries it as a summary with no totals")
         void whenPeriodHoldsNothing_thenReportCarriesItAsASummaryWithNoTotals() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -599,7 +594,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "report's outcome is ANSWERED")
         void whenNoProposalAndOneSummaryExtractionCompleted_thenOutcomeIsAnswered() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -617,7 +612,7 @@ class HandleIncomingMessageUseCaseTest {
         void whenCompletedExtractionProducedAProposalAndASummary_thenReportIsRecordedAndCarriesBoth() {
             stubKnownUserAndGroupings();
             List<ProposalSummary> proposals = List.of(twoSummaries().get(0));
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(proposals);
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -641,7 +636,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionFailedException failure =
                     new IntentExtractionFailedException("turn failed", new RuntimeException());
             doThrow(failure).when(intentExtractionPort).extract(any());
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -661,7 +656,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "and deliver is never called")
         void whenPeriodReadBackThrowsPersistenceFailedException_thenExceptionPropagatesAndDeliverUntouched() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -677,7 +672,7 @@ class HandleIncomingMessageUseCaseTest {
                 + "deliver is never called")
         void whenTotalsReadThrowsPersistenceFailedException_thenExceptionPropagatesAndDeliverUntouched() {
             stubKnownUserAndGroupings();
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(USER_ID), any()))
@@ -697,7 +692,7 @@ class HandleIncomingMessageUseCaseTest {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
             when(groupingRepository.findNamesWithCategories(differentUserId)).thenReturn(categoryGroupings);
-            when(expenseProposalRepository.findSummariesByMessageReference(eq(differentUserId), any()))
+            when(expenseRepository.findSummariesByMessageReference(eq(differentUserId), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
             when(spendingQueryRepository.findPeriodsByMessageReference(eq(differentUserId), any()))

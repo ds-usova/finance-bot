@@ -1,15 +1,12 @@
 package bot.finance.domain.model;
 
 import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
-import java.util.Optional;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,6 +14,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+@Disabled("RU01: ExpenseProposal is gone, its PENDING cases are rewritten onto ExpenseTest")
 class ExpenseProposalTest {
 
     private static final Money MONEY = new Money(1500L, CurrencyCode.of("USD"));
@@ -32,18 +30,18 @@ class ExpenseProposalTest {
         void whenAllFieldsAreGiven_thenReturnsProposalCarryingThemUnstoredAndStampedWithThatInstant() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now);
-
-            assertThat(proposal.id()).isEmpty();
-            assertThat(proposal.userId()).isEqualTo(1L);
-            assertThat(proposal.categoryId()).isEqualTo(2L);
-            assertThat(proposal.description()).isEqualTo("Coffee");
-            assertThat(proposal.merchant()).contains("Blue Bottle");
-            assertThat(proposal.money()).isEqualTo(MONEY);
-            assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
-            assertThat(proposal.createdAt()).isEqualTo(now);
-            assertThat(proposal.updatedAt()).isEqualTo(now);
+            // ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
+            //         1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now);
+            //
+            // assertThat(proposal.id()).isEmpty();
+            // assertThat(proposal.userId()).isEqualTo(1L);
+            // assertThat(proposal.categoryId()).isEqualTo(2L);
+            // assertThat(proposal.description()).isEqualTo("Coffee");
+            // assertThat(proposal.merchant()).contains("Blue Bottle");
+            // assertThat(proposal.money()).isEqualTo(MONEY);
+            // assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
+            // assertThat(proposal.createdAt()).isEqualTo(now);
+            // assertThat(proposal.updatedAt()).isEqualTo(now);
         }
 
         @Test
@@ -51,10 +49,10 @@ class ExpenseProposalTest {
         void whenMerchantIsAbsent_thenReturnsProposalWhoseMerchantIsEmpty() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
-                    1L, 2L, "Coffee", Optional.empty(), MONEY, MESSAGE_REFERENCE, now);
-
-            assertThat(proposal.merchant()).isEmpty();
+            // ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
+            //         1L, 2L, "Coffee", Optional.empty(), MONEY, MESSAGE_REFERENCE, now);
+            //
+            // assertThat(proposal.merchant()).isEmpty();
         }
 
         @ParameterizedTest
@@ -65,9 +63,9 @@ class ExpenseProposalTest {
         void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String description) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, 2L, description, Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, 2L, description, Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -75,9 +73,9 @@ class ExpenseProposalTest {
         void whenMoneyIsAbsent_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, 2L, "Coffee", Optional.of("Blue Bottle"), null, MESSAGE_REFERENCE, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, 2L, "Coffee", Optional.of("Blue Bottle"), null, MESSAGE_REFERENCE, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @ParameterizedTest
@@ -86,9 +84,9 @@ class ExpenseProposalTest {
         void whenUserIdIsZeroOrNegative_thenThrowsInvalidExpenseProposalException(long userId) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            userId, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 userId, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @ParameterizedTest
@@ -97,9 +95,9 @@ class ExpenseProposalTest {
         void whenCategoryIdIsZeroOrNegative_thenThrowsInvalidExpenseProposalException(long categoryId) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, categoryId, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, categoryId, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -107,17 +105,17 @@ class ExpenseProposalTest {
         void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, 2L, "Coffee", (Optional<String>) null, MONEY, MESSAGE_REFERENCE, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, 2L, "Coffee", (Optional<String>) null, MONEY, MESSAGE_REFERENCE, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
         @DisplayName("when the instant is absent - then throws InvalidExpenseProposalException")
         void whenInstantIsAbsent_thenThrowsInvalidExpenseProposalException() {
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, null))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, null))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -125,9 +123,9 @@ class ExpenseProposalTest {
         void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
-                            1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.newExpenseProposal(
+            //                 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
 
@@ -142,18 +140,19 @@ class ExpenseProposalTest {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
             Instant updatedAt = Instant.parse("2026-07-29T11:15:30Z");
 
-            ExpenseProposal proposal = ExpenseProposal.stored(
-                    42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, createdAt, updatedAt);
-
-            assertThat(proposal.id()).contains(42L);
-            assertThat(proposal.userId()).isEqualTo(1L);
-            assertThat(proposal.categoryId()).isEqualTo(2L);
-            assertThat(proposal.description()).isEqualTo("Coffee");
-            assertThat(proposal.merchant()).contains("Blue Bottle");
-            assertThat(proposal.money()).isEqualTo(MONEY);
-            assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
-            assertThat(proposal.createdAt()).isEqualTo(createdAt);
-            assertThat(proposal.updatedAt()).isEqualTo(updatedAt);
+            // ExpenseProposal proposal = ExpenseProposal.stored(
+            //         42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, createdAt,
+            // updatedAt);
+            //
+            // assertThat(proposal.id()).contains(42L);
+            // assertThat(proposal.userId()).isEqualTo(1L);
+            // assertThat(proposal.categoryId()).isEqualTo(2L);
+            // assertThat(proposal.description()).isEqualTo("Coffee");
+            // assertThat(proposal.merchant()).contains("Blue Bottle");
+            // assertThat(proposal.money()).isEqualTo(MONEY);
+            // assertThat(proposal.incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
+            // assertThat(proposal.createdAt()).isEqualTo(createdAt);
+            // assertThat(proposal.updatedAt()).isEqualTo(updatedAt);
         }
 
         @ParameterizedTest
@@ -164,9 +163,10 @@ class ExpenseProposalTest {
         void whenDatabaseIdAndBlankDescriptionAreGiven_thenThrowsInvalidExpenseProposalException(String description) {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.stored(
-                            42L, 1L, 2L, description, Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.stored(
+            //                 42L, 1L, 2L, description, Optional.of("Blue Bottle"), MONEY, MESSAGE_REFERENCE, now,
+            // now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -175,17 +175,17 @@ class ExpenseProposalTest {
         void whenDatabaseIdAndAbsentCreatedAtAreGiven_thenThrowsInvalidExpenseProposalException() {
             Instant updatedAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.stored(
-                            42L,
-                            1L,
-                            2L,
-                            "Coffee",
-                            Optional.of("Blue Bottle"),
-                            MONEY,
-                            MESSAGE_REFERENCE,
-                            null,
-                            updatedAt))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.stored(
+            //                 42L,
+            //                 1L,
+            //                 2L,
+            //                 "Coffee",
+            //                 Optional.of("Blue Bottle"),
+            //                 MONEY,
+            //                 MESSAGE_REFERENCE,
+            //                 null,
+            //                 updatedAt))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -194,17 +194,17 @@ class ExpenseProposalTest {
         void whenDatabaseIdAndAbsentUpdatedAtAreGiven_thenThrowsInvalidExpenseProposalException() {
             Instant createdAt = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.stored(
-                            42L,
-                            1L,
-                            2L,
-                            "Coffee",
-                            Optional.of("Blue Bottle"),
-                            MONEY,
-                            MESSAGE_REFERENCE,
-                            createdAt,
-                            null))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.stored(
+            //                 42L,
+            //                 1L,
+            //                 2L,
+            //                 "Coffee",
+            //                 Optional.of("Blue Bottle"),
+            //                 MONEY,
+            //                 MESSAGE_REFERENCE,
+            //                 createdAt,
+            //                 null))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
 
         @Test
@@ -213,9 +213,9 @@ class ExpenseProposalTest {
         void whenDatabaseIdAndAbsentMessageReferenceAreGiven_thenThrowsInvalidExpenseProposalException() {
             Instant now = Instant.parse("2026-07-29T10:15:30Z");
 
-            assertThatThrownBy(() -> ExpenseProposal.stored(
-                            42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now, now))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+            // assertThatThrownBy(() -> ExpenseProposal.stored(
+            //                 42L, 1L, 2L, "Coffee", Optional.of("Blue Bottle"), MONEY, null, now, now))
+            //         .isInstanceOf(InvalidExpenseProposalException.class);
         }
     }
 }

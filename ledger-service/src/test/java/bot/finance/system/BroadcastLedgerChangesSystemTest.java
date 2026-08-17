@@ -14,6 +14,7 @@ import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Duration;
@@ -86,7 +87,8 @@ class BroadcastLedgerChangesSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 
@@ -151,7 +153,8 @@ class BroadcastLedgerChangesSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 

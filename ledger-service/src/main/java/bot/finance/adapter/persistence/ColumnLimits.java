@@ -2,7 +2,6 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.Category;
@@ -37,10 +36,6 @@ final class ColumnLimits {
 
     static void validateExpenseText(String description, String merchant) {
         validateDescriptionAndMerchant(description, merchant, InvalidExpenseException::new);
-    }
-
-    static void validateExpenseProposalText(String description, String merchant) {
-        validateDescriptionAndMerchant(description, merchant, InvalidExpenseProposalException::new);
     }
 
     private static void validateDescriptionAndMerchant(

@@ -4,15 +4,15 @@ import bot.finance.application.dto.CreateExpenseProposalCommand;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
 import bot.finance.application.port.CreateExpenseProposalPort;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.model.User;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,7 +22,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
     private final UserRepository userRepository;
     private final GroupingRepository groupingRepository;
     private final CategoryRepository categoryRepository;
-    private final ExpenseProposalRepository expenseProposalRepository;
+    private final ExpenseRepository expenseRepository;
     private final Clock clock;
     private final Logger log;
 
@@ -30,26 +30,26 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
             UserRepository userRepository,
             GroupingRepository groupingRepository,
             CategoryRepository categoryRepository,
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             Clock clock,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;
         this.groupingRepository = groupingRepository;
         this.categoryRepository = categoryRepository;
-        this.expenseProposalRepository = expenseProposalRepository;
+        this.expenseRepository = expenseRepository;
         this.clock = clock;
         this.log = loggerFactory.getLogger(CreateExpenseProposalUseCase.class);
     }
 
     @Override
-    public ExpenseProposal create(CreateExpenseProposalCommand command) {
+    public Expense create(CreateExpenseProposalCommand command) {
         if (command == null) {
-            throw new InvalidExpenseProposalException("new expense proposal command is absent");
+            throw new InvalidExpenseException("new expense proposal command is absent");
         }
         User user = userRepository.requireById(command.userId().userId());
         long categoryId = resolveCategoryId(user, command);
         Instant now = Instant.now(clock);
-        ExpenseProposal proposal = ExpenseProposal.newExpenseProposal(
+        Expense proposal = Expense.newProposal(
                 user.id().orElseThrow(),
                 categoryId,
                 command.description(),
@@ -57,7 +57,7 @@ public class CreateExpenseProposalUseCase implements CreateExpenseProposalPort {
                 command.money(),
                 command.incomingMessageId(),
                 now);
-        ExpenseProposal created = expenseProposalRepository.create(proposal);
+        Expense created = expenseRepository.create(proposal);
         log.info("created expense proposal for user {}", command.userId().userId());
         return created;
     }

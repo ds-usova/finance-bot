@@ -16,13 +16,14 @@ import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import io.restassured.RestAssured;
@@ -86,14 +87,15 @@ class CreateExpenseProposalMcpToolTest {
      * Restaurants-under-Dining - what the happy-path scenarios arrange from.
      */
     private Response postAcceptedProposal(String token, IncomingMessageId reference) {
-        ExpenseProposal stored = ExpenseProposal.stored(
+        Expense stored = Expense.stored(
                 4242L,
                 99L,
                 3L,
                 "lunch with the team",
                 Optional.of("Trattoria Roma"),
                 new Money(1599L, CurrencyCode.of("EUR")),
-                reference,
+                ExpenseStatus.PENDING,
+                Optional.of(reference),
                 CREATED_AT,
                 CREATED_AT);
         when(createExpenseProposalPort.create(any())).thenReturn(stored);
@@ -175,11 +177,10 @@ class CreateExpenseProposalMcpToolTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName(
-                "when the port throws InvalidExpenseProposalException - then the tool error names the field at fault")
+        @DisplayName("when the port throws InvalidExpenseException - then the tool error names the field at fault")
         void whenPortThrowsInvalidExpenseProposalException_thenToolErrorNamesFieldAtFault() {
             when(createExpenseProposalPort.create(any()))
-                    .thenThrow(new InvalidExpenseProposalException("description must be present"));
+                    .thenThrow(new InvalidExpenseException("description must be present"));
 
             Response response =
                     postCreateExpenseProposal(token(1L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");

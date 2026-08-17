@@ -15,20 +15,21 @@ import bot.finance.application.dto.CreateExpenseProposalCommand;
 import bot.finance.application.dto.StoredCategory;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.CategoryRepository;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Clock;
@@ -53,7 +54,7 @@ class CreateExpenseProposalUseCaseTest {
     private UserRepository userRepository;
     private GroupingRepository groupingRepository;
     private CategoryRepository categoryRepository;
-    private ExpenseProposalRepository expenseProposalRepository;
+    private ExpenseRepository expenseRepository;
     private Logger log;
     private CreateExpenseProposalUseCase useCase;
 
@@ -62,18 +63,13 @@ class CreateExpenseProposalUseCaseTest {
         userRepository = mock(UserRepository.class);
         groupingRepository = mock(GroupingRepository.class);
         categoryRepository = mock(CategoryRepository.class);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
+        expenseRepository = mock(ExpenseRepository.class);
         log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(CreateExpenseProposalUseCase.class)).thenReturn(log);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new CreateExpenseProposalUseCase(
-                userRepository,
-                groupingRepository,
-                categoryRepository,
-                expenseProposalRepository,
-                clock,
-                loggerFactory);
+                userRepository, groupingRepository, categoryRepository, expenseRepository, clock, loggerFactory);
     }
 
     private CreateExpenseProposalCommand newExpenseProposal() {
@@ -107,9 +103,9 @@ class CreateExpenseProposalUseCaseTest {
         return storedGrouping;
     }
 
-    private ExpenseProposal capturedProposal() {
-        ArgumentCaptor<ExpenseProposal> proposalCaptor = ArgumentCaptor.forClass(ExpenseProposal.class);
-        verify(expenseProposalRepository).create(proposalCaptor.capture());
+    private Expense capturedProposal() {
+        ArgumentCaptor<Expense> proposalCaptor = ArgumentCaptor.forClass(Expense.class);
+        verify(expenseRepository).create(proposalCaptor.capture());
         return proposalCaptor.getValue();
     }
 
@@ -142,19 +138,20 @@ class CreateExpenseProposalUseCaseTest {
         @DisplayName("when the proposal repository stores the proposal - then it is returned to the caller")
         void whenProposalRepositoryStoresTheProposal_thenItIsReturnedToTheCaller() {
             stubResolvedGroupingAndCategory();
-            ExpenseProposal createdProposal = ExpenseProposal.stored(
+            Expense createdProposal = Expense.stored(
                     10L,
                     USER_ID,
                     CATEGORY_ID,
                     "coffee",
                     Optional.of("Starbucks"),
                     new Money(500, CurrencyCode.of("USD")),
-                    MESSAGE_REFERENCE,
+                    ExpenseStatus.PENDING,
+                    Optional.of(MESSAGE_REFERENCE),
                     FIXED_INSTANT,
                     FIXED_INSTANT);
-            when(expenseProposalRepository.create(any())).thenReturn(createdProposal);
+            when(expenseRepository.create(any())).thenReturn(createdProposal);
 
-            ExpenseProposal result = useCase.create(newExpenseProposal());
+            Expense result = useCase.create(newExpenseProposal());
 
             assertThat(result).isSameAs(createdProposal);
         }
@@ -173,19 +170,19 @@ class CreateExpenseProposalUseCaseTest {
 
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(categoryRepository);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
-        @DisplayName("when the command is absent - then throws InvalidExpenseProposalException and neither "
+        @DisplayName("when the command is absent - then throws InvalidExpenseException and neither "
                 + "repository is touched")
         void whenCommandIsAbsent_thenThrowsInvalidExpenseProposalExceptionAndRepositoriesAreUntouched() {
-            assertThatThrownBy(() -> useCase.create(null)).isInstanceOf(InvalidExpenseProposalException.class);
+            assertThatThrownBy(() -> useCase.create(null)).isInstanceOf(InvalidExpenseException.class);
 
             verifyNoInteractions(userRepository);
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(categoryRepository);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
@@ -195,11 +192,11 @@ class CreateExpenseProposalUseCaseTest {
             stubResolvedGroupingAndCategory();
             PersistenceFailedException failure =
                     new PersistenceFailedException("insert failed", new RuntimeException());
-            when(expenseProposalRepository.create(any())).thenThrow(failure);
+            when(expenseRepository.create(any())).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
-            verify(expenseProposalRepository, times(1)).create(any());
+            verify(expenseRepository, times(1)).create(any());
         }
 
         @Test
@@ -214,7 +211,7 @@ class CreateExpenseProposalUseCaseTest {
 
             verifyNoInteractions(groupingRepository);
             verifyNoInteractions(categoryRepository);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
@@ -231,7 +228,7 @@ class CreateExpenseProposalUseCaseTest {
                     .hasMessageContaining("no grouping named");
 
             verifyNoInteractions(categoryRepository);
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
@@ -247,7 +244,7 @@ class CreateExpenseProposalUseCaseTest {
                     .hasMessageContaining("Groceries")
                     .hasMessageContaining("Food");
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
@@ -262,7 +259,7 @@ class CreateExpenseProposalUseCaseTest {
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
 
         @Test
@@ -273,7 +270,7 @@ class CreateExpenseProposalUseCaseTest {
 
             useCase.create(newExpenseProposal());
 
-            assertThat(capturedProposal().incomingMessageId()).isEqualTo(MESSAGE_REFERENCE);
+            assertThat(capturedProposal().incomingMessageId()).contains(MESSAGE_REFERENCE);
         }
 
         @Test
@@ -288,7 +285,7 @@ class CreateExpenseProposalUseCaseTest {
 
             assertThatThrownBy(() -> useCase.create(newExpenseProposal())).isSameAs(failure);
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
         }
     }
 }

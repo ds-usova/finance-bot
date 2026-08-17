@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.port.CategoryRepository;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -45,7 +44,6 @@ class ChangeExpenseCategoryUseCaseTest {
     private UserRepository userRepository;
     private CategoryRepository categoryRepository;
     private ExpenseRepository expenseRepository;
-    private ExpenseProposalRepository expenseProposalRepository;
     private ChangeExpenseCategoryUseCase useCase;
 
     @BeforeEach
@@ -53,13 +51,12 @@ class ChangeExpenseCategoryUseCaseTest {
         userRepository = mock(UserRepository.class);
         categoryRepository = mock(CategoryRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
         Logger log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(ChangeExpenseCategoryUseCase.class)).thenReturn(log);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new ChangeExpenseCategoryUseCase(
-                userRepository, categoryRepository, expenseRepository, expenseProposalRepository, clock, loggerFactory);
+                userRepository, categoryRepository, expenseRepository, clock, loggerFactory);
     }
 
     @Nested
@@ -73,14 +70,13 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             stubCategoryAdmitted();
             ExpenseEntry entry = newEntry(CATEGORY_ID);
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
                     .thenReturn(Optional.of(entry));
 
             ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.RECORDED));
 
             assertThat(result).isSameAs(entry);
-            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT);
-            verifyNoInteractions(expenseProposalRepository);
+            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT);
         }
 
         @Test
@@ -90,14 +86,13 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             stubCategoryAdmitted();
             ExpenseEntry entry = newEntry(CATEGORY_ID);
-            when(expenseProposalRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING, FIXED_INSTANT))
                     .thenReturn(Optional.of(entry));
 
             ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.PENDING));
 
             assertThat(result).isSameAs(entry);
-            verify(expenseProposalRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT);
-            verifyNoInteractions(expenseRepository);
+            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING, FIXED_INSTANT);
         }
 
         @Test
@@ -112,7 +107,6 @@ class ChangeExpenseCategoryUseCaseTest {
                     .hasMessageContaining("categoryId");
 
             verifyNoInteractions(expenseRepository);
-            verifyNoInteractions(expenseProposalRepository);
         }
 
         @Test
@@ -121,7 +115,7 @@ class ChangeExpenseCategoryUseCaseTest {
         void whenRefileAnswersNothing_thenThrowsExpenseEntryNotFoundExceptionNamingEntryRatherThanCaller() {
             stubStoredUser();
             stubCategoryAdmitted();
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
@@ -143,7 +137,6 @@ class ChangeExpenseCategoryUseCaseTest {
 
             verifyNoInteractions(categoryRepository);
             verifyNoInteractions(expenseRepository);
-            verifyNoInteractions(expenseProposalRepository);
         }
 
         @Test
@@ -158,7 +151,6 @@ class ChangeExpenseCategoryUseCaseTest {
                     .isSameAs(failure);
 
             verifyNoInteractions(expenseRepository);
-            verifyNoInteractions(expenseProposalRepository);
         }
 
         @Test
@@ -167,7 +159,7 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             stubCategoryAdmitted();
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
                     .thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
@@ -183,7 +175,6 @@ class ChangeExpenseCategoryUseCaseTest {
             verifyNoInteractions(userRepository);
             verifyNoInteractions(categoryRepository);
             verifyNoInteractions(expenseRepository);
-            verifyNoInteractions(expenseProposalRepository);
         }
     }
 

@@ -3,7 +3,7 @@ package bot.finance.application.usecase;
 import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.port.ClearEmptiedReportsPort;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -18,17 +18,17 @@ import java.util.Set;
 
 public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
 
-    private final ExpenseProposalRepository expenseProposalRepository;
+    private final ExpenseRepository expenseRepository;
     private final ProposalReportRepository proposalReportRepository;
     private final MessageDeliveryPort messageDeliveryPort;
     private final Logger log;
 
     public ClearEmptiedReportsUseCase(
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
             MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
-        this.expenseProposalRepository = expenseProposalRepository;
+        this.expenseRepository = expenseRepository;
         this.proposalReportRepository = proposalReportRepository;
         this.messageDeliveryPort = messageDeliveryPort;
         this.log = loggerFactory.getLogger(ClearEmptiedReportsUseCase.class);
@@ -47,7 +47,7 @@ public class ClearEmptiedReportsUseCase implements ClearEmptiedReportsPort {
 
         Set<IncomingMessageId> stillPending;
         try {
-            stillPending = expenseProposalRepository.findWithPendingProposals(command.userId(), messageIds);
+            stillPending = expenseRepository.findWithPendingProposals(command.userId(), messageIds);
         } catch (PersistenceFailedException e) {
             log.warn("failed to read pending proposal counts for user {}: {}", command.userId(), e.getMessage());
             return;

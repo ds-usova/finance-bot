@@ -6,11 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bot.finance.application.dto.CreateExpenseProposalCommand;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidMoneyException;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
@@ -72,13 +73,13 @@ class ExpenseProposalToolMapperTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("blankGroupings")
         @DisplayName("when the request's grouping is null, empty, or whitespace only - then throws "
-                + "InvalidExpenseProposalException")
-        void whenGroupingIsNullOrBlank_thenThrowsInvalidExpenseProposalException(String description, String grouping) {
+                + "InvalidExpenseException")
+        void whenGroupingIsNullOrBlank_thenThrowsInvalidExpenseException(String description, String grouping) {
             CreateExpenseProposalToolRequest request =
                     new CreateExpenseProposalToolRequest("Groceries", grouping, "Milk", "Corner Shop", "15.00", "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .isInstanceOf(InvalidExpenseException.class)
                     .hasMessage("expense proposal request has no grouping");
         }
 
@@ -97,7 +98,7 @@ class ExpenseProposalToolMapperTest {
                     new CreateExpenseProposalToolRequest("Groceries", null, "Milk", "Corner Shop", "twelve", "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .isInstanceOf(InvalidExpenseException.class)
                     .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
         }
 
@@ -139,12 +140,12 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request's amount is absent - then throws InvalidExpenseProposalException")
-        void whenAmountIsAbsent_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when the request's amount is absent - then throws InvalidExpenseException")
+        void whenAmountIsAbsent_thenThrowsInvalidExpenseException() {
             CreateExpenseProposalToolRequest request = requestWith(null, "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .isInstanceOf(InvalidExpenseException.class)
                     .hasMessage("expense proposal request has no amount");
         }
 
@@ -174,14 +175,12 @@ class ExpenseProposalToolMapperTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("malformedAmounts")
-        @DisplayName(
-                "when the request's amount is a form never offered - then throws " + "InvalidExpenseProposalException")
-        void whenAmountIsAFormNeverOffered_thenThrowsInvalidExpenseProposalException(
-                String description, String amount) {
+        @DisplayName("when the request's amount is a form never offered - then throws " + "InvalidExpenseException")
+        void whenAmountIsAFormNeverOffered_thenThrowsInvalidExpenseException(String description, String amount) {
             CreateExpenseProposalToolRequest request = requestWith(amount, "EUR");
 
             assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(request, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class)
+                    .isInstanceOf(InvalidExpenseException.class)
                     .hasMessage("amount must be digits with an optional dot, like 7200 or 12.50");
         }
 
@@ -212,10 +211,10 @@ class ExpenseProposalToolMapperTest {
         }
 
         @Test
-        @DisplayName("when the request is absent - then throws InvalidExpenseProposalException")
-        void whenRequestIsAbsent_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when the request is absent - then throws InvalidExpenseException")
+        void whenRequestIsAbsent_thenThrowsInvalidExpenseException() {
             assertThatThrownBy(() -> ExpenseProposalToolMapper.toCommand(null, USER_ID, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
     }
 
@@ -228,14 +227,15 @@ class ExpenseProposalToolMapperTest {
                 + "the response they map onto")
         void whenStoredProposalCarriesMerchantAndCategoryName_thenReturnsTheResponseTheyMapOnto() {
             Instant createdAt = Instant.parse("2026-01-01T10:00:00Z");
-            ExpenseProposal proposal = ExpenseProposal.stored(
+            Expense proposal = Expense.stored(
                     1L,
                     10L,
                     20L,
                     "Milk",
                     Optional.of("Corner Shop"),
                     new Money(1500L, CurrencyCode.of("EUR")),
-                    MESSAGE_REFERENCE,
+                    ExpenseStatus.PENDING,
+                    Optional.of(MESSAGE_REFERENCE),
                     createdAt,
                     createdAt);
 
@@ -250,14 +250,15 @@ class ExpenseProposalToolMapperTest {
         @DisplayName("when a stored proposal has no merchant - then the response's merchant is null")
         void whenStoredProposalHasNoMerchant_thenResponseMerchantIsNull() {
             Instant createdAt = Instant.parse("2026-01-01T10:00:00Z");
-            ExpenseProposal proposal = ExpenseProposal.stored(
+            Expense proposal = Expense.stored(
                     1L,
                     10L,
                     20L,
                     "Milk",
                     Optional.empty(),
                     new Money(1500L, CurrencyCode.of("EUR")),
-                    MESSAGE_REFERENCE,
+                    ExpenseStatus.PENDING,
+                    Optional.of(MESSAGE_REFERENCE),
                     createdAt,
                     createdAt);
 

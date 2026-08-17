@@ -16,7 +16,6 @@ import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolutionAcknowledgement;
 import bot.finance.application.dto.ResolutionOutcome;
 import bot.finance.application.dto.ResolveProposalsCommand;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
@@ -49,7 +48,6 @@ class ResolveProposalsUseCaseTest {
 
     private Logger log;
     private UserRepository userRepository;
-    private ExpenseProposalRepository expenseProposalRepository;
     private ExpenseRepository expenseRepository;
     private MessageDeliveryPort messageDeliveryPort;
     private ResolveProposalsUseCase useCase;
@@ -60,17 +58,11 @@ class ResolveProposalsUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(ResolveProposalsUseCase.class)).thenReturn(log);
         userRepository = mock(UserRepository.class);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new ResolveProposalsUseCase(
-                userRepository,
-                expenseProposalRepository,
-                expenseRepository,
-                messageDeliveryPort,
-                clock,
-                loggerFactory);
+                userRepository, expenseRepository, messageDeliveryPort, clock, loggerFactory);
     }
 
     private ResolveProposalsCommand newCommand(ProposalResolution resolution) {
@@ -93,7 +85,6 @@ class ResolveProposalsUseCaseTest {
             assertThatThrownBy(() -> useCase.resolve(null)).isInstanceOf(InvalidIncomingMessageException.class);
 
             verifyNoInteractions(userRepository);
-            verifyNoInteractions(expenseProposalRepository);
             verifyNoInteractions(expenseRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
@@ -103,12 +94,11 @@ class ResolveProposalsUseCaseTest {
                 "when ACCEPT is tapped and accept answers 2 - then acknowledge receives ACCEPTED with a count of 2")
         void whenAcceptCommandResolvesTwo_thenAcceptCalledAndAcknowledgeReceivesAcceptedAcknowledgement() {
             stubStoredUser();
-            when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
-                    .thenReturn(2);
+            when(expenseRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(2);
 
             useCase.resolve(newCommand(ProposalResolution.ACCEPT));
 
-            verify(expenseProposalRepository).accept(USER_ID, REFERENCE, FIXED_INSTANT);
+            verify(expenseRepository).accept(USER_ID, REFERENCE, FIXED_INSTANT);
 
             ArgumentCaptor<ResolutionAcknowledgement> ackCaptor =
                     ArgumentCaptor.forClass(ResolutionAcknowledgement.class);
@@ -126,7 +116,7 @@ class ResolveProposalsUseCaseTest {
                 + "of 3")
         void whenDiscardCommandResolvesThree_thenAcknowledgeReceivesDiscardedAndAcceptAndExpenseRepositoryUntouched() {
             stubStoredUser();
-            when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(3);
+            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(3);
 
             useCase.resolve(newCommand(ProposalResolution.DISCARD));
 
@@ -137,8 +127,7 @@ class ResolveProposalsUseCaseTest {
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.DISCARDED);
             assertThat(ack.count()).isEqualTo(3);
 
-            verify(expenseProposalRepository, never()).accept(anyLong(), any(), any());
-            verifyNoInteractions(expenseRepository);
+            verify(expenseRepository, never()).accept(anyLong(), any(), any());
         }
 
         @Test
@@ -146,8 +135,7 @@ class ResolveProposalsUseCaseTest {
                 + "with a count of 2")
         void whenAcceptResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
-            when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
-                    .thenReturn(0);
+            when(expenseRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(0);
             when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(2);
 
             useCase.resolve(newCommand(ProposalResolution.ACCEPT));
@@ -167,7 +155,7 @@ class ResolveProposalsUseCaseTest {
                 + "with a count of 2")
         void whenDiscardResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
-            when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(0);
+            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(0);
             when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(2);
 
             useCase.resolve(newCommand(ProposalResolution.DISCARD));
@@ -184,8 +172,7 @@ class ResolveProposalsUseCaseTest {
         @DisplayName("when the resolution and the count both answer 0 - then acknowledge receives NOTHING_TO_RESOLVE")
         void whenResolutionAndCountBothZero_thenAcknowledgeReceivesNothingToResolve() {
             stubStoredUser();
-            when(expenseProposalRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT))
-                    .thenReturn(0);
+            when(expenseRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(0);
             when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(0);
 
             useCase.resolve(newCommand(ProposalResolution.ACCEPT));
@@ -213,7 +200,6 @@ class ResolveProposalsUseCaseTest {
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.NOTHING_TO_RESOLVE);
             assertThat(ack.count()).isEqualTo(0);
 
-            verifyNoInteractions(expenseProposalRepository);
             verifyNoInteractions(expenseRepository);
         }
 
@@ -223,7 +209,7 @@ class ResolveProposalsUseCaseTest {
         void whenAcceptThrowsPersistenceFailedException_thenExceptionPropagatesAndAcknowledgeNeverCalled() {
             stubStoredUser();
             PersistenceFailedException failure = new PersistenceFailedException("move failed", new RuntimeException());
-            doThrow(failure).when(expenseProposalRepository).accept(USER_ID, REFERENCE, FIXED_INSTANT);
+            doThrow(failure).when(expenseRepository).accept(USER_ID, REFERENCE, FIXED_INSTANT);
 
             assertThatThrownBy(() -> useCase.resolve(newCommand(ProposalResolution.ACCEPT)))
                     .isSameAs(failure);
@@ -235,7 +221,7 @@ class ResolveProposalsUseCaseTest {
         @DisplayName("when acknowledge throws MessageDeliveryFailedException - then it propagates")
         void whenAcknowledgeThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
             stubStoredUser();
-            when(expenseProposalRepository.discard(USER_ID, REFERENCE)).thenReturn(2);
+            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(2);
             MessageDeliveryFailedException failure =
                     new MessageDeliveryFailedException("delivery failed", new RuntimeException());
             doThrow(failure).when(messageDeliveryPort).acknowledge(any());
