@@ -141,16 +141,21 @@ class AiMessageEmbeddingAdapterTest {
         }
 
         @Test
-        @DisplayName("when the provider returns too few vectors or a server error - then it throws "
+        @DisplayName("when the provider returns fewer vectors than texts - then it throws "
                 + "MessageEmbeddingFailedException")
-        void whenProviderReturnsTooFewVectorsOrServerError_thenThrowsMessageEmbeddingFailedException() {
+        void whenProviderReturnsFewerVectorsThanTexts_thenThrowsMessageEmbeddingFailedException() {
             List<String> texts = List.of("spent 15 euros on lunch", "20 dollars for a cab", "coffee 3.50");
             WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponseForAll(
                     List.of(EmbeddingFixtures.unitVector(0), EmbeddingFixtures.unitVector(1))));
 
             assertThatThrownBy(() -> adapter.embedAll(texts)).isInstanceOf(MessageEmbeddingFailedException.class);
+        }
 
-            WireMockSupport.SERVER.resetAll();
+        @Test
+        @DisplayName("when the provider answers a server error to a batch - then it throws "
+                + "MessageEmbeddingFailedException")
+        void whenProviderAnswersServerErrorToABatch_thenThrowsMessageEmbeddingFailedException() {
+            List<String> texts = List.of("spent 15 euros on lunch", "20 dollars for a cab", "coffee 3.50");
             WireMockStubs.stubEmbeddingsServerError();
 
             assertThatThrownBy(() -> adapter.embedAll(texts)).isInstanceOf(MessageEmbeddingFailedException.class);
