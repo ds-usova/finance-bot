@@ -55,6 +55,9 @@ public final class Expense extends Entity {
         if (updatedAt == null) {
             throw new InvalidExpenseException("updated at must be present");
         }
+        if (incomingMessageId == null) {
+            throw new InvalidExpenseException("incoming message id must be present");
+        }
         if (status == ExpenseStatus.PENDING && incomingMessageId.isEmpty()) {
             throw new InvalidExpenseException("incoming message id must be present for a pending expense");
         }
