@@ -36,7 +36,8 @@ bot.finance.ai
     │   ├── CallerTokens           # the test signing key, its key set, and the caller tokens it mints
     │   ├── RequestFixtures        # valid ExtractIntentsRequest builders
     │   ├── ChangeStreamEntryFixtures # change-stream entry bodies, in the shape the ledger's stream carries
-    │   └── RecordedChangeFixtures # RecordedChange values, and the SpendingRow/CategoryRow they hold
+    │   ├── RecordedChangeFixtures # RecordedChange values, and the SpendingRow/CategoryRow they hold
+    │   └── EmbeddingFixtures      # a unit vector, one at a chosen similarity to it, and the provider's response
     ├── rows                   # what a test writes into and reads back from a table directly
     │   ├── IncomingMessageRowUtils # rows of incoming_message, by identity and by received_at
     │   ├── RecordedExpenseRowUtils # rows of recorded_expense, by proposal id, by expense id and by message

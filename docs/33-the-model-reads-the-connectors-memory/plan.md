@@ -943,15 +943,15 @@ a step id — `CommentConventionsTest` fails the run on one.
 These are the pages `archive-knowledge` does not write; the use-case page and the `contracts/out/` pages are its
 output and are not listed here.
 
-- [ ] P01 · Correct [Configuration](../../ai-connector-service/docs/configuration.md): the design's variable
+- [x] P01 · Correct [Configuration](../../ai-connector-service/docs/configuration.md): the design's variable
   table, `MEMORY_BACKFILL_TIMEOUT` included, each new row saying what it sets and what a wrong value costs. The
   retrieval rows carry the bound on what leaves for the provider (D6).
-- [ ] P02 · Correct [Architecture](../../ai-connector-service/docs/conventions/architecture.md): the
+- [x] P02 · Correct [Architecture](../../ai-connector-service/docs/conventions/architecture.md): the
   configuration paragraph states that `memory.*` binds in `adapter/scheduling` whatever `memory.enabled` reads,
   that `adapter/config` builds the recall and backfill use cases from it, and that `adapter/ai` reads the
   embedding timeout from it. Its sentence on what `memory.enabled` gates excepts that binding: with the memory
   off, `adapter/scheduling` still registers the one bean that holds the settings.
-- [ ] P03 · Correct [Testing](../../ai-connector-service/docs/conventions/testing.md): **Package Structure**
+- [x] P03 · Correct [Testing](../../ai-connector-service/docs/conventions/testing.md): **Package Structure**
   lists `EmbeddingFixtures`.
 
 No ADR: Q2 was answered neither, and D6 records it. No ADR is written and ADR 0017 is not touched; the bound on

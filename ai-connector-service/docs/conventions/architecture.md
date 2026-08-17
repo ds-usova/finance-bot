@@ -54,9 +54,12 @@ Bean declaration — Java configuration is for classes that cannot be annotated,
 
 Configuration placement: adapter-specific config lives in the adapter subpackage it configures. Use-case wiring
 is the exception, living in `adapter/config`, which holds nothing else. `ledger.change-stream.*` binds in
-`adapter/redis`. `memory.*` binds in `adapter/scheduling`, and `adapter/config` reads `memory.entry-attempts`
-from there to build the outcome use case. `memory.enabled` gates `adapter/persistence`, `adapter/redis`,
-`adapter/security` and `adapter/scheduling` alike: with it off, none of the four registers a bean.
+`adapter/redis`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
+cases, beans of every context, can read their bounds with the memory off — and `adapter/config` reads from it to
+build the outcome, recall and backfill use cases, and `adapter/ai` reads its embedding and backfill timeouts from
+there too. `memory.enabled` gates `adapter/persistence`, `adapter/redis`, `adapter/security` and the rest of
+`adapter/scheduling` alike: with it off, none of those registers a bean — except the one bean that only binds
+the settings, which still registers so the rest of the module can read them.
 
 External services get one adapter subpackage each, holding everything that fronts that system —
 `adapter/ai` for the AI provider, `adapter/redis` for the ledger's change stream. `adapter/grpc` is named for
