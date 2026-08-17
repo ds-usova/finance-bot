@@ -1,5 +1,6 @@
 ---
 name: stabilization-step
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite
 description: 'Spawned by implement-plan-module, Stage 1. Not for direct use — it needs step context only that orchestrator has. Stabilization step agent: applies a plan''s whole Stabilization group in listed order — contract artifacts, database changes, interface and signature sync, stubs, configuration, shared test infrastructure — until the module compiles and its pre-existing suite stands where the baseline left it. Writes no behaviour and no test. Stack-agnostic; every command, file location and disable mechanism comes from the module conventions passed in by the orchestrator.'
 ---
 
