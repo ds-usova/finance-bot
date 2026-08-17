@@ -178,7 +178,7 @@ class CreateExpenseProposalMcpToolTest {
 
         @Test
         @DisplayName("when the port throws InvalidExpenseException - then the tool error names the field at fault")
-        void whenPortThrowsInvalidExpenseProposalException_thenToolErrorNamesFieldAtFault() {
+        void whenPortThrowsInvalidExpenseException_thenToolErrorNamesFieldAtFault() {
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new InvalidExpenseException("description must be present"));
 

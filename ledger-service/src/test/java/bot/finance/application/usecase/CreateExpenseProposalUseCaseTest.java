@@ -187,9 +187,9 @@ class CreateExpenseProposalUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the command is absent - then throws InvalidExpenseException and neither "
-                + "repository is touched")
-        void whenCommandIsAbsent_thenThrowsInvalidExpenseProposalExceptionAndRepositoriesAreUntouched() {
+        @DisplayName("when the command is absent - then throws InvalidExpenseException and the "
+                + "expense store is untouched")
+        void whenCommandIsAbsent_thenThrowsInvalidExpenseExceptionAndExpenseStoreIsUntouched() {
             assertThatThrownBy(() -> useCase.create(null)).isInstanceOf(InvalidExpenseException.class);
 
             verifyNoInteractions(userRepository);
