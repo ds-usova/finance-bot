@@ -48,8 +48,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
             if (row.isEmpty()) {
                 return Optional.empty();
             }
-            Optional<Embedding> embedding =
-                    Optional.ofNullable(row.get().embedding()).map(VectorText::fromLiteral);
+
+            Optional<Embedding> embedding = Optional.ofNullable(row.get().embedding()).map(VectorText::fromLiteral);
+
             return Optional.of(new RegisteredMessage(row.get().id(), embedding));
         } catch (DataAccessException e) {
             throw MessageStoreExceptionMapper.toDomain(e, "failed to find a registered message");
@@ -118,8 +119,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
 
     private List<Long> neighbourIds(ExampleQuery query) {
         String embedding = VectorText.toLiteral(query.embedding());
-        Instant cut = clock.instant().minus(query.maxAge());
-        Instant recentCut = clock.instant().minus(query.recentWindow());
+        Instant now = clock.instant();
+        Instant cut = now.minus(query.maxAge());
+        Instant recentCut = now.minus(query.recentWindow());
 
         List<Long> closestIds = messageRepository.findClosestIds(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());

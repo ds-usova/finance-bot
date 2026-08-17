@@ -223,7 +223,6 @@ class ExtractIntentsUseCaseTest {
             doThrow(new MessageStoreFailedException("store unreachable"))
                     .when(messageStorePort)
                     .register(any(), any());
-            when(recallExamplesPort.recall(any())).thenReturn(Optional.empty());
 
             useCase.extractIntents(command);
 

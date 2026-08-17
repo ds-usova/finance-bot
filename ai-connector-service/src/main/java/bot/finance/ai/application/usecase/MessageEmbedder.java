@@ -11,7 +11,6 @@ import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.Embedding;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class MessageEmbedder {
 
@@ -52,7 +51,7 @@ public class MessageEmbedder {
     }
 
     public boolean ensureEmbedded(List<UnembeddedMessage> claim) {
-        List<String> texts = claim.stream().map(UnembeddedMessage::text).collect(Collectors.toList());
+        List<String> texts = claim.stream().map(UnembeddedMessage::text).toList();
         List<Embedding> vectors;
         try {
             vectors = messageEmbeddingPort.embedAll(texts);
@@ -70,7 +69,7 @@ public class MessageEmbedder {
 
         for (int i = 0; i < claim.size(); i++) {
             try {
-                store(claim.get(i).messageId(), vectors.get(i));
+                messageMemoryPort.storeEmbedding(claim.get(i).messageId(), vectors.get(i));
             } catch (MessageStoreFailedException e) {
                 log.warn("Storing embedding failed, retrying on next run: {}", e.getMessage());
                 return false;
@@ -90,9 +89,5 @@ public class MessageEmbedder {
         if (attempts == embeddingAttempts) {
             log.error("Giving up embedding row {} after repeated failures", messageId);
         }
-    }
-
-    private void store(long messageId, Embedding embedding) {
-        messageMemoryPort.storeEmbedding(messageId, embedding);
     }
 }

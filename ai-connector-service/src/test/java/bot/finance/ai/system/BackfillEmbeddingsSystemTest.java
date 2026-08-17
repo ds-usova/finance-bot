@@ -28,8 +28,7 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
     private static final Duration BOUND = Duration.ofSeconds(10);
 
     private long insertUnembedded(long userId, String incomingMessageId, String text) {
-        IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, text, Instant.now());
-        return IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
+        return IncomingMessageRowUtils.insertReturningId(jdbcTemplate, userId, incomingMessageId, text, Instant.now());
     }
 
     @Nested
@@ -48,12 +47,11 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
             long firstMessageId = insertUnembedded(userId, firstIncomingMessageId, firstText);
             insertUnembedded(userId, secondIncomingMessageId, secondText);
             long proposalId = 80011L;
-            RecordedExpenseRowUtils.insert(
+            RecordedExpenseRowUtils.insertDecided(
                     jdbcTemplate,
                     firstMessageId,
                     userId,
                     proposalId,
-                    null,
                     "lunch",
                     "Deli Co",
                     1500L,
@@ -61,9 +59,7 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
                     42L,
                     "Restaurants",
                     "Dining",
-                    "ACCEPTED",
-                    null,
-                    Instant.now());
+                    "ACCEPTED");
 
             WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponseForAll(
                     List.of(EmbeddingFixtures.unitVector(0), EmbeddingFixtures.unitVector(1))));

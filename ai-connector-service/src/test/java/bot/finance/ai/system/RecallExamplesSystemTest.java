@@ -49,15 +49,13 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     }
 
     private long insertEarlierAcceptedMessage(long userId, String incomingMessageId, String text, List<Float> vector) {
-        IncomingMessageRowUtils.insertWithVector(
+        long messageId = IncomingMessageRowUtils.insertWithVectorReturningId(
                 jdbcTemplate, userId, incomingMessageId, text, Instant.now().minus(Duration.ofDays(1)), vector, 0);
-        long messageId = IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
-        RecordedExpenseRowUtils.insert(
+        RecordedExpenseRowUtils.insertDecided(
                 jdbcTemplate,
                 messageId,
                 userId,
                 messageId * 10,
-                null,
                 "lunch",
                 "Deli Co",
                 1500L,
@@ -65,9 +63,7 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
                 42L,
                 CATEGORY_NAME,
                 GROUPING,
-                "ACCEPTED",
-                null,
-                Instant.now());
+                "ACCEPTED");
         return messageId;
     }
 
