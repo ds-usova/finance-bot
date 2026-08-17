@@ -1,5 +1,6 @@
 package bot.finance.ai.domain.value;
 
+import bot.finance.ai.domain.exception.InvalidValueException;
 import java.util.Optional;
 
 public record ExampleExpense(
@@ -11,7 +12,23 @@ public record ExampleExpense(
         ExampleOutcome outcome) {
 
     public ExampleExpense {
-        // TODO: refuse a null or blank description or amount, a null currency, a null outcome, and a null
-        // Optional for either name, as InvalidValueException
+        if (description == null || description.isBlank()) {
+            throw new InvalidValueException("Description must not be null or blank");
+        }
+        if (amount == null || amount.isBlank()) {
+            throw new InvalidValueException("Amount must not be null or blank");
+        }
+        if (currency == null) {
+            throw new InvalidValueException("Currency must not be null");
+        }
+        if (categoryName == null) {
+            throw new InvalidValueException("Category name must not be null");
+        }
+        if (groupingName == null) {
+            throw new InvalidValueException("Grouping name must not be null");
+        }
+        if (outcome == null) {
+            throw new InvalidValueException("Outcome must not be null");
+        }
     }
 }

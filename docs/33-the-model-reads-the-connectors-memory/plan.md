@@ -912,29 +912,29 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `Embedding` · test: `EmbeddingTest`
-- [ ] GU02 · `ExampleExpense` · test: `ExampleExpenseTest` · after: GU12
-- [ ] GU03 · `MessageExample` · test: `MessageExampleTest` · after: GU02
-- [ ] GU04 · `RecallExamplesCommand` · test: `RecallExamplesCommandTest`
-- [ ] GU05 · `RecallExamplesUseCase` · test: `RecallExamplesUseCaseTest` · after: GU01, GU02, GU03, GU04
-- [ ] GU06 · `BackfillEmbeddingsUseCase` · test: `BackfillEmbeddingsUseCaseTest` · after: GU01
-- [ ] GU07 · `ExampleSectionRenderer` · test: `ExampleSectionRendererTest` · after: GU02, GU03
-- [ ] GU08 · `VectorText` · test: `VectorTextTest` · after: GU01
-- [ ] GU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU03, GU04
-- [ ] GU10 · `RegisteredMessage` · test: `RegisteredMessageTest` · after: GU01
-- [ ] GU11 · `UnembeddedMessage` · test: `UnembeddedMessageTest`
-- [ ] GU12 · `CurrencyCode` · test: `CurrencyCodeTest`
+- [x] GU01 · `Embedding` · test: `EmbeddingTest`
+- [x] GU02 · `ExampleExpense` · test: `ExampleExpenseTest` · after: GU12
+- [x] GU03 · `MessageExample` · test: `MessageExampleTest` · after: GU02
+- [x] GU04 · `RecallExamplesCommand` · test: `RecallExamplesCommandTest`
+- [x] GU05 · `RecallExamplesUseCase` · test: `RecallExamplesUseCaseTest` · after: GU01, GU02, GU03, GU04
+- [x] GU06 · `BackfillEmbeddingsUseCase` · test: `BackfillEmbeddingsUseCaseTest` · after: GU01
+- [x] GU07 · `ExampleSectionRenderer` · test: `ExampleSectionRendererTest` · after: GU02, GU03
+- [x] GU08 · `VectorText` · test: `VectorTextTest` · after: GU01
+- [x] GU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · after: GU03, GU04
+- [x] GU10 · `RegisteredMessage` · test: `RegisteredMessageTest` · after: GU01
+- [x] GU11 · `UnembeddedMessage` · test: `UnembeddedMessageTest`
+- [x] GU12 · `CurrencyCode` · test: `CurrencyCodeTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU01, GU02, GU03, GU08, GU12
-- [ ] GI02 · `AiMessageEmbeddingAdapter` · test: `AiMessageEmbeddingAdapterTest` · after: GU01
-- [ ] GI03 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · after: GU07
+- [x] GI01 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU01, GU02, GU03, GU08, GU12
+- [x] GI02 · `AiMessageEmbeddingAdapter` · test: `AiMessageEmbeddingAdapterTest` · after: GU01
+- [x] GI03 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · after: GU07
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `RecallExamplesSystemTest` · covers: `IntentExtractionService/ExtractIntents`
-- [ ] GS02 · `BackfillEmbeddingsSystemTest` · covers: `MemoryPurgeScheduler.run()`
+- [x] GS01 · `RecallExamplesSystemTest` · covers: `IntentExtractionService/ExtractIntents`
+- [x] GS02 · `BackfillEmbeddingsSystemTest` · covers: `MemoryPurgeScheduler.run()`
 
 ### Post-Implementation Steps
 

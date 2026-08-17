@@ -20,6 +20,8 @@ import org.springframework.stereotype.Component;
 public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
 
     private static final String NO_ASSUMED_CURRENCY = "none — leave an amount with no currency unrecorded";
+    private static final String EXAMPLES_HEADING = "How this person's earlier messages were recorded — accepted "
+            + "means they confirmed it, discarded means they rejected it:";
 
     private final ChatClient chatClient;
     private final ExpenseRecordingProperties expenseRecordingProperties;
@@ -65,7 +67,7 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
                         "today",
                         currentDate.toString(),
                         "examples",
-                        exampleSectionRenderer.render(examples)));
+                        renderExamplesSection(examples)));
 
         try {
             String answer = chatClient
@@ -78,5 +80,13 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
         } catch (RuntimeException e) {
             throw new ExpenseRecordingFailedException("Failed to record expenses via provider", e);
         }
+    }
+
+    private String renderExamplesSection(Optional<List<MessageExample>> examples) {
+        String rendered = exampleSectionRenderer.render(examples);
+        if (rendered.isEmpty()) {
+            return "";
+        }
+        return EXAMPLES_HEADING + "\n" + rendered + "\n\n";
     }
 }

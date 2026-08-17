@@ -1,11 +1,18 @@
 package bot.finance.ai.application.usecase;
 
+import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.application.port.BackfillEmbeddingsPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageEmbeddingPort;
 import bot.finance.ai.application.port.MessageMemoryPort;
+import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.exception.MessageEmbeddingFailedException;
+import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.value.Embedding;
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
 
@@ -25,6 +32,19 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
             int embeddingAttempts,
             Duration staleClaim,
             LoggerFactory loggerFactory) {
+        if (batch <= 0) {
+            throw new InvalidValueException("batch must be positive");
+        }
+        if (batches <= 0) {
+            throw new InvalidValueException("batches must be positive");
+        }
+        if (embeddingAttempts <= 0) {
+            throw new InvalidValueException("embeddingAttempts must be positive");
+        }
+        if (staleClaim.isZero() || staleClaim.isNegative()) {
+            throw new InvalidValueException("staleClaim must be positive");
+        }
+
         this.messageMemoryPort = messageMemoryPort;
         this.messageEmbeddingPort = messageEmbeddingPort;
         this.batch = batch;
@@ -36,8 +56,69 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
 
     @Override
     public void backfill() {
-        // claims up to batch unembedded rows per call, up to batches calls, embeds each claim in one provider
-        // call holding no store lock, and writes the vectors back; a provider or store failure counts an
-        // attempt on every claimed row of that batch and ends the tick
+        for (int i = 0; i < batches; i++) {
+            if (!runOneBatch()) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * @return true if a claim was processed and the tick should continue, false if the tick must end
+     */
+    private boolean runOneBatch() {
+        List<UnembeddedMessage> claim;
+        try {
+            claim = messageMemoryPort.claimUnembedded(batch, embeddingAttempts, staleClaim);
+        } catch (MessageStoreFailedException e) {
+            log.warn("Claim failed, retrying on next run: {}", e.getMessage());
+            return false;
+        }
+
+        if (claim.isEmpty()) {
+            return false;
+        }
+
+        List<String> texts = claim.stream().map(UnembeddedMessage::text).collect(Collectors.toList());
+        List<Embedding> vectors;
+        try {
+            vectors = messageEmbeddingPort.embedAll(texts);
+        } catch (MessageEmbeddingFailedException e) {
+            log.warn("Embedding failed, counting an attempt on every claimed row: {}", e.getMessage());
+            countAttempts(claim);
+            return false;
+        }
+
+        if (vectors.size() < claim.size()) {
+            log.warn("Embedding provider answered fewer vectors than the batch held");
+            countAttempts(claim);
+            return false;
+        }
+
+        if (!store(claim, vectors)) {
+            return false;
+        }
+        return claim.size() == batch;
+    }
+
+    private boolean store(List<UnembeddedMessage> claim, List<Embedding> vectors) {
+        for (int i = 0; i < claim.size(); i++) {
+            try {
+                messageMemoryPort.storeEmbedding(claim.get(i).messageId(), vectors.get(i));
+            } catch (MessageStoreFailedException e) {
+                log.warn("Storing embedding failed, retrying on next run: {}", e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void countAttempts(List<UnembeddedMessage> claim) {
+        for (UnembeddedMessage row : claim) {
+            int attempts = messageMemoryPort.countEmbeddingAttempt(row.messageId());
+            if (attempts >= embeddingAttempts) {
+                log.error("Giving up embedding row {} after repeated failures", row.messageId());
+            }
+        }
     }
 }

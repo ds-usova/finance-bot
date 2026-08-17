@@ -1,6 +1,7 @@
 package bot.finance.ai.domain.value;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
+import java.math.BigDecimal;
 import java.util.Currency;
 
 public record CurrencyCode(String code) {
@@ -23,7 +24,7 @@ public record CurrencyCode(String code) {
     }
 
     public String toDecimal(long minorUnits) {
-        // shifts the amount by the currency's own minor-unit digits, as plain decimal text
-        return null;
+        int fractionDigits = Currency.getInstance(code).getDefaultFractionDigits();
+        return BigDecimal.valueOf(minorUnits, fractionDigits).toPlainString();
     }
 }

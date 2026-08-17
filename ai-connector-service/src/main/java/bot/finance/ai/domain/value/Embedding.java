@@ -1,11 +1,18 @@
 package bot.finance.ai.domain.value;
 
+import bot.finance.ai.domain.exception.InvalidValueException;
 import java.util.List;
+import java.util.Objects;
 
 public record Embedding(List<Float> values) {
 
     public Embedding {
-        // TODO: refuse a null or empty list and a null element, as InvalidValueException, and copy the list so a
-        // later mutation of it cannot reach the stored value
+        if (values == null || values.isEmpty()) {
+            throw new InvalidValueException("Values must not be null or empty");
+        }
+        if (values.stream().anyMatch(Objects::isNull)) {
+            throw new InvalidValueException("Values must not hold a null element");
+        }
+        values = List.copyOf(values);
     }
 }
