@@ -24,11 +24,9 @@ import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
 import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -62,28 +60,18 @@ class JdbcMessageMemoryAdapterTest {
 
     private long insertMessageWithVector(
             long userId, String incomingMessageId, String text, Instant receivedAt, List<Float> vector) {
-        IncomingMessageRowUtils.insertWithVector(jdbcTemplate, userId, incomingMessageId, text, receivedAt, vector, 0);
-        return idFor(userId, incomingMessageId);
+        return IncomingMessageRowUtils.insertWithVectorReturningId(
+                jdbcTemplate, userId, incomingMessageId, text, receivedAt, vector, 0);
     }
 
     private long insertMessageNoVector(long userId, String incomingMessageId, String text, Instant receivedAt) {
-        IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, text, receivedAt);
-        return idFor(userId, incomingMessageId);
+        return IncomingMessageRowUtils.insertReturningId(jdbcTemplate, userId, incomingMessageId, text, receivedAt);
     }
 
     private long insertMessageWithAttempts(
             long userId, String incomingMessageId, String text, Instant receivedAt, int attempts) {
-        jdbcTemplate.update(
-                """
-                INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding_attempts)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                userId,
-                incomingMessageId,
-                text,
-                Timestamp.from(receivedAt),
-                attempts);
-        return idFor(userId, incomingMessageId);
+        return IncomingMessageRowUtils.insertWithAttemptsReturningId(
+                jdbcTemplate, userId, incomingMessageId, text, receivedAt, attempts);
     }
 
     private long idFor(long userId, String incomingMessageId) {
@@ -91,10 +79,7 @@ class JdbcMessageMemoryAdapterTest {
     }
 
     private void setClaimedAt(long messageId, Instant claimedAt) {
-        jdbcTemplate.update(
-                "UPDATE incoming_message SET backfill_claimed_at = ? WHERE id = ?",
-                Timestamp.from(claimedAt),
-                messageId);
+        IncomingMessageRowUtils.setBackfillClaimedAt(jdbcTemplate, messageId, claimedAt);
     }
 
     private void insertDecided(
@@ -108,12 +93,11 @@ class JdbcMessageMemoryAdapterTest {
             String categoryName,
             String groupingName,
             String status) {
-        RecordedExpenseRowUtils.insert(
+        RecordedExpenseRowUtils.insertDecided(
                 jdbcTemplate,
                 messageId,
                 userId,
                 proposalId,
-                null,
                 description,
                 null,
                 amountMinorUnits,
@@ -121,9 +105,7 @@ class JdbcMessageMemoryAdapterTest {
                 categoryId,
                 categoryName,
                 groupingName,
-                status,
-                null,
-                Instant.now());
+                status);
     }
 
     private ExampleQuery query(
@@ -578,11 +560,9 @@ class JdbcMessageMemoryAdapterTest {
         @Test
         @DisplayName("when two threads claim repeatedly over fresh rows - then no row is answered to both")
         void whenTwoThreadsClaimRepeatedlyOverFreshRows_thenNoRowAnsweredToBoth() throws Exception {
-            List<String> messageIds = new ArrayList<>();
             for (int i = 0; i < ROW_COUNT; i++) {
-                String messageId = "claim-concurrent-message-" + i;
-                messageIds.add(messageId);
-                IncomingMessageRowUtils.insert(jdbcTemplate, USER_ID, messageId, "text " + i, Instant.now());
+                IncomingMessageRowUtils.insert(
+                        jdbcTemplate, USER_ID, "claim-concurrent-message-" + i, "text " + i, Instant.now());
             }
 
             Set<Long> claimedIds = ConcurrentHashMap.newKeySet();
@@ -617,8 +597,7 @@ class JdbcMessageMemoryAdapterTest {
                 assertThat(claimedIds).hasSize(ROW_COUNT);
             } finally {
                 executor.shutdownNow();
-                messageIds.forEach(id -> jdbcTemplate.update(
-                        "DELETE FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?", USER_ID, id));
+                IncomingMessageRowUtils.deleteByUser(jdbcTemplate, USER_ID);
             }
         }
     }

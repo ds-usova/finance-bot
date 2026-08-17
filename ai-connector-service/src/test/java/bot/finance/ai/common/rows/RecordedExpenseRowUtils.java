@@ -74,6 +74,41 @@ public final class RecordedExpenseRowUtils {
                 Timestamp.from(updatedAt));
     }
 
+    /**
+     * Inserts a decided row — one carrying a proposal but no expense id, never moved in a transaction, updated
+     * now — for a test that only cares about what an example is built from.
+     */
+    public static void insertDecided(
+            JdbcTemplate jdbcTemplate,
+            long messageId,
+            long userId,
+            long proposalId,
+            String description,
+            String merchant,
+            long amountMinorUnits,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            String groupingName,
+            String status) {
+        insert(
+                jdbcTemplate,
+                messageId,
+                userId,
+                proposalId,
+                null,
+                description,
+                merchant,
+                amountMinorUnits,
+                currencyCode,
+                categoryId,
+                categoryName,
+                groupingName,
+                status,
+                null,
+                Instant.now());
+    }
+
     public static Optional<RecordedExpenseRow> findByProposalId(JdbcTemplate jdbcTemplate, long proposalId) {
         return jdbcTemplate
                 .query(SELECT + " WHERE proposal_id = ?", RecordedExpenseRowUtils::mapRow, proposalId)

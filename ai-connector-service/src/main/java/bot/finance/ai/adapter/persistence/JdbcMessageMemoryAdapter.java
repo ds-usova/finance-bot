@@ -118,8 +118,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
 
     private List<Long> neighbourIds(ExampleQuery query) {
         String embedding = VectorText.toLiteral(query.embedding());
-        Instant cut = clock.instant().minus(query.maxAge());
-        Instant recentCut = clock.instant().minus(query.recentWindow());
+        Instant now = clock.instant();
+        Instant cut = now.minus(query.maxAge());
+        Instant recentCut = now.minus(query.recentWindow());
 
         List<Long> closestIds = messageRepository.findClosestIds(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());

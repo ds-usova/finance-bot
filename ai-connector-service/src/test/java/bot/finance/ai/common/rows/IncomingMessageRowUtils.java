@@ -22,6 +22,13 @@ public final class IncomingMessageRowUtils {
                 Timestamp.from(receivedAt));
     }
 
+    /** Inserts a row and answers its generated id. */
+    public static long insertReturningId(
+            JdbcTemplate jdbcTemplate, long userId, String incomingMessageId, String text, Instant receivedAt) {
+        insert(jdbcTemplate, userId, incomingMessageId, text, receivedAt);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
     /** The generated id of the row under {@code userId} and {@code incomingMessageId}. */
     public static long id(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
         Long id = jdbcTemplate.queryForObject(
@@ -86,6 +93,51 @@ public final class IncomingMessageRowUtils {
                 Timestamp.from(receivedAt),
                 vectorLiteral(embedding),
                 embeddingAttempts);
+    }
+
+    /** Inserts a row already carrying a vector, and answers its generated id. */
+    public static long insertWithVectorReturningId(
+            JdbcTemplate jdbcTemplate,
+            long userId,
+            String incomingMessageId,
+            String text,
+            Instant receivedAt,
+            List<Float> embedding,
+            int embeddingAttempts) {
+        insertWithVector(jdbcTemplate, userId, incomingMessageId, text, receivedAt, embedding, embeddingAttempts);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
+    /** Inserts a row with no vector but an embedding-attempt count, and answers its generated id. */
+    public static long insertWithAttemptsReturningId(
+            JdbcTemplate jdbcTemplate,
+            long userId,
+            String incomingMessageId,
+            String text,
+            Instant receivedAt,
+            int embeddingAttempts) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding_attempts)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                userId,
+                incomingMessageId,
+                text,
+                Timestamp.from(receivedAt),
+                embeddingAttempts);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
+    public static void setBackfillClaimedAt(JdbcTemplate jdbcTemplate, long messageId, Instant claimedAt) {
+        jdbcTemplate.update(
+                "UPDATE incoming_message SET backfill_claimed_at = ? WHERE id = ?",
+                Timestamp.from(claimedAt),
+                messageId);
+    }
+
+    public static void deleteByUser(JdbcTemplate jdbcTemplate, long userId) {
+        jdbcTemplate.update("DELETE FROM incoming_message WHERE user_id = ?", userId);
     }
 
     public static List<Float> vector(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
