@@ -71,39 +71,9 @@ class ExpenseRepositoryAdapterConcurrencyTest {
             long categoryId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Instant createdAt = Instant.now().minusSeconds(60);
-            ExpenseRowUtils.storedExpense(
-                    jdbcAggregateTemplate,
-                    userId,
-                    categoryId,
-                    "First",
-                    null,
-                    100,
-                    "USD",
-                    reference.value(),
-                    createdAt,
-                    ExpenseStatus.PENDING);
-            ExpenseRowUtils.storedExpense(
-                    jdbcAggregateTemplate,
-                    userId,
-                    categoryId,
-                    "Second",
-                    null,
-                    200,
-                    "USD",
-                    reference.value(),
-                    createdAt,
-                    ExpenseStatus.PENDING);
-            ExpenseRowUtils.storedExpense(
-                    jdbcAggregateTemplate,
-                    userId,
-                    categoryId,
-                    "Third",
-                    null,
-                    300,
-                    "USD",
-                    reference.value(),
-                    createdAt,
-                    ExpenseStatus.PENDING);
+            storedPendingExpense(categoryId, "First", 100, reference, createdAt);
+            storedPendingExpense(categoryId, "Second", 200, reference, createdAt);
+            storedPendingExpense(categoryId, "Third", 300, reference, createdAt);
 
             List<Future<Integer>> results = runConcurrently(
                     () -> adapter.accept(userId, reference, Instant.now()),
@@ -116,6 +86,25 @@ class ExpenseRepositoryAdapterConcurrencyTest {
             assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED))
                     .hasSize(3);
         }
+    }
+
+    private void storedPendingExpense(
+            long categoryId,
+            String description,
+            long amountMinorUnits,
+            IncomingMessageId reference,
+            Instant createdAt) {
+        ExpenseRowUtils.storedExpense(
+                jdbcAggregateTemplate,
+                userId,
+                categoryId,
+                description,
+                null,
+                amountMinorUnits,
+                "USD",
+                reference.value(),
+                createdAt,
+                ExpenseStatus.PENDING);
     }
 
     private List<Future<Integer>> runConcurrently(Callable<Integer> first, Callable<Integer> second)

@@ -29,26 +29,36 @@ public interface ExpenseRepository {
     Expense create(Expense expense);
 
     /**
+     * Summarizes the caller's PENDING entries under that message, oldest first, category and grouping included.
+     *
      * @throws PersistenceFailedException if the read fails
      */
     List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference);
 
     /**
+     * Moves the caller's PENDING entries under that message to RECORDED, answering how many rows matched.
+     *
      * @throws PersistenceFailedException if the write fails
      */
     int accept(long userId, IncomingMessageId reference, Instant now);
 
     /**
+     * Removes the caller's PENDING entries under that message, answering how many rows matched.
+     *
      * @throws PersistenceFailedException if the write fails
      */
     int discard(long userId, IncomingMessageId reference);
 
     /**
+     * Moves the caller's PENDING entries named by id to RECORDED, answering each moved row's message id.
+     *
      * @throws PersistenceFailedException if the write fails
      */
     List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now);
 
     /**
+     * Answers which of the given messages still hold a PENDING entry of the caller's.
+     *
      * @throws PersistenceFailedException if the read fails
      */
     Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids);

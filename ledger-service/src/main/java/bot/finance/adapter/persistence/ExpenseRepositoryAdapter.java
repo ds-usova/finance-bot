@@ -51,7 +51,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference) {
-        // answers the caller's PENDING entries under that message, oldest first, category and grouping included
         try {
             return expenseEntityRepository.findSummariesByMessageReference(userId, reference.value()).stream()
                     .map(ProposalSummaryProjection::toSummary)
@@ -67,7 +66,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Override
     @Transactional
     public int accept(long userId, IncomingMessageId reference, Instant now) {
-        // updates the caller's PENDING entries under that message to RECORDED, answering how many rows matched
         try {
             return expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
         } catch (RuntimeException e) {
@@ -79,7 +77,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Override
     @Transactional
     public int discard(long userId, IncomingMessageId reference) {
-        // removes the caller's PENDING entries under that message, answering how many rows matched
         try {
             return expenseEntityRepository.discard(userId, reference.value());
         } catch (RuntimeException e) {
@@ -92,7 +89,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Override
     @Transactional
     public List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now) {
-        // updates the caller's PENDING entries named by id to RECORDED, answering each row's message id
         try {
             return expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS)).stream()
                     .map(IncomingMessageId::of)
@@ -104,7 +100,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
-        // answers the messages that still have a PENDING entry among those given
         if (ids.isEmpty()) {
             return Set.of();
         }

@@ -11,7 +11,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, Long> {
 
-    // answers the caller's PENDING entries under that message, oldest first, with their category and grouping names
     @Query(
             """
             SELECT c.name AS category_name, p.name AS grouping_name, e.description AS description,
@@ -26,7 +25,6 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
     List<ProposalSummaryProjection> findSummariesByMessageReference(
             @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
-    // updates the caller's PENDING entries under that message to RECORDED, answering how many rows matched
     @Modifying
     @Query(
             """
@@ -39,7 +37,6 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             @Param("incomingMessageId") String incomingMessageId,
             @Param("now") Instant now);
 
-    // removes the caller's PENDING entries under that message, answering how many rows matched
     @Modifying
     @Query(
             """
@@ -48,7 +45,6 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             """)
     int discard(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
-    // updates the caller's PENDING entries named by id to RECORDED, answering each row's message id
     @Query(
             """
             UPDATE expense
@@ -58,7 +54,6 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             """)
     List<String> acceptByIds(@Param("userId") Long userId, @Param("ids") List<Long> ids, @Param("now") Instant now);
 
-    // answers the messages that still have a PENDING entry among those given
     @Query(
             """
             SELECT DISTINCT incoming_message_id
@@ -70,7 +65,8 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            SELECT count(*) FROM expense
+            SELECT count(*)
+            FROM expense
             WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'RECORDED'
             """)
     int countByMessageReference(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
@@ -110,7 +106,8 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            SELECT count(*) FROM expense
+            SELECT count(*)
+            FROM expense
             WHERE user_id = :userId
               AND (CAST(:status AS VARCHAR) IS NULL OR status = :status)
               AND (CAST(:categoryId AS BIGINT) IS NULL OR category_id = :categoryId)

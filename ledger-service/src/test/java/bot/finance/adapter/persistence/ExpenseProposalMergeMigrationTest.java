@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.annotation.Id;
@@ -93,102 +94,108 @@ class ExpenseProposalMergeMigrationTest {
             Instant createdAt,
             Instant updatedAt) {}
 
-    @Test
-    @DisplayName(
-            "when the remaining migrations run - then expenses keep their id, proposals become PENDING, and the table is gone")
-    void whenRemainingMigrationsRun_thenExpensesKeepIdProposalsBecomePendingAndTableIsGone() {
-        migrateTo("8");
+    @Nested
+    @DisplayName("carrying a pre-merge database through the remaining migrations")
+    class MergingProposalsIntoExpense {
 
-        long userId = UserRowUtils.storedUserId(userEntityRepository, "merge-migration-user");
-        long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries");
-        long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
-        long otherUserId = UserRowUtils.storedUserId(userEntityRepository, "merge-migration-other-user");
-        long otherGroupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, otherUserId, "Dining");
-        long otherCategoryId =
-                CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, otherUserId, otherGroupingId, "Restaurants");
-        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        @Test
+        @DisplayName(
+                "when the remaining migrations run - then expenses keep their id, proposals become PENDING, and the table is gone")
+        void whenRemainingMigrationsRun_thenExpensesKeepIdProposalsBecomePendingAndTableIsGone() {
+            migrateTo("8");
 
-        PreMigrationExpenseRow firstExpense = jdbcAggregateTemplate.insert(new PreMigrationExpenseRow(
-                null, userId, categoryId, "First recorded", "Trader Joe's", 1500, "USD", null, now, now));
-        PreMigrationExpenseRow secondExpense = jdbcAggregateTemplate.insert(new PreMigrationExpenseRow(
-                null, otherUserId, otherCategoryId, "Second recorded", null, 2500, "EUR", null, now, now));
+            long userId = UserRowUtils.storedUserId(userEntityRepository, "merge-migration-user");
+            long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries");
+            long categoryId =
+                    CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, "Supermarkets");
+            long otherUserId = UserRowUtils.storedUserId(userEntityRepository, "merge-migration-other-user");
+            long otherGroupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, otherUserId, "Dining");
+            long otherCategoryId = CategoryRowUtils.storedCategoryId(
+                    jdbcAggregateTemplate, otherUserId, otherGroupingId, "Restaurants");
+            Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-        String firstProposalMessageId = UUID.randomUUID().toString();
-        String secondProposalMessageId = UUID.randomUUID().toString();
-        String thirdProposalMessageId = UUID.randomUUID().toString();
-        jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
-                null,
-                userId,
-                categoryId,
-                "First proposal",
-                "Corner Cafe",
-                800,
-                "USD",
-                firstProposalMessageId,
-                now,
-                now));
-        jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
-                null, userId, categoryId, "Second proposal", null, 300, "USD", secondProposalMessageId, now, now));
-        jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
-                null,
-                otherUserId,
-                otherCategoryId,
-                "Third proposal",
-                "Market",
-                1200,
-                "EUR",
-                thirdProposalMessageId,
-                now,
-                now));
+            PreMigrationExpenseRow firstExpense = jdbcAggregateTemplate.insert(new PreMigrationExpenseRow(
+                    null, userId, categoryId, "First recorded", "Trader Joe's", 1500, "USD", null, now, now));
+            PreMigrationExpenseRow secondExpense = jdbcAggregateTemplate.insert(new PreMigrationExpenseRow(
+                    null, otherUserId, otherCategoryId, "Second recorded", null, 2500, "EUR", null, now, now));
 
-        migrateTo(null);
+            String firstProposalMessageId = UUID.randomUUID().toString();
+            String secondProposalMessageId = UUID.randomUUID().toString();
+            String thirdProposalMessageId = UUID.randomUUID().toString();
+            jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
+                    null,
+                    userId,
+                    categoryId,
+                    "First proposal",
+                    "Corner Cafe",
+                    800,
+                    "USD",
+                    firstProposalMessageId,
+                    now,
+                    now));
+            jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
+                    null, userId, categoryId, "Second proposal", null, 300, "USD", secondProposalMessageId, now, now));
+            jdbcAggregateTemplate.insert(new PreMigrationProposalRow(
+                    null,
+                    otherUserId,
+                    otherCategoryId,
+                    "Third proposal",
+                    "Market",
+                    1200,
+                    "EUR",
+                    thirdProposalMessageId,
+                    now,
+                    now));
 
-        Integer proposalTableCount = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM information_schema.tables
-                WHERE table_schema = current_schema() AND table_name = 'expense_proposal'
-                """,
-                Integer.class);
-        assertThat(proposalTableCount).isZero();
+            migrateTo(null);
 
-        assertThat(expenseRow(firstExpense.id())).satisfies(row -> {
-            assertThat(row.get("status")).isEqualTo("RECORDED");
-            assertThat(row.get("description")).isEqualTo("First recorded");
-            assertThat(row.get("merchant")).isEqualTo("Trader Joe's");
-            assertThat(row.get("amount_minor_units")).isEqualTo(1500L);
-            assertThat(row.get("currency_code")).isEqualTo("USD");
-            assertThat(row.get("category_id")).isEqualTo(categoryId);
-            assertThat(row.get("user_id")).isEqualTo(userId);
-        });
-        assertThat(expenseRow(secondExpense.id())).satisfies(row -> {
-            assertThat(row.get("status")).isEqualTo("RECORDED");
-            assertThat(row.get("description")).isEqualTo("Second recorded");
-            assertThat(row.get("merchant")).isNull();
-        });
+            Integer proposalTableCount = jdbcTemplate.queryForObject(
+                    """
+                    SELECT count(*) FROM information_schema.tables
+                    WHERE table_schema = current_schema() AND table_name = 'expense_proposal'
+                    """,
+                    Integer.class);
+            assertThat(proposalTableCount).isZero();
 
-        List<Map<String, Object>> pendingRows =
-                jdbcTemplate.queryForList("SELECT * FROM expense WHERE status = 'PENDING' ORDER BY description");
-        assertThat(pendingRows).hasSize(3);
-        assertThat(pendingRows)
-                .anySatisfy(row -> {
-                    assertThat(row.get("description")).isEqualTo("First proposal");
-                    assertThat(row.get("merchant")).isEqualTo("Corner Cafe");
-                    assertThat(row.get("amount_minor_units")).isEqualTo(800L);
-                    assertThat(row.get("currency_code")).isEqualTo("USD");
-                    assertThat(row.get("incoming_message_id")).isEqualTo(firstProposalMessageId);
-                    assertThat(row.get("category_id")).isEqualTo(categoryId);
-                    assertThat(row.get("user_id")).isEqualTo(userId);
-                })
-                .anySatisfy(row -> {
-                    assertThat(row.get("description")).isEqualTo("Second proposal");
-                    assertThat(row.get("merchant")).isNull();
-                    assertThat(row.get("incoming_message_id")).isEqualTo(secondProposalMessageId);
-                })
-                .anySatisfy(row -> {
-                    assertThat(row.get("description")).isEqualTo("Third proposal");
-                    assertThat(row.get("incoming_message_id")).isEqualTo(thirdProposalMessageId);
-                    assertThat(row.get("user_id")).isEqualTo(otherUserId);
-                });
+            assertThat(expenseRow(firstExpense.id())).satisfies(row -> {
+                assertThat(row.get("status")).isEqualTo("RECORDED");
+                assertThat(row.get("description")).isEqualTo("First recorded");
+                assertThat(row.get("merchant")).isEqualTo("Trader Joe's");
+                assertThat(row.get("amount_minor_units")).isEqualTo(1500L);
+                assertThat(row.get("currency_code")).isEqualTo("USD");
+                assertThat(row.get("category_id")).isEqualTo(categoryId);
+                assertThat(row.get("user_id")).isEqualTo(userId);
+            });
+            assertThat(expenseRow(secondExpense.id())).satisfies(row -> {
+                assertThat(row.get("status")).isEqualTo("RECORDED");
+                assertThat(row.get("description")).isEqualTo("Second recorded");
+                assertThat(row.get("merchant")).isNull();
+            });
+
+            List<Map<String, Object>> pendingRows =
+                    jdbcTemplate.queryForList("SELECT * FROM expense WHERE status = 'PENDING' ORDER BY description");
+            assertThat(pendingRows).hasSize(3);
+            assertThat(pendingRows)
+                    .anySatisfy(row -> {
+                        assertThat(row.get("description")).isEqualTo("First proposal");
+                        assertThat(row.get("merchant")).isEqualTo("Corner Cafe");
+                        assertThat(row.get("amount_minor_units")).isEqualTo(800L);
+                        assertThat(row.get("currency_code")).isEqualTo("USD");
+                        assertThat(row.get("incoming_message_id")).isEqualTo(firstProposalMessageId);
+                        assertThat(row.get("category_id")).isEqualTo(categoryId);
+                        assertThat(row.get("user_id")).isEqualTo(userId);
+                    })
+                    .anySatisfy(row -> {
+                        assertThat(row.get("description")).isEqualTo("Second proposal");
+                        assertThat(row.get("merchant")).isNull();
+                        assertThat(row.get("incoming_message_id")).isEqualTo(secondProposalMessageId);
+                    })
+                    .anySatisfy(row -> {
+                        assertThat(row.get("description")).isEqualTo("Third proposal");
+                        assertThat(row.get("incoming_message_id")).isEqualTo(thirdProposalMessageId);
+                        assertThat(row.get("user_id")).isEqualTo(otherUserId);
+                    });
+        }
     }
 
     private Map<String, Object> expenseRow(long id) {

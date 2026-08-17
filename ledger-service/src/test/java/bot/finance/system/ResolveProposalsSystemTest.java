@@ -8,6 +8,7 @@ import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageR
 import static bot.finance.common.stubs.WireMockStubs.telegramDeliversOnce;
 import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
@@ -25,7 +26,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -153,8 +153,7 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
             assertThat(expenseRows)
                     .as("accepted expenses carry the ids and created_at of the proposals they came from")
                     .extracting(ExpenseEntity::id, ExpenseEntity::createdAt)
-                    .containsExactlyInAnyOrder(
-                            Tuple.tuple(proposalId1, createdAt), Tuple.tuple(proposalId2, createdAt));
+                    .containsExactlyInAnyOrder(tuple(proposalId1, createdAt), tuple(proposalId2, createdAt));
             assertThat(expenseRows)
                     .as("every accepted expense carries the resolved message reference")
                     .allSatisfy(row -> assertThat(row.incomingMessageId()).isEqualTo(reference));

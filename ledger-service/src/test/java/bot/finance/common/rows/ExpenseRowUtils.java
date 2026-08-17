@@ -18,8 +18,8 @@ public class ExpenseRowUtils {
 
     public static List<ExpenseEntity> expenseRowsFor(
             JdbcAggregateTemplate jdbcAggregateTemplate, long userId, ExpenseStatus status) {
-        return jdbcAggregateTemplate.findAll(ExpenseEntity.class).stream()
-                .filter(row -> row.userId() == userId && status.name().equals(row.status()))
+        return expenseRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row -> status.name().equals(row.status()))
                 .toList();
     }
 
