@@ -131,9 +131,12 @@ figures, and the section name if the user narrowed the run to one.
 
 - **Nothing waits.** Phase 1 landed everything that crosses, so the module plans are independent by
   construction. One blocking does not stop the rest.
-- **A pipeline that returns with children in flight is resumed, not restarted.** The harness's task-notification
-  says it stopped; once its children have reported, send it one message to continue. It picks up its own plan and
-  ticks.
+- **A pipeline that returns with children in flight is resumed, not restarted.** It picks up its own plan and
+  ticks. Resuming is [`templates/sub-agents.md`](../../templates/sub-agents.md)'s **continue an agent** row, and
+  a message left without its blocking read stalls the pipeline a second time.
+- **A step agent's report can arrive here.** You are the level a grandchild's task-notification reaches, and the
+  pipeline that spawned it never saw it. Relay what it says in the message that resumes the pipeline, rather than
+  waiting for a report that has already been delivered to the wrong level.
 - **How many start at once is the repository tier's answer.** One machine runs every module, and a module's own
   conventions cannot see what a sibling is doing. Read the **Parallelism** rules at the level that binds all the
   modules and start no more pipelines than they allow, starting the next as a running one finishes. If no such

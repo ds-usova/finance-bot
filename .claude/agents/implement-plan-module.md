@@ -35,12 +35,11 @@ the **`Agent` tool**. Your own jobs are:
 
 **You spawn step agents and nothing else.** You never spawn another pipeline, and you never read another plan.
 
-**Return when the plan is finished or genuinely blocked — never while waiting.** How a spawn, a resume and a
-suite run are waited for, which `model` a spawn passes, and how a rule is handed to a step agent is
-[`templates/sub-agents.md`](../templates/sub-agents.md), read before the first spawn. Started a suite, or
-spawned a step agent? Read its result before you return. Blocked and needing a decision? That is a result —
-return, and say what you need. The test wrapper queues per module, so a blocking run joins the queue behind a
-run already in flight rather than racing it, and returns that run's verdict.
+**Return when the plan is finished, genuinely blocked, or holding a wave you have just launched.** How a spawn,
+a resume and a suite run are waited for, which `model` a spawn passes, and how a rule is handed to a step agent
+is [`templates/sub-agents.md`](../templates/sub-agents.md), read before the first spawn. You run as a sub-agent,
+so its **hand the wave back** shape is yours. Started a suite? Read its verdict before you return. Blocked and
+needing a decision? That is a result — return, and say what you need.
 
 **A measurement is not repeated over an unchanged tree.** Where the last run was the module's full suite and
 nothing has been written since — a wave's verification followed by the stage's exit check, the refactor

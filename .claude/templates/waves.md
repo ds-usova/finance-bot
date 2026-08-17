@@ -29,8 +29,13 @@ dependency chain, which is what sets the phase's wall time.
 
 ## Launching a wave
 
-A wave is launched as [`sub-agents.md`](sub-agents.md) says for running several agents at once. Bundles spawned
-and awaited one at a time are not a wave; they are the phase run serially at the wave's cost.
+A wave is launched as [`sub-agents.md`](sub-agents.md) says for running several agents at once — and which shape
+that is depends on whether the pipeline runs as a session or as a sub-agent, since only the first can block on a
+spawn. Bundles spawned and awaited one at a time are not a wave; they are the phase run serially at the wave's
+cost.
+
+**A pipeline running as a sub-agent takes the parallel shape of the two that file offers**, and hands the wave
+back.
 
 ## Who verifies a wave
 
