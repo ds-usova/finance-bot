@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -186,8 +185,6 @@ class WebSessionSystemTest extends AbstractSystemTest {
         }
 
         @Test
-        @Disabled("GI01: the browse GET below calls findPage, which still UNIONs against the dropped "
-                + "expense_proposal table until GI01 rewrites it")
         @DisplayName("when a signed-in person browses and refiles - then each acts on their own ledger under "
                 + "their user_id")
         void whenASignedInPersonBrowsesAndRefiles_thenEachActsOnTheirOwnLedgerUnderTheirUserId() {

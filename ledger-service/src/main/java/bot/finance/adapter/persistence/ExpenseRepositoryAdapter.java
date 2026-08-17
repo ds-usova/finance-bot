@@ -184,11 +184,10 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Transactional
     public Optional<ExpenseEntry> refile(
             long userId, long entryId, long categoryId, ExpenseStatus status, Instant now) {
-        // TODO: pass status into the query's predicate once ExpenseEntityRepository.refile carries one
         try {
             return expenseEntityRepository
                     .refile(userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS))
-                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.RECORDED));
+                    .map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
         }

@@ -22,6 +22,7 @@ import bot.finance.domain.value.ExpenseStatus;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.assertj.core.groups.Tuple;
@@ -81,7 +82,9 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         userId = UserRowUtils.storedUserId(userEntityRepository, FROM_ID_STRING);
         long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, GROUPING_NAME);
         long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, CATEGORY_NAME);
-        createdAt = Instant.now();
+        // the expense.created_at column stores microseconds, so seeding at that precision keeps the round trip
+        // exact and avoids asserting against a value the driver would otherwise round on the way in
+        createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
         proposalId1 = ExpenseRowUtils.storedExpense(
                         jdbcAggregateTemplate,
                         userId,
