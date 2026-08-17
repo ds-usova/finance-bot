@@ -49,7 +49,8 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
                 return Optional.empty();
             }
 
-            Optional<Embedding> embedding = Optional.ofNullable(row.get().embedding()).map(VectorText::fromLiteral);
+            Optional<Embedding> embedding =
+                    Optional.ofNullable(row.get().embedding()).map(VectorText::fromLiteral);
 
             return Optional.of(new RegisteredMessage(row.get().id(), embedding));
         } catch (DataAccessException e) {
@@ -84,7 +85,8 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
             }
 
             Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
-            Map<Long, List<RecordedExpenseEntity>> decidedByMessageId = decidedExpensesByMessageId(orderedIds);
+            Map<Long, List<RecordedExpenseEntity>> decidedByMessageId =
+                    decidedExpensesByMessageId(orderedIds, query.exampleLines());
 
             List<MessageExample> examples = new ArrayList<>();
             for (Long id : orderedIds) {
@@ -93,7 +95,7 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
                 if (message == null || decided == null || decided.isEmpty()) {
                     continue;
                 }
-                examples.add(toExample(message, decided, query.exampleLines()));
+                examples.add(toExample(message, decided));
             }
             return examples;
         } catch (DataAccessException e) {
@@ -139,9 +141,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         return messagesById;
     }
 
-    private Map<Long, List<RecordedExpenseEntity>> decidedExpensesByMessageId(List<Long> ids) {
+    private Map<Long, List<RecordedExpenseEntity>> decidedExpensesByMessageId(List<Long> ids, int exampleLines) {
         Map<Long, List<RecordedExpenseEntity>> decidedByMessageId = new LinkedHashMap<>();
-        for (RecordedExpenseEntity expense : expenseRepository.findDecidedByMessageIds(ids)) {
+        for (RecordedExpenseEntity expense : expenseRepository.findDecidedByMessageIds(ids, exampleLines)) {
             decidedByMessageId
                     .computeIfAbsent(expense.messageId(), key -> new ArrayList<>())
                     .add(expense);
@@ -149,12 +151,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         return decidedByMessageId;
     }
 
-    private static MessageExample toExample(
-            IncomingMessageEntity message, List<RecordedExpenseEntity> decided, int exampleLines) {
-        List<ExampleExpense> expenses = decided.stream()
-                .limit(exampleLines)
-                .map(RecordedExpenseEntity::toExampleExpense)
-                .toList();
+    private static MessageExample toExample(IncomingMessageEntity message, List<RecordedExpenseEntity> decided) {
+        List<ExampleExpense> expenses =
+                decided.stream().map(RecordedExpenseEntity::toExampleExpense).toList();
         return new MessageExample(message.text(), expenses);
     }
 }

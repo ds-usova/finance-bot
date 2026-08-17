@@ -16,11 +16,19 @@ public interface RecordedExpenseEntityRepository extends CrudRepository<Recorded
 
     @Query(
             """
-            SELECT * FROM recorded_expense
-            WHERE message_id IN (:messageIds) AND status IN ('ACCEPTED', 'DISCARDED')
-            ORDER BY message_id, id
+            SELECT ranked.id, ranked.message_id, ranked.user_id, ranked.proposal_id, ranked.expense_id,
+                   ranked.description, ranked.merchant, ranked.amount_minor_units, ranked.currency_code,
+                   ranked.category_id, ranked.category_name, ranked.grouping_name, ranked.status,
+                   ranked.moved_in_tx, ranked.updated_at
+            FROM (
+                SELECT e.*, ROW_NUMBER() OVER (PARTITION BY message_id ORDER BY id) AS rn
+                FROM recorded_expense e
+                WHERE e.message_id IN (:messageIds) AND e.status IN ('ACCEPTED', 'DISCARDED')) ranked
+            WHERE ranked.rn <= :exampleLines
+            ORDER BY ranked.message_id, ranked.id
             """)
-    List<RecordedExpenseEntity> findDecidedByMessageIds(@Param("messageIds") List<Long> messageIds);
+    List<RecordedExpenseEntity> findDecidedByMessageIds(
+            @Param("messageIds") List<Long> messageIds, @Param("exampleLines") int exampleLines);
 
     @Modifying
     @Query(
