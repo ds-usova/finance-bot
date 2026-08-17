@@ -12,7 +12,7 @@
 |-----------|-------------------------------------------------------|-----------------------------------------------------------------------------------|-----------------------------------------------------------|
 | in        | [Act on a user's message](handle-incoming-message.md) | [Act on a user's message](handle-incoming-message.md)                             | resolving the person who sent a message, on every message |
 | in        | [Web App](../../../web-app/README.md)                 | [The session API](../contracts/in/web-session-api.md)                             | resolving the person signing in, on every sign-in         |
-| out       | [Database](../contracts/out/database.md)              | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | storing the user and their catalogue                      |
+| out       | [Database](../contracts/out/database.md)              | [Users, categories and expenses](../contracts/out/database.md)                    | storing the user and their catalogue                      |
 
 ## Outcomes
 

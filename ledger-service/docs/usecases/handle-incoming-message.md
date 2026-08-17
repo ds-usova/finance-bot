@@ -1,10 +1,14 @@
 # Act on a user's message
 
-- **In:** who sent the message · the conversation it was sent in · which message it is · its text
-- **Out:** a report of what that message produced — the spending it named, and the totals it asked for — sent
-  back into the conversation
-- **Why:** it is the point at which a user's words become spending someone can review, and the point at which
-  they find out what was made of them
+- **In**
+  - who sent the message
+  - the conversation it was sent in
+  - which message it is
+  - its text
+- **Out**
+  - a report of what that message produced — the spending it named, and the totals it asked for — sent back
+    into the conversation
+- **Why:** a user's words become spending someone can review, and the user is told what was made of them
 
 *Implemented by `HandleIncomingMessageUseCase`.*
 
@@ -23,11 +27,8 @@ is [written out where it is rendered](../contracts/out/telegram-replies.md#what-
 
 Whatever the report says, it opens with a block for each [period](../domain/spending-period.md) the message
 asked about: what was spent in it, one line per currency and the number of expenses behind each, or a line
-saying nothing is recorded in it. Those totals are the user's own ledger, and are the only figures in the report
-that are.
-
-Nothing else in a report is worded as accepted or final: what it lists below the totals is proposals, not the
-user's ledger ([ADR 0006](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md)).
+saying nothing is recorded in it. Those totals are the user's own ledger, and the only figures in the report that
+are: what it lists below them is [pending](../domain/expense-status.md).
 
 A report that lists at least one proposal carries a **Confirm** and a **Delete** button, so what it lists can be
 [resolved](resolve-a-reported-proposal.md). A report that lists none carries neither, however many totals it
@@ -39,9 +40,9 @@ opens with.
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                                   |
 | out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                                   |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | reading the groupings that person's categories sit under, what this message recorded and what it spent, and recording where the report landed |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | reading the groupings that person's categories sit under, what this message left pending and what it spent, and recording where the report landed |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                                   |
-| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | picking up the periods that message asked about, so each can be totalled                                  |
+| out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)                    | picking up the periods that message asked about, so each can be totalled                                  |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                                   |
 | out       | [Resolve a reported proposal](resolve-a-reported-proposal.md)                                                | [Outgoing replies](../contracts/out/telegram-replies.md)                          | handing over what the report lists, through the buttons it carries                                        |
 
@@ -57,9 +58,9 @@ opens with.
 | Delivery failed   | the report cannot be put in front of the user                                              | the failure reaches the caller; what was recorded stays recorded, and no location is kept |
 | Location unkept   | the report was delivered but where it landed cannot be stored                              | the turn stands, and nothing records where the report is                                 |
 
-A failure of any kind is logged where the message was delivered, and its batch is acknowledged with the rest. A
-connector that refuses the turn or cannot be reached is not a failure here — it is what the partial and failed
-reports say.
+A failure of any kind is [logged, and its batch acknowledged with the rest](../contracts/in/telegram-updates.md).
+A connector that refuses the turn or cannot be reached is none of these outcomes: it is what the partial and
+failed reports say.
 
 ## Components
 
@@ -85,16 +86,14 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Finds or creates the person", $tags="core")
   Component(messageDeliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
   Component(groupingRepositoryPort, "Grouping Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(spendingQueryRepositoryPort, "Spending Query Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(reportRepositoryPort, "Proposal Report Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(intentExtractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(deliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report as a reply", $tags="telegramExternal")
   Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
-  Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Reads what a message recorded", $tags="dbExternal")
   Component(spendingQueryRepositoryAdapter, "Spending Query Repository Adapter", "Spring Data Relational", "Reads the periods a message asked about", $tags="dbExternal")
-  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Totals a user's expenses over a period, by currency", $tags="dbExternal")
+  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads what a message left pending, and totals recorded spending by currency", $tags="dbExternal")
   Component(reportRepositoryAdapter, "Proposal Report Repository Adapter", "Spring Data Relational", "Records where a delivered report landed", $tags="dbExternal")
   Component(intentExtractionAdapter, "Intent Extraction Adapter", "gRPC client", "Mints a credential and calls the connector", $tags="aiExternal")
   Component(tokenMinter, "Access Token Minter", "Nimbus JOSE", "Signs a credential naming the person and the message", $tags="aiExternal")
@@ -102,7 +101,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(buttonPayload, "Proposal Button Payload", "Plain Java", "Writes the message into each button", $tags="telegramExternal")
 }
 
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, their categories and their expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, their categories and their expenses", $tags="dbExternal")
 Container(connector, "AI Connector Service", "Java, Spring Boot", "Reads the actions out of a message", $tags="aiExternal")
 
 Rel_R(telegram, telegramListener, "Update (message)", "Telegram Bot API, long polling")
@@ -113,15 +112,13 @@ Rel_U(initializeUserService, initializeUserPort, "Implements", $tags="implements
 
 Rel_L(handleMessageService, messageDeliveryPort, "Uses")
 Rel_D(handleMessageService, groupingRepositoryPort, "Uses")
-Rel_D(handleMessageService, proposalRepositoryPort, "Uses")
 Rel_D(handleMessageService, spendingQueryRepositoryPort, "Reads the periods asked about through")
-Rel_D(handleMessageService, expenseRepositoryPort, "Totals each period through")
+Rel_D(handleMessageService, expenseRepositoryPort, "Reads what is pending, and totals each period, through")
 Rel_D(handleMessageService, reportRepositoryPort, "Records where the report landed through")
 Rel_R(handleMessageService, intentExtractionPort, "Uses")
 
 Rel_U(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
 Rel_U(groupingRepositoryAdapter, groupingRepositoryPort, "Implements", $tags="implements")
-Rel_U(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
 Rel_U(spendingQueryRepositoryAdapter, spendingQueryRepositoryPort, "Implements", $tags="implements")
 Rel_U(expenseRepositoryAdapter, expenseRepositoryPort, "Implements", $tags="implements")
 Rel_U(reportRepositoryAdapter, reportRepositoryPort, "Implements", $tags="implements")
@@ -132,7 +129,6 @@ Rel_D(deliveryAdapter, reportRenderer, "Writes the text with")
 Rel_R(reportRenderer, buttonPayload, "Writes the buttons with")
 
 Rel_D(groupingRepositoryAdapter, db, "SQL", "JDBC")
-Rel_D(proposalRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(spendingQueryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(expenseRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(reportRepositoryAdapter, db, "SQL", "JDBC")
@@ -140,15 +136,13 @@ Rel_D(intentExtractionAdapter, connector, "Text, groupings, today's date and a c
 Rel_L(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
 Lay_R(messageDeliveryPort, groupingRepositoryPort)
-Lay_R(groupingRepositoryPort, proposalRepositoryPort)
-Lay_R(proposalRepositoryPort, spendingQueryRepositoryPort)
+Lay_R(groupingRepositoryPort, spendingQueryRepositoryPort)
 Lay_R(spendingQueryRepositoryPort, expenseRepositoryPort)
 Lay_R(expenseRepositoryPort, reportRepositoryPort)
 Lay_R(reportRepositoryPort, intentExtractionPort)
 
 Lay_R(deliveryAdapter, groupingRepositoryAdapter)
-Lay_R(groupingRepositoryAdapter, proposalRepositoryAdapter)
-Lay_R(proposalRepositoryAdapter, spendingQueryRepositoryAdapter)
+Lay_R(groupingRepositoryAdapter, spendingQueryRepositoryAdapter)
 Lay_R(spendingQueryRepositoryAdapter, expenseRepositoryAdapter)
 Lay_R(expenseRepositoryAdapter, reportRepositoryAdapter)
 Lay_R(reportRepositoryAdapter, intentExtractionAdapter)
@@ -197,11 +191,11 @@ loop each message in the batch
       else the turn does not complete
         AI --> UC : refused, or unreachable
       end
-      UC -> DB : read what was recorded under the message's id
+      UC -> DB : read what is pending under the message's id
       alt the read-back fails
         DB --> UC : storage failed, no report
       else the read-back answers
-        DB --> UC : the spending recorded, oldest first
+        DB --> UC : the pending spending, oldest first
         UC -> DB : read the periods asked about, then total each by currency
         alt a read fails
           DB --> UC : storage failed, no report
@@ -237,8 +231,8 @@ UC --> TG : acknowledge the whole batch
 
 - [ADR 0001: Telegram updates arrive by long polling](../adr/0001-telegram-updates-arrive-by-long-polling.md) —
   why the service reaches out for messages rather than being called
-- [ADR 0006: An expense proposal is a table and an entity of its own](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md) —
-  why what the report lists is not yet the user's ledger
+- [ADR 0018: A proposal is a status on the expense table](../adr/0018-a-proposal-is-a-status-on-the-expense-table.md) —
+  why what the report lists is not yet in the totals it opens with
 - [ADR 0007: An MCP caller is identified by a signed token, not a tool argument](../adr/0007-an-mcp-caller-is-identified-by-a-signed-token-not-a-tool-argument.md) —
   how the connector acts as the person for the length of the turn
 - [ADR 0015: A turn is named by the message that started it](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md) —

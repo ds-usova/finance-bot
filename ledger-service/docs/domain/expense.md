@@ -1,47 +1,55 @@
 # Expense
 
-One purchase or payment recorded against a user, filed under a category.
+One purchase or payment recorded against a user and filed under a category, either waiting for that user's
+decision or already in their ledger.
 
 ## Invariants
 
-| Field                                            | Bound                |
-|--------------------------------------------------|----------------------|
-| `id`                                             | only once stored     |
-| `userId`                                         | `> 0`                |
-| `categoryId`                                     | `> 0`                |
-| `description`                                    | mandatory, non-blank |
-| `merchant`                                       | optional             |
-| [`money`](money.md)                              | mandatory            |
-| `createdAt`, `updatedAt`                         | mandatory            |
+| Field                                         | Bound                                                |
+|-----------------------------------------------|------------------------------------------------------|
+| `id`                                          | only once stored; never changes, acceptance included |
+| `userId`                                      | `> 0`                                                |
+| `categoryId`                                  | `> 0`                                                |
+| `description`                                 | mandatory, non-blank                                 |
+| `merchant`                                    | optional                                             |
+| [`money`](money.md)                           | mandatory                                            |
+| [`status`](expense-status.md)                 | mandatory                                            |
+| [`incomingMessageId`](incoming-message-id.md) | mandatory while pending, optional once recorded      |
+| `createdAt`, `updatedAt`                      | mandatory; `createdAt` never changes                 |
 
 Two stored expenses with the same `id` are the same expense. An unstored one equals only itself.
 
 ## Lifecycle
 
-One state, reached two ways and never left.
+| Event    | By                                                                            | Notes                                                  |
+|----------|-------------------------------------------------------------------------------|--------------------------------------------------------|
+| Created  | [Create an expense proposal](../usecases/create-an-expense-proposal.md)       | pending, one per spending read out of a message        |
+| Created  | [Create an expense](../usecases/create-an-expense.md)                         | recorded, naming no message                            |
+| Recorded | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | every pending entry under the message, on a Confirm    |
+| Recorded | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | the pending entries a person ticked on the page        |
+| Changed  | [Change an entry's category](../usecases/change-an-expense-category.md)       | its category, and nothing else, under either status    |
+| Removed  | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)     | a Delete removes every pending entry under the message |
+| Removed  | never, once recorded                                                          | only with its user, by the store's own cascade         |
+| Expired  | never                                                                         | a pending entry waits indefinitely                     |
 
-| Event   | By                                                                           | Notes                                                   |
-|---------|------------------------------------------------------------------------------|---------------------------------------------------------|
-| Created | [Create an expense](../usecases/create-an-expense.md)                        | recorded directly                                       |
-| Created | [Resolve a reported proposal](../usecases/resolve-a-reported-proposal.md)    | an accepted [proposal](expense-proposal.md) becomes one |
-| Created | [Accept the proposals a person chose](../usecases/accept-chosen-proposals.md) | the same, for the entries a person ticked on the page   |
-| Changed | [Change an entry's category](../usecases/change-an-expense-category.md)      | its category, and nothing else                          |
-| Removed | never                                                                        | only with its user, by the store's own cascade          |
-
-An expense created by accepting a proposal carries the day the proposal was made, on either path. Only the
-last-updated instant is the moment of acceptance, so an entry stays on the day it first appeared on. See
-[the proposal's lifecycle](expense-proposal.md#lifecycle) for the branch that leads here.
+```plantuml
+@startuml
+[*] --> Pending : Create an expense proposal
+[*] --> Recorded : Create an expense
+Pending --> Recorded : Resolve — confirmed
+Pending --> Recorded : Accept the proposals a person chose
+Pending --> [*] : Resolve — discarded
+Recorded --> [*] : only with its user
+@enduml
+```
 
 ## Made of / held by
 
-The owning user's id, the filed category's id, a description, an optional merchant, a [money](money.md) amount,
-the incoming message id of the message it came from where one did, and the instants it was created and last
-updated.
-
 - [User](user.md) — who the expense is recorded against.
+- [Expense status](expense-status.md) — whether it is waiting for a decision or already in the ledger.
 - [Incoming message id](incoming-message-id.md) — which message produced it, kept through the acceptance.
 - [Category](category.md) — what it is filed under, by the category's stored id.
 - [Money](money.md) — what was spent, and its [currency](currency-code.md).
-- [Spending period](spending-period.md) — the stretch of days a user's expenses are totalled over.
+- [Spending period](spending-period.md) — the stretch of days a user's recorded expenses are totalled over.
 - How long its text may be is checked where it is stored
   ([ADR 0004](../adr/0004-column-widths-are-checked-in-the-persistence-adapter.md)).

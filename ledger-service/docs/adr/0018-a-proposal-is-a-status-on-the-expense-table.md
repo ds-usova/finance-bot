@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Supersedes:** 0006, 0012
 - **Date:** 2026-08-18
-- **Source:** [One Expense Table, With a Status](../../../docs/34-one-expense-table-with-a-status/plan.md)
+- **Source:** [One Expense Table, With a Status](../../../docs/implemented/34-one-expense-table-with-a-status/plan.md)
 
 ## Context
 

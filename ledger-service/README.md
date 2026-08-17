@@ -20,6 +20,7 @@ C3 is below. Package structure is in the
 - [Browse a person's expenses](docs/usecases/browse-expenses.md)
 - [Browse a person's categories](docs/usecases/browse-categories.md)
 - [Browse a person's groupings](docs/usecases/browse-groupings.md)
+- [Change an entry's category](docs/usecases/change-an-expense-category.md)
 - [Accept the proposals a person chose](docs/usecases/accept-chosen-proposals.md)
 - [Clear the emptied reports](docs/usecases/clear-emptied-reports.md)
 - [Read the current session](docs/usecases/read-the-current-session.md)
@@ -33,7 +34,7 @@ C3 is below. Package structure is in the
 - [An operator running the service — health, meters and slot recovery](docs/contracts/in/operations.md) (inbound)
 - [Telegram — outgoing replies](docs/contracts/out/telegram-replies.md) (outbound)
 - [AI Connector Service — intent extraction](docs/contracts/out/ai-connector.md) (outbound)
-- [Database — users, categories, expenses and expense proposals](docs/contracts/out/database.md) (outbound)
+- [Database — users, categories and expenses](docs/contracts/out/database.md) (outbound)
 - [Change capture — the write-ahead log this service reads](docs/contracts/out/change-capture.md) (outbound)
 - [A consumer of the ledger's changes — the change stream](docs/contracts/out/change-stream.md) (outbound)
 

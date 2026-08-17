@@ -1,8 +1,12 @@
 # Summarize spending over a period
 
-- **In:** the identity of the authenticated caller · the reference of the message being handled · the first day
-  of the period, as written · the last day, as written
-- **Out:** the period that was accepted, and no amount
+- **In**
+  - the identity of the authenticated caller
+  - the reference of the message being handled
+  - the first day of the period, as written
+  - the last day, as written
+- **Out**
+  - the period that was accepted, and no amount
 - **Why:** it is how a question about what someone spent becomes a period the turn answering their message can
   total
 
@@ -13,7 +17,7 @@
 | Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                    |
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------|
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the summarize spending tool](../contracts/in/mcp.md)                       | asking about the period it read out of its caller's message            |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and recording the period against the message   |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, and recording the period against the message   |
 
 ## Outcomes
 

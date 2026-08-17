@@ -138,11 +138,11 @@ arguments reach the log only at debug level.
 
 ## Compatibility
 
-The caller is a language model: it picks a tool out of the published list by its name and description, and fills
-each argument from the description published beside it. Both are part of the contract. Rewording one changes
-what arrives, and nothing fails at build time.
+A tool's name and description, and each argument's description, are part of the contract: the language model
+picks a tool and fills its arguments from them. Rewording one changes what arrives, and nothing fails at build
+time.
 
-A tool added here reaches a client when it next reads the published list, and a client that has already read one
+A tool added here reaches a client when it next reads the published list. A client that has already read one
 goes on offering only what it read.
 
 Adding an optional argument costs a client nothing. For a client outside this repository, renaming one, or

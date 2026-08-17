@@ -6,22 +6,21 @@ The service reads its own committed row changes back out of Postgres's write-ahe
 - **Counterpart:** the same PostgreSQL database the rows live in — [Database](database.md)
 - **Transport:** logical replication through the `pgoutput` plugin, consumed by an engine embedded in this service
 - **Schema:** the publication `finance_ledger_cdc` and the replica identity, declared in
-  `src/main/resources/db/migration/V009__publish_ledger_changes.sql`
+  `src/main/resources/db/migration/V010__publish_ledger_changes.sql`
 
 ## What is published
 
-| Table              | Published |
-|--------------------|-----------|
-| `expense`          | yes       |
-| `expense_proposal` | yes       |
-| `category`         | yes       |
-| `cdc_heartbeat`    | yes       |
-| every other table  | no        |
+| Table             | Published |
+|-------------------|-----------|
+| `expense`         | yes       |
+| `category`        | yes       |
+| `cdc_heartbeat`   | yes       |
+| every other table | no        |
 
 Which of them a consumer receives is [the change stream](change-stream.md).
 
-The first three run under `REPLICA IDENTITY FULL`. The publication is restricted to inserts, updates and
-deletes.
+`expense` and `category` run under `REPLICA IDENTITY FULL`. The publication is restricted to inserts, updates
+and deletes.
 
 `cdc_heartbeat`'s single row is advanced on a timer, which moves the replication slot forward while only
 uncaptured tables are written. Retained log is cluster-wide, so without it ordinary traffic would pin the log.
@@ -80,7 +79,7 @@ The bound is the database's setting, not the service's. A slot that passes it is
 
 ## Compatibility
 
-A change to the captured set is a migration, so it shows in a diff.
+A change to the captured set is a migration.
 
-Adding a table publishes its changes from that point on, never retrospectively. A consumer sees nothing about
+Adding a table publishes its changes from that point on, never retrospectively: a consumer sees nothing about
 rows that existed before. Removing one silently stops a consumer being told about it.

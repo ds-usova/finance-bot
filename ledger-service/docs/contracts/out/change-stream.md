@@ -1,8 +1,7 @@
 # A consumer of the ledger's changes — the change stream (Redis)
 
 Every row change the ledger makes to its own spending tables is republished onto one Redis stream, in the order
-the database committed it. It is how something outside the service learns that spending was recorded, refiled or
-discarded without asking the ledger for it.
+the database committed it.
 
 - **Counterpart:** [`ai-connector-service`](../../../../ai-connector-service/docs/contracts/out/change-stream.md), as consumer group `ai-connector`, to [learn what the ledger did with a message](../../../../ai-connector-service/docs/usecases/learn-message-outcome.md)
 - **Transport:** Redis, one stream, appended to with `XADD`
@@ -42,8 +41,7 @@ Both sides carry every column, on an update and a delete alike.
 
 ### The enrichment block
 
-`enrichment` has the same `before` and `after` sides as the payload. A consumer reads a category's name straight
-off the spending entry, without looking it up anywhere.
+`enrichment` has the same `before` and `after` sides as the payload.
 
 | Path                  | Holds                                |
 |-----------------------|--------------------------------------|
@@ -60,15 +58,21 @@ off the spending entry, without looking it up anywhere.
 
 ## Which changes reach the stream
 
-| Changed                              | Reaches the stream |
-|--------------------------------------|--------------------|
-| a recorded expense                   | yes                |
-| an expense proposal                  | yes                |
-| a category or a grouping             | yes                |
-| a user, a spending query, a report   | no                 |
-| the capture heartbeat                | no                 |
+| Changed                            | Reaches the stream |
+|------------------------------------|--------------------|
+| an expense, pending or recorded    | yes                |
+| a category or a grouping           | yes                |
+| a user, a spending query, a report | no                 |
+| the capture heartbeat              | no                 |
 
-A proposal accepted is one transaction: the proposal removed and the expense recorded share a `source.txId`.
+| What happened to it | The entry a consumer reads                                       |
+|---------------------|------------------------------------------------------------------|
+| It was proposed     | a `c`, `after.status` `PENDING`                                  |
+| It was accepted     | a `u`, `before.status` `PENDING` and `after.status` `RECORDED`   |
+| It was discarded    | a `d`, `before.status` `PENDING`                                 |
+| It was refiled      | a `u`, the status the same on both sides                         |
+
+One id names the entry across every entry above ([expense](../../domain/expense.md)).
 
 ## Deduplicating
 
@@ -92,7 +96,7 @@ key — every entry of an initial snapshot carries the same one.
 | Redis stays unreachable                         | the database's retained log grows, and the health component reads down        |
 | the retained log passes the database's bound    | the database invalidates the slot and the engine stops. Everything it still held is lost permanently, and an operator [rebuilds the slot](../in/operations.md#rebuilding-the-slot) |
 
-Nothing is dropped to keep the pipeline moving; holding the log position is the whole mechanism
+Nothing is dropped to keep the pipeline moving
 ([ADR 0016](../../../../docs/adr/0016-an-embedded-engine-holds-the-log-position-until-redis-acknowledges-bounded-by-the-database.md)).
 
 ## Compatibility
@@ -102,5 +106,5 @@ with no change here. A consumer reading fields by name is unaffected. One readin
 
 `enrichment` is this service's own. A field added to it is additive.
 
-Capture can be switched off entirely, which leaves the stream untouched and no longer appended to — see
+Capture can be switched off, leaving the stream untouched and no longer appended to — see
 [configuration](../../configuration.md).
