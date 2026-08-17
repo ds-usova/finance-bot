@@ -70,7 +70,8 @@ class AiExpenseRecordingAdapterTest {
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
         CallerTokenTestSupport.withCallerToken(
                 callerToken,
-                () -> adapter.record(TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE));
+                () -> adapter.record(
+                        TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, Optional.empty()));
     }
 
     private void recordInEuros(String callerToken) {
@@ -474,7 +475,8 @@ class AiExpenseRecordingAdapterTest {
                             CATEGORY_GROUPINGS,
                             CATCH_ALL_GROUPING,
                             Optional.of(CurrencyCode.of("EUR")),
-                            CURRENT_DATE))
+                            CURRENT_DATE,
+                            Optional.empty()))
                     .isInstanceOf(ExpenseRecordingFailedException.class);
         }
     }

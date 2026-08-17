@@ -1,5 +1,6 @@
 package bot.finance.ai.adapter.scheduling;
 
+import bot.finance.ai.application.port.BackfillEmbeddingsPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.PurgeMessagesPort;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class MemoryPurgeScheduler implements SmartLifecycle {
 
     private final PurgeMessagesPort purgeMessagesPort;
+    private final BackfillEmbeddingsPort backfillEmbeddingsPort;
     private final MemoryProperties properties;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
@@ -23,10 +25,12 @@ public class MemoryPurgeScheduler implements SmartLifecycle {
 
     public MemoryPurgeScheduler(
             PurgeMessagesPort purgeMessagesPort,
+            BackfillEmbeddingsPort backfillEmbeddingsPort,
             MemoryProperties properties,
             ScheduledExecutorService scheduledExecutorService,
             LoggerFactory loggerFactory) {
         this.purgeMessagesPort = purgeMessagesPort;
+        this.backfillEmbeddingsPort = backfillEmbeddingsPort;
         this.properties = properties;
         this.scheduledExecutorService = scheduledExecutorService;
         this.log = loggerFactory.getLogger(MemoryPurgeScheduler.class);
@@ -55,6 +59,7 @@ public class MemoryPurgeScheduler implements SmartLifecycle {
 
     public void run() {
         purgeMessagesPort.purge();
+        backfillEmbeddingsPort.backfill();
     }
 
     private void runSafely() {

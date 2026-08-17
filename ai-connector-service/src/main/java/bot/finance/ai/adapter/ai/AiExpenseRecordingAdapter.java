@@ -6,6 +6,7 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.MessageExample;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -22,16 +23,19 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
 
     private final ChatClient chatClient;
     private final ExpenseRecordingProperties expenseRecordingProperties;
+    private final ExampleSectionRenderer exampleSectionRenderer;
     private final SyncMcpToolCallbackProvider ledgerToolCallbackProvider;
     private final Logger logger;
 
     public AiExpenseRecordingAdapter(
             ChatClient chatClient,
             ExpenseRecordingProperties expenseRecordingProperties,
+            ExampleSectionRenderer exampleSectionRenderer,
             SyncMcpToolCallbackProvider ledgerToolCallbackProvider,
             LoggerFactory loggerFactory) {
         this.chatClient = chatClient;
         this.expenseRecordingProperties = expenseRecordingProperties;
+        this.exampleSectionRenderer = exampleSectionRenderer;
         this.ledgerToolCallbackProvider = ledgerToolCallbackProvider;
         this.logger = loggerFactory.getLogger(AiExpenseRecordingAdapter.class);
     }
@@ -42,7 +46,8 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
             List<String> categoryGroupings,
             String catchAllGrouping,
             Optional<CurrencyCode> assumedCurrency,
-            LocalDate currentDate) {
+            LocalDate currentDate,
+            Optional<List<MessageExample>> examples) {
         if (CallerTokenContext.callerToken().isEmpty()) {
             throw new ExpenseRecordingFailedException("No caller token held for this turn");
         }
@@ -58,7 +63,9 @@ public class AiExpenseRecordingAdapter implements ExpenseRecordingPort {
                         "text",
                         text,
                         "today",
-                        currentDate.toString()));
+                        currentDate.toString(),
+                        "examples",
+                        exampleSectionRenderer.render(examples)));
 
         try {
             String answer = chatClient

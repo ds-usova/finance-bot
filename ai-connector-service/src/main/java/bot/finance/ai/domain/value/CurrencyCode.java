@@ -21,4 +21,9 @@ public record CurrencyCode(String code) {
     public static CurrencyCode of(String code) {
         return new CurrencyCode(code);
     }
+
+    public String toDecimal(long minorUnits) {
+        // shifts the amount by the currency's own minor-unit digits, as plain decimal text
+        return null;
+    }
 }

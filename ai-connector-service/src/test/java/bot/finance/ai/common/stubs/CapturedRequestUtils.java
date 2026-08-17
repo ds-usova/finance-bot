@@ -31,6 +31,10 @@ public final class CapturedRequestUtils {
         return capturedRequests(McpLedgerStubs.MCP_PATH);
     }
 
+    public static List<LoggedRequest> embeddingsRequests() {
+        return capturedRequests(WireMockStubs.EMBEDDINGS_PATH);
+    }
+
     /**
      * Among the MCP requests recorded, those invoking {@code create_expense_proposal} — as opposed to the
      * handshake and {@code tools/list} requests a session also performs.

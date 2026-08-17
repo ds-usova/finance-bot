@@ -7,14 +7,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import bot.finance.ai.common.containers.WireMockSupport;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.time.Duration;
 
 /**
- * Static helpers for stubbing the OpenAI chat-completions endpoint, registered through
+ * Static helpers for stubbing the OpenAI chat-completions and embeddings endpoints, registered through
  * {@link WireMockSupport#SERVER}.
  */
 public final class WireMockStubs {
 
     public static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
+    public static final String EMBEDDINGS_PATH = "/v1/embeddings";
 
     private static final String CHAT_COMPLETIONS_SCENARIO = "chat-completions-sequence";
 
@@ -50,5 +52,20 @@ public final class WireMockStubs {
                     .willSetStateTo(nextState));
             state = nextState;
         }
+    }
+
+    /** Serves {@code body} — an embeddings response body, built with {@link EmbeddingFixtures} — verbatim. */
+    public static void stubEmbeddings(String body) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(EMBEDDINGS_PATH)).willReturn(okJson(body)));
+    }
+
+    public static void stubEmbeddingsServerError() {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(EMBEDDINGS_PATH)).willReturn(serverError()));
+    }
+
+    /** Serves {@code body} after {@code delay}, for a scenario proving a timeout is honored. */
+    public static void stubEmbeddingsDelayed(String body, Duration delay) {
+        WireMockSupport.SERVER.stubFor(post(urlPathEqualTo(EMBEDDINGS_PATH))
+                .willReturn(okJson(body).withFixedDelay((int) delay.toMillis())));
     }
 }

@@ -266,6 +266,7 @@ model to anchor a period on the wrong day (F8).
 | `MEMORY_EXAMPLE_LINES`     | how many expenses one example shows               | `10`                                         | no       | no     |
 | `MEMORY_BACKFILL_BATCH`    | how many unembedded messages one backfill call embeds | `100`                                    | no       | no     |
 | `MEMORY_BACKFILL_BATCHES`  | how many provider calls one backfill tick makes at most | `10`                                   | no       | no     |
+| `MEMORY_BACKFILL_TIMEOUT`  | how long the backfill waits for one batch (D5)     | `60s`                                        | no       | no     |
 
 `MEMORY_MAX_AGE` and `MEMORY_PURGE_INTERVAL` are Design 31's and are read here unchanged.
 
@@ -273,13 +274,13 @@ model to anchor a period on the wrong day (F8).
 
 | Setting                                                       | Change                                                                                                                                                  |
 |---------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ai-connector-service/build.gradle`                           | The pgvector JDBC type, if the driver needs one                                                                                                         |
-| `CleanArchitectureTest`                                       | `com.pgvector..` joins the packages banned from `domain`/`application`                                                                                  |
+| `ai-connector-service/build.gradle`                           | Nothing — the vector crosses the driver as text (F17)                                                                                                   |
+| `CleanArchitectureTest`                                       | Nothing — no new library reaches the module (F17)                                                                                                       |
 | `WireMockStubs`                                               | Gains the embeddings endpoint                                                                                                                           |
 | [`extract-intents.md`](../../ai-connector-service/docs/usecases/extract-intents.md) | Two new steps, one new collaborator, two new outcomes                                                                             |
 | [`ai-provider.md`](../../ai-connector-service/docs/contracts/out/ai-provider.md) | Gains the embeddings operation                                                                                                       |
 | The database contract page (Design 31)                        | Gains the three columns                                                                                                                                 |
-| The ADR Design 31 writes                                      | Gains its consequence: what a person's history may leave for the provider, and its bounds (D2)                                                          |
+| No ADR                                                        | What a person's history may leave for the provider is carried by the configuration page and the use-case page (D6)                                       |
 
 ## Acceptance Scenarios
 
@@ -403,6 +404,19 @@ model to anchor a period on the wrong day (F8).
   - Basis: decided — the user chose keep-and-backfill over deleting the row or keeping it only for a bounded time
     (user, 2026-08-15)
 
+- **D5:** What bounds the backfill's batch call, which sends up to `MEMORY_BACKFILL_BATCH` texts at once?
+  - Answer: Its own timeout, `MEMORY_BACKFILL_TIMEOUT`, defaulting to `60s` — longer than a turn's, since a
+    batch legitimately takes longer than one text. A batch that outlives it is a provider failure: one attempt on
+    every claimed row, and the tick ends.
+  - Basis: decided — the user chose a bounded batch with a longer timeout over an unbounded one and over reusing
+    `MEMORY_EMBEDDING_TIMEOUT` (user, 2026-08-17)
+
+- **D6:** Does the bound on what a person's history may leave for the provider (D2) become an ADR?
+  - Answer: No. No ADR is written and none is amended; the connector's configuration page and its use-case page
+    carry the bound.
+  - Basis: decided — the user chose no ADR over appending a consequence to ADR 0017 and over a record of its own
+    (user, 2026-08-17)
+
 ## Design Findings
 
 Grilled (2026-08-15): three passes over the undivided design this task was cut from — failure modes, concurrency,
@@ -424,3 +438,7 @@ data edges, limits, observability; contract compat, authorization and backfill i
 | F12 | How many provider calls may one backfill tick make?             | At most `MEMORY_BACKFILL_BATCHES`                                                                                     | The embedding table above; Design 31 F14, the purge's bound |
 | F13 | What orders one example's expenses?                             | The row's id — arrival order, which is the ledger's commit order; `updated_at` moves on every refile                     | Design 32, the migration |
 | F14 | Two instances backfilling at once?                              | A batch claims only rows no other instance holds                                                                      | The backfill paragraph; Design 31's purge, the same rule |
+| F15 | The examples section with the memory off?                       | Absent — the memory-off token carries no identity, so nothing is registered or recalled and the user message is the one the turn sent before this change; the section reading `none` is the memory-on answer to no neighbour (A12) | Design 31, `adapter/security` gated by `MEMORY_ENABLED`; `ExtractIntentsCommand.messageIdentity` |
+| F16 | An example whose expense has no category or grouping name?      | Design 32 keeps both names nullable, absent when the stream's enrichment lacked them; a name the store lacks is left out of the line and the rest of the line stands | Design 32, the migration; `RecordedExpenseEntity` |
+| F17 | Does the JDBC driver need the pgvector type?                    | No — the vector crosses as its text literal, `CAST(:embedding AS vector)` on write and `embedding::text` on read, and cosine distance is `<=>` in the statement; no new dependency, nothing to ban from the core | `IncomingMessageEntityRepository`, the statements Designs 31 and 32 already write by hand |
+| F18 | A store that refuses the vector write?                          | One `WARN` and a turn with no examples, as any other store refusal — the vector is not kept, and a later turn or the backfill writes it | D3; `ExtractIntentsUseCase`, the registration's own catch                                     |

@@ -1,6 +1,7 @@
 package bot.finance.ai.adapter.persistence;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -12,6 +13,14 @@ public interface RecordedExpenseEntityRepository extends CrudRepository<Recorded
     Optional<RecordedExpenseEntity> findByProposalId(long proposalId);
 
     Optional<RecordedExpenseEntity> findByExpenseId(long expenseId);
+
+    @Query(
+            """
+            SELECT * FROM recorded_expense
+            WHERE message_id IN (:messageIds) AND status IN ('ACCEPTED', 'DISCARDED')
+            ORDER BY message_id, id
+            """)
+    List<RecordedExpenseEntity> findDecidedByMessageIds(@Param("messageIds") List<Long> messageIds);
 
     @Modifying
     @Query(
