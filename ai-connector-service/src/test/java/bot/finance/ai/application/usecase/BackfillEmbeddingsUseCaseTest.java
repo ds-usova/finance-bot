@@ -58,14 +58,10 @@ class BackfillEmbeddingsUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
+        MessageEmbedder messageEmbedder =
+                new MessageEmbedder(messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory);
         useCase = new BackfillEmbeddingsUseCase(
-                messageMemoryPort,
-                messageEmbeddingPort,
-                BATCH,
-                BATCHES,
-                EMBEDDING_ATTEMPTS,
-                STALE_CLAIM,
-                loggerFactory);
+                messageMemoryPort, messageEmbeddingPort, messageEmbedder, BATCH, BATCHES, STALE_CLAIM, loggerFactory);
     }
 
     private List<String> loggedWarnLines() {
@@ -104,9 +100,10 @@ class BackfillEmbeddingsUseCaseTest {
             assertThatThrownBy(() -> new BackfillEmbeddingsUseCase(
                             messageMemoryPort,
                             messageEmbeddingPort,
+                            new MessageEmbedder(
+                                    messageMemoryPort, messageEmbeddingPort, embeddingAttempts, loggerFactory),
                             batch,
                             batches,
-                            embeddingAttempts,
                             staleClaim,
                             loggerFactory))
                     .isInstanceOf(InvalidValueException.class);

@@ -5,11 +5,9 @@ import bot.finance.ai.application.dto.RecallExamplesCommand;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
-import bot.finance.ai.application.port.MessageEmbeddingPort;
 import bot.finance.ai.application.port.MessageMemoryPort;
 import bot.finance.ai.application.port.RecallExamplesPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
-import bot.finance.ai.domain.exception.MessageEmbeddingFailedException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.Embedding;
 import bot.finance.ai.domain.value.MessageExample;
@@ -21,33 +19,28 @@ import java.util.Optional;
 public class RecallExamplesUseCase implements RecallExamplesPort {
 
     private final MessageMemoryPort messageMemoryPort;
-    private final MessageEmbeddingPort messageEmbeddingPort;
+    private final MessageEmbedder messageEmbedder;
     private final int examples;
     private final double minSimilarity;
     private final Duration recentWindow;
     private final Duration maxAge;
     private final int exampleLines;
-    private final int embeddingAttempts;
     private final Logger log;
 
     public RecallExamplesUseCase(
             MessageMemoryPort messageMemoryPort,
-            MessageEmbeddingPort messageEmbeddingPort,
+            MessageEmbedder messageEmbedder,
             int examples,
             double minSimilarity,
             Duration recentWindow,
             Duration maxAge,
             int exampleLines,
-            int embeddingAttempts,
             LoggerFactory loggerFactory) {
         if (examples <= 0) {
             throw new InvalidValueException("examples must be positive");
         }
         if (exampleLines <= 0) {
             throw new InvalidValueException("exampleLines must be positive");
-        }
-        if (embeddingAttempts <= 0) {
-            throw new InvalidValueException("embeddingAttempts must be positive");
         }
         if (recentWindow.isZero() || recentWindow.isNegative()) {
             throw new InvalidValueException("recentWindow must be positive");
@@ -60,13 +53,12 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
         }
 
         this.messageMemoryPort = messageMemoryPort;
-        this.messageEmbeddingPort = messageEmbeddingPort;
+        this.messageEmbedder = messageEmbedder;
         this.examples = examples;
         this.minSimilarity = minSimilarity;
         this.recentWindow = recentWindow;
         this.maxAge = maxAge;
         this.exampleLines = exampleLines;
-        this.embeddingAttempts = embeddingAttempts;
         this.log = loggerFactory.getLogger(RecallExamplesUseCase.class);
     }
 
@@ -80,8 +72,9 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
             }
 
             RegisteredMessage row = registered.get();
-            Optional<Embedding> vector =
-                    row.embedding().isPresent() ? row.embedding() : embed(row.messageId(), command.text());
+            Optional<Embedding> vector = row.embedding().isPresent()
+                    ? row.embedding()
+                    : messageEmbedder.embedAndStore(row.messageId(), command.text());
             if (vector.isEmpty()) {
                 return Optional.empty();
             }
@@ -92,21 +85,6 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
                     "Failed to recall examples for message {} of user {}",
                     identity.incomingMessageId(),
                     identity.userId());
-            return Optional.empty();
-        }
-    }
-
-    private Optional<Embedding> embed(long messageId, String text) {
-        try {
-            Embedding computed = messageEmbeddingPort.embed(text);
-            messageMemoryPort.storeEmbedding(messageId, computed);
-            return Optional.of(computed);
-        } catch (MessageEmbeddingFailedException e) {
-            log.warn("Embedding failed for message {}: {}", messageId, e.getMessage());
-            int attempts = messageMemoryPort.countEmbeddingAttempt(messageId);
-            if (attempts == embeddingAttempts) {
-                log.error("Giving up embedding row {} after repeated failures", messageId);
-            }
             return Optional.empty();
         }
     }

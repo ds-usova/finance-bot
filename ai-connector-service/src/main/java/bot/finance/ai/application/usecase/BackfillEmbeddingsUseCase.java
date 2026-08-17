@@ -18,18 +18,18 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
 
     private final MessageMemoryPort messageMemoryPort;
     private final MessageEmbeddingPort messageEmbeddingPort;
+    private final MessageEmbedder messageEmbedder;
     private final int batch;
     private final int batches;
-    private final int embeddingAttempts;
     private final Duration staleClaim;
     private final Logger log;
 
     public BackfillEmbeddingsUseCase(
             MessageMemoryPort messageMemoryPort,
             MessageEmbeddingPort messageEmbeddingPort,
+            MessageEmbedder messageEmbedder,
             int batch,
             int batches,
-            int embeddingAttempts,
             Duration staleClaim,
             LoggerFactory loggerFactory) {
         if (batch <= 0) {
@@ -38,18 +38,15 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
         if (batches <= 0) {
             throw new InvalidValueException("batches must be positive");
         }
-        if (embeddingAttempts <= 0) {
-            throw new InvalidValueException("embeddingAttempts must be positive");
-        }
         if (staleClaim.isZero() || staleClaim.isNegative()) {
             throw new InvalidValueException("staleClaim must be positive");
         }
 
         this.messageMemoryPort = messageMemoryPort;
         this.messageEmbeddingPort = messageEmbeddingPort;
+        this.messageEmbedder = messageEmbedder;
         this.batch = batch;
         this.batches = batches;
-        this.embeddingAttempts = embeddingAttempts;
         this.staleClaim = staleClaim;
         this.log = loggerFactory.getLogger(BackfillEmbeddingsUseCase.class);
     }
@@ -69,7 +66,7 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
     private boolean runOneBatch() {
         List<UnembeddedMessage> claim;
         try {
-            claim = messageMemoryPort.claimUnembedded(batch, embeddingAttempts, staleClaim);
+            claim = messageMemoryPort.claimUnembedded(batch, messageEmbedder.embeddingAttempts(), staleClaim);
         } catch (MessageStoreFailedException e) {
             log.warn("Claim failed, retrying on next run: {}", e.getMessage());
             return false;
@@ -104,7 +101,7 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
     private boolean store(List<UnembeddedMessage> claim, List<Embedding> vectors) {
         for (int i = 0; i < claim.size(); i++) {
             try {
-                messageMemoryPort.storeEmbedding(claim.get(i).messageId(), vectors.get(i));
+                messageEmbedder.store(claim.get(i).messageId(), vectors.get(i));
             } catch (MessageStoreFailedException e) {
                 log.warn("Storing embedding failed, retrying on next run: {}", e.getMessage());
                 return false;
@@ -115,10 +112,7 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
 
     private void countAttempts(List<UnembeddedMessage> claim) {
         for (UnembeddedMessage row : claim) {
-            int attempts = messageMemoryPort.countEmbeddingAttempt(row.messageId());
-            if (attempts >= embeddingAttempts) {
-                log.error("Giving up embedding row {} after repeated failures", row.messageId());
-            }
+            messageEmbedder.countFailure(row.messageId());
         }
     }
 }

@@ -67,15 +67,16 @@ class RecallExamplesUseCaseTest {
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
+        MessageEmbedder messageEmbedder =
+                new MessageEmbedder(messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory);
         useCase = new RecallExamplesUseCase(
                 messageMemoryPort,
-                messageEmbeddingPort,
+                messageEmbedder,
                 EXAMPLES,
                 MIN_SIMILARITY,
                 RECENT_WINDOW,
                 MAX_AGE,
                 EXAMPLE_LINES,
-                EMBEDDING_ATTEMPTS,
                 loggerFactory);
     }
 
@@ -127,13 +128,13 @@ class RecallExamplesUseCaseTest {
 
             assertThatThrownBy(() -> new RecallExamplesUseCase(
                             messageMemoryPort,
-                            messageEmbeddingPort,
+                            new MessageEmbedder(
+                                    messageMemoryPort, messageEmbeddingPort, embeddingAttempts, loggerFactory),
                             examples,
                             MIN_SIMILARITY,
                             RECENT_WINDOW,
                             MAX_AGE,
                             exampleLines,
-                            embeddingAttempts,
                             loggerFactory))
                     .isInstanceOf(InvalidValueException.class);
         }
@@ -159,13 +160,13 @@ class RecallExamplesUseCaseTest {
 
             assertThatThrownBy(() -> new RecallExamplesUseCase(
                             messageMemoryPort,
-                            messageEmbeddingPort,
+                            new MessageEmbedder(
+                                    messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory),
                             EXAMPLES,
                             minSimilarity,
                             recentWindow,
                             maxAge,
                             EXAMPLE_LINES,
-                            EMBEDDING_ATTEMPTS,
                             loggerFactory))
                     .isInstanceOf(InvalidValueException.class);
         }

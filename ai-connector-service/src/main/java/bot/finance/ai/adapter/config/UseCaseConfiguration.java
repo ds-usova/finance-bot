@@ -16,6 +16,7 @@ import bot.finance.ai.application.port.RecordedExpenseStorePort;
 import bot.finance.ai.application.usecase.BackfillEmbeddingsUseCase;
 import bot.finance.ai.application.usecase.ExtractIntentsUseCase;
 import bot.finance.ai.application.usecase.LearnMessageOutcomeUseCase;
+import bot.finance.ai.application.usecase.MessageEmbedder;
 import bot.finance.ai.application.usecase.PurgeMessagesUseCase;
 import bot.finance.ai.application.usecase.RecallExamplesUseCase;
 import java.time.Clock;
@@ -36,20 +37,29 @@ public class UseCaseConfiguration {
     }
 
     @Bean
-    RecallExamplesPort recallExamplesPort(
+    MessageEmbedder messageEmbedder(
             MessageMemoryPort messageMemoryPort,
             MessageEmbeddingPort messageEmbeddingPort,
             MemoryProperties properties,
             LoggerFactory loggerFactory) {
+        return new MessageEmbedder(
+                messageMemoryPort, messageEmbeddingPort, properties.embeddingAttempts(), loggerFactory);
+    }
+
+    @Bean
+    RecallExamplesPort recallExamplesPort(
+            MessageMemoryPort messageMemoryPort,
+            MessageEmbedder messageEmbedder,
+            MemoryProperties properties,
+            LoggerFactory loggerFactory) {
         return new RecallExamplesUseCase(
                 messageMemoryPort,
-                messageEmbeddingPort,
+                messageEmbedder,
                 properties.examples(),
                 properties.minSimilarity(),
                 properties.recentWindow(),
                 properties.maxAge(),
                 properties.exampleLines(),
-                properties.embeddingAttempts(),
                 loggerFactory);
     }
 
@@ -58,14 +68,15 @@ public class UseCaseConfiguration {
     BackfillEmbeddingsPort backfillEmbeddingsPort(
             MessageMemoryPort messageMemoryPort,
             MessageEmbeddingPort messageEmbeddingPort,
+            MessageEmbedder messageEmbedder,
             MemoryProperties properties,
             LoggerFactory loggerFactory) {
         return new BackfillEmbeddingsUseCase(
                 messageMemoryPort,
                 messageEmbeddingPort,
+                messageEmbedder,
                 properties.backfillBatch(),
                 properties.backfillBatches(),
-                properties.embeddingAttempts(),
                 properties.purgeInterval(),
                 loggerFactory);
     }
