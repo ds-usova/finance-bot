@@ -11,6 +11,11 @@ and two policies would contradict each other inside a single commit.
 - Scope: every commit names the paths it takes — those of the module being worked, plus any shared path that
   work owns. The working tree and its index are shared whether or not another plan is visibly running, so a
   commit naming nothing takes whatever else is staged in it.
+- How a commit names them: `git commit -o <paths> -m …`. Without `-o` the commit takes the *index* for those
+  paths, and another session can stage a file under one of them between the `add` and the `commit` — which is
+  how 437 lines of a design nobody here was writing reached the history. `-o` commits the working tree's version
+  of the named paths and ignores the rest of the index. A new file still needs `git add` first, since `-o`
+  commits only what is tracked.
 - Completeness: a stage is committed only once nothing it produced is left outside the commit. A scope worked out
   from what version control already tracks covers what the change edited and misses what it created, since a new
   file sits outside the index until it is put there.
