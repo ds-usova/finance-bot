@@ -67,13 +67,11 @@ public class UseCaseConfiguration {
     @ConditionalOnProperty(name = "memory.enabled", havingValue = "true")
     BackfillEmbeddingsPort backfillEmbeddingsPort(
             MessageMemoryPort messageMemoryPort,
-            MessageEmbeddingPort messageEmbeddingPort,
             MessageEmbedder messageEmbedder,
             MemoryProperties properties,
             LoggerFactory loggerFactory) {
         return new BackfillEmbeddingsUseCase(
                 messageMemoryPort,
-                messageEmbeddingPort,
                 messageEmbedder,
                 properties.backfillBatch(),
                 properties.backfillBatches(),

@@ -3,12 +3,15 @@ package bot.finance.ai.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageEmbeddingPort;
@@ -30,6 +33,9 @@ class MessageEmbedderTest {
     private static final int EMBEDDING_ATTEMPTS = 3;
     private static final long MESSAGE_ID = 99L;
     private static final String TEXT = "spent 15 euros on lunch";
+
+    private static final UnembeddedMessage ROW_1 = new UnembeddedMessage(101L, "buy milk");
+    private static final UnembeddedMessage ROW_2 = new UnembeddedMessage(102L, "get coffee");
 
     private MessageMemoryPort messageMemoryPort;
     private MessageEmbeddingPort messageEmbeddingPort;
@@ -132,45 +138,74 @@ class MessageEmbedderTest {
     }
 
     @Nested
-    @DisplayName("counting a failed attempt")
-    class CountFailure {
+    @DisplayName("embedding and storing a claimed batch")
+    class EmbedAndStoreAll {
 
         @Test
-        @DisplayName("when the attempt count stays below the bound - then nothing is logged at ERROR")
-        void whenAttemptCountBelowBound_thenNothingLoggedAtError() {
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS - 1);
+        @DisplayName("when the provider answers a vector for every row - then each is stored and true is answered")
+        void whenProviderAnswersVectorForEveryRow_thenEachStoredAndTrueAnswered() {
+            List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
+            Embedding v1 = new Embedding(List.of(0.1f));
+            Embedding v2 = new Embedding(List.of(0.2f));
+            when(messageEmbeddingPort.embedAll(List.of(ROW_1.text(), ROW_2.text())))
+                    .thenReturn(List.of(v1, v2));
 
-            messageEmbedder.countFailure(MESSAGE_ID);
+            boolean result = messageEmbedder.embedAndStoreAll(claim);
 
-            assertThat(loggedErrorLines()).isEmpty();
+            assertThat(result).isTrue();
+            verify(messageMemoryPort).storeEmbedding(eq(ROW_1.messageId()), eq(v1));
+            verify(messageMemoryPort).storeEmbedding(eq(ROW_2.messageId()), eq(v2));
         }
 
         @Test
-        @DisplayName("when the attempt count reaches the bound - then one ERROR names the row")
-        void whenAttemptCountReachesBound_thenOneErrorNamesRow() {
-            when(messageMemoryPort.countEmbeddingAttempt(MESSAGE_ID)).thenReturn(EMBEDDING_ATTEMPTS);
+        @DisplayName("when the provider refuses - then every claimed row is counted, one WARN logs and false "
+                + "is answered")
+        void whenProviderRefuses_thenEveryRowCountedOneWarnLoggedAndFalseAnswered() {
+            List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
+            when(messageEmbeddingPort.embedAll(any())).thenThrow(new MessageEmbeddingFailedException("refused"));
 
-            messageEmbedder.countFailure(MESSAGE_ID);
+            boolean result = messageEmbedder.embedAndStoreAll(claim);
 
-            assertThat(loggedErrorLines()).hasSize(1);
-            assertThat(loggedErrorLines().get(0))
-                    .contains(String.valueOf(MESSAGE_ID))
-                    .doesNotContain(TEXT);
+            assertThat(result).isFalse();
+            verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_1.messageId()));
+            verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_2.messageId()));
+            assertThat(loggedWarnLines()).hasSize(1);
         }
-    }
-
-    @Nested
-    @DisplayName("storing a computed embedding")
-    class Store {
 
         @Test
-        @DisplayName("when store() is called - then the port receives the row's vector")
-        void whenStoreIsCalled_thenPortReceivesRowsVector() {
-            Embedding embedding = new Embedding(List.of(0.3f, 0.4f));
+        @DisplayName("when the provider answers fewer vectors than the batch held - then nothing is stored, "
+                + "every row is counted")
+        void whenProviderAnswersFewerVectorsThanBatch_thenNothingStoredEveryRowCountedOneWarnLogged() {
+            List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
+            Embedding v1 = new Embedding(List.of(0.1f));
+            when(messageEmbeddingPort.embedAll(any())).thenReturn(List.of(v1));
 
-            messageEmbedder.store(MESSAGE_ID, embedding);
+            boolean result = messageEmbedder.embedAndStoreAll(claim);
 
-            verify(messageMemoryPort).storeEmbedding(eq(MESSAGE_ID), eq(embedding));
+            assertThat(result).isFalse();
+            verify(messageMemoryPort, never()).storeEmbedding(anyLong(), any());
+            verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_1.messageId()));
+            verify(messageMemoryPort).countEmbeddingAttempt(eq(ROW_2.messageId()));
+            assertThat(loggedWarnLines()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("when a store write fails mid-batch - then rows already written stay written, one WARN "
+                + "logs and false is answered")
+        void whenStoreWriteFailsMidBatch_thenRowsAlreadyWrittenStayWrittenOneWarnLoggedAndFalseAnswered() {
+            List<UnembeddedMessage> claim = List.of(ROW_1, ROW_2);
+            Embedding v1 = new Embedding(List.of(0.1f));
+            Embedding v2 = new Embedding(List.of(0.2f));
+            when(messageEmbeddingPort.embedAll(any())).thenReturn(List.of(v1, v2));
+            doThrow(new MessageStoreFailedException("failed"))
+                    .when(messageMemoryPort)
+                    .storeEmbedding(eq(ROW_2.messageId()), eq(v2));
+
+            boolean result = messageEmbedder.embedAndStoreAll(claim);
+
+            assertThat(result).isFalse();
+            verify(messageMemoryPort).storeEmbedding(eq(ROW_1.messageId()), eq(v1));
+            assertThat(loggedWarnLines()).hasSize(1);
         }
     }
 }

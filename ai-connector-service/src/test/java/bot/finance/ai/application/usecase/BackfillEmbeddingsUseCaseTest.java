@@ -61,7 +61,7 @@ class BackfillEmbeddingsUseCaseTest {
         MessageEmbedder messageEmbedder =
                 new MessageEmbedder(messageMemoryPort, messageEmbeddingPort, EMBEDDING_ATTEMPTS, loggerFactory);
         useCase = new BackfillEmbeddingsUseCase(
-                messageMemoryPort, messageEmbeddingPort, messageEmbedder, BATCH, BATCHES, STALE_CLAIM, loggerFactory);
+                messageMemoryPort, messageEmbedder, BATCH, BATCHES, STALE_CLAIM, loggerFactory);
     }
 
     private List<String> loggedWarnLines() {
@@ -99,7 +99,6 @@ class BackfillEmbeddingsUseCaseTest {
 
             assertThatThrownBy(() -> new BackfillEmbeddingsUseCase(
                             messageMemoryPort,
-                            messageEmbeddingPort,
                             new MessageEmbedder(
                                     messageMemoryPort, messageEmbeddingPort, embeddingAttempts, loggerFactory),
                             batch,
