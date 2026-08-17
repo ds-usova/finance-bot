@@ -276,5 +276,41 @@ class ExpenseTest {
 
             assertThat(expense.incomingMessageId()).isEmpty();
         }
+
+        @Test
+        @DisplayName("when a database id, PENDING and a null incoming message id are given - then throws "
+                + "InvalidExpenseException")
+        void whenDatabaseIdPendingAndNullIncomingMessageIdAreGiven_thenThrowsInvalidExpenseException() {
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            "Coffee",
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.PENDING,
+                            null,
+                            NOW,
+                            NOW))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
+
+        @Test
+        @DisplayName("when a database id, RECORDED and a null incoming message id are given - then throws "
+                + "InvalidExpenseException")
+        void whenDatabaseIdRecordedAndNullIncomingMessageIdAreGiven_thenThrowsInvalidExpenseException() {
+            assertThatThrownBy(() -> Expense.stored(
+                            42L,
+                            1L,
+                            2L,
+                            "Coffee",
+                            Optional.of("Blue Bottle"),
+                            MONEY,
+                            ExpenseStatus.RECORDED,
+                            null,
+                            NOW,
+                            NOW))
+                    .isInstanceOf(InvalidExpenseException.class);
+        }
     }
 }
