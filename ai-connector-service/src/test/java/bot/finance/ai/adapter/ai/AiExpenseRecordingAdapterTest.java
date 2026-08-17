@@ -15,6 +15,9 @@ import bot.finance.ai.common.stubs.McpLedgerStubs;
 import bot.finance.ai.common.stubs.WireMockStubs;
 import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.ExampleExpense;
+import bot.finance.ai.domain.value.ExampleOutcome;
+import bot.finance.ai.domain.value.MessageExample;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.LocalDate;
@@ -68,10 +71,15 @@ class AiExpenseRecordingAdapterTest {
     }
 
     private void record(String callerToken, Optional<CurrencyCode> assumedCurrency) {
+        record(callerToken, assumedCurrency, Optional.empty());
+    }
+
+    private void record(
+            String callerToken, Optional<CurrencyCode> assumedCurrency, Optional<List<MessageExample>> examples) {
         CallerTokenTestSupport.withCallerToken(
                 callerToken,
                 () -> adapter.record(
-                        TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, Optional.empty()));
+                        TEXT, CATEGORY_GROUPINGS, CATCH_ALL_GROUPING, assumedCurrency, CURRENT_DATE, examples));
     }
 
     private void recordInEuros(String callerToken) {
@@ -83,10 +91,15 @@ class AiExpenseRecordingAdapterTest {
      * scenarios about the outgoing request read from.
      */
     private JsonNode chatRequestBody(Optional<CurrencyCode> assumedCurrency) {
+        return chatRequestBody(assumedCurrency, Optional.empty());
+    }
+
+    /** As above, but with the retrieval the helper hands to {@code record()} as its sixth argument under test. */
+    private JsonNode chatRequestBody(Optional<CurrencyCode> assumedCurrency, Optional<List<MessageExample>> examples) {
         McpLedgerStubs.stubCreateExpenseProposalAccepted();
         WireMockStubs.stubChatCompletion(ChatCompletionFixtures.textResponse("nothing to record"));
 
-        record(CALLER_TOKEN_1, assumedCurrency);
+        record(CALLER_TOKEN_1, assumedCurrency, examples);
 
         List<LoggedRequest> chatRequests = CapturedRequestUtils.chatCompletionRequests();
         assertThat(chatRequests).isNotEmpty();
@@ -229,6 +242,7 @@ class AiExpenseRecordingAdapterTest {
         @DisplayName("when record() is called - then the user message holds the current date, the labels, the "
                 + "currency and the text")
         void whenCalledWithLabelsTextAndCurrency_thenUserMessageHoldsDateLabelsCurrencyAndText() {
+            // the helper passes an absent retrieval as record()'s sixth argument, so no examples section renders
             JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")));
 
             String userMessage = CapturedRequestUtils.messageContent(body, "user");
@@ -241,7 +255,8 @@ class AiExpenseRecordingAdapterTest {
                     .contains("EUR")
                     .contains(TEXT)
                     .contains("sending that same grouping with it")
-                    .doesNotContain(">");
+                    .doesNotContain(">")
+                    .doesNotContain("How this person's earlier messages were recorded");
         }
 
         @Test
@@ -328,6 +343,8 @@ class AiExpenseRecordingAdapterTest {
         @DisplayName("when no assumed currency is given - then the user message names no currency code and says "
                 + "the amount goes unrecorded")
         void whenNoAssumedCurrency_thenUserMessageSaysUnrecordedAndNamesNoCurrencyCode() {
+            // the helper passes an absent retrieval, so no example renders a category or grouping name that could
+            // itself be three capital letters — the assertion below holds only because of that
             String userMessage = CapturedRequestUtils.messageContent(chatRequestBody(Optional.empty()), "user");
             assertThat(userMessage).contains("unrecorded");
 
@@ -336,6 +353,64 @@ class AiExpenseRecordingAdapterTest {
                     .filter(line -> !line.startsWith("Today is "))
                     .collect(Collectors.joining("\n"));
             assertThat(userMessageWithoutTodayLine).doesNotContainPattern("\\b[A-Z]{3}\\b");
+        }
+
+        @Test
+        @DisplayName("when record() is called with two examples, one discarded - then user message carries "
+                + "heading and fields")
+        void whenCalledWithTwoExamplesOneDiscarded_thenUserMessageCarriesHeadingBothExamplesFieldsAndText() {
+            ExampleExpense lunchExpense = new ExampleExpense(
+                    "lunch",
+                    "15.00",
+                    CurrencyCode.of("EUR"),
+                    Optional.of("Restaurants"),
+                    Optional.of("Dining"),
+                    ExampleOutcome.ACCEPTED);
+            MessageExample firstExample = new MessageExample("spent 15 euros on lunch yesterday", List.of(lunchExpense));
+
+            ExampleExpense coffeeExpense = new ExampleExpense(
+                    "coffee",
+                    "3.50",
+                    CurrencyCode.of("EUR"),
+                    Optional.of("Coffee"),
+                    Optional.of("Dining"),
+                    ExampleOutcome.DISCARDED);
+            MessageExample secondExample = new MessageExample("3.50 coffee this morning", List.of(coffeeExpense));
+
+            JsonNode body = chatRequestBody(
+                    Optional.of(CurrencyCode.of("EUR")), Optional.of(List.of(firstExample, secondExample)));
+
+            String userMessage = CapturedRequestUtils.messageContent(body, "user");
+            assertThat(userMessage)
+                    .contains("How this person's earlier messages were recorded")
+                    .contains("\"spent 15 euros on lunch yesterday\"")
+                    .contains("\"3.50 coffee this morning\"")
+                    .contains("lunch, 15.00 EUR — Restaurants (Dining) — accepted")
+                    .contains("coffee, 3.50 EUR — Coffee (Dining) — discarded")
+                    .contains("Message: " + TEXT);
+        }
+
+        @Test
+        @DisplayName("when record() is called with a present, empty examples retrieval - then the section reads "
+                + "none")
+        void whenCalledWithEmptyExamplesRetrieval_thenUserMessageExamplesSectionReadsNone() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")), Optional.of(List.of()));
+
+            String userMessage = CapturedRequestUtils.messageContent(body, "user");
+            assertThat(userMessage)
+                    .contains("How this person's earlier messages were recorded")
+                    .contains("none");
+        }
+
+        @Test
+        @DisplayName("when record() is called with an absent examples retrieval - then the user message carries "
+                + "no examples heading")
+        void whenCalledWithAbsentExamplesRetrieval_thenUserMessageCarriesNoExamplesHeading() {
+            JsonNode body = chatRequestBody(Optional.of(CurrencyCode.of("EUR")), Optional.empty());
+
+            String userMessage = CapturedRequestUtils.messageContent(body, "user");
+            assertThat(userMessage).doesNotContain("How this person's earlier messages were recorded");
+            assertThat(userMessage.replaceAll("\\s+", " ").trim()).endsWith("Message: " + TEXT);
         }
 
         @Test

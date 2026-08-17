@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.RecallExamplesCommand;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
@@ -22,6 +23,9 @@ import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.ExampleExpense;
+import bot.finance.ai.domain.value.ExampleOutcome;
+import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.LocalDate;
 import java.util.List;
@@ -81,6 +85,17 @@ class ExtractIntentsUseCaseTest {
                 Optional.of(messageIdentity));
     }
 
+    private static MessageExample exampleFixture() {
+        ExampleExpense expense = new ExampleExpense(
+                "lunch",
+                "15.00",
+                CurrencyCode.of("EUR"),
+                Optional.of("Restaurants"),
+                Optional.of("Dining"),
+                ExampleOutcome.ACCEPTED);
+        return new MessageExample("spent 15 euros on lunch last week", List.of(expense));
+    }
+
     private List<String> loggedInfoLines() {
         return MockedLoggerUtils.infoLines(log);
     }
@@ -103,7 +118,13 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verify(expenseRecordingPort)
-                    .record(eq(TEXT), eq(categoryGroupings), eq("Other"), eq(Optional.empty()), eq(CURRENT_DATE), any());
+                    .record(
+                            eq(TEXT),
+                            eq(categoryGroupings),
+                            eq("Other"),
+                            eq(Optional.empty()),
+                            eq(CURRENT_DATE),
+                            eq(Optional.empty()));
         }
 
         @Test
@@ -115,7 +136,8 @@ class ExtractIntentsUseCaseTest {
 
             useCase.extractIntents(command);
 
-            verify(expenseRecordingPort).record(any(), any(), any(), any(), eq(currentDate), any());
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), eq(currentDate), eq(Optional.empty()));
         }
 
         @Test
@@ -128,7 +150,13 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verify(expenseRecordingPort)
-                    .record(any(), any(), any(), eq(Optional.of(CurrencyCode.of("EUR"))), any(), any());
+                    .record(
+                            any(),
+                            any(),
+                            any(),
+                            eq(Optional.of(CurrencyCode.of("EUR"))),
+                            any(),
+                            eq(Optional.empty()));
         }
 
         @Test
@@ -146,7 +174,9 @@ class ExtractIntentsUseCaseTest {
             List<String> categoryGroupings = List.of("Food");
             ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
             ExpenseRecordingFailedException failure = new ExpenseRecordingFailedException("provider unreachable");
-            doThrow(failure).when(expenseRecordingPort).record(any(), any(), any(), any(), any(), any());
+            doThrow(failure)
+                    .when(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
 
             assertThatThrownBy(() -> useCase.extractIntents(command)).isSameAs(failure);
         }
@@ -176,7 +206,8 @@ class ExtractIntentsUseCaseTest {
 
             InOrder inOrder = inOrder(messageStorePort, expenseRecordingPort);
             inOrder.verify(messageStorePort).register(eq(identity), eq(TEXT));
-            inOrder.verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), any());
+            inOrder.verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -189,7 +220,8 @@ class ExtractIntentsUseCaseTest {
             useCase.extractIntents(command);
 
             verifyNoInteractions(messageStorePort);
-            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), any());
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
         }
 
         @Test
@@ -202,6 +234,7 @@ class ExtractIntentsUseCaseTest {
             doThrow(new MessageStoreFailedException("store unreachable"))
                     .when(messageStorePort)
                     .register(any(), any());
+            when(recallExamplesPort.recall(any())).thenReturn(Optional.empty());
 
             useCase.extractIntents(command);
 
@@ -210,7 +243,55 @@ class ExtractIntentsUseCaseTest {
                     .contains("42")
                     .contains("msg-123")
                     .doesNotContain(TEXT);
-            verify(expenseRecordingPort).record(any(), any(), any(), any(), any(), any());
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+        }
+
+        @Test
+        @DisplayName("when the recall port answers examples - then the recording port receives those examples")
+        void whenCommandCarriesIdentityAndRecallAnswersExamples_thenRecallReceivesIdentityAndPortReceivesExamples() {
+            MessageIdentity identity = new MessageIdentity(42L, "msg-123");
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = commandWithIdentity(TEXT, categoryGroupings, "Food", identity);
+            List<MessageExample> examples = List.of(exampleFixture());
+            when(recallExamplesPort.recall(any())).thenReturn(Optional.of(examples));
+
+            useCase.extractIntents(command);
+
+            InOrder inOrder = inOrder(messageStorePort, recallExamplesPort);
+            inOrder.verify(messageStorePort).register(eq(identity), eq(TEXT));
+            inOrder.verify(recallExamplesPort).recall(eq(new RecallExamplesCommand(identity, TEXT)));
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.of(examples)));
+        }
+
+        @Test
+        @DisplayName("when the command carries no message identity - then the recall port is never touched")
+        void whenCommandCarriesNoMessageIdentity_thenRecallPortUntouchedAndPortReceivesAbsentRetrieval() {
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = command(TEXT, categoryGroupings, "Food", CURRENT_DATE);
+
+            useCase.extractIntents(command);
+
+            verifyNoInteractions(recallExamplesPort);
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+        }
+
+        @Test
+        @DisplayName("when the recall port answers an absent retrieval - then the recording port receives it "
+                + "absent and the turn still runs")
+        void whenRecallPortAnswersAbsentRetrieval_thenPortReceivesItAbsentAndTurnStillRuns() {
+            MessageIdentity identity = new MessageIdentity(42L, "msg-123");
+            List<String> categoryGroupings = List.of("Food");
+            ExtractIntentsCommand command = commandWithIdentity(TEXT, categoryGroupings, "Food", identity);
+            when(recallExamplesPort.recall(any())).thenReturn(Optional.empty());
+
+            useCase.extractIntents(command);
+
+            verify(expenseRecordingPort)
+                    .record(any(), any(), any(), any(), any(), eq(Optional.empty()));
+            assertThat(loggedInfoLines()).hasSize(1);
         }
 
         @Test

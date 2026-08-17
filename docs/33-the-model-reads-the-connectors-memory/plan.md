@@ -523,7 +523,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `Embedding` · test: `EmbeddingTest` · covers: the compact constructor
+- [x] RU01 · `Embedding` · test: `EmbeddingTest` · covers: the compact constructor
     - the compact constructor:
         - given: a list of components
           when: the record is constructed
@@ -532,7 +532,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown for each, never NullPointerException
 
-- [ ] RU02 · `ExampleExpense` · test: `ExampleExpenseTest` · covers: the compact constructor · scenarios: A8
+- [x] RU02 · `ExampleExpense` · test: `ExampleExpenseTest` · covers: the compact constructor · scenarios: A8
     - the compact constructor:
         - given: a description, a decimal amount, a currency, both names and an outcome
           when: the record is constructed
@@ -545,7 +545,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown for each, never NullPointerException
 
-- [ ] RU03 · `MessageExample` · test: `MessageExampleTest` · covers: the compact constructor
+- [x] RU03 · `MessageExample` · test: `MessageExampleTest` · covers: the compact constructor
     - the compact constructor:
         - given: a text and one expense
           when: the record is constructed
@@ -554,7 +554,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown for each
 
-- [ ] RU04 · `RecallExamplesCommand` · test: `RecallExamplesCommandTest` · covers: the compact constructor
+- [x] RU04 · `RecallExamplesCommand` · test: `RecallExamplesCommandTest` · covers: the compact constructor
     - the compact constructor:
         - given: an identity and a text
           when: the record is constructed
@@ -563,7 +563,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown for each
 
-- [ ] RU05 · `RecallExamplesUseCase` · test: `RecallExamplesUseCaseTest` · covers: the constructor, `recall()` ·
+- [x] RU05 · `RecallExamplesUseCase` · test: `RecallExamplesUseCaseTest` · covers: the constructor, `recall()` ·
   scenarios: A4, A5, A6, A10, A11
     - the constructor:
         - given: a non-positive examples count, example-lines count or embedding-attempts count
@@ -611,7 +611,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: recall() is called
           then: the answer is empty, findExamples() is never touched, one WARN is logged, and nothing propagates
 
-- [ ] RU06 · `BackfillEmbeddingsUseCase` · test: `BackfillEmbeddingsUseCaseTest` · covers: the constructor,
+- [x] RU06 · `BackfillEmbeddingsUseCase` · test: `BackfillEmbeddingsUseCaseTest` · covers: the constructor,
   `backfill()` · scenarios: A13, A14, A15, A16, A17
     - the constructor:
         - given: a non-positive batch, batches or embedding-attempts count, or a non-positive stale claim
@@ -648,7 +648,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           then: one WARN is logged, the embedding port is never touched, no second claim is made, and nothing
           propagates
 
-- [ ] RU07 · `ExampleSectionRenderer` · test: `ExampleSectionRendererTest` · covers: `render()` · scenarios: A1,
+- [x] RU07 · `ExampleSectionRenderer` · test: `ExampleSectionRendererTest` · covers: `render()` · scenarios: A1,
   A4, A8, A9, A12
     - `render()`:
         - given: an absent retrieval
@@ -672,7 +672,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: render() is called
           then: both appear, in the order given
 
-- [ ] RU08 · `VectorText` · test: `VectorTextTest` · covers: `toLiteral()`, `fromLiteral()`
+- [x] RU08 · `VectorText` · test: `VectorTextTest` · covers: `toLiteral()`, `fromLiteral()`
     - `toLiteral()`:
         - given: an embedding of three components
           when: toLiteral() is called
@@ -685,7 +685,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: fromLiteral() is called
           then: both read back unchanged
 
-- [ ] RU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` ·
+- [x] RU09 · `ExtractIntentsUseCase` · test: `ExtractIntentsUseCaseTest` · covers: `extractIntents()` ·
   scenarios: A1, A12
     - `extractIntents()`:
         - given: a command carrying a message identity and a recall port answering examples
@@ -711,7 +711,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           — the same, and the recall port stays mocked to answer an absent retrieval so the single WARN still
           holds
 
-- [ ] RU10 · `RegisteredMessage` · test: `RegisteredMessageTest` · covers: the compact constructor
+- [x] RU10 · `RegisteredMessage` · test: `RegisteredMessageTest` · covers: the compact constructor
     - the compact constructor:
         - given: a message id and a vector, and a message id and no vector
           when: the record is constructed
@@ -720,7 +720,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown, never NullPointerException
 
-- [ ] RU11 · `UnembeddedMessage` · test: `UnembeddedMessageTest` · covers: the compact constructor
+- [x] RU11 · `UnembeddedMessage` · test: `UnembeddedMessageTest` · covers: the compact constructor
     - the compact constructor:
         - given: a message id and a text
           when: the record is constructed
@@ -729,7 +729,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: the record is constructed
           then: InvalidValueException is thrown for each
 
-- [ ] RU12 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `toDecimal()`
+- [x] RU12 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `toDecimal()`
     - `toDecimal()`:
         - given: EUR and 1550 minor units, and EUR and 5 minor units
           when: toDecimal() is called
@@ -746,7 +746,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `find()`,
+- [x] RI01 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `find()`,
   `storeEmbedding()`, `countEmbeddingAttempt()`, `findExamples()`, `claimUnembedded()` · scenarios: A1, A2, A3,
   A4, A5, A6, A7, A8, A9, A13, A15, A16, A17, A18
     - `find()`:
@@ -833,7 +833,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: find() is called
           then: MessageStoreUnavailableException, then MessageStoreFailedException, is thrown wrapping it
 
-- [ ] RI02 · `AiMessageEmbeddingAdapter` · test: `AiMessageEmbeddingAdapterTest` · covers: `embed()`,
+- [x] RI02 · `AiMessageEmbeddingAdapter` · test: `AiMessageEmbeddingAdapterTest` · covers: `embed()`,
   `embedAll()` · scenarios: A5, A10, A11, A13
     - `embed()`:
         - given: the provider answering one vector
@@ -857,7 +857,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           when: embedAll() is called
           then: MessageEmbeddingFailedException is thrown, and the call returns within a bound of that timeout
 
-- [ ] RI03 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()` ·
+- [x] RI03 · `AiExpenseRecordingAdapter` · test: `AiExpenseRecordingAdapterTest` · covers: `record()` ·
   scenarios: A1, A4, A12
     - `record()`:
         - given: two examples, one with a discarded expense
@@ -880,7 +880,7 @@ a step id — `CommentConventionsTest` fails the run on one.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `RecallExamplesSystemTest` · covers: `IntentExtractionService/ExtractIntents` · scenarios: A1, A5,
+- [x] RS01 · `RecallExamplesSystemTest` · covers: `IntentExtractionService/ExtractIntents` · scenarios: A1, A5,
   A10
     - Happy Path:
         - given: the memory on, an earlier message of this person holding a vector and an accepted expense with
@@ -895,7 +895,7 @@ a step id — `CommentConventionsTest` fails the run on one.
           then: it answers empty, the new row holds no vector and at least one attempt, and the chat request the
           provider recorded carries no examples heading
 
-- [ ] RS02 · `BackfillEmbeddingsSystemTest` · covers: `MemoryPurgeScheduler.run()` · scenarios: A13
+- [x] RS02 · `BackfillEmbeddingsSystemTest` · covers: `MemoryPurgeScheduler.run()` · scenarios: A13
     - Happy Path:
         - given: the memory on, two registered rows holding no vector, one of them carrying learned expenses,
           and the provider answering vectors for both
