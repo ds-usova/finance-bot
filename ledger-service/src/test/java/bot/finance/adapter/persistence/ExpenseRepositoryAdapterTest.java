@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,14 @@ class ExpenseRepositoryAdapterTest {
 
     @MockitoSpyBean
     private LedgerEventOutbox ledgerEventOutbox;
+
+    // A couple of scenarios assert the whole outbox table is empty, and a handful of other classes commit
+    // outbox rows outside any rolled-back transaction (the change-capture engine reads them off the WAL) -
+    // clearing here keeps those assertions deterministic regardless of what ran earlier in the suite.
+    @BeforeEach
+    void clearOutbox() {
+        jdbcTemplate.update("DELETE FROM outbox");
+    }
 
     @Nested
     @DisplayName("creating an expense")

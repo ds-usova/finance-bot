@@ -50,12 +50,16 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         ExpenseEntity saved;
         try {
             saved = expenseEntityRepository.save(truncatedToMicros(expense));
+            SpendingRowProjection eventRow =
+                    expenseEntityRepository.findEventRow(saved.id()).orElseThrow();
+            String eventType = expense.status() == ExpenseStatus.PENDING ? "ProposalCreated" : "ExpenseRecorded";
+            LedgerEvent event = spendingEventRenderer.render(eventType, eventRow, eventRow.createdAt());
+            ledgerEventOutbox.insert(List.of(event));
+            ledgerEventOutbox.delete(List.of(event.id()));
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
 
-        // TODO: read the row back through findEventRow, render it as a ProposalCreated or ExpenseRecorded
-        //  event and hand it to the outbox, inserting then deleting it before returning
         return saved.toDomain();
     }
 
@@ -79,8 +83,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
-            // TODO: render each changed row as a ProposalAccepted event and hand it to the outbox,
-            //  inserting then deleting it before returning
+            appendEvents(changed, "ProposalAccepted", now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -93,8 +96,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public int discard(long userId, IncomingMessageId reference, Instant now) {
         try {
             List<SpendingRowProjection> changed = expenseEntityRepository.discard(userId, reference.value());
-            // TODO: render each changed row as a ProposalDiscarded event stamped with now and hand it to
-            //  the outbox, inserting then deleting it before returning
+            appendEvents(changed, "ProposalDiscarded", now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -109,8 +111,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS));
-            // TODO: render each changed row as a ProposalAccepted event and hand it to the outbox,
-            //  inserting then deleting it before returning
+            appendEvents(changed, "ProposalAccepted", now);
             return changed.stream()
                     .map(row -> IncomingMessageId.of(row.incomingMessageId()))
                     .toList();
@@ -203,12 +204,28 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
                     userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
-            // TODO: render the changed row as an ExpenseRefiled or ProposalRefiled event and hand it to
-            //  the outbox, inserting then deleting it before returning
+            changed.ifPresent(row -> {
+                String eventType = status == ExpenseStatus.PENDING ? "ProposalRefiled" : "ExpenseRefiled";
+                LedgerEvent event = spendingEventRenderer.render(eventType, row, now);
+                ledgerEventOutbox.insert(List.of(event));
+                ledgerEventOutbox.delete(List.of(event.id()));
+            });
             return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
         }
+    }
+
+    private void appendEvents(List<SpendingRowProjection> rows, String eventType, Instant occurredAt) {
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        List<LedgerEvent> events = rows.stream()
+                .map(row -> spendingEventRenderer.render(eventType, row, occurredAt))
+                .toList();
+        ledgerEventOutbox.insert(events);
+        ledgerEventOutbox.delete(events.stream().map(LedgerEvent::id).toList());
     }
 
     private static String statusName(ExpenseStatus status) {

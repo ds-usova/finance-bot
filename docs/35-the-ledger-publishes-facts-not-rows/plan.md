@@ -478,7 +478,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 #### TDD Integration Green Phase
 
 - [x] GI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest`
-- [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01, GI01
+- [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01, GI01
 - [x] GI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
 - [ ] GI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU02, GI03
 - [ ] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GI04
@@ -534,6 +534,21 @@ plan writes none of them.
   duplicates the mechanism `McpAuthenticationSystemTest` already covers, but adds RS03's own assertion that
   nothing reaches the stream, which that test does not carry. RS03's Unhappy Path text above is updated to match
   what was implemented.
+- **GI04 blocked:** `ChangeStreamReaderTest` is 10/11 green. The one failure,
+  `Stop.whenStreamingReaderStopped_thenTaskFinishesSlotLeftInPlaceAndFreshReaderResumes`, is deterministic, not
+  flaky (reproduced three times): `confirmed_flush_lsn` never advances past the position recorded right after the
+  vehicle write, even after confirming that write's own entry reached the stream before `stop()` is called, which
+  proves `handleBatch`/`committer.markProcessed`/`committer.markBatchFinished` all ran for it. The gap sits
+  somewhere between that call and a Postgres-visible `confirmed_flush_lsn` advance — either the async engine's
+  offset-commit needs more than one processed batch before it becomes durable, or `ChangeStreamReader.stop()`'s
+  synchronous close-time commit does not force a flush the way its own javadoc assumes. Root cause not fully
+  isolated within a green step's budget. Three test-side timing fixes were tried and reverted, none closing the
+  gap: waiting for `pg_replication_slots.active`, waiting for `pg_stat_replication.state = 'streaming'`, and
+  waiting for the write's own stream entry before calling `stop()`. This needs either a `ChangeStreamReader.stop()`
+  fix that makes the flush actually durable before returning, or further investigation into the async Debezium
+  engine's offset-commit internals — both outside a single green step's scope. `ChangeStreamReaderTest.java` is
+  unchanged from the RED phase. GI05 is blocked by this dependency and not spawned.
+- **GI05 blocked:** blocked by GI04, see Open Questions and Blockers section
 
 ## Review Findings
 
