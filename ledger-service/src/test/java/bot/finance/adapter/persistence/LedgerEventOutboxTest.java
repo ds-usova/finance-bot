@@ -2,9 +2,9 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.common.boot.PersistenceAdapterTest;
-import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
 import java.time.Instant;
@@ -18,9 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @PersistenceAdapterTest
-@Import(LedgerEventOutbox.class)
+@Import({LedgerEventOutbox.class, SpendingEventRenderer.class})
 class LedgerEventOutboxTest {
 
     @Autowired
@@ -34,104 +37,81 @@ class LedgerEventOutboxTest {
         OutboxRowUtils.clearOutbox(jdbcTemplate);
     }
 
+    private static SpendingRowProjection row(long id, long userId) {
+        return new SpendingRowProjection(
+                id,
+                userId,
+                "incoming-msg-" + id,
+                "PENDING",
+                "Milk",
+                "Corner Shop",
+                1500L,
+                "EUR",
+                Instant.parse("2026-01-01T10:00:00Z"),
+                20L,
+                "Groceries",
+                30L,
+                "Food");
+    }
+
     @Nested
-    @DisplayName("inserting events")
-    class Insert {
+    @DisplayName("append()")
+    class Append {
 
         @Test
-        @DisplayName(
-                "when two events with distinct ids, types, instants and payloads are inserted - then outbox holds both rows")
-        void whenTwoDistinctEventsInserted_thenOutboxHoldsBothRowsWithTheirOwnFields() {
+        @DisplayName("when two rows are appended - then the outbox is empty again, each row having been written and "
+                + "cleared")
+        void whenTwoRowsAppended_thenOutboxIsEmptyAgain() {
             long userId = 5001L;
-            UUID firstId = UUID.randomUUID();
-            UUID secondId = UUID.randomUUID();
-            Instant firstOccurredAt = Instant.now().minusSeconds(120).truncatedTo(ChronoUnit.MICROS);
-            Instant secondOccurredAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
-            String firstPayload = "{\"userId\":%d,\"expenseId\":1}".formatted(userId);
-            String secondPayload = "{\"userId\":%d,\"expenseId\":2}".formatted(userId);
-            LedgerEvent first =
-                    new LedgerEvent(firstId, LedgerEventType.ProposalCreated, firstOccurredAt, firstPayload);
-            LedgerEvent second =
-                    new LedgerEvent(secondId, LedgerEventType.ExpenseRecorded, secondOccurredAt, secondPayload);
 
-            outbox.insert(List.of(first, second));
+            outbox.append(
+                    LedgerEventType.ProposalCreated,
+                    List.of(row(1L, userId), row(2L, userId)),
+                    Instant.now().truncatedTo(ChronoUnit.MICROS));
 
-            List<OutboxRow> rows = outboxRowsFor(userId);
-            assertThat(rows).hasSize(2);
-            assertThat(rows)
-                    .filteredOn(row -> row.id().equals(firstId))
-                    .singleElement()
-                    .satisfies(row -> {
-                        assertThat(row.type()).isEqualTo("ProposalCreated");
-                        assertThat(row.occurredAt()).isEqualTo(firstOccurredAt);
-                        assertThat(JsonUtils.readJson(row.payload())
-                                        .get("expenseId")
-                                        .asInt())
-                                .isEqualTo(1);
-                    });
-            assertThat(rows)
-                    .filteredOn(row -> row.id().equals(secondId))
-                    .singleElement()
-                    .satisfies(row -> {
-                        assertThat(row.type()).isEqualTo("ExpenseRecorded");
-                        assertThat(row.occurredAt()).isEqualTo(secondOccurredAt);
-                        assertThat(JsonUtils.readJson(row.payload())
-                                        .get("expenseId")
-                                        .asInt())
-                                .isEqualTo(2);
-                    });
+            assertThat(outbox.rowCount()).isZero();
         }
 
         @Test
-        @DisplayName("when called with an empty list - then nothing is written and no statement fails")
-        void whenCalledWithEmptyList_thenNothingIsWrittenAndNoStatementFails() {
-            assertThatCode(() -> outbox.insert(List.of())).doesNotThrowAnyException();
+        @DisplayName("when a row is appended beside one left behind - then only the one left behind remains")
+        void whenRowAppendedBesideOneLeftBehind_thenOnlyTheOneLeftBehindRemains() {
+            long userId = 5002L;
+            UUID leftBehind = UUID.randomUUID();
+            storedOutboxRow(leftBehind, "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), userId);
+
+            outbox.append(LedgerEventType.ProposalAccepted, List.of(row(1L, userId)), Instant.now());
+
+            assertThat(outboxRowsFor(userId)).extracting(OutboxRow::id).containsExactly(leftBehind);
+        }
+
+        @Test
+        @DisplayName("when called with no rows - then nothing is written and no statement fails")
+        void whenCalledWithNoRows_thenNothingIsWrittenAndNoStatementFails() {
+            assertThatCode(() -> outbox.append(LedgerEventType.ProposalCreated, List.of(), Instant.now()))
+                    .doesNotThrowAnyException();
+
+            assertThat(outbox.rowCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("when called outside a transaction - then it is refused rather than committing on its own")
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
+        void whenCalledOutsideATransaction_thenItIsRefused() {
+            assertThatThrownBy(() ->
+                            outbox.append(LedgerEventType.ProposalCreated, List.of(row(1L, 5003L)), Instant.now()))
+                    .isInstanceOf(IllegalTransactionStateException.class);
 
             assertThat(outbox.rowCount()).isZero();
         }
     }
 
     @Nested
-    @DisplayName("deleting events")
-    class Delete {
-
-        @Test
-        @DisplayName("when two of three stored ids are deleted - then only the third row remains")
-        void whenTwoOfThreeStoredIdsDeleted_thenOnlyThirdRowRemains() {
-            long userId = 5002L;
-            UUID firstId = UUID.randomUUID();
-            UUID secondId = UUID.randomUUID();
-            UUID thirdId = UUID.randomUUID();
-            Instant occurredAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
-            storedOutboxRow(firstId, "ProposalCreated", occurredAt, userId);
-            storedOutboxRow(secondId, "ProposalAccepted", occurredAt, userId);
-            storedOutboxRow(thirdId, "ProposalDiscarded", occurredAt, userId);
-
-            outbox.delete(List.of(firstId, secondId));
-
-            List<OutboxRow> rows = outboxRowsFor(userId);
-            assertThat(rows).extracting(OutboxRow::id).containsExactly(thirdId);
-        }
-
-        @Test
-        @DisplayName("when called with an empty list of ids - then nothing is removed and no statement fails")
-        void whenCalledWithEmptyListOfIds_thenNothingIsRemovedAndNoStatementFails() {
-            long userId = 5003L;
-            storedOutboxRow(UUID.randomUUID(), "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), userId);
-
-            assertThatCode(() -> outbox.delete(List.of())).doesNotThrowAnyException();
-
-            assertThat(outboxRowsFor(userId)).hasSize(1);
-        }
-    }
-
-    @Nested
-    @DisplayName("counting rows")
+    @DisplayName("rowCount()")
     class RowCount {
 
         @Test
-        @DisplayName("when one row is inserted into outbox - then the count answers 1")
-        void whenOneRowInserted_thenCountAnswersOne() {
+        @DisplayName("when one row is left in the outbox - then the count answers 1")
+        void whenOneRowLeftInTheOutbox_thenCountAnswersOne() {
             storedOutboxRow(UUID.randomUUID(), "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), 5004L);
 
             assertThat(outbox.rowCount()).isEqualTo(1);

@@ -1,11 +1,9 @@
 package bot.finance.adapter.persistence;
 
-import static bot.finance.common.fixtures.JsonUtils.readJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.common.boot.PersistenceAdapterTest;
@@ -20,7 +18,6 @@ import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.ProposalIds;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -38,12 +35,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
- * Which fact each write publishes, one nested class per writing method. Publishing is one concern spread across
+ * Which fact each write records, one nested class per writing method. Recording is one concern spread across
  * every write, so the catalogue is read here rather than assembled from the method groups in
  * {@link ExpenseRepositoryAdapterTest}, which owns everything else those methods do.
  *
- * <p>The outbox row is deleted in the same transaction that wrote it, so nothing can be read back off the table.
- * The outbox is a spy, and what was handed to {@code insert} is the only record of what a write produced.
+ * <p>An appended row is cleared inside the same transaction, so nothing can be read back off the table. The
+ * outbox is a spy, and what a write handed to {@code append} is the record of what it produced. What that
+ * becomes on the wire is {@link SpendingEventRendererTest}'s.
  */
 @PersistenceAdapterTest
 @Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
@@ -78,8 +76,7 @@ class ExpenseRepositoryAdapterEventsTest {
                 + "the entry")
         void whenPendingEntryUnderGroupedCategoryCreated_thenProposalCreatedFactCarriesTheEntry() {
             long userId = storedUserId("events-create-pending-user");
-            long groupingId = groupingIdNamed(userId, "Food");
-            long categoryId = storedCategoryId(userId, groupingId, "Groceries");
+            long categoryId = storedCategoryId(userId, groupingIdNamed(userId, "Food"), "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Expense proposal = Expense.newProposal(
                     userId,
@@ -92,15 +89,14 @@ class ExpenseRepositoryAdapterEventsTest {
 
             Expense created = adapter.create(proposal);
 
-            assertThat(insertedEvents()).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalCreated);
-                JsonNode payload = readJson(event.payload());
-                assertThat(payload.get("expenseId").asLong())
-                        .isEqualTo(created.id().orElseThrow());
-                assertThat(payload.get("incomingMessageId").asText()).isEqualTo(reference.value());
-                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
-                assertThat(payload.get("category").get("name").asText()).isEqualTo("Groceries");
-                assertThat(payload.get("grouping").get("name").asText()).isEqualTo("Food");
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ProposalCreated);
+            assertThat(appended.rows()).singleElement().satisfies(row -> {
+                assertThat(row.id()).isEqualTo(created.id().orElseThrow());
+                assertThat(row.incomingMessageId()).isEqualTo(reference.value());
+                assertThat(row.status()).isEqualTo(ExpenseStatus.PENDING.name());
+                assertThat(row.categoryName()).isEqualTo("Groceries");
+                assertThat(row.groupingName()).isEqualTo("Food");
             });
         }
 
@@ -118,16 +114,16 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.create(expense);
 
-            assertThat(insertedEvents()).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo(LedgerEventType.ExpenseRecorded);
-                JsonNode payload = readJson(event.payload());
-                assertThat(payload.get("incomingMessageId").isNull()).isTrue();
-                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ExpenseRecorded);
+            assertThat(appended.rows()).singleElement().satisfies(row -> {
+                assertThat(row.incomingMessageId()).isNull();
+                assertThat(row.status()).isEqualTo(ExpenseStatus.RECORDED.name());
             });
         }
 
         @Test
-        @DisplayName("when a write commits - then the outbox it wrote through is empty again")
+        @DisplayName("when a write commits - then the outbox it recorded through is empty again")
         void whenWriteCommits_thenOutboxIsEmptyAgain() {
             long userId = storedUserId("events-create-outbox-empty-user");
             Expense expense = Expense.newExpense(
@@ -144,11 +140,11 @@ class ExpenseRepositoryAdapterEventsTest {
         }
 
         @Test
-        @DisplayName("when the outbox's insert fails - then the write fails and its rows are never deleted")
-        void whenOutboxInsertFails_thenWriteFailsAndRowsNeverDeleted() {
-            doThrow(new RuntimeException("outbox insert failed"))
+        @DisplayName("when the outbox refuses the fact - then the write fails rather than storing the entry alone")
+        void whenOutboxRefusesTheFact_thenWriteFailsRatherThanStoringTheEntryAlone() {
+            doThrow(new RuntimeException("outbox refused"))
                     .when(ledgerEventOutbox)
-                    .insert(any());
+                    .append(any(), any(), any());
             long userId = storedUserId("events-create-outbox-failure-user");
             Expense proposal = Expense.newProposal(
                     userId,
@@ -160,8 +156,6 @@ class ExpenseRepositoryAdapterEventsTest {
                     Instant.now());
 
             assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(PersistenceFailedException.class);
-
-            verify(ledgerEventOutbox, never()).delete(any());
         }
     }
 
@@ -181,17 +175,17 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.accept(userId, reference, Instant.now());
 
-            List<LedgerEvent> events = insertedEvents();
-            assertThat(events).hasSize(3).allSatisfy(event -> {
-                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalAccepted);
-                assertThat(readJson(event.payload()).get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
-            });
-            assertThat(expenseIdsOf(events)).containsExactlyInAnyOrder(first.id(), second.id(), third.id());
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ProposalAccepted);
+            assertThat(appended.rows())
+                    .allSatisfy(row -> assertThat(row.status()).isEqualTo(ExpenseStatus.RECORDED.name()))
+                    .extracting(SpendingRowProjection::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id(), third.id());
         }
 
         @Test
-        @DisplayName("when the entries under the message are already recorded - then nothing is published")
-        void whenEntriesUnderMessageAlreadyRecorded_thenNothingIsPublished() {
+        @DisplayName("when the entries under the message are already recorded - then nothing is recorded")
+        void whenEntriesUnderMessageAlreadyRecorded_thenNothingIsRecorded() {
             long userId = storedUserId("events-accept-already-recorded-user");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseRowUtils.storedExpense(
@@ -208,7 +202,7 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.accept(userId, reference, Instant.now());
 
-            verify(ledgerEventOutbox, never()).insert(any());
+            assertNothingRecorded();
         }
     }
 
@@ -228,23 +222,23 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.discard(userId, reference, discardedAt);
 
-            List<LedgerEvent> events = insertedEvents();
-            assertThat(events).hasSize(2).allSatisfy(event -> {
-                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalDiscarded);
-                assertThat(event.occurredAt()).isEqualTo(discardedAt);
-                assertThat(readJson(event.payload()).get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
-            });
-            assertThat(expenseIdsOf(events)).containsExactlyInAnyOrder(first.id(), second.id());
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ProposalDiscarded);
+            assertThat(appended.occurredAt()).isEqualTo(discardedAt);
+            assertThat(appended.rows())
+                    .allSatisfy(row -> assertThat(row.status()).isEqualTo(ExpenseStatus.PENDING.name()))
+                    .extracting(SpendingRowProjection::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id());
         }
 
         @Test
-        @DisplayName("when a message holds nothing pending - then nothing is published")
-        void whenMessageHoldsNothingPending_thenNothingIsPublished() {
+        @DisplayName("when a message holds nothing pending - then nothing is recorded")
+        void whenMessageHoldsNothingPending_thenNothingIsRecorded() {
             long userId = storedUserId("events-discard-nothing-pending-user");
 
             adapter.discard(userId, IncomingMessageId.of(UUID.randomUUID().toString()), Instant.now());
 
-            verify(ledgerEventOutbox, never()).insert(any());
+            assertNothingRecorded();
         }
     }
 
@@ -273,15 +267,16 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
 
-            List<LedgerEvent> events = insertedEvents();
-            assertThat(events).hasSize(2).allSatisfy(event -> assertThat(event.type())
-                    .isEqualTo(LedgerEventType.ProposalAccepted));
-            assertThat(expenseIdsOf(events)).containsExactlyInAnyOrder(first.id(), second.id());
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ProposalAccepted);
+            assertThat(appended.rows())
+                    .extracting(SpendingRowProjection::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id());
         }
 
         @Test
-        @DisplayName("when an id names another person's pending entry - then nothing is published")
-        void whenIdNamesAnotherPersonsPendingEntry_thenNothingIsPublished() {
+        @DisplayName("when an id names another person's pending entry - then nothing is recorded")
+        void whenIdNamesAnotherPersonsPendingEntry_thenNothingIsRecorded() {
             long ownerUserId = storedUserId("events-accept-by-ids-owner-user");
             ExpenseEntity ownerEntry = storedPending(
                     ownerUserId,
@@ -293,7 +288,7 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.acceptByIds(callerUserId, ProposalIds.of(List.of(ownerEntry.id())), Instant.now());
 
-            verify(ledgerEventOutbox, never()).insert(any());
+            assertNothingRecorded();
         }
     }
 
@@ -312,11 +307,11 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
 
-            assertThat(insertedEvents()).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo(LedgerEventType.ExpenseRefiled);
-                JsonNode payload = readJson(event.payload());
-                assertThat(payload.get("category").get("name").asText()).isEqualTo("Dining");
-                assertThat(payload.get("grouping").get("name").asText()).isEqualTo("Leisure");
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ExpenseRefiled);
+            assertThat(appended.rows()).singleElement().satisfies(row -> {
+                assertThat(row.categoryName()).isEqualTo("Dining");
+                assertThat(row.groupingName()).isEqualTo("Leisure");
             });
         }
 
@@ -336,8 +331,7 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.refile(userId, proposal.id(), newCategoryId, ExpenseStatus.PENDING, Instant.now());
 
-            assertThat(insertedEvents()).singleElement().satisfies(event -> assertThat(event.type())
-                    .isEqualTo(LedgerEventType.ProposalRefiled));
+            assertThat(appended().type()).isEqualTo(LedgerEventType.ProposalRefiled);
         }
 
         @Test
@@ -353,36 +347,41 @@ class ExpenseRepositoryAdapterEventsTest {
 
             adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
 
-            assertThat(insertedEvents()).singleElement().satisfies(event -> assertThat(readJson(event.payload())
-                            .get("category")
-                            .get("name")
-                            .asText())
+            assertThat(appended().rows()).singleElement().satisfies(row -> assertThat(row.categoryName())
                     .isEqualTo("Fine Dining"));
         }
 
         @Test
-        @DisplayName("when the id names no entry of theirs - then nothing is published")
-        void whenIdNamesNoEntryOfTheirs_thenNothingIsPublished() {
+        @DisplayName("when the id names no entry of theirs - then nothing is recorded")
+        void whenIdNamesNoEntryOfTheirs_thenNothingIsRecorded() {
             long userId = storedUserId("events-refile-unknown-entry-user");
             long categoryId = leafCategoryId(userId, "Groceries");
 
             adapter.refile(userId, 999_999_999L, categoryId, ExpenseStatus.RECORDED, Instant.now());
 
-            verify(ledgerEventOutbox, never()).insert(any());
+            assertNothingRecorded();
         }
     }
 
-    private List<LedgerEvent> insertedEvents() {
+    /** What one write handed the outbox. */
+    private record Appended(LedgerEventType type, List<SpendingRowProjection> rows, Instant occurredAt) {}
+
+    private Appended appended() {
+        ArgumentCaptor<LedgerEventType> type = ArgumentCaptor.forClass(LedgerEventType.class);
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<LedgerEvent>> captor = ArgumentCaptor.forClass(List.class);
-        verify(ledgerEventOutbox).insert(captor.capture());
-        return captor.getValue();
+        ArgumentCaptor<List<SpendingRowProjection>> rows = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Instant> occurredAt = ArgumentCaptor.forClass(Instant.class);
+        verify(ledgerEventOutbox).append(type.capture(), rows.capture(), occurredAt.capture());
+        return new Appended(type.getValue(), rows.getValue(), occurredAt.getValue());
     }
 
-    private static List<Long> expenseIdsOf(List<LedgerEvent> events) {
-        return events.stream()
-                .map(event -> readJson(event.payload()).get("expenseId").asLong())
-                .toList();
+    /**
+     * A write that matched no row still calls {@code append} with an empty list, so what says nothing was recorded
+     * is that no row was handed over, not that the call never happened.
+     */
+    private void assertNothingRecorded() {
+        assertThat(appended().rows()).isEmpty();
+        assertThat(OutboxRowUtils.outboxRowCount(jdbcTemplate)).isZero();
     }
 
     private long storedUserId(String externalId) {

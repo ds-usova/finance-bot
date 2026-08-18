@@ -1352,12 +1352,8 @@ class ExpenseRepositoryAdapterTest {
         private final ExpenseEntityRepository mockedExpenseEntityRepository = mock(ExpenseEntityRepository.class);
         private final CategoryEntityRepository mockedCategoryEntityRepository = mock(CategoryEntityRepository.class);
         private final LedgerEventOutbox mockedLedgerEventOutbox = mock(LedgerEventOutbox.class);
-        private final SpendingEventRenderer mockedSpendingEventRenderer = mock(SpendingEventRenderer.class);
         private final ExpenseRepositoryAdapter mockedAdapter = new ExpenseRepositoryAdapter(
-                mockedExpenseEntityRepository,
-                mockedCategoryEntityRepository,
-                mockedLedgerEventOutbox,
-                mockedSpendingEventRenderer);
+                mockedExpenseEntityRepository, mockedCategoryEntityRepository, mockedLedgerEventOutbox);
 
         @Test
         @DisplayName(
@@ -1513,10 +1509,7 @@ class ExpenseRepositoryAdapterTest {
                 throw frameworkException;
             });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
-                    throwingRepository,
-                    mock(CategoryEntityRepository.class),
-                    mock(LedgerEventOutbox.class),
-                    mock(SpendingEventRenderer.class));
+                    throwingRepository, mock(CategoryEntityRepository.class), mock(LedgerEventOutbox.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.findPage(1L, filter))
@@ -1534,10 +1527,7 @@ class ExpenseRepositoryAdapterTest {
                 throw frameworkException;
             });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
-                    throwingRepository,
-                    mock(CategoryEntityRepository.class),
-                    mock(LedgerEventOutbox.class),
-                    mock(SpendingEventRenderer.class));
+                    throwingRepository, mock(CategoryEntityRepository.class), mock(LedgerEventOutbox.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.countMatching(1L, filter))

@@ -31,17 +31,14 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     private final ExpenseEntityRepository expenseEntityRepository;
     private final CategoryEntityRepository categoryEntityRepository;
     private final LedgerEventOutbox ledgerEventOutbox;
-    private final SpendingEventRenderer spendingEventRenderer;
 
     public ExpenseRepositoryAdapter(
             ExpenseEntityRepository expenseEntityRepository,
             CategoryEntityRepository categoryEntityRepository,
-            LedgerEventOutbox ledgerEventOutbox,
-            SpendingEventRenderer spendingEventRenderer) {
+            LedgerEventOutbox ledgerEventOutbox) {
         this.expenseEntityRepository = expenseEntityRepository;
         this.categoryEntityRepository = categoryEntityRepository;
         this.ledgerEventOutbox = ledgerEventOutbox;
-        this.spendingEventRenderer = spendingEventRenderer;
     }
 
     @Override
@@ -56,7 +53,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             saved = expenseEntityRepository.save(truncatedToMicros(expense));
             SpendingRowProjection eventRow =
                     expenseEntityRepository.findEventRow(saved.id()).orElseThrow();
-            appendEvents(List.of(eventRow), LedgerEventType.created(expense.status()), eventRow.createdAt());
+            ledgerEventOutbox.append(
+                    LedgerEventType.created(expense.status()), List.of(eventRow), eventRow.createdAt());
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
@@ -84,7 +82,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
-            appendEvents(changed, LedgerEventType.ProposalAccepted, now);
+            ledgerEventOutbox.append(LedgerEventType.ProposalAccepted, changed, now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -97,7 +95,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public int discard(long userId, IncomingMessageId reference, Instant now) {
         try {
             List<SpendingRowProjection> changed = expenseEntityRepository.discard(userId, reference.value());
-            appendEvents(changed, LedgerEventType.ProposalDiscarded, now);
+            ledgerEventOutbox.append(LedgerEventType.ProposalDiscarded, changed, now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -112,7 +110,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS));
-            appendEvents(changed, LedgerEventType.ProposalAccepted, now);
+            ledgerEventOutbox.append(LedgerEventType.ProposalAccepted, changed, now);
             return changed.stream()
                     .map(row -> IncomingMessageId.of(row.incomingMessageId()))
                     .toList();
@@ -207,7 +205,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
                     userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
-            appendEvents(changed.map(List::of).orElseGet(List::of), LedgerEventType.refiled(status), now);
+            ledgerEventOutbox.append(
+                    LedgerEventType.refiled(status), changed.map(List::of).orElseGet(List::of), now);
 
             return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
@@ -224,18 +223,6 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         if (categoryEntityRepository.existsByIdAndParentIdIsNull(categoryId)) {
             throw new EntityNotFoundException("category", "id " + categoryId + " names a grouping, not a category");
         }
-    }
-
-    private void appendEvents(List<SpendingRowProjection> rows, LedgerEventType eventType, Instant occurredAt) {
-        if (rows.isEmpty()) {
-            return;
-        }
-
-        List<LedgerEvent> events = rows.stream()
-                .map(row -> spendingEventRenderer.render(eventType, row, occurredAt))
-                .toList();
-        ledgerEventOutbox.insert(events);
-        ledgerEventOutbox.delete(events.stream().map(LedgerEvent::id).toList());
     }
 
     private static String statusName(ExpenseStatus status) {

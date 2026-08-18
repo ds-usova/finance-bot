@@ -10,6 +10,7 @@ import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.adapter.persistence.DatabaseConnectionDetails;
 import bot.finance.adapter.persistence.LedgerEventOutbox;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
+import bot.finance.adapter.persistence.SpendingEventRenderer;
 import bot.finance.adapter.redis.RedisChangeStreamWriter;
 import bot.finance.common.containers.RedisContainers;
 import bot.finance.common.containers.ToxiproxyContainers;
@@ -40,6 +41,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
     ReplicationCatalogue.class,
     DatabaseConnectionDetails.class,
     LedgerEventOutbox.class,
+    SpendingEventRenderer.class,
     RedisChangeStreamWriter.class,
     Slf4jLoggerFactory.class,
 })
