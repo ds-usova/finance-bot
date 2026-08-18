@@ -1,6 +1,7 @@
 package bot.finance.adapter.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import bot.finance.adapter.cdc.CdcProperties;
 import bot.finance.common.containers.RedisContainers;
@@ -12,7 +13,6 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,28 +33,32 @@ class RedisChangeStreamWriterTest {
     class Write {
 
         @Test
-        @Disabled("RI03: write() takes four body fields instead of a payload and an optional enrichment")
-        @DisplayName("when a payload with an enrichment block is written - then one entry carries both fields verbatim")
-        void whenPayloadWithEnrichmentIsWritten_thenOneEntryCarriesBothFieldsVerbatim() {
-            // String streamKey = uniqueStreamKey("happy-path");
-            // LettuceConnectionFactory factory = RedisContainers.connectionFactory();
-            // try {
-            //     RedisChangeStreamWriter writer =
-            //             new RedisChangeStreamWriter(RedisContainers.template(factory), properties(streamKey, 1000));
-            //     String payload = "{\"op\":\"c\",\"after\":{\"id\":1}}";
-            //     String enrichment = "{\"category\":\"Groceries\"}";
-            //
-            //     boolean written = writer.write(payload, Optional.of(enrichment));
-            //
-            //     assertThat(written).isTrue();
-            //     List<StreamMessage<String, String>> entries = readEntries(streamKey);
-            //     assertThat(entries).hasSize(1);
-            //     assertThat(entries.get(0).getBody())
-            //             .containsEntry("payload", payload)
-            //             .containsEntry("enrichment", enrichment);
-            // } finally {
-            //     factory.destroy();
-            // }
+        @DisplayName("when written - then one entry carries id, type, occurredAt and payload verbatim, no other field")
+        void whenWritten_thenOneEntryCarriesAllFourFieldsVerbatimAndNoOtherField() {
+            String streamKey = uniqueStreamKey("happy-path");
+            LettuceConnectionFactory factory = RedisContainers.connectionFactory();
+            try {
+                RedisChangeStreamWriter writer =
+                        new RedisChangeStreamWriter(RedisContainers.template(factory), properties(streamKey, 1000));
+                String id = UUID.randomUUID().toString();
+                String type = "ExpenseRecorded";
+                String occurredAt = "2026-01-01T00:00:00Z";
+                String payload = "{\"op\":\"c\",\"after\":{\"id\":1}}";
+
+                boolean written = writer.write(id, type, occurredAt, payload);
+
+                assertThat(written).isTrue();
+                List<StreamMessage<String, String>> entries = readEntries(streamKey);
+                assertThat(entries).hasSize(1);
+                assertThat(entries.get(0).getBody())
+                        .containsOnly(
+                                entry("id", id),
+                                entry("type", type),
+                                entry("occurredAt", occurredAt),
+                                entry("payload", payload));
+            } finally {
+                factory.destroy();
+            }
         }
 
         @Test

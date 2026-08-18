@@ -8,9 +8,15 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.ChangeStreamEntries;
+import bot.finance.common.fixtures.ExpensePatches;
+import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import java.time.Instant;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -90,6 +97,9 @@ class CaptureDisabledSystemTest {
         @Autowired
         private JdbcTemplate jdbcTemplate;
 
+        @Autowired
+        private JdbcAggregateTemplate jdbcAggregateTemplate;
+
         @BeforeEach
         void configureRestAssured() {
             RestAssured.baseURI = "http://localhost";
@@ -107,12 +117,31 @@ class CaptureDisabledSystemTest {
 
             // when: a person signs in, which writes captured category rows as part of seeding their tree
             String externalId = "capture-disabled-happy-user";
-            Response signIn = BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId);
-            signIn.then().statusCode(200);
+            String sessionCookie =
+                    BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId).getCookie(BrowserSessions.COOKIE_NAME);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()
                     .id();
+
+            // when: a spending write is made - the write that would publish while capture is on
+            long firstCategoryId = CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Groceries", "Supermarkets");
+            long secondCategoryId = CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Dining", "Restaurants");
+            long expenseId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            firstCategoryId,
+                            "groceries",
+                            "Market",
+                            1500L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
+                    .id();
+            String csrfToken = BrowserSessions.csrfToken();
+            Response refile = ExpensePatches.replaceCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
+            refile.then().statusCode(200);
 
             // then: the service served every request normally
             // then: no replication slot is opened against this database

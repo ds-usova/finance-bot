@@ -4,22 +4,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.adapter.security.AccessTokenMinter;
+import bot.finance.application.port.UserRepository;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcCaptureTest;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamHealth;
+import bot.finance.common.fixtures.IncomingMessages;
+import bot.finance.common.fixtures.McpRequests;
+import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.domain.model.User;
+import bot.finance.domain.value.Grouping;
+import bot.finance.domain.value.IncomingMessageId;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Duration;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalManagementPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -44,8 +53,17 @@ class RecoverSlotSystemTest {
     @LocalManagementPort
     private int managementPort;
 
+    @LocalServerPort
+    private int port;
+
     @Autowired
     private UserEntityRepository userEntityRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AccessTokenMinter accessTokenMinter;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -58,7 +76,6 @@ class RecoverSlotSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS05: seeding a grouping no longer publishes anything, so it cannot show capture resumed")
         @DisplayName(
                 "when an invalidated slot is recovered - then 200 carries both positions and streaming " + "resumes")
         void whenAnInvalidatedSlotIsRecovered_then200CarriesBothPositionsAndStreamingResumes() {
@@ -87,14 +104,29 @@ class RecoverSlotSystemTest {
             // then: the health component returns to STREAMING
             awaitChangeStreamStatus("STREAMING");
 
-            // then: a change made afterwards reaches the stream
-            String externalId = "recover-slot-happy-user";
-            long userId = UserRowUtils.storedUserId(userEntityRepository, externalId);
-            CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Fees");
-            await("the change made after recovery reaches the stream")
+            // then: a spending write made afterwards reaches the stream, proving capture resumed
+            User user = userRepository.create(User.newUser("recover-slot-happy-user"), Grouping.defaults());
+            long userId = user.id().orElseThrow();
+            IncomingMessageId reference = IncomingMessages.newIncomingMessageId();
+            String token = McpTokens.tokenFor(accessTokenMinter, userId, reference);
+            String requestBody = McpRequests.createExpenseProposal(
+                    "Supermarkets", "Groceries", "milk", "Corner Shop", "12.50", "EUR");
+
+            Response toolResponse = RestAssured.given()
+                    .port(port)
+                    .contentType(ContentType.JSON)
+                    .accept(McpRequests.ACCEPT_HEADER)
+                    .header("Authorization", "Bearer " + token)
+                    .body(requestBody)
+                    .when()
+                    .post("/mcp");
+            toolResponse.then().statusCode(200);
+
+            await("the spending write made after recovery reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-                            .as("category entries for the user created after recovery")
+                    .untilAsserted(() -> assertThat(
+                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId))
+                            .as("ProposalCreated entries for the user created after recovery")
                             .isNotEmpty());
         }
 

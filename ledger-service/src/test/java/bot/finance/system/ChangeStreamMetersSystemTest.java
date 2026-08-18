@@ -21,7 +21,6 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,7 +64,6 @@ class ChangeStreamMetersSystemTest {
     class HappyPath {
 
         @Test
-        @Disabled("RS04: a category or expense row change no longer reaches the slot at all")
         @DisplayName(
                 "when prometheus is scraped - then it carries the published, failure, lag, slot and state " + "meters")
         void whenPrometheusIsScraped_thenItCarriesThePublishedFailureLagSlotAndStateMeters() {
@@ -98,7 +96,8 @@ class ChangeStreamMetersSystemTest {
                     .statusCode(200);
             await("the first category change reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
+                    .untilAsserted(() -> assertThat(
+                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId))
                             .isNotEmpty());
 
             // given: Redis has refused at least one write, cut at the proxy
@@ -117,11 +116,11 @@ class ChangeStreamMetersSystemTest {
             response.then().statusCode(200);
             String body = response.getBody().asString();
 
-            // then: it carries a published count tagged by table and op
+            // then: it carries a published count tagged by the type the refile produced
             assertThat(body)
-                    .as("published count tagged by table and op")
-                    .containsPattern(Pattern.compile("(?m)^ledger_cdc_events_published_total\\{"
-                            + "(?=[^}]*table=\"expense\")(?=[^}]*op=\"u\")[^}]*}"));
+                    .as("published count tagged by the event type")
+                    .containsPattern(
+                            Pattern.compile("(?m)^ledger_cdc_events_published_total\\{(?=[^}]*type=\"ExpenseRefiled\")[^}]*}"));
             // then: a failure count
             assertThat(body).as("publish failure count").contains("ledger_cdc_publish_failures_total");
             // then: the event lag
@@ -129,6 +128,8 @@ class ChangeStreamMetersSystemTest {
             // then: the slot's retained bytes and wal status
             assertThat(body).as("slot retained bytes").contains("ledger_cdc_slot_retained_bytes");
             assertThat(body).as("slot wal status").contains("ledger_cdc_slot_wal_status");
+            // then: the outbox row count
+            assertThat(body).as("outbox row count").contains("ledger_cdc_outbox_rows");
             // then: the engine's state
             assertThat(body).as("engine state").contains("ledger_cdc_state");
         }

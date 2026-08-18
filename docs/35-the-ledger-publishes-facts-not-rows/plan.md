@@ -341,7 +341,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     the count, the message ids or the entry a write answers keeps asserting exactly that, the adapter deriving it
     from the rows the statement returned
 
-- [ ] RI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest` · covers: `write()`
+- [x] RI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest` · covers: `write()`
   - `write()`:
     - given: an id, a type, an instant and a payload
       when: written
@@ -397,7 +397,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}` ·
+- [x] RS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}` ·
   scenarios: A4, A11
   - Happy Path:
     - given: a recorded expense filed under `Supermarkets` in `Groceries`
@@ -414,7 +414,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     payload `expenseId`, and the four `enrichment` assertions become assertions on the payload's category and
     grouping
 
-- [ ] RS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances` ·
+- [x] RS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances` ·
   scenarios: A2, A14
   - Happy Path:
     - given: two pending proposals reported on two different messages
@@ -428,7 +428,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     endpoint assertions stand; the stream assertion looks for no entry of any type carrying that `expenseId`,
     rather than an `expense` entry
 
-- [ ] RS03 · `ProposalFactsSystemTest` · covers: `POST /mcp` · scenarios: A1, A7
+- [x] RS03 · `ProposalFactsSystemTest` · covers: `POST /mcp` · scenarios: A1, A7
   - Happy Path:
     - given: capture switched on and a person with a category tree
       when: a proposal is created through the MCP expense tool
@@ -437,10 +437,10 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
       and `outbox` holds no row afterwards
   - Unhappy Path:
     - given: capture switched on
-      when: a proposal is created through the tool naming a category id belonging to nobody
+      when: a proposal is created through the tool carrying a token for a user id no row backs
       then: the tool call fails with the error the endpoint answers today, and nothing reaches the stream
 
-- [ ] RS04 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A16
+- [x] RS04 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A16
   - update: `whenPrometheusIsScraped_thenItCarriesThePublishedFailureLagSlotAndStateMeters()` — clear the
     `@Disabled` ST15 left on it; the pattern asserting `table="expense"` and `op="u"` asserts a single `type` tag
     naming the event the refile produced, an assertion on `ledger_cdc_outbox_rows` joins the meter list, and the
@@ -448,7 +448,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
   - update: `whenPrometheusIsRequestedOnTheServicePort_thenItIsNotServedThere()` — unchanged, and no scenario of
     this step's own restates either method: both already exist and the two bullets above are the whole rework
 
-- [ ] RS05 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc`
+- [x] RS05 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc`
   - Happy Path:
     - given: a slot rebuilt through the recovery operation
       when: a spending write is made afterwards
@@ -457,7 +457,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     the assertion waiting on `category` entries for the user drives a spending write and waits on its event, and
     the `@Disabled` ST15 left on the method is cleared
 
-- [ ] RS06 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health`, `GET /actuator/prometheus`
+- [x] RS06 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health`, `GET /actuator/prometheus`
   - Happy Path:
     - given: capture switched off against a `wal_level=replica` database
       when: the endpoints are exercised and a spending write is made
@@ -525,6 +525,15 @@ plan writes none of them.
   something?
   - A: Right. They rework existing coverage rather than adding behaviour anyone signed off, so they stay uncited
     and the design's acceptance scenarios are unchanged.
+- **RS03 note (resolved, not blocking):** F12's unhappy path — a category id belonging to nobody — is unreachable
+  through `POST /mcp` as written: the tool resolves category and grouping by name, scoped to the caller's own
+  `userId` (`CreateExpenseProposalUseCase.resolveCategoryId`), so no name lookup can return a foreign or
+  nonexistent id without fault injection, which RS03's own resolution excludes. The system-test step substituted
+  the closest reachable, pre-existing, un-fault-injected `EntityNotFoundException` path: an MCP token minted for a
+  `userId` no row backs, which the tool already maps to the same error before any category lookup runs. This
+  duplicates the mechanism `McpAuthenticationSystemTest` already covers, but adds RS03's own assertion that
+  nothing reaches the stream, which that test does not carry. RS03's Unhappy Path text above is updated to match
+  what was implemented.
 
 ## Review Findings
 
