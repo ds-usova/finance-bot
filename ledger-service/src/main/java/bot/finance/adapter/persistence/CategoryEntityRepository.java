@@ -50,12 +50,4 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
             ORDER BY name
             """)
     List<GroupingEntryProjection> findGroupingEntriesForUser(@Param("userId") Long userId);
-
-    @Query(
-            """
-            SELECT name, parent_id
-            FROM category
-            WHERE id = :categoryId
-            """)
-    Optional<CategoryRowProjection> findCategoryRow(@Param("categoryId") Long categoryId);
 }

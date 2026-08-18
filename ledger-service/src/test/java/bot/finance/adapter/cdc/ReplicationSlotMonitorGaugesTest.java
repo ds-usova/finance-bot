@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.persistence.LedgerEventOutbox;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.ReplicationSlotRetention;
 import bot.finance.common.fixtures.CdcConfigurations;
@@ -43,6 +44,7 @@ class ReplicationSlotMonitorGaugesTest {
                 CdcConfigurations.forSlot(SLOT_NAME),
                 new ChangeStreamMeters(meterRegistry),
                 mock(ScheduledExecutorService.class),
+                mock(LedgerEventOutbox.class),
                 new Slf4jLoggerFactory());
     }
 

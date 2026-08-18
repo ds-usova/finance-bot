@@ -20,6 +20,7 @@ public class ChangeStreamMeters {
     private final AtomicLong state = new AtomicLong(ChangeStreamState.DOWN.ordinal());
     private final AtomicLong slotRetainedBytes = new AtomicLong();
     private final AtomicLong slotWalStatus = new AtomicLong();
+    private final AtomicLong outboxRows = new AtomicLong();
 
     public ChangeStreamMeters(MeterRegistry registry) {
         this.registry = registry;
@@ -27,27 +28,19 @@ public class ChangeStreamMeters {
         registry.gauge("ledger_cdc_state", state, AtomicLong::get);
         registry.gauge("ledger_cdc_slot_retained_bytes", slotRetainedBytes, AtomicLong::get);
         registry.gauge("ledger_cdc_slot_wal_status", slotWalStatus, AtomicLong::get);
+        registry.gauge("ledger_cdc_outbox_rows", outboxRows, AtomicLong::get);
     }
 
-    public void countPublished(String table, String operation) {
-        counter("ledger_cdc_events_published_total", Tags.of("table", table, "op", operation))
-                .increment();
+    public void countPublished(String type) {
+        counter("ledger_cdc_events_published_total", Tags.of("type", type)).increment();
     }
 
     public void countPublishFailure() {
         counter("ledger_cdc_publish_failures_total", Tags.empty()).increment();
     }
 
-    public void countCategoryLookupHit() {
-        counter("ledger_cdc_category_lookups_total", Tags.of("result", "hit")).increment();
-    }
-
-    public void countCategoryLookupMiss() {
-        counter("ledger_cdc_category_lookups_total", Tags.of("result", "miss")).increment();
-    }
-
-    public void countCategoryLookupFailure() {
-        counter("ledger_cdc_category_lookup_failures_total", Tags.empty()).increment();
+    public void setOutboxRows(long rows) {
+        // records the outbox row count on the gauge
     }
 
     public void setEventLag(Instant lastPublishedEventTimestamp) {

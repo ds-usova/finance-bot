@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
  * survive the test, cleanup is manual.
  */
 @PersistenceAdapterTest
-@Import(ExpenseRepositoryAdapter.class)
+@Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ExpenseRepositoryAdapterConcurrencyTest {
 

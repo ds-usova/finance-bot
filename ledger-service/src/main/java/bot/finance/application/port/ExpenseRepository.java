@@ -47,7 +47,7 @@ public interface ExpenseRepository {
      *
      * @throws PersistenceFailedException if the write fails
      */
-    int discard(long userId, IncomingMessageId reference);
+    int discard(long userId, IncomingMessageId reference, Instant now);
 
     /**
      * Accepts the caller's PENDING entries named by id, answering the message each was reported on.

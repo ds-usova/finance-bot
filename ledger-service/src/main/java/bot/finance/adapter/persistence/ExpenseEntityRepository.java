@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -25,34 +24,66 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
     List<ProposalSummaryProjection> findSummariesByMessageReference(
             @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
-    @Modifying
     @Query(
             """
-            UPDATE expense
-            SET status = 'RECORDED', updated_at = :now
-            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+            WITH changed AS (
+                UPDATE expense
+                SET status = 'RECORDED', updated_at = :now
+                WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
             """)
-    int accept(
+    List<SpendingRowProjection> accept(
             @Param("userId") Long userId,
             @Param("incomingMessageId") String incomingMessageId,
             @Param("now") Instant now);
 
-    @Modifying
     @Query(
             """
-            DELETE FROM expense
-            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+            WITH changed AS (
+                DELETE FROM expense
+                WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
             """)
-    int discard(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
+    List<SpendingRowProjection> discard(
+            @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
     @Query(
             """
-            UPDATE expense
-            SET status = 'RECORDED', updated_at = :now
-            WHERE user_id = :userId AND id IN (:ids) AND status = 'PENDING'
-            RETURNING incoming_message_id
+            WITH changed AS (
+                UPDATE expense
+                SET status = 'RECORDED', updated_at = :now
+                WHERE user_id = :userId AND id IN (:ids) AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
             """)
-    List<String> acceptByIds(@Param("userId") Long userId, @Param("ids") List<Long> ids, @Param("now") Instant now);
+    List<SpendingRowProjection> acceptByIds(
+            @Param("userId") Long userId, @Param("ids") List<Long> ids, @Param("now") Instant now);
 
     @Query(
             """
@@ -123,15 +154,39 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            UPDATE expense
-            SET category_id = :categoryId, updated_at = :now
-            WHERE id = :id AND user_id = :userId AND status = :status
-            RETURNING id, category_id, description, merchant, amount_minor_units, currency_code, created_at
+            WITH changed AS (
+                UPDATE expense
+                SET category_id = :categoryId, updated_at = :now
+                WHERE id = :id AND user_id = :userId AND status = :status
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
             """)
-    Optional<RefiledEntryProjection> refile(
+    Optional<SpendingRowProjection> refile(
             @Param("userId") Long userId,
             @Param("id") Long id,
             @Param("categoryId") Long categoryId,
             @Param("status") String status,
             @Param("now") Instant now);
+
+    @Query(
+            """
+            SELECT e.id AS id, e.user_id AS user_id, e.incoming_message_id AS incoming_message_id,
+                   e.status AS status, e.description AS description, e.merchant AS merchant,
+                   e.amount_minor_units AS amount_minor_units, e.currency_code AS currency_code,
+                   e.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM expense e
+            JOIN category cat ON e.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            WHERE e.id = :id
+            """)
+    Optional<SpendingRowProjection> findEventRow(@Param("id") Long id);
 }

@@ -116,7 +116,7 @@ class ResolveProposalsUseCaseTest {
                 + "of 3")
         void whenDiscardCommandResolvesThree_thenAcknowledgeReceivesDiscardedAndAcceptAndExpenseRepositoryUntouched() {
             stubStoredUser();
-            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(3);
+            when(expenseRepository.discard(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(3);
 
             useCase.resolve(newCommand(ProposalResolution.DISCARD));
 
@@ -155,7 +155,7 @@ class ResolveProposalsUseCaseTest {
                 + "with a count of 2")
         void whenDiscardResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
-            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(0);
+            when(expenseRepository.discard(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(0);
             when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(2);
 
             useCase.resolve(newCommand(ProposalResolution.DISCARD));
@@ -221,7 +221,7 @@ class ResolveProposalsUseCaseTest {
         @DisplayName("when acknowledge throws MessageDeliveryFailedException - then it propagates")
         void whenAcknowledgeThrowsMessageDeliveryFailedException_thenExceptionPropagates() {
             stubStoredUser();
-            when(expenseRepository.discard(USER_ID, REFERENCE)).thenReturn(2);
+            when(expenseRepository.discard(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(2);
             MessageDeliveryFailedException failure =
                     new MessageDeliveryFailedException("delivery failed", new RuntimeException());
             doThrow(failure).when(messageDeliveryPort).acknowledge(any());

@@ -7,18 +7,24 @@ import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
 
-public record RefiledEntryProjection(
+public record SpendingRowProjection(
         long id,
-        long categoryId,
+        long userId,
+        String incomingMessageId,
+        String status,
         String description,
         String merchant,
         long amountMinorUnits,
         String currencyCode,
-        Instant createdAt) {
+        Instant createdAt,
+        long categoryId,
+        String categoryName,
+        Long groupingId,
+        String groupingName) {
 
-    public ExpenseEntry toExpenseEntry(ExpenseStatus status) {
+    public ExpenseEntry toExpenseEntry(ExpenseStatus expenseStatus) {
         return new ExpenseEntry(
-                status,
+                expenseStatus,
                 id,
                 categoryId,
                 description,

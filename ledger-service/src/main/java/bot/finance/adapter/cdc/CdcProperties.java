@@ -12,7 +12,6 @@ public record CdcProperties(
         String snapshotMode,
         Duration heartbeatInterval,
         Duration slotMonitorInterval,
-        long categoryCacheSize,
         String recoverySecret) {
 
     /**

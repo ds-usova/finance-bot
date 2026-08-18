@@ -43,6 +43,7 @@ bot.finance
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
     │   ├── ExpenseRowUtils       # reads back a user's stored expense rows under a status, and stores one directly
+    │   ├── OutboxRowUtils        # reads back a user's outbox rows, counts the table, and stores one row directly
     │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id

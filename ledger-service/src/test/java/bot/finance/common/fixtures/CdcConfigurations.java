@@ -10,7 +10,6 @@ import java.time.Duration;
 public final class CdcConfigurations {
 
     private static final long STREAM_MAX_LENGTH = 1000;
-    private static final long CATEGORY_CACHE_SIZE = 100;
     private static final Duration HEARTBEAT_INTERVAL = Duration.ofSeconds(10);
     private static final Duration SLOT_MONITOR_INTERVAL = Duration.ofSeconds(10);
 
@@ -31,7 +30,6 @@ public final class CdcConfigurations {
                 "never",
                 HEARTBEAT_INTERVAL,
                 SLOT_MONITOR_INTERVAL,
-                CATEGORY_CACHE_SIZE,
                 "unused-recovery-secret");
     }
 }

@@ -1,6 +1,5 @@
 package bot.finance.common.boot;
 
-import bot.finance.adapter.cdc.CategoryNameResolver;
 import bot.finance.adapter.cdc.ChangeEventPublisher;
 import bot.finance.adapter.cdc.ChangeStreamConfiguration;
 import bot.finance.adapter.cdc.ChangeStreamMeters;
@@ -8,8 +7,8 @@ import bot.finance.adapter.cdc.ChangeStreamReader;
 import bot.finance.adapter.cdc.ChangeStreamRecovery;
 import bot.finance.adapter.cdc.ReplicationSlotMonitor;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.adapter.persistence.CategoryRowReader;
 import bot.finance.adapter.persistence.DatabaseConnectionDetails;
+import bot.finance.adapter.persistence.LedgerEventOutbox;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.redis.RedisChangeStreamWriter;
 import bot.finance.common.containers.RedisContainers;
@@ -38,10 +37,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
     ReplicationSlotMonitor.class,
     ChangeStreamMeters.class,
     ChangeEventPublisher.class,
-    CategoryNameResolver.class,
     ReplicationCatalogue.class,
     DatabaseConnectionDetails.class,
-    CategoryRowReader.class,
+    LedgerEventOutbox.class,
     RedisChangeStreamWriter.class,
     Slf4jLoggerFactory.class,
 })

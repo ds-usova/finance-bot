@@ -45,7 +45,7 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 @PersistenceAdapterTest
-@Import(ExpenseRepositoryAdapter.class)
+@Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
 class ExpenseRepositoryAdapterTest {
 
     @Autowired
@@ -580,7 +580,7 @@ class ExpenseRepositoryAdapterTest {
                     Instant.now().minusSeconds(60),
                     ExpenseStatus.RECORDED);
 
-            int discarded = adapter.discard(userId, reference);
+            int discarded = adapter.discard(userId, reference, Instant.now());
 
             assertThat(discarded).isEqualTo(2);
             assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING)).isEmpty();
@@ -1276,8 +1276,10 @@ class ExpenseRepositoryAdapterTest {
     class WithAMockedStore {
 
         private final ExpenseEntityRepository mockedExpenseEntityRepository = mock(ExpenseEntityRepository.class);
-        private final ExpenseRepositoryAdapter mockedAdapter =
-                new ExpenseRepositoryAdapter(mockedExpenseEntityRepository);
+        private final LedgerEventOutbox mockedLedgerEventOutbox = mock(LedgerEventOutbox.class);
+        private final SpendingEventRenderer mockedSpendingEventRenderer = mock(SpendingEventRenderer.class);
+        private final ExpenseRepositoryAdapter mockedAdapter = new ExpenseRepositoryAdapter(
+                mockedExpenseEntityRepository, mockedLedgerEventOutbox, mockedSpendingEventRenderer);
 
         @Test
         @DisplayName(
@@ -1349,7 +1351,7 @@ class ExpenseRepositoryAdapterTest {
             when(mockedExpenseEntityRepository.discard(any(), any())).thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.discard(
-                            1L, IncomingMessageId.of(UUID.randomUUID().toString())))
+                            1L, IncomingMessageId.of(UUID.randomUUID().toString()), Instant.now()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
@@ -1432,7 +1434,8 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
                 throw frameworkException;
             });
-            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
+            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
+                    throwingRepository, mock(LedgerEventOutbox.class), mock(SpendingEventRenderer.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.findPage(1L, filter))
@@ -1449,7 +1452,8 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntityRepository throwingRepository = mock(ExpenseEntityRepository.class, invocation -> {
                 throw frameworkException;
             });
-            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(throwingRepository);
+            ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
+                    throwingRepository, mock(LedgerEventOutbox.class), mock(SpendingEventRenderer.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.countMatching(1L, filter))

@@ -72,7 +72,7 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
         IncomingMessageId reference = command.reference();
         return switch (command.resolution()) {
             case ACCEPT -> expenseRepository.accept(userId, reference, Instant.now(clock));
-            case DISCARD -> expenseRepository.discard(userId, reference);
+            case DISCARD -> expenseRepository.discard(userId, reference, Instant.now(clock));
         };
     }
 

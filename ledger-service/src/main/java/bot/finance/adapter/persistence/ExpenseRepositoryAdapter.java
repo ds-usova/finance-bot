@@ -29,9 +29,16 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     private static final String USER_FOREIGN_KEY = "expense_user_id_fkey";
 
     private final ExpenseEntityRepository expenseEntityRepository;
+    private final LedgerEventOutbox ledgerEventOutbox;
+    private final SpendingEventRenderer spendingEventRenderer;
 
-    public ExpenseRepositoryAdapter(ExpenseEntityRepository expenseEntityRepository) {
+    public ExpenseRepositoryAdapter(
+            ExpenseEntityRepository expenseEntityRepository,
+            LedgerEventOutbox ledgerEventOutbox,
+            SpendingEventRenderer spendingEventRenderer) {
         this.expenseEntityRepository = expenseEntityRepository;
+        this.ledgerEventOutbox = ledgerEventOutbox;
+        this.spendingEventRenderer = spendingEventRenderer;
     }
 
     @Override
@@ -46,6 +53,9 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
+
+        // TODO: read the row back through findEventRow, render it as a ProposalCreated or ExpenseRecorded
+        //  event and hand it to the outbox, inserting then deleting it before returning
         return saved.toDomain();
     }
 
@@ -67,7 +77,11 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Transactional
     public int accept(long userId, IncomingMessageId reference, Instant now) {
         try {
-            return expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
+            List<SpendingRowProjection> changed =
+                    expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
+            // TODO: render each changed row as a ProposalAccepted event and hand it to the outbox,
+            //  inserting then deleting it before returning
+            return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
                     "failed to accept proposals for user " + userId + " and message reference " + reference.value(), e);
@@ -76,9 +90,12 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     @Transactional
-    public int discard(long userId, IncomingMessageId reference) {
+    public int discard(long userId, IncomingMessageId reference, Instant now) {
         try {
-            return expenseEntityRepository.discard(userId, reference.value());
+            List<SpendingRowProjection> changed = expenseEntityRepository.discard(userId, reference.value());
+            // TODO: render each changed row as a ProposalDiscarded event stamped with now and hand it to
+            //  the outbox, inserting then deleting it before returning
+            return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
                     "failed to discard proposals for user " + userId + " and message reference " + reference.value(),
@@ -90,8 +107,12 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Transactional
     public List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now) {
         try {
-            return expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS)).stream()
-                    .map(IncomingMessageId::of)
+            List<SpendingRowProjection> changed =
+                    expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS));
+            // TODO: render each changed row as a ProposalAccepted event and hand it to the outbox,
+            //  inserting then deleting it before returning
+            return changed.stream()
+                    .map(row -> IncomingMessageId.of(row.incomingMessageId()))
                     .toList();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to accept proposals by id for user " + userId, e);
@@ -180,9 +201,11 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public Optional<ExpenseEntry> refile(
             long userId, long entryId, long categoryId, ExpenseStatus status, Instant now) {
         try {
-            return expenseEntityRepository
-                    .refile(userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS))
-                    .map(projection -> projection.toExpenseEntry(status));
+            Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
+                    userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
+            // TODO: render the changed row as an ExpenseRefiled or ProposalRefiled event and hand it to
+            //  the outbox, inserting then deleting it before returning
+            return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
         }
