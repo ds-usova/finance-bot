@@ -200,6 +200,28 @@ earlier event having arrived:
 | `category`                    | `{ "id", "name" }` — the category the entry is filed under                           |
 | `grouping`                    | `{ "id", "name" }` — the grouping that category sits in                              |
 
+A category and a grouping carry the id beside the name because the name is a snapshot and the id is not (F23). A
+whole entry, as `ProposalCreated` carries it:
+
+```json
+{
+  "userId": 41,
+  "incomingMessageId": "1187:4402",
+  "expenseId": 9013,
+  "status": "PENDING",
+  "description": "flat white",
+  "merchant": "Blue Bottle",
+  "amount": "4.50",
+  "currencyCode": "USD",
+  "category": { "id": 77, "name": "Coffee" },
+  "grouping": { "id": 12, "name": "Dining" }
+}
+```
+
+Every other spending type carries the same nine fields, differing only in `status` and in which fact the `type`
+names. A category with no parent gives `"grouping": null` (F16); an expense entered with no message gives
+`"incomingMessageId": null`.
+
 | Type                | The fact                                                   | Emitted by                                                    | Body                                          |
 |---------------------|------------------------------------------------------------|---------------------------------------------------------------|-----------------------------------------------|
 | `ProposalCreated`   | the model proposed an expense from a message               | [create an expense proposal](../../ledger-service/docs/usecases/create-an-expense-proposal.md) | the pending entry            |
@@ -262,6 +284,7 @@ The category resolver, its cache, its eviction on `category` events and its two 
 | [`configuration.md`](../../ledger-service/docs/configuration.md)                   | Loses one row                                                                              |
 | [`operations.md`](../../ledger-service/docs/contracts/in/operations.md)            | The meter table                                                                            |
 | [Architecture](../../ledger-service/docs/conventions/architecture.md)              | `adapter/cdc`'s line, if the resolver's removal changes it                                 |
+| [Testing conventions](../../ledger-service/docs/conventions/testing.md)            | `ChangeStreamEntries`' entry in the tree, and "Sharing the capture engine", both of which name `source.table` |
 | The connector's [`change-stream.md`](../../ai-connector-service/docs/contracts/out/change-stream.md) | Untouched here; the connector's task rewrites it                         |
 | Backlog R2 (`CategoryNames`, `CategoryRow` in `adapter/cdc`)                       | Closed by removal                                                                          |
 | `CategoryRowUtils` and the capture tests                                            | The rename helper drove `category` events; the tests now assert entries by `type`          |
@@ -441,3 +464,5 @@ contract, limits, and time precision found clear.
 | F20 | Both accept statements?                                         | Accept by message and accept by ids are two statements; each returns its rows and writes the events, and the second keeps returning its message ids | [Design 34](../implemented/34-one-expense-table-with-a-status/design.md), the writes table |
 | F21 | An expense removed, a category or grouping changed?             | No event until a use case does it; deferred to that use case's task, whose event carries the row's id and its new value (D3) | Design 32 F1, no rename; [backlog](../backlog.md) R1, no hand-entered expense; D2 |
 | F22 | Is the event body built in SQL or in the ledger's code?         | In the code, from the rows the statement returns: the currency's scale lives in `Money`, not in the database, so `amount` cannot be rendered by the statement | [`Money`](../../ledger-service/src/main/java/bot/finance/domain/value/Money.java) `fractionDigits`; [ADR 0011](../../ledger-service/docs/adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md) |
+| F23 | What does a category rename do to events already published?     | Nothing, and that is why the id travels beside the name. A published body keeps the name the category had at that commit, forever — nothing is republished (A6). A consumer holding the name has it stale from the rename until a `CategoryChanged` event arrives, which is why D2's deferral is a gap in what a consumer can display, not only a missing type. The id is the field that survives a rename, so a consumer keying on it can re-resolve every event it kept once that event exists | D2, D3, F21; A6, A9 |
+| F24 | Who covers A13, when only the ledger is an affected module?     | The connector already does, unchanged: `ChangeStreamEntryReader.read` answers empty for a body naming a table it ignores, and an event entry names no `source.table` at all. So A13 needs no step in either module, and no plan claims it | [`ChangeStreamEntryReader`](../../ai-connector-service/src/main/java/bot/finance/ai/adapter/redis/ChangeStreamEntryReader.java) `isWatchedTable`; `ChangeStreamEntryReaderTest`, "names a table this reader ignores - then it answers empty" |
