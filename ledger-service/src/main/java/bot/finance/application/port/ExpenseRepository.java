@@ -36,29 +36,27 @@ public interface ExpenseRepository {
     List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference);
 
     /**
-     * Moves the caller's PENDING entries under that message to RECORDED, answering how many rows matched.
+     * Accepts the caller's PENDING entries under that message, answering how many were accepted.
      *
      * @throws PersistenceFailedException if the write fails
      */
     int accept(long userId, IncomingMessageId reference, Instant now);
 
     /**
-     * Removes the caller's PENDING entries under that message, answering how many rows matched.
+     * Discards the caller's PENDING entries under that message, answering how many were discarded.
      *
      * @throws PersistenceFailedException if the write fails
      */
     int discard(long userId, IncomingMessageId reference);
 
     /**
-     * Moves the caller's PENDING entries named by id to RECORDED, answering each moved row's message id.
+     * Accepts the caller's PENDING entries named by id, answering the message each was reported on.
      *
      * @throws PersistenceFailedException if the write fails
      */
     List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now);
 
     /**
-     * Answers which of the given messages still hold a PENDING entry of the caller's.
-     *
      * @throws PersistenceFailedException if the read fails
      */
     Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids);
@@ -88,8 +86,8 @@ public interface ExpenseRepository {
     long countMatching(long userId, ExpenseFilter filter);
 
     /**
-     * Refiles the caller's entry under that status under a new category, answering the row as it now stands. An
-     * empty result means no row of the caller's carried that id under that status.
+     * Files the caller's entry under a new category, answering it as it now stands. An empty result means no
+     * entry of theirs carries that id under that status.
      *
      * @throws PersistenceFailedException if the write fails
      */
