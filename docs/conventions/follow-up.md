@@ -20,9 +20,18 @@ module that differs says so in its own section file.
 
 ## What Gets Written
 
-- **An ADR** — one per technical decision approved for recording, stated as a fact. Its number is not chosen in
-  advance; it is assigned when the ADR is written, so a rejected candidate consumes none. How one is superseded
-  or deprecated afterwards is [ADR Lifecycle](adr.md).
+- **An ADR placeholder** — one per technical decision approved for recording. Its number is not chosen in
+  advance; it is assigned when the placeholder is written, so a rejected candidate consumes none. How one is
+  superseded or deprecated afterwards is [ADR Lifecycle](adr.md).
+
+**A person writes the ADR; the agent writes only the placeholder.** The placeholder carries the title — the
+decision stated as a fact — the metadata, and under each section one or two sentences saying what that section
+has to carry, in place of the prose. Nothing else. An ADR is the one document whose value is a judgement about
+why a system is the way it is, and a plausible paragraph assembled from the diff reads exactly like a
+considered one; the difference only shows years later, to a reader who cannot check.
+
+A placeholder is finished work, not a draft to be filled in silently: it lands and is committed with the rest,
+and the sections stay as written until a person replaces them.
 
 **An ADR exists only because it was approved.** Each candidate is raised as a question — the decision as a fact,
 and the page that holds it if no ADR is written — and only an answered `yes` produces one. A candidate rejected,

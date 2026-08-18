@@ -49,7 +49,9 @@ however the work was done, so it does not live here.
 
 A plan carries one of those kinds in its **Post-Implementation Steps** group:
 
-- **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+- **ADR placeholders** — one item per approved decision, as
+  `Place ADR: <the decision, stated as a fact>`. The item authorizes a numbered placeholder, never the ADR
+  itself; [Follow-Up Work](../../../docs/conventions/follow-up.md) says who writes which part.
 
 The approval is a numbered open question in the plan, and only an answered `yes` becomes an item. Nothing
-downstream writes an ADR that has no item.
+downstream places an ADR that has no item.
