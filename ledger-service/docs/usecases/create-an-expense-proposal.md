@@ -20,6 +20,7 @@
 |-----------|--------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the create expense proposal tool](../contracts/in/mcp.md) | recording spending assembled from a conversation                             |
 | out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)   | resolving the identity, the grouping and its category, and storing the entry |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md)                                      | [The change stream](../contracts/out/change-stream.md)           | publishing the fact this write produced                                      |
 
 ## Outcomes
 
@@ -122,7 +123,7 @@ if (the grouping holds a category of that name?) then (no)
   stop
 endif
 :stamp both timestamps;
-:store the entry as pending, under that category and that message;
+:store the entry as pending, under that category and that message, its fact appended in the same transaction;
 if (the write fails?) then (yes)
   :storage failed;
   stop

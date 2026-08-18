@@ -70,6 +70,14 @@ entity "cdc_heartbeat" as cdc_heartbeat {
   * beat_at : TIMESTAMPTZ
 }
 
+entity "outbox" as outbox {
+  * id : UUID <<PK>>
+  --
+  * type : TEXT
+  * occurred_at : TIMESTAMPTZ
+  * payload : JSONB
+}
+
 app_user ||--o{ category
 category ||--o{ category
 app_user ||--o{ expense
@@ -79,8 +87,8 @@ app_user ||--o{ proposal_report
 @enduml
 ```
 
-The database also carries `debezium_offset_storage`, which no migration declares, and a replica identity on two
-of the tables above. Both are [Change capture](change-capture.md)'s.
+The database also carries `debezium_offset_storage`, which no migration declares. It is
+[Change capture](change-capture.md)'s.
 
 Indexes beyond the constraints above:
 
@@ -101,6 +109,7 @@ Indexes beyond the constraints above:
 | `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
 | `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
 | `cdc_heartbeat`    | none                                                  | no use case writes it — see [Change capture](change-capture.md)    |
+| `outbox`           | none                                                  | a fact a write produced — see [Change capture](change-capture.md)  |
 
 - A grouping and a category are the same table. The parent is what tells them apart.
 - `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all three tables

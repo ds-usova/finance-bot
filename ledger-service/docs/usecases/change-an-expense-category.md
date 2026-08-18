@@ -20,10 +20,11 @@ The path, the document and each refusal are fixed by [the specification](../../.
 
 ## Collaborators
 
-| Direction | Collaborator                                                            | Through                                                                 | For                                                                             |
-|-----------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| in        | [A signed-in person's browser](../contracts/in/web-browse-api.md)       | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md) | refiling one entry under another category                                       |
-| out       | [Database](../contracts/out/database.md)                                | [Users, categories and expenses](../contracts/out/database.md)          | resolving the identity, admitting the category, and refiling the entry           |
+| Direction | Collaborator                                                            | Through                                                                 | For                                                                    |
+|-----------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------|
+| in        | [A signed-in person's browser](../contracts/in/web-browse-api.md)       | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md) | refiling one entry under another category                              |
+| out       | [Database](../contracts/out/database.md)                                | [Users, categories and expenses](../contracts/out/database.md)          | resolving the identity, admitting the category, and refiling the entry |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md) | [The change stream](../contracts/out/change-stream.md)                  | publishing the fact this refile produces                               |
 
 ## Outcomes
 
@@ -96,6 +97,7 @@ SHOW_LEGEND()
 participant "A signed-in person's browser" as Web
 participant "Change an entry's category" as UC
 database "Database" as DB
+queue "The change stream" as Stream
 
 Web -> UC : the status, the entry's id, the category, and the caller's identity
 
@@ -120,6 +122,7 @@ else the request is usable
         UC --> Web : no entry of theirs carries that id
       else the entry was refiled
         DB --> UC : the entry as it now stands
+        DB -> Stream : the fact, once committed
         UC -> UC : log the person, the entry, its status and its new category
         UC --> Web : the entry
       end

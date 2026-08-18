@@ -33,25 +33,23 @@ alarm permanently.
 
 With capture switched off the component is absent altogether, and the aggregate health is unaffected by it.
 
-A database the publication is missing from reaches `DOWN` rather than looking idle: the engine refuses to start,
-takes no replication slot, and does not retry.
+What each of these states costs the database is [what change capture owes](../out/change-capture.md).
 
 ## Meters
 
-| Meter                                       | Kind    | Says                                                                     |
-|---------------------------------------------|---------|--------------------------------------------------------------------------|
-| `ledger_cdc_events_published_total`         | counter | changes appended to the stream, tagged by `table` and `op`               |
-| `ledger_cdc_publish_failures_total`         | counter | appends the stream refused                                               |
-| `ledger_cdc_category_lookups_total`         | counter | category name lookups, tagged `result` `hit` or `miss`                   |
-| `ledger_cdc_category_lookup_failures_total` | counter | category name lookups the database refused                               |
-| `ledger_cdc_event_lag_seconds`              | gauge   | now, less the commit time of the last change appended                    |
-| `ledger_cdc_state`                          | gauge   | the capture state, as an ordinal                                         |
-| `ledger_cdc_slot_retained_bytes`            | gauge   | how much log the replication slot is holding — the one to alarm on       |
-| `ledger_cdc_slot_wal_status`                | gauge   | what the database says about that slot, as an ordinal                    |
+| Meter                                | Kind    | Says                                                                                                |
+|--------------------------------------|---------|-----------------------------------------------------------------------------------------------------|
+| `ledger_cdc_events_published_total`  | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))           |
+| `ledger_cdc_publish_failures_total`  | counter | appends the stream refused                                                                          |
+| `ledger_cdc_event_lag_seconds`       | gauge   | now, less the instant stamped on the last fact appended                                             |
+| `ledger_cdc_state`                   | gauge   | the capture state, as an ordinal                                                                    |
+| `ledger_cdc_outbox_rows`             | gauge   | rows left in the outbox — anything but zero is a write that did not delete its own                  |
+| `ledger_cdc_slot_retained_bytes`     | gauge   | how much log the replication slot is holding — the one to alarm on                                  |
+| `ledger_cdc_slot_wal_status`         | gauge   | what the database says about that slot, as an ordinal                                               |
 
-The two slot gauges are read on a timer whether or not capture is on, so a slot left behind by switching capture
-off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watched against — see
-[configuration](../../configuration.md).
+The two slot gauges and the outbox gauge are read on the same timer whether or not capture is on, so a slot left
+behind by switching capture off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watched
+against — see [configuration](../../configuration.md).
 
 ### `ledger_cdc_state`
 

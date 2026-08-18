@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-08-18
-- **Source:** [The Ledger Publishes Facts, Not Rows](../35-the-ledger-publishes-facts-not-rows/plan.md)
+- **Source:** [The Ledger Publishes Facts, Not Rows](../implemented/35-the-ledger-publishes-facts-not-rows/plan.md)
 
 ## Context
 

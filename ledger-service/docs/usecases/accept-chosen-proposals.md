@@ -20,11 +20,12 @@ What bounds the list, what an id is taken as, and how the two counts relate are 
 
 ## Collaborators
 
-| Direction | Collaborator                                                                         | Through                                                                           | For                                                                                 |
-|-----------|--------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| in        | [Accept pending expenses](../../../web-app/docs/usecases/accept-pending-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | turning the entries a person ticked into their ledger                               |
-| out       | [Database](../contracts/out/database.md)                                             | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, and recording the pending entries the ids name              |
-| out       | [Clear the emptied reports](clear-emptied-reports.md)                                | [Clear the emptied reports](clear-emptied-reports.md)                             | handing over the messages this acceptance may have emptied                          |
+| Direction | Collaborator                                                                         | Through                                                                 | For                                                                    |
+|-----------|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------|
+| in        | [Accept pending expenses](../../../web-app/docs/usecases/accept-pending-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md) | turning the entries a person ticked into their ledger                  |
+| out       | [Database](../contracts/out/database.md)                                             | [Users, categories and expenses](../contracts/out/database.md)          | resolving the identity, and recording the pending entries the ids name |
+| out       | [Clear the emptied reports](clear-emptied-reports.md)                                | [Clear the emptied reports](clear-emptied-reports.md)                   | handing over the messages this acceptance may have emptied             |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md)              | [The change stream](../contracts/out/change-stream.md)                  | publishing the fact each acceptance produces                           |
 
 ## Outcomes
 
@@ -96,6 +97,7 @@ SHOW_LEGEND()
 participant "A signed-in person's browser" as Web
 participant "Accept the proposals a person chose" as UC
 database "Database" as DB
+queue "The change stream" as Stream
 participant "Clear the emptied reports" as Clearing
 
 Web -> UC : the ids that were ticked, and the caller's identity
@@ -116,6 +118,7 @@ else the list is usable
     else the write ran
       DB --> UC : the message each recorded entry was reported on
       opt anything was recorded
+        DB -> Stream : the facts, once committed
         UC -> Clearing : those messages, off this thread
       end
       UC --> Web : how many were recorded, and how many named nothing

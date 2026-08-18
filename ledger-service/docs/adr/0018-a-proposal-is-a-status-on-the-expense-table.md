@@ -60,3 +60,7 @@ and `category` and no longer naming `expense_proposal`.
   provide.
 - Nothing forbids `RECORDED -> PENDING` in the schema; only the writes do, since the sole insert that writes
   `PENDING` is the one that creates a proposal, and both accept statements guard `status = 'PENDING'`.
+- 2026-08-18 — the publication migration named above is now `V010__publish_facts_through_an_outbox.sql`, and it
+  captures an `outbox` table rather than `expense` and `category`
+  ([ADR 0019](../../../docs/adr/0019-the-ledger-publishes-facts-through-a-transactional-outbox-rather-than-its-own-row-changes.md)).
+  The renumbering this ADR describes still holds; what that migration publishes no longer does.

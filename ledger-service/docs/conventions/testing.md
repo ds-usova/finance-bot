@@ -50,7 +50,7 @@ bot.finance
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
     │   ├── CdcConfigurations     # CdcProperties for a test building a capture component itself, by slot or by stream
-    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by source.table and user_id
+    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by event type and the payload's userId
     │   ├── ChangeStreamHealth    # reads the engine's state off /actuator/health on the management port
     │   ├── ExpensePatches        # the JSON Patch bodies a browser sends to /api/v1/expenses
     │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
@@ -169,9 +169,13 @@ one context, one engine and one slot. Postgres allows a slot one active consumer
 property founds a second engine rather than joining the first.
 
 What separates two classes' entries on the shared stream is the user each creates: read them back through
-`ChangeStreamEntries.entriesOnFor(key, table, userId)`, never off the whole stream. A class booting a database
+`ChangeStreamEntries.entriesOnFor(key, type, userId)`, never off the whole stream. A class booting a database
 of its own is the exception, since its `user_id` values repeat ids another class already published under — it
 names a stream key of its own and reads that stream whole.
+
+A class that writes rows to `outbox` clears them in a `@BeforeEach` through `OutboxRowUtils`. The table is
+[empty at rest](../contracts/out/change-capture.md), so an assertion on its contents reads whatever another class
+left behind.
 
 ## Naming Conventions
 

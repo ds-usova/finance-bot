@@ -16,12 +16,13 @@
 
 ## Collaborators
 
-| Direction | Collaborator                                          | Through                                                                           | For                                                                             |
-|-----------|-------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| in        | [Telegram](../contracts/in/telegram-updates.md)       | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering the tap on a report's button                                         |
-| in        | [Act on a user's message](handle-incoming-message.md) | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the buttons on the report, and storing the proposals a tap resolves     |
-| out       | [Database](../contracts/out/database.md)              | [Users, categories and expenses](../contracts/out/database.md)                    | resolving who tapped, recording or removing what the message proposed, counting it |
-| out       | [Telegram](../contracts/out/telegram-replies.md)      | [Outgoing replies](../contracts/out/telegram-replies.md)                          | answering the tap, and taking the buttons off the report                        |
+| Direction | Collaborator                                                            | Through                                                        | For                                                                                |
+|-----------|-------------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
+| in        | [Telegram](../contracts/in/telegram-updates.md)                         | [Incoming messages](../contracts/in/telegram-updates.md)       | delivering the tap on a report's button                                            |
+| in        | [Act on a user's message](handle-incoming-message.md)                   | [Outgoing replies](../contracts/out/telegram-replies.md)       | putting the buttons on the report, and storing the proposals a tap resolves        |
+| out       | [Database](../contracts/out/database.md)                                | [Users, categories and expenses](../contracts/out/database.md) | resolving who tapped, recording or removing what the message proposed, counting it |
+| out       | [Telegram](../contracts/out/telegram-replies.md)                        | [Outgoing replies](../contracts/out/telegram-replies.md)       | answering the tap, and taking the buttons off the report                           |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md) | [The change stream](../contracts/out/change-stream.md)         | publishing the fact each resolution produces                                       |
 
 ## Outcomes
 
@@ -98,6 +99,7 @@ SHOW_LEGEND()
 participant "Telegram" as TG
 participant "Resolve a reported proposal" as UC
 database "Database" as DB
+queue "The change stream" as Stream
 
 TG -> UC : a tap on Confirm or Delete
 
@@ -118,6 +120,9 @@ else the tap is complete
       DB --> UC : storage failed, nothing recorded or removed
     else the store answers
       DB --> UC : how many were recorded or removed
+      opt anything matched
+        DB -> Stream : the facts, once committed
+      end
       alt nothing matched
         UC -> DB : count their recorded entries under the message
         DB --> UC : how many are already recorded

@@ -13,13 +13,12 @@
 
 *Implemented by `CreateExpenseUseCase`.*
 
-Nothing calls this use case yet.
-
 ## Collaborators
 
-| Direction | Collaborator                             | Through                                                        | For                                                    |
-|-----------|------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------|
-| out       | [Database](../contracts/out/database.md) | [Users, categories and expenses](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
+| Direction | Collaborator                                                            | Through                                                        | For                                                    |
+|-----------|-------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------|
+| out       | [Database](../contracts/out/database.md)                                | [Users, categories and expenses](../contracts/out/database.md) | resolving the user's identity, and storing the expense |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md) | [The change stream](../contracts/out/change-stream.md)         | publishing the fact this write produced                |
 
 ## Outcomes
 
@@ -70,6 +69,7 @@ SHOW_LEGEND()
 participant "Caller" as Caller
 participant "Ledger Service" as LS
 database "Database" as DB
+queue "The change stream" as Stream
 
 Caller -> LS : a new expense
 
@@ -97,6 +97,7 @@ else the identity is known
   LS -> LS : stamp both timestamps
   LS -> DB : store the expense
   DB --> LS : the stored expense
+  DB -> Stream : the fact, once committed
   LS -> LS : log the creation
   LS --> Caller : the stored expense
 end
