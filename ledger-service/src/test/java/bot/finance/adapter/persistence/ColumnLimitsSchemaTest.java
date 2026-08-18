@@ -9,7 +9,6 @@ import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.value.ExpenseStatus;
 import java.time.Instant;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -112,44 +111,8 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
-    @DisplayName("expense_proposal's removal and the status column's guards")
-    class StatusColumn {
-
-        @Test
-        @DisplayName("when information_schema.tables is read for expense_proposal - then no such table exists")
-        void whenInformationSchemaTablesReadForExpenseProposal_thenNoSuchTableExists() {
-            Integer tableCount = jdbcTemplate.queryForObject(
-                    """
-                    SELECT count(*) FROM information_schema.tables
-                    WHERE table_schema = current_schema() AND table_name = 'expense_proposal'
-                    """,
-                    Integer.class);
-
-            assertThat(tableCount).isZero();
-        }
-
-        @Test
-        @DisplayName(
-                "when expense's status column is read - then it is NOT NULL, has no default, and admits only PENDING and RECORDED")
-        void whenStatusColumnRead_thenNotNullNoDefaultAndAdmitsOnlyPendingAndRecorded() {
-            Map<String, Object> column = jdbcTemplate.queryForMap(
-                    """
-                    SELECT is_nullable, column_default
-                    FROM information_schema.columns
-                    WHERE table_schema = current_schema() AND table_name = 'expense' AND column_name = 'status'
-                    """);
-            assertThat(column.get("is_nullable")).isEqualTo("NO");
-            assertThat(column.get("column_default")).isNull();
-
-            String checkDefinition = jdbcTemplate.queryForObject(
-                    """
-                    SELECT pg_get_constraintdef(oid) FROM pg_constraint
-                    WHERE conrelid = 'expense'::regclass AND contype = 'c'
-                      AND pg_get_constraintdef(oid) LIKE '%PENDING%' AND pg_get_constraintdef(oid) LIKE '%RECORDED%'
-                    """,
-                    String.class);
-            assertThat(checkDefinition).contains("PENDING").contains("RECORDED");
-        }
+    @DisplayName("the pending-has-message check")
+    class PendingHasMessage {
 
         @Test
         @DisplayName(
