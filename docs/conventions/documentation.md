@@ -27,31 +27,28 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
   carries what the diagram cannot: a field, a rule, a failure, a setting.
 - **Docs describe what a thing does and why it matters to a reader** — never how it is wired. No DI, bean
   registration, annotation, or framework mechanics in a README or a diagram label.
-- **A conventions page names no agent.** It reads as documentation for someone who has never run the framework,
-  and stays true whoever does the work. A rule that holds only because an agent does it — committing as the work
+- **A conventions page names no agent.** A rule that holds only because an agent does it — committing as the work
   goes, a cap on concurrent work, what one orchestration level may not do — belongs in the module's
   `conventions/agent.md`. The exception is a page whose whole subject is how much may run at once,
-  [Parallelism](parallelism.md), which has nothing else to name.
+  [Parallelism](parallelism.md).
 - **A conventions page states the project's facts, never the framework's.** What the machine allows, what a list
   contains, what a command does. Which level runs a step, when it runs relative to archiving, what a pipeline may
-  not do: those belong to `.claude/`, however true they are.
-- **`agent.md` is documentation too.** The register holds there as well — define a thing by its meaning, not by
-  the workflow stage that reaches for it, and the workflow behaviour follows from the definition without the page
-  naming a phase.
+  not do: those belong to `.claude/`.
+- **`agent.md` is documentation too.** Define a thing by its meaning, not by the workflow stage that reaches for
+  it.
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
 - **A page documents what is served now.** A retired path, a dropped field, an operation that no longer exists:
-  none of them belongs on a page, and least of all a note on how one now fails. That refusal comes from a
-  default nobody chose, and writing it down promises a status the next change to that default will break.
+  none of them belongs on a page, and least of all a note on how one now fails.
 - **Prefer a table or a diagram to a paragraph.** A rule with conditions and outcomes is a table. A flow whose
   shape carries meaning is a diagram. Prose is for what neither can hold — why a rule exists, and what a reader
   would otherwise get wrong.
 - **Name the setting, not its current value** — "for as long as
   `spring.grpc.client.channel.ai-connector.default.deadline` allows", not "for sixty seconds". The value's one
   owning document is the module's `docs/configuration.md`.
-- Diagram labels are a few words. If a label needs a clause, the diagram is carrying prose that belongs in text
-  — or nowhere. The format itself is [Diagrams](diagrams.md).
+- **Diagram labels are a few words.** If a label needs a clause, the diagram is carrying prose that belongs in
+  text — or nowhere. The format itself is [Diagrams](diagrams.md).
 - **A new rule joins its siblings.** Before adding one, find where the rules of its kind already live and put it
   there. `CLAUDE.md` is not one of those homes: it carries how an agent works this repository, not what the
   repository's documents must look like.
