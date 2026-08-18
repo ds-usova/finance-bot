@@ -43,11 +43,11 @@ ones a `docs:` line named: the step named the page before it knew what the fix w
 
 **The `## Attempts` log is never archived.** It stays in the directory; nothing in it is a fact about the system.
 
-## What Authorizes an ADR
+## What Authorizes a Decision Record
 
 An **Open Question** in `bug.md`, answered `yes`, asking whether a technical decision the fix settles should be
 recorded. A bug fix rarely settles one. The commonest candidate is a mechanism the fix
 introduced to make a whole class of the bug impossible, such as where idempotency is now enforced.
 
-**"We fixed a bug" is never an ADR.** Nor is the diagnosis. A fix whose Open Questions hold no answered question
-of that kind yields no ADR.
+**"We fixed a bug" is never a decision worth recording.** Nor is the diagnosis. A fix whose Open Questions hold
+no answered question of that kind yields no record.

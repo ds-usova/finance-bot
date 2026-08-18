@@ -1,5 +1,5 @@
 ---
-description: Turn finished work into the documentation that outlives it — per-service use-case docs with diagrams, the in/out contracts with other systems, the conventions it invalidated, and a numbered placeholder for each decision it made, which a person then writes. Takes an implemented plan, a finished rework, or a fixed bug. Writes files and reports back; narrates nothing.
+description: Turn finished work into the documentation that outlives it — per-service use-case docs with diagrams, the in/out contracts with other systems, the conventions it invalidated, and a record for each decision it made, in whatever form the repository's conventions give one. Takes an implemented plan, a finished rework, or a fixed bug. Writes files and reports back; narrates nothing.
 argument-hint: [ an implemented plan, rework, or bug file path ]
 ---
 
@@ -21,7 +21,7 @@ report.
 | Contracts out | `<service>/docs/contracts/out/<counterpart>.md`                                | service sub-agent |
 | Configuration | `<service>/docs/configuration.md`                                              | service sub-agent |
 | Conventions   | wherever the conventions index puts the page whose rule the change broke       | orchestrator      |
-| ADR placeholders | `<service>/docs/adr/<nnnn>-<slug>.md`, or `docs/adr/` when it crosses services | orchestrator   |
+| Decision records | wherever the repository's conventions put one, in the tier they choose            | orchestrator   |
 | Link updates  | root and service READMEs, `conventions/orientation.md`                         | orchestrator      |
 
 Each is new or updated in place. A second file on the same subject is a defect.
@@ -29,7 +29,7 @@ Each is new or updated in place. A second file on the same subject is a defect.
 ## Input
 
 1. **The finished work**, and how to read it. Two kinds arrive here, and each answers this run's inputs, its
-   gate, its inventory and its ADR authorization differently:
+   gate, its inventory and its decision-record authorization differently:
 
    | Handed a    | Read                                                 |
    |-------------|------------------------------------------------------|
@@ -104,9 +104,8 @@ anyone consults before a deploy.
 A change that removes the thing a conventions page recommends leaves that page instructing the next agent to
 rebuild it.
 
-**ADR** — what earns a place is a decision constraining future change whose *why* cannot be reconstructed
-from the code, the schema, and the tests — an external constraint, a rule that looks arbitrary until you know what
-it prevents. One decision per ADR; most changes authorize none.
+**Decision record** — the candidates the input authorizes, no more. What one is and what earns it are the
+repository conventions'; most changes authorize none.
 
 ## Stage 2 — Service Documentation
 
@@ -129,83 +128,38 @@ the module conventions' **Diagram Format** section names, and nothing restated t
 or a README already owns — the database schema diagram excepted, since the migrations hold no current state to
 link to.
 
-## Stage 3 — ADR Placeholders
+## Stage 3 — Decision Records
 
-Yours to write: a decision spanning services cannot be assembled from two agents that each saw half of it.
+Yours, not a service agent's: a decision spanning services cannot be assembled from two agents that each saw
+half of it.
 
-**You write the placeholder, never the ADR.** [Follow-Up Work](../../../docs/conventions/follow-up.md) states
-the rule and why; read it there. What you produce is the title, the metadata, and one or two sentences under
-each section saying what that section has to carry — never the Context, the Decision or the Consequences
-themselves.
+**The repository's conventions own the decision record entirely** — whether it has them at all, what earns one,
+where it goes, how it is numbered, what it looks like, how much of it an agent may write, and how one is
+superseded. Follow the conventions index to that page and do what it says. Nothing about the artifact is
+restated here, because a second copy is the one that goes stale. A repository whose conventions describe no such
+record skips this stage and says so in the report.
 
-**Write exactly the placeholders the input authorizes, and no others.** What counts as an authorization, and
-where the candidates come from, is the input's own file. A decision this run believes deserves an ADR that is
-not authorized goes in the **report**, unwritten, naming the decision and the page that holds it today — so an
-ADR that should exist is visible as a proposal rather than appearing as a fact nobody approved.
+**Record exactly what the input authorizes, and no others.** What counts as an authorization, and where the
+candidates come from, is the input's own file. A decision this run believes deserves a record that is not
+authorized goes in the **report**, unwritten, naming the decision and the page that holds it today — so one that
+should exist is visible as a proposal rather than appearing as a fact nobody approved.
 
-**Gate — name the document that would otherwise own the fact.** Applies to each approved item as you write it,
-and to anything you are about to propose in the report. Say which existing page would hold this if the ADR did
-not exist. A contract page, a use-case page's Outcomes, or a domain page's invariants: that page owns it and
-there is no ADR. **A rule statable without naming a technology, a file layout, or a type is not an ADR** however
-consequential it is — an ADR records how the system is built, and what the product does is documentation.
-**Write the gate's answer into the report** for every ADR written and every one proposed.
+**Gate — name the document that would otherwise own the fact**, for each authorized item as you write it and
+for anything you are about to propose. Say which existing page would hold this if the record did not exist: a
+contract page, a use-case page's Outcomes, a domain page's invariants. That page owns it, and there is no
+record. **Write the gate's answer into the report** either way.
 
-**Scope — where it goes.** Two tiers:
-
-- `<module>/docs/adr/` — the decision's consequences stay inside one service;
-- repo-root `docs/adr/` — it constrains more than one service, or the repository itself.
-
-The test: would changing this decision force a change in another service, or in a shared artifact — a shared
-schema, the compose file, the repository layout? If yes it is repo-root; otherwise it belongs to the module.
-
-**Number is one global sequence** — one past the highest across *both* tiers, four digits, never reused and never
-renumbered. Each tier's sequence carries gaps, and a gap is expected rather than a defect.
-
-**A finished ADR fits on one screen — roughly 20 lines, never more than 30.** It records one decision, and a
-reader reaches for it to answer one question: why is it like this, and what may I not break? A decision needing
-more room is two decisions. Say so in the placeholder's brief where the candidate looks larger than that.
-
-Write it exactly like this, filling in only the title, the date and the source:
-
-```
-# ADR <nnnn>: <the decision, stated as a fact>
-
-- **Status:** Proposed
-- **Date:** <YYYY-MM-DD>
-- **Source:** [<title>](<the relative path to the archived work, from this ADR's own tier>)
-
-> Placeholder. Each section says what it has to carry; a person writes it.
-
-## Context
-
-<What forced a decision here instead of a default — one paragraph, never two. Name the alternative only if it
-was genuinely tempting. Not what the codebase did or did not have at the time: the reader arrives years later,
-to a tree that has moved on.>
-
-## Decision
-
-<The rule, present tense. Two or three sentences.>
-
-## Consequences
-
-<What it costs and what must stay true. Two or three sentences, or a short bullet list.>
-```
-
-The angle-bracket briefs are the deliverable — leave them as they stand. Do not replace one with prose, and do
-not add a sentence of your own beneath it. `Status: Proposed` is what tells a reader the decision is recorded
-but unwritten; a person moves it to `Accepted` with the content.
+This gate is the skill's, because it is the same rule every other stage runs on — one fact, one owner. Where the
+conventions state a stricter test of their own, theirs wins.
 
 Where the run's own work is what a candidate decides, put the facts a writer will need — the classes, the
-constraint names, the migration — in the **report**, not in the placeholder.
-
-Reversing a decision writes a new ADR and marks the old one **Superseded by [ADR nnnn](nnnn-<slug>.md)** — never
-edits it. That edit to the superseded file is yours to make; only the new ADR's own sections wait for a person.
+constraint names, the migration — in the **report**, not in the record.
 
 ## Stage 4 — Align the Conventions
 
-Yours to write, like an ADR placeholder: a conventions page binds every module, so it is not handed to an agent
-that saw one service. Unlike one, you write this in full — a conventions page states a rule that is already
-true, not a judgement about why.
+Yours, like the decision records: a conventions page binds every module, so it is not handed to an agent that
+saw one service. Unlike them, you write this in full — a conventions page states a rule that is already true,
+not a judgement about why it was chosen.
 
 - **The trigger is the rule, not the wording.** Rewrite a page whose rule the change made false. A page whose
   examples merely aged is left alone.
@@ -228,8 +182,8 @@ true, not a judgement about why.
   and leaves a link.
 - `conventions/orientation.md` — **Documentation References** points at `docs/adr/`, the configuration page,
   and the new folders.
-- Links resolve, including the relative paths out of either ADR tier — a module ADR sits one level deeper than a
-  repo-root one, so the two reach a shared file by different paths.
+- Links resolve, including the relative paths out of a decision record — where the conventions put records in
+  more than one tier, two records reach the same shared file by different paths.
 
 ## Stage 6 — Review and Tighten
 
@@ -254,9 +208,9 @@ Per the conventions' **Version Control** rules, documentation prefix. Silent or 
 ## Report
 
 Files created and updated, by service · what `review-docs` found, what you applied, and what it escalated ·
-what the tighten pass cut and what was restored · ADR placeholders written, each with its one-line decision, the
-gate's answer, and the facts a writer will need · ADRs proposed but not placed, each with the page holding the
-fact today · configuration that changed ·
+what the tighten pass cut and what was restored · decision records written, each with its one-line decision, the
+gate's answer, and the facts a writer will need · decisions proposed but not recorded, each with the page
+holding the fact today · configuration that changed ·
 **conventions pages rewritten, each with the rule that stopped being true, and any page left alone because its
 rule was a policy nobody agreed to drop** ·
 discrepancies between the finished work and the code · anything left unwritten, and why.

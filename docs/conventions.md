@@ -20,5 +20,5 @@ them.
 - [Parallelism](conventions/parallelism.md) — how much may run at once on the machine every module shares, and
   how many plans may be implemented side by side.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what documents it earns.
-- [ADR Lifecycle](conventions/adr.md) — how a decision record is superseded or deprecated, and how it is
-  numbered across the two tiers.
+- [Architecture Decision Records](conventions/adr.md) — what earns a decision record, where it goes, how it is
+  numbered across the two tiers, who writes it, and how it is superseded or deprecated.
