@@ -34,12 +34,12 @@ Two stored expenses with the same `id` are the same expense. An unstored one equ
 
 ```plantuml
 @startuml
-[*] --> Pending : Create an expense proposal
-[*] --> Recorded : Create an expense
-Pending --> Recorded : Resolve — confirmed
-Pending --> Recorded : Accept the proposals a person chose
-Pending --> [*] : Resolve — discarded
-Recorded --> [*] : only with its user
+[*] --> Pending : read out of a message
+[*] --> Recorded : recorded directly
+Pending --> Recorded : Confirm in the chat — every entry under the message
+Pending --> Recorded : accepted on the page — the entries ticked
+Pending --> [*] : Delete in the chat — every entry under the message
+Recorded --> [*] : with its user
 @enduml
 ```
 
