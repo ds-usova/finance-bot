@@ -63,8 +63,9 @@ to a tree that has moved on.>
 
 ## Lifecycle
 
-An ADR is append-only: it is never deleted, and its **Context** and **Decision** are never rewritten. Only
-`Status:` and **Consequences** grow, and only in one of three ways.
+**An ADR is append-only from the moment the work that wrote it is finished.** Until then it is that work's own
+file and is corrected like anything else it produced. Afterwards it is never deleted, its **Context** and
+**Decision** are never rewritten, and only `Status:` and **Consequences** grow — in one of three ways.
 
 | What happened                                           | `Status:`                         | Consequences            |
 |---------------------------------------------------------|-----------------------------------|-------------------------|
