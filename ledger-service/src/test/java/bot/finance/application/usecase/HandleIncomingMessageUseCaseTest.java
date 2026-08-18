@@ -686,8 +686,8 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the stored user's id differs from the external id - then both reads carry that stored id")
-        void whenStoredUsersIdDiffersFromExternalId_thenBothReadsCarryThatStoredId() {
+        @DisplayName("when the stored user's id differs from the external id - then every read carries that stored id")
+        void whenStoredUsersIdDiffersFromExternalId_thenEveryReadCarriesThatStoredId() {
             long differentUserId = 42L;
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
@@ -705,7 +705,9 @@ class HandleIncomingMessageUseCaseTest {
             IncomingMessageId reference = request.incomingMessageId();
             assertThat(request.userId()).isEqualTo(differentUserId);
 
+            verify(groupingRepository).findNamesWithCategories(differentUserId);
             verify(expenseRepository).findSummariesByMessageReference(differentUserId, reference);
+            verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);
         }
     }
