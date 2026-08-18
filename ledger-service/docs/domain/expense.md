@@ -36,10 +36,10 @@ Two stored expenses with the same `id` are the same expense. An unstored one equ
 @startuml
 [*] --> Pending : read out of a message
 [*] --> Recorded : recorded directly
-Pending --> Recorded : Confirm, in the chat
+Pending --> Recorded : confirmed in the chat
 Pending --> Recorded : accepted on the page
-Pending --> [*] : Delete, in the chat
-Recorded --> [*] : its user is deleted
+Pending --> [*] : discarded in the chat
+Recorded --> [*] : deleted with its user
 @enduml
 ```
 
