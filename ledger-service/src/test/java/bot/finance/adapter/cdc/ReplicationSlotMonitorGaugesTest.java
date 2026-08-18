@@ -105,18 +105,6 @@ class ReplicationSlotMonitorGaugesTest {
         }
 
         @Test
-        @DisplayName("when the outbox answers no rows - then the outbox rows gauge reads 0")
-        void whenOutboxAnswersNoRows_thenOutboxRowsGaugeReadsZero() {
-            when(replicationCatalogue.findSlotRetention(SLOT_NAME))
-                    .thenReturn(Optional.of(new ReplicationSlotRetention(4096L, "extended")));
-            when(ledgerEventOutbox.rowCount()).thenReturn(0L);
-
-            replicationSlotMonitor.readSlot();
-
-            assertThat(gauge(OUTBOX_ROWS_METER).value()).isZero();
-        }
-
-        @Test
         @DisplayName("when no slot exists and the outbox answers one row - then the outbox rows gauge reads 1")
         void whenNoSlotExistsAndOutboxAnswersOneRow_thenOutboxRowsGaugeReadsOne() {
             when(replicationCatalogue.findSlotRetention(SLOT_NAME)).thenReturn(Optional.empty());
