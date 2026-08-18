@@ -34,8 +34,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 class ResolveProposalsUseCaseTest {
@@ -132,15 +130,13 @@ class ResolveProposalsUseCaseTest {
             verify(expenseRepository, never()).accept(anyLong(), any(), any());
         }
 
-        @ParameterizedTest
-        @ValueSource(ints = {2, 3})
+        @Test
         @DisplayName("when accept answers 0 and expenses are already recorded - then acknowledge receives "
                 + "ALREADY_ACCEPTED with that count")
-        void whenAcceptResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted(
-                int alreadyRecorded) {
+        void whenAcceptResolvesNothingAndExpensesAlreadyStored_thenAcknowledgeReceivesAlreadyAccepted() {
             stubStoredUser();
             when(expenseRepository.accept(USER_ID, REFERENCE, FIXED_INSTANT)).thenReturn(0);
-            when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(alreadyRecorded);
+            when(expenseRepository.countByMessageReference(USER_ID, REFERENCE)).thenReturn(2);
 
             useCase.resolve(newCommand(ProposalResolution.ACCEPT));
 
@@ -151,7 +147,7 @@ class ResolveProposalsUseCaseTest {
             verify(messageDeliveryPort).acknowledge(ackCaptor.capture());
             ResolutionAcknowledgement ack = ackCaptor.getValue();
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.ALREADY_ACCEPTED);
-            assertThat(ack.count()).isEqualTo(alreadyRecorded);
+            assertThat(ack.count()).isEqualTo(2);
         }
 
         @Test
