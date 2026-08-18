@@ -481,7 +481,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 - [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01, GI01
 - [x] GI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
 - [ ] GI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU02, GI03
-- [ ] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GI04
+- [x] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GI04
 
 #### TDD System Test Green Phase
 
@@ -548,7 +548,6 @@ plan writes none of them.
   fix that makes the flush actually durable before returning, or further investigation into the async Debezium
   engine's offset-commit internals — both outside a single green step's scope. `ChangeStreamReaderTest.java` is
   unchanged from the RED phase. GI05 is blocked by this dependency and not spawned.
-- **GI05 blocked:** blocked by GI04, see Open Questions and Blockers section
 
 ## Review Findings
 
