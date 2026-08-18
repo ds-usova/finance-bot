@@ -462,9 +462,9 @@ class ChangeStreamReaderTest {
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
+            long firstChangeLsn = currentWalLsnOffset();
             UUID firstId = UUID.randomUUID();
             OutboxRowUtils.storedOutboxRow(jdbcTemplate, firstId, eventType, Instant.now(), outboxPayload(userId));
-            long firstChangeLsn = currentWalLsnOffset();
 
             boolean stoppedInTime = changeStreamReader.stop(Duration.ofSeconds(5));
             assertThat(stoppedInTime).isTrue();

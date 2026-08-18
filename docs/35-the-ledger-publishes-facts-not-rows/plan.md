@@ -377,8 +377,11 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     so they become one assertion that no entry on the stream carries that user at all
   - update: `whenStreamingReaderStopped_thenTaskFinishesSlotLeftInPlaceAndFreshReaderResumes()` — the entry no
     longer carries `source.lsn`, so the position the test waits past is read with
-    `SELECT pg_current_wal_lsn()` through `JdbcTemplate` immediately after the vehicle write, which
-    `ReplicationCatalogue` already reads the same function for
+    `SELECT pg_current_wal_lsn()` through `JdbcTemplate` **immediately before** the vehicle write, and the wait
+    stays as it is. The mark has to precede the write: `confirmed_flush_lsn` advances to the change the reader
+    processed, and a mark sampled after that change sits beyond it, so nothing the slot will ever be offered can
+    pass it. Sampled before, the change's own position is greater than the mark and the wait succeeds the moment
+    the position is flushed
   - update: `whenCategoryRenamedThroughRowHelper_thenCategoryEventOfferedCarryingTreesOwnChange()` — delete
   - update: `whenGroupingIsRenamedBetweenTwoExpenses_thenSecondEntryCarriesItsNewName()` — delete; the names are
     now read in the writing transaction, which RI02 covers
@@ -480,12 +483,12 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 - [x] GI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest`
 - [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01, GI01
 - [x] GI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
-- [ ] GI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU02, GI03
+- [x] GI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU02, GI03
 - [x] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GI04
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}`
+- [x] GS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}`
 - [ ] GS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances`
 - [ ] GS03 · `ProposalFactsSystemTest` · covers: `POST /mcp`
 - [ ] GS04 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus`
@@ -548,6 +551,12 @@ plan writes none of them.
   fix that makes the flush actually durable before returning, or further investigation into the async Debezium
   engine's offset-commit internals — both outside a single green step's scope. `ChangeStreamReaderTest.java` is
   unchanged from the RED phase. GI05 is blocked by this dependency and not spawned.
+  - **Resolved — a plan defect, not a production bug.** F19 told the test to sample `pg_current_wal_lsn()`
+    *after* the vehicle write. That mark sits beyond the change itself, and the outbox insert is the only thing
+    the publication offers the slot, so `confirmed_flush_lsn` has nothing left to advance past it with: the wait
+    could never succeed however correctly `stop()` flushed. The mark is sampled **before** the write instead, and
+    RI04's `update:` bullet and F19's `Action:` now say so. `ChangeStreamReader` is not changed. GI04 and GI05
+    are unblocked; the three reverted timing fixes stay reverted, since none of them was the cause.
 
 ## Review Findings
 
@@ -648,9 +657,11 @@ plan writes none of them.
 - **F19:** `whenStreamingReaderStopped_…` reads the change's LSN off `source.lsn`, which the event entry no longer
   carries.
   - Resolution: decision
-  - Action: resolved — `SELECT pg_current_wal_lsn()` through `JdbcTemplate` immediately after the vehicle write
-    gives a position at or past the change, and `ReplicationCatalogue` already reads that same function. Written
-    as a per-method `update:` on RI04.
+  - Action: resolved — `SELECT pg_current_wal_lsn()` through `JdbcTemplate`, sampled **before** the vehicle write,
+    with `ReplicationCatalogue` already reading that same function. Written as a per-method `update:` on RI04.
+    Corrected after GI04 blocked on it: the first wording said *after* the write, which asks `confirmed_flush_lsn`
+    to pass a position beyond the only change the slot is offered — unreachable by construction, and not the
+    production bug it looked like.
 
 - **F20:** `whenUncapturedTablesAreWritten_…` would pass vacuously against a filter on event type.
   - Resolution: mechanical
