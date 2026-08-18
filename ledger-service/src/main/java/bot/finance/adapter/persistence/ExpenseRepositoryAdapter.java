@@ -29,14 +29,17 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     private static final String USER_FOREIGN_KEY = "expense_user_id_fkey";
 
     private final ExpenseEntityRepository expenseEntityRepository;
+    private final CategoryEntityRepository categoryEntityRepository;
     private final LedgerEventOutbox ledgerEventOutbox;
     private final SpendingEventRenderer spendingEventRenderer;
 
     public ExpenseRepositoryAdapter(
             ExpenseEntityRepository expenseEntityRepository,
+            CategoryEntityRepository categoryEntityRepository,
             LedgerEventOutbox ledgerEventOutbox,
             SpendingEventRenderer spendingEventRenderer) {
         this.expenseEntityRepository = expenseEntityRepository;
+        this.categoryEntityRepository = categoryEntityRepository;
         this.ledgerEventOutbox = ledgerEventOutbox;
         this.spendingEventRenderer = spendingEventRenderer;
     }
@@ -46,6 +49,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public Expense create(Expense expense) {
         ColumnLimits.validateExpenseText(
                 expense.description(), expense.merchant().orElse(null));
+        requireFileableCategory(expense.categoryId());
 
         ExpenseEntity saved;
         try {
@@ -198,6 +202,8 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Transactional
     public Optional<ExpenseEntry> refile(
             long userId, long entryId, long categoryId, ExpenseStatus status, Instant now) {
+        requireFileableCategory(categoryId);
+
         try {
             Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
                     userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
@@ -206,6 +212,17 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
+        }
+    }
+
+    /**
+     * A grouping and a category are rows of the same table, so the foreign key admits either. Spending is filed
+     * under a category, and an id naming a grouping is refused here rather than reaching the column. An id naming
+     * no row at all is left to the foreign key, which already answers it.
+     */
+    private void requireFileableCategory(long categoryId) {
+        if (categoryEntityRepository.existsByIdAndParentIdIsNull(categoryId)) {
+            throw new EntityNotFoundException("category", "id " + categoryId + " names a grouping, not a category");
         }
     }
 

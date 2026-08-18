@@ -53,7 +53,7 @@ Every type carries the same fields. The type and `status` are what tell one fact
 | `amount`                  | a decimal string in the currency's main unit ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)) |
 | `currencyCode`            | the ISO code that amount is in                                                              |
 | `category`                | `id` and `name` — what the entry is filed under                                             |
-| `grouping`                | `id` and `name` — the grouping that category sits in; `null` for a category with no parent  |
+| `grouping`                | `id` and `name` — the grouping that category sits in                                        |
 
 A whole body, as `ProposalCreated` carries it:
 

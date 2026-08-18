@@ -90,7 +90,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with an expense carrying a merchant - then the row holds what was given and carries a generated id")
         void whenCalledWithMerchant_thenRowWrittenWithGivenFieldsAndReturnedExpenseCarriesGeneratedId() {
             long userId = storedUserId("merchant-expense-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             Expense expense = Expense.newExpense(
                     userId,
                     categoryId,
@@ -118,7 +118,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the expense carries no merchant - then the stored row and the returned expense both carry none")
         void whenCalledWithNoMerchant_thenStoredRowAndReturnedExpenseBothCarryNoMerchant() {
             long userId = storedUserId("no-merchant-expense-user");
-            long categoryId = storedGroupingId(userId, "Utilities");
+            long categoryId = leafCategoryId(userId, "Utilities");
             Expense expense = Expense.newExpense(
                     userId,
                     categoryId,
@@ -140,7 +140,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the expense is stamped with nanosecond precision - then its timestamps are truncated to microseconds")
         void whenInstantCarriesNanosecondPrecision_thenTimestampsAreTruncatedToMicroseconds() {
             long userId = storedUserId("nanosecond-expense-user");
-            long categoryId = storedGroupingId(userId, "Dining");
+            long categoryId = leafCategoryId(userId, "Dining");
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
             Expense expense = Expense.newExpense(
                     userId,
@@ -166,7 +166,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the description is exactly 500 characters long - then the row carries the whole description")
         void whenDescriptionIsExactly500Characters_thenRowIsWrittenAndCarriesWholeDescription() {
             long userId = storedUserId("boundary-description-user");
-            long categoryId = storedGroupingId(userId, "Boundary");
+            long categoryId = leafCategoryId(userId, "Boundary");
             String description = "a".repeat(500);
             Expense expense = Expense.newExpense(
                     userId,
@@ -189,7 +189,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the description is 501 characters long - then throws InvalidExpenseException and writes nothing")
         void whenDescriptionIs501Characters_thenThrowsInvalidExpenseExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-description-user");
-            long categoryId = storedGroupingId(userId, "Boundary");
+            long categoryId = leafCategoryId(userId, "Boundary");
             String description = "a".repeat(501);
             Expense expense = Expense.newExpense(
                     userId,
@@ -208,7 +208,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the merchant is exactly 255 characters long - then the row carries the whole merchant")
         void whenMerchantIsExactly255Characters_thenRowIsWrittenAndCarriesWholeMerchant() {
             long userId = storedUserId("boundary-merchant-user");
-            long categoryId = storedGroupingId(userId, "Boundary");
+            long categoryId = leafCategoryId(userId, "Boundary");
             String merchant = "a".repeat(255);
             Expense expense = Expense.newExpense(
                     userId,
@@ -231,7 +231,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the merchant is 256 characters long - then throws InvalidExpenseException and writes nothing")
         void whenMerchantIs256Characters_thenThrowsInvalidExpenseExceptionAndWritesNothing() {
             long userId = storedUserId("overlong-merchant-user");
-            long categoryId = storedGroupingId(userId, "Boundary");
+            long categoryId = leafCategoryId(userId, "Boundary");
             String merchant = "a".repeat(256);
             Expense expense = Expense.newExpense(
                     userId,
@@ -270,7 +270,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the user id names no stored user - then throws EntityNotFoundException for the user")
         void whenUserIdNamesNoStoredUser_thenThrowsEntityNotFoundExceptionForUser() {
             long unknownUserId = 999_999_999L;
-            long categoryId = storedGroupingId(storedUserId("category-owner-for-unknown-user"), "Category");
+            long categoryId = leafCategoryId(storedUserId("category-owner-for-unknown-user"), "Category");
             Expense expense = Expense.newExpense(
                     unknownUserId,
                     categoryId,
@@ -289,9 +289,9 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when two users each have an expense created - then each owns exactly its own row")
         void whenCalledForTwoDifferentUsers_thenEachOwnsExactlyItsOwnRow() {
             long firstUserId = storedUserId("first-expense-user");
-            long firstCategoryId = storedGroupingId(firstUserId, "First Category");
+            long firstCategoryId = leafCategoryId(firstUserId, "First Category");
             long secondUserId = storedUserId("second-expense-user");
-            long secondCategoryId = storedGroupingId(secondUserId, "Second Category");
+            long secondCategoryId = leafCategoryId(secondUserId, "Second Category");
 
             Expense firstExpense = Expense.newExpense(
                     firstUserId,
@@ -328,7 +328,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a PENDING entry carrying a message id - then the row is written with that status and its message id")
         void whenCalledWithPendingEntryCarryingMessageId_thenRowIsWrittenWithThatStatusAndMessageId() {
             long userId = storedUserId("pending-expense-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Expense proposal = Expense.newProposal(
                     userId,
@@ -354,7 +354,7 @@ class ExpenseRepositoryAdapterTest {
                 "when a pending entry under a grouped category is created - then the outbox captured its ProposalCreated event")
         void whenPendingEntryUnderGroupedCategoryCreated_thenOutboxCapturedProposalCreatedEvent() {
             long userId = storedUserId("ri02-create-pending-user");
-            long groupingId = storedGroupingId(userId, "Food");
+            long groupingId = groupingIdNamed(userId, "Food");
             long categoryId = storedCategoryId(userId, groupingId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Expense proposal = Expense.newProposal(
@@ -387,7 +387,7 @@ class ExpenseRepositoryAdapterTest {
                 "when a recorded entry has no message id and is created - then its event carries a null message id")
         void whenRecordedEntryHasNoMessageIdAndIsCreated_thenEventCarriesNullMessageId() {
             long userId = storedUserId("ri02-create-recorded-user");
-            long categoryId = storedGroupingId(userId, "Utilities");
+            long categoryId = leafCategoryId(userId, "Utilities");
             Expense expense = Expense.newExpense(
                     userId,
                     categoryId,
@@ -408,30 +408,27 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when a proposal is created under an ungrouped category - then its event carries a null grouping")
-        void whenProposalCreatedUnderUngroupedCategory_thenEventCarriesNullGrouping() {
-            long userId = storedUserId("ri02-create-ungrouped-user");
-            long categoryId = storedGroupingId(userId, "Standalone");
+        @DisplayName("when the category id names a grouping - then nothing is stored and no event is appended")
+        void whenCategoryIdNamesAGrouping_thenNothingStoredAndNoEventAppended() {
+            long userId = storedUserId("ri02-create-under-grouping-user");
+            long groupingId = groupingIdNamed(userId, "Standalone");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Expense proposal = Expense.newProposal(
                     userId,
-                    categoryId,
+                    groupingId,
                     "Purchase",
                     Optional.empty(),
                     new Money(100, CurrencyCode.of("USD")),
                     reference,
                     Instant.now());
 
-            Expense created = adapter.create(proposal);
+            assertThatExceptionOfType(EntityNotFoundException.class)
+                    .isThrownBy(() -> adapter.create(proposal))
+                    .extracting(EntityNotFoundException::entityType)
+                    .isEqualTo("category");
 
-            assertThat(created.id()).isPresent();
-            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
-                    .isEqualTo(categoryId));
-            List<LedgerEvent> events = capturedInsertedEvents();
-            assertThat(events).singleElement().satisfies(event -> {
-                JsonNode payload = readJson(event.payload());
-                assertThat(payload.get("grouping").isNull()).isTrue();
-            });
+            assertThat(expenseRowsFor(userId)).isEmpty();
+            verifyNoInteractions(ledgerEventOutbox);
         }
 
         @Test
@@ -442,7 +439,7 @@ class ExpenseRepositoryAdapterTest {
                     .when(ledgerEventOutbox)
                     .insert(any());
             long userId = storedUserId("ri02-create-outbox-failure-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Expense proposal = Expense.newProposal(
                     userId,
@@ -468,7 +465,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two PENDING entries and one RECORDED share a message - then only the two PENDING ones come back, oldest first")
         void whenTwoPendingEntriesAndOneRecordedShareMessage_thenOnlyPendingOnesComeBackOldestFirst() {
             long userId = storedUserId("find-summaries-user");
-            long groupingId = storedGroupingId(userId, "Food");
+            long groupingId = groupingIdNamed(userId, "Food");
             long categoryId = storedCategoryId(userId, groupingId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             Instant base = Instant.now().minusSeconds(60);
@@ -527,7 +524,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two PENDING entries share a message and a third does not - then two are RECORDED and the third is untouched")
         void whenTwoPendingEntriesShareMessageAndThirdDoesNot_thenTwoAreRecordedAndThirdUntouched() {
             long userId = storedUserId("accept-two-entries-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             IncomingMessageId otherReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
@@ -582,7 +579,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the entries under the message are already RECORDED - then zero is answered and nothing changes")
         void whenEntriesUnderMessageAlreadyRecorded_thenZeroAnsweredAndNothingChanges() {
             long userId = storedUserId("accept-already-recorded-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseEntity recorded =
                     storedExpense(userId, categoryId, "Already recorded", 100, "USD", reference.value());
@@ -600,9 +597,9 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when two people share a message id value - then accepting for one leaves the other's row PENDING")
         void whenTwoPeopleShareMessageIdValue_thenAcceptingForOneLeavesOtherPending() {
             long firstUserId = storedUserId("accept-shared-message-first-user");
-            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long firstCategoryId = leafCategoryId(firstUserId, "Groceries");
             long secondUserId = storedUserId("accept-shared-message-second-user");
-            long secondCategoryId = storedGroupingId(secondUserId, "Dining");
+            long secondCategoryId = leafCategoryId(secondUserId, "Dining");
             IncomingMessageId sharedReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseRowUtils.storedExpense(
@@ -641,7 +638,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the instant carries nanosecond precision - then the stored updated_at is truncated to microseconds")
         void whenInstantCarriesNanosecondPrecision_thenStoredUpdatedAtIsTruncatedToMicroseconds() {
             long userId = storedUserId("accept-nanosecond-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
@@ -668,7 +665,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when three pending entries are accepted - then three ProposalAccepted events are inserted")
         void whenThreePendingEntriesAccepted_thenThreeProposalAcceptedEventsInserted() {
             long userId = storedUserId("ri02-accept-three-entries-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseEntity first = ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
@@ -724,7 +721,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the entries under the message are already RECORDED - then nothing is inserted")
         void whenEntriesUnderMessageAlreadyRecorded_thenNothingIsInserted() {
             long userId = storedUserId("ri02-accept-already-recorded-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             storedExpense(userId, categoryId, "Already recorded", 100, "USD", reference.value());
 
@@ -743,7 +740,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two PENDING and one RECORDED entry share a message - then two is answered and no PENDING remains")
         void whenTwoPendingAndOneRecordedShareMessage_thenTwoAnsweredAndNoPendingRemains() {
             long userId = storedUserId("discard-two-pending-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
@@ -793,7 +790,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two pending entries are discarded at an instant - then two ProposalDiscarded events carry that instant")
         void whenTwoPendingEntriesDiscardedAtInstant_thenEventsCarryThatInstant() {
             long userId = storedUserId("ri02-discard-two-pending-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseEntity first = ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
@@ -857,7 +854,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two PENDING entries share a reported message - then the message comes back twice and both are RECORDED")
         void whenTwoPendingEntriesShareReportedMessage_thenMessageComesBackTwiceAndBothRecorded() {
             long userId = storedUserId("accept-by-ids-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             ExpenseEntity first = ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
@@ -897,7 +894,7 @@ class ExpenseRepositoryAdapterTest {
                 "when an id names another person's PENDING entry - then nothing is answered and their row stays PENDING")
         void whenIdNamesAnotherPersonsPendingEntry_thenNothingAnsweredAndTheirRowStaysPending() {
             long ownerUserId = storedUserId("accept-by-ids-owner-user");
-            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            long ownerCategoryId = leafCategoryId(ownerUserId, "Groceries");
             ExpenseEntity ownerEntry = ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
                     ownerUserId,
@@ -925,7 +922,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two entries on different messages are accepted by id - then two ProposalAccepted events are inserted")
         void whenTwoEntriesOnDifferentMessagesAcceptedById_thenTwoProposalAcceptedEventsInserted() {
             long userId = storedUserId("ri02-accept-by-ids-two-messages-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId firstReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
             IncomingMessageId secondReference =
@@ -967,7 +964,7 @@ class ExpenseRepositoryAdapterTest {
                 "when an id names another person's PENDING entry - then nothing is inserted and their row stays PENDING")
         void whenIdNamesAnotherPersonsPendingEntry_thenNothingInsertedAndTheirRowStaysPending() {
             long ownerUserId = storedUserId("ri02-accept-by-ids-owner-user");
-            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            long ownerCategoryId = leafCategoryId(ownerUserId, "Groceries");
             ExpenseEntity ownerEntry = ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
                     ownerUserId,
@@ -996,7 +993,7 @@ class ExpenseRepositoryAdapterTest {
                 "when one of two messages still holds PENDING and the other holds only RECORDED - then only the first is answered")
         void whenOneOfTwoMessagesStillHoldsPendingAndOtherOnlyRecorded_thenOnlyFirstAnswered() {
             long userId = storedUserId("find-with-pending-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId stillPending =
                     IncomingMessageId.of(UUID.randomUUID().toString());
             IncomingMessageId nowRecorded =
@@ -1029,7 +1026,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when two expenses share a reference and one does not - then returns 2")
         void whenTwoExpensesStoredUnderReferenceAndOneUnderAnother_thenReturnsTwo() {
             long userId = storedUserId("count-two-expenses-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
             IncomingMessageId otherReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
@@ -1057,7 +1054,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when every expense row carries a null message_reference - then returns 0")
         void whenAllExpensesHaveNullMessageReference_thenReturnsZero() {
             long userId = storedUserId("count-null-reference-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             storedExpense(userId, categoryId, "No message", 100, "USD", null);
 
             int count = adapter.countByMessageReference(
@@ -1070,9 +1067,9 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when two users share a reference value - then counting for one ignores the other's expense")
         void whenTwoUsersShareReferenceValue_thenReturnsOne() {
             long firstUserId = storedUserId("count-shared-reference-first-user");
-            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long firstCategoryId = leafCategoryId(firstUserId, "Groceries");
             long secondUserId = storedUserId("count-shared-reference-second-user");
-            long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
+            long secondCategoryId = leafCategoryId(secondUserId, "Groceries");
             IncomingMessageId sharedReference =
                     IncomingMessageId.of(UUID.randomUUID().toString());
             storedExpense(firstUserId, firstCategoryId, "First user's expense", 100, "USD", sharedReference.value());
@@ -1093,7 +1090,7 @@ class ExpenseRepositoryAdapterTest {
                 "when four EUR and one HUF expense fall inside the period - then returns one total per currency, ordered by code")
         void whenFourEurExpensesAndOneHufExpenseInsidePeriod_thenReturnsOneTotalPerCurrencyOrderedByCode() {
             long userId = storedUserId("totals-mixed-currency-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant insidePeriod =
                     period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
@@ -1116,7 +1113,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when expenses fall on the period's first and last day - then both are counted")
         void whenExpensesFallOnFirstAndLastDayBounds_thenBothAreCounted() {
             long userId = storedUserId("totals-inclusive-bounds-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant firstDayMidnight =
                     period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
@@ -1137,7 +1134,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when expenses fall just outside the period's bounds - then neither is counted")
         void whenExpensesFallJustOutsidePeriodBounds_thenNeitherIsCounted() {
             long userId = storedUserId("totals-exclusive-bounds-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant justBeforeFirstDay =
                     period.from().atStartOfDay(ZoneOffset.UTC).toInstant().minus(1, ChronoUnit.MICROS);
@@ -1156,9 +1153,9 @@ class ExpenseRepositoryAdapterTest {
                 "when two users each have an expense inside the period - then only the requested user's is counted")
         void whenTwoUsersHaveExpensesInsidePeriod_thenOnlyRequestedUsersExpenseCounted() {
             long firstUserId = storedUserId("totals-two-users-first-user");
-            long firstCategoryId = storedGroupingId(firstUserId, "Groceries");
+            long firstCategoryId = leafCategoryId(firstUserId, "Groceries");
             long secondUserId = storedUserId("totals-two-users-second-user");
-            long secondCategoryId = storedGroupingId(secondUserId, "Groceries");
+            long secondCategoryId = leafCategoryId(secondUserId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant insidePeriod =
                     period.from().atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(3600);
@@ -1178,7 +1175,7 @@ class ExpenseRepositoryAdapterTest {
                 "when a PENDING row exists inside the period and no RECORDED row does - then returns an empty list")
         void whenOnlyProposalRowExistsInsidePeriod_thenReturnsEmptyList() {
             long userId = storedUserId("totals-only-proposal-user");
-            long parentId = storedGroupingId(userId, "Food");
+            long parentId = groupingIdNamed(userId, "Food");
             long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, parentId, "Groceries");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant insidePeriod =
@@ -1221,7 +1218,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the filter is unnarrowed - then both kinds come back in one list, newest first, each with its status")
         void whenCalledWithUnnarrowedFilter_thenBothKindsComeBackNewestFirstEachWithItsStatus() {
             long userId = storedUserId("find-page-both-kinds-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             Instant earlier = Instant.now().minusSeconds(120);
             Instant later = Instant.now().minusSeconds(60);
             storedExpenseAt(userId, categoryId, "Recorded expense", 100, "USD", earlier);
@@ -1241,7 +1238,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with a status of PENDING, and separately of RECORDED - then only that kind comes back each time")
         void whenCalledWithEachStatus_thenOnlyThatKindComesBackEachTime() {
             long userId = storedUserId("find-page-status-filter-user");
-            long categoryId = storedGroupingId(userId, "Dining");
+            long categoryId = leafCategoryId(userId, "Dining");
             storedExpenseAt(
                     userId, categoryId, "Recorded", 100, "USD", Instant.now().minusSeconds(60));
             storedProposalAt(
@@ -1263,7 +1260,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the filter carries a from and a to - then only the rows inside come back, the last day included")
         void whenCalledWithDateRange_thenOnlyRowsInsideComeBackWithLastDayIncluded() {
             long userId = storedUserId("find-page-date-range-user");
-            long categoryId = storedGroupingId(userId, "Travel");
+            long categoryId = leafCategoryId(userId, "Travel");
             SpendingPeriod period = new SpendingPeriod(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26));
             Instant firstDayMidnight =
                     period.from().atStartOfDay(ZoneOffset.UTC).toInstant();
@@ -1288,7 +1285,7 @@ class ExpenseRepositoryAdapterTest {
                 "when a second page is asked for at an offset of one page - then it continues the first, repeating no row")
         void whenSecondPageAskedForAtOffsetOfOnePage_thenItContinuesTheFirstRepeatingNoRow() {
             long userId = storedUserId("find-page-pagination-user");
-            long categoryId = storedGroupingId(userId, "Shopping");
+            long categoryId = leafCategoryId(userId, "Shopping");
             Instant base = Instant.now().minusSeconds(300);
             storedExpenseAt(userId, categoryId, "First", 100, "USD", base);
             storedExpenseAt(userId, categoryId, "Second", 200, "USD", base.plusSeconds(60));
@@ -1309,7 +1306,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the offset is beyond the stored rows - then an empty list comes back, not the last page again")
         void whenCalledWithOffsetBeyondStoredRows_thenEmptyListComesBackRatherThanLastPageAgain() {
             long userId = storedUserId("find-page-offset-overflow-user");
-            long categoryId = storedGroupingId(userId, "Utilities");
+            long categoryId = leafCategoryId(userId, "Utilities");
             storedExpenseAt(userId, categoryId, "Only expense", 100, "USD", Instant.now());
 
             List<ExpenseEntry> withinRange = adapter.findPage(userId, unnarrowedFilter());
@@ -1325,11 +1322,11 @@ class ExpenseRepositoryAdapterTest {
         void whenCalledWithCategoryIdBelongingToAnotherUser_thenEmptyListComesBack() {
             long firstUserId = storedUserId("find-page-cross-user-first-user");
             long secondUserId = storedUserId("find-page-cross-user-second-user");
-            long secondUsersCategoryId = storedGroupingId(secondUserId, "Second User Category");
+            long secondUsersCategoryId = leafCategoryId(secondUserId, "Second User Category");
             storedExpenseAt(secondUserId, secondUsersCategoryId, "Second user's expense", 100, "USD", Instant.now());
             storedExpenseAt(
                     firstUserId,
-                    storedGroupingId(firstUserId, "First User Category"),
+                    leafCategoryId(firstUserId, "First User Category"),
                     "First user's expense",
                     200,
                     "USD",
@@ -1349,7 +1346,7 @@ class ExpenseRepositoryAdapterTest {
                 "when two rows share a created_at, one under each status - then the order between them is the same on every call")
         void whenTwoRowsShareCreatedAtOneUnderEachStatus_thenOrderIsTheSameOnEveryCall() {
             long userId = storedUserId("find-page-tie-break-user");
-            long categoryId = storedGroupingId(userId, "Entertainment");
+            long categoryId = leafCategoryId(userId, "Entertainment");
             Instant sharedInstant = Instant.now().minusSeconds(10);
             storedExpenseAt(userId, categoryId, "Recorded tie", 100, "USD", sharedInstant);
             storedProposalAt(userId, categoryId, "Pending tie", 200, "USD", sharedInstant);
@@ -1371,7 +1368,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the filter is unnarrowed - then the answer is every row the user has, across both statuses")
         void whenCalledWithUnnarrowedFilter_thenAnswerIsEveryRowAcrossBothStatuses() {
             long userId = storedUserId("count-matching-unnarrowed-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             storedExpenseAt(userId, categoryId, "First", 100, "USD", Instant.now());
             storedExpenseAt(userId, categoryId, "Second", 200, "USD", Instant.now());
             storedProposalAt(userId, categoryId, "Third", 300, "USD", Instant.now());
@@ -1385,7 +1382,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when called with a status of PENDING - then only the proposals are counted")
         void whenCalledWithStatusPending_thenOnlyProposalsAreCounted() {
             long userId = storedUserId("count-matching-status-user");
-            long categoryId = storedGroupingId(userId, "Dining");
+            long categoryId = leafCategoryId(userId, "Dining");
             storedExpenseAt(userId, categoryId, "Recorded one", 100, "USD", Instant.now());
             storedExpenseAt(userId, categoryId, "Recorded two", 200, "USD", Instant.now());
             storedProposalAt(userId, categoryId, "Pending one", 300, "USD", Instant.now());
@@ -1400,7 +1397,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when the filter carries a limit and an offset - then the answer ignores both")
         void whenFilterCarriesLimitAndOffset_thenAnswerIgnoresThem() {
             long userId = storedUserId("count-matching-ignores-paging-user");
-            long categoryId = storedGroupingId(userId, "Shopping");
+            long categoryId = leafCategoryId(userId, "Shopping");
             for (int i = 0; i < 5; i++) {
                 storedExpenseAt(
                         userId,
@@ -1421,7 +1418,7 @@ class ExpenseRepositoryAdapterTest {
         void whenCalledWithCategoryIdBelongingToAnotherUser_thenAnswerIsZero() {
             long firstUserId = storedUserId("count-matching-cross-user-first-user");
             long secondUserId = storedUserId("count-matching-cross-user-second-user");
-            long secondUsersCategoryId = storedGroupingId(secondUserId, "Second User Category");
+            long secondUsersCategoryId = leafCategoryId(secondUserId, "Second User Category");
             storedExpenseAt(secondUserId, secondUsersCategoryId, "Second user's expense", 100, "USD", Instant.now());
 
             long forSecondUsersOwnCategory = adapter.countMatching(
@@ -1443,7 +1440,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with another of the caller's categories - then the entry and stored row both carry the new category")
         void whenCalledWithAnotherCategory_thenAnswersEntryWithNewCategoryAndStoredRowCarriesIt() {
             long userId = storedUserId("refile-new-category-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity stored = ExpenseRowUtils.storedExpense(
@@ -1476,7 +1473,7 @@ class ExpenseRepositoryAdapterTest {
                 "when refiling an expense created earlier - then created_at is untouched and updated_at carries the given instant")
         void whenCalledForExpenseCreatedEarlierDay_thenCreatedAtUntouchedAndUpdatedAtCarriesInstantGiven() {
             long userId = storedUserId("refile-earlier-day-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             Instant createdAt = Instant.now().minus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MICROS);
@@ -1499,7 +1496,7 @@ class ExpenseRepositoryAdapterTest {
                 "when called with the category already filed under - then the answer carries the row and only updated_at moved")
         void whenCalledWithSameCategory_thenAnswerCarriesRowAndOnlyUpdatedAtMoved() {
             long userId = storedUserId("refile-same-category-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
+            long categoryId = leafCategoryId(userId, "Groceries");
             Instant createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
             ExpenseEntity stored = storedExpenseAt(userId, categoryId, "Weekly shop", 1500, "USD", createdAt);
             Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
@@ -1521,11 +1518,11 @@ class ExpenseRepositoryAdapterTest {
                 "when called for another person's expense - then the answer is empty and their row keeps its original category")
         void whenCalledForAnotherPersonsExpense_thenAnswerIsEmptyAndTheirRowKeepsOriginalCategory() {
             long ownerUserId = storedUserId("refile-cross-user-owner");
-            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            long ownerCategoryId = leafCategoryId(ownerUserId, "Groceries");
             ExpenseEntity ownerExpense =
                     storedExpense(ownerUserId, ownerCategoryId, "Owner's purchase", 100, "USD", null);
             long callerUserId = storedUserId("refile-cross-user-caller");
-            long callerCategoryId = storedGroupingId(callerUserId, "Dining");
+            long callerCategoryId = leafCategoryId(callerUserId, "Dining");
 
             Optional<ExpenseEntry> refiled = adapter.refile(
                     callerUserId, ownerExpense.id(), callerCategoryId, ExpenseStatus.RECORDED, Instant.now());
@@ -1540,7 +1537,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the id names a pending proposal, not an expense - then the answer is empty and the proposal row is untouched")
         void whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched() {
             long userId = storedUserId("refile-names-proposal-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity proposal =
@@ -1560,7 +1557,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the entry's merchant is absent - then the answered entry carries no merchant and nothing throws")
         void whenMerchantAbsent_thenAnsweredEntryCarriesNoMerchantAndNothingThrows() {
             long userId = storedUserId("refile-no-merchant-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "No merchant purchase", 100, "USD", null);
@@ -1577,7 +1574,7 @@ class ExpenseRepositoryAdapterTest {
                 "when the instant carries sub-microsecond precision - then the stored updated_at is truncated, not rounded")
         void whenInstantCarriesSubMicrosecondPrecision_thenStoredUpdatedAtIsTruncatedNotRounded() {
             long userId = storedUserId("refile-sub-microsecond-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
@@ -1595,9 +1592,9 @@ class ExpenseRepositoryAdapterTest {
                 "when a recorded entry is refiled to another grouping - then its event names the new category and grouping")
         void whenRecordedEntryRefiledToAnotherGrouping_thenEventNamesNewCategoryAndGrouping() {
             long userId = storedUserId("ri02-refile-recorded-user");
-            long originalGroupingId = storedGroupingId(userId, "Food");
+            long originalGroupingId = leafCategoryId(userId, "Food");
             long originalCategoryId = storedCategoryId(userId, originalGroupingId, "Supermarkets");
-            long newGroupingId = storedGroupingId(userId, "Leisure");
+            long newGroupingId = leafCategoryId(userId, "Leisure");
             long newCategoryId = storedCategoryId(userId, newGroupingId, "Dining");
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Weekly shop", 1500, "USD", null);
 
@@ -1616,7 +1613,7 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when a pending entry is refiled - then one ProposalRefiled event was inserted")
         void whenPendingEntryRefiled_thenProposalRefiledEventInserted() {
             long userId = storedUserId("ri02-refile-pending-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity proposal =
@@ -1630,11 +1627,31 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
+        @DisplayName("when the target category id names a grouping - then the entry keeps its category and no event "
+                + "is appended")
+        void whenTargetCategoryIdNamesAGrouping_thenEntryKeepsItsCategoryAndNoEventAppended() {
+            long userId = storedUserId("ri02-refile-onto-grouping-user");
+            long groupingId = groupingIdNamed(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
+
+            assertThatExceptionOfType(EntityNotFoundException.class)
+                    .isThrownBy(() ->
+                            adapter.refile(userId, stored.id(), groupingId, ExpenseStatus.RECORDED, Instant.now()))
+                    .extracting(EntityNotFoundException::entityType)
+                    .isEqualTo("category");
+
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(originalCategoryId));
+            verifyNoInteractions(ledgerEventOutbox);
+        }
+
+        @Test
         @DisplayName(
                 "when the category is renamed by SQL after the entry was stored - then the event carries the new name")
         void whenCategoryRenamedAfterEntryStored_thenEventCarriesNewName() {
             long userId = storedUserId("ri02-refile-renamed-category-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
@@ -1654,7 +1671,7 @@ class ExpenseRepositoryAdapterTest {
                 "when an id names no entry of the caller's under that status - then the answer is empty and nothing is inserted")
         void whenIdNamesNoEntryOfCallersUnderThatStatus_thenAnswerIsEmptyAndNothingInserted() {
             long userId = storedUserId("ri02-refile-no-matching-entry-user");
-            long groupingId = storedGroupingId(userId, "Groceries");
+            long groupingId = groupingIdNamed(userId, "Groceries");
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             long unknownEntryId = 999_999_999L;
 
@@ -1675,10 +1692,14 @@ class ExpenseRepositoryAdapterTest {
     class WithAMockedStore {
 
         private final ExpenseEntityRepository mockedExpenseEntityRepository = mock(ExpenseEntityRepository.class);
+        private final CategoryEntityRepository mockedCategoryEntityRepository = mock(CategoryEntityRepository.class);
         private final LedgerEventOutbox mockedLedgerEventOutbox = mock(LedgerEventOutbox.class);
         private final SpendingEventRenderer mockedSpendingEventRenderer = mock(SpendingEventRenderer.class);
         private final ExpenseRepositoryAdapter mockedAdapter = new ExpenseRepositoryAdapter(
-                mockedExpenseEntityRepository, mockedLedgerEventOutbox, mockedSpendingEventRenderer);
+                mockedExpenseEntityRepository,
+                mockedCategoryEntityRepository,
+                mockedLedgerEventOutbox,
+                mockedSpendingEventRenderer);
 
         @Test
         @DisplayName(
@@ -1834,7 +1855,10 @@ class ExpenseRepositoryAdapterTest {
                 throw frameworkException;
             });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
-                    throwingRepository, mock(LedgerEventOutbox.class), mock(SpendingEventRenderer.class));
+                    throwingRepository,
+                    mock(CategoryEntityRepository.class),
+                    mock(LedgerEventOutbox.class),
+                    mock(SpendingEventRenderer.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.findPage(1L, filter))
@@ -1852,7 +1876,10 @@ class ExpenseRepositoryAdapterTest {
                 throw frameworkException;
             });
             ExpenseRepositoryAdapter throwingAdapter = new ExpenseRepositoryAdapter(
-                    throwingRepository, mock(LedgerEventOutbox.class), mock(SpendingEventRenderer.class));
+                    throwingRepository,
+                    mock(CategoryEntityRepository.class),
+                    mock(LedgerEventOutbox.class),
+                    mock(SpendingEventRenderer.class));
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.countMatching(1L, filter))
@@ -1879,8 +1906,16 @@ class ExpenseRepositoryAdapterTest {
         return UserRowUtils.storedUserId(userEntityRepository, externalId);
     }
 
-    private long storedGroupingId(long userId, String name) {
+    private long groupingIdNamed(long userId, String name) {
         return CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, name);
+    }
+
+    /**
+     * Spending is filed under a category, never under a grouping, so a test needing somewhere to file an expense
+     * takes a leaf under a grouping of its own.
+     */
+    private long leafCategoryId(long userId, String name) {
+        return storedCategoryId(userId, groupingIdNamed(userId, name + " grouping"), name);
     }
 
     private long storedCategoryId(long userId, long parentId, String name) {
