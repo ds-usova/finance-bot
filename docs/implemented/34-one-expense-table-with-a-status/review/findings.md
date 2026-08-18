@@ -1,11 +1,14 @@
 # Review: One Expense Table, With a Status
 
-**1 bug open, 1 refactoring candidate open. No critical defect, no manual check.**
+**1 bug, fixed · 1 refactoring candidate open. No critical defect, no manual check.**
 
 ## Bug
 
 Found while measuring this task, but not caused by it: the timeout predates the change, and nothing in the merge
-touches slot recovery.
+touches slot recovery. **Fixed** in
+[36-slot-recovery-cannot-stop-a-retrying-connector](../../36-slot-recovery-cannot-stop-a-retrying-connector/bug.md):
+the wait was Debezium's own slot-open retry (up to 60 s), not instrumentation; the connector's retry and
+restart waits are now capped below the bound.
 
 **`ledger-service` — slot recovery answers 503 under an instrumented test run**
 
