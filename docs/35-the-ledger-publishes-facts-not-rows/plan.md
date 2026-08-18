@@ -179,7 +179,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `SpendingEventRenderer` · test: `SpendingEventRendererTest` · covers: `render()` · scenarios: A1, A15
+- [x] RU01 · `SpendingEventRenderer` · test: `SpendingEventRendererTest` · covers: `render()` · scenarios: A1, A15
   - `render()`:
     - given: a projection for a pending row with a merchant, a category and a grouping
       when: rendered as `ProposalCreated` at a given instant
@@ -202,7 +202,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
       when: both events are compared
       then: their payloads are equal and their ids differ
 
-- [ ] RU02 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest` · covers: `publish()` · scenarios: A12
+- [x] RU02 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest` · covers: `publish()` · scenarios: A12
   - `publish()`:
     - given: an outbox insert whose `after` carries an id, a type, an `occurred_at` and a payload
       when: published
@@ -218,7 +218,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     an `enrichment` block, or driving a `category`-table payload is deleted, and what survives is rewritten against
     an outbox insert
 
-- [ ] RU03 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · covers: `countPublished()`, `setOutboxRows()`
+- [x] RU03 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest` · covers: `countPublished()`, `setOutboxRows()`
   · scenarios: A16
   - `countPublished()`:
     - given: a fresh registry
@@ -232,7 +232,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
   - update: `whenEventIsCounted_thenPublishedCounterCarriesOnlyTableAndOpTags()` — delete; the `type` scenario
     above replaces it
 
-- [ ] RU04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorGaugesTest` · covers: `readSlot()` ·
+- [x] RU04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorGaugesTest` · covers: `readSlot()` ·
   scenarios: A16
   - `readSlot()`:
     - given: a mocked outbox answering one row a write never deleted
@@ -251,7 +251,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest` · covers: `insert()`, `delete()`, `rowCount()` ·
+- [x] RI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest` · covers: `insert()`, `delete()`, `rowCount()` ·
   scenarios: A16
   - `insert()`:
     - given: two events with distinct ids, types, instants and JSON payloads
@@ -275,7 +275,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
       when: the count is read
       then: it answers `0`
 
-- [ ] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`, `accept()`,
+- [x] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `create()`, `accept()`,
   `discard()`, `acceptByIds()`, `refile()` · scenarios: A1, A2, A3, A4, A5, A6, A8, A10, A15
   - `create()`:
     - given: a pending entry under a category filed in a grouping
@@ -350,7 +350,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     calling it passes the four, and an assertion on an `enrichment` body field is replaced by one on the three
     new fields; the cap and the unreachable-Redis tests keep their subjects
 
-- [ ] RI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · covers: `start()` · scenarios: A9, A11
+- [x] RI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · covers: `start()` · scenarios: A9, A11
   - `start()`:
     - given: the engine streaming against the real slot
       when: two rows are inserted into `outbox` and deleted again through `JdbcTemplate`
@@ -386,7 +386,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
     — delete; a discard
     is a `ProposalDiscarded` entry, covered above
 
-- [ ] RI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · covers: `recover()`
+- [x] RI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · covers: `recover()`
   - `recover()`:
     - given: a rebuilt slot and the engine streaming again
       when: a row is inserted into `outbox` through `JdbcTemplate` afterwards

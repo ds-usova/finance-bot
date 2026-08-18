@@ -1,12 +1,16 @@
 package bot.finance.adapter.cdc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.redis.RedisChangeStreamWriter;
 import io.debezium.engine.ChangeEvent;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,83 +35,106 @@ class ChangeEventPublisherTest {
         return event;
     }
 
+    /** {@code payload} is the outbox row's raw JSON text; it is escaped here for embedding as {@code after.payload}. */
+    private static String outboxInsertValue(String id, String type, String occurredAt, String payload) {
+        String escapedPayload = payload.replace("\"", "\\\"");
+        return """
+                {
+                  "before": null,
+                  "after": {
+                    "id": "%s",
+                    "type": "%s",
+                    "occurred_at": "%s",
+                    "payload": "%s"
+                  },
+                  "source": { "table": "outbox" },
+                  "op": "c",
+                  "ts_ms": 1700000000000
+                }
+                """
+                .formatted(id, type, occurredAt, escapedPayload);
+    }
+
     @Nested
     @DisplayName("publishing a captured change event")
     class Publish {
 
         @Test
-        @Disabled("RU02: the publisher resolves no names and forwards an outbox insert's four columns")
-        @DisplayName("when an expense update is published - then one entry is written enriched with both categories")
-        void whenExpenseUpdateIsPublished_thenOneEntryWrittenEnrichedWithBothCategories() {
-            // rewritten against an outbox insert
-        }
-
-        @Test
-        @Disabled("RU02: the publisher resolves no names and forwards an outbox insert's four columns")
-        @DisplayName("when an expense insert is published - then the enrichment block carries the after side alone")
-        void whenExpenseInsertIsPublished_thenEnrichmentBlockCarriesAfterSideAlone() {
-            // rewritten against an outbox insert
-        }
-
-        @Test
-        @Disabled("RU02: the publisher resolves no names and forwards an outbox insert's four columns")
-        @DisplayName(
-                "when an expense delete is published - then the enrichment block carries the before side " + "alone")
-        void whenExpenseDeleteIsPublished_thenEnrichmentBlockCarriesBeforeSideAlone() {
-            // rewritten against an outbox insert
-        }
-
-        @Test
-        @Disabled("RU02: the publisher resolves no names and forwards an outbox insert's four columns")
-        @DisplayName("when an expense delete's category resolves to nothing - then no names are written and "
+        @DisplayName("when an outbox insert is published - then the writer is handed the four columns and "
                 + "publish answers published")
-        void whenExpenseDeleteCategoryResolvesToNothing_thenNoNamesWrittenAndPublishAnswersPublished() {
-            // rewritten against an outbox insert
+        void whenOutboxInsertIsPublished_thenWriterIsHandedTheFourColumnsAndPublishAnswersPublished() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalCreated";
+            String occurredAt = "2026-08-18T10:15:30.123456Z";
+            String payload = "{\"userId\":41,\"expenseId\":9013}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
+
+            boolean published = publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
+
+            verify(redisChangeStreamWriter).write(id, type, occurredAt, payload);
+            assertThat(published).isTrue();
         }
 
         @Test
-        @Disabled("RU02: category events no longer reach the slot, so the resolver premise is gone")
-        @DisplayName(
-                "when a category update is published - then the resolver takes the row and no enrichment " + "is added")
-        void whenCategoryUpdateIsPublished_thenResolverTakesRowAndNoEnrichmentIsAdded() {
-            // deleted - a category event no longer reaches the publisher
+        @DisplayName("when the same outbox insert is published twice - then the writer sees identical values")
+        void whenSameOutboxInsertIsPublishedTwice_thenWriterSeesIdenticalValues() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalAccepted";
+            String occurredAt = "2026-08-18T10:20:00.000001Z";
+            String payload = "{\"userId\":41,\"expenseId\":9013,\"status\":\"RECORDED\"}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
+            ChangeEvent<String, String> event = changeEvent(outboxInsertValue(id, type, occurredAt, payload));
+
+            publisher.publish(event);
+            publisher.publish(event);
+
+            verify(redisChangeStreamWriter, times(2)).write(id, type, occurredAt, payload);
         }
 
         @Test
-        @Disabled("RU02: category events no longer reach the slot, so the resolver premise is gone")
-        @DisplayName("when a category filed under a grouping is published - then the row carries its parent id")
-        void whenCategoryFiledUnderAGroupingIsPublished_thenRowCarriesItsParentId() {
-            // deleted - a category event no longer reaches the publisher
+        @DisplayName("when the payload names a grouping of JSON null - then it reaches the writer unchanged")
+        void whenPayloadNamesAGroupingOfJsonNull_thenItReachesWriterUnchanged() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalCreated";
+            String occurredAt = "2026-08-18T10:25:00.000000Z";
+            String payload = "{\"userId\":41,\"category\":{\"id\":77,\"name\":\"Coffee\"},\"grouping\":null}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
+
+            publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
+
+            verify(redisChangeStreamWriter).write(id, type, occurredAt, payload);
         }
 
         @Test
-        @Disabled("RU02: category events no longer reach the slot, so the resolver premise is gone")
-        @DisplayName(
-                "when a category delete is published - then the resolver drops that id rather than storing " + "a row")
-        void whenCategoryDeleteIsPublished_thenResolverDropsThatIdRatherThanStoringARow() {
-            // deleted - a category event no longer reaches the publisher
-        }
-
-        @Test
-        @Disabled("RU02: the publisher resolves no names, so a resolver failure is not a scenario it has anymore")
-        @DisplayName("when the resolver fails the lookup - then nothing is written and publish answers not published")
-        void whenResolverFailsLookup_thenNothingWrittenAndPublishAnswersNotPublished() {
-            // rewritten against an outbox insert
-        }
-
-        @Test
-        @Disabled("RU02: the publisher resolves no names and forwards an outbox insert's four columns")
         @DisplayName("when the writer refuses - then publish answers not published and a publish failure is counted")
         void whenWriterRefuses_thenPublishAnswersNotPublishedAndPublishFailureCounted() {
-            // rewritten against an outbox insert
+            String id = UUID.randomUUID().toString();
+            String type = "ExpenseRecorded";
+            String occurredAt = "2026-08-18T10:30:00.000000Z";
+            String payload = "{\"userId\":41,\"expenseId\":9014}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(false);
+
+            boolean published = publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
+
+            assertThat(published).isFalse();
+            verify(meters).countPublishFailure();
         }
 
         @Test
-        @Disabled("RU02: the published counter now carries one type tag rather than a table and an op")
-        @DisplayName("when an event publishes - then the published counter is tagged and the lag gauge is set "
-                + "from source.ts_ms")
-        void whenEventPublishes_thenPublishedCounterTaggedAndLagGaugeSetFromSourceTsMs() {
-            // rewritten against an outbox insert
+        @DisplayName("when an event publishes - then the published counter is tagged by type and the lag gauge "
+                + "is set from occurred_at")
+        void whenEventPublishes_thenPublishedCounterTaggedAndLagGaugeSetFromOccurredAt() {
+            String id = UUID.randomUUID().toString();
+            String type = "ExpenseRefiled";
+            Instant occurredAtInstant = Instant.now().minusSeconds(60);
+            String occurredAt = occurredAtInstant.toString();
+            String payload = "{\"userId\":41,\"expenseId\":9015}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
+
+            publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
+
+            verify(meters).countPublished(type);
+            verify(meters).setEventLag(occurredAtInstant);
         }
     }
 }

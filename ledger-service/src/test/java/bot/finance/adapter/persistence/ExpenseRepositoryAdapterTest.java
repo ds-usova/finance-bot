@@ -1,10 +1,14 @@
 package bot.finance.adapter.persistence;
 
+import static bot.finance.common.fixtures.JsonUtils.readJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +18,7 @@ import bot.finance.application.dto.ProposalSummary;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseException;
@@ -26,6 +31,7 @@ import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,11 +44,14 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
 @Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
@@ -59,6 +68,12 @@ class ExpenseRepositoryAdapterTest {
 
     @Autowired
     private JdbcAggregateTemplate jdbcAggregateTemplate;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @MockitoSpyBean
+    private LedgerEventOutbox ledgerEventOutbox;
 
     @Nested
     @DisplayName("creating an expense")
@@ -327,6 +342,117 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(row.incomingMessageId()).isEqualTo(reference.value());
             });
         }
+
+        @Test
+        @DisplayName(
+                "when a pending entry under a grouped category is created - then the outbox captured its ProposalCreated event")
+        void whenPendingEntryUnderGroupedCategoryCreated_thenOutboxCapturedProposalCreatedEvent() {
+            long userId = storedUserId("ri02-create-pending-user");
+            long groupingId = storedGroupingId(userId, "Food");
+            long categoryId = storedCategoryId(userId, groupingId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Expense proposal = Expense.newProposal(
+                    userId,
+                    categoryId,
+                    "Weekly shop",
+                    Optional.empty(),
+                    new Money(1500, CurrencyCode.of("USD")),
+                    reference,
+                    Instant.now());
+
+            Expense created = adapter.create(proposal);
+
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> {
+                assertThat(event.type()).isEqualTo("ProposalCreated");
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("expenseId").asLong())
+                        .isEqualTo(created.id().orElseThrow());
+                assertThat(payload.get("incomingMessageId").asText()).isEqualTo(reference.value());
+                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
+                assertThat(payload.get("category").get("name").asText()).isEqualTo("Groceries");
+                assertThat(payload.get("grouping").get("name").asText()).isEqualTo("Food");
+            });
+            assertThat(OutboxRowUtils.outboxRowCount(jdbcTemplate)).isZero();
+        }
+
+        @Test
+        @DisplayName(
+                "when a recorded entry has no message id and is created - then its event carries a null message id")
+        void whenRecordedEntryHasNoMessageIdAndIsCreated_thenEventCarriesNullMessageId() {
+            long userId = storedUserId("ri02-create-recorded-user");
+            long categoryId = storedGroupingId(userId, "Utilities");
+            Expense expense = Expense.newExpense(
+                    userId,
+                    categoryId,
+                    "Electric bill",
+                    Optional.empty(),
+                    new Money(4200, CurrencyCode.of("USD")),
+                    Instant.now());
+
+            adapter.create(expense);
+
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> {
+                assertThat(event.type()).isEqualTo("ExpenseRecorded");
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("incomingMessageId").isNull()).isTrue();
+                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when a proposal is created under an ungrouped category - then its event carries a null grouping")
+        void whenProposalCreatedUnderUngroupedCategory_thenEventCarriesNullGrouping() {
+            long userId = storedUserId("ri02-create-ungrouped-user");
+            long categoryId = storedGroupingId(userId, "Standalone");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Expense proposal = Expense.newProposal(
+                    userId,
+                    categoryId,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    reference,
+                    Instant.now());
+
+            Expense created = adapter.create(proposal);
+
+            assertThat(created.id()).isPresent();
+            assertThat(expenseRowsFor(userId))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.categoryId()).isEqualTo(categoryId));
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> {
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("grouping").isNull()).isTrue();
+            });
+        }
+
+        @Test
+        @DisplayName(
+                "when the outbox's insert fails - then PersistenceFailedException propagates and delete is never called")
+        void whenOutboxInsertFails_thenExceptionPropagatesAndDeleteNeverCalled() {
+            doThrow(new RuntimeException("outbox insert failed"))
+                    .when(ledgerEventOutbox)
+                    .insert(any());
+            long userId = storedUserId("ri02-create-outbox-failure-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Expense proposal = Expense.newProposal(
+                    userId,
+                    categoryId,
+                    "Purchase",
+                    Optional.empty(),
+                    new Money(100, CurrencyCode.of("USD")),
+                    reference,
+                    Instant.now());
+
+            assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(PersistenceFailedException.class);
+
+            verify(ledgerEventOutbox, never()).delete(any());
+        }
     }
 
     @Nested
@@ -533,6 +659,77 @@ class ExpenseRepositoryAdapterTest {
                     .singleElement()
                     .satisfies(row -> assertThat(row.updatedAt()).isEqualTo(truncated));
         }
+
+        @Test
+        @DisplayName(
+                "when three pending entries are accepted - then three ProposalAccepted events are inserted")
+        void whenThreePendingEntriesAccepted_thenThreeProposalAcceptedEventsInserted() {
+            long userId = storedUserId("ri02-accept-three-entries-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity first = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity second = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity third = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Third",
+                    null,
+                    300,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+
+            int accepted = adapter.accept(userId, reference, Instant.now());
+
+            assertThat(accepted).isEqualTo(3);
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).hasSize(3).allSatisfy(event -> {
+                assertThat(event.type()).isEqualTo("ProposalAccepted");
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
+            });
+            assertThat(events.stream()
+                            .map(event -> readJson(event.payload())
+                                    .get("expenseId")
+                                    .asLong())
+                            .toList())
+                    .containsExactlyInAnyOrder(first.id(), second.id(), third.id());
+        }
+
+        @Test
+        @DisplayName("when the entries under the message are already RECORDED - then nothing is inserted")
+        void whenEntriesUnderMessageAlreadyRecorded_thenNothingIsInserted() {
+            long userId = storedUserId("ri02-accept-already-recorded-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            storedExpense(userId, categoryId, "Already recorded", 100, "USD", reference.value());
+
+            adapter.accept(userId, reference, Instant.now());
+
+            verify(ledgerEventOutbox, never()).insert(any());
+        }
     }
 
     @Nested
@@ -587,6 +784,67 @@ class ExpenseRepositoryAdapterTest {
             assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
                     .singleElement()
                     .satisfies(row -> assertThat(row.id()).isEqualTo(recorded.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when two pending entries are discarded at an instant - then two ProposalDiscarded events carry that instant")
+        void whenTwoPendingEntriesDiscardedAtInstant_thenEventsCarryThatInstant() {
+            long userId = storedUserId("ri02-discard-two-pending-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity first = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity second = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    reference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            Instant discardInstant =
+                    Instant.now().minusSeconds(5).truncatedTo(ChronoUnit.MICROS);
+
+            int discarded = adapter.discard(userId, reference, discardInstant);
+
+            assertThat(discarded).isEqualTo(2);
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).hasSize(2).allSatisfy(event -> {
+                assertThat(event.type()).isEqualTo("ProposalDiscarded");
+                assertThat(event.occurredAt()).isEqualTo(discardInstant);
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
+            });
+            assertThat(events.stream()
+                            .map(event -> readJson(event.payload())
+                                    .get("expenseId")
+                                    .asLong())
+                            .toList())
+                    .containsExactlyInAnyOrder(first.id(), second.id());
+        }
+
+        @Test
+        @DisplayName("when a message holds nothing pending - then nothing is inserted")
+        void whenMessageHoldsNothingPending_thenNothingIsInserted() {
+            long userId = storedUserId("ri02-discard-nothing-pending-user");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+
+            adapter.discard(userId, reference, Instant.now());
+
+            verify(ledgerEventOutbox, never()).insert(any());
         }
     }
 
@@ -660,6 +918,70 @@ class ExpenseRepositoryAdapterTest {
             assertThat(expenseRowsFor(ownerUserId, ExpenseStatus.PENDING))
                     .singleElement()
                     .satisfies(row -> assertThat(row.id()).isEqualTo(ownerEntry.id()));
+        }
+
+        @Test
+        @DisplayName(
+                "when two entries on different messages are accepted by id - then two ProposalAccepted events are inserted")
+        void whenTwoEntriesOnDifferentMessagesAcceptedById_thenTwoProposalAcceptedEventsInserted() {
+            long userId = storedUserId("ri02-accept-by-ids-two-messages-user");
+            long categoryId = storedGroupingId(userId, "Groceries");
+            IncomingMessageId firstReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            IncomingMessageId secondReference =
+                    IncomingMessageId.of(UUID.randomUUID().toString());
+            ExpenseEntity first = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "First",
+                    null,
+                    100,
+                    "USD",
+                    firstReference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+            ExpenseEntity second = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Second",
+                    null,
+                    200,
+                    "USD",
+                    secondReference.value(),
+                    Instant.now().minusSeconds(60),
+                    ExpenseStatus.PENDING);
+
+            List<IncomingMessageId> answer = adapter.acceptByIds(
+                    userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
+
+            assertThat(answer).containsExactlyInAnyOrder(firstReference, secondReference);
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).hasSize(2).allSatisfy(event -> assertThat(event.type()).isEqualTo("ProposalAccepted"));
+        }
+
+        @Test
+        @DisplayName("when an id names another person's PENDING entry - then nothing is inserted and their row stays PENDING")
+        void whenIdNamesAnotherPersonsPendingEntry_thenNothingInsertedAndTheirRowStaysPending() {
+            long ownerUserId = storedUserId("ri02-accept-by-ids-owner-user");
+            long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
+            ExpenseEntity ownerEntry = ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    ownerUserId,
+                    ownerCategoryId,
+                    "Owner's entry",
+                    null,
+                    100,
+                    "USD",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    Instant.now().minusSeconds(30),
+                    ExpenseStatus.PENDING);
+            long callerUserId = storedUserId("ri02-accept-by-ids-caller-user");
+
+            adapter.acceptByIds(callerUserId, ProposalIds.of(List.of(ownerEntry.id())), Instant.now());
+
+            verify(ledgerEventOutbox, never()).insert(any());
         }
     }
 
@@ -1265,6 +1587,80 @@ class ExpenseRepositoryAdapterTest {
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.updatedAt())
                     .isEqualTo(truncated));
         }
+
+        @Test
+        @DisplayName(
+                "when a recorded entry is refiled to another grouping - then its event names the new category and grouping")
+        void whenRecordedEntryRefiledToAnotherGrouping_thenEventNamesNewCategoryAndGrouping() {
+            long userId = storedUserId("ri02-refile-recorded-user");
+            long originalGroupingId = storedGroupingId(userId, "Food");
+            long originalCategoryId = storedCategoryId(userId, originalGroupingId, "Supermarkets");
+            long newGroupingId = storedGroupingId(userId, "Leisure");
+            long newCategoryId = storedCategoryId(userId, newGroupingId, "Dining");
+            ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Weekly shop", 1500, "USD", null);
+
+            adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> {
+                assertThat(event.type()).isEqualTo("ExpenseRefiled");
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("category").get("name").asText()).isEqualTo("Dining");
+                assertThat(payload.get("grouping").get("name").asText()).isEqualTo("Leisure");
+            });
+        }
+
+        @Test
+        @DisplayName("when a pending entry is refiled - then one ProposalRefiled event was inserted")
+        void whenPendingEntryRefiled_thenProposalRefiledEventInserted() {
+            long userId = storedUserId("ri02-refile-pending-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity proposal =
+                    storedProposalAt(userId, originalCategoryId, "Pending purchase", 500, "USD", Instant.now());
+
+            adapter.refile(userId, proposal.id(), newCategoryId, ExpenseStatus.PENDING, Instant.now());
+
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> assertThat(event.type())
+                    .isEqualTo("ProposalRefiled"));
+        }
+
+        @Test
+        @DisplayName(
+                "when the category is renamed by SQL after the entry was stored - then the event carries the new name")
+        void whenCategoryRenamedAfterEntryStored_thenEventCarriesNewName() {
+            long userId = storedUserId("ri02-refile-renamed-category-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
+            CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, newCategoryId, "Fine Dining");
+
+            adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+
+            List<LedgerEvent> events = capturedInsertedEvents();
+            assertThat(events).singleElement().satisfies(event -> {
+                JsonNode payload = readJson(event.payload());
+                assertThat(payload.get("category").get("name").asText()).isEqualTo("Fine Dining");
+            });
+        }
+
+        @Test
+        @DisplayName("when an id names no entry of the caller's under that status - then the answer is empty and nothing is inserted")
+        void whenIdNamesNoEntryOfCallersUnderThatStatus_thenAnswerIsEmptyAndNothingInserted() {
+            long userId = storedUserId("ri02-refile-no-matching-entry-user");
+            long groupingId = storedGroupingId(userId, "Groceries");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            long unknownEntryId = 999_999_999L;
+
+            Optional<ExpenseEntry> refiled =
+                    adapter.refile(userId, unknownEntryId, newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+
+            assertThat(refiled).isEmpty();
+            verify(ledgerEventOutbox, never()).insert(any());
+        }
     }
 
     // The scenario below needs a store that misbehaves in a way the healthy containerized
@@ -1561,5 +1957,12 @@ class ExpenseRepositoryAdapterTest {
 
     private ExpenseFilter unnarrowedFilter() {
         return new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<LedgerEvent> capturedInsertedEvents() {
+        ArgumentCaptor<List<LedgerEvent>> captor = ArgumentCaptor.forClass(List.class);
+        verify(ledgerEventOutbox).insert(captor.capture());
+        return captor.getValue();
     }
 }

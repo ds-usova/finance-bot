@@ -6,11 +6,17 @@ import static org.awaitility.Awaitility.await;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
+import bot.finance.common.fixtures.ChangeStreamEntries;
+import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
+import bot.finance.common.rows.OutboxRowUtils;
+import bot.finance.common.rows.UserRowUtils;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -120,34 +126,42 @@ class ChangeStreamRecoveryTest {
         }
 
         @Test
-        @Disabled("RI05: a category row change publishes nothing, so a direct outbox insert is the vehicle now")
-        @DisplayName("when captured rows changed while invalidated - then none of them is ever offered")
-        void whenCapturedRowsChangedWhileSlotInvalidated_thenNoneOfThoseChangesIsEverOfferedOnceStreamingResumes() {
-            // long userId = UserRowUtils.storedUserId(userEntityRepository, "recovery-test-" + UUID.randomUUID());
-            // invalidateSlot();
-            //
-            // // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
-            // // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
-            // long groupingId =
-            //         CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries " +
-            // UUID.randomUUID());
-            //
-            // changeStreamRecovery.recover();
-            // changeStreamReader.start();
-            // awaitState(ChangeStreamState.STREAMING);
-            //
-            // // A later change does reach the stream, which is what makes the absence above a real absence rather
-            // // than a stream nobody ever wrote to.
-            // CategoryRowUtils.storedCategoryId(
-            //         jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
-            // await().atMost(Duration.ofSeconds(20))
-            //         .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-            //                 .hasSize(1));
-            // assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-            //         .extracting(entry -> entry.after().path("id").asLong())
-            //         .doesNotContain(groupingId);
-            //
-            // assertThat(currentWalStatus()).isIn("reserved", "extended");
+        @DisplayName("when a row is inserted after the slot is rebuilt - then its entry reaches the stream and "
+                + "the abandoned row does not")
+        void whenRowInsertedAfterRebuild_thenItsEntryReachesStreamAndAbandonedRowDoesNot() {
+            long userId = UserRowUtils.storedUserId(userEntityRepository, "recovery-test-" + UUID.randomUUID());
+            String eventType = "ExpenseRecorded";
+            invalidateSlot();
+
+            // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
+            // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
+            UUID abandonedId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRow(jdbcTemplate, abandonedId, eventType, Instant.now(), outboxPayload(userId));
+
+            changeStreamRecovery.recover();
+            changeStreamReader.start();
+            awaitState(ChangeStreamState.STREAMING);
+
+            // A later change does reach the stream, which is what makes the absence above a real absence rather
+            // than a stream nobody ever wrote to.
+            UUID afterRebuildId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRow(
+                    jdbcTemplate, afterRebuildId, eventType, Instant.now(), outboxPayload(userId));
+
+            await().atMost(Duration.ofSeconds(20))
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, eventType, userId))
+                            .hasSize(1));
+            List<ChangeStreamEntry> entries = ChangeStreamEntries.entriesOnFor(STREAM_KEY, eventType, userId);
+            assertThat(entries)
+                    .extracting(ChangeStreamEntry::eventId)
+                    .containsExactly(afterRebuildId.toString())
+                    .doesNotContain(abandonedId.toString());
+
+            assertThat(currentWalStatus()).isIn("reserved", "extended");
+        }
+
+        private String outboxPayload(long userId) {
+            return "{\"userId\": %d}".formatted(userId);
         }
 
         private void awaitState(ChangeStreamState expected) {
