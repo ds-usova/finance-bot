@@ -78,7 +78,8 @@ class ProposalFactsSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when a proposal is created - then a ProposalCreated entry reaches the stream and the outbox is empty")
+        @DisplayName(
+                "when a proposal is created - then a ProposalCreated entry reaches the stream and the outbox is empty")
         void whenProposalCreatedThroughTool_thenEntryReachesStreamAndOutboxIsEmpty() {
             User user = userRepository.create(User.newUser("proposal-facts-happy-user"), Grouping.defaults());
             long userId = user.id().orElseThrow();
@@ -96,14 +97,12 @@ class ProposalFactsSystemTest {
                     .isNotEqualTo(Boolean.TRUE);
 
             // then: one ProposalCreated entry reaches ledger.cdc
-            await("the proposal's fact reaches the stream")
-                    .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(
-                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId))
-                            .as("ProposalCreated entries for this user")
-                            .hasSize(1));
-            ChangeStreamEntry entry =
-                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId).get(0);
+            await("the proposal's fact reaches the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId))
+                    .as("ProposalCreated entries for this user")
+                    .hasSize(1));
+            ChangeStreamEntry entry = ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId)
+                    .get(0);
 
             // then: the payload carries the expenseId, status, message id, content and category/grouping
             assertThat(entry.payload().path("status").asText())
@@ -143,7 +142,8 @@ class ProposalFactsSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when the caller belongs to nobody - then the tool call fails as today and nothing reaches the stream")
+        @DisplayName(
+                "when the caller belongs to nobody - then the tool call fails as today and nothing reaches the stream")
         void whenCallerBelongsToNobody_thenToolCallFailsAndNothingReachesStream() {
             long unknownUserId = Long.MAX_VALUE - 1;
             String token = McpTokens.tokenFor(accessTokenMinter, unknownUserId);
@@ -172,7 +172,9 @@ class ProposalFactsSystemTest {
             Optional<ChangeStreamEntry> published = ChangeStreamEntries.allEntriesOn(STREAM_KEY).stream()
                     .filter(entry -> unknownUserId == entry.userId())
                     .findFirst();
-            assertThat(published).as("no entry published for the unknown caller").isEmpty();
+            assertThat(published)
+                    .as("no entry published for the unknown caller")
+                    .isEmpty();
         }
     }
 }

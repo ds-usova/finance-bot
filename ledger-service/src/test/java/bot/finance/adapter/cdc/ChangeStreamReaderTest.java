@@ -47,8 +47,8 @@ import org.testcontainers.junit.jupiter.Container;
  * {@link ChangeStreamReader} together with its real collaborators - the real {@link ChangeEventPublisher} chain and
  * the real containerized Postgres and Redis {@link CdcAdapterTest} boots - and calls only the reader's own
  * {@code start()}, {@code stop()} and {@code state()}; nothing is mocked. A captured row is written directly
- * through {@code JdbcAggregateTemplate}, the same idiom {@link CategoryRowUtils} already uses, rather than through
- * a use case, since only the row change reaching the log is under test here.
+ * into {@code outbox} through {@link OutboxRowUtils}, rather than through a use case, since only the row change
+ * reaching the log is under test here.
  */
 @CdcAdapterTest
 @TestPropertySource(
@@ -123,10 +123,6 @@ class ChangeStreamReaderTest {
                 .untilAsserted(() -> assertThat(changeStreamReader.state()).isEqualTo(expected));
     }
 
-    private static String outboxPayload(long userId) {
-        return "{\"userId\": %d}".formatted(userId);
-    }
-
     private void awaitEventIdsInOrder(String type, long userId, UUID... expectedIds) {
         List<String> expected = Arrays.stream(expectedIds).map(UUID::toString).toList();
         await().atMost(EVENT_TIMEOUT)
@@ -145,13 +141,13 @@ class ChangeStreamReaderTest {
             long userId = seedUser();
             String eventType = "ExpenseRecorded";
             UUID existingId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, existingId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, existingId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
             UUID newId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, newId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, newId, eventType, Instant.now(), userId);
 
             List<ChangeStreamEntry> entries = awaitEntriesFor(eventType, userId, 1);
             assertThat(entries).extracting(ChangeStreamEntry::eventId).containsExactly(newId.toString());
@@ -256,8 +252,8 @@ class ChangeStreamReaderTest {
 
             UUID firstId = UUID.randomUUID();
             UUID secondId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, firstId, eventType, Instant.now(), outboxPayload(userId));
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, secondId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
@@ -334,8 +330,8 @@ class ChangeStreamReaderTest {
 
             UUID firstId = UUID.randomUUID();
             UUID secondId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, firstId, eventType, Instant.now(), outboxPayload(userId));
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, secondId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
             List<OutboxRow> insertedRows = OutboxRowUtils.outboxRowsFor(jdbcTemplate, userId);
 
             jdbcTemplate.update("DELETE FROM outbox WHERE id = ?", firstId);
@@ -347,8 +343,9 @@ class ChangeStreamReaderTest {
 
             assertThat(entries)
                     .extracting(ChangeStreamEntry::eventId)
-                    .containsExactlyInAnyOrderElementsOf(
-                            insertedRows.stream().map(row -> row.id().toString()).toList());
+                    .containsExactlyInAnyOrderElementsOf(insertedRows.stream()
+                            .map(row -> row.id().toString())
+                            .toList());
             assertThat(entries).allSatisfy(entry -> assertThat(entry.type()).isEqualTo(eventType));
             assertThat(entries).extracting(ChangeStreamEntry::occurredAt).doesNotContainNull();
             assertThat(entries)
@@ -397,8 +394,8 @@ class ChangeStreamReaderTest {
             private UserEntityRepository userEntityRepositoryInDeadRedisContext;
 
             @Test
-            @DisplayName("when Redis recovers after refusing a write - then the entry reaches the stream exactly "
-                    + "once")
+            @DisplayName(
+                    "when Redis recovers after refusing a write - then the entry reaches the stream exactly " + "once")
             void whenRedisRecoversAfterRefusingWrite_thenEntryReachesStreamExactlyOnce() {
                 // Redis is refused at the proxy rather than by pointing this context at a closed port: the
                 // capture annotation registers the Redis URL through a bean applied during the refresh, which
@@ -413,8 +410,8 @@ class ChangeStreamReaderTest {
                     awaitStateAgainstDeadRedis(ChangeStreamState.STREAMING);
 
                     UUID eventId = UUID.randomUUID();
-                    OutboxRowUtils.storedOutboxRow(
-                            jdbcTemplateInDeadRedisContext, eventId, eventType, Instant.now(), outboxPayload(userId));
+                    OutboxRowUtils.storedOutboxRowFor(
+                            jdbcTemplateInDeadRedisContext, eventId, eventType, Instant.now(), userId);
 
                     // A refused publish is the only thing that takes a streaming reader back to DOWN, so
                     // reaching it is what establishes the engine got to the change before Redis is restored.
@@ -424,9 +421,7 @@ class ChangeStreamReaderTest {
                     awaitStateAgainstDeadRedis(ChangeStreamState.STREAMING);
 
                     List<ChangeStreamEntry> entries = awaitEntriesForInDeadRedisContext(eventType, userId, 1);
-                    assertThat(entries)
-                            .extracting(ChangeStreamEntry::eventId)
-                            .containsExactly(eventId.toString());
+                    assertThat(entries).extracting(ChangeStreamEntry::eventId).containsExactly(eventId.toString());
                 } finally {
                     ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
                     readerAgainstDeadRedis.stop(Duration.ofSeconds(5));
@@ -438,11 +433,11 @@ class ChangeStreamReaderTest {
                         .isEqualTo(expected));
             }
 
-            private List<ChangeStreamEntry> awaitEntriesForInDeadRedisContext(String type, long userId, int expectedCount) {
-                await().atMost(EVENT_TIMEOUT)
-                        .untilAsserted(() -> assertThat(
-                                        ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, type, userId))
-                                .hasSize(expectedCount));
+            private List<ChangeStreamEntry> awaitEntriesForInDeadRedisContext(
+                    String type, long userId, int expectedCount) {
+                await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(
+                                ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, type, userId))
+                        .hasSize(expectedCount));
                 return ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, type, userId);
             }
         }
@@ -464,7 +459,7 @@ class ChangeStreamReaderTest {
 
             long firstChangeLsn = currentWalLsnOffset();
             UUID firstId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, firstId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
 
             boolean stoppedInTime = changeStreamReader.stop(Duration.ofSeconds(5));
             assertThat(stoppedInTime).isTrue();
@@ -480,7 +475,7 @@ class ChangeStreamReaderTest {
             awaitPositionCommittedPast(firstChangeLsn);
 
             UUID secondId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, secondId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
@@ -511,11 +506,11 @@ class ChangeStreamReaderTest {
         }
     }
 
-    private static List<ChangeStreamEntry> awaitEntriesFor(String table, long userId, int expectedCount) {
+    private static List<ChangeStreamEntry> awaitEntriesFor(String type, long userId, int expectedCount) {
         await().atMost(EVENT_TIMEOUT)
-                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId))
+                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, type, userId))
                         .hasSize(expectedCount));
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId);
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, type, userId);
     }
 
     private String confirmedFlushLsn() {

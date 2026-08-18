@@ -136,7 +136,7 @@ class ChangeStreamRecoveryTest {
             // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
             // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
             UUID abandonedId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(jdbcTemplate, abandonedId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, abandonedId, eventType, Instant.now(), userId);
 
             changeStreamRecovery.recover();
             changeStreamReader.start();
@@ -145,8 +145,7 @@ class ChangeStreamRecoveryTest {
             // A later change does reach the stream, which is what makes the absence above a real absence rather
             // than a stream nobody ever wrote to.
             UUID afterRebuildId = UUID.randomUUID();
-            OutboxRowUtils.storedOutboxRow(
-                    jdbcTemplate, afterRebuildId, eventType, Instant.now(), outboxPayload(userId));
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, afterRebuildId, eventType, Instant.now(), userId);
 
             await().atMost(Duration.ofSeconds(20))
                     .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, eventType, userId))
@@ -158,10 +157,6 @@ class ChangeStreamRecoveryTest {
                     .doesNotContain(abandonedId.toString());
 
             assertThat(currentWalStatus()).isIn("reserved", "extended");
-        }
-
-        private String outboxPayload(long userId) {
-            return "{\"userId\": %d}".formatted(userId);
         }
 
         private void awaitState(ChangeStreamState expected) {

@@ -96,11 +96,10 @@ class BroadcastLedgerChangesSystemTest {
             response.then().statusCode(200);
 
             // then: one ExpenseRefiled entry reaches ledger.cdc carrying the expenseId
-            await("the refile reaches the stream")
-                    .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(refiledEntryFor(userId, expenseId))
-                            .as("an ExpenseRefiled entry for the changed expense")
-                            .isPresent());
+            await("the refile reaches the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            refiledEntryFor(userId, expenseId))
+                    .as("an ExpenseRefiled entry for the changed expense")
+                    .isPresent());
             ChangeStreamEntry entry = refiledEntryFor(userId, expenseId).orElseThrow();
 
             // then: the payload names the new category and grouping, with their ids beside them
@@ -176,7 +175,7 @@ class BroadcastLedgerChangesSystemTest {
 
     private Optional<ChangeStreamEntry> refiledEntryFor(long userId, long expenseId) {
         return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId).stream()
-                .filter(entry -> expenseId == entry.payload().path("expenseId").asLong())
+                .filter(entry -> expenseId == entry.expenseId())
                 .findFirst();
     }
 

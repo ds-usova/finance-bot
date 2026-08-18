@@ -9,8 +9,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Component;
 
 /**
- * The pipeline's eight meters, recorded by the reader, the publisher, the resolver and the slot monitor —
- * never read back inside the module, only scraped at {@code /actuator/prometheus}.
+ * The pipeline's meters, recorded by the reader, the publisher and the slot monitor — never read back inside
+ * the module, only scraped at {@code /actuator/prometheus}.
  */
 @Component
 public class ChangeStreamMeters {

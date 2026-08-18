@@ -124,10 +124,10 @@ class RecoverSlotSystemTest {
 
             await("the spending write made after recovery reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(
-                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId))
-                            .as("ProposalCreated entries for the user created after recovery")
-                            .isNotEmpty());
+                    .untilAsserted(
+                            () -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalCreated", userId))
+                                    .as("ProposalCreated entries for the user created after recovery")
+                                    .isNotEmpty());
         }
 
         /**

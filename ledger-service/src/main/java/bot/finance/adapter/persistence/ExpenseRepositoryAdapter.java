@@ -53,9 +53,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             SpendingRowProjection eventRow =
                     expenseEntityRepository.findEventRow(saved.id()).orElseThrow();
             String eventType = expense.status() == ExpenseStatus.PENDING ? "ProposalCreated" : "ExpenseRecorded";
-            LedgerEvent event = spendingEventRenderer.render(eventType, eventRow, eventRow.createdAt());
-            ledgerEventOutbox.insert(List.of(event));
-            ledgerEventOutbox.delete(List.of(event.id()));
+            appendEvents(List.of(eventRow), eventType, eventRow.createdAt());
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
@@ -204,12 +202,9 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
                     userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
-            changed.ifPresent(row -> {
-                String eventType = status == ExpenseStatus.PENDING ? "ProposalRefiled" : "ExpenseRefiled";
-                LedgerEvent event = spendingEventRenderer.render(eventType, row, now);
-                ledgerEventOutbox.insert(List.of(event));
-                ledgerEventOutbox.delete(List.of(event.id()));
-            });
+            String eventType = status == ExpenseStatus.PENDING ? "ProposalRefiled" : "ExpenseRefiled";
+            appendEvents(changed.map(List::of).orElseGet(List::of), eventType, now);
+
             return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);

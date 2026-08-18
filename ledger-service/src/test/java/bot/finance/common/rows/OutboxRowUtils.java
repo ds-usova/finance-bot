@@ -36,5 +36,19 @@ public class OutboxRowUtils {
                 payload);
     }
 
+    /** The same row under the smallest payload the reads here filter by - a user id and nothing else. */
+    public static void storedOutboxRowFor(
+            JdbcTemplate jdbcTemplate, UUID id, String type, Instant occurredAt, long userId) {
+        storedOutboxRow(jdbcTemplate, id, type, occurredAt, "{\"userId\": %d}".formatted(userId));
+    }
+
+    /**
+     * Empties the table. A class asserting on the whole outbox needs it: the capture tests commit their rows
+     * outside any rolled-back transaction, since the engine only reads what the write-ahead log already holds.
+     */
+    public static void clearOutbox(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM outbox");
+    }
+
     public record OutboxRow(UUID id, String type, Instant occurredAt, String payload) {}
 }

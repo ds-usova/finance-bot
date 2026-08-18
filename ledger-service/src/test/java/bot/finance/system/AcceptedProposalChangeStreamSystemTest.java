@@ -63,7 +63,8 @@ class AcceptedProposalChangeStreamSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when two proposals on two messages are accepted - then two ProposalAccepted entries reach the stream")
+        @DisplayName(
+                "when two proposals on two messages are accepted - then two ProposalAccepted entries reach the stream")
         void whenTwoProposalsAcceptedById_thenTwoProposalAcceptedEntriesReachStream() {
             String externalId = "accepted-proposal-happy-user";
             String sessionCookie = BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId)
@@ -114,15 +115,13 @@ class AcceptedProposalChangeStreamSystemTest {
                     .isEqualTo(2);
 
             // then: two ProposalAccepted entries reach the stream, keeping their pending expenseId
-            await("both acceptances reach the stream")
-                    .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(
-                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalAccepted", userId))
-                            .as("ProposalAccepted entries for this user")
-                            .hasSize(2));
+            await("both acceptances reach the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalAccepted", userId))
+                    .as("ProposalAccepted entries for this user")
+                    .hasSize(2));
             List<ChangeStreamEntry> accepted = ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalAccepted", userId);
             assertThat(accepted)
-                    .extracting(entry -> entry.payload().path("expenseId").asLong())
+                    .extracting(ChangeStreamEntry::expenseId)
                     .as("each entry keeps the expenseId its pending entry already had")
                     .containsExactlyInAnyOrder(firstProposalId, secondProposalId);
 
@@ -174,8 +173,7 @@ class AcceptedProposalChangeStreamSystemTest {
             // then: no entry of any type carries that expenseId
             assertThat(ChangeStreamEntries.allEntriesOn(STREAM_KEY))
                     .as("no entry, of any type, carries an id that never named a row")
-                    .noneMatch(entry -> userId == entry.userId()
-                            && unknownProposalId == entry.payload().path("expenseId").asLong());
+                    .noneMatch(entry -> userId == entry.userId() && unknownProposalId == entry.expenseId());
         }
     }
 }

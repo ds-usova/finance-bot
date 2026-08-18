@@ -29,12 +29,9 @@ class LedgerEventOutboxTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // rowCount() reads the whole table, and a handful of other classes commit outbox rows outside any
-    // rolled-back transaction (the change-capture engine reads them off the WAL) - clearing here keeps
-    // this class's own row-count assertions deterministic regardless of what ran earlier in the suite.
     @BeforeEach
     void clearOutbox() {
-        jdbcTemplate.update("DELETE FROM outbox");
+        OutboxRowUtils.clearOutbox(jdbcTemplate);
     }
 
     @Nested
@@ -48,8 +45,7 @@ class LedgerEventOutboxTest {
             long userId = 5001L;
             UUID firstId = UUID.randomUUID();
             UUID secondId = UUID.randomUUID();
-            Instant firstOccurredAt =
-                    Instant.now().minusSeconds(120).truncatedTo(ChronoUnit.MICROS);
+            Instant firstOccurredAt = Instant.now().minusSeconds(120).truncatedTo(ChronoUnit.MICROS);
             Instant secondOccurredAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
             String firstPayload = "{\"userId\":%d,\"expenseId\":1}".formatted(userId);
             String secondPayload = "{\"userId\":%d,\"expenseId\":2}".formatted(userId);
@@ -66,7 +62,9 @@ class LedgerEventOutboxTest {
                     .satisfies(row -> {
                         assertThat(row.type()).isEqualTo("ProposalCreated");
                         assertThat(row.occurredAt()).isEqualTo(firstOccurredAt);
-                        assertThat(JsonUtils.readJson(row.payload()).get("expenseId").asInt())
+                        assertThat(JsonUtils.readJson(row.payload())
+                                        .get("expenseId")
+                                        .asInt())
                                 .isEqualTo(1);
                     });
             assertThat(rows)
@@ -75,7 +73,9 @@ class LedgerEventOutboxTest {
                     .satisfies(row -> {
                         assertThat(row.type()).isEqualTo("ExpenseRecorded");
                         assertThat(row.occurredAt()).isEqualTo(secondOccurredAt);
-                        assertThat(JsonUtils.readJson(row.payload()).get("expenseId").asInt())
+                        assertThat(JsonUtils.readJson(row.payload())
+                                        .get("expenseId")
+                                        .asInt())
                                 .isEqualTo(2);
                     });
         }
@@ -147,7 +147,6 @@ class LedgerEventOutboxTest {
     }
 
     private void storedOutboxRow(UUID id, String type, Instant occurredAt, long userId) {
-        String payload = "{\"userId\":%d}".formatted(userId);
-        OutboxRowUtils.storedOutboxRow(jdbcTemplate, id, type, occurredAt, payload);
+        OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, id, type, occurredAt, userId);
     }
 }

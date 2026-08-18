@@ -13,9 +13,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChangeEventPublisher {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final RedisChangeStreamWriter redisChangeStreamWriter;
     private final ChangeStreamMeters meters;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChangeEventPublisher(RedisChangeStreamWriter redisChangeStreamWriter, ChangeStreamMeters meters) {
         this.redisChangeStreamWriter = redisChangeStreamWriter;
@@ -41,7 +42,7 @@ public class ChangeEventPublisher {
 
     private JsonNode readAfter(ChangeEvent<String, String> event) {
         try {
-            return objectMapper.readTree(event.value()).get("after");
+            return MAPPER.readTree(event.value()).get("after");
         } catch (Exception e) {
             throw new IllegalStateException("Failed to parse change event value", e);
         }

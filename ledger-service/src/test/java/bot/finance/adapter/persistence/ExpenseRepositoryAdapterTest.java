@@ -76,12 +76,9 @@ class ExpenseRepositoryAdapterTest {
     @MockitoSpyBean
     private LedgerEventOutbox ledgerEventOutbox;
 
-    // A couple of scenarios assert the whole outbox table is empty, and a handful of other classes commit
-    // outbox rows outside any rolled-back transaction (the change-capture engine reads them off the WAL) -
-    // clearing here keeps those assertions deterministic regardless of what ran earlier in the suite.
     @BeforeEach
     void clearOutbox() {
-        jdbcTemplate.update("DELETE FROM outbox");
+        OutboxRowUtils.clearOutbox(jdbcTemplate);
     }
 
     @Nested
@@ -411,8 +408,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when a proposal is created under an ungrouped category - then its event carries a null grouping")
+        @DisplayName("when a proposal is created under an ungrouped category - then its event carries a null grouping")
         void whenProposalCreatedUnderUngroupedCategory_thenEventCarriesNullGrouping() {
             long userId = storedUserId("ri02-create-ungrouped-user");
             long categoryId = storedGroupingId(userId, "Standalone");
@@ -429,9 +425,8 @@ class ExpenseRepositoryAdapterTest {
             Expense created = adapter.create(proposal);
 
             assertThat(created.id()).isPresent();
-            assertThat(expenseRowsFor(userId))
-                    .singleElement()
-                    .satisfies(row -> assertThat(row.categoryId()).isEqualTo(categoryId));
+            assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.categoryId())
+                    .isEqualTo(categoryId));
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).singleElement().satisfies(event -> {
                 JsonNode payload = readJson(event.payload());
@@ -670,8 +665,7 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when three pending entries are accepted - then three ProposalAccepted events are inserted")
+        @DisplayName("when three pending entries are accepted - then three ProposalAccepted events are inserted")
         void whenThreePendingEntriesAccepted_thenThreeProposalAcceptedEventsInserted() {
             long userId = storedUserId("ri02-accept-three-entries-user");
             long categoryId = storedGroupingId(userId, "Groceries");
@@ -720,9 +714,8 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
             });
             assertThat(events.stream()
-                            .map(event -> readJson(event.payload())
-                                    .get("expenseId")
-                                    .asLong())
+                            .map(event ->
+                                    readJson(event.payload()).get("expenseId").asLong())
                             .toList())
                     .containsExactlyInAnyOrder(first.id(), second.id(), third.id());
         }
@@ -824,8 +817,7 @@ class ExpenseRepositoryAdapterTest {
                     reference.value(),
                     Instant.now().minusSeconds(60),
                     ExpenseStatus.PENDING);
-            Instant discardInstant =
-                    Instant.now().minusSeconds(5).truncatedTo(ChronoUnit.MICROS);
+            Instant discardInstant = Instant.now().minusSeconds(5).truncatedTo(ChronoUnit.MICROS);
 
             int discarded = adapter.discard(userId, reference, discardInstant);
 
@@ -838,9 +830,8 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
             });
             assertThat(events.stream()
-                            .map(event -> readJson(event.payload())
-                                    .get("expenseId")
-                                    .asLong())
+                            .map(event ->
+                                    readJson(event.payload()).get("expenseId").asLong())
                             .toList())
                     .containsExactlyInAnyOrder(first.id(), second.id());
         }
@@ -962,16 +953,18 @@ class ExpenseRepositoryAdapterTest {
                     Instant.now().minusSeconds(60),
                     ExpenseStatus.PENDING);
 
-            List<IncomingMessageId> answer = adapter.acceptByIds(
-                    userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
+            List<IncomingMessageId> answer =
+                    adapter.acceptByIds(userId, ProposalIds.of(List.of(first.id(), second.id())), Instant.now());
 
             assertThat(answer).containsExactlyInAnyOrder(firstReference, secondReference);
             List<LedgerEvent> events = capturedInsertedEvents();
-            assertThat(events).hasSize(2).allSatisfy(event -> assertThat(event.type()).isEqualTo("ProposalAccepted"));
+            assertThat(events).hasSize(2).allSatisfy(event -> assertThat(event.type())
+                    .isEqualTo("ProposalAccepted"));
         }
 
         @Test
-        @DisplayName("when an id names another person's PENDING entry - then nothing is inserted and their row stays PENDING")
+        @DisplayName(
+                "when an id names another person's PENDING entry - then nothing is inserted and their row stays PENDING")
         void whenIdNamesAnotherPersonsPendingEntry_thenNothingInsertedAndTheirRowStaysPending() {
             long ownerUserId = storedUserId("ri02-accept-by-ids-owner-user");
             long ownerCategoryId = storedGroupingId(ownerUserId, "Groceries");
@@ -1657,7 +1650,8 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when an id names no entry of the caller's under that status - then the answer is empty and nothing is inserted")
+        @DisplayName(
+                "when an id names no entry of the caller's under that status - then the answer is empty and nothing is inserted")
         void whenIdNamesNoEntryOfCallersUnderThatStatus_thenAnswerIsEmptyAndNothingInserted() {
             long userId = storedUserId("ri02-refile-no-matching-entry-user");
             long groupingId = storedGroupingId(userId, "Groceries");

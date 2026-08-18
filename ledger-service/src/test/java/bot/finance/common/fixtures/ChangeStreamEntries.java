@@ -64,5 +64,10 @@ public class ChangeStreamEntries {
         public long userId() {
             return payload.path("userId").asLong();
         }
+
+        /** The spending row the event is about, off its payload; zero for an event carrying none. */
+        public long expenseId() {
+            return payload.path("expenseId").asLong();
+        }
     }
 }

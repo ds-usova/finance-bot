@@ -96,9 +96,9 @@ class ChangeStreamMetersSystemTest {
                     .statusCode(200);
             await("the first category change reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(
-                                    ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId))
-                            .isNotEmpty());
+                    .untilAsserted(
+                            () -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId))
+                                    .isNotEmpty());
 
             // given: Redis has refused at least one write, cut at the proxy
             ToxiproxyContainers.REDIS_PROXY.setConnectionCut(true);
@@ -119,8 +119,8 @@ class ChangeStreamMetersSystemTest {
             // then: it carries a published count tagged by the type the refile produced
             assertThat(body)
                     .as("published count tagged by the event type")
-                    .containsPattern(
-                            Pattern.compile("(?m)^ledger_cdc_events_published_total\\{(?=[^}]*type=\"ExpenseRefiled\")[^}]*}"));
+                    .containsPattern(Pattern.compile(
+                            "(?m)^ledger_cdc_events_published_total\\{(?=[^}]*type=\"ExpenseRefiled\")[^}]*}"));
             // then: a failure count
             assertThat(body).as("publish failure count").contains("ledger_cdc_publish_failures_total");
             // then: the event lag

@@ -42,8 +42,8 @@ class SpendingEventRendererTest {
     class Render {
 
         @Test
-        @DisplayName("when a row has a merchant, a category and a grouping - then the payload carries the row's "
-                + "values")
+        @DisplayName(
+                "when a row has a merchant, a category and a grouping - then the payload carries the row's " + "values")
         void whenRowHasMerchantCategoryAndGrouping_thenPayloadCarriesTheRowsValues() {
             SpendingRowProjection row = fullRow();
             Instant occurredAt = Instant.parse("2026-02-01T12:30:00Z");

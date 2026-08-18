@@ -117,16 +117,18 @@ class CaptureDisabledSystemTest {
 
             // when: a person signs in, which writes captured category rows as part of seeding their tree
             String externalId = "capture-disabled-happy-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId).getCookie(BrowserSessions.COOKIE_NAME);
+            String sessionCookie = BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId)
+                    .getCookie(BrowserSessions.COOKIE_NAME);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()
                     .id();
 
             // when: a spending write is made - the write that would publish while capture is on
-            long firstCategoryId = CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Groceries", "Supermarkets");
-            long secondCategoryId = CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Dining", "Restaurants");
+            long firstCategoryId = CategoryRowUtils.categoryIdUnderGrouping(
+                    jdbcAggregateTemplate, userId, "Groceries", "Supermarkets");
+            long secondCategoryId =
+                    CategoryRowUtils.categoryIdUnderGrouping(jdbcAggregateTemplate, userId, "Dining", "Restaurants");
             long expenseId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
