@@ -77,8 +77,9 @@ job — do not re-derive them by hand and do not report them again as findings.
   step. A box nothing builds and a step building an undrawn class are the same defect from two sides.
 - Confirm every **TDD Unit Red Phase** step mocks or fakes **every** dependency its target class is handed — no
   real infrastructure, no application-framework context.
-- Confirm every **TDD Integration Red Phase** infrastructure step calls only the class-under-test's own public
-  methods — never through another class, and never the full application.
+- Confirm every **TDD Integration Red Phase** infrastructure step drives the class under test directly — never
+  through another class, and never the full application. Which method each scenario actually calls is checked in
+  2.3, off the scenario text.
 - Confirm every **TDD Integration Red Phase** framework step mocks what its class delegates to and uses no real
   infrastructure past the framework — entered through the protocol, never by a direct method call.
 - Confirm every **TDD System Test Red Phase** step mocks **nothing** and enters the way production does — HTTP via
@@ -97,6 +98,14 @@ job — do not re-derive them by hand and do not report them again as findings.
 - Confirm a step that pins the shape of a **library-generated** contract — a schema derived from a signature, a
   wire form a serializer emits — was written against the generator, not against the declaration; read the
   generator and flag a shape it would not produce.
+
+- Confirm the Stabilization group leaves the pre-existing suite where `templates/stabilizing.md` requires — green,
+  the total unchanged except for named deletions — and not merely compiling. Two things break that without
+  breaking the build: a Stabilization item that removes or narrows a schema object — a table, a column, a
+  constraint — while a statement some pre-existing test still runs reads it and no Stabilization item rewrites
+  that statement; and a signature or constructor change that leaves a pre-existing test failing rather than
+  disabled by a named item. Read the statements and the tests, not the item text. Classify `decision`: the fix
+  moves work between checklist items.
 
 Treat this as a dry run, at plan level, of the module's architecture-enforcement test — flag anything that test
 would reject if the code existed today.
@@ -120,10 +129,25 @@ this section.
   the same scenario duplicated across two types when one would suffice.
 - Verify the plan's **coverage balance rule** claims: open the actual `<TestClass>` files the plan references and
   confirm the scenarios listed as "new coverage" are not already covered by an existing test.
+- **Flag a scenario whose `then:` asserts nothing the plan does not already guarantee.** A `then:` that a
+  contract artifact the plan's own Stabilization group creates already states — a migration's `NOT NULL`, a
+  dropped table's absence, a schema's constraint, a generated type's shape — tests the artifact, not the class,
+  and reads as a contract nobody agreed to once the artifact is history. So does a `then:` restating a stub's
+  default. Resolution `mechanical`: drop the scenario.
+- **Read each `when:` and name the method it calls on the target class.** A scenario whose `when:` reaches the
+  outcome through another class, a template, a raw statement or the whole application — anything but a public
+  method of `<TargetClass>` — tests something else under this step's name. Resolution `mechanical` where the
+  same outcome is reachable through the target class; `decision` where it is not, since the scenario then
+  belongs to a different step or to none.
 - Verify the plan's **existing-test updates rule** the other way around: in those same test files, flag any existing
   test whose assertions the planned change would leave incomplete (a new field it omits, a grown enum/case set an
-  exhaustive test iterates) that has no corresponding `update:` sub-bullet in the plan — step sub-agents implement
-  only what is listed, so a missing `update:` bullet means the update never happens.
+  exhaustive test iterates) that no `update:` sub-bullet reaches — neither a per-method one naming it nor a
+  premise one whose premise its body meets. Step sub-agents apply only what a bullet reaches, so a test no bullet
+  reaches is never updated.
+- **Check every premise bullet against the bodies.** For each `update: premise — …`, open the class and find at
+  least one test whose body meets the premise, and read whether the stated consequence is what that body then
+  needs. A premise no test meets is a bullet written from memory; a consequence that fits one test and not
+  another the same premise reaches is a transformation wearing a premise, and must be split. Both `mechanical`.
 
 ## 3. Report Back
 

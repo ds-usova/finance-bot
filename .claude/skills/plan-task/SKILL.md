@@ -236,7 +236,10 @@ renumbered once the plan is written — a dropped step leaves a gap.
 
 **An `update:` bullet is written from the test's body, never from its name.** Open the method, read what it
 asserts, and say what changes about those assertions. `plan.sh validate` only checks that the method exists, so
-a bullet written off the name passes and reaches a step agent describing work nobody verified.
+a bullet written off the name passes and reaches a step agent describing work nobody verified. Where the same
+change reaches many tests of one class, do not stretch one sentence over a list of names: write a **premise**
+bullet — the fact about the change and what follows for a test that meets it — and let the step agent decide
+test by test which bodies meet it. The forms are in `step-formats.md`'s **Existing-test updates rule**.
 
 `plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines,
 dependency cycles, a `given:`/`when:`/`then:` left as a placeholder, an `update:` bullet naming a test method that

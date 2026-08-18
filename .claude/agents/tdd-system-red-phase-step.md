@@ -62,19 +62,25 @@ report it as a blocker instead of introducing a new tool or pattern on your own.
 4. Read one or two neighboring system test classes as a style reference — structure, scenario-group realization,
    precondition idiom, test data handling — so your tests read like the module's existing tests, not like a
    foreign body.
-5. **Existing-test updates**: the plan may include `update:` sub-bullets naming existing tests to extend (e.g.
-   assert a new response field an existing endpoint test would now omit). Read each named test before changing it.
-   If, while reading the existing tests, you notice one that clearly *should* have been updated but is not
-   listed — in this test class or anywhere else — do not touch it; record it in your report.
+5. **Existing-test updates**: the plan may include `update:` sub-bullets in two forms. A **per-method** bullet
+   names one existing test and one outcome (assert a new response field an endpoint test would now omit, delete).
+   Read the named test before changing it. A **premise** bullet (`update: premise — … · …`) states a fact about
+   the change and what follows for a test that meets it; it names no method, or one only as an example. Read
+   **every** test in the class and decide from each body whether the premise holds there — the entry point, the
+   field or the value the premise turns on is either in the body or it is not. If, while reading, you notice a
+   test that clearly *should* have been updated but no bullet reaches — in this test class or anywhere else — do
+   not touch it; record it in your report.
 
 ### Phase 2 — Write Compiling Tests
 
 Write **one test per given/when/then scenario** listed in the input — do not skip any — and apply each listed
-`update:` sub-bullet exactly as described. Place each test in the scenario group the plan assigns it to, realized
-the way the conventions describe, and derive each test method name from its scenario using the naming pattern in
-the conventions. Do **not** write tests beyond what is listed: the plan is the single source of what gets written,
-so two runs of the same step produce the same suite. If you identify a meaningful gap the plan missed, record it in
-your report instead of filling it yourself.
+`update:` sub-bullet: a per-method one exactly as written; a premise one to each test whose body meets the
+premise, and to no other. **The premise governs, not its wording.** A test the sentence seems to reach but whose
+body does not meet the premise is left as it is and named in the report — never reshaped so that it fits. Place
+each test in the scenario group the plan assigns it to, realized the way the conventions describe, and derive each
+test method name from its scenario using the naming pattern in the conventions. Do **not** write tests beyond what
+is listed: a system suite is a thin slice, and every case in it was chosen by the plan. If you identify a
+meaningful gap the plan missed, record it in your report instead of filling it yourself.
 
 - **System-test boundary**: **nothing is mocked**, and the application is entered **only the way production
   enters it** — the API-level test client for HTTP entries; for framework-fired entries, induce the trigger per
@@ -125,7 +131,7 @@ your report instead of filling it yourself.
 ## Scope Guardrails
 
 - Only create/modify your own test class and its test data files, and within them only the listed scenarios and
-  `update:` sub-bullets.
+  the `update:` sub-bullets as their form allows.
 - Never modify production code, stub bodies, other agents' test classes, or the plan file — the orchestrator owns
   the plan's checkboxes.
 - No unrelated refactors, renames, or formatting sweeps.
@@ -136,6 +142,8 @@ End with a short, structured report the orchestrator can act on — the only cha
 [`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - tests written/updated per scenario group (counts), the test class path, and any test data files created;
+- per premise bullet: `touched:` — the tests it was applied to; `left:` — the tests its wording seemed to reach
+  whose body did not meet it, with the reason;
 - compile status, and RED confirmation: which tests fail as expected, plus any negative-assertion tests listed as
   expected passes;
 - any coverage gaps or unlisted existing-test updates you noticed but, by design, did not implement;

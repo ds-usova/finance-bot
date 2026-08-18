@@ -158,10 +158,16 @@ exist after Stage 1 — so:
   directory beside the skills: bundled by grouping and layer, capped by the conventions, verified by the agent
   alone or by you once per wave, ticked per step ID.
 - Spawn each bundle on the agent matching its layer, passing every one of its steps' context (target class, test
-  class, covered methods, and the given/when/then scenarios verbatim) and the module conventions:
+  class, covered methods, the given/when/then scenarios and the `update:` bullets verbatim) and the module
+  conventions:
     - unit steps → `tdd-unit-red-phase-step`
     - integration steps → `tdd-integration-red-phase-step`
     - system steps → `tdd-system-red-phase-step`
+- When a report comes back, carry two of its lists into the plan before ticking: every `added:` case becomes a
+  scenario sub-bullet under its step, marked `(added)`, so the plan stays the record of what the suite holds;
+  every `left:` entry whose reason names a plan defect — a premise that fits no test, a consequence that does not
+  follow — goes under `### Open Questions / Blockers` like any other defect a step agent reports. A `left:` entry
+  that merely says the premise did not hold there needs nothing.
 
 **Per-step guardrail**: the test classes written **compile cleanly and fail at runtime**. A red test that passes
 against a stub is as much a defect as one that doesn't compile — it means the test asserts nothing — with one
