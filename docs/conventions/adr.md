@@ -25,15 +25,20 @@ The number is **one global sequence across both tiers** — four digits, one pas
 never reused and never renumbered. Each tier's sequence therefore carries gaps, and a gap is expected rather
 than a defect. It is assigned when the file is created, so a candidate nobody approved consumes none.
 
-## Who writes it
+## Placed, then written
 
-**A person writes an ADR. An agent only places it.** An ADR's whole value is a judgement about why a system is
-the way it is, and a plausible paragraph assembled from the diff reads exactly like a considered one — the
-difference shows years later, to a reader who cannot check.
+A record has two states, and both are legitimate.
 
-What an agent produces is the placeholder below: the title, the metadata, and the brief under each section
-saying what that section has to carry. The briefs are the deliverable and stay as written; a person replaces
-them with the content and moves `Status:` to `Accepted`.
+**Placed** is the file with its number, its title, its metadata and, under each section, a brief saying what
+that section has to carry. It is `Status: Proposed`, and it says a decision was made and is owed an
+explanation. Placing one is finished work: it lands and is committed with the rest.
+
+**Written** replaces each brief with the explanation and moves `Status:` to `Accepted`.
+
+**Whoever made the decision writes it.** The value of an ADR is a judgement about why a system is the way it
+is, and that judgement exists in one place — the person who weighed the alternatives. A paragraph reconstructed
+afterwards from the diff reads exactly like a considered one, and the difference only shows years later, to a
+reader who has no way to check.
 
 ```
 # ADR <nnnn>: <the decision, stated as a fact>
@@ -42,7 +47,7 @@ them with the content and moves `Status:` to `Accepted`.
 - **Date:** <YYYY-MM-DD>
 - **Source:** [<title>](<the relative path to the work that decided it, from this ADR's own tier>)
 
-> Placeholder. Each section says what it has to carry; a person writes it.
+> Placed, not yet written. Each section says what it has to carry.
 
 ## Context
 
@@ -58,8 +63,6 @@ to a tree that has moved on.>
 
 <What it costs and what must stay true. Two or three sentences, or a short bullet list.>
 ```
-
-A placeholder is finished work, not a draft to fill in silently: it lands and is committed with the rest.
 
 ## The shape
 
@@ -82,5 +85,5 @@ An ADR is append-only: it is never deleted, and its **Context** and **Decision**
 | What it applied to goes away, the decision still stands | unchanged                         | one dated line appended |
 
 A reversing ADR carries `Supersedes: NNNN` and gets its own new number; the one it replaces is the one that
-flips to `Superseded by`. That flip is bookkeeping rather than judgement, so an agent makes it; only the
-reversing ADR's own sections wait for a person.
+flips to `Superseded by`. That flip is bookkeeping rather than judgement, and does not wait on the reversing
+record being written.

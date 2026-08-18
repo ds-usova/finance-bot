@@ -49,9 +49,13 @@ however the work was done, so it does not live here.
 
 A plan carries one of those kinds in its **Post-Implementation Steps** group:
 
-- **ADR placeholders** — one item per approved decision, as
-  `Place ADR: <the decision, stated as a fact>`. The item authorizes a numbered placeholder, never the ADR
-  itself; [Follow-Up Work](../../../docs/conventions/follow-up.md) says who writes which part.
+- **ADRs, placed** — one item per approved decision, as `Place ADR: <the decision, stated as a fact>`.
+
+The item authorizes the agent to **place** the record and never to write it:
+[Architecture Decision Records](../../../docs/conventions/adr.md) defines both states, and the sections of a
+placed one are briefs that stay as written. The decision was the developer's, so the explanation is theirs; an
+agent that fills those sections in produces something indistinguishable from a considered ADR and wrong in a
+way no review catches.
 
 The approval is a numbered open question in the plan, and only an answered `yes` becomes an item. Nothing
 downstream places an ADR that has no item.

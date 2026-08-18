@@ -20,8 +20,8 @@ module that differs says so in its own section file.
 
 ## What Gets Written
 
-- **An ADR placeholder** — one per technical decision approved for recording. What earns an ADR, where it goes,
-  how it is numbered, what it looks like, and which part of it a person rather than an agent writes are all
+- **An ADR, placed** — one per technical decision approved for recording. What earns one, where it goes, how it
+  is numbered, what it looks like, and what separates a placed record from a written one are all
   [Architecture Decision Records](adr.md).
 
 **An ADR exists only because it was approved.** Each candidate is raised as a question — the decision as a fact,
