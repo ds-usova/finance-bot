@@ -185,7 +185,7 @@ never reaches `domain` as a string.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `SpendingRow` · test: `SpendingRowTest` · covers: `SpendingRow(...)`, `messageIdentity()` · scenarios: A1, A12, A14
+- [x] RU01 · `SpendingRow` · test: `SpendingRowTest` · covers: `SpendingRow(...)`, `messageIdentity()` · scenarios: A1, A12, A14
   - `SpendingRow(...)`:
     - given: an `expenseId` of zero or below, or a `userId` of zero or below
       when: the record is constructed
@@ -212,7 +212,7 @@ never reaches `domain` as a string.
   - update: `whenRowCarriesIncomingMessageId_thenIdentityCarriesUserIdAndMessageId()` — delete
   - update: `whenRowHasNoIncomingMessageId_thenItIsEmpty()` — delete
 
-- [ ] RU02 · `CategoryRef` · test: `CategoryRefTest` · covers: `CategoryRef(...)` · scenarios: A1
+- [x] RU02 · `CategoryRef` · test: `CategoryRefTest` · covers: `CategoryRef(...)` · scenarios: A1
   - `CategoryRef(...)`:
     - given: an id of zero or below
       when: the record is constructed
@@ -224,7 +224,7 @@ never reaches `domain` as a string.
       when: the record is constructed
       then: both read back unchanged
 
-- [ ] RU03 · `StreamPosition` · test: `StreamPositionTest` · covers: `StreamPosition(...)`, `compareTo()` · scenarios: A7, A8, A9
+- [x] RU03 · `StreamPosition` · test: `StreamPositionTest` · covers: `StreamPosition(...)`, `compareTo()` · scenarios: A7, A8, A9
   - `StreamPosition(...)`:
     - given: a `ms` of zero or below, or a negative `seq`
       when: the record is constructed
@@ -240,7 +240,7 @@ never reaches `domain` as a string.
       when: they are compared
       then: neither is greater
 
-- [ ] RU04 · `LearnMessageOutcomeCommand` · test: `LearnMessageOutcomeCommandTest` · covers: `LearnMessageOutcomeCommand(...)` · scenarios: A1
+- [x] RU04 · `LearnMessageOutcomeCommand` · test: `LearnMessageOutcomeCommandTest` · covers: `LearnMessageOutcomeCommand(...)` · scenarios: A1
   - `LearnMessageOutcomeCommand(...)`:
     - given: a delivery id, a position, a status and an entry
       when: the record is constructed
@@ -251,7 +251,7 @@ never reaches `domain` as a string.
   - update: `whenDeliveryIdAndChangeGiven_thenBothReadBackUnchanged()` — delete
   - update: `whenDeliveryIdNullOrBlankOrChangeIsNull_thenThrowsInvalidValueException()` — delete
 
-- [ ] RU05 · `ChangeStreamEntryReader` · test: `ChangeStreamEntryReaderTest` · covers: `read()` · scenarios: A1, A2, A3, A4, A6, A11, A12, A13, A14
+- [x] RU05 · `ChangeStreamEntryReader` · test: `ChangeStreamEntryReaderTest` · covers: `read()` · scenarios: A1, A2, A3, A4, A6, A11, A12, A13, A14
   - `read()`:
     - given: a `ProposalCreated` entry naming a message, at entry id `1700000000000-3`
       when: it is read
@@ -295,7 +295,7 @@ never reaches `domain` as a string.
   - update: `whenBodyIsIgnored_thenAnswersEmpty()` — delete
   - update: `whenBodyIsNotValidChangeEvent_thenInvalidValueExceptionIsThrown()` — delete
 
-- [ ] RU06 · `LearnMessageOutcomeUseCase` · test: `LearnMessageOutcomeUseCaseTest` · covers: `learn()` · scenarios: A1, A11, A15, A16, A19
+- [x] RU06 · `LearnMessageOutcomeUseCase` · test: `LearnMessageOutcomeUseCaseTest` · covers: `learn()` · scenarios: A1, A11, A15, A16, A19
   - `learn()`:
     - given: a command carrying an entry with a message id
       when: `learn(...)` is called
@@ -334,7 +334,7 @@ never reaches `domain` as a string.
   - update: `whenAbandonAcceptanceThrowsFailedException_thenStillDroppedAndOneWarnLogged()` — delete
   - update: `whenExpenseCreatedFailsAtEntryAttempts_thenDroppedErrorLoggedAbandonAcceptanceAndClearCalled()` — delete
 
-- [ ] RU07 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · covers: `toExampleExpense()` · scenarios: A18
+- [x] RU07 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest` · covers: `toExampleExpense()` · scenarios: A18
   - `toExampleExpense()`:
     - given: a row whose `amount` reads `4.50` and whose currency is `USD`
       when: `toExampleExpense()` is called
@@ -354,7 +354,7 @@ never reaches `domain` as a string.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `JdbcRecordedExpenseStoreAdapter` · test: `JdbcRecordedExpenseStoreAdapterTest` · covers: `apply()` · scenarios: A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A12, A17
+- [x] RI01 · `JdbcRecordedExpenseStoreAdapter` · test: `JdbcRecordedExpenseStoreAdapterTest` · covers: `apply()` · scenarios: A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A12, A17
   - `apply()`:
     - given: a registered message and no row for the `expenseId`
       when: `apply(...)` is called with a `PROPOSED` entry
@@ -425,7 +425,7 @@ never reaches `domain` as a string.
   - update: `whenRepositoryThrowsResourceFailureOrTransientException_thenThrowsMessageStoreUnavailableException()` — delete
   - update: `whenRepositoryThrowsAnotherDataAccessException_thenThrowsMessageStoreFailedExceptionNotSubtype()` — delete
 
-- [ ] RI02 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `findExamples()` · scenarios: A18
+- [x] RI02 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · covers: `findExamples()` · scenarios: A18
   - `findExamples()`:
     - given: a neighbouring message whose rows read `15.50` in `EUR` and `7200` in `JPY`
       when: `findExamples(...)` is called
@@ -440,7 +440,7 @@ never reaches `domain` as a string.
   - update: `whenExpenseHasNoCategoryOrGroupingName_thenBothAbsentRestUnchanged()` — rewritten to a row with a
     category name and no grouping, asserting only the grouping name is absent
 
-- [ ] RI03 · `ChangeStreamConsumer` · test: `ChangeStreamConsumerTest` · covers: `run()` · mocks: `LearnMessageOutcomePort` · scenarios: A8, A14, A15, A16
+- [x] RI03 · `ChangeStreamConsumer` · test: `ChangeStreamConsumerTest` · covers: `run()` · mocks: `LearnMessageOutcomePort` · scenarios: A8, A14, A15, A16
   - Happy Path:
     - given: the port answering `APPLIED`
       when: a `ProposalCreated` entry is published to the stream
@@ -465,7 +465,7 @@ never reaches `domain` as a string.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `LearnMessageOutcomeSystemTest` · covers: `ChangeStreamConsumer.run()` · scenarios: A1, A3, A10
+- [x] RS01 · `LearnMessageOutcomeSystemTest` · covers: `ChangeStreamConsumer.run()` · scenarios: A1, A3, A10
   - Happy Path:
     - given: a registered message
       when: a `ProposalCreated` entry naming it is published to the stream, and then its `ProposalAccepted`
@@ -479,7 +479,7 @@ never reaches `domain` as a string.
   - update: `whenProposedRowsDeleteArrivesAlone_thenRowIsDiscarded()` — delete
   - update: `whenProposalForUnregisteredMessageArrives_thenAcknowledgedAndNoRowExists()` — delete
 
-- [ ] RS02 · `RecallExamplesSystemTest` · covers: `ExtractIntents` RPC · scenarios: A18
+- [x] RS02 · `RecallExamplesSystemTest` · covers: `ExtractIntents` RPC · scenarios: A18
   - Happy Path:
     - given: an earlier accepted message whose stored row reads `4.50` in `USD`
       when: a new close message is handled
@@ -522,6 +522,24 @@ None. Q1 was answered `no`, and this group holds only the ADR an approved candid
   [`change-stream.md`](../../ai-connector-service/docs/contracts/out/change-stream.md) states the guard as its own
   rule, which is what design F12 already asks for.
   - A: No. The contract page states the guard as its own rule, and no ADR is written.
+
+- **B1 (RU06):** `whenStoreApplies_thenAttemptsClearReceivesDeliveryId()` was disabled under RU06 but named by no
+  `update:` bullet, and its body verified only `clear(...)` — so neither RU06's premise bullet nor any per-method
+  bullet authorized removing it. The red agent folded its assertion into
+  `whenEntryCarriesMessageId_thenStoreAppliesEntryStatusPositionAttemptsClearedAndOutcomeApplied()` and dropped
+  the method, so no coverage was lost, but one method left the tree that the plan did not name. Recorded rather
+  than reverted: the surviving test asserts the same thing.
+
+- **B2 (RU07 / GU07):** RU07's two new `toExampleExpense()` tests pass in the red phase instead of failing, because
+  ST09 already made the method pass `amount` through unscaled — the stabilization step and the green step overlap,
+  so the behaviour GU07 would implement was already in the tree. Not a red defect: the tests assert real
+  behaviour and would fail if the pass-through were removed. GU07 is therefore a verification-only step.
+
+- **B3 (RI02 / GI02, RS02 / GS02):** the same overlap as B2, one layer out. `JdbcMessageMemoryAdapter.findExamples()`
+  and the recall path were never stubbed — ST09's unscaled pass-through was the whole behaviour change — so every
+  `FindExamples` test and RS02's example-line test pass in the red phase. The assertions are genuine (they fail if
+  the amount is scaled again or an undecided row leaks through), so GI02 and GS02 join GU07 as verification-only
+  steps.
 
 ## Review Findings
 

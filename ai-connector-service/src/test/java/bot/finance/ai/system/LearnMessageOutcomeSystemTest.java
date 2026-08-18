@@ -1,10 +1,16 @@
 package bot.finance.ai.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import bot.finance.ai.common.boot.AbstractMemorySystemTest;
 import bot.finance.ai.common.fixtures.ChangeStreamEntryFixtures;
+import bot.finance.ai.common.rows.IncomingMessageRowUtils;
+import bot.finance.ai.common.rows.RecordedExpenseRowUtils;
+import bot.finance.ai.common.rows.RecordedExpenseRowUtils.RecordedExpenseRow;
 import bot.finance.ai.common.stubs.LedgerChangeStreamStubs;
 import java.time.Duration;
-import org.junit.jupiter.api.Disabled;
+import java.time.Instant;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -82,70 +88,68 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
                         GROUPING_NAME));
     }
 
+    private void publishProposalAccepted(long expenseId, long userId, String incomingMessageId, String txId) {
+        LedgerChangeStreamStubs.publish(
+                changeStreamKey,
+                ChangeStreamEntryFixtures.proposalAccepted(
+                        expenseId,
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        DESCRIPTION,
+                        MERCHANT,
+                        AMOUNT,
+                        CURRENCY_CODE,
+                        CATEGORY_ID,
+                        CATEGORY_NAME,
+                        GROUPING_ID,
+                        GROUPING_NAME));
+    }
+
     @Nested
     @DisplayName("happy path")
     class HappyPath {
 
-        @Disabled("RS01: replaced by a happy-path scenario asserting one ACCEPTED row after a create then an accept")
         @Test
-        @DisplayName("when a proposal's delete and expense insert share a txId - then one row is ACCEPTED with "
-                + "both ids and pending is zero")
-        void whenProposalDeleteAndExpenseInsertShareTxId_thenOneRowAcceptedWithBothIdsAndPendingZero() {
-            // long userId = 9101L;
-            // String incomingMessageId = "message-9101-1";
-            // long proposalId = 91011L;
-            // long expenseId = 91012L;
-            // String txId = "tx-9101-1";
-            // IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, "spent 15 euros", Instant.now());
-            //
-            // publishProposalCreated(proposalId, userId, incomingMessageId, txId);
-            // publishProposalDeleted(proposalId, userId, incomingMessageId, txId);
-            // publishExpenseCreated(expenseId, userId, incomingMessageId, txId);
-            //
-            // Awaitility.await().atMost(BOUND).until(() -> RecordedExpenseRowUtils.findByProposalId(
-            //                 jdbcTemplate, proposalId)
-            //         .filter(row -> "ACCEPTED".equals(row.status()) && row.expenseId() != null)
-            //         .isPresent());
-            // Awaitility.await().atMost(BOUND).untilAsserted(() -> assertThat(
-            //                 LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
-            //         .isZero());
-            //
-            // RecordedExpenseRow recordedExpenseRow = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate,
-            // proposalId)
-            //         .orElseThrow();
-            // log.info("row: {}", recordedExpenseRow);
-            // assertThat(recordedExpenseRow.proposalId()).isEqualTo(proposalId);
-            // assertThat(recordedExpenseRow.expenseId()).isEqualTo(expenseId);
-            // assertThat(recordedExpenseRow.amountMinorUnits()).isEqualTo(AMOUNT_MINOR_UNITS);
-            // assertThat(recordedExpenseRow.currencyCode()).isEqualTo(CURRENCY_CODE);
-            // assertThat(recordedExpenseRow.categoryId()).isEqualTo(CATEGORY_ID);
-            // assertThat(recordedExpenseRow.categoryName()).isEqualTo(CATEGORY_NAME);
-            // assertThat(recordedExpenseRow.groupingName()).isEqualTo(GROUPING_NAME);
-        }
+        @DisplayName("when a proposal is created and then accepted - then one row is ACCEPTED with its content "
+                + "and pending is zero")
+        void whenProposalCreatedThenAccepted_thenOneRowAcceptedWithContentAndPendingZero() {
+            long userId = 9101L;
+            String incomingMessageId = "message-9101-1";
+            long expenseId = 91011L;
+            String txId = "tx-9101-1";
+            IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, "spent 15 euros", Instant.now());
+            long messageId = IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
 
-        @Disabled("RS01: the provisional DISCARDED-pending state no longer exists")
-        @Test
-        @DisplayName("when a PROPOSED row's delete arrives alone - then the row is DISCARDED")
-        void whenProposedRowsDeleteArrivesAlone_thenRowIsDiscarded() {
-            // long userId = 9102L;
-            // String incomingMessageId = "message-9102-1";
-            // long proposalId = 91021L;
-            // String txId = "tx-9102-1";
-            // IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, "spent 15 euros", Instant.now());
-            // publishProposalCreated(proposalId, userId, incomingMessageId, txId);
-            // Awaitility.await().atMost(BOUND).until(() -> RecordedExpenseRowUtils.findByProposalId(
-            //                 jdbcTemplate, proposalId)
-            //         .map(row -> "PROPOSED".equals(row.status()))
-            //         .orElse(false));
-            //
-            // publishProposalDeleted(proposalId, userId, incomingMessageId, txId);
-            //
-            // Awaitility.await().atMost(BOUND).untilAsserted(() -> {
-            //     var row = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId);
-            //     log.info("row: {}", row);
-            //     assertThat(row).isPresent();
-            //     assertThat(row.orElseThrow().status()).isEqualTo("DISCARDED");
-            // });
+            publishProposalCreated(expenseId, userId, incomingMessageId, txId);
+            publishProposalAccepted(expenseId, userId, incomingMessageId, txId);
+
+            Awaitility.await()
+                    .atMost(BOUND)
+                    .until(() -> RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId)
+                            .filter(row -> "ACCEPTED".equals(row.status()))
+                            .isPresent());
+            Awaitility.await()
+                    .atMost(BOUND)
+                    .untilAsserted(() -> assertThat(LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
+                            .isZero());
+
+            RecordedExpenseRow row =
+                    RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId).orElseThrow();
+            log.info("row: {}", row);
+            assertThat(row.status()).isEqualTo("ACCEPTED");
+            assertThat(row.expenseId()).isEqualTo(expenseId);
+            assertThat(row.description()).isEqualTo(DESCRIPTION);
+            assertThat(row.merchant()).isEqualTo(MERCHANT);
+            assertThat(row.amount()).isEqualTo(AMOUNT);
+            assertThat(row.currencyCode()).isEqualTo(CURRENCY_CODE);
+            assertThat(row.categoryId()).isEqualTo(CATEGORY_ID);
+            assertThat(row.categoryName()).isEqualTo(CATEGORY_NAME);
+            assertThat(row.groupingId()).isEqualTo(GROUPING_ID);
+            assertThat(row.groupingName()).isEqualTo(GROUPING_NAME);
+            assertThat(RecordedExpenseRowUtils.countByMessage(jdbcTemplate, messageId))
+                    .as("exactly one row for that expenseId")
+                    .isEqualTo(1);
         }
     }
 
@@ -153,23 +157,22 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
     @DisplayName("unhappy path")
     class UnhappyPath {
 
-        @Disabled("RS01: rewritten against findByExpenseId, replaced by the Unhappy Path scenario named there")
         @Test
-        @DisplayName(
-                "when a proposal for an unregistered message arrives - then it is acknowledged and no row " + "exists")
-        void whenProposalForUnregisteredMessageArrives_thenAcknowledgedAndNoRowExists() {
-            // long userId = 9103L;
-            // String incomingMessageId = "message-9103-1";
-            // long proposalId = 91031L;
-            // String txId = "tx-9103-1";
-            //
-            // publishProposalCreated(proposalId, userId, incomingMessageId, txId);
-            //
-            // Awaitility.await().atMost(BOUND).untilAsserted(() -> assertThat(
-            //                 LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
-            //         .isZero());
-            // assertThat(RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId))
-            //         .isEmpty();
+        @DisplayName("when a proposal for an unregistered message arrives - then pending is zero and no row exists")
+        void whenProposalForUnregisteredMessageArrives_thenPendingZeroAndNoRowExists() {
+            long userId = 9103L;
+            String incomingMessageId = "message-9103-1";
+            long expenseId = 91031L;
+            String txId = "tx-9103-1";
+
+            publishProposalCreated(expenseId, userId, incomingMessageId, txId);
+
+            Awaitility.await()
+                    .atMost(BOUND)
+                    .untilAsserted(() -> assertThat(LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
+                            .isZero());
+            assertThat(RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId))
+                    .isEmpty();
         }
     }
 }

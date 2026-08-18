@@ -2,11 +2,11 @@ package bot.finance.ai.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
 import java.time.Instant;
 import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,20 +17,26 @@ class RecordedExpenseEntityTest {
     @DisplayName("toExampleExpense()")
     class ToExampleExpense {
 
-        @Disabled("RU07: the amount no longer scales - it is stored and read as the event's own decimal string")
         @Test
-        @DisplayName("when the currency has two minor digits - then the amount scales into the example accordingly")
-        void whenCurrencyHasTwoMinorDigits_thenAmountScalesIntoExampleAccordingly() {}
+        @DisplayName("when the amount reads 4.50 and the currency is USD - then the example keeps 4.50 USD unscaled")
+        void whenAmountReads450AndCurrencyIsUsd_thenExampleAmountIs450AndCurrencyIsUsd() {
+            RecordedExpenseEntity entity = expense("4.50", "USD", "Groceries", "Food", "ACCEPTED");
 
-        @Disabled("RU07: the amount no longer scales - it is stored and read as the event's own decimal string")
-        @Test
-        @DisplayName("when the currency has no minor unit - then the amount answers with no decimal places")
-        void whenCurrencyHasNoMinorUnit_thenAmountAnswersWithNoDecimalPlaces() {}
+            ExampleExpense example = entity.toExampleExpense();
 
-        @Disabled("RU07: category_name is now NOT NULL - no row can reach the mapping without one")
+            assertThat(example.amount()).isEqualTo("4.50");
+            assertThat(example.currency()).isEqualTo(CurrencyCode.of("USD"));
+        }
+
         @Test
-        @DisplayName("when the category name is absent - then the example's category name is empty")
-        void whenCategoryNameIsAbsent_thenExampleCategoryNameIsEmpty() {}
+        @DisplayName("when the amount reads 7200 and the currency is JPY - then the example's amount is 7200")
+        void whenAmountReads7200AndCurrencyIsJpy_thenExampleAmountIs7200() {
+            RecordedExpenseEntity entity = expense("7200", "JPY", "Groceries", "Food", "ACCEPTED");
+
+            ExampleExpense example = entity.toExampleExpense();
+
+            assertThat(example.amount()).isEqualTo("7200");
+        }
 
         @Test
         @DisplayName("when the grouping name is absent - then the example's grouping name is empty")

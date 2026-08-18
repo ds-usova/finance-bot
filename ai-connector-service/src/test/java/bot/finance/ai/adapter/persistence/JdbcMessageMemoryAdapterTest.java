@@ -2,6 +2,7 @@ package bot.finance.ai.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -14,9 +15,14 @@ import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.fixtures.EmbeddingFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
+import bot.finance.ai.common.rows.RecordedExpenseRowUtils;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
+import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.Embedding;
+import bot.finance.ai.domain.value.ExampleExpense;
+import bot.finance.ai.domain.value.ExampleOutcome;
+import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
 import java.time.Clock;
 import java.time.Duration;
@@ -31,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -77,9 +82,35 @@ class JdbcMessageMemoryAdapterTest {
         IncomingMessageRowUtils.setBackfillClaimedAt(jdbcTemplate, messageId, claimedAt);
     }
 
-    // FindExamples's tests are rewritten against RecordedExpenseRowUtils.insertApplied(...) - a decided row
-    // is now keyed by expenseId, stores its amount as a decimal string and holds a groupingId, and UNKNOWN is
-    // no longer a status the table accepts.
+    private void insertDecided(
+            long messageId,
+            long userId,
+            long expenseId,
+            String description,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName,
+            String status) {
+        RecordedExpenseRowUtils.insertApplied(
+                jdbcTemplate,
+                messageId,
+                userId,
+                expenseId,
+                description,
+                null,
+                amount,
+                currencyCode,
+                categoryId,
+                categoryName,
+                groupingId,
+                groupingName,
+                status,
+                1_700_000_000_000L,
+                0L);
+    }
 
     private ExampleQuery query(
             long userId,
@@ -204,74 +235,263 @@ class JdbcMessageMemoryAdapterTest {
         }
     }
 
-    // This whole nested class is rewritten against RecordedExpenseRowUtils.insertApplied(...) - a decided
-    // row is now keyed by expenseId, stores its amount as a decimal string and holds a groupingId, and
-    // UNKNOWN is no longer a status the table accepts.
     @Nested
     @DisplayName("finding examples")
     class FindExamples {
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
         @Test
         @DisplayName("when three clear the bar and a fourth does not - then answers the three, closest first")
-        void whenThreeClearBarAndFourthDoesNot_thenAnswersThreeClosestFirst() {}
+        void whenThreeClearBarAndFourthDoesNot_thenAnswersThreeClosestFirst() {
+            long userId = 9501L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long closest = insertMessageWithVector(
+                    userId, "examples-closest", "closest text", recent, EmbeddingFixtures.unitVectorAt(0, 0.95));
+            long mid = insertMessageWithVector(
+                    userId, "examples-mid", "mid text", recent, EmbeddingFixtures.unitVectorAt(0, 0.85));
+            long third = insertMessageWithVector(
+                    userId, "examples-third", "third text", recent, EmbeddingFixtures.unitVectorAt(0, 0.75));
+            long far = insertMessageWithVector(
+                    userId, "examples-far", "far text", recent, EmbeddingFixtures.unitVectorAt(0, 0.3));
+            insertDecided(closest, userId, 1L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(mid, userId, 2L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(third, userId, 3L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(far, userId, 4L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result)
+                    .extracting(MessageExample::text)
+                    .containsExactly("closest text", "mid text", "third text");
+        }
+
         @Test
         @DisplayName("when the three closest are old and a fourth clears the recent window - then the recent is last")
-        void whenThreeClosestAreOldAndFourthClearsRecentWindow_thenRecentIsLast() {}
+        void whenThreeClosestAreOldAndFourthClearsRecentWindow_thenRecentIsLast() {
+            long userId = 9502L;
+            Instant old = Instant.now().minus(Duration.ofDays(40));
+            Instant recent = Instant.now().minus(Duration.ofDays(1));
+            long closest = insertMessageWithVector(
+                    userId, "examples-recent-closest", "old closest", old, EmbeddingFixtures.unitVectorAt(0, 0.95));
+            long mid = insertMessageWithVector(
+                    userId, "examples-recent-mid", "old mid", old, EmbeddingFixtures.unitVectorAt(0, 0.85));
+            long third = insertMessageWithVector(
+                    userId, "examples-recent-third", "old third", old, EmbeddingFixtures.unitVectorAt(0, 0.75));
+            long recentMessage = insertMessageWithVector(
+                    userId, "examples-recent-window", "recent one", recent, EmbeddingFixtures.unitVectorAt(0, 0.65));
+            insertDecided(closest, userId, 11L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(mid, userId, 12L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(third, userId, 13L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(recentMessage, userId, 14L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result)
+                    .extracting(MessageExample::text)
+                    .containsExactly("old closest", "old mid", "old third", "recent one");
+        }
+
         @Test
         @DisplayName("when the closest recent message is already among the closest - then it appears once")
-        void whenClosestRecentAlreadyAmongClosest_thenAppearsOnce() {}
+        void whenClosestRecentAlreadyAmongClosest_thenAppearsOnce() {
+            long userId = 9503L;
+            Instant recent = Instant.now().minus(Duration.ofHours(2));
+            long closest = insertMessageWithVector(
+                    userId, "examples-dup-closest", "a", recent, EmbeddingFixtures.unitVectorAt(0, 0.95));
+            long mid = insertMessageWithVector(
+                    userId, "examples-dup-mid", "b", recent, EmbeddingFixtures.unitVectorAt(0, 0.85));
+            long third = insertMessageWithVector(
+                    userId, "examples-dup-third", "c", recent, EmbeddingFixtures.unitVectorAt(0, 0.75));
+            insertDecided(closest, userId, 21L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(mid, userId, 22L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(third, userId, 23L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).hasSize(3);
+            assertThat(result).extracting(MessageExample::text).containsExactly("a", "b", "c");
+        }
+
         @Test
         @DisplayName("when no message clears the minimum similarity - then answers nothing")
-        void whenNoMessageClearsMinimumSimilarity_thenAnswersNothing() {}
+        void whenNoMessageClearsMinimumSimilarity_thenAnswersNothing() {
+            long userId = 9504L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long tooFar = insertMessageWithVector(
+                    userId, "examples-below-min", "below min", recent, EmbeddingFixtures.unitVectorAt(0, 0.4));
+            insertDecided(tooFar, userId, 31L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).isEmpty();
+        }
+
         @Test
         @DisplayName("when the query is the message being handled itself - then it is not among the examples")
-        void whenQueryIsMessageBeingHandledItself_thenNotAmongExamples() {}
+        void whenQueryIsMessageBeingHandledItself_thenNotAmongExamples() {
+            long userId = 9505L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            List<Float> vector = EmbeddingFixtures.unitVector(0);
+            long selfId = insertMessageWithVector(userId, "examples-self", "self text", recent, vector);
+            insertDecided(selfId, userId, 41L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result = adapter.findExamples(defaultQuery(userId, selfId, vector));
+
+            assertThat(result).isEmpty();
+        }
+
         @Test
         @DisplayName("when a message is before max age or belongs to another person - then neither is an example")
-        void whenMessageBeforeMaxAgeOrAnotherPerson_thenNeitherIsExample() {}
+        void whenMessageBeforeMaxAgeOrAnotherPerson_thenNeitherIsExample() {
+            long userId = 9506L;
+            long otherUserId = 9507L;
+            Instant beforeMaxAge = Instant.now().minus(Duration.ofDays(366));
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long tooOld = insertMessageWithVector(
+                    userId, "examples-too-old", "too old", beforeMaxAge, EmbeddingFixtures.unitVectorAt(0, 0.99));
+            long otherPerson = insertMessageWithVector(
+                    otherUserId,
+                    "examples-other-person",
+                    "other person",
+                    recent,
+                    EmbeddingFixtures.unitVectorAt(0, 0.99));
+            insertDecided(tooOld, userId, 51L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(otherPerson, otherUserId, 52L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).isEmpty();
+        }
+
         @Test
         @DisplayName("when a message is all PROPOSED or holds no expense - then neither is an example")
-        void whenMessageAllProposedOrNoExpense_thenNeitherIsExample() {}
+        void whenMessageAllProposedOrNoExpense_thenNeitherIsExample() {
+            long userId = 9508L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long undecided = insertMessageWithVector(
+                    userId, "examples-undecided", "undecided", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            insertMessageWithVector(
+                    userId, "examples-no-expense", "no expense", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            insertDecided(undecided, userId, 61L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "PROPOSED");
 
-        @Disabled("RI02: rewritten to a neighbour holding ACCEPTED, DISCARDED and PROPOSED rows - UNKNOWN is gone")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).isEmpty();
+        }
+
         @Test
-        @DisplayName("when a neighbour holds an accepted, a discarded and an unknown expense - then only the "
+        @DisplayName("when a neighbour holds an accepted, a discarded and a proposed expense - then only the "
                 + "decided two are carried")
-        void whenNeighbourHoldsAcceptedDiscardedAndUnknown_thenOnlyDecidedTwoAreCarried() {}
+        void whenNeighbourHoldsAcceptedDiscardedAndProposed_thenOnlyDecidedTwoAreCarried() {
+            long userId = 9509L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long neighbour = insertMessageWithVector(
+                    userId, "examples-mixed-outcomes", "mixed", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            insertDecided(neighbour, userId, 71L, "coffee", "3.50", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(neighbour, userId, 72L, "lunch", "15.00", "EUR", 1L, "Cat", 2L, "Grp", "DISCARDED");
+            insertDecided(neighbour, userId, 73L, "taxi", "9.00", "EUR", 1L, "Cat", 2L, "Grp", "PROPOSED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).expenses())
+                    .extracting(ExampleExpense::description, ExampleExpense::outcome)
+                    .containsExactly(
+                            tuple("coffee", ExampleOutcome.ACCEPTED), tuple("lunch", ExampleOutcome.DISCARDED));
+        }
+
         @Test
         @DisplayName("when a neighbour holds more decided expenses than the bound - then only the first that many")
-        void whenNeighbourHoldsMoreDecidedExpensesThanBound_thenOnlyFirstThatMany() {}
+        void whenNeighbourHoldsMoreDecidedExpensesThanBound_thenOnlyFirstThatMany() {
+            long userId = 9510L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long neighbour = insertMessageWithVector(
+                    userId, "examples-line-bound", "many expenses", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            insertDecided(neighbour, userId, 81L, "first", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(neighbour, userId, 82L, "second", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(neighbour, userId, 83L, "third", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten to a row with a category name and no grouping, asserting only grouping is absent")
+            List<MessageExample> result = adapter.findExamples(query(
+                    userId,
+                    -1L,
+                    EmbeddingFixtures.unitVector(0),
+                    3,
+                    0.6,
+                    Duration.ofDays(30),
+                    Duration.ofDays(365),
+                    2));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).expenses())
+                    .extracting(ExampleExpense::description)
+                    .containsExactly("first", "second");
+        }
+
         @Test
-        @DisplayName(
-                "when a neighbour's expense has no category or grouping name - then both are absent, rest unchanged")
-        void whenExpenseHasNoCategoryOrGroupingName_thenBothAbsentRestUnchanged() {}
+        @DisplayName("when a neighbour's expense has a category and no grouping - then only the grouping name is "
+                + "absent")
+        void whenExpenseHasCategoryButNoGrouping_thenOnlyGroupingNameAbsent() {
+            long userId = 9511L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long neighbour = insertMessageWithVector(
+                    userId, "examples-no-grouping", "mystery", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            insertDecided(neighbour, userId, 91L, "mystery expense", "10.00", "USD", 1L, "Cat", null, null,
+                    "ACCEPTED");
 
-        @Disabled("RI02: deleted - the amount is no longer stored in minor units to be scaled on the way out")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).hasSize(1);
+            ExampleExpense expense = result.get(0).expenses().get(0);
+            assertThat(expense.description()).isEqualTo("mystery expense");
+            assertThat(expense.currency()).isEqualTo(CurrencyCode.of("USD"));
+            assertThat(expense.outcome()).isEqualTo(ExampleOutcome.ACCEPTED);
+            assertThat(expense.categoryName()).contains("Cat");
+            assertThat(expense.groupingName()).isEmpty();
+        }
+
         @Test
-        @DisplayName("when amounts are 1550 EUR and 1500 JPY - then they read as 15.50 and 1500, beside their currency")
-        void whenAmountsAre1550EurAnd1500Jpy_thenReadAsMainUnitDecimalBesideOwnCurrency() {}
+        @DisplayName("when amounts are 15.50 EUR and 7200 JPY - then the examples carry those strings, beside "
+                + "their own currency")
+        void whenAmountsAre1550EurAnd7200Jpy_thenReadAsDecimalStringsBesideOwnCurrency() {
+            long userId = 9512L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long eurMessage = insertMessageWithVector(
+                    userId, "examples-amount-eur", "eur one", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
+            long jpyMessage = insertMessageWithVector(
+                    userId, "examples-amount-jpy", "jpy one", recent, EmbeddingFixtures.unitVectorAt(0, 0.8));
+            insertDecided(eurMessage, userId, 101L, "eur expense", "15.50", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(jpyMessage, userId, 102L, "jpy expense", "7200", "JPY", 1L, "Cat", 2L, "Grp", "ACCEPTED");
 
-        @Disabled("RI02: rewritten against RecordedExpenseRowUtils.insertApplied(...)")
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0).expenses().get(0).amount()).isEqualTo("15.50");
+            assertThat(result.get(0).expenses().get(0).currency()).isEqualTo(CurrencyCode.of("EUR"));
+            assertThat(result.get(1).expenses().get(0).amount()).isEqualTo("7200");
+            assertThat(result.get(1).expenses().get(0).currency()).isEqualTo(CurrencyCode.of("JPY"));
+        }
+
         @Test
         @DisplayName("when a neighbour holds no vector - then it is not among the examples")
-        void whenNeighbourHoldsNoVector_thenNotAmongExamples() {}
+        void whenNeighbourHoldsNoVector_thenNotAmongExamples() {
+            long userId = 9513L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long noVector = insertMessageNoVector(userId, "examples-no-vector", "no vector", recent);
+            insertDecided(noVector, userId, 111L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+
+            List<MessageExample> result =
+                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            assertThat(result).isEmpty();
+        }
     }
 
     @Nested

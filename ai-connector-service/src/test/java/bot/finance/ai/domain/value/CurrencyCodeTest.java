@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.domain.exception.InvalidValueException;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,16 +48,5 @@ class CurrencyCodeTest {
         void whenNullOrBlankStringGiven_thenThrowsInvalidValueException(String code) {
             assertThatThrownBy(() -> CurrencyCode.of(code)).isInstanceOf(InvalidValueException.class);
         }
-    }
-
-    @Nested
-    @DisplayName("converting minor units to a decimal amount")
-    class ToDecimal {
-
-        @Disabled("RU07: toDecimal(long) is deleted - the stored amount is passed through unscaled")
-        @Test
-        @DisplayName("when toDecimal() is called - "
-                + "then it answers the main-unit decimal shifted by the currency's own minor-unit digits")
-        void whenToDecimalCalled_thenItAnswersTheMainUnitDecimalShiftedByTheCurrencysOwnMinorUnitDigits() {}
     }
 }

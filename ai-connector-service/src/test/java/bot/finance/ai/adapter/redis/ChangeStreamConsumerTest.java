@@ -18,6 +18,7 @@ import bot.finance.ai.common.boot.RedisAdapterTest;
 import bot.finance.ai.common.containers.ToxiproxyContainers;
 import bot.finance.ai.common.fixtures.ChangeStreamEntryFixtures;
 import bot.finance.ai.common.stubs.LedgerChangeStreamStubs;
+import bot.finance.ai.domain.value.RecordedStatus;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -101,18 +101,34 @@ class ChangeStreamConsumerTest {
                 "Food");
     }
 
+    private static Map<String, String> proposalCreatedFixture(long expenseId) {
+        return ChangeStreamEntryFixtures.proposalCreated(
+                expenseId,
+                10L,
+                "msg-" + expenseId,
+                expenseId,
+                "Coffee",
+                "Roastery",
+                "5.50",
+                "USD",
+                3L,
+                "Dining",
+                1L,
+                "Food");
+    }
+
     @Nested
     @DisplayName("start()")
     class Start {
 
-        @Disabled("RI03: rewritten to assert the offered command's status and entry instead of change()")
         @Test
-        @DisplayName("when the context starts and an entry is published - then the group exists, the port sees "
-                + "it, and pending reads zero")
-        void whenContextStartsAndEntryIsPublished_thenGroupExistsPortSeesItAndPendingReadsZero() {
+        @DisplayName("when a ProposalCreated entry is applied - then it is offered as PROPOSED and pending "
+                + "reads zero")
+        void whenProposalCreatedEntryIsPublished_thenGroupExistsCommandIsProposedAndPendingReadsZero() {
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.APPLIED);
 
-            String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(1L, "tx-1"));
+            long expenseId = 1L;
+            String entryId = LedgerChangeStreamStubs.publish(properties.key(), proposalCreatedFixture(expenseId));
 
             await().atMost(DEFAULT_TIMEOUT).untilAsserted(() -> {
                 assertThat(LedgerChangeStreamStubs.groupExists(properties.key(), GROUP))
@@ -121,13 +137,13 @@ class ChangeStreamConsumerTest {
                         ArgumentCaptor.forClass(LearnMessageOutcomeCommand.class);
                 verify(learnMessageOutcomePort).learn(captor.capture());
                 assertThat(captor.getValue().deliveryId()).isEqualTo(entryId);
-                // assertThat(captor.getValue().change()).isInstanceOf(SpendingRowChange.class);
+                assertThat(captor.getValue().status()).isEqualTo(RecordedStatus.PROPOSED);
+                assertThat(captor.getValue().entry().expenseId()).isEqualTo(expenseId);
                 assertThat(LedgerChangeStreamStubs.pending(properties.key(), GROUP))
                         .isZero();
             });
         }
 
-        @Disabled("RI03: the reader is stubbed to answer empty until it reads the event catalogue")
         @Test
         @DisplayName("when the first entry retries and the second is applied - then the second never precedes "
                 + "the first's last offer")
@@ -174,7 +190,6 @@ class ChangeStreamConsumerTest {
             assertThat(secondOfferIndex).isGreaterThan(lastFirstOfferIndex);
         }
 
-        @Disabled("RI03: the reader is stubbed to answer empty until it reads the event catalogue")
         @Test
         @DisplayName("when the port answers DROPPED - then the entry is acknowledged and the next entry is offered")
         void whenPortAnswersDropped_thenEntryIsAcknowledgedAndNextEntryIsOffered() {
@@ -193,7 +208,6 @@ class ChangeStreamConsumerTest {
             });
         }
 
-        @Disabled("RI03: the reader is stubbed to answer empty rather than throw on an unreadable body")
         @Test
         @DisplayName("when a body with no payload is published - then it is WARN-logged by entry id, "
                 + "acknowledged, and skipped")
@@ -211,7 +225,6 @@ class ChangeStreamConsumerTest {
             }
         }
 
-        @Disabled("RI03: the reader is stubbed to answer empty until it reads the event catalogue")
         @Test
         @DisplayName("when an entry idles past claimIdle under another consumer - then it is claimed, offered, "
                 + "and acknowledged")
@@ -245,7 +258,6 @@ class ChangeStreamConsumerTest {
             });
         }
 
-        @Disabled("RI03: the reader is stubbed to answer empty until it reads the event catalogue")
         @Test
         @DisplayName("when the port throws a RuntimeException - then it is ERROR-logged, stays pending, and "
                 + "the consumer runs on")
@@ -297,7 +309,6 @@ class ChangeStreamConsumerTest {
             @Autowired
             private ChangeStreamProperties propertiesOverProxy;
 
-            @Disabled("RI03: the reader is stubbed to answer empty until it reads the event catalogue")
             @Test
             @DisplayName("when the proxy is restored - then entries published while cut are offered, "
                     + "acknowledged, and it never stopped")

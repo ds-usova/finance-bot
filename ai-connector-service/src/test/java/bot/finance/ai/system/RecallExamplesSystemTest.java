@@ -19,7 +19,6 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,6 +49,11 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     }
 
     private long insertEarlierAcceptedMessage(long userId, String incomingMessageId, String text, List<Float> vector) {
+        return insertEarlierAcceptedMessage(userId, incomingMessageId, text, vector, "15.00", "EUR");
+    }
+
+    private long insertEarlierAcceptedMessage(
+            long userId, String incomingMessageId, String text, List<Float> vector, String amount, String currencyCode) {
         long messageId = IncomingMessageRowUtils.insertWithVectorReturningId(
                 jdbcTemplate, userId, incomingMessageId, text, Instant.now().minus(Duration.ofDays(1)), vector, 0);
         RecordedExpenseRowUtils.insertApplied(
@@ -59,8 +63,8 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
                 messageId * 10,
                 "lunch",
                 "Deli Co",
-                "15.00",
-                "EUR",
+                amount,
+                currencyCode,
                 42L,
                 CATEGORY_NAME,
                 1L,
@@ -75,17 +79,16 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
     @DisplayName("happy path")
     class HappyPath {
 
-        @Disabled("RS02: rewritten to assert the prompt's example line carries the amount and currency the event wrote")
         @Test
-        @DisplayName("when a new message arrives close to an earlier accepted one - then the prompt carries it as "
-                + "an example")
-        void whenNewMessageArrivesCloseToEarlierAcceptedOne_thenPromptCarriesItAsExample() {
+        @DisplayName("when a new message arrives close to an earlier accepted one - then the example line reads "
+                + "its amount and currency")
+        void whenNewMessageArrivesCloseToEarlierAcceptedOne_thenExampleLineReadsAmountAndCurrency() {
             long userId = 7001L;
             String earlierIncomingMessageId = "message-7001-earlier";
             String newIncomingMessageId = "message-7001-new";
-            String earlierText = "spent 15 on lunch and 3.50 coffee";
+            String earlierText = "spent 4.50 on lunch";
             insertEarlierAcceptedMessage(
-                    userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0));
+                    userId, earlierIncomingMessageId, earlierText, EmbeddingFixtures.unitVector(0), "4.50", "USD");
 
             WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponse(EmbeddingFixtures.unitVectorAt(0, 0.9)));
             stubOneTurn();
@@ -105,8 +108,10 @@ class RecallExamplesSystemTest extends AbstractMemorySystemTest {
             String userMessageContent = CapturedRequestUtils.messageContent(firstRequestBody, "user");
             log.info("user message content: {}", userMessageContent);
             assertThat(userMessageContent)
-                    .contains(earlierText)
+                    .contains("lunch")
+                    .contains("4.50 USD")
                     .contains(CATEGORY_NAME)
+                    .contains(GROUPING)
                     .contains("accepted");
         }
     }
