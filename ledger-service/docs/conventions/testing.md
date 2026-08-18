@@ -65,7 +65,8 @@ bot.finance
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
     │                             #   verification, and Bot API method recording
     ├── LogCapture            # Logback appender, for asserting on log output
-    └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
+    └── ReplicationSlots      # creates a slot, reads its wal_status, holds one the way another consumer would,
+                               #   drops one, and burns WAL past the bound
 ```
 
 The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus

@@ -1,12 +1,19 @@
 package bot.finance.common;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Optional;
+import java.util.Properties;
+import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Creates a replication slot, reads its {@code wal_status} back, drops a slot a test class left behind, and burns
- * WAL past the container's {@code max_slot_wal_keep_size} so a checkpoint invalidates a slot - the only way a test
- * reaches a lost one, since nothing in the module can set {@code wal_status} directly.
+ * Creates a replication slot, reads its {@code wal_status} back, holds one the way another consumer would, drops
+ * a slot a test class left behind, and burns WAL past the container's {@code max_slot_wal_keep_size} so a
+ * checkpoint invalidates a slot - the only way a test reaches a lost one, since nothing in the module can set
+ * {@code wal_status} directly.
  *
  * <p>It sits at the root of {@code common} rather than in one of the subpackages: it neither seeds a table's rows
  * nor sends a payload nor owns a container's lifecycle, and a bucket of one is worth less than leaving it where
@@ -51,6 +58,33 @@ public class ReplicationSlots {
     /** One megabyte of WAL no reader will ever confirm, so a slot's retained log moves off zero. */
     public static void emitOneMegabyteOfWal(JdbcTemplate jdbcTemplate) {
         jdbcTemplate.execute(ONE_MEGABYTE_OF_WAL);
+    }
+
+    /**
+     * Takes the slot the way a second instance of the service would - a replication connection streaming from
+     * it - and keeps it until the handle is closed. While it is held, any other attempt to stream from the slot
+     * is refused as active for this connection's PID.
+     */
+    public static AutoCloseable hold(
+            String jdbcUrl, String username, String password, String slotName, String publication)
+            throws SQLException {
+        Properties properties = new Properties();
+        PGProperty.USER.set(properties, username);
+        PGProperty.PASSWORD.set(properties, password);
+        PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
+        PGProperty.REPLICATION.set(properties, "database");
+        PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
+        Connection connection = DriverManager.getConnection(jdbcUrl, properties);
+        connection
+                .unwrap(PGConnection.class)
+                .getReplicationAPI()
+                .replicationStream()
+                .logical()
+                .withSlotName(slotName)
+                .withSlotOption("proto_version", 1)
+                .withSlotOption("publication_names", publication)
+                .start();
+        return connection::close;
     }
 
     /**

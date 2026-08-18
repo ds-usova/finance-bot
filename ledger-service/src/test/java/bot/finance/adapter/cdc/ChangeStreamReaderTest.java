@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.common.LogCapture;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
 import bot.finance.common.boot.CdcAdapterTestOnItsOwnDatabase;
+import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
@@ -16,6 +18,7 @@ import bot.finance.common.rows.ProposalReportRowUtils;
 import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.value.ExpenseStatus;
+import io.debezium.connector.postgresql.connection.PostgresReplicationConnection;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +64,7 @@ class ChangeStreamReaderTest {
 
     private static final String SLOT_NAME = "change_stream_reader_test";
     private static final String STREAM_KEY = "change-stream-reader-test.cdc";
+    private static final String PUBLICATION = "finance_ledger_cdc";
     private static final Duration STATE_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(15);
 
@@ -502,6 +506,28 @@ class ChangeStreamReaderTest {
             awaitState(ChangeStreamState.STREAMING);
 
             awaitCategoryIdsInOrder(userId, firstCategoryId, secondCategoryId);
+        }
+
+        @Test
+        @DisplayName("when stopped while its connector is still retrying a slot held elsewhere - then it stops "
+                + "within ten seconds")
+        void whenStoppedWhileConnectorStillTryingToOpenHeldSlot_thenStopsWithinTenSeconds() throws Exception {
+            ReplicationSlots.create(jdbcTemplate, SLOT_NAME);
+            try (AutoCloseable heldElsewhere = ReplicationSlots.hold(
+                            PostgresContainers.POSTGRES_CONTAINER.getJdbcUrl(),
+                            PostgresContainers.POSTGRES_CONTAINER.getUsername(),
+                            PostgresContainers.POSTGRES_CONTAINER.getPassword(),
+                            SLOT_NAME,
+                            PUBLICATION);
+                    LogCapture connectorLog = LogCapture.attachedTo(PostgresReplicationConnection.class)) {
+                changeStreamReader.start();
+                // The connector tries the slot again from a thread of its own, and leaves no trace of that but
+                // this line - so the line is what says the trying has begun.
+                await().atMost(STATE_TIMEOUT).untilAsserted(() -> assertThat(connectorLog.messages())
+                        .anyMatch(message -> message.startsWith("Failed to start replication stream")));
+
+                assertThat(changeStreamReader.stop(Duration.ofSeconds(10))).isTrue();
+            }
         }
     }
 
