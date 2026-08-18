@@ -493,7 +493,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 - [x] GS03 · `ProposalFactsSystemTest` · covers: `POST /mcp`
 - [x] GS04 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus`
 - [x] GS05 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc`
-- [ ] GS06 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health`, `GET /actuator/prometheus`
+- [x] GS06 · `CaptureDisabledSystemTest` · covers: `GET /actuator/health`, `GET /actuator/prometheus`
 
 ### Post-Implementation Steps
 
