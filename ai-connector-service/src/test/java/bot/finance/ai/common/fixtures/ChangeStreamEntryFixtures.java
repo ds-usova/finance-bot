@@ -209,6 +209,35 @@ public final class ChangeStreamEntryFixtures {
                 payload(userId, null, expenseId, "PENDING", "n/a", null, "1.00", "USD", 1L, "Cat", null, null));
     }
 
+    /** The payload of a valid spending entry, for a test that mutates one of its fields. */
+    public static String defaultPayload() {
+        return payload(
+                SpendingFactFixtures.DEFAULT_USER_ID,
+                SpendingFactFixtures.DEFAULT_MESSAGE_ID,
+                SpendingFactFixtures.DEFAULT_EXPENSE_ID,
+                "PENDING",
+                SpendingFactFixtures.DEFAULT_DESCRIPTION,
+                null,
+                SpendingFactFixtures.DEFAULT_AMOUNT,
+                SpendingFactFixtures.DEFAULT_CURRENCY,
+                SpendingFactFixtures.DEFAULT_CATEGORY_ID,
+                SpendingFactFixtures.DEFAULT_CATEGORY_NAME,
+                null,
+                null);
+    }
+
+    /** A body carrying the given {@code payload} verbatim, and a {@code type} only when one is named. */
+    public static Map<String, String> withPayload(String type, String payload) {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("id", "1");
+        if (type != null) {
+            body.put("type", type);
+        }
+        body.put("occurredAt", DEFAULT_OCCURRED_AT);
+        body.put("payload", payload);
+        return body;
+    }
+
     /** A body with no {@code payload} field but still publishable - Redis XADD refuses an entry with none. */
     public static Map<String, String> withNoPayload() {
         Map<String, String> body = new LinkedHashMap<>();
@@ -220,12 +249,7 @@ public final class ChangeStreamEntryFixtures {
 
     /** A body whose {@code payload} field is not valid JSON. */
     public static Map<String, String> withNonJsonPayload() {
-        Map<String, String> body = new LinkedHashMap<>();
-        body.put("id", "1");
-        body.put("type", "ProposalCreated");
-        body.put("occurredAt", DEFAULT_OCCURRED_AT);
-        body.put("payload", "not-json");
-        return body;
+        return withPayload("ProposalCreated", "not-json");
     }
 
     private static Map<String, String> entry(long eventId, String type, String payload) {

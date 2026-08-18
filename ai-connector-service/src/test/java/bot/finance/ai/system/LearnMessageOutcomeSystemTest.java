@@ -34,7 +34,7 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
     private static final long GROUPING_ID = 7L;
     private static final String GROUPING_NAME = "Food";
 
-    private void publishProposalCreated(long expenseId, long userId, String incomingMessageId, String txId) {
+    private void publishProposalCreated(long expenseId, long userId, String incomingMessageId) {
         LedgerChangeStreamStubs.publish(
                 changeStreamKey,
                 ChangeStreamEntryFixtures.proposalCreated(
@@ -52,43 +52,7 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
                         GROUPING_NAME));
     }
 
-    private void publishProposalDeleted(long expenseId, long userId, String incomingMessageId, String txId) {
-        LedgerChangeStreamStubs.publish(
-                changeStreamKey,
-                ChangeStreamEntryFixtures.proposalDiscarded(
-                        expenseId,
-                        userId,
-                        incomingMessageId,
-                        expenseId,
-                        DESCRIPTION,
-                        MERCHANT,
-                        AMOUNT,
-                        CURRENCY_CODE,
-                        CATEGORY_ID,
-                        CATEGORY_NAME,
-                        GROUPING_ID,
-                        GROUPING_NAME));
-    }
-
-    private void publishExpenseCreated(long expenseId, long userId, String incomingMessageId, String txId) {
-        LedgerChangeStreamStubs.publish(
-                changeStreamKey,
-                ChangeStreamEntryFixtures.expenseRecorded(
-                        expenseId,
-                        userId,
-                        incomingMessageId,
-                        expenseId,
-                        DESCRIPTION,
-                        MERCHANT,
-                        AMOUNT,
-                        CURRENCY_CODE,
-                        CATEGORY_ID,
-                        CATEGORY_NAME,
-                        GROUPING_ID,
-                        GROUPING_NAME));
-    }
-
-    private void publishProposalAccepted(long expenseId, long userId, String incomingMessageId, String txId) {
+    private void publishProposalAccepted(long expenseId, long userId, String incomingMessageId) {
         LedgerChangeStreamStubs.publish(
                 changeStreamKey,
                 ChangeStreamEntryFixtures.proposalAccepted(
@@ -117,25 +81,22 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
             long userId = 9101L;
             String incomingMessageId = "message-9101-1";
             long expenseId = 91011L;
-            String txId = "tx-9101-1";
             IncomingMessageRowUtils.insert(jdbcTemplate, userId, incomingMessageId, "spent 15 euros", Instant.now());
             long messageId = IncomingMessageRowUtils.id(jdbcTemplate, userId, incomingMessageId);
 
-            publishProposalCreated(expenseId, userId, incomingMessageId, txId);
-            publishProposalAccepted(expenseId, userId, incomingMessageId, txId);
+            publishProposalCreated(expenseId, userId, incomingMessageId);
+            publishProposalAccepted(expenseId, userId, incomingMessageId);
 
-            Awaitility.await()
-                    .atMost(BOUND)
-                    .until(() -> RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId)
-                            .filter(row -> "ACCEPTED".equals(row.status()))
-                            .isPresent());
-            Awaitility.await()
-                    .atMost(BOUND)
-                    .untilAsserted(() -> assertThat(LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
-                            .isZero());
+            Awaitility.await().atMost(BOUND).until(() -> RecordedExpenseRowUtils.findByExpenseId(
+                            jdbcTemplate, expenseId)
+                    .filter(row -> "ACCEPTED".equals(row.status()))
+                    .isPresent());
+            Awaitility.await().atMost(BOUND).untilAsserted(() -> assertThat(
+                            LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
+                    .isZero());
 
-            RecordedExpenseRow row =
-                    RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId).orElseThrow();
+            RecordedExpenseRow row = RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId)
+                    .orElseThrow();
             log.info("row: {}", row);
             assertThat(row.status()).isEqualTo("ACCEPTED");
             assertThat(row.expenseId()).isEqualTo(expenseId);
@@ -163,14 +124,12 @@ class LearnMessageOutcomeSystemTest extends AbstractMemorySystemTest {
             long userId = 9103L;
             String incomingMessageId = "message-9103-1";
             long expenseId = 91031L;
-            String txId = "tx-9103-1";
 
-            publishProposalCreated(expenseId, userId, incomingMessageId, txId);
+            publishProposalCreated(expenseId, userId, incomingMessageId);
 
-            Awaitility.await()
-                    .atMost(BOUND)
-                    .untilAsserted(() -> assertThat(LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
-                            .isZero());
+            Awaitility.await().atMost(BOUND).untilAsserted(() -> assertThat(
+                            LedgerChangeStreamStubs.pending(changeStreamKey, GROUP))
+                    .isZero());
             assertThat(RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId))
                     .isEmpty();
         }

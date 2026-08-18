@@ -85,7 +85,7 @@ class ChangeStreamConsumerTest {
         LedgerChangeStreamStubs.drain(properties.key(), GROUP);
     }
 
-    private static Map<String, String> expenseCreatedFixture(long expenseId, String txId) {
+    private static Map<String, String> expenseCreatedFixture(long expenseId) {
         return ChangeStreamEntryFixtures.expenseRecorded(
                 expenseId,
                 10L,
@@ -122,8 +122,8 @@ class ChangeStreamConsumerTest {
     class Start {
 
         @Test
-        @DisplayName("when a ProposalCreated entry is applied - then it is offered as PROPOSED and pending "
-                + "reads zero")
+        @DisplayName(
+                "when a ProposalCreated entry is applied - then it is offered as PROPOSED and pending " + "reads zero")
         void whenProposalCreatedEntryIsPublished_thenGroupExistsCommandIsProposedAndPendingReadsZero() {
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.APPLIED);
 
@@ -164,8 +164,8 @@ class ChangeStreamConsumerTest {
                 return firstEntryOfferCount.incrementAndGet() <= 2 ? LearnOutcome.RETRY_LATER : LearnOutcome.APPLIED;
             });
 
-            String firstEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(2L, "tx-2"));
-            String secondEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(3L, "tx-3"));
+            String firstEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(2L));
+            String secondEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(3L));
             secondEntryIdRef.set(secondEntryId);
 
             ArgumentCaptor<LearnMessageOutcomeCommand> captor =
@@ -195,8 +195,8 @@ class ChangeStreamConsumerTest {
         void whenPortAnswersDropped_thenEntryIsAcknowledgedAndNextEntryIsOffered() {
             when(learnMessageOutcomePort.learn(any())).thenReturn(LearnOutcome.DROPPED);
 
-            String firstEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(4L, "tx-4"));
-            String secondEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(5L, "tx-5"));
+            String firstEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(4L));
+            String secondEntryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(5L));
 
             await().atMost(DEFAULT_TIMEOUT).untilAsserted(() -> {
                 verify(learnMessageOutcomePort)
@@ -243,7 +243,7 @@ class ChangeStreamConsumerTest {
                     .untilAsserted(
                             () -> assertThat(changeStreamConsumer.isRunning()).isFalse());
 
-            String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(6L, "tx-6"));
+            String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(6L));
             LedgerChangeStreamStubs.readAsOther(properties.key(), GROUP, "other-consumer");
             assertThat(LedgerChangeStreamStubs.pending(properties.key(), GROUP)).isEqualTo(1);
             verify(learnMessageOutcomePort, never()).learn(any());
@@ -265,7 +265,7 @@ class ChangeStreamConsumerTest {
             try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamConsumer.class)) {
                 when(learnMessageOutcomePort.learn(any())).thenThrow(new RuntimeException("port failed"));
 
-                String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(7L, "tx-7"));
+                String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(7L));
 
                 await().atMost(DEFAULT_TIMEOUT).untilAsserted(() -> {
                     assertThat(logCapture.messages()).anyMatch(message -> message.contains(entryId));
@@ -318,8 +318,7 @@ class ChangeStreamConsumerTest {
                 ToxiproxyContainers.REDIS_PROXY.setConnectionCut(true);
                 String entryId;
                 try {
-                    entryId = LedgerChangeStreamStubs.publish(
-                            propertiesOverProxy.key(), expenseCreatedFixture(8L, "tx-8"));
+                    entryId = LedgerChangeStreamStubs.publish(propertiesOverProxy.key(), expenseCreatedFixture(8L));
                 } finally {
                     ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
                 }
@@ -362,7 +361,7 @@ class ChangeStreamConsumerTest {
             await().atMost(DEFAULT_TIMEOUT).untilAsserted(() -> assertThat(changeStreamConsumer.isRunning())
                     .isFalse());
 
-            LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(9L, "tx-9"));
+            LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(9L));
 
             await().pollDelay(Duration.ofSeconds(2))
                     .atMost(Duration.ofSeconds(4))

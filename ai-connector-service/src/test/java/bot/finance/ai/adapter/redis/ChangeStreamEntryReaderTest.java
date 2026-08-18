@@ -1,5 +1,7 @@
 package bot.finance.ai.adapter.redis;
 
+import static bot.finance.ai.common.fixtures.ChangeStreamEntryFixtures.defaultPayload;
+import static bot.finance.ai.common.fixtures.ChangeStreamEntryFixtures.withPayload;
 import static bot.finance.ai.common.fixtures.SpendingFactFixtures.DEFAULT_AMOUNT;
 import static bot.finance.ai.common.fixtures.SpendingFactFixtures.DEFAULT_CATEGORY_ID;
 import static bot.finance.ai.common.fixtures.SpendingFactFixtures.DEFAULT_CATEGORY_NAME;
@@ -20,7 +22,6 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.RecordedStatus;
 import bot.finance.ai.domain.value.SpendingRow;
 import bot.finance.ai.domain.value.StreamPosition;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -34,8 +35,43 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ChangeStreamEntryReaderTest {
 
     private static final String MERCHANT = "Corner Shop";
+    private static final String DESCRIPTION = "lunch";
 
     private final ChangeStreamEntryReader reader = new ChangeStreamEntryReader();
+
+    /** The shape every {@link ChangeStreamEntryFixtures} spending-entry builder shares. */
+    @FunctionalInterface
+    private interface SpendingEntry {
+        Map<String, String> build(
+                long eventId,
+                long userId,
+                String incomingMessageId,
+                long expenseId,
+                String description,
+                String merchant,
+                String amount,
+                String currencyCode,
+                long categoryId,
+                String categoryName,
+                Long groupingId,
+                String groupingName);
+    }
+
+    private static Map<String, String> withDefaults(SpendingEntry builder) {
+        return builder.build(
+                1L,
+                DEFAULT_USER_ID,
+                DEFAULT_MESSAGE_ID,
+                DEFAULT_EXPENSE_ID,
+                DESCRIPTION,
+                MERCHANT,
+                DEFAULT_AMOUNT,
+                DEFAULT_CURRENCY,
+                DEFAULT_CATEGORY_ID,
+                DEFAULT_CATEGORY_NAME,
+                DEFAULT_GROUPING_ID,
+                DEFAULT_GROUPING_NAME);
+    }
 
     @Nested
     @DisplayName("read()")
@@ -45,19 +81,7 @@ class ChangeStreamEntryReaderTest {
         @DisplayName("when a ProposalCreated entry names a message - then the command holds its delivery id, "
                 + "position, PROPOSED and the row")
         void whenProposalCreatedEntryNamesMessage_thenCommandHoldsDeliveryIdPositionProposedAndRow() {
-            Map<String, String> body = ChangeStreamEntryFixtures.proposalCreated(
-                    1L,
-                    DEFAULT_USER_ID,
-                    DEFAULT_MESSAGE_ID,
-                    DEFAULT_EXPENSE_ID,
-                    "lunch",
-                    MERCHANT,
-                    DEFAULT_AMOUNT,
-                    DEFAULT_CURRENCY,
-                    DEFAULT_CATEGORY_ID,
-                    DEFAULT_CATEGORY_NAME,
-                    DEFAULT_GROUPING_ID,
-                    DEFAULT_GROUPING_NAME);
+            Map<String, String> body = withDefaults(ChangeStreamEntryFixtures::proposalCreated);
 
             Optional<LearnMessageOutcomeCommand> result = reader.read("1700000000000-3", body);
 
@@ -79,19 +103,7 @@ class ChangeStreamEntryReaderTest {
         @Test
         @DisplayName("when a ProposalRefiled entry is read - then the command's status is PROPOSED")
         void whenProposalRefiledEntryIsRead_thenCommandStatusIsProposed() {
-            Map<String, String> body = ChangeStreamEntryFixtures.proposalRefiled(
-                    1L,
-                    DEFAULT_USER_ID,
-                    DEFAULT_MESSAGE_ID,
-                    DEFAULT_EXPENSE_ID,
-                    "lunch",
-                    MERCHANT,
-                    DEFAULT_AMOUNT,
-                    DEFAULT_CURRENCY,
-                    DEFAULT_CATEGORY_ID,
-                    DEFAULT_CATEGORY_NAME,
-                    DEFAULT_GROUPING_ID,
-                    DEFAULT_GROUPING_NAME);
+            Map<String, String> body = withDefaults(ChangeStreamEntryFixtures::proposalRefiled);
 
             Optional<LearnMessageOutcomeCommand> result = reader.read("1700000000000-1", body);
 
@@ -103,19 +115,7 @@ class ChangeStreamEntryReaderTest {
         @DisplayName("when a ProposalDiscarded entry's own status reads PENDING - then the command's status is "
                 + "DISCARDED")
         void whenProposalDiscardedEntryOwnStatusReadsPending_thenCommandStatusIsDiscarded() {
-            Map<String, String> body = ChangeStreamEntryFixtures.proposalDiscarded(
-                    1L,
-                    DEFAULT_USER_ID,
-                    DEFAULT_MESSAGE_ID,
-                    DEFAULT_EXPENSE_ID,
-                    "lunch",
-                    MERCHANT,
-                    DEFAULT_AMOUNT,
-                    DEFAULT_CURRENCY,
-                    DEFAULT_CATEGORY_ID,
-                    DEFAULT_CATEGORY_NAME,
-                    DEFAULT_GROUPING_ID,
-                    DEFAULT_GROUPING_NAME);
+            Map<String, String> body = withDefaults(ChangeStreamEntryFixtures::proposalDiscarded);
 
             Optional<LearnMessageOutcomeCommand> result = reader.read("1700000000000-1", body);
 
@@ -142,7 +142,7 @@ class ChangeStreamEntryReaderTest {
                     DEFAULT_USER_ID,
                     DEFAULT_MESSAGE_ID,
                     DEFAULT_EXPENSE_ID,
-                    "lunch",
+                    DESCRIPTION,
                     MERCHANT,
                     DEFAULT_AMOUNT,
                     DEFAULT_CURRENCY,
@@ -167,7 +167,7 @@ class ChangeStreamEntryReaderTest {
                     DEFAULT_USER_ID,
                     DEFAULT_MESSAGE_ID,
                     DEFAULT_EXPENSE_ID,
-                    "lunch",
+                    DESCRIPTION,
                     null,
                     DEFAULT_AMOUNT,
                     DEFAULT_CURRENCY,
@@ -191,7 +191,7 @@ class ChangeStreamEntryReaderTest {
                     DEFAULT_USER_ID,
                     null,
                     DEFAULT_EXPENSE_ID,
-                    "lunch",
+                    DESCRIPTION,
                     MERCHANT,
                     DEFAULT_AMOUNT,
                     DEFAULT_CURRENCY,
@@ -209,8 +209,7 @@ class ChangeStreamEntryReaderTest {
         @Test
         @DisplayName("when the entry's type is none of the six - then it answers empty")
         void whenEntryTypeIsNoneOfTheSix_thenAnswersEmpty() {
-            Map<String, String> body =
-                    ChangeStreamEntryFixtures.unknownType(1L, DEFAULT_USER_ID, DEFAULT_EXPENSE_ID);
+            Map<String, String> body = ChangeStreamEntryFixtures.unknownType(1L, DEFAULT_USER_ID, DEFAULT_EXPENSE_ID);
 
             Optional<LearnMessageOutcomeCommand> result = reader.read("1700000000000-1", body);
 
@@ -220,10 +219,8 @@ class ChangeStreamEntryReaderTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.ai.adapter.redis.ChangeStreamEntryReaderTest#invalidBodies")
         @DisplayName("when the entry is not readable as an event - then InvalidValueException is thrown")
-        void whenEntryIsNotAValidEvent_thenInvalidValueExceptionIsThrown(
-                String description, Map<String, String> body) {
-            assertThatThrownBy(() -> reader.read("1700000000000-1", body))
-                    .isInstanceOf(InvalidValueException.class);
+        void whenEntryIsNotAValidEvent_thenInvalidValueExceptionIsThrown(String description, Map<String, String> body) {
+            assertThatThrownBy(() -> reader.read("1700000000000-1", body)).isInstanceOf(InvalidValueException.class);
         }
 
         @ParameterizedTest(name = "{0}")
@@ -231,19 +228,7 @@ class ChangeStreamEntryReaderTest {
         @DisplayName("when the entry id has no dash, a non-numeric half, or a non-positive ms - then "
                 + "InvalidValueException is thrown")
         void whenEntryIdIsMalformed_thenInvalidValueExceptionIsThrown(String description, String entryId) {
-            Map<String, String> body = ChangeStreamEntryFixtures.proposalCreated(
-                    1L,
-                    DEFAULT_USER_ID,
-                    DEFAULT_MESSAGE_ID,
-                    DEFAULT_EXPENSE_ID,
-                    "lunch",
-                    MERCHANT,
-                    DEFAULT_AMOUNT,
-                    DEFAULT_CURRENCY,
-                    DEFAULT_CATEGORY_ID,
-                    DEFAULT_CATEGORY_NAME,
-                    DEFAULT_GROUPING_ID,
-                    DEFAULT_GROUPING_NAME);
+            Map<String, String> body = withDefaults(ChangeStreamEntryFixtures::proposalCreated);
 
             assertThatThrownBy(() -> reader.read(entryId, body)).isInstanceOf(InvalidValueException.class);
         }
@@ -251,68 +236,34 @@ class ChangeStreamEntryReaderTest {
 
     static Stream<Map<String, String>> acceptedEntries() {
         return Stream.of(
-                ChangeStreamEntryFixtures.proposalAccepted(
-                        1L,
-                        DEFAULT_USER_ID,
-                        DEFAULT_MESSAGE_ID,
-                        DEFAULT_EXPENSE_ID,
-                        "lunch",
-                        MERCHANT,
-                        DEFAULT_AMOUNT,
-                        DEFAULT_CURRENCY,
-                        DEFAULT_CATEGORY_ID,
-                        DEFAULT_CATEGORY_NAME,
-                        DEFAULT_GROUPING_ID,
-                        DEFAULT_GROUPING_NAME),
-                ChangeStreamEntryFixtures.expenseRecorded(
-                        1L,
-                        DEFAULT_USER_ID,
-                        DEFAULT_MESSAGE_ID,
-                        DEFAULT_EXPENSE_ID,
-                        "lunch",
-                        MERCHANT,
-                        DEFAULT_AMOUNT,
-                        DEFAULT_CURRENCY,
-                        DEFAULT_CATEGORY_ID,
-                        DEFAULT_CATEGORY_NAME,
-                        DEFAULT_GROUPING_ID,
-                        DEFAULT_GROUPING_NAME),
-                ChangeStreamEntryFixtures.expenseRefiled(
-                        1L,
-                        DEFAULT_USER_ID,
-                        DEFAULT_MESSAGE_ID,
-                        DEFAULT_EXPENSE_ID,
-                        "lunch",
-                        MERCHANT,
-                        DEFAULT_AMOUNT,
-                        DEFAULT_CURRENCY,
-                        DEFAULT_CATEGORY_ID,
-                        DEFAULT_CATEGORY_NAME,
-                        DEFAULT_GROUPING_ID,
-                        DEFAULT_GROUPING_NAME));
+                withDefaults(ChangeStreamEntryFixtures::proposalAccepted),
+                withDefaults(ChangeStreamEntryFixtures::expenseRecorded),
+                withDefaults(ChangeStreamEntryFixtures::expenseRefiled));
     }
 
     static Stream<Arguments> invalidBodies() {
         return Stream.of(
                 Arguments.of("no payload", ChangeStreamEntryFixtures.withNoPayload()),
                 Arguments.of("payload not JSON", ChangeStreamEntryFixtures.withNonJsonPayload()),
-                Arguments.of("no type", entry(null, validPayload())),
-                Arguments.of("expenseId absent", entry("ProposalCreated", payloadWithout("\"expenseId\":9001,"))),
+                Arguments.of("no type", withPayload(null, defaultPayload())),
+                Arguments.of("expenseId absent", withPayload("ProposalCreated", payloadWithout("\"expenseId\":9001,"))),
                 Arguments.of(
                         "expenseId not a number",
-                        entry("ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":\"abc\""))),
+                        withPayload(
+                                "ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":\"abc\""))),
                 Arguments.of(
                         "expenseId zero",
-                        entry("ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":0"))),
+                        withPayload("ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":0"))),
                 Arguments.of(
                         "expenseId negative",
-                        entry("ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":-1"))),
-                Arguments.of("userId absent", entry("ProposalCreated", payloadWithout("\"userId\":10,"))),
+                        withPayload("ProposalCreated", payloadReplacing("\"expenseId\":9001", "\"expenseId\":-1"))),
+                Arguments.of("userId absent", withPayload("ProposalCreated", payloadWithout("\"userId\":10,"))),
                 Arguments.of(
                         "userId not a number",
-                        entry("ProposalCreated", payloadReplacing("\"userId\":10", "\"userId\":\"abc\""))),
+                        withPayload("ProposalCreated", payloadReplacing("\"userId\":10", "\"userId\":\"abc\""))),
                 Arguments.of(
-                        "userId zero", entry("ProposalCreated", payloadReplacing("\"userId\":10", "\"userId\":0"))));
+                        "userId zero",
+                        withPayload("ProposalCreated", payloadReplacing("\"userId\":10", "\"userId\":0"))));
     }
 
     static Stream<Arguments> invalidEntryIds() {
@@ -324,29 +275,11 @@ class ChangeStreamEntryReaderTest {
                 Arguments.of("ms negative", "-100-3"));
     }
 
-    private static String validPayload() {
-        return """
-                {"userId":10,"incomingMessageId":"msg-1","expenseId":9001,"status":"PENDING","description":"lunch",\
-                "merchant":null,"amount":"15.00","currencyCode":"EUR","category":{"id":5,"name":"Groceries"},\
-                "grouping":null}""";
-    }
-
     private static String payloadWithout(String field) {
-        return validPayload().replace(field, "");
+        return defaultPayload().replace(field, "");
     }
 
     private static String payloadReplacing(String field, String replacement) {
-        return validPayload().replace(field, replacement);
-    }
-
-    private static Map<String, String> entry(String type, String payload) {
-        Map<String, String> body = new LinkedHashMap<>();
-        body.put("id", "1");
-        if (type != null) {
-            body.put("type", type);
-        }
-        body.put("occurredAt", "2026-08-18T12:00:00Z");
-        body.put("payload", payload);
-        return body;
+        return defaultPayload().replace(field, replacement);
     }
 }

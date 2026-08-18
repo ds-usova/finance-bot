@@ -78,10 +78,7 @@ public final class RecordedExpenseRowUtils {
                 Timestamp.from(updatedAt));
     }
 
-    /**
-     * Inserts an applied row - a status and a position of its own, updated now - for a test that only cares
-     * about what an example is built from.
-     */
+    /** Inserts an applied row - a status and a position of its own, updated now. */
     public static void insertApplied(
             JdbcTemplate jdbcTemplate,
             long messageId,

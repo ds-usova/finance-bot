@@ -32,8 +32,7 @@ public class ChangeStreamEntryReader {
         if (payload == null) {
             throw new InvalidValueException("Payload must not be null");
         }
-        JsonNode node = parsePayload(payload);
-        SpendingRow entry = toRow(node);
+        SpendingRow entry = toRow(parsePayload(payload));
         StreamPosition position = parsePosition(entryId);
 
         return Optional.of(new LearnMessageOutcomeCommand(entryId, position, status.get(), entry));
@@ -56,25 +55,26 @@ public class ChangeStreamEntryReader {
         }
     }
 
-    private SpendingRow toRow(JsonNode node) {
-        long expenseId = requiredPositiveLong(node, "expenseId");
-        long userId = requiredPositiveLong(node, "userId");
+    private SpendingRow toRow(JsonNode payload) {
+        long expenseId = requiredPositiveLong(payload, "expenseId");
+        long userId = requiredPositiveLong(payload, "userId");
 
         return new SpendingRow(
                 expenseId,
                 userId,
-                optionalText(node, "incomingMessageId"),
-                node.path("description").asText(),
-                optionalText(node, "merchant"),
-                node.path("amount").asText(),
-                CurrencyCode.of(node.path("currencyCode").asText()),
-                category(node),
-                grouping(node));
+                optionalText(payload, "incomingMessageId"),
+                payload.path("description").asText(),
+                optionalText(payload, "merchant"),
+                payload.path("amount").asText(),
+                CurrencyCode.of(payload.path("currencyCode").asText()),
+                category(payload),
+                grouping(payload));
     }
 
     private CategoryRef category(JsonNode payload) {
         JsonNode category = payload.path("category");
-        return new CategoryRef(category.path("id").asLong(), category.path("name").asText());
+        return new CategoryRef(
+                category.path("id").asLong(), category.path("name").asText());
     }
 
     private Optional<CategoryRef> grouping(JsonNode payload) {
@@ -82,7 +82,8 @@ public class ChangeStreamEntryReader {
         if (grouping == null || grouping.isNull()) {
             return Optional.empty();
         }
-        return Optional.of(new CategoryRef(grouping.path("id").asLong(), grouping.path("name").asText()));
+        return Optional.of(new CategoryRef(
+                grouping.path("id").asLong(), grouping.path("name").asText()));
     }
 
     private long requiredPositiveLong(JsonNode payload, String field) {

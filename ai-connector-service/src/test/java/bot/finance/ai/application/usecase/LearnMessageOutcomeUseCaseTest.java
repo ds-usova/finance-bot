@@ -129,8 +129,8 @@ class LearnMessageOutcomeUseCaseTest {
         }
 
         @Test
-        @DisplayName("when the store fails below entryAttempts - then RETRY_LATER, failure counted, no ERROR "
-                + "logged")
+        @DisplayName(
+                "when the store fails below entryAttempts - then RETRY_LATER, failure counted, no ERROR " + "logged")
         void whenStoreFailsAndAttemptsBelowEntryAttempts_thenRetryLaterFailureCountedAndNoErrorLogged() {
             SpendingRow entry = spendingRow();
             LearnMessageOutcomeCommand command = new LearnMessageOutcomeCommand(DELIVERY_ID, POSITION, STATUS, entry);
@@ -147,8 +147,7 @@ class LearnMessageOutcomeUseCaseTest {
         }
 
         @Test
-        @DisplayName(
-                "when the store fails at entryAttempts - then DROPPED, ERROR logged, and attempts are cleared")
+        @DisplayName("when the store fails at entryAttempts - then DROPPED, ERROR logged, and attempts are cleared")
         void whenStoreFailsAtEntryAttempts_thenDroppedErrorLoggedAttemptsClearedAndNothingElseWritten() {
             SpendingRow entry = spendingRow();
             LearnMessageOutcomeCommand command = new LearnMessageOutcomeCommand(DELIVERY_ID, POSITION, STATUS, entry);

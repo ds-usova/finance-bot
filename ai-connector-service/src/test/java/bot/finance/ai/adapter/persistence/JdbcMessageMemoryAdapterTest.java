@@ -441,8 +441,7 @@ class JdbcMessageMemoryAdapterTest {
             Instant recent = Instant.now().minus(Duration.ofHours(1));
             long neighbour = insertMessageWithVector(
                     userId, "examples-no-grouping", "mystery", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
-            insertDecided(neighbour, userId, 91L, "mystery expense", "10.00", "USD", 1L, "Cat", null, null,
-                    "ACCEPTED");
+            insertDecided(neighbour, userId, 91L, "mystery expense", "10.00", "USD", 1L, "Cat", null, null, "ACCEPTED");
 
             List<MessageExample> result =
                     adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));

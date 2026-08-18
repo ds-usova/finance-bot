@@ -15,12 +15,9 @@ import org.springframework.stereotype.Component;
 public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort {
 
     private final RecordedExpenseEntityRepository repository;
-    private final IncomingMessageEntityRepository messageRepository;
 
-    public JdbcRecordedExpenseStoreAdapter(
-            RecordedExpenseEntityRepository repository, IncomingMessageEntityRepository messageRepository) {
+    public JdbcRecordedExpenseStoreAdapter(RecordedExpenseEntityRepository repository) {
         this.repository = repository;
-        this.messageRepository = messageRepository;
     }
 
     @Override

@@ -15,7 +15,6 @@ public record StreamPosition(long ms, long seq) implements Comparable<StreamPosi
 
     @Override
     public int compareTo(StreamPosition other) {
-        // Intent: order by ms first, then by seq - never by a text comparison of the pair.
         int msComparison = Long.compare(ms, other.ms);
         if (msComparison != 0) {
             return msComparison;

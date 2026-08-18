@@ -74,6 +74,21 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 grouping);
     }
 
+    /** A lunch of 12.50 EUR with no merchant, the content every scenario below starts from. */
+    private SpendingRow lunchRow(
+            long expenseId, long userId, String messageId, CategoryRef category, CategoryRef grouping) {
+        return row(
+                expenseId,
+                userId,
+                Optional.of(messageId),
+                "lunch",
+                Optional.empty(),
+                "12.50",
+                "EUR",
+                category,
+                Optional.ofNullable(grouping));
+    }
+
     private void seedRow(
             long messageId,
             long userId,
@@ -89,7 +104,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             String status,
             long appliedMs,
             long appliedSeq) {
-        RecordedExpenseRowUtils.insert(
+        RecordedExpenseRowUtils.insertApplied(
                 jdbcTemplate,
                 messageId,
                 userId,
@@ -104,8 +119,26 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 groupingName,
                 status,
                 appliedMs,
-                appliedSeq,
-                Instant.now());
+                appliedSeq);
+    }
+
+    /** A PROPOSED {@link #lunchRow} categorised Groceries under Food, already applied at the given position. */
+    private void seedProposedLunchRow(long messageId, long userId, long expenseId, long appliedMs, long appliedSeq) {
+        seedRow(
+                messageId,
+                userId,
+                expenseId,
+                "lunch",
+                null,
+                "12.50",
+                "EUR",
+                5L,
+                "Groceries",
+                2L,
+                "Food",
+                "PROPOSED",
+                appliedMs,
+                appliedSeq);
     }
 
     private Optional<RecordedExpenseRow> rowFor(long expenseId) {
@@ -157,40 +190,18 @@ class JdbcRecordedExpenseStoreAdapterTest {
         }
 
         @Test
-        @DisplayName("when applied again with a new category and grouping - then the row holds them, staying "
-                + "PROPOSED")
+        @DisplayName(
+                "when applied again with a new category and grouping - then the row holds them, staying " + "PROPOSED")
         void whenAppliedAgainWithNewCategoryAndGrouping_thenSameRowUpdatedStayingProposed() {
             long userId = 97002L;
             String messageId = "ri01-refile";
             registerMessage(userId, messageId);
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             long expenseId = 971002L;
-            seedRow(
-                    messageDbId,
-                    userId,
-                    expenseId,
-                    "lunch",
-                    null,
-                    "12.50",
-                    "EUR",
-                    5L,
-                    "Groceries",
-                    2L,
-                    "Food",
-                    "PROPOSED",
-                    1000L,
-                    0L);
+            seedProposedLunchRow(messageDbId, userId, expenseId, 1000L, 0L);
 
-            SpendingRow refiled = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(9L, "Transport"),
-                    Optional.of(new CategoryRef(4L, "Travel")));
+            SpendingRow refiled = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(9L, "Transport"), new CategoryRef(4L, "Travel"));
             adapter.apply(refiled, RecordedStatus.PROPOSED, new StreamPosition(1001L, 0L));
 
             Optional<RecordedExpenseRow> result = rowFor(expenseId);
@@ -201,7 +212,8 @@ class JdbcRecordedExpenseStoreAdapterTest {
             assertThat(r.categoryName()).isEqualTo("Transport");
             assertThat(r.groupingId()).isEqualTo(4L);
             assertThat(r.groupingName()).isEqualTo("Travel");
-            assertThat(RecordedExpenseRowUtils.countByMessage(jdbcTemplate, messageDbId)).isEqualTo(1);
+            assertThat(RecordedExpenseRowUtils.countByMessage(jdbcTemplate, messageDbId))
+                    .isEqualTo(1);
         }
 
         @Test
@@ -212,38 +224,17 @@ class JdbcRecordedExpenseStoreAdapterTest {
             registerMessage(userId, messageId);
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             long expenseId = 971003L;
-            seedRow(
-                    messageDbId,
-                    userId,
-                    expenseId,
-                    "lunch",
-                    null,
-                    "12.50",
-                    "EUR",
-                    5L,
-                    "Groceries",
-                    2L,
-                    "Food",
-                    "PROPOSED",
-                    1000L,
-                    0L);
+            seedProposedLunchRow(messageDbId, userId, expenseId, 1000L, 0L);
 
-            SpendingRow entry = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
+            SpendingRow entry = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(5L, "Groceries"), new CategoryRef(2L, "Food"));
             adapter.apply(entry, RecordedStatus.ACCEPTED, new StreamPosition(1001L, 0L));
 
             Optional<RecordedExpenseRow> result = rowFor(expenseId);
             assertThat(result).isPresent();
             assertThat(result.orElseThrow().status()).isEqualTo("ACCEPTED");
-            assertThat(RecordedExpenseRowUtils.countByMessage(jdbcTemplate, messageDbId)).isEqualTo(1);
+            assertThat(RecordedExpenseRowUtils.countByMessage(jdbcTemplate, messageDbId))
+                    .isEqualTo(1);
         }
 
         @Test
@@ -254,32 +245,10 @@ class JdbcRecordedExpenseStoreAdapterTest {
             registerMessage(userId, messageId);
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             long expenseId = 971004L;
-            seedRow(
-                    messageDbId,
-                    userId,
-                    expenseId,
-                    "lunch",
-                    null,
-                    "12.50",
-                    "EUR",
-                    5L,
-                    "Groceries",
-                    2L,
-                    "Food",
-                    "PROPOSED",
-                    1000L,
-                    0L);
+            seedProposedLunchRow(messageDbId, userId, expenseId, 1000L, 0L);
 
-            SpendingRow entry = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
+            SpendingRow entry = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(5L, "Groceries"), new CategoryRef(2L, "Food"));
             adapter.apply(entry, RecordedStatus.DISCARDED, new StreamPosition(1001L, 0L));
 
             Optional<RecordedExpenseRow> result = rowFor(expenseId);
@@ -299,14 +268,50 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long expenseId2 = 971006L;
             long expenseId3 = 971007L;
             seedRow(
-                    messageDbId, userId, expenseId1, "a", null, "1.00", "EUR", 5L, "Groceries", 2L, "Food",
-                    "PROPOSED", 1000L, 0L);
+                    messageDbId,
+                    userId,
+                    expenseId1,
+                    "a",
+                    null,
+                    "1.00",
+                    "EUR",
+                    5L,
+                    "Groceries",
+                    2L,
+                    "Food",
+                    "PROPOSED",
+                    1000L,
+                    0L);
             seedRow(
-                    messageDbId, userId, expenseId2, "b", null, "2.00", "EUR", 5L, "Groceries", 2L, "Food",
-                    "PROPOSED", 1000L, 1L);
+                    messageDbId,
+                    userId,
+                    expenseId2,
+                    "b",
+                    null,
+                    "2.00",
+                    "EUR",
+                    5L,
+                    "Groceries",
+                    2L,
+                    "Food",
+                    "PROPOSED",
+                    1000L,
+                    1L);
             seedRow(
-                    messageDbId, userId, expenseId3, "c", null, "3.00", "EUR", 5L, "Groceries", 2L, "Food",
-                    "PROPOSED", 1000L, 2L);
+                    messageDbId,
+                    userId,
+                    expenseId3,
+                    "c",
+                    null,
+                    "3.00",
+                    "EUR",
+                    5L,
+                    "Groceries",
+                    2L,
+                    "Food",
+                    "PROPOSED",
+                    1000L,
+                    2L);
 
             for (long expenseId : List.of(expenseId1, expenseId2, expenseId3)) {
                 SpendingRow entry = row(
@@ -366,9 +371,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             registerMessage(userId, messageId);
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             long expenseId = 971009L;
-            seedRow(
-                    messageDbId, userId, expenseId, "lunch", null, "12.50", "EUR", 5L, "Groceries", 2L, "Food",
-                    "PROPOSED", 1000L, 5L);
+            seedProposedLunchRow(messageDbId, userId, expenseId, 1000L, 5L);
 
             SpendingRow olderEntry = row(
                     expenseId,
@@ -402,20 +405,10 @@ class JdbcRecordedExpenseStoreAdapterTest {
             registerMessage(userId, messageId);
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             long expenseId = 971010L;
-            seedRow(
-                    messageDbId, userId, expenseId, "lunch", null, "12.50", "EUR", 5L, "Groceries", 2L, "Food",
-                    "PROPOSED", 1000L, 5L);
+            seedProposedLunchRow(messageDbId, userId, expenseId, 1000L, 5L);
 
-            SpendingRow sameEntry = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
+            SpendingRow sameEntry = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(5L, "Groceries"), new CategoryRef(2L, "Food"));
 
             assertThatCode(() -> adapter.apply(sameEntry, RecordedStatus.PROPOSED, new StreamPosition(1000L, 5L)))
                     .doesNotThrowAnyException();
@@ -436,29 +429,25 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long expenseId = 971011L;
             long messageDbId = IncomingMessageRowUtils.id(jdbcTemplate, userId, messageId);
             seedRow(
-                    messageDbId, userId, expenseId, "lunch", null, "12.50", "EUR", 9L, "Transport", 4L, "Travel",
-                    "PROPOSED", 2000L, 0L);
+                    messageDbId,
+                    userId,
+                    expenseId,
+                    "lunch",
+                    null,
+                    "12.50",
+                    "EUR",
+                    9L,
+                    "Transport",
+                    4L,
+                    "Travel",
+                    "PROPOSED",
+                    2000L,
+                    0L);
 
-            SpendingRow created = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
-            SpendingRow refiled = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(9L, "Transport"),
-                    Optional.of(new CategoryRef(4L, "Travel")));
+            SpendingRow created = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(5L, "Groceries"), new CategoryRef(2L, "Food"));
+            SpendingRow refiled = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(9L, "Transport"), new CategoryRef(4L, "Travel"));
 
             adapter.apply(created, RecordedStatus.PROPOSED, new StreamPosition(3000L, 0L));
             adapter.apply(refiled, RecordedStatus.PROPOSED, new StreamPosition(3000L, 1L));
@@ -477,16 +466,8 @@ class JdbcRecordedExpenseStoreAdapterTest {
             long userId = 97010L;
             String messageId = "ri01-unregistered";
             long expenseId = 971012L;
-            SpendingRow entry = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "lunch",
-                    Optional.empty(),
-                    "12.50",
-                    "EUR",
-                    new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
+            SpendingRow entry = lunchRow(
+                    expenseId, userId, messageId, new CategoryRef(5L, "Groceries"), new CategoryRef(2L, "Food"));
 
             assertThatCode(() -> adapter.apply(entry, RecordedStatus.PROPOSED, new StreamPosition(1000L, 0L)))
                     .doesNotThrowAnyException();
@@ -544,30 +525,20 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 for (int i = 0; i < ITERATIONS; i++) {
                     long expenseId = 972000L + i;
                     long ms = 4000L + i;
-                    seedRow(
-                            messageDbId, userId, expenseId, "lunch", null, "12.50", "EUR", 5L, "Groceries", 2L,
-                            "Food", "PROPOSED", ms, 0L);
+                    seedProposedLunchRow(messageDbId, userId, expenseId, ms, 0L);
 
-                    SpendingRow refiled = row(
+                    SpendingRow refiled = lunchRow(
                             expenseId,
                             userId,
-                            Optional.of(messageId),
-                            "lunch",
-                            Optional.empty(),
-                            "12.50",
-                            "EUR",
+                            messageId,
                             new CategoryRef(9L, "Transport"),
-                            Optional.of(new CategoryRef(4L, "Travel")));
-                    SpendingRow accepted = row(
+                            new CategoryRef(4L, "Travel"));
+                    SpendingRow accepted = lunchRow(
                             expenseId,
                             userId,
-                            Optional.of(messageId),
-                            "lunch",
-                            Optional.empty(),
-                            "12.50",
-                            "EUR",
+                            messageId,
                             new CategoryRef(7L, "Entertainment"),
-                            Optional.of(new CategoryRef(3L, "Fun")));
+                            new CategoryRef(3L, "Fun"));
 
                     Callable<Void> refileCall = () -> {
                         adapter.apply(refiled, RecordedStatus.PROPOSED, new StreamPosition(ms, 1L));
@@ -607,10 +578,8 @@ class JdbcRecordedExpenseStoreAdapterTest {
     class WithAMockedRepository {
 
         private final RecordedExpenseEntityRepository mockedRepository = mock(RecordedExpenseEntityRepository.class);
-        private final IncomingMessageEntityRepository mockedMessageRepository =
-                mock(IncomingMessageEntityRepository.class);
         private final JdbcRecordedExpenseStoreAdapter mockedAdapter =
-                new JdbcRecordedExpenseStoreAdapter(mockedRepository, mockedMessageRepository);
+                new JdbcRecordedExpenseStoreAdapter(mockedRepository);
 
         private final SpendingRow entry = new SpendingRow(
                 1L,

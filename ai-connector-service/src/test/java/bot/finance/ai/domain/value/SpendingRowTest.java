@@ -183,7 +183,8 @@ class SpendingRowTest {
 
         @ParameterizedTest
         @MethodSource("invalidRequiredComponentScenarios")
-        @DisplayName("when currencyCode, category, or an Optional component is null - then throws InvalidValueException")
+        @DisplayName(
+                "when currencyCode, category, or an Optional component is null - then throws InvalidValueException")
         void whenCurrencyCodeCategoryOrAnOptionalComponentIsNull_thenThrowsInvalidValueException(
                 ThrowingCallable constructor) {
             assertThatThrownBy(constructor).isInstanceOf(InvalidValueException.class);
@@ -222,13 +223,15 @@ class SpendingRowTest {
             Optional<MessageIdentity> identity = row.messageIdentity();
 
             assertThat(identity)
-                    .contains(new MessageIdentity(row.userId(), row.incomingMessageId().get()));
+                    .contains(new MessageIdentity(
+                            row.userId(), row.incomingMessageId().get()));
         }
 
         @Test
         @DisplayName("when the row has no incoming message id - then it is empty")
         void whenRowHasNoIncomingMessageId_thenItIsEmpty() {
-            SpendingRow row = SpendingFactFixtures.spendingRow(SpendingFactFixtures.DEFAULT_EXPENSE_ID, Optional.empty());
+            SpendingRow row =
+                    SpendingFactFixtures.spendingRow(SpendingFactFixtures.DEFAULT_EXPENSE_ID, Optional.empty());
 
             assertThat(row.messageIdentity()).isEmpty();
         }
