@@ -497,7 +497,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 
 ### Post-Implementation Steps
 
-- [ ] P01 · Place ADR: the ledger publishes facts through a transactional outbox rather than its own row changes.
+- [x] P01 · Place ADR: the ledger publishes facts through a transactional outbox rather than its own row changes.
   Repo-root tier — the stream is what `ai-connector-service` consumes — at the next number in the global sequence,
   `0019`. Conditional on **Q1**; without an answered `yes` this item is struck rather than done.
 
