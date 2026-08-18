@@ -68,8 +68,8 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
     }
 
     public void readSlot() {
-        // TODO: read ledgerEventOutbox.rowCount() and set it through meters.setOutboxRows(), on every
-        //  pass including the early return below
+        meters.setOutboxRows(ledgerEventOutbox.rowCount());
+
         Optional<ReplicationSlotRetention> retention = replicationCatalogue.findSlotRetention(properties.slotName());
 
         if (retention.isEmpty()) {

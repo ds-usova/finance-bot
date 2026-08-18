@@ -40,7 +40,7 @@ public class ChangeStreamMeters {
     }
 
     public void setOutboxRows(long rows) {
-        // records the outbox row count on the gauge
+        outboxRows.set(rows);
     }
 
     public void setEventLag(Instant lastPublishedEventTimestamp) {

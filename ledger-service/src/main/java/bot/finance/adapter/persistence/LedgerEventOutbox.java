@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,15 +19,32 @@ public class LedgerEventOutbox {
     }
 
     public void insert(List<LedgerEvent> events) {
-        // inserts each event as a row in the outbox table
+        if (events.isEmpty()) {
+            return;
+        }
+
+        jdbcTemplate.batchUpdate(
+                "INSERT INTO outbox (id, type, occurred_at, payload) VALUES (?, ?, ?, ?::jsonb)",
+                events,
+                events.size(),
+                (ps, event) -> {
+                    ps.setObject(1, event.id());
+                    ps.setString(2, event.type());
+                    ps.setObject(3, event.occurredAt().atOffset(ZoneOffset.UTC));
+                    ps.setString(4, event.payload());
+                });
     }
 
     public void delete(List<UUID> ids) {
-        // deletes the outbox rows named by those ids
+        if (ids.isEmpty()) {
+            return;
+        }
+
+        jdbcTemplate.batchUpdate("DELETE FROM outbox WHERE id = ?", ids, ids.size(), (ps, id) -> ps.setObject(1, id));
     }
 
     public long rowCount() {
-        // counts the rows currently in the outbox table
-        return 0;
+        Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox", Long.class);
+        return count == null ? 0 : count;
     }
 }

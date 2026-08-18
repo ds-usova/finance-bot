@@ -470,16 +470,16 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `SpendingEventRenderer` · test: `SpendingEventRendererTest`
-- [ ] GU02 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest`
-- [ ] GU03 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest`
-- [ ] GU04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorGaugesTest`
+- [x] GU01 · `SpendingEventRenderer` · test: `SpendingEventRendererTest`
+- [x] GU02 · `ChangeEventPublisher` · test: `ChangeEventPublisherTest`
+- [x] GU03 · `ChangeStreamMeters` · test: `ChangeStreamMetersTest`
+- [x] GU04 · `ReplicationSlotMonitor` · test: `ReplicationSlotMonitorGaugesTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest`
+- [x] GI01 · `LedgerEventOutbox` · test: `LedgerEventOutboxTest`
 - [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01, GI01
-- [ ] GI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
+- [x] GI03 · `RedisChangeStreamWriter` · test: `RedisChangeStreamWriterTest`
 - [ ] GI04 · `ChangeStreamReader` · test: `ChangeStreamReaderTest` · after: GU02, GI03
 - [ ] GI05 · `ChangeStreamRecovery` · test: `ChangeStreamRecoveryTest` · after: GI04
 
