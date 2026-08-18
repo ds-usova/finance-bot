@@ -4,23 +4,29 @@ import bot.finance.ai.domain.exception.InvalidValueException;
 import java.util.Optional;
 
 public record SpendingRow(
-        long id,
+        long expenseId,
         long userId,
         Optional<String> incomingMessageId,
         String description,
         Optional<String> merchant,
-        long amountMinorUnits,
+        String amount,
         CurrencyCode currencyCode,
-        long categoryId,
-        Optional<String> categoryName,
-        Optional<String> groupingName) {
+        CategoryRef category,
+        Optional<CategoryRef> grouping) {
 
     public SpendingRow {
+        // TODO: reject a non-positive expenseId or userId
         if (description == null || description.isBlank()) {
             throw new InvalidValueException("Description must not be null or blank");
         }
+        if (amount == null || amount.isBlank()) {
+            throw new InvalidValueException("Amount must not be null or blank");
+        }
         if (currencyCode == null) {
             throw new InvalidValueException("Currency code must not be null");
+        }
+        if (category == null) {
+            throw new InvalidValueException("Category must not be null");
         }
         if (merchant == null) {
             throw new InvalidValueException("Merchant must not be null");
@@ -28,11 +34,8 @@ public record SpendingRow(
         if (incomingMessageId == null) {
             throw new InvalidValueException("Incoming message id must not be null");
         }
-        if (categoryName == null) {
-            throw new InvalidValueException("Category name must not be null");
-        }
-        if (groupingName == null) {
-            throw new InvalidValueException("Grouping name must not be null");
+        if (grouping == null) {
+            throw new InvalidValueException("Grouping must not be null");
         }
     }
 

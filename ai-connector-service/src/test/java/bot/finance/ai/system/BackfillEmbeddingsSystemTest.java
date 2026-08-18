@@ -46,20 +46,23 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
             String secondText = "spent 3.50 on coffee";
             long firstMessageId = insertUnembedded(userId, firstIncomingMessageId, firstText);
             insertUnembedded(userId, secondIncomingMessageId, secondText);
-            long proposalId = 80011L;
-            RecordedExpenseRowUtils.insertDecided(
+            long expenseId = 80011L;
+            RecordedExpenseRowUtils.insertApplied(
                     jdbcTemplate,
                     firstMessageId,
                     userId,
-                    proposalId,
+                    expenseId,
                     "lunch",
                     "Deli Co",
-                    1500L,
+                    "15.00",
                     "EUR",
                     42L,
                     "Restaurants",
+                    1L,
                     "Dining",
-                    "ACCEPTED");
+                    "ACCEPTED",
+                    1L,
+                    0L);
 
             WireMockStubs.stubEmbeddings(EmbeddingFixtures.embeddingsResponseForAll(
                     List.of(EmbeddingFixtures.unitVector(0), EmbeddingFixtures.unitVector(1))));
@@ -73,7 +76,7 @@ class BackfillEmbeddingsSystemTest extends AbstractMemorySystemTest {
                 assertThat(secondVector).isNotEmpty();
             });
 
-            RecordedExpenseRow recordedExpenseRow = RecordedExpenseRowUtils.findByProposalId(jdbcTemplate, proposalId)
+            RecordedExpenseRow recordedExpenseRow = RecordedExpenseRowUtils.findByExpenseId(jdbcTemplate, expenseId)
                     .orElseThrow();
             log.info("recorded expense row: {}", recordedExpenseRow);
             assertThat(recordedExpenseRow.status()).isEqualTo("ACCEPTED");

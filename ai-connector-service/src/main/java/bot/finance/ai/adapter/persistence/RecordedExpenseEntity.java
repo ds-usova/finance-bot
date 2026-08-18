@@ -13,25 +13,25 @@ public record RecordedExpenseEntity(
         @Id Long id,
         long messageId,
         long userId,
-        Long proposalId,
-        Long expenseId,
+        long expenseId,
         String description,
         String merchant,
-        long amountMinorUnits,
+        String amount,
         String currencyCode,
         long categoryId,
         String categoryName,
+        Long groupingId,
         String groupingName,
         String status,
-        String movedInTx,
+        long appliedMs,
+        long appliedSeq,
         Instant updatedAt) {
 
     public ExampleExpense toExampleExpense() {
-        CurrencyCode currency = CurrencyCode.of(currencyCode);
         return new ExampleExpense(
                 description,
-                currency.toDecimal(amountMinorUnits),
-                currency,
+                amount,
+                CurrencyCode.of(currencyCode),
                 Optional.ofNullable(categoryName),
                 Optional.ofNullable(groupingName),
                 ExampleOutcome.valueOf(status));

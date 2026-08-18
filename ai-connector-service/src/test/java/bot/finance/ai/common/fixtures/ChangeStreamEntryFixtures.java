@@ -4,223 +4,275 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Builders of a change-stream entry body — {@code payload} and {@code enrichment} — in the shape the ledger's
- * change stream carries, for {@link bot.finance.ai.adapter.redis.ChangeStreamEntryReader} and
+ * Builders of a change-stream entry body - {@code id}, {@code type}, {@code occurredAt} and {@code payload} -
+ * in the shape the ledger's {@code ledger.cdc} stream carries, for
+ * {@link bot.finance.ai.adapter.redis.ChangeStreamEntryReader} and
  * {@link bot.finance.ai.adapter.redis.ChangeStreamConsumer} to read.
  */
 public final class ChangeStreamEntryFixtures {
 
-    private static final long DEFAULT_LSN = 100L;
-    private static final long DEFAULT_TS_MS = 1_700_000_000_000L;
+    private static final String DEFAULT_OCCURRED_AT = "2026-08-18T12:00:00Z";
 
     private ChangeStreamEntryFixtures() {}
 
     public static Map<String, String> proposalCreated(
-            long proposalId,
+            long eventId,
             long userId,
             String incomingMessageId,
+            long expenseId,
             String description,
             String merchant,
-            long amountMinorUnits,
+            String amount,
             String currencyCode,
             long categoryId,
             String categoryName,
-            String groupingName,
-            String txId) {
-        String after = spendingRowJson(
-                proposalId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
-        return entry("expense_proposal", "c", null, after, txId, null, enrichmentSide(categoryName, groupingName));
-    }
-
-    public static Map<String, String> proposalDeleted(
-            long proposalId,
-            long userId,
-            String incomingMessageId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            long categoryId,
-            String txId) {
-        String before = spendingRowJson(
-                proposalId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
-        return entry("expense_proposal", "d", before, null, txId, null, null);
-    }
-
-    public static Map<String, String> expenseCreated(
-            long expenseId,
-            long userId,
-            String incomingMessageId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            long categoryId,
-            String categoryName,
-            String groupingName,
-            String txId) {
-        String after = spendingRowJson(
-                expenseId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
-        return entry("expense", "c", null, after, txId, null, enrichmentSide(categoryName, groupingName));
-    }
-
-    public static Map<String, String> expenseUpdated(
-            long expenseId,
-            long userId,
-            String incomingMessageId,
-            String description,
-            String merchant,
-            long amountMinorUnits,
-            String currencyCode,
-            long categoryId,
-            String beforeCategoryName,
-            String beforeGroupingName,
-            String afterCategoryName,
-            String afterGroupingName,
-            String txId) {
-        String row = spendingRowJson(
-                expenseId,
-                userId,
-                incomingMessageId,
-                description,
-                merchant,
-                amountMinorUnits,
-                currencyCode,
-                categoryId);
+            Long groupingId,
+            String groupingName) {
         return entry(
-                "expense",
-                "u",
-                row,
-                row,
-                txId,
-                enrichmentSide(beforeCategoryName, beforeGroupingName),
-                enrichmentSide(afterCategoryName, afterGroupingName));
+                eventId,
+                "ProposalCreated",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "PENDING",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
     }
 
-    public static Map<String, String> categoryUpdatedWithParent(
-            long categoryId, long userId, long parentId, String beforeName, String afterName, String txId) {
-        String before = categoryRowJson(categoryId, userId, parentId, beforeName);
-        String after = categoryRowJson(categoryId, userId, parentId, afterName);
-        return entry("category", "u", before, after, txId, null, null);
+    public static Map<String, String> proposalRefiled(
+            long eventId,
+            long userId,
+            String incomingMessageId,
+            long expenseId,
+            String description,
+            String merchant,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
+        return entry(
+                eventId,
+                "ProposalRefiled",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "PENDING",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
     }
 
-    public static Map<String, String> categoryUpdatedWithoutParent(
-            long categoryId, long userId, String beforeName, String afterName, String txId) {
-        String before = categoryRowJsonNoParent(categoryId, userId, beforeName);
-        String after = categoryRowJsonNoParent(categoryId, userId, afterName);
-        return entry("category", "u", before, after, txId, null, null);
+    public static Map<String, String> proposalDiscarded(
+            long eventId,
+            long userId,
+            String incomingMessageId,
+            long expenseId,
+            String description,
+            String merchant,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
+        return entry(
+                eventId,
+                "ProposalDiscarded",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "PENDING",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
     }
 
-    public static Map<String, String> snapshotRead(String table, String row, String txId) {
-        return entry(table, "r", row, row, txId, null, null);
+    public static Map<String, String> proposalAccepted(
+            long eventId,
+            long userId,
+            String incomingMessageId,
+            long expenseId,
+            String description,
+            String merchant,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
+        return entry(
+                eventId,
+                "ProposalAccepted",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "RECORDED",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
     }
 
-    public static Map<String, String> unknownTable(String txId) {
-        return entry("app_user", "c", null, "{\"id\":1}", txId, null, null);
+    public static Map<String, String> expenseRecorded(
+            long eventId,
+            long userId,
+            String incomingMessageId,
+            long expenseId,
+            String description,
+            String merchant,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
+        return entry(
+                eventId,
+                "ExpenseRecorded",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "RECORDED",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
     }
 
-    /** A body with no {@code payload} field but still publishable — Redis XADD refuses an entry with none. */
+    public static Map<String, String> expenseRefiled(
+            long eventId,
+            long userId,
+            String incomingMessageId,
+            long expenseId,
+            String description,
+            String merchant,
+            String amount,
+            String currencyCode,
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
+        return entry(
+                eventId,
+                "ExpenseRefiled",
+                payload(
+                        userId,
+                        incomingMessageId,
+                        expenseId,
+                        "RECORDED",
+                        description,
+                        merchant,
+                        amount,
+                        currencyCode,
+                        categoryId,
+                        categoryName,
+                        groupingId,
+                        groupingName));
+    }
+
+    /** A body naming a {@code type} outside the six spending types this reader knows. */
+    public static Map<String, String> unknownType(long eventId, long userId, long expenseId) {
+        return entry(
+                eventId,
+                "CategoryRenamed",
+                payload(userId, null, expenseId, "PENDING", "n/a", null, "1.00", "USD", 1L, "Cat", null, null));
+    }
+
+    /** A body with no {@code payload} field but still publishable - Redis XADD refuses an entry with none. */
     public static Map<String, String> withNoPayload() {
-        return Map.of("enrichment", "{}");
-    }
-
-    private static Map<String, String> entry(
-            String table,
-            String op,
-            String before,
-            String after,
-            String txId,
-            String enrichmentBefore,
-            String enrichmentAfter) {
         Map<String, String> body = new LinkedHashMap<>();
-        body.put("payload", payloadJson(table, op, before, after, txId));
-        if (enrichmentBefore != null || enrichmentAfter != null) {
-            body.put(
-                    "enrichment",
-                    "{\"before\":%s,\"after\":%s}"
-                            .formatted(
-                                    enrichmentBefore == null ? "null" : enrichmentBefore,
-                                    enrichmentAfter == null ? "null" : enrichmentAfter));
-        }
+        body.put("id", "1");
+        body.put("type", "ProposalCreated");
+        body.put("occurredAt", DEFAULT_OCCURRED_AT);
         return body;
     }
 
-    private static String payloadJson(String table, String op, String before, String after, String txId) {
-        return """
-                {"op":"%s","source":{"table":"%s","lsn":%d,"txId":"%s","ts_ms":%d},"before":%s,"after":%s}"""
-                .formatted(
-                        op,
-                        table,
-                        DEFAULT_LSN,
-                        txId,
-                        DEFAULT_TS_MS,
-                        before == null ? "null" : before,
-                        after == null ? "null" : after);
+    /** A body whose {@code payload} field is not valid JSON. */
+    public static Map<String, String> withNonJsonPayload() {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("id", "1");
+        body.put("type", "ProposalCreated");
+        body.put("occurredAt", DEFAULT_OCCURRED_AT);
+        body.put("payload", "not-json");
+        return body;
     }
 
-    private static String spendingRowJson(
-            long id,
+    private static Map<String, String> entry(long eventId, String type, String payload) {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("id", String.valueOf(eventId));
+        body.put("type", type);
+        body.put("occurredAt", DEFAULT_OCCURRED_AT);
+        body.put("payload", payload);
+        return body;
+    }
+
+    private static String payload(
             long userId,
             String incomingMessageId,
+            long expenseId,
+            String status,
             String description,
             String merchant,
-            long amountMinorUnits,
+            String amount,
             String currencyCode,
-            long categoryId) {
+            long categoryId,
+            String categoryName,
+            Long groupingId,
+            String groupingName) {
         return """
-                {"id":%d,"user_id":%d,"category_id":%d,"description":"%s","merchant":%s,\
-                "amount_minor_units":%d,"currency_code":"%s","incoming_message_id":%s}"""
+                {"userId":%d,"incomingMessageId":%s,"expenseId":%d,"status":"%s","description":"%s",\
+                "merchant":%s,"amount":"%s","currencyCode":"%s","category":{"id":%d,"name":"%s"},\
+                "grouping":%s}"""
                 .formatted(
-                        id,
                         userId,
-                        categoryId,
+                        incomingMessageId == null ? "null" : "\"" + incomingMessageId + "\"",
+                        expenseId,
+                        status,
                         description,
                         merchant == null ? "null" : "\"" + merchant + "\"",
-                        amountMinorUnits,
+                        amount,
                         currencyCode,
-                        incomingMessageId == null ? "null" : "\"" + incomingMessageId + "\"");
+                        categoryId,
+                        categoryName,
+                        grouping(groupingId, groupingName));
     }
 
-    private static String categoryRowJson(long id, long userId, long parentId, String name) {
-        return """
-                {"id":%d,"user_id":%d,"parent_id":%d,"name":"%s"}"""
-                .formatted(id, userId, parentId, name);
-    }
-
-    private static String categoryRowJsonNoParent(long id, long userId, String name) {
-        return """
-                {"id":%d,"user_id":%d,"parent_id":null,"name":"%s"}""".formatted(id, userId, name);
-    }
-
-    private static String enrichmentSide(String categoryName, String groupingName) {
-        if (categoryName == null && groupingName == null) {
-            return null;
+    private static String grouping(Long groupingId, String groupingName) {
+        if (groupingId == null) {
+            return "null";
         }
         return """
-                {"categoryName":%s,"groupingName":%s}"""
-                .formatted(
-                        categoryName == null ? "null" : "\"" + categoryName + "\"",
-                        groupingName == null ? "null" : "\"" + groupingName + "\"");
+                {"id":%d,"name":"%s"}""".formatted(groupingId, groupingName);
     }
 }

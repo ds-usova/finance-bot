@@ -10,14 +10,6 @@ import bot.finance.ai.application.port.RecordedExpenseStorePort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
-import bot.finance.ai.domain.value.CategoryRow;
-import bot.finance.ai.domain.value.CategoryRowChange;
-import bot.finance.ai.domain.value.ChangeOperation;
-import bot.finance.ai.domain.value.MessageIdentity;
-import bot.finance.ai.domain.value.RecordedChange;
-import bot.finance.ai.domain.value.SpendingKind;
-import bot.finance.ai.domain.value.SpendingRowChange;
-import java.util.Optional;
 
 public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
 
@@ -43,80 +35,25 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
 
     @Override
     public LearnOutcome learn(LearnMessageOutcomeCommand command) {
-        RecordedChange change = command.change();
-
         try {
-            apply(change);
+            apply(command);
         } catch (MessageStoreUnavailableException e) {
             log.warn("Store unreachable, retrying delivery {} later: {}", command.deliveryId(), e.getMessage());
             return LearnOutcome.RETRY_LATER;
         } catch (MessageStoreFailedException e) {
-            return onFailure(command, change, e);
+            return onFailure(command, e);
         }
 
         changeAttemptStorePort.clear(command.deliveryId());
         return LearnOutcome.APPLIED;
     }
 
-    private void apply(RecordedChange change) {
-        switch (change) {
-            case SpendingRowChange spendingChange -> applySpendingChange(spendingChange);
-            case CategoryRowChange categoryChange -> applyCategoryChange(categoryChange);
-        }
+    private void apply(LearnMessageOutcomeCommand command) {
+        // Intent: the single guarded upsert - recordedExpenseStorePort.apply(command.entry(),
+        // command.status(), command.position()), skipped when the entry carries no message id.
     }
 
-    private void applySpendingChange(SpendingRowChange change) {
-        if (change.messageIdentity().isEmpty()) {
-            return;
-        }
-
-        switch (change.kind()) {
-            case PROPOSAL -> applyProposalChange(change);
-            case EXPENSE -> applyExpenseChange(change);
-        }
-    }
-
-    private void applyProposalChange(SpendingRowChange change) {
-        switch (change.op()) {
-            case CREATED, UPDATED ->
-                recordedExpenseStorePort.recordProposed(change.after().orElseThrow());
-            case DELETED ->
-                recordedExpenseStorePort.settleProposalDeleted(change.before().orElseThrow(), change.transactionId());
-        }
-    }
-
-    private void applyExpenseChange(SpendingRowChange change) {
-        switch (change.op()) {
-            case CREATED ->
-                recordedExpenseStorePort.settleExpenseInserted(change.after().orElseThrow(), change.transactionId());
-            case UPDATED ->
-                recordedExpenseStorePort.refileExpense(change.after().orElseThrow());
-            case DELETED ->
-                recordedExpenseStorePort.removeExpense(
-                        change.before().orElseThrow().id());
-        }
-    }
-
-    private void applyCategoryChange(CategoryRowChange change) {
-        if (change.op() != ChangeOperation.UPDATED) {
-            return;
-        }
-
-        CategoryRow before = change.before().orElseThrow();
-        CategoryRow after = change.after().orElseThrow();
-        if (before.name().equals(after.name())) {
-            return;
-        }
-
-        if (after.parentId().isPresent()) {
-            recordedExpenseStorePort.renameCategory(after.id(), after.name());
-        } else {
-            recordedExpenseStorePort.renameGrouping(after.userId(), before.name(), after.name());
-        }
-    }
-
-    private LearnOutcome onFailure(
-            LearnMessageOutcomeCommand command, RecordedChange change, MessageStoreFailedException e) {
+    private LearnOutcome onFailure(LearnMessageOutcomeCommand command, MessageStoreFailedException e) {
         int attempts;
         try {
             attempts = changeAttemptStorePort.countFailure(command.deliveryId(), e.getMessage());
@@ -130,48 +67,18 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
             return LearnOutcome.RETRY_LATER;
         }
 
-        return drop(command, change, e);
+        return drop(command, e);
     }
 
-    private LearnOutcome drop(
-            LearnMessageOutcomeCommand command, RecordedChange change, MessageStoreFailedException e) {
+    private LearnOutcome drop(LearnMessageOutcomeCommand command, MessageStoreFailedException e) {
         log.error(
-                "Dropping delivery {} after repeated failures on {} {} row {}: {}",
+                "Dropping delivery {} after repeated failures on {} entry {}: {}",
                 command.deliveryId(),
-                kindOf(change),
-                change.op(),
-                change.rowId(),
+                command.status(),
+                command.entry().expenseId(),
                 e.getMessage());
-
-        if (change instanceof SpendingRowChange spendingChange) {
-            abandonAcceptanceIfExpenseCreated(command, spendingChange);
-        }
 
         changeAttemptStorePort.clear(command.deliveryId());
         return LearnOutcome.DROPPED;
-    }
-
-    private String kindOf(RecordedChange change) {
-        return switch (change) {
-            case SpendingRowChange spendingChange -> spendingChange.kind().name();
-            case CategoryRowChange ignored -> "CATEGORY";
-        };
-    }
-
-    private void abandonAcceptanceIfExpenseCreated(LearnMessageOutcomeCommand command, SpendingRowChange change) {
-        if (change.kind() != SpendingKind.EXPENSE || change.op() != ChangeOperation.CREATED) {
-            return;
-        }
-
-        Optional<MessageIdentity> messageIdentity = change.messageIdentity();
-        if (messageIdentity.isEmpty()) {
-            return;
-        }
-
-        try {
-            recordedExpenseStorePort.abandonAcceptance(messageIdentity.get(), change.transactionId());
-        } catch (MessageStoreFailedException e) {
-            log.warn("Failed to abandon acceptance for delivery {}: {}", command.deliveryId(), e.getMessage());
-        }
     }
 }
