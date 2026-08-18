@@ -1,6 +1,6 @@
 # Review: One Expense Table, With a Status
 
-**1 bug open. No critical defect, no manual check, no refactoring candidate still open.**
+**1 bug open, 1 refactoring candidate open. No critical defect, no manual check.**
 
 ## Bug
 
@@ -26,13 +26,14 @@ touches slot recovery.
 
 ## Refactoring candidate
 
-Both are in `ledger-service`, both raised by the refactor pass over the finished diff, and neither changes what
-the service does.
+R1 and R2 were raised by the refactor pass over the finished diff and are closed. R3 is this change's own
+deferral: the merge is what made the segment vestigial, and the design chose not to touch the API while doing it.
 
-| #  | Status | What                                                                                                 | Why it is a candidate and not a quibble                                                                                                                       |
-|----|--------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| R1 | done · directly | `ResolveProposalsUseCaseTest.Resolve` proves "already accepted" twice, once for a count of 2 and once for 3 | The module's Testing Style forbids exactly this — a behaviour spanning several values is one `@ParameterizedTest`, never a case duplicated as a one-off. The count is threaded from the stub straight to the assertion, so the second number exercises no boundary and no branch. Merging them keeps the older test's `verify` of `countByMessageReference`, which the newer one omits. `whenDiscardResolvesNothingAndExpensesAlreadyStored_...` is a different operation and stays its own case |
-| R2 | done · directly | `ck_expense_pending_has_message` is proved in two places, one of which pays for a container to do it | `ColumnLimitsSchemaTest.StatusColumn` and `ExpenseRepositoryAdapterTest.Create`'s `whenPendingRowCarriesNoMessageId_...` seed the same row and assert the same violation. The schema guard belongs to the schema test; the adapter copy spends a container round trip proving a constraint rather than adapter behaviour |
+| #  | Status          | Module                        | What                                                                                                       | Why it is a candidate and not a quibble |
+|----|-----------------|-------------------------------|------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| R1 | done · directly | `ledger-service`              | `ResolveProposalsUseCaseTest.Resolve` proves "already accepted" twice, once for a count of 2 and once for 3 | The module's Testing Style forbids exactly this — a behaviour spanning several values is one `@ParameterizedTest`, never a case duplicated as a one-off. The count is threaded from the stub straight to the assertion, so the second number exercises no boundary and no branch. Merging them keeps the older test's `verify` of `countByMessageReference`, which the newer one omits. `whenDiscardResolvesNothingAndExpensesAlreadyStored_...` is a different operation and stays its own case |
+| R2 | done · directly | `ledger-service`              | `ck_expense_pending_has_message` is proved in two places, one of which pays for a container to do it        | `ColumnLimitsSchemaTest.StatusColumn` and `ExpenseRepositoryAdapterTest.Create`'s `whenPendingRowCarriesNoMessageId_...` seed the same row and assert the same violation. The schema guard belongs to the schema test; the adapter copy spends a container round trip proving a constraint rather than adapter behaviour |
+| R3 | open            | `ledger-service`, `web-app`   | `PATCH /api/v1/expenses/{status}/{id}` still carries a `{status}` segment that identifies nothing           | Ids became unique across statuses with ADR 0018, so `id` and `user_id` name the row on their own. All the segment still does is `AND status = :status` in `refile` — a compare-and-set against the status the browser last listed. Refiling is legal under either status, so the only race it catches is a Confirm landing between the list and the PATCH, and the operation it then blocks was harmless and wanted. The cost is a spurious 404 and a forced refresh, plus the parameter threaded through the path, the command, the port and the SQL. Removing it is breaking for the one client, which is in this repo · `ExpenseEntityRepository.java:128`, `web-app/src/api/expenses.ts:62` |
 
 ## What was settled during the run, and is not inherited
 
