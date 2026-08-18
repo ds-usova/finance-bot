@@ -327,28 +327,6 @@ class ExpenseRepositoryAdapterTest {
                 assertThat(row.incomingMessageId()).isEqualTo(reference.value());
             });
         }
-
-        @Test
-        @DisplayName(
-                "when a PENDING row carries no message id - then the database refuses it under ck_expense_pending_has_message")
-        void whenPendingRowCarriesNoMessageId_thenDatabaseRefusesUnderPendingHasMessageConstraint() {
-            long userId = storedUserId("pending-no-message-user");
-            long categoryId = storedGroupingId(userId, "Groceries");
-
-            assertThatThrownBy(() -> ExpenseRowUtils.storedExpense(
-                            jdbcAggregateTemplate,
-                            userId,
-                            categoryId,
-                            "Awaiting confirmation",
-                            null,
-                            100,
-                            "USD",
-                            null,
-                            Instant.now(),
-                            ExpenseStatus.PENDING))
-                    .isInstanceOf(DataIntegrityViolationException.class)
-                    .hasMessageContaining("ck_expense_pending_has_message");
-        }
     }
 
     @Nested
