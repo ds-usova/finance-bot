@@ -489,7 +489,7 @@ Classes deleted outright, with their test classes: `CategoryNameResolver`, `Cate
 #### TDD System Test Green Phase
 
 - [x] GS01 · `BroadcastLedgerChangesSystemTest` · covers: `PATCH /api/v1/expenses/RECORDED/{id}`
-- [ ] GS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances`
+- [x] GS02 · `AcceptedProposalChangeStreamSystemTest` · covers: `POST /api/v1/expenses/acceptances`
 - [ ] GS03 · `ProposalFactsSystemTest` · covers: `POST /mcp`
 - [ ] GS04 · `ChangeStreamMetersSystemTest` · covers: `GET /actuator/prometheus`
 - [ ] GS05 · `RecoverSlotSystemTest` · covers: `POST /actuator/cdc`
