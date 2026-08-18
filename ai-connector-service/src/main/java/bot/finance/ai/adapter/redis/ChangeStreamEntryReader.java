@@ -1,6 +1,14 @@
 package bot.finance.ai.adapter.redis;
 
 import bot.finance.ai.application.dto.LearnMessageOutcomeCommand;
+import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.CategoryRef;
+import bot.finance.ai.domain.value.CurrencyCode;
+import bot.finance.ai.domain.value.RecordedStatus;
+import bot.finance.ai.domain.value.SpendingRow;
+import bot.finance.ai.domain.value.StreamPosition;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -8,14 +16,106 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChangeStreamEntryReader {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     public Optional<LearnMessageOutcomeCommand> read(String entryId, Map<String, String> body) {
-        // Intent: map ProposalCreated/ProposalRefiled to PROPOSED, ProposalDiscarded to
-        // DISCARDED, and ProposalAccepted/ExpenseRecorded/ExpenseRefiled to ACCEPTED - never reading the
-        // body's own "status" field; read the event's payload (userId, incomingMessageId, expenseId,
-        // description, merchant, amount, currencyCode, category, grouping) into a SpendingRow; parse the
-        // entry id's "<ms>-<seq>" shape into a StreamPosition; answer empty for any other type, and throw
-        // InvalidValueException for a body with no payload, no type, unparsable JSON, or a non-positive
-        // expenseId/userId, or for an entry id that is not "<ms>-<seq>" with a positive ms.
-        return Optional.empty();
+        String type = body.get("type");
+        if (type == null) {
+            throw new InvalidValueException("Type must not be null");
+        }
+        Optional<RecordedStatus> status = statusFor(type);
+        if (status.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String payload = body.get("payload");
+        if (payload == null) {
+            throw new InvalidValueException("Payload must not be null");
+        }
+        JsonNode node = parsePayload(payload);
+        SpendingRow entry = toRow(node);
+        StreamPosition position = parsePosition(entryId);
+
+        return Optional.of(new LearnMessageOutcomeCommand(entryId, position, status.get(), entry));
+    }
+
+    private Optional<RecordedStatus> statusFor(String type) {
+        return switch (type) {
+            case "ProposalCreated", "ProposalRefiled" -> Optional.of(RecordedStatus.PROPOSED);
+            case "ProposalDiscarded" -> Optional.of(RecordedStatus.DISCARDED);
+            case "ProposalAccepted", "ExpenseRecorded", "ExpenseRefiled" -> Optional.of(RecordedStatus.ACCEPTED);
+            default -> Optional.empty();
+        };
+    }
+
+    private JsonNode parsePayload(String payload) {
+        try {
+            return MAPPER.readTree(payload);
+        } catch (Exception e) {
+            throw new InvalidValueException("Payload must be valid JSON");
+        }
+    }
+
+    private SpendingRow toRow(JsonNode node) {
+        long expenseId = requiredPositiveLong(node, "expenseId");
+        long userId = requiredPositiveLong(node, "userId");
+
+        return new SpendingRow(
+                expenseId,
+                userId,
+                optionalText(node, "incomingMessageId"),
+                node.path("description").asText(),
+                optionalText(node, "merchant"),
+                node.path("amount").asText(),
+                CurrencyCode.of(node.path("currencyCode").asText()),
+                category(node),
+                grouping(node));
+    }
+
+    private CategoryRef category(JsonNode payload) {
+        JsonNode category = payload.path("category");
+        return new CategoryRef(category.path("id").asLong(), category.path("name").asText());
+    }
+
+    private Optional<CategoryRef> grouping(JsonNode payload) {
+        JsonNode grouping = payload.get("grouping");
+        if (grouping == null || grouping.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(new CategoryRef(grouping.path("id").asLong(), grouping.path("name").asText()));
+    }
+
+    private long requiredPositiveLong(JsonNode payload, String field) {
+        JsonNode value = payload.get(field);
+        if (value == null || value.isNull() || !value.isIntegralNumber()) {
+            throw new InvalidValueException(field + " must be a positive number");
+        }
+        long parsed = value.asLong();
+        if (parsed <= 0) {
+            throw new InvalidValueException(field + " must be positive");
+        }
+        return parsed;
+    }
+
+    private Optional<String> optionalText(JsonNode payload, String field) {
+        JsonNode value = payload.get(field);
+        if (value == null || value.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(value.asText());
+    }
+
+    private StreamPosition parsePosition(String entryId) {
+        int dashIndex = entryId.indexOf('-');
+        if (dashIndex < 0) {
+            throw new InvalidValueException("Entry id must be \"<ms>-<seq>\"");
+        }
+        try {
+            long ms = Long.parseLong(entryId.substring(0, dashIndex));
+            long seq = Long.parseLong(entryId.substring(dashIndex + 1));
+            return new StreamPosition(ms, seq);
+        } catch (NumberFormatException e) {
+            throw new InvalidValueException("Entry id must be \"<ms>-<seq>\"");
+        }
     }
 }

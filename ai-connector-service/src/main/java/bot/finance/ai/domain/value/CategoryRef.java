@@ -1,8 +1,15 @@
 package bot.finance.ai.domain.value;
 
+import bot.finance.ai.domain.exception.InvalidValueException;
+
 public record CategoryRef(long id, String name) {
 
     public CategoryRef {
-        // TODO: reject a non-positive id, and a null or blank name
+        if (id <= 0) {
+            throw new InvalidValueException("Id must be positive");
+        }
+        if (name == null || name.isBlank()) {
+            throw new InvalidValueException("Name must not be null or blank");
+        }
     }
 }

@@ -25,11 +25,33 @@ public interface RecordedExpenseEntityRepository extends CrudRepository<Recorded
     List<RecordedExpenseEntity> findDecidedByMessageIds(
             @Param("messageIds") List<Long> messageIds, @Param("exampleLines") int exampleLines);
 
-    // Intent: insert the row joined to incoming_message on (userId, incomingMessageId); on conflict on
-    // expense_id, overwrite every content column, the status and the position, only where the stored
-    // (applied_ms, applied_seq) is less than the event's.
     @Modifying
-    @Query("UPDATE recorded_expense SET updated_at = updated_at WHERE 1 = 0")
+    @Query(
+            """
+            INSERT INTO recorded_expense (
+                message_id, user_id, expense_id, description, merchant, amount, currency_code,
+                category_id, category_name, grouping_id, grouping_name, status, applied_ms, applied_seq,
+                updated_at)
+            SELECT im.id, :userId, :expenseId, :description, :merchant, :amount, :currencyCode,
+                   :categoryId, :categoryName, :groupingId, :groupingName, :status, :appliedMs, :appliedSeq, :now
+            FROM incoming_message im
+            WHERE im.user_id = :userId AND im.incoming_message_id = :incomingMessageId
+            ON CONFLICT (expense_id) DO UPDATE SET
+                description = EXCLUDED.description,
+                merchant = EXCLUDED.merchant,
+                amount = EXCLUDED.amount,
+                currency_code = EXCLUDED.currency_code,
+                category_id = EXCLUDED.category_id,
+                category_name = EXCLUDED.category_name,
+                grouping_id = EXCLUDED.grouping_id,
+                grouping_name = EXCLUDED.grouping_name,
+                status = EXCLUDED.status,
+                applied_ms = EXCLUDED.applied_ms,
+                applied_seq = EXCLUDED.applied_seq,
+                updated_at = EXCLUDED.updated_at
+            WHERE (recorded_expense.applied_ms, recorded_expense.applied_seq)
+                < (EXCLUDED.applied_ms, EXCLUDED.applied_seq)
+            """)
     int upsertApplied(
             @Param("userId") long userId,
             @Param("incomingMessageId") String incomingMessageId,

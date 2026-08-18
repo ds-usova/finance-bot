@@ -49,8 +49,11 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
     }
 
     private void apply(LearnMessageOutcomeCommand command) {
-        // Intent: the single guarded upsert - recordedExpenseStorePort.apply(command.entry(),
-        // command.status(), command.position()), skipped when the entry carries no message id.
+        if (command.entry().messageIdentity().isEmpty()) {
+            return;
+        }
+
+        recordedExpenseStorePort.apply(command.entry(), command.status(), command.position());
     }
 
     private LearnOutcome onFailure(LearnMessageOutcomeCommand command, MessageStoreFailedException e) {

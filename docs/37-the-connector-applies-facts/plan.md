@@ -492,24 +492,24 @@ never reaches `domain` as a string.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `CategoryRef` · test: `CategoryRefTest`
-- [ ] GU02 · `StreamPosition` · test: `StreamPositionTest`
-- [ ] GU03 · `SpendingRow` · test: `SpendingRowTest` · after: GU01
-- [ ] GU04 · `LearnMessageOutcomeCommand` · test: `LearnMessageOutcomeCommandTest` · after: GU01, GU02, GU03
-- [ ] GU05 · `ChangeStreamEntryReader` · test: `ChangeStreamEntryReaderTest` · after: GU01, GU02, GU03, GU04
-- [ ] GU06 · `LearnMessageOutcomeUseCase` · test: `LearnMessageOutcomeUseCaseTest` · after: GU02, GU03, GU04
-- [ ] GU07 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest`
+- [x] GU01 · `CategoryRef` · test: `CategoryRefTest`
+- [x] GU02 · `StreamPosition` · test: `StreamPositionTest`
+- [x] GU03 · `SpendingRow` · test: `SpendingRowTest` · after: GU01
+- [x] GU04 · `LearnMessageOutcomeCommand` · test: `LearnMessageOutcomeCommandTest` · after: GU01, GU02, GU03
+- [x] GU05 · `ChangeStreamEntryReader` · test: `ChangeStreamEntryReaderTest` · after: GU01, GU02, GU03, GU04
+- [x] GU06 · `LearnMessageOutcomeUseCase` · test: `LearnMessageOutcomeUseCaseTest` · after: GU02, GU03, GU04
+- [x] GU07 · `RecordedExpenseEntity` · test: `RecordedExpenseEntityTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `JdbcRecordedExpenseStoreAdapter` · test: `JdbcRecordedExpenseStoreAdapterTest` · after: GU01, GU02, GU03
-- [ ] GI02 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU07
-- [ ] GI03 · `ChangeStreamConsumer` · test: `ChangeStreamConsumerTest` · after: GU05
+- [x] GI01 · `JdbcRecordedExpenseStoreAdapter` · test: `JdbcRecordedExpenseStoreAdapterTest` · after: GU01, GU02, GU03
+- [x] GI02 · `JdbcMessageMemoryAdapter` · test: `JdbcMessageMemoryAdapterTest` · after: GU07
+- [x] GI03 · `ChangeStreamConsumer` · test: `ChangeStreamConsumerTest` · after: GU05
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `LearnMessageOutcomeSystemTest` · covers: `ChangeStreamConsumer.run()`
-- [ ] GS02 · `RecallExamplesSystemTest` · covers: `ExtractIntents` RPC
+- [x] GS01 · `LearnMessageOutcomeSystemTest` · covers: `ChangeStreamConsumer.run()`
+- [x] GS02 · `RecallExamplesSystemTest` · covers: `ExtractIntents` RPC
 
 ### Post-Implementation Steps
 
@@ -540,6 +540,12 @@ None. Q1 was answered `no`, and this group holds only the ADR an approved candid
   `FindExamples` test and RS02's example-line test pass in the red phase. The assertions are genuine (they fail if
   the amount is scaled again or an undecided row leaks through), so GI02 and GS02 join GU07 as verification-only
   steps.
+
+- **B4 (GI03, GS01, GS02):** these three steps needed no production change of their own. `ChangeStreamConsumer` and
+  both system flows were never stubbed — they were red only because the reader and the use case below them were —
+  so GU05 and GU06 greened all nine of their tests at once. Ticked on the orchestrator's own full-suite run
+  (384/384, 0 skipped), which is the stage guardrail these steps are judged by, rather than on a step agent's
+  report.
 
 ## Review Findings
 

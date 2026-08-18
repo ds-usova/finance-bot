@@ -15,7 +15,12 @@ public record SpendingRow(
         Optional<CategoryRef> grouping) {
 
     public SpendingRow {
-        // TODO: reject a non-positive expenseId or userId
+        if (expenseId <= 0) {
+            throw new InvalidValueException("Expense id must be positive");
+        }
+        if (userId <= 0) {
+            throw new InvalidValueException("User id must be positive");
+        }
         if (description == null || description.isBlank()) {
             throw new InvalidValueException("Description must not be null or blank");
         }
