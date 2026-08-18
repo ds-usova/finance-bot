@@ -4,7 +4,12 @@ How the coding agent parallelizes work on this module, and which model does what
 
 ## Version Control
 
-Repository-wide, since every module shares one history: [Version Control](../../../docs/conventions/version-control.md).
+How work reaches the history is repository-wide, since every module shares one:
+[Version Control](../../../docs/conventions/version-control.md). Two of its rules bind the agent in particular:
+
+- **The agent commits as it goes**, one commit per passed stage guardrail, without being asked each time.
+- **The agent never creates, switches or deletes a branch.** The developer checks one out before work starts, and
+  the agent commits to whatever is current.
 
 ## Sub-Agent Models
 

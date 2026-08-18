@@ -27,6 +27,17 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
   carries what the diagram cannot: a field, a rule, a failure, a setting.
 - **Docs describe what a thing does and why it matters to a reader** — never how it is wired. No DI, bean
   registration, annotation, or framework mechanics in a README or a diagram label.
+- **A conventions page names no agent.** It reads as documentation for someone who has never run the framework,
+  and stays true whoever does the work. A rule that holds only because an agent does it — committing as the work
+  goes, a cap on concurrent work, what one orchestration level may not do — belongs in the module's
+  `conventions/agent.md`. The exception is a page whose whole subject is how much may run at once,
+  [Parallelism](parallelism.md), which has nothing else to name.
+- **A conventions page states the project's facts, never the framework's.** What the machine allows, what a list
+  contains, what a command does. Which level runs a step, when it runs relative to archiving, what a pipeline may
+  not do: those belong to `.claude/`, however true they are.
+- **`agent.md` is documentation too.** The register holds there as well — define a thing by its meaning, not by
+  the workflow stage that reaches for it, and the workflow behaviour follows from the definition without the page
+  naming a phase.
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
