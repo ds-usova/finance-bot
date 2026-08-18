@@ -1,6 +1,6 @@
 # Review: One Expense Table, With a Status
 
-**1 bug open, 2 refactoring candidates open. No critical defect, no manual check.**
+**1 bug open, 1 refactoring candidate open. No critical defect, no manual check.**
 
 ## Bug
 
@@ -31,7 +31,7 @@ the service does.
 
 | #  | Status | What                                                                                                 | Why it is a candidate and not a quibble                                                                                                                       |
 |----|--------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| R1 | open   | `ResolveProposalsUseCaseTest.Resolve` proves "already accepted" twice, once for a count of 2 and once for 3 | The module's Testing Style forbids exactly this — a behaviour spanning several values is one `@ParameterizedTest`, never a case duplicated as a one-off. The count is threaded from the stub straight to the assertion, so the second number exercises no boundary and no branch. Merging them keeps the older test's `verify` of `countByMessageReference`, which the newer one omits. `whenDiscardResolvesNothingAndExpensesAlreadyStored_...` is a different operation and stays its own case |
+| R1 | done · directly | `ResolveProposalsUseCaseTest.Resolve` proves "already accepted" twice, once for a count of 2 and once for 3 | The module's Testing Style forbids exactly this — a behaviour spanning several values is one `@ParameterizedTest`, never a case duplicated as a one-off. The count is threaded from the stub straight to the assertion, so the second number exercises no boundary and no branch. Merging them keeps the older test's `verify` of `countByMessageReference`, which the newer one omits. `whenDiscardResolvesNothingAndExpensesAlreadyStored_...` is a different operation and stays its own case |
 | R2 | open   | `ck_expense_pending_has_message` is proved in two places, one of which pays for a container to do it   | `ColumnLimitsSchemaTest.StatusColumn` and `ExpenseRepositoryAdapterTest.Create`'s `whenPendingRowCarriesNoMessageId_...` seed the same row and assert the same violation. The schema guard belongs to the schema test; the adapter copy spends a container round trip proving a constraint rather than adapter behaviour |
 
 ## What was settled during the run, and is not inherited
