@@ -29,7 +29,7 @@ public class LedgerEventOutbox {
                 events.size(),
                 (ps, event) -> {
                     ps.setObject(1, event.id());
-                    ps.setString(2, event.type());
+                    ps.setString(2, event.type().name());
                     ps.setObject(3, event.occurredAt().atOffset(ZoneOffset.UTC));
                     ps.setString(4, event.payload());
                 });

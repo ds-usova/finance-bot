@@ -370,7 +370,7 @@ class ExpenseRepositoryAdapterTest {
 
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo("ProposalCreated");
+                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalCreated);
                 JsonNode payload = readJson(event.payload());
                 assertThat(payload.get("expenseId").asLong())
                         .isEqualTo(created.id().orElseThrow());
@@ -400,7 +400,7 @@ class ExpenseRepositoryAdapterTest {
 
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo("ExpenseRecorded");
+                assertThat(event.type()).isEqualTo(LedgerEventType.ExpenseRecorded);
                 JsonNode payload = readJson(event.payload());
                 assertThat(payload.get("incomingMessageId").isNull()).isTrue();
                 assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
@@ -709,7 +709,7 @@ class ExpenseRepositoryAdapterTest {
             assertThat(accepted).isEqualTo(3);
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).hasSize(3).allSatisfy(event -> {
-                assertThat(event.type()).isEqualTo("ProposalAccepted");
+                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalAccepted);
                 JsonNode payload = readJson(event.payload());
                 assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.RECORDED.name());
             });
@@ -824,7 +824,7 @@ class ExpenseRepositoryAdapterTest {
             assertThat(discarded).isEqualTo(2);
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).hasSize(2).allSatisfy(event -> {
-                assertThat(event.type()).isEqualTo("ProposalDiscarded");
+                assertThat(event.type()).isEqualTo(LedgerEventType.ProposalDiscarded);
                 assertThat(event.occurredAt()).isEqualTo(discardInstant);
                 JsonNode payload = readJson(event.payload());
                 assertThat(payload.get("status").asText()).isEqualTo(ExpenseStatus.PENDING.name());
@@ -959,7 +959,7 @@ class ExpenseRepositoryAdapterTest {
             assertThat(answer).containsExactlyInAnyOrder(firstReference, secondReference);
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).hasSize(2).allSatisfy(event -> assertThat(event.type())
-                    .isEqualTo("ProposalAccepted"));
+                    .isEqualTo(LedgerEventType.ProposalAccepted));
         }
 
         @Test
@@ -1605,7 +1605,7 @@ class ExpenseRepositoryAdapterTest {
 
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).singleElement().satisfies(event -> {
-                assertThat(event.type()).isEqualTo("ExpenseRefiled");
+                assertThat(event.type()).isEqualTo(LedgerEventType.ExpenseRefiled);
                 JsonNode payload = readJson(event.payload());
                 assertThat(payload.get("category").get("name").asText()).isEqualTo("Dining");
                 assertThat(payload.get("grouping").get("name").asText()).isEqualTo("Leisure");
@@ -1626,7 +1626,7 @@ class ExpenseRepositoryAdapterTest {
 
             List<LedgerEvent> events = capturedInsertedEvents();
             assertThat(events).singleElement().satisfies(event -> assertThat(event.type())
-                    .isEqualTo("ProposalRefiled"));
+                    .isEqualTo(LedgerEventType.ProposalRefiled));
         }
 
         @Test

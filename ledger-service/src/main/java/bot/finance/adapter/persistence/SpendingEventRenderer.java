@@ -16,7 +16,7 @@ public class SpendingEventRenderer {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public LedgerEvent render(String type, SpendingRowProjection row, Instant occurredAt) {
+    public LedgerEvent render(LedgerEventType type, SpendingRowProjection row, Instant occurredAt) {
         ObjectNode payload = MAPPER.createObjectNode();
         payload.put("userId", row.userId());
         payload.put("incomingMessageId", row.incomingMessageId());

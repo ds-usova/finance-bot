@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class SpendingEventRendererTest {
 
-    private static final String EVENT_TYPE = "ProposalCreated";
+    private static final LedgerEventType EVENT_TYPE = LedgerEventType.ProposalCreated;
 
     private final SpendingEventRenderer renderer = new SpendingEventRenderer();
 

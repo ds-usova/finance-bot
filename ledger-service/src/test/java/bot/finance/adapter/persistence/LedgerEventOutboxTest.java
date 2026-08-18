@@ -49,8 +49,10 @@ class LedgerEventOutboxTest {
             Instant secondOccurredAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
             String firstPayload = "{\"userId\":%d,\"expenseId\":1}".formatted(userId);
             String secondPayload = "{\"userId\":%d,\"expenseId\":2}".formatted(userId);
-            LedgerEvent first = new LedgerEvent(firstId, "ProposalCreated", firstOccurredAt, firstPayload);
-            LedgerEvent second = new LedgerEvent(secondId, "ExpenseRecorded", secondOccurredAt, secondPayload);
+            LedgerEvent first =
+                    new LedgerEvent(firstId, LedgerEventType.ProposalCreated, firstOccurredAt, firstPayload);
+            LedgerEvent second =
+                    new LedgerEvent(secondId, LedgerEventType.ExpenseRecorded, secondOccurredAt, secondPayload);
 
             outbox.insert(List.of(first, second));
 

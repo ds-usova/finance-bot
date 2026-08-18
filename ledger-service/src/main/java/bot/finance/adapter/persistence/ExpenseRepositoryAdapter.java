@@ -52,8 +52,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             saved = expenseEntityRepository.save(truncatedToMicros(expense));
             SpendingRowProjection eventRow =
                     expenseEntityRepository.findEventRow(saved.id()).orElseThrow();
-            String eventType = expense.status() == ExpenseStatus.PENDING ? "ProposalCreated" : "ExpenseRecorded";
-            appendEvents(List.of(eventRow), eventType, eventRow.createdAt());
+            appendEvents(List.of(eventRow), LedgerEventType.created(expense.status()), eventRow.createdAt());
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
@@ -81,7 +80,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
-            appendEvents(changed, "ProposalAccepted", now);
+            appendEvents(changed, LedgerEventType.ProposalAccepted, now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -94,7 +93,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public int discard(long userId, IncomingMessageId reference, Instant now) {
         try {
             List<SpendingRowProjection> changed = expenseEntityRepository.discard(userId, reference.value());
-            appendEvents(changed, "ProposalDiscarded", now);
+            appendEvents(changed, LedgerEventType.ProposalDiscarded, now);
             return changed.size();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException(
@@ -109,7 +108,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             List<SpendingRowProjection> changed =
                     expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS));
-            appendEvents(changed, "ProposalAccepted", now);
+            appendEvents(changed, LedgerEventType.ProposalAccepted, now);
             return changed.stream()
                     .map(row -> IncomingMessageId.of(row.incomingMessageId()))
                     .toList();
@@ -202,8 +201,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
                     userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
-            String eventType = status == ExpenseStatus.PENDING ? "ProposalRefiled" : "ExpenseRefiled";
-            appendEvents(changed.map(List::of).orElseGet(List::of), eventType, now);
+            appendEvents(changed.map(List::of).orElseGet(List::of), LedgerEventType.refiled(status), now);
 
             return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
@@ -211,7 +209,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         }
     }
 
-    private void appendEvents(List<SpendingRowProjection> rows, String eventType, Instant occurredAt) {
+    private void appendEvents(List<SpendingRowProjection> rows, LedgerEventType eventType, Instant occurredAt) {
         if (rows.isEmpty()) {
             return;
         }
