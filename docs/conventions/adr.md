@@ -25,29 +25,26 @@ The number is **one global sequence across both tiers** — four digits, one pas
 never reused and never renumbered. Each tier's sequence therefore carries gaps, and a gap is expected rather
 than a defect. It is assigned when the file is created, so a candidate nobody approved consumes none.
 
-## Placed, then written
+## How it is written
 
-A record has two states, and both are legitimate.
-
-**Placed** is the file with its number, its title, its metadata and, under each section, a brief saying what
-that section has to carry. It is `Status: Proposed`, and it says a decision was made and is owed an
-explanation. Placing one is finished work: it lands and is committed with the rest.
-
-**Written** replaces each brief with the explanation and moves `Status:` to `Accepted`.
-
-**Whoever made the decision writes it.** The value of an ADR is a judgement about why a system is the way it
-is, and that judgement exists in one place — the person who weighed the alternatives. A paragraph reconstructed
+**Whoever made the decision writes it.** The value of an ADR is a judgement about why a system is the way it is,
+and that judgement exists in one place — the person who weighed the alternatives. A paragraph reconstructed
 afterwards from the diff reads exactly like a considered one, and the difference only shows years later, to a
 reader who has no way to check.
+
+**It fits on one screen — roughly 20 lines, never more than 30.** It records one decision, and a reader reaches
+for it to answer one question: why is it like this, and what may I not break? A decision needing more room is
+two decisions.
+
+Write what the code cannot say. Skip anything a reader can get from the schema, the tests or the diff, and link
+to the contract and use-case pages rather than restating them.
 
 ```
 # ADR <nnnn>: <the decision, stated as a fact>
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** <YYYY-MM-DD>
 - **Source:** [<title>](<the relative path to the work that decided it, from this ADR's own tier>)
-
-> Placed, not yet written. Each section says what it has to carry.
 
 ## Context
 
@@ -63,15 +60,6 @@ to a tree that has moved on.>
 
 <What it costs and what must stay true. Two or three sentences, or a short bullet list.>
 ```
-
-## The shape
-
-**An ADR fits on one screen — roughly 20 lines, never more than 30.** It records one decision, and a reader
-reaches for it to answer one question: why is it like this, and what may I not break? A decision needing more
-room is two decisions.
-
-Write what the code cannot say. Skip anything a reader can get from the schema, the tests or the diff, and link
-to the contract and use-case pages rather than restating them.
 
 ## Lifecycle
 
