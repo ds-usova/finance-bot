@@ -66,8 +66,7 @@ public class ReplicationSlots {
      * is refused as active for this connection's PID.
      */
     public static AutoCloseable hold(
-            String jdbcUrl, String username, String password, String slotName, String publication)
-            throws SQLException {
+            String jdbcUrl, String username, String password, String slotName, String publication) throws SQLException {
         Properties properties = new Properties();
         PGProperty.USER.set(properties, username);
         PGProperty.PASSWORD.set(properties, password);
