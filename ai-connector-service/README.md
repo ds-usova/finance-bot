@@ -46,7 +46,7 @@ AddRelTag("implements", $lineStyle="dashed")
 Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service, publishes its signing key", $tags="callerExternal")
 System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", $tags="aiExternal")
 ContainerDb(store, "finance_ai", "PostgreSQL", "The messages received, and what the ledger made of them")
-ContainerQueue(changeStream, "Change stream", "Redis, ledger.cdc", "Every row change the ledger makes to its spending tables", $tags="callerExternal")
+ContainerQueue(changeStream, "Change stream", "Redis, ledger.cdc", "Every fact the ledger publishes about a piece of spending", $tags="callerExternal")
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
@@ -62,11 +62,11 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(storePort, "Message Store Port", "Interface", "Outbound port", $tags="portOut")
   Component(storeAdapter, "Message Store Adapter", "Spring Data JDBC", "Keeps each message under its person and message id", $tags="core")
 
-  Component(streamConsumer, "Change Stream Consumer", "Redis consumer group", "Reads each ledger change and acknowledges it once learned", $tags="callerExternal")
+  Component(streamConsumer, "Change Stream Consumer", "Redis consumer group", "Reads each published fact and acknowledges it once learned", $tags="callerExternal")
   Component(learnPort, "Learn Message Outcome Port", "Interface", "Inbound port", $tags="portIn")
-  Component(learnUseCase, "Learn Message Outcome Use Case", "Plain Java", "Records what became of a message, bounds a failing change's attempts", $tags="core")
+  Component(learnUseCase, "Learn Message Outcome Use Case", "Plain Java", "Records what became of a message, bounds a failing delivery's attempts", $tags="core")
   Component(recordedStorePort, "Recorded Expense Store Port", "Interface", "Outbound port", $tags="portOut")
-  Component(recordedStoreAdapter, "Recorded Expense Store Adapter", "Spring Data JDBC", "Keeps each expense beside its message, pairs an acceptance's two halves", $tags="core")
+  Component(recordedStoreAdapter, "Recorded Expense Store Adapter", "Spring Data JDBC", "Applies one fact to the expense's row", $tags="core")
   Component(attemptsPort, "Change Attempt Store Port", "Interface", "Outbound port", $tags="portOut")
   Component(attemptsAdapter, "Change Attempt Store Adapter", "Spring Data JDBC", "Counts a change's failed attempts", $tags="core")
 }
@@ -97,7 +97,7 @@ Rel_R(learnUseCase, recordedStorePort, "Writes through")
 Rel_L(recordedStoreAdapter, recordedStorePort, "Implements", $tags="implements")
 Rel_D(learnUseCase, attemptsPort, "Counts through")
 Rel_L(attemptsAdapter, attemptsPort, "Implements", $tags="implements")
-Rel_D(recordedStoreAdapter, store, "INSERT, UPDATE, DELETE", "JDBC")
+Rel_D(recordedStoreAdapter, store, "INSERT, UPDATE", "JDBC")
 Rel_D(attemptsAdapter, store, "INSERT, DELETE", "JDBC")
 
 SHOW_LEGEND()

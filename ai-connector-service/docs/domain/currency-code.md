@@ -11,4 +11,5 @@ The currency an amount is denominated in, as a code ISO 4217 knows.
 ## Made of / held by
 
 - **Made of:** the code itself.
-- **Held by:** the caller's assumed currency, applied where a user stated an amount without one.
+- **Held by:** the [caller's assumed currency](../contracts/in/intent-extraction.md).
+- **Also held by:** a [spending row](spending-row.md), as the currency its amount is written in.

@@ -87,7 +87,9 @@ A whole body, as `ProposalCreated` carries it:
 
 ## Deduplicating
 
-The key is `id`, alone. A redelivered event is byte-identical.
+A consumer may deduplicate on `id` alone, since a redelivered event is byte-identical. One that keeps a per-row
+mark of the position it last applied guards on that instead, and re-applies a republished event rather than
+skipping it.
 
 ## What is not promised
 
