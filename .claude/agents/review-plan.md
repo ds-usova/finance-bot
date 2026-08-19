@@ -104,7 +104,7 @@ job — do not re-derive them by hand and do not report them again as findings.
   breaking the build: a Stabilization item that removes or narrows a schema object — a table, a column, a
   constraint — while a statement some pre-existing test still runs reads it and no Stabilization item rewrites
   that statement; and a signature or constructor change that leaves a pre-existing test failing rather than
-  disabled by a named item. Read the statements and the tests, not the item text. Classify `decision`: the fix
+  disabled by the step whose own test class it is. Read the statements and the tests, not the item text. Classify `decision`: the fix
   moves work between checklist items.
 
 Treat this as a dry run, at plan level, of the module's architecture-enforcement test — flag anything that test
@@ -134,6 +134,13 @@ this section.
   dropped table's absence, a schema's constraint, a generated type's shape — tests the artifact, not the class,
   and reads as a contract nobody agreed to once the artifact is history. So does a `then:` restating a stub's
   default. Resolution `mechanical`: drop the scenario.
+- **Cover the `when:` and ask whether the `then:` already holds.** Where the asserted value is what the target
+  holds once the `given:` alone is arranged, the scenario passes against a target that does nothing, and reports
+  coverage the suite does not have. Resolution `mechanical`: drop the scenario, or move the assertion to a
+  `given:` that makes the value distinguishable.
+- **Flag two scenarios in one step separated only by an input the target does not branch on.** Read the target:
+  where no condition tests that input, both drive one path. Resolution `mechanical`: keep the one whose `then:`
+  says more.
 - **Read each `when:` and name the method it calls on the target class.** A scenario whose `when:` reaches the
   outcome through another class, a template, a raw statement or the whole application — anything but a public
   method of `<TargetClass>` — tests something else under this step's name. Resolution `mechanical` where the

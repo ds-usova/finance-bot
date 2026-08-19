@@ -59,7 +59,8 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
   separated by a symbol.
 - **Prerequisites.** What must already hold for the use case to run — the caller is authenticated, a user is
   stored under that identity — one line each. Two or three is a full section.
-- **A page carries the flow diagram, Prerequisites, Outcomes, Collaborators and References**, and nothing else.
+- **A page carries the flow diagram, Prerequisites, Outcomes, Collaborators, Components and References**, and
+  nothing else. Components is the C3 of the components, ports and external systems the use case touches.
 - **References is the last section**, and it is links only: the ADRs that decided how this use case works, and
   the use cases a reader needs next. One line each, each saying in a few words why it is worth opening. A
   collaborator the table already lists is not repeated, and a page with nothing to point at carries no section.

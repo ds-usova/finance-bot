@@ -35,7 +35,11 @@ vanishing:
 - **it cannot compile** — keep the method, disable it, and comment out only the lines inside it. The husk stays
   *within* the method; the method is never commented out whole.
 
-The reason names what owes the rework — the red step, the fix step, the rework step. The skip list is then the
+A test whose assertions survive the change is a broken call site, fixed under the edits table above; only a test
+whose assertions the change invalidates is disabled.
+
+The reason names the step whose own test class this is. No step, or a step that reworks another class, is the
+same defect: a test nothing will ever re-enable. The skip list is then the
 list of what is owed, and the total and skipped counts stay readable against the baseline: the total falls only
 where an item names a file to delete, and the skipped count is exactly what was disabled here.
 

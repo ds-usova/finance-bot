@@ -60,11 +60,15 @@ function split_row(line, r,   body, n, i, parts, lead) {
     lead = substr(line, 1, RLENGTH)
     indent[r] = lead
     body = substr(line, RLENGTH + 1)
+    # An escaped pipe (\|) is cell content, not a separator. Hide it behind a control byte for the
+    # split and put it back in each cell.
+    gsub(/\\\|/, "\001", body)
     sub(/^\|/, "", body)
     sub(/\|[ \t]*$/, "", body)
     n = split(body, parts, /\|/)
     for (i = 1; i <= n; i++) {
         gsub(/^[ \t]+|[ \t]+$/, "", parts[i])
+        gsub(/\001/, "\\|", parts[i])
         cells[r, i] = parts[i]
     }
     if (n > cols) cols = n
