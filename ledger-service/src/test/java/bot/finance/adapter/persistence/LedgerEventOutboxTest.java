@@ -3,12 +3,16 @@ package bot.finance.adapter.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -23,7 +27,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
-@Import({LedgerEventOutbox.class, OutboxWriter.class, SpendingEventRenderer.class, Slf4jLoggerFactory.class})
+@Import({
+    LedgerEventOutbox.class,
+    OutboxWriter.class,
+    OutboxMeters.class,
+    SpendingEventRenderer.class,
+    Slf4jLoggerFactory.class
+})
 class LedgerEventOutboxTest {
 
     @Autowired
@@ -31,6 +41,12 @@ class LedgerEventOutboxTest {
 
     @MockitoSpyBean
     private OutboxWriter outboxWriter;
+
+    @MockitoSpyBean
+    private OutboxMeters outboxMeters;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -106,6 +122,31 @@ class LedgerEventOutboxTest {
 
             assertThatCode(() -> outbox.append(LedgerEventType.ProposalCreated, List.of(row(1L, 5003L)), Instant.now()))
                     .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("when the writer refuses two rows - then the dropped counter carries both under their type")
+        void whenWriterRefusesTwoRows_thenDroppedCounterCarriesBothUnderTheirType() {
+            doThrow(new RuntimeException("outbox unavailable"))
+                    .when(outboxWriter)
+                    .write(any(), any(), any());
+
+            outbox.append(LedgerEventType.ProposalAccepted, List.of(row(1L, 5005L), row(2L, 5005L)), Instant.now());
+
+            assertThat(meterRegistry
+                            .get("ledger_cdc_facts_dropped_total")
+                            .tag("type", "ProposalAccepted")
+                            .counter()
+                            .count())
+                    .isEqualTo(2.0);
+        }
+
+        @Test
+        @DisplayName("when the rows are recorded - then nothing is counted as dropped")
+        void whenRowsAreRecorded_thenNothingIsCountedAsDropped() {
+            outbox.append(LedgerEventType.ProposalCreated, List.of(row(1L, 5006L)), Instant.now());
+
+            verify(outboxMeters, never()).countFactsDropped(any(), anyLong());
         }
     }
 

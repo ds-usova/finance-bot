@@ -21,11 +21,17 @@ import org.springframework.stereotype.Component;
 public class LedgerEventOutbox {
 
     private final OutboxWriter outboxWriter;
+    private final OutboxMeters outboxMeters;
     private final JdbcTemplate jdbcTemplate;
     private final Logger log;
 
-    public LedgerEventOutbox(OutboxWriter outboxWriter, JdbcTemplate jdbcTemplate, LoggerFactory loggerFactory) {
+    public LedgerEventOutbox(
+            OutboxWriter outboxWriter,
+            OutboxMeters outboxMeters,
+            JdbcTemplate jdbcTemplate,
+            LoggerFactory loggerFactory) {
         this.outboxWriter = outboxWriter;
+        this.outboxMeters = outboxMeters;
         this.jdbcTemplate = jdbcTemplate;
         this.log = loggerFactory.getLogger(LedgerEventOutbox.class);
     }
@@ -38,6 +44,7 @@ public class LedgerEventOutbox {
         try {
             outboxWriter.write(type, rows, occurredAt);
         } catch (RuntimeException e) {
+            outboxMeters.countFactsDropped(type, rows.size());
             log.error(
                     "Failed to record {} {} facts, which reach no consumer: {}",
                     rows.size(),

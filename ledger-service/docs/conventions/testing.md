@@ -20,6 +20,7 @@ bot.finance
     │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
     │   ├── TheSecurityChain      # role — the real filter chains, their signing keys and the secret filter
     │   ├── AbstractSystemTest    # full-application base class
+    │   ├── InMemoryMeters        # role — a meter registry a slice does not carry, for a metered adapter
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests

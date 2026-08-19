@@ -9,6 +9,7 @@ import bot.finance.adapter.cdc.ReplicationSlotMonitor;
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.adapter.persistence.DatabaseConnectionDetails;
 import bot.finance.adapter.persistence.LedgerEventOutbox;
+import bot.finance.adapter.persistence.OutboxMeters;
 import bot.finance.adapter.persistence.OutboxWriter;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.SpendingEventRenderer;
@@ -43,6 +44,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
     DatabaseConnectionDetails.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
+    OutboxMeters.class,
     SpendingEventRenderer.class,
     RedisChangeStreamWriter.class,
     Slf4jLoggerFactory.class,

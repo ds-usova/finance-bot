@@ -54,6 +54,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
     ExpenseRepositoryAdapter.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
+    OutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })
