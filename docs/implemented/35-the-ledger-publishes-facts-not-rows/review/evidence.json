@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/35-the-ledger-publishes-facts-not-rows/plan.md",
+  "commit": "cdd9e5d",
+  "branch": "dev",
+  "workingTree": "9 uncommitted file(s)",
+  "generated": "2026-08-18T20:32:10Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "FAIL", "tests": 396, "passed": 305, "failed": 43, "skipped": 48, "instructions": "97.2%", "branches": "93.6%", "minimum": "85%", "format": "unformatted"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1123, "passed": 1123, "failed": 0, "skipped": 0, "instructions": "96.3%", "branches": "92.2%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}

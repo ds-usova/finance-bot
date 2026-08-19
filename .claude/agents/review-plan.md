@@ -134,6 +134,13 @@ this section.
   dropped table's absence, a schema's constraint, a generated type's shape — tests the artifact, not the class,
   and reads as a contract nobody agreed to once the artifact is history. So does a `then:` restating a stub's
   default. Resolution `mechanical`: drop the scenario.
+- **Cover the `when:` and ask whether the `then:` already holds.** Where the asserted value is what the target
+  holds once the `given:` alone is arranged, the scenario passes against a target that does nothing, and reports
+  coverage the suite does not have. Resolution `mechanical`: drop the scenario, or move the assertion to a
+  `given:` that makes the value distinguishable.
+- **Flag two scenarios in one step separated only by an input the target does not branch on.** Read the target:
+  where no condition tests that input, both drive one path. Resolution `mechanical`: keep the one whose `then:`
+  says more.
 - **Read each `when:` and name the method it calls on the target class.** A scenario whose `when:` reaches the
   outcome through another class, a template, a raw statement or the whole application — anything but a public
   method of `<TargetClass>` — tests something else under this step's name. Resolution `mechanical` where the
