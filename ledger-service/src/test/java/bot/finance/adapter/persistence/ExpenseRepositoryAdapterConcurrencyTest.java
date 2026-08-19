@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -36,7 +37,13 @@ import org.springframework.transaction.annotation.Transactional;
  * survive the test, cleanup is manual.
  */
 @PersistenceAdapterTest
-@Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
+@Import({
+    ExpenseRepositoryAdapter.class,
+    LedgerEventOutbox.class,
+    OutboxWriter.class,
+    SpendingEventRenderer.class,
+    Slf4jLoggerFactory.class
+})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ExpenseRepositoryAdapterConcurrencyTest {
 

@@ -1,17 +1,16 @@
 package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.UserRowUtils;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.ExpenseStatus;
@@ -44,7 +43,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * becomes on the wire is {@link SpendingEventRendererTest}'s.
  */
 @PersistenceAdapterTest
-@Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
+@Import({
+    ExpenseRepositoryAdapter.class,
+    LedgerEventOutbox.class,
+    OutboxWriter.class,
+    SpendingEventRenderer.class,
+    Slf4jLoggerFactory.class
+})
 class ExpenseRepositoryAdapterEventsTest {
 
     @Autowired
@@ -61,6 +66,9 @@ class ExpenseRepositoryAdapterEventsTest {
 
     @MockitoSpyBean
     private LedgerEventOutbox ledgerEventOutbox;
+
+    @MockitoSpyBean
+    private SpendingEventRenderer spendingEventRenderer;
 
     @BeforeEach
     void clearOutbox() {
@@ -140,11 +148,15 @@ class ExpenseRepositoryAdapterEventsTest {
         }
 
         @Test
-        @DisplayName("when the outbox refuses the fact - then the write fails rather than storing the entry alone")
-        void whenOutboxRefusesTheFact_thenWriteFailsRatherThanStoringTheEntryAlone() {
-            doThrow(new RuntimeException("outbox refused"))
-                    .when(ledgerEventOutbox)
-                    .append(any(), any(), any());
+        @DisplayName("when the database refuses the fact - then the entry is still stored and the write answers "
+                + "normally")
+        void whenDatabaseRefusesTheFact_thenEntryIsStillStoredAndWriteAnswersNormally() {
+            // A payload that is not JSON fails the statement's own ::jsonb cast, which aborts everything after it
+            // in that transaction — the failure the savepoint has to contain for the entry below to survive.
+            doAnswer(invocation -> new LedgerEvent(
+                            UUID.randomUUID(), invocation.getArgument(0), invocation.getArgument(2), "not json"))
+                    .when(spendingEventRenderer)
+                    .render(any(), any(), any());
             long userId = storedUserId("events-create-outbox-failure-user");
             Expense proposal = Expense.newProposal(
                     userId,
@@ -155,7 +167,13 @@ class ExpenseRepositoryAdapterEventsTest {
                     IncomingMessageId.of(UUID.randomUUID().toString()),
                     Instant.now());
 
-            assertThatThrownBy(() -> adapter.create(proposal)).isInstanceOf(PersistenceFailedException.class);
+            Expense created = adapter.create(proposal);
+
+            assertThat(created.id()).isPresent();
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId))
+                    .singleElement()
+                    .satisfies(row -> assertThat(row.description()).isEqualTo("Purchase"));
+            assertThat(OutboxRowUtils.outboxRowCount(jdbcTemplate)).isZero();
         }
     }
 

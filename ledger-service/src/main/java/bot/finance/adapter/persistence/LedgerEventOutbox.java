@@ -1,67 +1,54 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.port.Logger;
+import bot.finance.application.port.LoggerFactory;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The outbox a spending write records its facts through. Rendering a row into a fact, writing it, and clearing it
- * again are one call: a fact left behind is a row the capture pipeline republishes forever, and a caller that has
- * to remember a second step is a caller that will one day forget it.
+ * The outbox a spending write records its facts through. Rendering a fact, writing it, and clearing it again are
+ * one call: a fact left behind is a row the capture pipeline republishes forever, and a caller that has to
+ * remember a second step is a caller that will one day forget it.
+ *
+ * <p>Publishing is a bonus on top of the write, so a fact that cannot be recorded is logged and dropped rather
+ * than failing the change it describes. {@link OutboxWriter} runs inside a savepoint, which is what leaves the
+ * caller's transaction able to commit after a refused statement — catching here, outside that boundary, is what
+ * makes the rollback to it happen.
  */
 @Component
 public class LedgerEventOutbox {
 
+    private final OutboxWriter outboxWriter;
     private final JdbcTemplate jdbcTemplate;
-    private final SpendingEventRenderer spendingEventRenderer;
+    private final Logger log;
 
-    public LedgerEventOutbox(JdbcTemplate jdbcTemplate, SpendingEventRenderer spendingEventRenderer) {
+    public LedgerEventOutbox(OutboxWriter outboxWriter, JdbcTemplate jdbcTemplate, LoggerFactory loggerFactory) {
+        this.outboxWriter = outboxWriter;
         this.jdbcTemplate = jdbcTemplate;
-        this.spendingEventRenderer = spendingEventRenderer;
+        this.log = loggerFactory.getLogger(LedgerEventOutbox.class);
     }
 
-    /**
-     * Records one fact per row, then clears them. {@link Propagation#MANDATORY} is the guarantee: the rows are
-     * written and cleared inside the caller's own transaction, so a fact cannot commit without the change it
-     * describes, and a call outside a transaction is refused rather than committing on its own.
-     */
-    @Transactional(propagation = Propagation.MANDATORY)
     public void append(LedgerEventType type, List<SpendingRowProjection> rows, Instant occurredAt) {
         if (rows.isEmpty()) {
             return;
         }
 
-        List<LedgerEvent> events = rows.stream()
-                .map(row -> spendingEventRenderer.render(type, row, occurredAt))
-                .toList();
-        insert(events);
-        delete(events.stream().map(LedgerEvent::id).toList());
+        try {
+            outboxWriter.write(type, rows, occurredAt);
+        } catch (RuntimeException e) {
+            log.error(
+                    "Failed to record {} {} facts, which reach no consumer: {}",
+                    rows.size(),
+                    type,
+                    rows.stream().map(SpendingRowProjection::id).toList(),
+                    e);
+        }
     }
 
     public long rowCount() {
         Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox", Long.class);
         return count == null ? 0 : count;
-    }
-
-    private void insert(List<LedgerEvent> events) {
-        jdbcTemplate.batchUpdate(
-                "INSERT INTO outbox (id, type, occurred_at, payload) VALUES (?, ?, ?, ?::jsonb)",
-                events,
-                events.size(),
-                (ps, event) -> {
-                    ps.setObject(1, event.id());
-                    ps.setString(2, event.type().name());
-                    ps.setObject(3, event.occurredAt().atOffset(ZoneOffset.UTC));
-                    ps.setString(4, event.payload());
-                });
-    }
-
-    private void delete(List<UUID> ids) {
-        jdbcTemplate.batchUpdate("DELETE FROM outbox WHERE id = ?", ids, ids.size(), (ps, id) -> ps.setObject(1, id));
     }
 }

@@ -2,8 +2,10 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
@@ -18,16 +20,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.IllegalTransactionStateException;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
-@Import({LedgerEventOutbox.class, SpendingEventRenderer.class})
+@Import({LedgerEventOutbox.class, OutboxWriter.class, SpendingEventRenderer.class, Slf4jLoggerFactory.class})
 class LedgerEventOutboxTest {
 
     @Autowired
     private LedgerEventOutbox outbox;
+
+    @MockitoSpyBean
+    private OutboxWriter outboxWriter;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -95,14 +98,14 @@ class LedgerEventOutboxTest {
         }
 
         @Test
-        @DisplayName("when called outside a transaction - then it is refused rather than committing on its own")
-        @Transactional(propagation = Propagation.NOT_SUPPORTED)
-        void whenCalledOutsideATransaction_thenItIsRefused() {
-            assertThatThrownBy(() ->
-                            outbox.append(LedgerEventType.ProposalCreated, List.of(row(1L, 5003L)), Instant.now()))
-                    .isInstanceOf(IllegalTransactionStateException.class);
+        @DisplayName("when the writer refuses the rows - then append answers normally rather than raising")
+        void whenWriterRefusesTheRows_thenAppendAnswersNormallyRatherThanRaising() {
+            doThrow(new RuntimeException("outbox unavailable"))
+                    .when(outboxWriter)
+                    .write(any(), any(), any());
 
-            assertThat(outbox.rowCount()).isZero();
+            assertThatCode(() -> outbox.append(LedgerEventType.ProposalCreated, List.of(row(1L, 5003L)), Instant.now()))
+                    .doesNotThrowAnyException();
         }
     }
 

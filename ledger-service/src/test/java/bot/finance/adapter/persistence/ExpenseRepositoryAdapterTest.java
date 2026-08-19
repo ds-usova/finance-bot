@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
@@ -49,7 +50,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
-@Import({ExpenseRepositoryAdapter.class, LedgerEventOutbox.class, SpendingEventRenderer.class})
+@Import({
+    ExpenseRepositoryAdapter.class,
+    LedgerEventOutbox.class,
+    OutboxWriter.class,
+    SpendingEventRenderer.class,
+    Slf4jLoggerFactory.class
+})
 class ExpenseRepositoryAdapterTest {
 
     @Autowired

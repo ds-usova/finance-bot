@@ -10,10 +10,10 @@ up.
 
 ## Operations
 
-| Operation       | Purpose                                                 | Used by                                               |
-|-----------------|---------------------------------------------------------|-------------------------------------------------------|
+| Operation       | Purpose                                                 | Used by                                                         |
+|-----------------|---------------------------------------------------------|-----------------------------------------------------------------|
 | Append an entry | publishes one committed fact                            | the ledger's [change capture](change-capture.md), on every fact |
-| Trim the stream | drops the oldest entries once the stream passes its cap | the same append                                       |
+| Trim the stream | drops the oldest entries once the stream passes its cap | the same append                                                 |
 
 The stream is named by `CDC_STREAM_KEY` and capped by `CDC_STREAM_MAX_LENGTH`, both
 [configuration](../../configuration.md). The cap is approximate: the stream holds at least the cap and a little
@@ -21,39 +21,39 @@ more.
 
 ## What an entry carries
 
-| Field        | Holds                                            |
-|--------------|--------------------------------------------------|
-| `id`         | the event's own id, a UUID                       |
-| `type`       | which fact it is, from the catalogue below       |
-| `occurredAt` | when the write stamped it, an ISO-8601 instant   |
-| `payload`    | the body, JSON, whose shape the type fixes       |
+| Field        | Holds                                          |
+|--------------|------------------------------------------------|
+| `id`         | the event's own id, a UUID                     |
+| `type`       | which fact it is, from the catalogue below     |
+| `occurredAt` | when the write stamped it, an ISO-8601 instant |
+| `payload`    | the body, JSON, whose shape the type fixes     |
 
 ## The catalogue
 
-| Type                | The fact                                        | Emitted by                                                                   |
-|---------------------|-------------------------------------------------|------------------------------------------------------------------------------|
-| `ProposalCreated`   | the model proposed an expense from a message    | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)   |
-| `ProposalRefiled`   | a pending entry was moved to another category   | [Change an entry's category](../../usecases/change-an-expense-category.md)   |
-| `ProposalDiscarded` | the person threw the pending entry away         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md) |
+| Type                | The fact                                        | Emitted by                                                                                                                                                     |
+|---------------------|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ProposalCreated`   | the model proposed an expense from a message    | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                     |
+| `ProposalRefiled`   | a pending entry was moved to another category   | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                     |
+| `ProposalDiscarded` | the person threw the pending entry away         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                   |
 | `ProposalAccepted`  | the person confirmed it, and it is now recorded | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md), [Accept the proposals a person chose](../../usecases/accept-chosen-proposals.md) |
-| `ExpenseRecorded`   | an expense was recorded with no proposal        | [Create an expense](../../usecases/create-an-expense.md)                     |
-| `ExpenseRefiled`    | a recorded entry was moved to another category  | [Change an entry's category](../../usecases/change-an-expense-category.md)   |
+| `ExpenseRecorded`   | an expense was recorded with no proposal        | [Create an expense](../../usecases/create-an-expense.md)                                                                                                       |
+| `ExpenseRefiled`    | a recorded entry was moved to another category  | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                     |
 
 ## What a body carries
 
 Every type carries the same fields. The type and `status` are what tell one fact from another.
 
-| Field                     | Holds                                                                                       |
-|---------------------------|---------------------------------------------------------------------------------------------|
-| `userId`                  | the person, by [internal id](../../domain/authenticated-user-id.md)                         |
-| `incomingMessageId`       | the [message](../../domain/incoming-message-id.md) the entry came from; `null` where there was none |
-| `expenseId`               | the entry's id ([expense](../../domain/expense.md))                                          |
-| `status`                  | the entry's [status](../../domain/expense-status.md) as it stands after the fact            |
-| `description`, `merchant` | as stored; `merchant` may be `null`                                                         |
+| Field                     | Holds                                                                                                                          |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `userId`                  | the person, by [internal id](../../domain/authenticated-user-id.md)                                                            |
+| `incomingMessageId`       | the [message](../../domain/incoming-message-id.md) the entry came from; `null` where there was none                            |
+| `expenseId`               | the entry's id ([expense](../../domain/expense.md))                                                                            |
+| `status`                  | the entry's [status](../../domain/expense-status.md) as it stands after the fact                                               |
+| `description`, `merchant` | as stored; `merchant` may be `null`                                                                                            |
 | `amount`                  | a decimal string in the currency's main unit ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)) |
-| `currencyCode`            | the ISO code that amount is in                                                              |
-| `category`                | `id` and `name` — what the entry is filed under                                             |
-| `grouping`                | `id` and `name` — the grouping that category sits in                                        |
+| `currencyCode`            | the ISO code that amount is in                                                                                                 |
+| `category`                | `id` and `name` — what the entry is filed under                                                                              |
+| `grouping`                | `id` and `name` — the grouping that category sits in                                                                         |
 
 A whole body, as `ProposalCreated` carries it:
 
@@ -93,17 +93,18 @@ skipping it.
 
 ## What is not promised
 
-| Not promised                    | What a consumer must expect                                                                          |
-|---------------------------------|--------------------------------------------------------------------------------------------------------|
-| exactly-once delivery           | delivery is at-least-once — a restart between the append and the position being committed republishes the event |
-| every fact eventually arrives   | an invalidated slot ends a run of facts permanently — see Failures below                             |
+| Not promised                  | What a consumer must expect                                                                                                             |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| exactly-once delivery         | delivery is at-least-once — a restart between the append and the position being committed republishes the event                       |
+| a fact for every change       | recording a fact is a bonus on top of the write, so one the ledger cannot record is dropped rather than failing the change it describes |
+| every fact eventually arrives | an invalidated slot ends a run of facts permanently — see Failures below                                                              |
 
 ## Failures
 
-| Condition                                    | Signal                                                                                       |
-|----------------------------------------------|------------------------------------------------------------------------------------------------|
-| Redis refuses the write                      | nothing is appended, the log position stands, and the event is retried until it is accepted   |
-| Redis stays unreachable                      | the database's retained log grows, and the health component reads down                         |
+| Condition                                                     | Signal                                                                                                                     |
+|---------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| Redis refuses the write                                       | nothing is appended, the log position stands, and the event is retried until it is accepted                                |
+| Redis stays unreachable                                       | the database's retained log grows, and the health component reads down                                                     |
 | the slot is invalidated ([change capture](change-capture.md)) | everything it still held is lost permanently, and an operator [rebuilds the slot](../in/operations.md#rebuilding-the-slot) |
 
 Nothing is dropped to keep the pipeline moving
