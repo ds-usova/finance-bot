@@ -36,9 +36,9 @@ $names = $found -join ', '
     hookSpecificOutput = @{
         hookEventName = "PreToolUse"
         permissionDecision = "deny"
-        permissionDecisionReason = "A commit message names no plan step, design decision or finding, and this one " +
+        permissionDecisionReason = "A commit message names no plan step, design entry or finding, and this one " +
             "names $names. An id belongs to a document that is archived once the work lands, so the message stops " +
             "resolving the moment it would be read. Say what the commit does instead. " +
-            "See docs/conventions/version-control.md, 'A message names no step'."
+            "See .claude/skills/plan-task/SKILL.md, 'An ID never leaves those places'."
     }
 } | ConvertTo-Json -Compress

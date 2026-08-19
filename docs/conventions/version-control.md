@@ -33,9 +33,6 @@ and two policies would contradict each other inside a single commit.
   for what the diff cannot show: a constraint that forced the approach, or a consequence a later reader would
   otherwise miss. Never a list of touched files or a per-file summary — that is `git show --stat` — never a test
   count or suite status, and never a restatement of the subject.
-- **A message names no step.** Not a plan's `ST01` or `GI04`, not a design's `D3`, `F12` or `A7`, not an open
-  question's `Q2` or a finding's `R1`. Each belongs to a document that moves into `docs/implemented/` the moment
-  the work lands, so the reference stops resolving exactly when someone reads the history. Say what the commit
-  does. The same rule governs a test's display name
-  ([Testing Conventions](../../ledger-service/docs/conventions/testing.md)).
+- **A message says what the commit does**, in the repository's own words. An identifier that belongs to a working
+  document rather than to the code is not one of them.
 - **Do not squash, and do not merge into the main branch.**

@@ -234,6 +234,13 @@ step reports:
 Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
 renumbered once the plan is written — a dropped step leaves a gap.
 
+**An ID never leaves those places.** Not a commit message, not a test or display name, not a class, a file or a
+comment. Each of those outlives the plan directory, which moves into `docs/implemented/` the moment the work
+lands — so an ID written into one stops resolving exactly when a reader meets it. The same holds for a design's
+`D`, `F` and `A` entries, an Open Question's `Q`, and a findings file's `R`. Say what the thing does instead. A
+`@Disabled` reason is the one exception, since it names the step that owes the rework and clears itself when that
+step lands.
+
 **An `update:` bullet is written from the test's body, never from its name.** Open the method, read what it
 asserts, and say what changes about those assertions. `plan.sh validate` only checks that the method exists, so
 a bullet written off the name passes and reaches a step agent describing work nobody verified. Where the same
