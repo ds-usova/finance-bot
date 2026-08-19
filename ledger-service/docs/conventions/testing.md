@@ -173,10 +173,6 @@ What separates two classes' entries on the shared stream is the user each create
 of its own is the exception, since its `user_id` values repeat ids another class already published under — it
 names a stream key of its own and reads that stream whole.
 
-A class that writes rows to `outbox` clears them in a `@BeforeEach` through `OutboxRowUtils`. The table is
-[empty at rest](../contracts/out/change-capture.md), so an assertion on its contents reads whatever another class
-left behind.
-
 ## Naming Conventions
 
 - Test methods: `when<Condition>_then<Result>()`.
