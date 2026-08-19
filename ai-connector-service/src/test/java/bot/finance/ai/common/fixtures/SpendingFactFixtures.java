@@ -62,6 +62,6 @@ public final class SpendingFactFixtures {
                 DEFAULT_AMOUNT,
                 CurrencyCode.of(DEFAULT_CURRENCY),
                 category(),
-                Optional.of(grouping()));
+                grouping());
     }
 }

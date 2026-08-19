@@ -1,7 +1,6 @@
 package bot.finance.ai.adapter.persistence;
 
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
-import bot.finance.ai.domain.value.CategoryRef;
 import bot.finance.ai.domain.value.RecordedStatus;
 import bot.finance.ai.domain.value.SpendingRow;
 import bot.finance.ai.domain.value.StreamPosition;
@@ -22,8 +21,6 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
 
     @Override
     public void apply(SpendingRow entry, RecordedStatus status, StreamPosition position) {
-        CategoryRef grouping = entry.grouping().orElse(null);
-
         try {
             repository.upsertApplied(
                     entry.userId(),
@@ -35,8 +32,8 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                     entry.currencyCode().code(),
                     entry.category().id(),
                     entry.category().name(),
-                    grouping == null ? null : grouping.id(),
-                    grouping == null ? null : grouping.name(),
+                    entry.grouping().id(),
+                    entry.grouping().name(),
                     status.name(),
                     position.ms(),
                     position.seq(),

@@ -39,16 +39,6 @@ class RecordedExpenseEntityTest {
         }
 
         @Test
-        @DisplayName("when the grouping name is absent - then the example's grouping name is empty")
-        void whenGroupingNameIsAbsent_thenExampleGroupingNameIsEmpty() {
-            RecordedExpenseEntity entity = expense("12.34", "EUR", "Groceries", null, "ACCEPTED");
-
-            ExampleExpense example = entity.toExampleExpense();
-
-            assertThat(example.groupingName()).isEqualTo(Optional.empty());
-        }
-
-        @Test
         @DisplayName("when the status is ACCEPTED - then the example's outcome is ACCEPTED")
         void whenStatusIsAccepted_thenExampleOutcomeIsAccepted() {
             RecordedExpenseEntity entity = expense("12.34", "EUR", "Groceries", "Food", "ACCEPTED");
@@ -81,7 +71,7 @@ class RecordedExpenseEntityTest {
                     currencyCode,
                     5L,
                     categoryName,
-                    groupingName == null ? null : 6L,
+                    6L,
                     groupingName,
                     status,
                     1_700_000_000_000L,

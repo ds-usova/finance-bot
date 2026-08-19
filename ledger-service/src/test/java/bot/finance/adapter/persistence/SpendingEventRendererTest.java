@@ -2,12 +2,18 @@ package bot.finance.adapter.persistence;
 
 import static bot.finance.common.fixtures.JsonUtils.readJson;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.domain.exception.InvalidGroupingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class SpendingEventRendererTest {
 
@@ -17,6 +23,16 @@ class SpendingEventRendererTest {
 
     private static SpendingRowProjection rowWith(
             long amountMinorUnits, String currencyCode, String merchant, String incomingMessageId) {
+        return rowWith(amountMinorUnits, currencyCode, merchant, incomingMessageId, 30L, "Household");
+    }
+
+    private static SpendingRowProjection rowWith(
+            long amountMinorUnits,
+            String currencyCode,
+            String merchant,
+            String incomingMessageId,
+            Long groupingId,
+            String groupingName) {
         return new SpendingRowProjection(
                 42L,
                 7L,
@@ -29,12 +45,19 @@ class SpendingEventRendererTest {
                 Instant.parse("2026-01-01T10:00:00Z"),
                 20L,
                 "Food",
-                30L,
-                "Household");
+                groupingId,
+                groupingName);
     }
 
     private static SpendingRowProjection fullRow() {
         return rowWith(1500L, "EUR", "Corner Shop", "incoming-msg-1");
+    }
+
+    static Stream<Arguments> rowsWithoutAGrouping() {
+        return Stream.of(
+                Arguments.of(rowWith(1500L, "EUR", "Corner Shop", "incoming-msg-1", null, null), "neither"),
+                Arguments.of(rowWith(1500L, "EUR", "Corner Shop", "incoming-msg-1", 30L, null), "no name"),
+                Arguments.of(rowWith(1500L, "EUR", "Corner Shop", "incoming-msg-1", null, "Household"), "no id"));
     }
 
     @Nested
@@ -94,31 +117,12 @@ class SpendingEventRendererTest {
             assertThat(payload.get("amount").asText()).isEqualTo("7200");
         }
 
-        @Test
-        @DisplayName("when the row's grouping id and name are both null - then the payload's grouping is JSON null")
-        void whenGroupingIdAndNameAreBothNull_thenPayloadGroupingIsJsonNull() {
-            SpendingRowProjection row = new SpendingRowProjection(
-                    42L,
-                    7L,
-                    "incoming-msg-1",
-                    "PENDING",
-                    "Milk",
-                    "Corner Shop",
-                    1500L,
-                    "EUR",
-                    Instant.parse("2026-01-01T10:00:00Z"),
-                    20L,
-                    "Food",
-                    null,
-                    null);
-
-            LedgerEvent event = renderer.render(EVENT_TYPE, row, Instant.now());
-
-            assertThat(event.payload()).isNotNull();
-            JsonNode payload = readJson(event.payload());
-            assertThat(payload.get("grouping").isNull()).isTrue();
-            assertThat(payload.get("description").asText()).isEqualTo(row.description());
-            assertThat(payload.get("category").get("id").asLong()).isEqualTo(row.categoryId());
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("bot.finance.adapter.persistence.SpendingEventRendererTest#rowsWithoutAGrouping")
+        @DisplayName("when the row's category has no grouping - then no event is rendered")
+        void whenRowsCategoryHasNoGrouping_thenNoEventIsRendered(SpendingRowProjection row, String caseName) {
+            assertThatThrownBy(() -> renderer.render(EVENT_TYPE, row, Instant.now()))
+                    .isInstanceOf(InvalidGroupingException.class);
         }
 
         @Test

@@ -77,13 +77,13 @@ public class ChangeStreamEntryReader {
                 category.path("id").asLong(), category.path("name").asText());
     }
 
-    private Optional<CategoryRef> grouping(JsonNode payload) {
+    private CategoryRef grouping(JsonNode payload) {
         JsonNode grouping = payload.get("grouping");
         if (grouping == null || grouping.isNull()) {
-            return Optional.empty();
+            throw new InvalidValueException("grouping must name the grouping the category sits in");
         }
-        return Optional.of(new CategoryRef(
-                grouping.path("id").asLong(), grouping.path("name").asText()));
+        return new CategoryRef(
+                grouping.path("id").asLong(), grouping.path("name").asText());
     }
 
     private long requiredPositiveLong(JsonNode payload, String field) {

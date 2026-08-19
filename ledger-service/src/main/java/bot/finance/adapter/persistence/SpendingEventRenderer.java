@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Money;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,13 +36,13 @@ public class SpendingEventRenderer {
         category.put("id", row.categoryId());
         category.put("name", row.categoryName());
 
-        if (row.groupingId() == null && row.groupingName() == null) {
-            payload.putNull("grouping");
-        } else {
-            ObjectNode grouping = payload.putObject("grouping");
-            grouping.put("id", row.groupingId());
-            grouping.put("name", row.groupingName());
+        if (row.groupingId() == null || row.groupingName() == null) {
+            throw new InvalidGroupingException(
+                    "expense " + row.id() + " is filed under category " + row.categoryId() + ", which has no grouping");
         }
+        ObjectNode grouping = payload.putObject("grouping");
+        grouping.put("id", row.groupingId());
+        grouping.put("name", row.groupingName());
 
         return new LedgerEvent(UUID.randomUUID(), type, occurredAt, payload.toString());
     }

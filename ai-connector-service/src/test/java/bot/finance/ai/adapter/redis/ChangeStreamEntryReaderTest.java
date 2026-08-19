@@ -97,7 +97,7 @@ class ChangeStreamEntryReaderTest {
             assertThat(entry.amount()).isEqualTo(DEFAULT_AMOUNT);
             assertThat(entry.currencyCode()).isEqualTo(CurrencyCode.of(DEFAULT_CURRENCY));
             assertThat(entry.category()).isEqualTo(new CategoryRef(DEFAULT_CATEGORY_ID, DEFAULT_CATEGORY_NAME));
-            assertThat(entry.grouping()).contains(new CategoryRef(DEFAULT_GROUPING_ID, DEFAULT_GROUPING_NAME));
+            assertThat(entry.grouping()).isEqualTo(new CategoryRef(DEFAULT_GROUPING_ID, DEFAULT_GROUPING_NAME));
         }
 
         @Test
@@ -134,9 +134,8 @@ class ChangeStreamEntryReaderTest {
         }
 
         @Test
-        @DisplayName("when the payload's grouping is null - then the entry's grouping is empty and its category "
-                + "is unchanged")
-        void whenPayloadGroupingIsNull_thenEntryGroupingIsEmptyAndCategoryUnchanged() {
+        @DisplayName("when the payload's grouping is null - then the entry is refused")
+        void whenPayloadGroupingIsNull_thenEntryIsRefused() {
             Map<String, String> body = ChangeStreamEntryFixtures.proposalCreated(
                     1L,
                     DEFAULT_USER_ID,
@@ -151,12 +150,7 @@ class ChangeStreamEntryReaderTest {
                     null,
                     null);
 
-            Optional<LearnMessageOutcomeCommand> result = reader.read("1700000000000-1", body);
-
-            assertThat(result).isPresent();
-            SpendingRow entry = result.get().entry();
-            assertThat(entry.grouping()).isEmpty();
-            assertThat(entry.category()).isEqualTo(new CategoryRef(DEFAULT_CATEGORY_ID, DEFAULT_CATEGORY_NAME));
+            assertThatThrownBy(() -> reader.read("1700000000000-1", body)).isInstanceOf(InvalidValueException.class);
         }
 
         @Test

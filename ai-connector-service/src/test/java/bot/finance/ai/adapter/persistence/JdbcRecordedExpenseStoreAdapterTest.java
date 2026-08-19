@@ -61,7 +61,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
             String amount,
             String currencyCode,
             CategoryRef category,
-            Optional<CategoryRef> grouping) {
+            CategoryRef grouping) {
         return new SpendingRow(
                 expenseId,
                 userId,
@@ -86,7 +86,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 "12.50",
                 "EUR",
                 category,
-                Optional.ofNullable(grouping));
+                grouping);
     }
 
     private void seedRow(
@@ -165,7 +165,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                     "12.50",
                     "EUR",
                     new CategoryRef(5L, "Groceries"),
-                    Optional.of(new CategoryRef(2L, "Food")));
+                    new CategoryRef(2L, "Food"));
             StreamPosition position = new StreamPosition(1_700_000_000_000L, 3L);
 
             adapter.apply(entry, RecordedStatus.PROPOSED, position);
@@ -323,7 +323,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                         rowFor(expenseId).orElseThrow().amount(),
                         "EUR",
                         new CategoryRef(5L, "Groceries"),
-                        Optional.of(new CategoryRef(2L, "Food")));
+                        new CategoryRef(2L, "Food"));
                 adapter.apply(entry, RecordedStatus.ACCEPTED, new StreamPosition(2000L, 0L));
             }
 
@@ -352,7 +352,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                     "20.00",
                     "USD",
                     new CategoryRef(6L, "Transport"),
-                    Optional.empty());
+                    new CategoryRef(4L, "Travel"));
 
             adapter.apply(entry, RecordedStatus.ACCEPTED, new StreamPosition(1500L, 0L));
 
@@ -382,7 +382,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                     "99.99",
                     "USD",
                     new CategoryRef(1L, "Other"),
-                    Optional.empty());
+                    new CategoryRef(9L, "Everything else"));
 
             assertThatCode(() -> adapter.apply(olderEntry, RecordedStatus.ACCEPTED, new StreamPosition(999L, 5L)))
                     .doesNotThrowAnyException();
@@ -474,34 +474,6 @@ class JdbcRecordedExpenseStoreAdapterTest {
 
             assertThat(rowFor(expenseId)).isEmpty();
         }
-
-        @Test
-        @DisplayName("when a registered message's entry has an empty grouping - then the category is held and "
-                + "both grouping columns are null")
-        void whenEntryGroupingEmpty_thenCategoryHeldGroupingColumnsNull() {
-            long userId = 97011L;
-            String messageId = "ri01-no-grouping";
-            registerMessage(userId, messageId);
-            long expenseId = 971013L;
-            SpendingRow entry = row(
-                    expenseId,
-                    userId,
-                    Optional.of(messageId),
-                    "gift",
-                    Optional.empty(),
-                    "40.00",
-                    "USD",
-                    new CategoryRef(3L, "Gifts"),
-                    Optional.empty());
-
-            adapter.apply(entry, RecordedStatus.PROPOSED, new StreamPosition(1000L, 0L));
-
-            RecordedExpenseRow r = rowFor(expenseId).orElseThrow();
-            assertThat(r.categoryId()).isEqualTo(3L);
-            assertThat(r.categoryName()).isEqualTo("Gifts");
-            assertThat(r.groupingId()).isNull();
-            assertThat(r.groupingName()).isNull();
-        }
     }
 
     @Nested
@@ -590,7 +562,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
                 "12.50",
                 CurrencyCode.of("EUR"),
                 new CategoryRef(5L, "Groceries"),
-                Optional.of(new CategoryRef(2L, "Food")));
+                new CategoryRef(2L, "Food"));
 
         @Test
         @DisplayName("when the repository throws a resource-failure or transient exception - then throws "

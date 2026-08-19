@@ -20,7 +20,7 @@ public record RecordedExpenseEntity(
         String currencyCode,
         long categoryId,
         String categoryName,
-        Long groupingId,
+        long groupingId,
         String groupingName,
         String status,
         long appliedMs,

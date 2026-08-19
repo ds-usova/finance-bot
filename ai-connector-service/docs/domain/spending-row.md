@@ -10,9 +10,10 @@ One proposed or recorded expense, whole, as the ledger published it.
 - **Amount:** present, non-blank, a decimal string in the currency's main unit — never rescaled here.
 - **Currency:** present, a [currency code](currency-code.md).
 - **Category:** present, a [category reference](category-ref.md).
+- **Grouping:** present, a [category reference](category-ref.md) — an expense is always filed under a category
+  that sits in one.
 - **Merchant:** stated as present or as absent, never left unstated.
 - **Message:** the same.
-- **Grouping:** the same.
 
 ## Made of / held by
 

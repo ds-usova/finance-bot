@@ -53,7 +53,7 @@ Every type carries the same fields. The type and `status` are what tell one fact
 | `amount`                  | a decimal string in the currency's main unit ([ADR 0011](../../adr/0011-the-amount-is-scaled-to-minor-units-in-the-domain.md)) |
 | `currencyCode`            | the ISO code that amount is in                                                                                                 |
 | `category`                | `id` and `name` — what the entry is filed under                                                                              |
-| `grouping`                | `id` and `name` — the grouping that category sits in                                                                         |
+| `grouping`                | `id` and `name` — the grouping that category sits in, always present                                                        |
 
 A whole body, as `ProposalCreated` carries it:
 
@@ -74,6 +74,8 @@ A whole body, as `ProposalCreated` carries it:
 
 ## The names and the ids
 
+- An entry is filed under a category that sits in a grouping; filing one directly under a grouping is refused, so
+  a fact whose category has none is never published.
 - A name is a snapshot — what the category or grouping was called at that commit.
 - An id survives a rename, and is what a consumer matches on.
 - A refile names where the entry now sits, never where it sat before.

@@ -92,12 +92,13 @@ class ChangeEventPublisherTest {
         }
 
         @Test
-        @DisplayName("when the payload names a grouping of JSON null - then it reaches the writer unchanged")
-        void whenPayloadNamesAGroupingOfJsonNull_thenItReachesWriterUnchanged() {
+        @DisplayName("when the payload nests objects - then it reaches the writer unchanged")
+        void whenPayloadNestsObjects_thenItReachesWriterUnchanged() {
             String id = UUID.randomUUID().toString();
             String type = "ProposalCreated";
             String occurredAt = "2026-08-18T10:25:00.000000Z";
-            String payload = "{\"userId\":41,\"category\":{\"id\":77,\"name\":\"Coffee\"},\"grouping\":null}";
+            String payload =
+                    "{\"userId\":41,\"category\":{\"id\":77,\"name\":\"Coffee\"},\"grouping\":{\"id\":12,\"name\":\"Dining\"}}";
             when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
 
             publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));

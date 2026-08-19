@@ -12,7 +12,7 @@ public record SpendingRow(
         String amount,
         CurrencyCode currencyCode,
         CategoryRef category,
-        Optional<CategoryRef> grouping) {
+        CategoryRef grouping) {
 
     public SpendingRow {
         if (expenseId <= 0) {

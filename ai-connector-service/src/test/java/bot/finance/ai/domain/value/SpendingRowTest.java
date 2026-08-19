@@ -169,7 +169,7 @@ class SpendingRowTest {
                             valid.currencyCode(),
                             valid.category(),
                             valid.grouping()))),
-                    Arguments.of(Named.of("null grouping Optional", (ThrowingCallable) () -> new SpendingRow(
+                    Arguments.of(Named.of("null grouping", (ThrowingCallable) () -> new SpendingRow(
                             valid.expenseId(),
                             valid.userId(),
                             valid.incomingMessageId(),
@@ -191,8 +191,8 @@ class SpendingRowTest {
         }
 
         @Test
-        @DisplayName("when grouping and merchant are empty - then it is accepted and both read back empty")
-        void whenGroupingAndMerchantAreEmpty_thenItIsAcceptedAndBothReadBackEmpty() {
+        @DisplayName("when the merchant is empty - then it is accepted and reads back empty")
+        void whenMerchantIsEmpty_thenItIsAcceptedAndReadsBackEmpty() {
             SpendingRow valid = SpendingFactFixtures.spendingRow();
 
             SpendingRow row = new SpendingRow(
@@ -204,10 +204,9 @@ class SpendingRowTest {
                     valid.amount(),
                     valid.currencyCode(),
                     valid.category(),
-                    Optional.empty());
+                    valid.grouping());
 
             assertThat(row.merchant()).isEmpty();
-            assertThat(row.grouping()).isEmpty();
         }
     }
 

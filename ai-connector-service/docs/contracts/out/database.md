@@ -41,8 +41,8 @@ entity "recorded_expense" as recorded_expense {
   * currency_code : VARCHAR(3)
   * category_id : BIGINT
   * category_name : TEXT
-  grouping_id : BIGINT
-  grouping_name : TEXT
+  * grouping_id : BIGINT
+  * grouping_name : TEXT
   --
   * status : TEXT <<check PROPOSED | ACCEPTED | DISCARDED>>
   * applied_ms : BIGINT
@@ -97,7 +97,7 @@ One row per expense the ledger made of a message, as a
 | `amount`                      | the amount as the [spending row](../../domain/spending-row.md) carried it                     |
 | `currency_code`               | the currency, as a [currency code](../../domain/currency-code.md)                             |
 | `category_id`, `category_name`| the [category](../../domain/category-ref.md) it is filed under, as of the fact last applied   |
-| `grouping_id`, `grouping_name`| the grouping that category sits in; both absent for a category with no parent                 |
+| `grouping_id`, `grouping_name`| the grouping that category sits in                                                            |
 | `status`                      | its [recorded status](../../domain/recorded-status.md)                                        |
 | `applied_ms`, `applied_seq`   | the [stream position](../../domain/stream-position.md) the row was last written from          |
 | `updated_at`                  | when this service last wrote the row, from its own clock                                      |

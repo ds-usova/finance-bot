@@ -91,7 +91,7 @@ class JdbcMessageMemoryAdapterTest {
             String currencyCode,
             long categoryId,
             String categoryName,
-            Long groupingId,
+            long groupingId,
             String groupingName,
             String status) {
         RecordedExpenseRowUtils.insertApplied(
@@ -431,28 +431,6 @@ class JdbcMessageMemoryAdapterTest {
             assertThat(result.get(0).expenses())
                     .extracting(ExampleExpense::description)
                     .containsExactly("first", "second");
-        }
-
-        @Test
-        @DisplayName("when a neighbour's expense has a category and no grouping - then only the grouping name is "
-                + "absent")
-        void whenExpenseHasCategoryButNoGrouping_thenOnlyGroupingNameAbsent() {
-            long userId = 9511L;
-            Instant recent = Instant.now().minus(Duration.ofHours(1));
-            long neighbour = insertMessageWithVector(
-                    userId, "examples-no-grouping", "mystery", recent, EmbeddingFixtures.unitVectorAt(0, 0.9));
-            insertDecided(neighbour, userId, 91L, "mystery expense", "10.00", "USD", 1L, "Cat", null, null, "ACCEPTED");
-
-            List<MessageExample> result =
-                    adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
-
-            assertThat(result).hasSize(1);
-            ExampleExpense expense = result.get(0).expenses().get(0);
-            assertThat(expense.description()).isEqualTo("mystery expense");
-            assertThat(expense.currency()).isEqualTo(CurrencyCode.of("USD"));
-            assertThat(expense.outcome()).isEqualTo(ExampleOutcome.ACCEPTED);
-            assertThat(expense.categoryName()).contains("Cat");
-            assertThat(expense.groupingName()).isEmpty();
         }
 
         @Test
