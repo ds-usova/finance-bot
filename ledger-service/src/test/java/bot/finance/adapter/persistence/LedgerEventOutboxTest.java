@@ -77,7 +77,8 @@ class LedgerEventOutboxTest {
         void whenRowAppendedBesideOneLeftBehind_thenOnlyTheOneLeftBehindRemains() {
             long userId = 5002L;
             UUID leftBehind = UUID.randomUUID();
-            storedOutboxRow(leftBehind, "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), userId);
+            OutboxRowUtils.storedOutboxRowFor(
+                    jdbcTemplate, leftBehind, "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), userId);
 
             outbox.append(LedgerEventType.ProposalAccepted, List.of(row(1L, userId)), Instant.now());
 
@@ -112,7 +113,12 @@ class LedgerEventOutboxTest {
         @Test
         @DisplayName("when one row is left in the outbox - then the count answers 1")
         void whenOneRowLeftInTheOutbox_thenCountAnswersOne() {
-            storedOutboxRow(UUID.randomUUID(), "ProposalCreated", Instant.now().truncatedTo(ChronoUnit.MICROS), 5004L);
+            OutboxRowUtils.storedOutboxRowFor(
+                    jdbcTemplate,
+                    UUID.randomUUID(),
+                    "ProposalCreated",
+                    Instant.now().truncatedTo(ChronoUnit.MICROS),
+                    5004L);
 
             assertThat(outbox.rowCount()).isEqualTo(1);
         }
@@ -126,9 +132,5 @@ class LedgerEventOutboxTest {
 
     private List<OutboxRow> outboxRowsFor(long userId) {
         return OutboxRowUtils.outboxRowsFor(jdbcTemplate, userId);
-    }
-
-    private void storedOutboxRow(UUID id, String type, Instant occurredAt, long userId) {
-        OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, id, type, occurredAt, userId);
     }
 }
