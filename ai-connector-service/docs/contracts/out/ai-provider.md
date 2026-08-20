@@ -3,27 +3,28 @@
 The service hands a user's message to a language model, with the ledger's tools attached. It also has the
 provider turn a message into the vector by which messages are compared for meaning.
 
-**Sent:** for a turn, two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool
-schemas. For an embedding, the text of one or more messages.
-
-**Returned:** for a turn, a sequence of tool calls, each answered with that tool's result, until the model
-answers with text. For an embedding, one vector per text, in the order the texts were sent.
-
 - **Counterpart:** an OpenAI-compatible API — the address, the credential and the two models are
   [configuration](../../configuration.md). Both operations use the same address and the same credential.
-- **Transport:** HTTPS. One exchange per turn — as many requests as the model asks for tool calls — and one
-  request per embedding call.
+- **Transport:** HTTPS
 - **Schema:** none — the provider owns the request and response format of both operations
 
 ## Operations
 
-| Operation           | Purpose                                                                             | Used by                                                                             |
-|---------------------|-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Act on the message  | calls the ledger's tools — one recording call per expense, one summary per question | [Record the spending a user's message names](../../usecases/extract-intents.md)     |
-| Embed one message   | the vector a turn is given its own examples by                                       | [Recall the person's own worked examples](../../usecases/recall-examples.md)        |
+| Operation           | Purpose                                                                             | Used by                                                                              |
+|---------------------|-------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Act on the message  | calls the ledger's tools — one recording call per expense, one summary per question | [Record the spending a user's message names](../../usecases/extract-intents.md)      |
+| Embed one message   | the vector a turn is given its own examples by                                       | [Recall the person's own worked examples](../../usecases/recall-examples.md)         |
 | Embed a batch       | the vectors for messages no turn managed to embed                                    | [Embed the messages nothing has embedded yet](../../usecases/backfill-embeddings.md) |
 
-## A turn is a loop, not a request
+## Reading a message
+
+**Sent:** two messages — [what they carry](#what-the-two-messages-carry) — and the ledger's tool schemas.
+
+**Returned:** a sequence of tool calls, each answered with that tool's result, until the model answers with text.
+
+One exchange per turn, as many requests as the model asks for tool calls.
+
+### A turn is a loop, not a request
 
 - The model answers with a tool call. That call's result goes back to it as the answer.
 - The loop ends when the model answers with text instead.
@@ -31,14 +32,12 @@ answers with text. For an embedding, one vector per text, in the order the texts
 - The instructions ask for one retry per refused recording call, and put no limit on category lookups.
 - Nothing is cached. Nothing is retried by this service. No conversation is kept between turns.
 
-An embedding call is never part of that loop.
+### What the two messages carry
 
-## What the two messages carry
-
-| Message               | Contents                                                                                                |
-|-----------------------|-----------------------------------------------------------------------------------------------------------|
-| Standing instructions | the task, the order, the retry policy, what an example is. Never changes, never mentions a user.        |
-| Per-turn message      | the text, the person's own worked examples, the groupings, the catch-all, the day the turn runs on      |
+| Message               | Contents                                                                                           |
+|-----------------------|------------------------------------------------------------------------------------------------------|
+| Standing instructions | the task, the order, the retry policy, what an example is. Never changes, never mentions a user.   |
+| Per-turn message      | the text, the person's own worked examples, the groupings, the catch-all, the day the turn runs on |
 
 - Both travel together in the same request, so one user's groupings can never reach another's turn.
 - The examples are that same person's own earlier messages, and travel in the same request for the same reason.
@@ -46,18 +45,7 @@ An embedding call is never part of that loop.
 - The lookup tool and the summary tool are each named once, in the per-turn message.
 - Every argument and format the model uses comes from the schemas the ledger publishes.
 
-## What a person's history may leave over this boundary
-
-- Only when the memory is on and the turn's message was registered. Otherwise the per-turn message carries no
-  examples section at all.
-- The bound on how much and how far back is
-  [the recall use case's](../../usecases/recall-examples.md), by way of
-  [configuration](../../configuration.md).
-- An example carries the earlier message's text and its decided expenses — never a date, never an amount this
-  service computed, never another person's anything.
-- An embedding call carries one message's text and nothing else about the person.
-
-## What the model is told to do
+### What the model is told to do
 
 - Pick a grouping, ask the ledger which categories it holds, and file the expense under one of those.
 - Send that grouping alongside the category it chose.
@@ -73,25 +61,22 @@ An embedding call is never part of that loop.
 - The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
 - No category is ever sent. The groupings travel as bare names.
 
-## What a weaker model costs
+### What a weaker model costs
 
-- A model that answers a question in prose, instead of asking for a summary, leaves the turn with nothing to
-  report.
+A model that answers a question in prose, instead of asking for a summary, leaves the turn with nothing to
+report.
 
-## Cost and latency
+### Cost and latency
 
 - Every tool call is a further round trip.
 - An expense costs at least two: the lookup and the recording call.
 - A question costs one.
 - Cost grows with the number of groupings sent, the number of examples sent, and the number of expenses the
   message names.
-- A turn makes at most one embedding call, when the recall needs one.
 - What bounds a turn is the caller's deadline,
   `spring.grpc.client.channel.ai-connector.default.deadline`, on the ledger's side.
-- What bounds a turn's embedding call is `MEMORY_EMBEDDING_TIMEOUT`, and the backfill's batch call
-  `MEMORY_BACKFILL_TIMEOUT`. Neither delays a turn beyond its own bound.
 
-## Failures
+### Failures
 
 | Condition                                                | Signal                                                                          |
 |----------------------------------------------------------|---------------------------------------------------------------------------------|
@@ -102,9 +87,39 @@ An embedding call is never part of that loop.
 | The ledger refuses a category lookup                     | none — the refusal goes back as that call's answer; the expense keeps its retry |
 | The ledger cannot be reached under a tool call           | the turn fails and the caller is told the service is unavailable                |
 | The turn outlives the caller's deadline                  | the caller abandons it; the turn runs on and what it recorded stands            |
-| An embedding call is refused or errors                   | none — a failed attempt is counted and the turn goes on with no examples        |
-| An embedding call outlives its own timeout               | the same, once that timeout passes and no later                                 |
-| Fewer vectors come back than texts were sent             | the same; nothing of that call is kept                                          |
+
+## Embedding a message
+
+**Sent:** the text of one or more messages.
+
+**Returned:** one vector per text, in the order the texts were sent.
+
+One request per call, never part of a turn's loop.
+
+### Cost and latency
+
+- A turn makes at most one embedding call, when the recall needs one.
+- What bounds a turn's embedding call is `MEMORY_EMBEDDING_TIMEOUT`, and the backfill's batch call
+  `MEMORY_BACKFILL_TIMEOUT`. Neither delays a turn beyond its own bound.
+
+### Failures
+
+| Condition                                    | Signal                                                                   |
+|----------------------------------------------|--------------------------------------------------------------------------|
+| The call is refused or errors                | none — a failed attempt is counted and the turn goes on with no examples |
+| The call outlives its own timeout            | the same, once that timeout passes and no later                          |
+| Fewer vectors come back than texts were sent | the same; nothing of that call is kept                                   |
+
+## What a person's history may leave over this boundary
+
+- Only when the memory is on and the turn's message was registered. Otherwise the per-turn message carries no
+  examples section at all.
+- The bound on how much and how far back is
+  [the recall use case's](../../usecases/recall-examples.md), by way of
+  [configuration](../../configuration.md).
+- An example carries the earlier message's text and its decided expenses — never a date, never an amount this
+  service computed, never another person's anything.
+- An embedding call carries one message's text and nothing else about the person.
 
 ## Compatibility
 
