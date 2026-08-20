@@ -39,6 +39,9 @@ What each of these states costs the database is [what change capture owes](../ou
 
 | Meter                               | Kind    | Says                                                                                       |
 |-------------------------------------|---------|--------------------------------------------------------------------------------------------|
+| `ledger_mcp_tool_calls_total`       | counter | tool calls answered, tagged by `tool`, `outcome` and `reason`                              |
+| `ledger_turns_total`                | counter | messages handled, tagged by the `outcome` the report carried                               |
+| `ledger_proposals_resolved_total`   | counter | expenses a tap resolved, tagged by `resolution`                                            |
 | `ledger_cdc_events_published_total` | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))  |
 | `ledger_cdc_publish_failures_total` | counter | appends the stream refused                                                                 |
 | `ledger_cdc_facts_dropped_total`    | counter | facts the ledger could not record, tagged by `type` — each one reaches no consumer, ever |
@@ -48,9 +51,36 @@ What each of these states costs the database is [what change capture owes](../ou
 | `ledger_cdc_slot_retained_bytes`    | gauge   | how much log the replication slot is holding — the one to alarm on                       |
 | `ledger_cdc_slot_wal_status`        | gauge   | what the database says about that slot, as an ordinal                                      |
 
+The first three counters count a [redelivered batch](telegram-updates.md#failures) again. They are read as rates
+and ratios, never as exact business counts.
+
 The two slot gauges and the outbox gauge are read on the same timer whether or not capture is on, so a slot left
 behind by switching capture off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watched
 against — see [configuration](../../configuration.md).
+
+### `ledger_mcp_tool_calls_total`
+
+| Tag       | Values                                                                                            |
+|-----------|---------------------------------------------------------------------------------------------------|
+| `tool`    | the [tool](mcp.md) the call named                                                                 |
+| `outcome` | `ok`, or `rejected` for a call answered with an error                                             |
+| `reason`  | `none` on `ok`; on `rejected`, the [refusal](mcp.md#failures), or `unexpected` for an unnamed one |
+
+### `ledger_turns_total`
+
+| Value                                                             | The turn                                                                      |
+|-------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| `RECORDED`, `ANSWERED`, `NOTHING_IDENTIFIED`, `PARTIAL`, `FAILED` | delivered [that report](../../usecases/handle-incoming-message.md#the-report) |
+| `UNREPORTED`                                                      | ended before any report reached the user                                      |
+
+### `ledger_proposals_resolved_total`
+
+| Value       | Counts                                                                               |
+|-------------|--------------------------------------------------------------------------------------|
+| `accepted`  | the expenses a [Confirm tap](../../usecases/resolve-a-reported-proposal.md) recorded |
+| `discarded` | the expenses a [Delete tap](../../usecases/resolve-a-reported-proposal.md) removed   |
+
+A tap that resolves nothing moves neither.
 
 ### `ledger_cdc_state`
 

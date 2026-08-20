@@ -24,16 +24,16 @@
 
 ## Outcomes
 
-| Outcome              | When                                                                    | Result                                                                               |
-|----------------------|-------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| Examples found       | earlier messages clear every bound                                      | those messages and their decided expenses                                            |
-| Nothing close enough | no earlier message clears `MEMORY_MIN_SIMILARITY` inside the bounds     | a retrieval that found nothing                                                       |
-| Message not known    | the store holds no row under that person and message                    | nothing was looked for                                                               |
-| Vector reused        | the registered row already holds a vector                               | no embedding call; that vector is the query                                          |
-| Message embedded     | the registered row holds no vector                                      | it is embedded once, the vector is kept on the row, and it is the query              |
-| Vector already there | a backfill or an earlier turn wrote one while this turn was embedding   | the row keeps the one it holds; the turn queries with the one it computed            |
-| Embedding refused    | the provider refuses, or answers slower than `MEMORY_EMBEDDING_TIMEOUT` | nothing was looked for; one failed attempt is counted on the row; one `WARN`         |
-| Message given up on  | that attempt is the `MEMORY_EMBEDDING_ATTEMPTS`th                       | one `ERROR` naming the row and carrying no text; it is never a neighbour             |
+| Outcome              | When                                                                    | Result                                                                                 |
+|----------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| Examples found       | earlier messages clear every bound                                      | those messages and their decided expenses                                              |
+| Nothing close enough | no earlier message clears `MEMORY_MIN_SIMILARITY` inside the bounds     | a retrieval that found nothing                                                         |
+| Message not known    | the store holds no row under that person and message                    | nothing was looked for                                                                 |
+| Vector reused        | the registered row already holds a vector                               | no embedding call; that vector is the query                                            |
+| Message embedded     | the registered row holds no vector                                      | it is embedded once, the vector is kept on the row, and it is the query                |
+| Vector already there | a backfill or an earlier turn wrote one while this turn was embedding   | the row keeps the one it holds; the turn queries with the one it computed              |
+| Embedding refused    | the provider refuses, or answers slower than `MEMORY_EMBEDDING_TIMEOUT` | nothing was looked for; one failed attempt is counted on the row; one `WARN`           |
+| Message given up on  | that attempt is the `MEMORY_EMBEDDING_ATTEMPTS`th                       | one `ERROR` naming the row and carrying no text; it is never a neighbour               |
 | Store refused        | the store cannot be reached, or refuses any read or the vector write    | nothing was looked for; one `WARN` naming the person and the message, carrying no text |
 
 ## Components

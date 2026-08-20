@@ -17,28 +17,29 @@ than being called when something happens.
 
 ## What Is Read
 
-| From                    | Value                            | Used for                                                                                       |
-|-------------------------|----------------------------------|------------------------------------------------------------------------------------------------|
-| A message               | who sent it                      | the user the ledger is stored against                                                          |
-| A message               | which conversation it is in      | where the answer goes                                                                          |
-| A message               | which message it is              | what the answer is threaded onto ([outgoing replies](../out/telegram-replies.md))              |
-| A message               | its text                         | what the turn acts on                                                                          |
-| A tap                   | who tapped                       | the person whose spending is resolved                                                          |
-| A tap                   | which conversation, which message | where the report is, so its buttons can be cleared                                             |
-| A tap                   | which tap it is                  | what gets answered, so the button stops spinning                                               |
-| A tap                   | what the button carries          | the payload this bot wrote: which button, and which [message](../../domain/incoming-message-id.md) the report was about |
+| From      | Value                             | Used for                                                                                                                |
+|-----------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| A message | who sent it                       | the user the ledger is stored against                                                                                   |
+| A message | which conversation it is in       | where the answer goes                                                                                                   |
+| A message | which message it is               | what the answer is threaded onto ([outgoing replies](../out/telegram-replies.md))                                       |
+| A message | its text                          | what the turn acts on                                                                                                   |
+| A tap     | who tapped                        | the person whose spending is resolved                                                                                   |
+| A tap     | which conversation, which message | where the report is, so its buttons can be cleared                                                                      |
+| A tap     | which tap it is                   | what gets answered, so the button stops spinning                                                                        |
+| A tap     | what the button carries           | the payload this bot wrote: which button, and which [message](../../domain/incoming-message-id.md) the report was about |
 
 Each value is carried onward as opaque text.
 
 ## Failures
 
-| Condition                                                         | Signal                                                                                          |
-|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| Telegram rejects a collection or is unreachable                   | the failure is logged, the collection is retried, and nothing is acknowledged — nothing is lost |
-| A message or a tap cannot be handled                              | the failure is logged and its batch is acknowledged with the rest                               |
-| A message carries no text, or names no sender                     | none — the message is discarded silently                                                        |
-| A tap names no sender or message, or carries an unknown payload   | none — the tap is discarded silently and never answered                                         |
-| The bot credential is missing while collection is switched on     | the service refuses to start                                                                    |
+| Condition                                                       | Signal                                                                                            |
+|-----------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Telegram rejects a collection or is unreachable                 | the failure is logged, the collection is retried, and nothing is acknowledged — nothing is lost |
+| The service stops before a batch is acknowledged                | the whole batch is delivered again on the next collection                                         |
+| A message or a tap cannot be handled                            | the failure is logged and its batch is acknowledged with the rest                                 |
+| A message carries no text, or names no sender                   | none — the message is discarded silently                                                        |
+| A tap names no sender or message, or carries an unknown payload | none — the tap is discarded silently and never answered                                         |
+| The bot credential is missing while collection is switched on   | the service refuses to start                                                                      |
 
 ## Compatibility
 

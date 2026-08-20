@@ -62,6 +62,8 @@ A failure of any kind is [logged, and its batch acknowledged with the rest](../c
 A connector that refuses the turn or cannot be reached is none of these outcomes: it is what the partial and
 failed reports say.
 
+Every message that reaches the turn is [counted once](../contracts/in/operations.md#meters).
+
 ## Components
 
 ```plantuml
