@@ -78,7 +78,7 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
     }
 
     private LearnOutcome drop(LearnMessageOutcomeCommand command, MessageStoreFailedException e) {
-        // TODO: count the drop on changeStreamMeters.
+        changeStreamMeters.countDropped();
         log.error(
                 "Dropping delivery {} after repeated failures on {} entry {}: {}",
                 command.deliveryId(),

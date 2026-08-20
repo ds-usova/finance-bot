@@ -40,8 +40,8 @@ class MetersSystemTest extends AbstractMemorySystemTest {
     }
 
     private static double gaugeValue(String body, String metricName) {
-        Matcher matcher =
-                Pattern.compile("(?m)^" + Pattern.quote(metricName) + "\\s+(\\S+)$").matcher(body);
+        Matcher matcher = Pattern.compile("(?m)^" + Pattern.quote(metricName) + "\\s+(\\S+)$")
+                .matcher(body);
         assertThat(matcher.find()).as(metricName + " sample present").isTrue();
         return Double.parseDouble(matcher.group(1));
     }
@@ -79,16 +79,19 @@ class MetersSystemTest extends AbstractMemorySystemTest {
                     .containsPattern(Pattern.compile("(?m)^grpc_server_seconds_count\\{(?=[^}]*ExtractIntents)[^}]*}"));
             assertThat(body)
                     .as("chat-tagged gen_ai client operation sample")
-                    .containsPattern(Pattern.compile(
-                            "(?m)^gen_ai_client_operation_seconds_count\\{(?=[^}]*gen_ai_operation_name=\"chat\")[^}]*}"));
+                    .containsPattern(
+                            Pattern.compile(
+                                    "(?m)^gen_ai_client_operation_seconds_count\\{(?=[^}]*gen_ai_operation_name=\"chat\")[^}]*}"));
             assertThat(body)
                     .as("grown input token counter")
-                    .containsPattern(Pattern.compile(
-                            "(?m)^gen_ai_client_token_usage_total\\{(?=[^}]*gen_ai_token_type=\"input\")[^}]*}\\s+[1-9]"));
+                    .containsPattern(
+                            Pattern.compile(
+                                    "(?m)^gen_ai_client_token_usage_total\\{(?=[^}]*gen_ai_token_type=\"input\")[^}]*}\\s+[1-9]"));
             assertThat(body)
                     .as("grown output token counter")
-                    .containsPattern(Pattern.compile(
-                            "(?m)^gen_ai_client_token_usage_total\\{(?=[^}]*gen_ai_token_type=\"output\")[^}]*}\\s+[1-9]"));
+                    .containsPattern(
+                            Pattern.compile(
+                                    "(?m)^gen_ai_client_token_usage_total\\{(?=[^}]*gen_ai_token_type=\"output\")[^}]*}\\s+[1-9]"));
             assertThat(body)
                     .as("tool sample whose tool tag ends in the tool's name")
                     .containsPattern(Pattern.compile(

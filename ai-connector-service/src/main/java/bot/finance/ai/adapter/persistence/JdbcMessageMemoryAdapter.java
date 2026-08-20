@@ -85,6 +85,7 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         try {
             List<Long> orderedIds = neighbourIds(query);
             if (orderedIds.isEmpty()) {
+                recallMeters.recordExamples(0);
                 return List.of();
             }
 
@@ -101,6 +102,7 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
                 }
                 examples.add(toExample(message, decided));
             }
+            recallMeters.recordExamples(examples.size());
             return examples;
         } catch (DataAccessException e) {
             throw MessageStoreExceptionMapper.toDomain(e, "failed to find examples");
@@ -131,7 +133,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
 
         List<ClosestMatchRow> closestRows = messageRepository.findClosestIds(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
-        // TODO: record the closest row's similarity on recallMeters, when at least one row came back.
+        if (!closestRows.isEmpty()) {
+            recallMeters.recordBestSimilarity(closestRows.get(0).similarity());
+        }
         List<Long> closestIds = closestRows.stream().map(ClosestMatchRow::id).toList();
         Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);

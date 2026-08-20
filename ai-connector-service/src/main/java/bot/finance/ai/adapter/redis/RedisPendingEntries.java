@@ -4,6 +4,7 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.PendingEntries;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,8 @@ public class RedisPendingEntries implements PendingEntries {
     private final ChangeStreamProperties properties;
     private final Logger log;
 
+    private volatile double lastSeen = Double.NaN;
+
     public RedisPendingEntries(
             StringRedisTemplate redisTemplate, ChangeStreamProperties properties, LoggerFactory loggerFactory) {
         this.redisTemplate = redisTemplate;
@@ -24,9 +27,16 @@ public class RedisPendingEntries implements PendingEntries {
 
     @Override
     public double count() {
-        // Runs a live XPENDING summary for the group and answers its total pending count; when Redis is
-        // unreachable, answers the last value it saw and logs at warn; before any read has succeeded, answers
-        // NaN, so the gauge is absent from the scrape rather than reading as a drained group.
-        return Double.NaN;
+        try {
+            lastSeen = redisTemplate
+                    .opsForStream()
+                    .pending(properties.key(), ChangeStreamProperties.GROUP)
+                    .getTotalPendingMessages();
+        } catch (DataAccessException e) {
+            log.warn(
+                    "Could not reach Redis for the pending-entries count, answering the last seen value: {}",
+                    e.getMessage());
+        }
+        return lastSeen;
     }
 }
