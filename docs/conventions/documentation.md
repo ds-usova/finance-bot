@@ -81,6 +81,15 @@ identity, whose page describes something the store keeps rows of — carries one
   named back to a caller are the boundary's, and its contract page owns them.
 - **Prose is for the invariant that has no symbol** — what the type refuses to be, and what a reader would
   otherwise get wrong. Three of those under a table of bounds is a full page.
+- **Invariants is a table of `Field | Bound`**, one row per component, each field named as the code names it. A
+  field bounded by another domain type links that type from its own cell. A type with no fields to bound — an
+  enum — states its values and its transitions as bullets instead.
+- **A bound belonging to no single field goes under the table**, never in it: how two stored instances compare,
+  what the currency scales, what a reader would otherwise get wrong.
+- **Made of / held by is a link list, never a second pass over the fields.** One line naming what the type is
+  composed of, then one link per domain type, contract page and use case that touches it, each saying in a few
+  words what it does with the type. The fields are the Invariants table's; repeating them here is the commonest
+  way this page goes wrong.
 
 - **`## Lifecycle`, on every entity page.** A table of what brings the entity into being, what changes it, and
   what removes it, each naming the use case that does it. Where nothing does, the row says so: "never changed",

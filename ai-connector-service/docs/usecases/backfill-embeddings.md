@@ -86,37 +86,42 @@ SHOW_LEGEND()
 ## Flow
 
 ```plantuml
-@startuml BackfillEmbeddings-Activity
-start
-:the timer fires;
-repeat
-  :ask the message store to claim
-MEMORY_BACKFILL_BATCH messages with no vector,
-below the attempt bound, oldest first;
-  if (the store refused) then (yes)
-    :leave the rest to the next tick;
-    stop
-  endif
-  if (the claim is empty) then (yes)
-    :nothing is left to embed;
-    stop
-  endif
-  :ask the AI provider for a vector per claimed text,
-in one call;
-  if (the provider answered for every text) then (no)
-    :count one failed attempt on every claimed row,
-releasing each claim;
-    stop
-  endif
-  :write each vector back,
-leaving alone any row a turn embedded meanwhile;
-  if (the store refused a write) then (yes)
-    :leave the rest to the next tick;
-    stop
-  endif
-repeat while (was the claim full, and is the tick's batch bound unspent?) is (yes)
-->no;
-stop
+@startuml BackfillEmbeddings-Sequence
+participant "The timer" as Timer
+participant "Backfill" as Backfill
+database "Message Store" as Store
+participant "AI Provider" as Provider
+
+Timer -> Backfill : the purge has run
+
+loop at most MEMORY_BACKFILL_BATCHES times, while a claim comes back full
+    Backfill -> Store : claim MEMORY_BACKFILL_BATCH unembedded messages, oldest first
+
+    alt the store refuses
+        Store --> Backfill : failure
+        Backfill --> Timer : the tick ends
+    else nothing is claimable
+        Store --> Backfill : no rows
+        Backfill --> Timer : the tick ends
+    else rows are claimed
+        Store --> Backfill : the rows and their texts
+        Backfill -> Provider : embed these texts, in one call
+
+        alt refused, short, or no answer inside MEMORY_BACKFILL_TIMEOUT
+            Provider --> Backfill : failure
+            Backfill -> Store : count one failed attempt on every claimed row
+            Backfill --> Timer : the tick ends
+        else embedded
+            Provider --> Backfill : one vector per text, in order
+            Backfill -> Store : keep each vector, unless the row holds one already
+
+            alt the store refuses a write
+                Store --> Backfill : failure
+                Backfill --> Timer : the tick ends
+            end
+        end
+    end
+end
 @enduml
 ```
 
