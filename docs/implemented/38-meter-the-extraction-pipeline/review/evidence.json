@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/38-meter-the-extraction-pipeline/ledger-service/plan.md",
+  "commit": "371bedb4",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-20T17:46:32Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 391, "passed": 391, "failed": 0, "skipped": 0, "instructions": "98.0%", "branches": "94.5%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1131, "passed": 1131, "failed": 0, "skipped": 0, "instructions": "96.4%", "branches": "92.2%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}
