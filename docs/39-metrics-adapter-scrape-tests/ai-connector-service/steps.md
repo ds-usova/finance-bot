@@ -29,3 +29,11 @@
   render `ai_recall_examples_*` and `ai_recall_best_similarity_*` count/sum/max; `countDropped` renders
   `ai_cdc_deliveries_dropped_total`; with the mocked `PendingEntryCountPort` answering a value,
   `ai_cdc_entries_pending` renders it, and answering `NaN`, the gauge's line is absent from the scrape.
+
+## Open Questions
+
+- **Q2:** R06's `NaN` scenario does not match what the registry does: with the mocked port answering `NaN`,
+  the scrape renders the line `ai_cdc_entries_pending NaN` rather than omitting it (observed on a real scrape
+  under `@MetricsAdapterTest`; the other four scenarios pass). Should the scenario assert the rendered `NaN`
+  sample instead of the line's absence, or is the absence itself the requirement — in which case the claim
+  needs a different mechanism than this registry provides?
