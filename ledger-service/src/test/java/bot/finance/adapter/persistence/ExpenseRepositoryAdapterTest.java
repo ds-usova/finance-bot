@@ -9,10 +9,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.adapter.metrics.MicrometerOutboxMeters;
 import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ProposalSummary;
+import bot.finance.application.port.OutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -48,6 +48,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
@@ -55,10 +56,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
     ExpenseRepositoryAdapter.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
-    MicrometerOutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })
+@MockitoBean(types = OutboxMeters.class)
 class ExpenseRepositoryAdapterTest {
 
     @Autowired

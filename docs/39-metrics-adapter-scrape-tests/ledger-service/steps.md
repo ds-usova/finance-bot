@@ -33,7 +33,7 @@
   grown by 2 and `DISCARD` maps to `discarded`; `countFactsDropped("ProposalAccepted", 2)` renders
   `ledger_cdc_facts_dropped_total` with its `type` tag.
 
-- [ ] R03 · tests · swap the real `MicrometerOutboxMeters` for a mocked `OutboxMeters` in the five contexts
+- [x] R03 · tests · swap the real `MicrometerOutboxMeters` for a mocked `OutboxMeters` in the five contexts
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/boot/CaptureAdapterConfiguration.java`
     - `ledger-service/src/test/java/bot/finance/adapter/persistence/LedgerEventOutboxTest.java`

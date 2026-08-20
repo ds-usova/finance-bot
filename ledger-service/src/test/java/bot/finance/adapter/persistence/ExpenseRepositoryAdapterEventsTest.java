@@ -6,7 +6,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
-import bot.finance.adapter.metrics.MicrometerOutboxMeters;
+import bot.finance.application.port.OutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
@@ -48,10 +49,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
     ExpenseRepositoryAdapter.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
-    MicrometerOutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })
+@MockitoBean(types = OutboxMeters.class)
 class ExpenseRepositoryAdapterEventsTest {
 
     @Autowired
