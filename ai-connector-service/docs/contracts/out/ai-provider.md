@@ -59,11 +59,6 @@ What they do not say:
   rule is the tool's own argument schema, not an instruction.
 - The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
 
-### What a weaker model costs
-
-A model that answers a question in prose, instead of asking for a summary, leaves the turn with nothing to
-report.
-
 ### Cost and latency
 
 - Every tool call is a further round trip.
@@ -80,6 +75,7 @@ report.
 |----------------------------------------------------------|---------------------------------------------------------------------------------|
 | The provider is unreachable, refuses the call, or errors | the turn fails and the caller is told the service is unavailable                |
 | The model answers with no tool call                      | none — the turn succeeds having recorded and asked nothing                      |
+| The model answers a question in prose instead of asking for a summary | none — the turn succeeds and the person is never sent their totals |
 | The model sends an argument the tool cannot read         | none — the failure goes back as that call's answer for the model to correct     |
 | The ledger refuses a recording call                      | none — the refusal goes back as that call's answer, and the model retries once  |
 | The ledger refuses a category lookup                     | none — the refusal goes back as that call's answer; the expense keeps its retry |
