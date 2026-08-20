@@ -51,7 +51,7 @@
   `@MockitoSpyBean` becomes `@MockitoBean`, its registry assertion becomes
   `verify(outboxMeters).countFactsDropped("ProposalAccepted", 2L)`, and its `MeterRegistry` field goes.
 
-- [ ] R04 · tests · drop the now-unused `InMemoryMeters`
+- [x] R04 · tests · drop the now-unused `InMemoryMeters`
   - test-files:
     - `ledger-service/src/test/java/bot/finance/common/boot/InMemoryMeters.java`
     - `ledger-service/src/test/java/bot/finance/common/boot/PersistenceAdapterTest.java`
