@@ -71,16 +71,16 @@ What they do not say:
 
 ### Failures
 
-| Condition                                                | Signal                                                                          |
-|----------------------------------------------------------|---------------------------------------------------------------------------------|
-| The provider is unreachable, refuses the call, or errors | the turn fails and the caller is told the service is unavailable                |
-| The model answers with no tool call                      | none — the turn succeeds having recorded and asked nothing                      |
-| The model answers a question in prose instead of asking for a summary | none — the turn succeeds and the person is never sent their totals |
-| The model sends an argument the tool cannot read         | none — the failure goes back as that call's answer for the model to correct     |
-| The ledger refuses a recording call                      | none — the refusal goes back as that call's answer, and the model retries once  |
-| The ledger refuses a category lookup                     | none — the refusal goes back as that call's answer; the expense keeps its retry |
-| The ledger cannot be reached under a tool call           | the turn fails and the caller is told the service is unavailable                |
-| The turn outlives the caller's deadline                  | the caller abandons it; the turn runs on and what it recorded stands            |
+| Condition                                                     | What this side does                                                        |
+|---------------------------------------------------------------|----------------------------------------------------------------------------|
+| The provider is unreachable, refuses the call, or errors      | the exchange raises a failure, and the turn ends on it                     |
+| The model ends the exchange with text instead of a tool call  | nothing — whatever it recorded or asked by then stands, and may be nothing |
+| The model sends an argument the tool cannot read              | the failure goes back as that call's answer, for the model to correct      |
+| The turn outlives the caller's deadline                       | nothing — the exchange runs on, and what it recorded stands                |
+
+What the person who sent the message is told in each case is
+[the turn's Outcomes](../../usecases/extract-intents.md#outcomes). A tool call that the ledger refuses, or that
+cannot reach it at all, is [the ledger's edge](ledger-mcp.md#failures), not this one.
 
 ## Embedding a message
 
@@ -98,11 +98,11 @@ One request per call, never part of a turn's loop.
 
 ### Failures
 
-| Condition                                    | Signal                                                                   |
-|----------------------------------------------|--------------------------------------------------------------------------|
-| The call is refused or errors                | none — a failed attempt is counted and the turn goes on with no examples |
-| The call outlives its own timeout            | the same, once that timeout passes and no later                          |
-| Fewer vectors come back than texts were sent | the same; nothing of that call is kept                                   |
+A call raises a failure when the provider refuses it, errors, answers fewer vectors than texts were sent, or
+does not answer inside its own timeout — and no later than that timeout. Nothing of a failed call is kept.
+
+What a failure costs is [the recall's](../../usecases/recall-examples.md#outcomes) and
+[the backfill's](../../usecases/backfill-embeddings.md#outcomes) to say.
 
 ## What a person's history may leave over this boundary
 
