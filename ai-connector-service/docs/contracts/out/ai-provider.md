@@ -44,22 +44,20 @@ One exchange per turn, as many requests as the model asks for tool calls.
 - The instructions name no tool, no argument and no format.
 - The lookup tool and the summary tool are each named once, in the per-turn message.
 - Every argument and format the model uses comes from the schemas the ledger publishes.
+- No category is ever sent. The groupings travel as bare names.
 
 ### What the model is told to do
 
-- Pick a grouping, ask the ledger which categories it holds, and file the expense under one of those.
-- Send that grouping alongside the category it chose.
-- Use the named fall-back grouping when none fits.
-- Read an example as this person's own filing habit, never as an answer that outranks what the tools say.
-- Send a stated amount exactly as the message writes it, in the currency's main unit. Never convert it. That
-  rule comes from the tool's own argument schema, not from these instructions.
-- Work a relative period out from the day the turn runs on, stated as a UTC calendar date. A week starts on
-  Monday.
-- Ask for one summary over that period's first and last day.
-- Never state an amount of its own.
+The instructions are the contract, and they are two files:
+[`record-expenses.st`](../../../src/main/resources/prompts/record-expenses.st), the standing instructions, and
+[`user-message.st`](../../../src/main/resources/prompts/user-message.st), the per-turn message with its
+placeholders.
 
+What they do not say:
+
+- A stated amount travels exactly as the message writes it, in the currency's main unit, never converted. That
+  rule is the tool's own argument schema, not an instruction.
 - The model's final answer is discarded. What a turn recorded is visible in the ledger alone.
-- No category is ever sent. The groupings travel as bare names.
 
 ### What a weaker model costs
 
