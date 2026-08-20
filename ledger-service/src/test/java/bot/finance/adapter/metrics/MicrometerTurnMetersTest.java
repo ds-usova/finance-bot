@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.common.boot.MetricsAdapterTest;
-import io.restassured.RestAssured;
+import bot.finance.common.fixtures.PrometheusScrapes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -87,14 +87,6 @@ class MicrometerTurnMetersTest {
     }
 
     private double scrapedValue(String meter, String tags) {
-        String scrape = RestAssured.given()
-                .port(managementPort)
-                .get("/actuator/prometheus")
-                .asString();
-        return scrape.lines()
-                .filter(line -> line.startsWith(meter + "{" + tags + "}"))
-                .mapToDouble(line -> Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1)))
-                .findFirst()
-                .orElse(0.0);
+        return PrometheusScrapes.value(managementPort, meter, tags);
     }
 }

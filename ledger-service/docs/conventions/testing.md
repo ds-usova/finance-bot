@@ -58,6 +58,7 @@ bot.finance
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
+    │   ├── PrometheusScrapes     # reads a meter's rendered value off /actuator/prometheus on the management port
     │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
     │   ├── SigningKeys           # the keystore configuration the test profile runs with, and the key pair it resolves to
     │   ├── TelegramFixtures      # Bot API JSON bodies

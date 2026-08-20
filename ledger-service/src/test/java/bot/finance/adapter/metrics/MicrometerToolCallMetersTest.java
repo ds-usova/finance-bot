@@ -3,7 +3,7 @@ package bot.finance.adapter.metrics;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.common.boot.MetricsAdapterTest;
-import io.restassured.RestAssured;
+import bot.finance.common.fixtures.PrometheusScrapes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -66,14 +66,6 @@ class MicrometerToolCallMetersTest {
     }
 
     private double scrapedValue(String tags) {
-        String scrape = RestAssured.given()
-                .port(managementPort)
-                .get("/actuator/prometheus")
-                .asString();
-        return scrape.lines()
-                .filter(line -> line.startsWith("ledger_mcp_tool_calls_total{" + tags + "}"))
-                .mapToDouble(line -> Double.parseDouble(line.substring(line.lastIndexOf(' ') + 1)))
-                .findFirst()
-                .orElse(0.0);
+        return PrometheusScrapes.value(managementPort, "ledger_mcp_tool_calls_total", tags);
     }
 }
