@@ -26,6 +26,7 @@ import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolveProposalsCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.ResolveProposalsPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -64,6 +65,7 @@ class TelegramUpdateListenerTest {
 
     private HandleIncomingMessagePort handleIncomingMessagePort;
     private ResolveProposalsPort resolveProposalsPort;
+    private TurnMeters turnMeters;
     private TelegramBot bot;
     private TelegramUpdateListener listener;
 
@@ -71,8 +73,9 @@ class TelegramUpdateListenerTest {
     void setUp() {
         handleIncomingMessagePort = mock(HandleIncomingMessagePort.class);
         resolveProposalsPort = mock(ResolveProposalsPort.class);
-        listener =
-                new TelegramUpdateListener(handleIncomingMessagePort, resolveProposalsPort, new Slf4jLoggerFactory());
+        turnMeters = mock(TurnMeters.class);
+        listener = new TelegramUpdateListener(
+                handleIncomingMessagePort, resolveProposalsPort, turnMeters, new Slf4jLoggerFactory());
         bot = forToken(LISTENER_TOKEN);
         telegramReturnsNoUpdates(LISTENER_TOKEN);
     }

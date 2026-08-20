@@ -31,6 +31,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
@@ -74,6 +75,7 @@ class HandleIncomingMessageUseCaseTest {
     private SpendingQueryRepository spendingQueryRepository;
     private ExpenseRepository expenseRepository;
     private ProposalReportRepository proposalReportRepository;
+    private TurnMeters turnMeters;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -89,6 +91,7 @@ class HandleIncomingMessageUseCaseTest {
         spendingQueryRepository = mock(SpendingQueryRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
         proposalReportRepository = mock(ProposalReportRepository.class);
+        turnMeters = mock(TurnMeters.class);
         when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any()))
                 .thenReturn(List.of());
         when(expenseRepository.totalsByCurrency(anyLong(), any())).thenReturn(List.of());
@@ -102,6 +105,7 @@ class HandleIncomingMessageUseCaseTest {
                 spendingQueryRepository,
                 expenseRepository,
                 proposalReportRepository,
+                turnMeters,
                 loggerFactory);
     }
 

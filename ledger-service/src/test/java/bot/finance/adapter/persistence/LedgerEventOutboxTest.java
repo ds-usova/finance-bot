@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.metrics.MicrometerOutboxMeters;
+import bot.finance.application.port.OutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
@@ -30,7 +32,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Import({
     LedgerEventOutbox.class,
     OutboxWriter.class,
-    OutboxMeters.class,
+    MicrometerOutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })

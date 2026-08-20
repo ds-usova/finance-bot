@@ -6,6 +6,7 @@ import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ResolveProposalsPort;
+import bot.finance.application.port.TurnMeters;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
 import java.util.List;
@@ -17,14 +18,17 @@ public class TelegramUpdateListener implements UpdatesListener {
 
     private final HandleIncomingMessagePort handleIncomingMessagePort;
     private final ResolveProposalsPort resolveProposalsPort;
+    private final TurnMeters turnMeters;
     private final Logger log;
 
     public TelegramUpdateListener(
             HandleIncomingMessagePort handleIncomingMessagePort,
             ResolveProposalsPort resolveProposalsPort,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         this.handleIncomingMessagePort = handleIncomingMessagePort;
         this.resolveProposalsPort = resolveProposalsPort;
+        this.turnMeters = turnMeters;
         this.log = loggerFactory.getLogger(TelegramUpdateListener.class);
     }
 

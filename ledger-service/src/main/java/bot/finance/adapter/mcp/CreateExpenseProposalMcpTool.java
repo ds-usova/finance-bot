@@ -4,6 +4,7 @@ import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.domain.exception.*;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -19,12 +20,17 @@ public class CreateExpenseProposalMcpTool {
 
     private final CreateExpenseProposalPort createExpenseProposalPort;
     private final JsonMapper jsonMapper;
+    private final ToolCallMeters toolCallMeters;
     private final Logger log;
 
     public CreateExpenseProposalMcpTool(
-            CreateExpenseProposalPort createExpenseProposalPort, JsonMapper jsonMapper, LoggerFactory loggerFactory) {
+            CreateExpenseProposalPort createExpenseProposalPort,
+            JsonMapper jsonMapper,
+            ToolCallMeters toolCallMeters,
+            LoggerFactory loggerFactory) {
         this.createExpenseProposalPort = createExpenseProposalPort;
         this.jsonMapper = jsonMapper;
+        this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(CreateExpenseProposalMcpTool.class);
     }
 

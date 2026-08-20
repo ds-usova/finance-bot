@@ -5,6 +5,7 @@ import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidSpendingQueryException;
@@ -24,12 +25,17 @@ public class SummarizeSpendingMcpTool {
 
     private final SummarizeSpendingPort summarizeSpendingPort;
     private final JsonMapper jsonMapper;
+    private final ToolCallMeters toolCallMeters;
     private final Logger log;
 
     public SummarizeSpendingMcpTool(
-            SummarizeSpendingPort summarizeSpendingPort, JsonMapper jsonMapper, LoggerFactory loggerFactory) {
+            SummarizeSpendingPort summarizeSpendingPort,
+            JsonMapper jsonMapper,
+            ToolCallMeters toolCallMeters,
+            LoggerFactory loggerFactory) {
         this.summarizeSpendingPort = summarizeSpendingPort;
         this.jsonMapper = jsonMapper;
+        this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(SummarizeSpendingMcpTool.class);
     }
 

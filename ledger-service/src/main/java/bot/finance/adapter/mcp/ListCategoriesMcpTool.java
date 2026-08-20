@@ -5,6 +5,7 @@ import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidGroupingException;
@@ -23,12 +24,17 @@ public class ListCategoriesMcpTool {
 
     private final ListCategoriesPort listCategoriesPort;
     private final JsonMapper jsonMapper;
+    private final ToolCallMeters toolCallMeters;
     private final Logger log;
 
     public ListCategoriesMcpTool(
-            ListCategoriesPort listCategoriesPort, JsonMapper jsonMapper, LoggerFactory loggerFactory) {
+            ListCategoriesPort listCategoriesPort,
+            JsonMapper jsonMapper,
+            ToolCallMeters toolCallMeters,
+            LoggerFactory loggerFactory) {
         this.listCategoriesPort = listCategoriesPort;
         this.jsonMapper = jsonMapper;
+        this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(ListCategoriesMcpTool.class);
     }
 

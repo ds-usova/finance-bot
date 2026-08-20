@@ -100,6 +100,9 @@ public final class TelegramTestBot {
      */
     public static final TelegramScenario ACCEPT_EXPENSES = new TelegramScenario(701, 1007, 2007);
 
+    /** Scenario owned by {@code PipelineMetersSystemTest}. */
+    public static final TelegramScenario PIPELINE_METERS = new TelegramScenario(801, 1008, 2008);
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

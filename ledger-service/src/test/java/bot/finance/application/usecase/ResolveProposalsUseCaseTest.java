@@ -20,6 +20,7 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
@@ -50,6 +51,7 @@ class ResolveProposalsUseCaseTest {
     private UserRepository userRepository;
     private ExpenseRepository expenseRepository;
     private MessageDeliveryPort messageDeliveryPort;
+    private TurnMeters turnMeters;
     private ResolveProposalsUseCase useCase;
 
     @BeforeEach
@@ -60,9 +62,10 @@ class ResolveProposalsUseCaseTest {
         userRepository = mock(UserRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
+        turnMeters = mock(TurnMeters.class);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new ResolveProposalsUseCase(
-                userRepository, expenseRepository, messageDeliveryPort, clock, loggerFactory);
+                userRepository, expenseRepository, messageDeliveryPort, clock, turnMeters, loggerFactory);
     }
 
     private ResolveProposalsCommand newCommand(ProposalResolution resolution) {

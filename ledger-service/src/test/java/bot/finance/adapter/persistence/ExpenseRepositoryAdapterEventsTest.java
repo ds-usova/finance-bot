@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.metrics.MicrometerOutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -47,7 +48,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
     ExpenseRepositoryAdapter.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
-    OutboxMeters.class,
+    MicrometerOutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })
