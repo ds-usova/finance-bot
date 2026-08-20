@@ -6,7 +6,6 @@ One earlier message of the same person, and how their spending was filed from it
 
 - **Text:** present, non-blank — the earlier message, character for character.
 - **Expenses:** present, at least one, none of them absent.
-- **Copied:** the expenses are taken on construction, so the list handed in cannot change them afterwards.
 
 ## Made of / held by
 
