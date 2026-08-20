@@ -84,24 +84,9 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     public List<MessageExample> findExamples(ExampleQuery query) {
         try {
             List<Long> orderedIds = neighbourIds(query);
-            if (orderedIds.isEmpty()) {
-                recallMeters.recordExamples(0);
-                return List.of();
-            }
 
-            Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
-            Map<Long, List<RecordedExpenseEntity>> decidedByMessageId =
-                    decidedExpensesByMessageId(orderedIds, query.exampleLines());
+            List<MessageExample> examples = orderedIds.isEmpty() ? List.of() : examplesFor(orderedIds, query);
 
-            List<MessageExample> examples = new ArrayList<>();
-            for (Long id : orderedIds) {
-                IncomingMessageEntity message = messagesById.get(id);
-                List<RecordedExpenseEntity> decided = decidedByMessageId.get(id);
-                if (message == null || decided == null || decided.isEmpty()) {
-                    continue;
-                }
-                examples.add(toExample(message, decided));
-            }
             recallMeters.recordExamples(examples.size());
             return examples;
         } catch (DataAccessException e) {
@@ -125,22 +110,39 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         }
     }
 
+    private List<MessageExample> examplesFor(List<Long> orderedIds, ExampleQuery query) {
+        Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
+        Map<Long, List<RecordedExpenseEntity>> decidedByMessageId =
+                decidedExpensesByMessageId(orderedIds, query.exampleLines());
+
+        List<MessageExample> examples = new ArrayList<>();
+        for (Long id : orderedIds) {
+            IncomingMessageEntity message = messagesById.get(id);
+            List<RecordedExpenseEntity> decided = decidedByMessageId.get(id);
+            if (message == null || decided == null || decided.isEmpty()) {
+                continue;
+            }
+            examples.add(toExample(message, decided));
+        }
+        return examples;
+    }
+
     private List<Long> neighbourIds(ExampleQuery query) {
         String embedding = VectorText.toLiteral(query.embedding());
         Instant now = clock.instant();
         Instant cut = now.minus(query.maxAge());
         Instant recentCut = now.minus(query.recentWindow());
 
-        List<ClosestMatchRow> closestRows = messageRepository.findClosestIds(
+        List<ClosestMatchRow> closestRows = messageRepository.findClosestMatches(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
         if (!closestRows.isEmpty()) {
-            recallMeters.recordBestSimilarity(closestRows.get(0).similarity());
+            recallMeters.recordBestSimilarity(closestRows.getFirst().similarity());
         }
-        List<Long> closestIds = closestRows.stream().map(ClosestMatchRow::id).toList();
         Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);
 
-        Set<Long> ids = new LinkedHashSet<>(closestIds);
+        Set<Long> ids = new LinkedHashSet<>(
+                closestRows.stream().map(ClosestMatchRow::id).toList());
         closestRecentId.ifPresent(ids::add);
         return new ArrayList<>(ids);
     }

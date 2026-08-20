@@ -42,7 +42,8 @@ public interface IncomingMessageEntityRepository extends CrudRepository<Incoming
 
     @Query(
             """
-            SELECT im.id, 1 - (im.embedding <=> CAST(:embedding AS vector)) AS similarity FROM incoming_message im
+            SELECT im.id, 1 - (im.embedding <=> CAST(:embedding AS vector)) AS similarity
+            FROM incoming_message im
             WHERE im.user_id = :userId
               AND im.id != :excludeId
               AND im.embedding IS NOT NULL
@@ -54,7 +55,7 @@ public interface IncomingMessageEntityRepository extends CrudRepository<Incoming
             ORDER BY im.embedding <=> CAST(:embedding AS vector)
             LIMIT :limit
             """)
-    List<ClosestMatchRow> findClosestIds(
+    List<ClosestMatchRow> findClosestMatches(
             @Param("userId") long userId,
             @Param("embedding") String embedding,
             @Param("excludeId") long excludeId,
