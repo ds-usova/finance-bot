@@ -55,8 +55,8 @@ The service's own:
 - The pending gauge is what the group holds undone, not a backlog: entries nobody has read yet, and a consumer
   that is down, both read zero. Every instance publishes the same number, so a panel takes the maximum, never
   the sum.
-- Before the first successful pending read the gauge is absent from the scrape altogether. Whether the value is
-  stale is what [the health endpoint](#health) says.
+- Before the first successful pending read the gauge answers `NaN`, which no panel plots as a value. Whether
+  the value is stale is what [the health endpoint](#health) says.
 - What a drop costs is [the use case's](../../usecases/learn-message-outcome.md#outcomes).
 - With the memory switched off every `ai_` meter is absent — [configuration](../../configuration.md).
 
