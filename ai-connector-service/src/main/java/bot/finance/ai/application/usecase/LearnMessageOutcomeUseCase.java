@@ -3,6 +3,7 @@ package bot.finance.ai.application.usecase;
 import bot.finance.ai.application.dto.LearnMessageOutcomeCommand;
 import bot.finance.ai.application.dto.LearnOutcome;
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
+import bot.finance.ai.application.port.ChangeStreamMeters;
 import bot.finance.ai.application.port.LearnMessageOutcomePort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
@@ -16,12 +17,14 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
     private final RecordedExpenseStorePort recordedExpenseStorePort;
     private final ChangeAttemptStorePort changeAttemptStorePort;
     private final int entryAttempts;
+    private final ChangeStreamMeters changeStreamMeters;
     private final Logger log;
 
     public LearnMessageOutcomeUseCase(
             RecordedExpenseStorePort recordedExpenseStorePort,
             ChangeAttemptStorePort changeAttemptStorePort,
             int entryAttempts,
+            ChangeStreamMeters changeStreamMeters,
             LoggerFactory loggerFactory) {
         if (entryAttempts <= 0) {
             throw new InvalidValueException("entryAttempts must be positive");
@@ -30,6 +33,7 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
         this.recordedExpenseStorePort = recordedExpenseStorePort;
         this.changeAttemptStorePort = changeAttemptStorePort;
         this.entryAttempts = entryAttempts;
+        this.changeStreamMeters = changeStreamMeters;
         this.log = loggerFactory.getLogger(LearnMessageOutcomeUseCase.class);
     }
 
@@ -74,6 +78,7 @@ public class LearnMessageOutcomeUseCase implements LearnMessageOutcomePort {
     }
 
     private LearnOutcome drop(LearnMessageOutcomeCommand command, MessageStoreFailedException e) {
+        // TODO: count the drop on changeStreamMeters.
         log.error(
                 "Dropping delivery {} after repeated failures on {} entry {}: {}",
                 command.deliveryId(),

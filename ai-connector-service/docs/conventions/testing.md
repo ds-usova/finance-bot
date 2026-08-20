@@ -77,7 +77,9 @@ helper is looked for in the same place in either module.
   owns which caller tokens are read, which are refused, and what an unreachable or slow key set answers.
   `adapter/redis/`'s consumer owns reading the stream, claiming and acknowledging entries, and how the store's
   answer decides retry, acknowledgement or drop; its reader, `ChangeStreamEntryReader`, is a unit target instead
-  — stateless parsing with no infrastructure of its own.
+  — stateless parsing with no infrastructure of its own. `RedisPendingEntries` is driven directly against a
+  `RedisContainers` template, with no Spring context of its own — the class carries
+  `@Testcontainers(disabledWithoutDocker = true)` itself, so it skips rather than fails without Docker.
 - **Integration, inbound** — `adapter/grpc/` via `@GrpcAdapterTest`, entered through a generated blocking stub
   with the inbound port mocked. Owns request binding, delegation, proto mapping, and the RPC's validation
   matrix and status-code contract.

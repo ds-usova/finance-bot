@@ -3,6 +3,7 @@ package bot.finance.ai.adapter.config;
 import bot.finance.ai.adapter.scheduling.MemoryProperties;
 import bot.finance.ai.application.port.BackfillEmbeddingsPort;
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
+import bot.finance.ai.application.port.ChangeStreamMeters;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.LearnMessageOutcomePort;
@@ -93,8 +94,13 @@ public class UseCaseConfiguration {
             RecordedExpenseStorePort recordedExpenseStorePort,
             ChangeAttemptStorePort changeAttemptStorePort,
             MemoryProperties properties,
+            ChangeStreamMeters changeStreamMeters,
             LoggerFactory loggerFactory) {
         return new LearnMessageOutcomeUseCase(
-                recordedExpenseStorePort, changeAttemptStorePort, properties.entryAttempts(), loggerFactory);
+                recordedExpenseStorePort,
+                changeAttemptStorePort,
+                properties.entryAttempts(),
+                changeStreamMeters,
+                loggerFactory);
     }
 }

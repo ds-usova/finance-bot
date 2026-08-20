@@ -12,6 +12,7 @@ import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.application.dto.ExampleQuery;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.dto.UnembeddedMessage;
+import bot.finance.ai.application.port.RecallMeters;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.fixtures.EmbeddingFixtures;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
@@ -45,6 +46,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +56,9 @@ class JdbcMessageMemoryAdapterTest {
 
     @Autowired
     private JdbcMessageMemoryAdapter adapter;
+
+    @MockitoBean
+    private RecallMeters recallMeters;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -596,8 +601,8 @@ class JdbcMessageMemoryAdapterTest {
                 mock(IncomingMessageEntityRepository.class);
         private final RecordedExpenseEntityRepository mockedExpenseRepository =
                 mock(RecordedExpenseEntityRepository.class);
-        private final JdbcMessageMemoryAdapter mockedAdapter =
-                new JdbcMessageMemoryAdapter(mockedMessageRepository, mockedExpenseRepository, Clock.systemUTC());
+        private final JdbcMessageMemoryAdapter mockedAdapter = new JdbcMessageMemoryAdapter(
+                mockedMessageRepository, mockedExpenseRepository, Clock.systemUTC(), mock(RecallMeters.class));
 
         @Test
         @DisplayName(

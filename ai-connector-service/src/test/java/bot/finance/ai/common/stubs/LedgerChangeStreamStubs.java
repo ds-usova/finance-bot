@@ -28,6 +28,21 @@ public final class LedgerChangeStreamStubs {
         return TEMPLATE.opsForStream().add(key, body).getValue();
     }
 
+    /**
+     * XGROUP CREATEs the group on the stream, with MKSTREAM so an absent stream is created along with it,
+     * tolerating BUSYGROUP for a group that already exists.
+     */
+    public static void createGroup(String key, String group) {
+        try {
+            TEMPLATE.opsForStream().createGroup(key, ReadOffset.latest(), group);
+        } catch (DataAccessException e) {
+            String cause = e.getMostSpecificCause().getMessage();
+            if (cause == null || !cause.contains("BUSYGROUP")) {
+                throw e;
+            }
+        }
+    }
+
     /** The group's pending-entry count on the stream, via XPENDING. */
     public static long pending(String key, String group) {
         return TEMPLATE.opsForStream().pending(key, group).getTotalPendingMessages();

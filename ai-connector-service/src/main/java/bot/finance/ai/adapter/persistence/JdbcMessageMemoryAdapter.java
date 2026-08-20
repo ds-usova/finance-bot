@@ -4,6 +4,7 @@ import bot.finance.ai.application.dto.ExampleQuery;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.application.port.MessageMemoryPort;
+import bot.finance.ai.application.port.RecallMeters;
 import bot.finance.ai.domain.value.Embedding;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.MessageExample;
@@ -30,14 +31,17 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     private final IncomingMessageEntityRepository messageRepository;
     private final RecordedExpenseEntityRepository expenseRepository;
     private final Clock clock;
+    private final RecallMeters recallMeters;
 
     public JdbcMessageMemoryAdapter(
             IncomingMessageEntityRepository messageRepository,
             RecordedExpenseEntityRepository expenseRepository,
-            Clock clock) {
+            Clock clock,
+            RecallMeters recallMeters) {
         this.messageRepository = messageRepository;
         this.expenseRepository = expenseRepository;
         this.clock = clock;
+        this.recallMeters = recallMeters;
     }
 
     @Override
@@ -125,8 +129,10 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         Instant cut = now.minus(query.maxAge());
         Instant recentCut = now.minus(query.recentWindow());
 
-        List<Long> closestIds = messageRepository.findClosestIds(
+        List<ClosestMatchRow> closestRows = messageRepository.findClosestIds(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
+        // TODO: record the closest row's similarity on recallMeters, when at least one row came back.
+        List<Long> closestIds = closestRows.stream().map(ClosestMatchRow::id).toList();
         Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);
 

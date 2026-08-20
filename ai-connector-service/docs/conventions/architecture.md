@@ -21,6 +21,7 @@ src/main
 │       ├── config      # use-case bean wiring only
 │       ├── logging     # SLF4J-backed Logger/LoggerFactory
 │       ├── grpc        # gRPC service implementation, proto mapping, status mapping
+│       ├── metrics     # the module's own meters, the sole point Micrometer is touched
 │       ├── ai          # everything fronting the AI provider
 │       ├── ledger      # everything fronting the ledger's MCP tools
 │       ├── persistence # everything fronting the connector's own database
@@ -96,9 +97,9 @@ The first is enforced below; the second by review.
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..`, `com.google.protobuf..`,
     `io.modelcontextprotocol..`, `org.springframework.data..`, `org.springframework.jdbc..`,
-    `org.springframework.security..`, `com.nimbusds..`, `org.flywaydb..` and
-    `org.springframework.data.redis..` banned from `domain`/`application`; each new external-service library
-    joins the list as its adapter lands;
+    `org.springframework.security..`, `com.nimbusds..`, `org.flywaydb..`,
+    `org.springframework.data.redis..` and `io.micrometer..` banned from `domain`/`application`; each new
+    external-service library joins the list as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` containing `OpenAi`,
     `Grpc`, `Proto`, `Mcp`, `Jdbc`, `Jwt`, `Jwks` or `Redis`; the list grows the same way;
   - `adaptersReachUseCasesThroughPorts` — no class in `adapter..` may depend on `application.usecase..`,

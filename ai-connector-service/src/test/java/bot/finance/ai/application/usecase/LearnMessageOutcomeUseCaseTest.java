@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import bot.finance.ai.application.dto.LearnMessageOutcomeCommand;
 import bot.finance.ai.application.dto.LearnOutcome;
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
+import bot.finance.ai.application.port.ChangeStreamMeters;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
@@ -46,6 +47,7 @@ class LearnMessageOutcomeUseCaseTest {
 
     private RecordedExpenseStorePort recordedExpenseStorePort;
     private ChangeAttemptStorePort changeAttemptStorePort;
+    private ChangeStreamMeters changeStreamMeters;
     private Logger log;
     private LearnMessageOutcomeUseCase useCase;
 
@@ -53,11 +55,12 @@ class LearnMessageOutcomeUseCaseTest {
     void setUp() {
         recordedExpenseStorePort = mock(RecordedExpenseStorePort.class);
         changeAttemptStorePort = mock(ChangeAttemptStorePort.class);
+        changeStreamMeters = mock(ChangeStreamMeters.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
         useCase = new LearnMessageOutcomeUseCase(
-                recordedExpenseStorePort, changeAttemptStorePort, ENTRY_ATTEMPTS, loggerFactory);
+                recordedExpenseStorePort, changeAttemptStorePort, ENTRY_ATTEMPTS, changeStreamMeters, loggerFactory);
     }
 
     @Nested
@@ -72,7 +75,11 @@ class LearnMessageOutcomeUseCaseTest {
             when(loggerFactory.getLogger(any())).thenReturn(mock(Logger.class));
 
             assertThatThrownBy(() -> new LearnMessageOutcomeUseCase(
-                            recordedExpenseStorePort, changeAttemptStorePort, entryAttempts, loggerFactory))
+                            recordedExpenseStorePort,
+                            changeAttemptStorePort,
+                            entryAttempts,
+                            changeStreamMeters,
+                            loggerFactory))
                     .isInstanceOf(InvalidValueException.class);
         }
     }
