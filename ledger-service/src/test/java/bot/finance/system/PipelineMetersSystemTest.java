@@ -156,7 +156,9 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
                             PROPOSAL_MERCHANT,
                             PROPOSAL_AMOUNT_TEXT,
                             CURRENCY_CODE));
-            assertThat(mcpResponse.statusCode()).as("direct create_expense_proposal HTTP status").isEqualTo(200);
+            assertThat(mcpResponse.statusCode())
+                    .as("direct create_expense_proposal HTTP status")
+                    .isEqualTo(200);
             assertThat(mcpResponse.jsonPath().getBoolean("result.isError"))
                     .as("direct create_expense_proposal tool result isError")
                     .isNotEqualTo(Boolean.TRUE);
@@ -188,8 +190,7 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
                 + "call sample")
         void whenThePostedGroupingMatchesNothingStored_thenTheScrapeCarriesARejectedToolCallSample() {
             // given: a stored user with no grouping of the posted name
-            User user = userRepository.create(
-                    User.newUser("pipeline-meters-unhappy-path-user"), Grouping.defaults());
+            User user = userRepository.create(User.newUser("pipeline-meters-unhappy-path-user"), Grouping.defaults());
             long userId = user.id().orElseThrow();
             String token = McpTokens.tokenFor(accessTokenMinter, userId);
 

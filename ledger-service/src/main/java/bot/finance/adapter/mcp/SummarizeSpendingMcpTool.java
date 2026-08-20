@@ -59,6 +59,7 @@ public class SummarizeSpendingMcpTool {
                     period.from().toString(), period.to().toString());
 
             log.debug("summarize_spending call succeeded: {}", response);
+            toolCallMeters.countOk("summarize_spending");
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
@@ -71,12 +72,17 @@ public class SummarizeSpendingMcpTool {
         } catch (PersistenceFailedException e) {
             return rejected(e, "the summary could not be recorded");
         } catch (RuntimeException e) {
-            return rejected(e, "the spending could not be summarized");
+            return rejected(e, "the spending could not be summarized", "unexpected");
         }
     }
 
     private CallToolResult rejected(RuntimeException e, String message) {
+        return rejected(e, message, e.getClass().getSimpleName());
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message, String reason) {
         log.warn("rejected summarize_spending call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        toolCallMeters.countRejected("summarize_spending", reason);
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

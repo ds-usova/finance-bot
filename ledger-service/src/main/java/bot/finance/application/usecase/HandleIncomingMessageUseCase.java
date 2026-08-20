@@ -95,6 +95,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
                 .deliver(new TurnReport(
                         command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference))
                 .ifPresent(location -> storeReport(user.id().orElseThrow(), reference, location));
+        turnMeters.countTurn(outcome);
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);

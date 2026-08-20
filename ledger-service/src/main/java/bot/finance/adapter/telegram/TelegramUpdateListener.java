@@ -45,14 +45,18 @@ public class TelegramUpdateListener implements UpdatesListener {
      * poll loop on one bad update.
      */
     private void handle(Update update) {
-        try {
-            Optional<HandleIncomingMessageCommand> command =
-                    TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
-            if (command.isPresent()) {
+        Optional<HandleIncomingMessageCommand> command = TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
+        if (command.isPresent()) {
+            try {
                 handleIncomingMessagePort.handle(command.get());
-                return;
+            } catch (RuntimeException e) {
+                turnMeters.countUnreported();
+                log.error("failed to handle telegram update {}", update.updateId(), e);
             }
+            return;
+        }
 
+        try {
             Optional<ResolveProposalsCommand> resolution = TelegramUpdateMapper.toResolveProposalsCommand(update);
             if (resolution.isPresent()) {
                 resolveProposalsPort.resolve(resolution.get());

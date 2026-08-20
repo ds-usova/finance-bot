@@ -66,6 +66,7 @@ public class CreateExpenseProposalMcpTool {
                     ExpenseProposalToolMapper.toResponse(stored, request.category());
 
             log.debug("create_expense_proposal call succeeded: {}", response);
+            toolCallMeters.countOk("create_expense_proposal");
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
@@ -78,12 +79,17 @@ public class CreateExpenseProposalMcpTool {
         } catch (PersistenceFailedException e) {
             return rejected(e, "the proposal could not be stored");
         } catch (RuntimeException e) {
-            return rejected(e, "the proposal could not be created");
+            return rejected(e, "the proposal could not be created", "unexpected");
         }
     }
 
     private CallToolResult rejected(RuntimeException e, String message) {
+        return rejected(e, message, e.getClass().getSimpleName());
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message, String reason) {
         log.warn("rejected create_expense_proposal call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        toolCallMeters.countRejected("create_expense_proposal", reason);
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

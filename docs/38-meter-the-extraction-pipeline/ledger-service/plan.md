@@ -271,23 +271,23 @@ Lay_D(outbox, micrometerOutbox)
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
-- [ ] GU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest`
+- [x] GU01 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
+- [x] GU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] GI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `create_expense_proposal (MCP)` · mocks: `CreateExpenseProposalPort`, `ToolCallMeters`
-- [ ] GI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories (MCP)` ·
+- [x] GI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories (MCP)` ·
   mocks: `ListCategoriesPort`, `ToolCallMeters`
-- [ ] GI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
+- [x] GI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
   `summarize_spending (MCP)` · mocks: `SummarizeSpendingPort`, `ToolCallMeters`
-- [ ] GI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the Telegram update poll ·
+- [x] GI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the Telegram update poll ·
   mocks: `HandleIncomingMessagePort`, `ResolveProposalsPort`, `TurnMeters`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus`
+- [x] GS01 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus`
 
 ## Open Questions / Blockers
 

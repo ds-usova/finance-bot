@@ -63,7 +63,9 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
     private ResolutionAcknowledgement acknowledgementFor(long userId, ResolveProposalsCommand command) {
         int resolvedCount = applyResolution(userId, command);
         if (resolvedCount > 0) {
-            return acknowledgement(command, resolvedOutcome(command.resolution()), resolvedCount);
+            ResolutionOutcome outcome = resolvedOutcome(command.resolution());
+            turnMeters.countResolved(command.resolution(), resolvedCount);
+            return acknowledgement(command, outcome, resolvedCount);
         }
         int alreadyAcceptedCount = expenseRepository.countByMessageReference(userId, command.reference());
         if (alreadyAcceptedCount > 0) {
