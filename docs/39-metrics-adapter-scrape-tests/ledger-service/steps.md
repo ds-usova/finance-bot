@@ -18,7 +18,7 @@
   and Redis excluded. The context proof autowires one bean and asserts nothing, per the testing conventions'
   runtime-proof rule. Both join the conventions' package tree and the Test Layers entry gains the slice.
 
-- [ ] R02 · tests · write the three scrape tests over the rendered Prometheus text
+- [x] R02 · tests · write the three scrape tests over the rendered Prometheus text
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/metrics/MicrometerToolCallMetersTest.java`
     - `ledger-service/src/test/java/bot/finance/adapter/metrics/MicrometerTurnMetersTest.java`
