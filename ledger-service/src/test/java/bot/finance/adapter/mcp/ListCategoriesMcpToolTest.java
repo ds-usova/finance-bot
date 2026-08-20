@@ -35,7 +35,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Integration test for the inbound MCP-tool adapter. Enters through the protocol - a JSON-RPC {@code tools/call}
@@ -44,7 +43,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * {@link ToolCallMeters} are mocked.
  */
 @McpAdapterTest
-@MockitoBean(types = ToolCallMeters.class)
 class ListCategoriesMcpToolTest {
 
     private static final String RECEIVED_CALL_PREFIX = "Received list_categories call:";

@@ -8,6 +8,7 @@ import bot.finance.adapter.security.JwksController;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.ToolCallMeters;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -35,8 +36,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * surfaces as a 500 the logs say nothing about.
  *
  * <p>All three ports are mocked here because all three tools register with the one MCP server, and a missing one
- * fails the whole context. A test class autowires the one it drives; the override is Mockito-managed, so it is
- * reset between test methods.
+ * fails the whole context; {@link ToolCallMeters} for the same reason, since every tool counts its own calls
+ * through it. A test class autowires the one it drives; the override is Mockito-managed, so it is reset between
+ * test methods.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -46,7 +48,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         properties = "spring.autoconfigure.exclude="
                 + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration")
-@MockitoBean(types = {ListCategoriesPort.class, CreateExpenseProposalPort.class, SummarizeSpendingPort.class})
+@MockitoBean(
+        types = {
+            ListCategoriesPort.class,
+            CreateExpenseProposalPort.class,
+            SummarizeSpendingPort.class,
+            ToolCallMeters.class
+        })
 @SpringBootTest(
         classes = McpAdapterTest.McpAdapterConfiguration.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

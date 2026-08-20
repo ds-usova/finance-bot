@@ -4,10 +4,8 @@ import bot.finance.adapter.mcp.CreateExpenseProposalMcpTool;
 import bot.finance.adapter.mcp.ListCategoriesMcpTool;
 import bot.finance.adapter.mcp.SummarizeSpendingMcpTool;
 import bot.finance.adapter.security.AccessTokenMinter;
-import bot.finance.application.port.ToolCallMeters;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Proves {@link McpAdapterTest} itself boots a working context - compiling says nothing about whether the MCP
@@ -15,7 +13,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * rest of the application. Throwaway: it asserts nothing beyond the autowiring succeeding.
  */
 @McpAdapterTest
-@MockitoBean(types = ToolCallMeters.class)
 class McpAdapterContextTest {
 
     @Autowired
