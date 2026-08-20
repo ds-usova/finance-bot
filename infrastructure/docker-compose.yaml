@@ -81,9 +81,44 @@ services:
       DB_USER: ${FINANCE_BOT_AI_DB_USER}
       DB_PASSWORD: ${FINANCE_BOT_AI_DB_PASSWORD}
       REDIS_URL: redis://redis:6379
+      MANAGEMENT_PORT: 1011
     depends_on:
       finance-postgres:
         condition: service_healthy
+    networks:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v3.13.2
+    container_name: finance-bot-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - finance-bot-prometheus:/prometheus
+    depends_on:
+      - ledger-service
+      - ai-connector-service
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - backend
+
+  grafana:
+    image: grafana/grafana:13.1.3
+    container_name: finance-bot-grafana
+    ports:
+      - "1005:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${FINANCE_BOT_GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${FINANCE_BOT_GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - finance-bot-grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
     networks:
       - backend
 
@@ -106,6 +141,10 @@ volumes:
     name: finance-bot-postgres
   finance-bot-redis:
     name: finance-bot-redis
+  finance-bot-prometheus:
+    name: finance-bot-prometheus
+  finance-bot-grafana:
+    name: finance-bot-grafana
 
 networks:
   backend:

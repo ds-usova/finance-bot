@@ -1,0 +1,257 @@
+{
+  "uid": "ledger-service",
+  "title": "Ledger Service",
+  "tags": ["finance-bot"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "editable": false,
+  "panels": [
+    { "type": "row", "title": "Service", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false, "panels": [] },
+    {
+      "type": "stat",
+      "title": "Uptime",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "process_uptime_seconds{job=\"ledger-service\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU usage",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 10, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "process_cpu_usage{job=\"ledger-service\"}", "legendFormat": "process", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "system_cpu_usage{job=\"ledger-service\"}", "legendFormat": "system", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM heap",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{job=\"ledger-service\", area=\"heap\"})", "legendFormat": "used", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "sum(jvm_memory_max_bytes{job=\"ledger-service\", area=\"heap\"})", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC pause time",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (action) (rate(jvm_gc_pause_seconds_sum{job=\"ledger-service\"}[5m]))", "legendFormat": "{{action}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Live threads",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "jvm_threads_live_threads{job=\"ledger-service\"}", "legendFormat": "live", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    { "type": "row", "title": "HTTP", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Request rate",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (uri, status) (rate(http_server_requests_seconds_count{job=\"ledger-service\"}[5m]))", "legendFormat": "{{status}} {{uri}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request latency",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{job=\"ledger-service\"}[5m])) / sum by (uri) (rate(http_server_requests_seconds_count{job=\"ledger-service\"}[5m]))", "legendFormat": "avg {{uri}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max by (uri) (http_server_requests_seconds_max{job=\"ledger-service\"})", "legendFormat": "max {{uri}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "5xx rate",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "min": 0, "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{job=\"ledger-service\", status=~\"5..\"}[5m]))", "legendFormat": "5xx", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Database connections",
+      "id": 9,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "hikaricp_connections_active{job=\"ledger-service\"}", "legendFormat": "active", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "hikaricp_connections_pending{job=\"ledger-service\"}", "legendFormat": "pending", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    { "type": "row", "title": "CDC", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }, "collapsed": false, "panels": [] },
+    {
+      "type": "stat",
+      "title": "Capture state",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 4, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": {
+              "0": { "text": "STREAMING", "color": "green", "index": 0 },
+              "1": { "text": "STANDBY", "color": "blue", "index": 1 },
+              "2": { "text": "DOWN", "color": "red", "index": 2 }
+            } }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "text", "value": null } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "ledger_cdc_state{job=\"ledger-service\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Slot WAL status",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 4, "x": 4, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": {
+              "0": { "text": "reserved", "color": "green", "index": 0 },
+              "1": { "text": "extended", "color": "yellow", "index": 1 },
+              "2": { "text": "unreserved", "color": "orange", "index": 2 },
+              "3": { "text": "lost", "color": "red", "index": 3 },
+              "4": { "text": "absent", "color": "text", "index": 4 }
+            } }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "text", "value": null } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "ledger_cdc_slot_wal_status{job=\"ledger-service\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Publish failures (1h)",
+      "id": 12,
+      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(ledger_cdc_publish_failures_total{job=\"ledger-service\"}[1h]))", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Facts dropped (1h)",
+      "id": 13,
+      "gridPos": { "h": 8, "w": 4, "x": 12, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(ledger_cdc_facts_dropped_total{job=\"ledger-service\"}[1h]))", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Slot retained WAL",
+      "id": 14,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": { "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1073741824 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "ledger_cdc_slot_retained_bytes{job=\"ledger-service\"}", "legendFormat": "retained", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Events published",
+      "id": 15,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 43 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (type) (rate(ledger_cdc_events_published_total{job=\"ledger-service\"}[5m]))", "legendFormat": "{{type}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Event lag",
+      "id": 16,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 43 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "ledger_cdc_event_lag_seconds{job=\"ledger-service\"}", "legendFormat": "lag", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Outbox rows",
+      "id": 17,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 43 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "ledger_cdc_outbox_rows{job=\"ledger-service\"}", "legendFormat": "rows", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    }
+  ]
+}

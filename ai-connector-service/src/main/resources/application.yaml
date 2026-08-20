@@ -75,17 +75,19 @@ ledger:
     claim-idle: 30s
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:1011}
   endpoints:
     web:
       exposure:
         include: "*"
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
   endpoint:
     prometheus:
-      enabled: true
+      access: unrestricted
     health:
       probes:
         enabled: true

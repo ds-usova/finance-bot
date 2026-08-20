@@ -13,3 +13,7 @@ spring:
         # Set far beyond anything a stub server can plausibly take, since a slow build agent costs time and a
         # timed-out one costs a wrong answer.
         request-timeout: 120s
+
+management:
+  server:
+    port: 0

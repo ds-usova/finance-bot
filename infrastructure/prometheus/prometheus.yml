@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: ledger-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ "ledger-service:1010" ]
+
+  - job_name: ai-connector-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ "ai-connector-service:1011" ]

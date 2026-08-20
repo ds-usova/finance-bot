@@ -25,6 +25,7 @@ Package structure is in the
 ### Contracts
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
+- [An operator running the service — health and meters](docs/contracts/in/operations.md) (inbound)
 - [AI provider — reading and embedding a message](docs/contracts/out/ai-provider.md) (outbound)
 - [Ledger Service — the ledger's tools and its key set](docs/contracts/out/ledger-mcp.md) (outbound)
 - [Ledger Service — the change stream](docs/contracts/out/change-stream.md) (outbound)

@@ -136,8 +136,8 @@ Every endpoint keeps serving throughout, capture alone being what stops.
 
 ## Compatibility
 
-A meter renamed or a tag added is a change to whatever alerts on it. Nothing in this repository reads these
-meters, so a dashboard outside it is the only thing a rename reaches.
+A meter renamed or a tag added is a change to whatever alerts on it, including the provisioned dashboard,
+[`infrastructure/grafana/dashboards/ledger-service.json`](../../../../infrastructure/grafana/dashboards/ledger-service.json).
 
 Moving the management port changes where a probe and a collector point, and nothing else. Publishing it beside
 the service's own port would put the rebuild operation on a reachable address, guarded by the shared secret
