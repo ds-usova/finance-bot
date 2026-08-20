@@ -252,6 +252,51 @@
       "targets": [
         { "refId": "A", "expr": "ledger_cdc_outbox_rows{job=\"ledger-service\"}", "legendFormat": "rows", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
+    },
+    { "type": "row", "title": "Extraction", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Tool call rate",
+      "id": 18,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (tool, outcome) (rate(ledger_mcp_tool_calls_total{job=\"ledger-service\"}[5m]))", "legendFormat": "{{outcome}} {{tool}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rejection reasons",
+      "id": 19,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (tool, reason) (rate(ledger_mcp_tool_calls_total{job=\"ledger-service\", outcome=\"rejected\"}[5m]))", "legendFormat": "{{tool}} {{reason}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Turn outcomes",
+      "id": 20,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (outcome) (rate(ledger_turns_total{job=\"ledger-service\"}[5m]))", "legendFormat": "{{outcome}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Proposals resolved",
+      "id": 21,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (resolution) (rate(ledger_proposals_resolved_total{job=\"ledger-service\"}[5m]))", "legendFormat": "{{resolution}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
     }
   ]
 }

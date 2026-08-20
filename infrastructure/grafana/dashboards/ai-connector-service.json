@@ -112,6 +112,130 @@
         { "refId": "A", "expr": "hikaricp_connections_active{job=\"ai-connector-service\"}", "legendFormat": "active", "datasource": { "type": "prometheus", "uid": "prometheus" } },
         { "refId": "B", "expr": "hikaricp_connections_pending{job=\"ai-connector-service\"}", "legendFormat": "pending", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
+    },
+    { "type": "row", "title": "Extraction", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Extraction latency",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(grpc_server_seconds_sum{job=\"ai-connector-service\", rpc_method=\"ExtractIntents\"}[5m])) / sum(rate(grpc_server_seconds_count{job=\"ai-connector-service\", rpc_method=\"ExtractIntents\"}[5m]))", "legendFormat": "avg", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max(grpc_server_seconds_max{job=\"ai-connector-service\", rpc_method=\"ExtractIntents\"})", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Provider latency",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (gen_ai_operation_name) (rate(gen_ai_client_operation_seconds_sum{job=\"ai-connector-service\"}[5m])) / sum by (gen_ai_operation_name) (rate(gen_ai_client_operation_seconds_count{job=\"ai-connector-service\"}[5m]))", "legendFormat": "avg {{gen_ai_operation_name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max by (gen_ai_operation_name) (gen_ai_client_operation_seconds_max{job=\"ai-connector-service\"})", "legendFormat": "max {{gen_ai_operation_name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Token usage",
+      "id": 12,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (gen_ai_token_type) (rate(gen_ai_client_token_usage_total{job=\"ai-connector-service\"}[5m]))", "legendFormat": "{{gen_ai_token_type}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool call latency",
+      "id": 13,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (spring_ai_tool_definition_name) (rate(spring_ai_tool_seconds_sum{job=\"ai-connector-service\"}[5m])) / sum by (spring_ai_tool_definition_name) (rate(spring_ai_tool_seconds_count{job=\"ai-connector-service\"}[5m]))", "legendFormat": "avg {{spring_ai_tool_definition_name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max by (spring_ai_tool_definition_name) (spring_ai_tool_seconds_max{job=\"ai-connector-service\"})", "legendFormat": "max {{spring_ai_tool_definition_name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool call errors",
+      "id": 14,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 51 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "cps", "min": 0, "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (spring_ai_tool_definition_name) (rate(spring_ai_tool_seconds_count{job=\"ai-connector-service\", error!=\"none\"}[5m]))", "legendFormat": "{{spring_ai_tool_definition_name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool call rounds per turn",
+      "id": 15,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 51 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(spring_ai_tool_seconds_count{job=\"ai-connector-service\"}[5m])) / sum(rate(ledger_turns_total{job=\"ledger-service\"}[5m]))", "legendFormat": "rounds", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    { "type": "row", "title": "Memory", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 }, "collapsed": false, "panels": [] },
+    {
+      "type": "timeseries",
+      "title": "Recall examples",
+      "id": 16,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 60 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ai_recall_examples_sum{job=\"ai-connector-service\"}[5m])) / sum(rate(ai_recall_examples_count{job=\"ai-connector-service\"}[5m]))", "legendFormat": "avg", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max(ai_recall_examples_max{job=\"ai-connector-service\"})", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Recall best similarity",
+      "id": 17,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 60 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ai_recall_best_similarity_sum{job=\"ai-connector-service\"}[5m])) / sum(rate(ai_recall_best_similarity_count{job=\"ai-connector-service\"}[5m]))", "legendFormat": "avg", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "max(ai_recall_best_similarity_max{job=\"ai-connector-service\"})", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pending entries",
+      "id": 18,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 60 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "max(ai_cdc_entries_pending{job=\"ai-connector-service\"})", "legendFormat": "pending", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Deliveries dropped (1h)",
+      "id": 19,
+      "gridPos": { "h": 8, "w": 4, "x": 0, "y": 68 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(ai_cdc_deliveries_dropped_total{job=\"ai-connector-service\"}[1h]))", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
     }
   ]
 }
