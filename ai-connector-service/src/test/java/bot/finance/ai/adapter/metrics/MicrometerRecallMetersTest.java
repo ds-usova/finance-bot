@@ -1,12 +1,11 @@
 package bot.finance.ai.adapter.metrics;
 
-import static io.restassured.RestAssured.given;
+import static bot.finance.ai.common.PrometheusScrapeUtils.sample;
+import static bot.finance.ai.common.PrometheusScrapeUtils.scrape;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.ai.application.port.RecallMeters;
 import bot.finance.ai.common.boot.MetricsAdapterTest;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,23 +27,6 @@ class MicrometerRecallMetersTest {
     @LocalManagementPort
     private int managementPort;
 
-    private String scrape() {
-        return given().port(managementPort)
-                .when()
-                .get("/actuator/prometheus")
-                .then()
-                .statusCode(200)
-                .extract()
-                .asString();
-    }
-
-    private static double sample(String body, String metricName) {
-        Matcher matcher = Pattern.compile("(?m)^" + Pattern.quote(metricName) + "\\s+(\\S+)$")
-                .matcher(body);
-        assertThat(matcher.find()).as(metricName + " sample present").isTrue();
-        return Double.parseDouble(matcher.group(1));
-    }
-
     @Nested
     @DisplayName("recordExamples()")
     class RecordExamples {
@@ -53,13 +35,13 @@ class MicrometerRecallMetersTest {
         @DisplayName("when a returned count is recorded - then the scrape's count grows by one and its sum by "
                 + "the count")
         void whenReturnedCountIsRecorded_thenScrapeCountGrowsByOneAndSumByCount() {
-            String before = scrape();
+            String before = scrape(managementPort);
             double countBefore = sample(before, "ai_recall_examples_count");
             double sumBefore = sample(before, "ai_recall_examples_sum");
 
             recallMeters.recordExamples(3);
 
-            String body = scrape();
+            String body = scrape(managementPort);
             assertThat(sample(body, "ai_recall_examples_count")).isEqualTo(countBefore + 1);
             assertThat(sample(body, "ai_recall_examples_sum")).isEqualTo(sumBefore + 3);
             assertThat(sample(body, "ai_recall_examples_max")).isGreaterThanOrEqualTo(3);
@@ -74,13 +56,13 @@ class MicrometerRecallMetersTest {
         @DisplayName("when a similarity score is recorded - then the scrape's count grows by one and its sum by "
                 + "the score")
         void whenSimilarityScoreIsRecorded_thenScrapeCountGrowsByOneAndSumByScore() {
-            String before = scrape();
+            String before = scrape(managementPort);
             double countBefore = sample(before, "ai_recall_best_similarity_count");
             double sumBefore = sample(before, "ai_recall_best_similarity_sum");
 
             recallMeters.recordBestSimilarity(0.75);
 
-            String body = scrape();
+            String body = scrape(managementPort);
             assertThat(sample(body, "ai_recall_best_similarity_count")).isEqualTo(countBefore + 1);
             assertThat(sample(body, "ai_recall_best_similarity_sum")).isEqualTo(sumBefore + 0.75);
             assertThat(sample(body, "ai_recall_best_similarity_max")).isGreaterThanOrEqualTo(0.75);

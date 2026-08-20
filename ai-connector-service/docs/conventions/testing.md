@@ -51,11 +51,12 @@ bot.finance.ai
     │   ├── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
     │   └── LedgerChangeStreamStubs # stands in for the ledger's writes to the change stream, and a second consumer
     ├── LogCapture             # Logback appender, for asserting on log output
-    └── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
+    ├── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
+    └── PrometheusScrapeUtils  # reads the actuator's rendered scrape, and one sample out of it
 ```
 
-A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `MockedLoggerUtils` sit
-at the root because they belong to none of them. The same names carry the same meanings in `ledger-service`, so a
+A new helper joins the subpackage its role names, and is listed above. `LogCapture`, `MockedLoggerUtils` and
+`PrometheusScrapeUtils` sit at the root because they belong to none of them. The same names carry the same meanings in `ledger-service`, so a
 helper is looked for in the same place in either module.
 
 ## Test Layers

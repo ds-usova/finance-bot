@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * endpoint up — this boots it and autowires one meters bean, asserting nothing else.
  */
 @MetricsAdapterTest
-class MetricsAdapterContextTest {
+class MetricsAdapterTestBootTest {
 
     @Autowired
     private RecallMeters recallMeters;
