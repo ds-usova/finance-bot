@@ -68,6 +68,9 @@ class CreateExpenseProposalMcpToolTest {
     @Autowired
     private CreateExpenseProposalPort createExpenseProposalPort;
 
+    @Autowired
+    private ToolCallMeters toolCallMeters;
+
     private String token(long userId) {
         return McpTokens.tokenFor(accessTokenMinter, userId);
     }
@@ -139,6 +142,7 @@ class CreateExpenseProposalMcpToolTest {
             verify(createExpenseProposalPort).create(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
             assertThat(command.getValue().groupingName()).isEqualTo("Dining");
+            verify(toolCallMeters).countOk("create_expense_proposal");
         }
 
         @Test
@@ -248,6 +252,7 @@ class CreateExpenseProposalMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+            verify(toolCallMeters).countRejected("create_expense_proposal", "InvalidGroupingException");
         }
 
         @Test
@@ -297,6 +302,7 @@ class CreateExpenseProposalMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).doesNotContain(secretMessage);
+            verify(toolCallMeters).countRejected("create_expense_proposal", "unexpected");
         }
 
         @Test

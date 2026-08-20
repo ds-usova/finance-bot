@@ -61,6 +61,9 @@ class SummarizeSpendingMcpToolTest {
     @Autowired
     private SummarizeSpendingPort summarizeSpendingPort;
 
+    @Autowired
+    private ToolCallMeters toolCallMeters;
+
     private String token(long userId) {
         return McpTokens.tokenFor(accessTokenMinter, userId);
     }
@@ -118,6 +121,7 @@ class SummarizeSpendingMcpToolTest {
             assertThat(command.getValue().reference()).isEqualTo(reference);
             assertThat(command.getValue().from()).isEqualTo(from);
             assertThat(command.getValue().to()).isEqualTo(to);
+            verify(toolCallMeters).countOk("summarize_spending");
         }
 
         @Test
@@ -151,6 +155,7 @@ class SummarizeSpendingMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+            verify(toolCallMeters).countRejected("summarize_spending", "InvalidSpendingPeriodException");
         }
 
         @ParameterizedTest(name = "{0}")

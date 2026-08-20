@@ -17,6 +17,8 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -135,6 +137,7 @@ class TelegramUpdateListenerTest {
             assertThat(handled.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
+            verify(turnMeters, never()).countUnreported();
         }
 
         @Test
@@ -177,6 +180,7 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset("43");
+            verify(turnMeters, times(1)).countUnreported();
         }
 
         @Test
@@ -194,6 +198,7 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
+            verify(turnMeters, never()).countUnreported();
         }
     }
 

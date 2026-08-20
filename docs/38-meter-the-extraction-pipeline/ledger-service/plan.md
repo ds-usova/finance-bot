@@ -177,7 +177,7 @@ Lay_D(outbox, micrometerOutbox)
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
+- [x] RU01 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` ·
   scenarios: A3, A4, A5, A6, A7
   The class already carries one test per `ReportOutcome` arrangement, so the meter assertions ride those tests
   rather than duplicating their arrangements.
@@ -187,7 +187,7 @@ Lay_D(outbox, micrometerOutbox)
   - update: `whenDeliverThrowsMessageDeliveryFailedException_thenExceptionPropagates()` — also verify
     `countTurn` was never called (the listener owns `UNREPORTED`)
 
-- [ ] RU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · covers: `resolve()` ·
+- [x] RU02 · `ResolveProposalsUseCase` · test: `ResolveProposalsUseCaseTest` · covers: `resolve()` ·
   scenarios: A8, A9, A10
   The class already carries accept, discard, already-accepted and nothing-to-resolve arrangements, so the meter
   assertions ride them.
@@ -201,7 +201,7 @@ Lay_D(outbox, micrometerOutbox)
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
+- [x] RI01 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers:
   `create_expense_proposal (MCP)` · mocks: `CreateExpenseProposalPort`, `ToolCallMeters` · scenarios: A1, A2
   - Happy Path:
     - given: the mocked port returns a stored expense
@@ -215,7 +215,7 @@ Lay_D(outbox, micrometerOutbox)
       when: the tool is called
       then: `countRejected` received `"create_expense_proposal"`, `"unexpected"`
 
-- [ ] RI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories (MCP)` ·
+- [x] RI02 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `list_categories (MCP)` ·
   mocks: `ListCategoriesPort`, `ToolCallMeters` · scenarios: A1, A2
   - Happy Path:
     - given: the mocked port returns a category list
@@ -226,7 +226,7 @@ Lay_D(outbox, micrometerOutbox)
       when: the tool is called
       then: `countRejected` received `"list_categories"`, `"InvalidGroupingException"`
 
-- [ ] RI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
+- [x] RI03 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers:
   `summarize_spending (MCP)` · mocks: `SummarizeSpendingPort`, `ToolCallMeters` · scenarios: A1, A2
   - Happy Path:
     - given: the mocked port returns a summary
@@ -237,7 +237,7 @@ Lay_D(outbox, micrometerOutbox)
       when: the tool is called
       then: `countRejected` received `"summarize_spending"` and that exception's simple name
 
-- [ ] RI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the Telegram update poll ·
+- [x] RI05 · `TelegramUpdateListener` · test: `TelegramUpdateListenerTest` · covers: the Telegram update poll ·
   mocks: `HandleIncomingMessagePort`, `ResolveProposalsPort`, `TurnMeters` · scenarios: A22
   - Happy Path:
     - given: the mocked incoming-message port returns normally
@@ -253,7 +253,7 @@ Lay_D(outbox, micrometerOutbox)
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A1, A2, A3, A8
+- [x] RS01 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus` · scenarios: A1, A2, A3, A8
   - Happy Path:
     - given: a Telegram turn processed end to end through the stubbed Bot API on its own `TelegramScenario`,
       its delivered report's Confirm button tapped, and a `create_expense_proposal` call posted to `/mcp` with
@@ -295,6 +295,12 @@ Lay_D(outbox, micrometerOutbox)
   `CaptureAdapterConfiguration` switched its `OutboxMeters` import to `MicrometerOutboxMeters`, and
   `McpAdapterContextTest` gained `@MockitoBean(types = ToolCallMeters.class)` to keep the shared MCP context
   loading. No behaviour changed; recorded for the record only.
+- Red phase flagged two tests RU01/RU02's bullets do not name, left untouched: RU01's
+  `whenReportCannotBeDelivered_thenPeriodsAskedAboutAreKept` also has `deliver` throw
+  `MessageDeliveryFailedException` and could carry the same `verify(countTurn, never())` as the named test;
+  RU02's `whenAcceptThrowsPersistenceFailedException_thenExceptionPropagatesAndAcknowledgeNeverCalled` throws
+  before any outcome is computed, so neither premise branch fits — a `countResolved` never-called assertion is a
+  possible unlisted update. Both are gaps in assertion breadth, not defects in what was implemented.
 
 ## Review Findings
 

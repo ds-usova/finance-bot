@@ -177,6 +177,7 @@ class HandleIncomingMessageUseCaseTest {
                     ArgumentCaptor.forClass(InitializeUserCommand.class);
             verify(initializeUserPort).initialize(initializeCaptor.capture());
             assertThat(initializeCaptor.getValue().externalId()).isEqualTo(EXTERNAL_ID);
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -198,6 +199,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(request.defaultCurrency()).isEmpty();
             assertThat(request.userId()).isEqualTo(USER_ID);
             assertThat(request.currentDate()).isEqualTo(LocalDate.now(clock));
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -214,6 +216,7 @@ class HandleIncomingMessageUseCaseTest {
 
             verify(expenseRepository).findSummariesByMessageReference(USER_ID, derivedReference);
             verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, derivedReference);
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -231,6 +234,7 @@ class HandleIncomingMessageUseCaseTest {
             IntentExtractionRequest request = capturedExtractionRequest();
             assertThat(request.categoryGroupings()).isEqualTo(categoryGroupings);
             assertThat(request.catchAllGrouping()).isEqualTo(Grouping.catchAllName());
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -280,6 +284,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
             assertThat(report.reference()).isEqualTo(reference);
             assertThat(report.summaries()).isEmpty();
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -297,6 +302,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.NOTHING_IDENTIFIED);
             assertThat(report.proposals()).isEmpty();
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -315,6 +321,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.PARTIAL);
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
+            verify(turnMeters).countTurn(ReportOutcome.PARTIAL);
         }
 
         @Test
@@ -332,6 +339,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             assertThat(deliveredReport().outcome()).isEqualTo(ReportOutcome.FAILED);
+            verify(turnMeters).countTurn(ReportOutcome.FAILED);
         }
 
         @Test
@@ -351,6 +359,7 @@ class HandleIncomingMessageUseCaseTest {
             verify(log).error(messageCaptor.capture(), argsCaptor.capture());
             assertThat(argsCaptor.getValue()).doesNotContain(TEXT);
             assertThat(messageCaptor.getValue()).doesNotContain(TEXT);
+            verify(turnMeters).countTurn(ReportOutcome.FAILED);
         }
 
         @Test
@@ -367,6 +376,7 @@ class HandleIncomingMessageUseCaseTest {
             verify(log).info(messageCaptor.capture(), argsCaptor.capture());
             assertThat(argsCaptor.getValue()).doesNotContain(TEXT);
             assertThat(messageCaptor.getValue()).doesNotContain(TEXT);
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -429,6 +439,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(proposalReportRepository);
+            verify(turnMeters, never()).countTurn(any());
         }
 
         @Test
@@ -450,6 +461,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(stored.incomingMessageId()).isEqualTo(IncomingMessageId.of(CONVERSATION_ID, INBOUND_MESSAGE_ID));
             assertThat(stored.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(stored.sentMessageId()).isEqualTo(SENT_MESSAGE_ID);
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -462,6 +474,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
 
             verifyNoInteractions(proposalReportRepository);
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -476,6 +489,7 @@ class HandleIncomingMessageUseCaseTest {
                     .thenThrow(new PersistenceFailedException("store failed", new RuntimeException()));
 
             assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -493,6 +507,7 @@ class HandleIncomingMessageUseCaseTest {
             ArgumentCaptor<IncomingMessageId> referenceCaptor = ArgumentCaptor.forClass(IncomingMessageId.class);
             verify(spendingQueryRepository).discard(eq(USER_ID), referenceCaptor.capture());
             verify(spendingQueryRepository).findPeriodsByMessageReference(USER_ID, referenceCaptor.getValue());
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -527,6 +542,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
 
             verify(messageDeliveryPort).deliver(any(TurnReport.class));
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -539,6 +555,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             verify(spendingQueryRepository, never()).discard(anyLong(), any());
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -575,6 +592,7 @@ class HandleIncomingMessageUseCaseTest {
                     .containsExactly(
                             new SpendingSummary(firstPeriod, firstTotals),
                             new SpendingSummary(secondPeriod, secondTotals));
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -591,6 +609,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             assertThat(deliveredReport().summaries()).containsExactly(new SpendingSummary(period, List.of()));
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -608,6 +627,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             assertThat(deliveredReport().outcome()).isEqualTo(ReportOutcome.ANSWERED);
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -630,6 +650,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(report.outcome()).isEqualTo(ReportOutcome.RECORDED);
             assertThat(report.proposals()).containsExactlyElementsOf(proposals);
             assertThat(report.summaries()).containsExactly(new SpendingSummary(period, totals));
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -653,6 +674,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.PARTIAL);
             assertThat(report.summaries()).containsExactly(new SpendingSummary(period, totals));
+            verify(turnMeters).countTurn(ReportOutcome.PARTIAL);
         }
 
         @Test
@@ -713,6 +735,7 @@ class HandleIncomingMessageUseCaseTest {
             verify(expenseRepository).findSummariesByMessageReference(differentUserId, reference);
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
     }
 }

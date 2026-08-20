@@ -58,6 +58,9 @@ class ListCategoriesMcpToolTest {
     @Autowired
     private ListCategoriesPort listCategoriesPort;
 
+    @Autowired
+    private ToolCallMeters toolCallMeters;
+
     private String token(long userId) {
         return McpTokens.tokenFor(accessTokenMinter, userId);
     }
@@ -102,6 +105,7 @@ class ListCategoriesMcpToolTest {
             verify(listCategoriesPort).list(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
             assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
+            verify(toolCallMeters).countOk("list_categories");
         }
 
         @Test
@@ -173,6 +177,7 @@ class ListCategoriesMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+            verify(toolCallMeters).countRejected("list_categories", "InvalidGroupingException");
         }
 
         @Test
