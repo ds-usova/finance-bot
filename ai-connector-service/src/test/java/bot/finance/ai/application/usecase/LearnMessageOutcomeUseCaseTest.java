@@ -151,6 +151,7 @@ class LearnMessageOutcomeUseCaseTest {
             assertThat(outcome).isEqualTo(LearnOutcome.RETRY_LATER);
             verify(changeAttemptStorePort).countFailure(DELIVERY_ID, "store failed");
             assertThat(MockedLoggerUtils.linesAt(log, "error")).isEmpty();
+            verify(changeStreamMeters, never()).countDropped();
         }
 
         @Test
@@ -175,6 +176,21 @@ class LearnMessageOutcomeUseCaseTest {
             verify(changeAttemptStorePort).clear(DELIVERY_ID);
             verify(recordedExpenseStorePort).apply(entry, STATUS, POSITION);
             verifyNoMoreInteractions(recordedExpenseStorePort);
+        }
+
+        @Test
+        @DisplayName("when the store fails at entryAttempts - then ChangeStreamMeters.countDropped is called once")
+        void whenStoreFailsAtEntryAttempts_thenChangeStreamMetersCountsDroppedOnce() {
+            SpendingRow entry = spendingRow();
+            LearnMessageOutcomeCommand command = new LearnMessageOutcomeCommand(DELIVERY_ID, POSITION, STATUS, entry);
+            doThrow(new MessageStoreFailedException("store failed"))
+                    .when(recordedExpenseStorePort)
+                    .apply(any(), any(), any());
+            when(changeAttemptStorePort.countFailure(eq(DELIVERY_ID), any())).thenReturn(ENTRY_ATTEMPTS);
+
+            useCase.learn(command);
+
+            verify(changeStreamMeters).countDropped();
         }
 
         @Test

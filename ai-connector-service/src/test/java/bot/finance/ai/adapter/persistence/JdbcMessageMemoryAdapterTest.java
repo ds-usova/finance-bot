@@ -3,9 +3,13 @@ package bot.finance.ai.adapter.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
@@ -41,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -473,6 +478,45 @@ class JdbcMessageMemoryAdapterTest {
                     adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
 
             assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("when stored messages sit above the threshold at known similarities - then meters receive "
+                + "the count and closest score")
+        void whenStoredMessagesAboveThresholdAtKnownSimilarities_thenMetersReceiveCountAndClosestScore() {
+            long userId = 9514L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long closest = insertMessageWithVector(
+                    userId, "examples-meters-closest", "closest", recent, EmbeddingFixtures.unitVectorAt(0, 0.95));
+            long mid = insertMessageWithVector(
+                    userId, "examples-meters-mid", "mid", recent, EmbeddingFixtures.unitVectorAt(0, 0.85));
+            long third = insertMessageWithVector(
+                    userId, "examples-meters-third", "third", recent, EmbeddingFixtures.unitVectorAt(0, 0.75));
+            insertDecided(closest, userId, 201L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(mid, userId, 202L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+            insertDecided(third, userId, 203L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+
+            adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            ArgumentCaptor<Double> scoreCaptor = ArgumentCaptor.forClass(Double.class);
+            verify(recallMeters).recordExamples(3);
+            verify(recallMeters).recordBestSimilarity(scoreCaptor.capture());
+            assertThat(scoreCaptor.getValue()).isCloseTo(0.95, within(0.01));
+        }
+
+        @Test
+        @DisplayName("when no stored message is within the threshold - then the meters receive 0 and no best score")
+        void whenNoStoredMessageWithinThreshold_thenMetersReceiveZeroReturnedAndBestScoreNeverRecorded() {
+            long userId = 9515L;
+            Instant recent = Instant.now().minus(Duration.ofHours(1));
+            long tooFar = insertMessageWithVector(
+                    userId, "examples-meters-below-min", "below min", recent, EmbeddingFixtures.unitVectorAt(0, 0.4));
+            insertDecided(tooFar, userId, 211L, "d", "1.00", "EUR", 1L, "Cat", 2L, "Grp", "ACCEPTED");
+
+            adapter.findExamples(defaultQuery(userId, -1L, EmbeddingFixtures.unitVector(0)));
+
+            verify(recallMeters).recordExamples(0);
+            verify(recallMeters, never()).recordBestSimilarity(anyDouble());
         }
     }
 
