@@ -12,14 +12,14 @@ Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configu
 | Language / framework         | Java 25, Spring Boot                                                                                 |
 | Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md); Redis, read as the ledger's change stream |
 | Exposed interface            | gRPC only, on a Netty transport                                                                      |
-| Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient`, the ledger's key set, and the ledger's [change stream](../contracts/out/change-stream.md) |
+| Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient` and its embeddings API through Spring AI's `EmbeddingModel`, the ledger's key set, and the ledger's [change stream](../contracts/out/change-stream.md) |
 | Contract-first codegen       | the `.proto` schema is the contract                                                                  |
 
 Two things the table cannot carry:
 
 - **Spring AI owns the exchange** — the transport, the request and response shape, and the JSON-schema-based
-  structured output. This service supplies the model name, the prompt and the target record. The provider is
-  addressed through `spring.ai.openai.base-url`.
+  structured output. This service supplies the model name, the prompt and the target record for a chat call, and
+  the model name and the text for an embedding call. Both are addressed through `spring.ai.openai.base-url`.
 - **Generated sources are never edited or committed.** Changing the contract means changing the `.proto`; its
   location and the generator's output path are in [File Locations](architecture.md#file-locations).
 
@@ -32,8 +32,8 @@ Background reading before making changes. Where one disagrees with the conventio
   (System Context) and C2 (Container).
 - Use cases: [`docs/usecases/`](../usecases/) — one page per use case, what it does and who it collaborates
   with, in the product's words, and a C3 of the components, ports and external systems that use case touches.
-- Domain: [`docs/domain/`](../domain/) — one page per value object, what it represents and the invariants under
-  which it refuses to exist.
+- Domain: [`docs/domain/`](../domain/) — one page per domain type, [written as A Domain Page
+  says](../../../docs/conventions/documentation.md#a-domain-page).
 - Contracts: [`docs/contracts/`](../contracts/) — one page per boundary with a system outside the service,
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
@@ -43,8 +43,7 @@ Background reading before making changes. Where one disagrees with the conventio
   service or the repository. One number sequence spans both, so each tier carries gaps. Lifecycle rules:
   [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` — one directory
   per implemented task, holding its `design.md` and `plan.md`.
-- API reference: the Protocol Buffers schema itself (see
-  [File Locations](architecture.md#file-locations)) — it is the contract, not a description of one.
+- API reference: the Protocol Buffers schema itself, at [File Locations](architecture.md#file-locations).
 - Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.
 
 How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).

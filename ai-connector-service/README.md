@@ -7,6 +7,8 @@ message names, as the caller whose token arrived with the request.
 What the service keeps of a call is the message itself, stored under the person and the message the caller's
 token names, for as long as `MEMORY_MAX_AGE` allows. Beside each message it records what the ledger made of it —
 the expenses proposed, accepted and discarded, and where each was filed — read off the ledger's change stream.
+It also keeps the vector each message was embedded as, and uses it to put a person's own earlier messages, and
+what was made of them, in front of the model.
 
 For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture); C3 is below.
 Package structure is in the
@@ -15,13 +17,15 @@ Package structure is in the
 ### Use Cases
 
 - [Record the spending a user's message names](docs/usecases/extract-intents.md)
+- [Recall the person's own worked examples](docs/usecases/recall-examples.md)
 - [Purge messages past their retention](docs/usecases/purge-messages.md)
+- [Embed the messages nothing has embedded yet](docs/usecases/backfill-embeddings.md)
 - [Learn what the ledger did with a message](docs/usecases/learn-message-outcome.md)
 
 ### Contracts
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
-- [AI provider — recording spending](docs/contracts/out/ai-provider.md) (outbound)
+- [AI provider — reading and embedding a message](docs/contracts/out/ai-provider.md) (outbound)
 - [Ledger Service — the ledger's tools and its key set](docs/contracts/out/ledger-mcp.md) (outbound)
 - [Ledger Service — the change stream](docs/contracts/out/change-stream.md) (outbound)
 - [The connector's database](docs/contracts/out/database.md) (outbound)
