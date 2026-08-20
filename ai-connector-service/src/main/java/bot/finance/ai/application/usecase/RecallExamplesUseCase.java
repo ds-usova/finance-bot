@@ -74,11 +74,8 @@ public class RecallExamplesUseCase implements RecallExamplesPort {
             RegisteredMessage row = registered.get();
             Optional<Embedding> vector =
                     row.embedding().or(() -> messageEmbedder.ensureEmbedded(row.messageId(), command.text()));
-            if (vector.isEmpty()) {
-                return Optional.empty();
-            }
 
-            return Optional.of(findExamples(identity, row.messageId(), vector.get()));
+            return vector.map(embedding -> findExamples(identity, row.messageId(), embedding));
         } catch (MessageStoreFailedException e) {
             log.warn(
                     "Failed to recall examples for message {} of user {}",

@@ -46,6 +46,7 @@ public class BackfillEmbeddingsUseCase implements BackfillEmbeddingsPort {
 
     @Override
     public void backfill() {
+        log.debug("Backfilling the embeddings");
         for (int i = 0; i < batches; i++) {
             if (!runOneBatch()) {
                 return;

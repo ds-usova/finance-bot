@@ -38,7 +38,7 @@ public class AiMessageEmbeddingAdapter implements MessageEmbeddingPort {
 
     @Override
     public Embedding embed(String text) {
-        return call(List.of(text), properties.embeddingTimeout()).get(0);
+        return call(List.of(text), properties.embeddingTimeout()).getFirst();
     }
 
     @Override

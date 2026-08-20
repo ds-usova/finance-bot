@@ -58,6 +58,7 @@ public class MemoryPurgeScheduler implements SmartLifecycle {
     }
 
     public void run() {
+        log.debug("Purging messages and backfilling embeddings");
         purgeMessagesPort.purge();
         backfillEmbeddingsPort.backfill();
     }
