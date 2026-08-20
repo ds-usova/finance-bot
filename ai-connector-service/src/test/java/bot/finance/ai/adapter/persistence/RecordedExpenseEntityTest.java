@@ -6,7 +6,6 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.ExampleOutcome;
 import java.time.Instant;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

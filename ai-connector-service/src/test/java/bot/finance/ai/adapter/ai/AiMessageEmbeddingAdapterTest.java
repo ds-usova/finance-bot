@@ -46,7 +46,7 @@ class AiMessageEmbeddingAdapterTest {
     @Autowired
     private MemoryProperties properties;
 
-    @Value("${spring.ai.openai.embedding.options.model}")
+    @Value("${spring.ai.openai.embedding.model}")
     private String configuredModel;
 
     @BeforeEach
