@@ -3,7 +3,6 @@ package bot.finance.adapter.redis;
 import bot.finance.adapter.cdc.CdcProperties;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisStreamCommands.TrimOptions;
 import org.springframework.data.redis.connection.RedisStreamCommands.XAddOptions;
@@ -24,10 +23,12 @@ public class RedisChangeStreamWriter {
         this.properties = properties;
     }
 
-    public boolean write(String payload, Optional<String> enrichment) {
+    public boolean write(String id, String type, String occurredAt, String payload) {
         Map<String, String> body = new LinkedHashMap<>();
+        body.put("id", id);
+        body.put("type", type);
+        body.put("occurredAt", occurredAt);
         body.put("payload", payload);
-        enrichment.ifPresent(value -> body.put("enrichment", value));
 
         XAddOptions options = XAddOptions.trim(
                 TrimOptions.maxLen(properties.streamMaxLength()).approximate());

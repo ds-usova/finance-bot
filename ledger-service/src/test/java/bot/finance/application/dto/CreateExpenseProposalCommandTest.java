@@ -4,7 +4,7 @@ import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bot.finance.domain.exception.InvalidExpenseProposalException;
+import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
@@ -44,41 +44,39 @@ class CreateExpenseProposalCommandTest {
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
         @DisplayName(
-                "when the category name is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String categoryName) {
+                "when the category name is absent, empty, or only whitespace - then throws InvalidExpenseException")
+        void whenCategoryNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseException(String categoryName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, categoryName, GROUPING_NAME, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
-        @DisplayName(
-                "when the groupingName is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenGroupingNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String groupingName) {
+        @DisplayName("when the groupingName is absent, empty, or only whitespace - then throws InvalidExpenseException")
+        void whenGroupingNameIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseException(String groupingName) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, groupingName, DESCRIPTION, MERCHANT, MONEY, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {"  "})
-        @DisplayName(
-                "when the description is absent, empty, or only whitespace - then throws InvalidExpenseProposalException")
-        void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseProposalException(String description) {
+        @DisplayName("when the description is absent, empty, or only whitespace - then throws InvalidExpenseException")
+        void whenDescriptionIsAbsentEmptyOrWhitespace_thenThrowsInvalidExpenseException(String description) {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, GROUPING_NAME, description, MERCHANT, MONEY, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @Test
-        @DisplayName("when the merchant Optional is absent - then throws InvalidExpenseProposalException")
-        void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when the merchant Optional is absent - then throws InvalidExpenseException")
+        void whenMerchantOptionalIsAbsent_thenThrowsInvalidExpenseException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, null, MONEY, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @ParameterizedTest
@@ -99,11 +97,11 @@ class CreateExpenseProposalCommandTest {
         }
 
         @Test
-        @DisplayName("when money is absent - then throws InvalidExpenseProposalException")
-        void whenMoneyIsAbsent_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when money is absent - then throws InvalidExpenseException")
+        void whenMoneyIsAbsent_thenThrowsInvalidExpenseException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, MERCHANT, null, MESSAGE_REFERENCE))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
 
         @Test
@@ -132,11 +130,11 @@ class CreateExpenseProposalCommandTest {
         }
 
         @Test
-        @DisplayName("when the messageReference is absent - then throws InvalidExpenseProposalException")
-        void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseProposalException() {
+        @DisplayName("when the messageReference is absent - then throws InvalidExpenseException")
+        void whenMessageReferenceIsAbsent_thenThrowsInvalidExpenseException() {
             assertThatThrownBy(() -> new CreateExpenseProposalCommand(
                             USER_ID, CATEGORY_NAME, GROUPING_NAME, DESCRIPTION, MERCHANT, MONEY, null))
-                    .isInstanceOf(InvalidExpenseProposalException.class);
+                    .isInstanceOf(InvalidExpenseException.class);
         }
     }
 }

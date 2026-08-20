@@ -25,8 +25,8 @@ The first build after a clean checkout downloads the `protoc` toolchain and need
 ## Test Isolation
 
 The suite runs in-process against a stub server for the AI provider and the ledger, and a containerized Postgres
-for the classes that need a real database. Every failure it reports is a real one, and rerunning is not a
-diagnosis.
+and Redis for the classes that need a real database or the change stream. Every failure it reports is a real
+one, and rerunning is not a diagnosis.
 
 A run without Docker skips every container-backed class instead of failing it, so the coverage guardrail is only
 met with Docker up.

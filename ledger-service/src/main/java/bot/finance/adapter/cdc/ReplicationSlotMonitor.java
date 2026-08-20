@@ -1,5 +1,6 @@
 package bot.finance.adapter.cdc;
 
+import bot.finance.adapter.persistence.LedgerEventOutbox;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.ReplicationSlotRetention;
 import bot.finance.application.port.Logger;
@@ -25,6 +26,7 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
     private final CdcProperties properties;
     private final ChangeStreamMeters meters;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final LedgerEventOutbox ledgerEventOutbox;
     private final Logger log;
 
     private volatile ScheduledFuture<?> scheduledFuture;
@@ -34,11 +36,13 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
             CdcProperties properties,
             ChangeStreamMeters meters,
             ScheduledExecutorService scheduledExecutorService,
+            LedgerEventOutbox ledgerEventOutbox,
             LoggerFactory loggerFactory) {
         this.replicationCatalogue = replicationCatalogue;
         this.properties = properties;
         this.meters = meters;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.ledgerEventOutbox = ledgerEventOutbox;
         this.log = loggerFactory.getLogger(ReplicationSlotMonitor.class);
     }
 
@@ -64,6 +68,8 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
     }
 
     public void readSlot() {
+        meters.setOutboxRows(ledgerEventOutbox.rowCount());
+
         Optional<ReplicationSlotRetention> retention = replicationCatalogue.findSlotRetention(properties.slotName());
 
         if (retention.isEmpty()) {

@@ -4,7 +4,7 @@ import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.port.AcceptExpensesPort;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ReportClearingDispatchPort;
@@ -19,19 +19,19 @@ import java.util.List;
 public class AcceptExpensesUseCase implements AcceptExpensesPort {
 
     private final UserRepository userRepository;
-    private final ExpenseProposalRepository expenseProposalRepository;
+    private final ExpenseRepository expenseRepository;
     private final ReportClearingDispatchPort reportClearingDispatchPort;
     private final Clock clock;
     private final Logger log;
 
     public AcceptExpensesUseCase(
             UserRepository userRepository,
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             ReportClearingDispatchPort reportClearingDispatchPort,
             Clock clock,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;
-        this.expenseProposalRepository = expenseProposalRepository;
+        this.expenseRepository = expenseRepository;
         this.reportClearingDispatchPort = reportClearingDispatchPort;
         this.clock = clock;
         this.log = loggerFactory.getLogger(AcceptExpensesUseCase.class);
@@ -47,7 +47,7 @@ public class AcceptExpensesUseCase implements AcceptExpensesPort {
         long userId = user.id().orElseThrow();
 
         List<IncomingMessageId> movedMessages =
-                expenseProposalRepository.acceptByIds(userId, command.ids(), Instant.now(clock));
+                expenseRepository.acceptByIds(userId, command.ids(), Instant.now(clock));
         int accepted = movedMessages.size();
         int missing = command.ids().ids().size() - accepted;
         dispatchClearing(userId, movedMessages);

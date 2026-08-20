@@ -20,7 +20,7 @@
 | Direction | Collaborator                                                                           | Through                                                                           | For                                                          |
 |-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------|
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | offering the person's groupings as a way to narrow the tree  |
-| out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their groupings          |
+| out       | [Database](../contracts/out/database.md)                                               | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, and reading their groupings          |
 
 A [grouping](../domain/grouping.md) holding no categories is answered too.
 
@@ -48,7 +48,7 @@ AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1
 AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(browser, "A signed-in person's browser", "The web app's page", $tags="webExternal")
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses and expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid session cookie", $tags="webExternal")

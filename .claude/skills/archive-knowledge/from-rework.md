@@ -43,10 +43,10 @@ Which steps normally owe what:
 **A `docs:` line is a claim to check, not an instruction to obey.** The step named the page before the edit
 existed, so read the page against the code and write what is true now.
 
-## What Authorizes an ADR
+## What Authorizes a Decision Record
 
 An **Open Question** in the rework file, answered `yes`, asking whether a technical decision the rework settles
 should be recorded. The commonest candidate is a structural rule — where a kind of code is now confined, what
 may no longer depend on what — and a `pin` step is where one usually shows up.
 
-A rework whose Open Questions hold no such answered question yields no ADR.
+A rework whose Open Questions hold no such answered question yields no record.

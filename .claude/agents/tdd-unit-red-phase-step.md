@@ -1,5 +1,6 @@
 ---
 name: tdd-unit-red-phase-step
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite
 description: 'Spawned by implement-plan-module, Stage 2. Not for direct use — it needs step context only that orchestrator has. TDD Unit Red Phase step agent: writes meaningful, compiling unit tests for one target class (RED phase — tests must compile and fail at runtime). Stack-agnostic; all framework, naming, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
@@ -45,19 +46,28 @@ blocker instead of introducing a new tool or pattern on your own.
    from where the module's existing unit tests live.
 4. Read one or two neighboring unit test classes as a style reference — structure, setup idiom, naming — so your
    tests read like the module's existing tests, not like a foreign body.
-5. **Existing-test updates**: the plan may include `update:` sub-bullets naming existing tests to extend (e.g. add
-   assertions for a new field, or extend an exhaustive parameterized test whose closed set of cases has grown).
-   Read each named test before changing it. If, while reading the existing tests, you notice one that clearly
-   *should* have been updated but is not listed — in this test class or anywhere else — do not touch it; record it
-   in your report.
+5. **Existing-test updates**: the plan may include `update:` sub-bullets in two forms. A **per-method** bullet
+   names one existing test and one outcome (add an assertion for a new field, extend a grown case set, delete).
+   Read the named test before changing it. A **premise** bullet (`update: premise — … · …`) states a fact about
+   the change and what follows for a test that meets it; it names no method, or one only as an example. Read
+   **every** test in the class and decide from each body whether the premise holds there — the collaborator, the
+   field or the value the premise turns on is either in the body or it is not. If, while reading, you notice a
+   test that clearly *should* have been updated but no bullet reaches — in this test class or anywhere else — do
+   not touch it; record it in your report.
 
 ### Phase 2 — Write Compiling Tests
 
 Write **one test per given/when/then scenario** listed in the input — do not skip any — and apply each listed
-`update:` sub-bullet exactly as described. Derive each test method name from its scenario using the naming pattern
-in the conventions. Do **not** write tests beyond what is listed: the plan is the single source of what gets
-written, so two runs of the same step produce the same suite. If you identify a meaningful gap the plan missed,
-record it in your report instead of filling it yourself.
+`update:` sub-bullet: a per-method one exactly as written; a premise one to each test whose body meets the
+premise, and to no other. **The premise governs, not its wording.** A test the sentence seems to reach but whose
+body does not meet the premise is left as it is and named in the report — never reshaped so that it fits. Derive
+each test method name from its scenario using the naming pattern in the conventions.
+
+Do **not** write tests beyond what is listed, with one exception. A **mechanical** case the plan omitted on a
+method already under test here — a boundary value, a null or empty argument, a mapping detail — may be added and
+must be listed under `added:` in the report; it changes no behaviour claim, so a reader can strike it. A case
+that asserts a behaviour no listed scenario or design decision covers is a gap: record it in your report and do
+not write it.
 
 - **Unit-test boundary**, as the module's testing conventions define its unit layer: fake/mock only the target
   class's injected dependencies. No real infrastructure (database, network, filesystem) and no
@@ -96,18 +106,21 @@ record it in your report instead of filling it yourself.
 
 ## Scope Guardrails
 
-- Only create/modify your own test class, and within it only the listed scenarios and `update:` sub-bullets.
+- Only create/modify your own test class, and within it only the listed scenarios, the `update:` sub-bullets as
+  their form allows, and the mechanical cases you report as `added:`.
 - Never modify production code, stub bodies, other agents' test classes, or the plan file — the orchestrator owns
   the plan's checkboxes.
 - No unrelated refactors, renames, or formatting sweeps.
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - tests written/updated (count) and the test class path;
+- per premise bullet: `touched:` — the tests it was applied to; `left:` — the tests its wording seemed to reach
+  whose body did not meet it, with the reason;
+- `added:` — every mechanical case written that no scenario listed, one line each;
 - compile status, and RED confirmation: which tests fail as expected, plus any negative-assertion tests listed as
   expected passes;
 - any coverage gaps or unlisted existing-test updates you noticed but, by design, did not implement;

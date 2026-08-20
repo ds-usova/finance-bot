@@ -12,20 +12,20 @@ the product is used with is reachable here, and nothing here is reachable there.
 
 ## Operations
 
-| Operation                                   | Address                     | Who may call                                                       | Purpose                                                              |
-|---------------------------------------------|-----------------------------|--------------------------------------------------------------------|------------------------------------------------------------------------|
-| [Health](#health)                           | `GET /actuator/health`      | anyone reaching the port                                            | whether the service and each of its parts is up, for a liveness and readiness probe |
-| [Meters](#meters)                           | `GET /actuator/prometheus`  | anyone reaching the port                                            | every meter in the Prometheus text format, for the metrics collector |
-| [Rebuilding the slot](#rebuilding-the-slot) | `POST /actuator/cdc`        | the `X-Cdc-Recovery-Secret` header, matching `CDC_RECOVERY_SECRET` | replaces an invalidated replication slot and restarts change capture |
+| Operation                                   | Address                    | Who may call                                                       | Purpose                                                                             |
+|---------------------------------------------|----------------------------|--------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [Health](#health)                           | `GET /actuator/health`     | anyone reaching the port                                           | whether the service and each of its parts is up, for a liveness and readiness probe |
+| [Meters](#meters)                           | `GET /actuator/prometheus` | anyone reaching the port                                           | every meter in the Prometheus text format, for the metrics collector                |
+| [Rebuilding the slot](#rebuilding-the-slot) | `POST /actuator/cdc`       | the `X-Cdc-Recovery-Secret` header, matching `CDC_RECOVERY_SECRET` | replaces an invalidated replication slot and restarts change capture                |
 
 ## Health
 
 A `changeStream` component appears whenever capture is switched on, carrying a `state` detail.
 
-| State       | Means                                                                                         | Component reads |
-|-------------|-----------------------------------------------------------------------------------------------|-----------------|
-| `STREAMING` | this instance holds the replication slot and is reading the log                               | up              |
-| `STANDBY`   | another instance holds the slot, and this one is waiting for it                               | up              |
+| State       | Means                                                                                           | Component reads |
+|-------------|-------------------------------------------------------------------------------------------------|-----------------|
+| `STREAMING` | this instance holds the replication slot and is reading the log                                 | up              |
+| `STANDBY`   | another instance holds the slot, and this one is waiting for it                                 | up              |
 | `DOWN`      | this instance is not publishing — it never started, or it is stalled retrying a refused write | down            |
 
 `STANDBY` is up on purpose: in a scaled deployment every instance but one is a standby, so alarming on it would
@@ -33,25 +33,24 @@ alarm permanently.
 
 With capture switched off the component is absent altogether, and the aggregate health is unaffected by it.
 
-A database the publication is missing from reaches `DOWN` rather than looking idle: the engine refuses to start,
-takes no replication slot, and does not retry.
+What each of these states costs the database is [what change capture owes](../out/change-capture.md).
 
 ## Meters
 
-| Meter                                       | Kind    | Says                                                                     |
-|---------------------------------------------|---------|--------------------------------------------------------------------------|
-| `ledger_cdc_events_published_total`         | counter | changes appended to the stream, tagged by `table` and `op`               |
-| `ledger_cdc_publish_failures_total`         | counter | appends the stream refused                                               |
-| `ledger_cdc_category_lookups_total`         | counter | category name lookups, tagged `result` `hit` or `miss`                   |
-| `ledger_cdc_category_lookup_failures_total` | counter | category name lookups the database refused                               |
-| `ledger_cdc_event_lag_seconds`              | gauge   | now, less the commit time of the last change appended                    |
-| `ledger_cdc_state`                          | gauge   | the capture state, as an ordinal                                         |
-| `ledger_cdc_slot_retained_bytes`            | gauge   | how much log the replication slot is holding — the one to alarm on       |
-| `ledger_cdc_slot_wal_status`                | gauge   | what the database says about that slot, as an ordinal                    |
+| Meter                               | Kind    | Says                                                                                       |
+|-------------------------------------|---------|--------------------------------------------------------------------------------------------|
+| `ledger_cdc_events_published_total` | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))  |
+| `ledger_cdc_publish_failures_total` | counter | appends the stream refused                                                                 |
+| `ledger_cdc_facts_dropped_total`    | counter | facts the ledger could not record, tagged by `type` — each one reaches no consumer, ever |
+| `ledger_cdc_event_lag_seconds`      | gauge   | now, less the instant stamped on the last fact appended                                    |
+| `ledger_cdc_state`                  | gauge   | the capture state, as an ordinal                                                           |
+| `ledger_cdc_outbox_rows`            | gauge   | rows left in the outbox — anything but zero is a write that did not delete its own       |
+| `ledger_cdc_slot_retained_bytes`    | gauge   | how much log the replication slot is holding — the one to alarm on                       |
+| `ledger_cdc_slot_wal_status`        | gauge   | what the database says about that slot, as an ordinal                                      |
 
-The two slot gauges are read on a timer whether or not capture is on, so a slot left behind by switching capture
-off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watched against — see
-[configuration](../../configuration.md).
+The two slot gauges and the outbox gauge are read on the same timer whether or not capture is on, so a slot left
+behind by switching capture off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watched
+against — see [configuration](../../configuration.md).
 
 ### `ledger_cdc_state`
 
@@ -63,13 +62,13 @@ off is still visible. `ledger_cdc_slot_retained_bytes` is what a bound is watche
 
 ### `ledger_cdc_slot_wal_status`
 
-| Value | Slot                                                                  |
-|-------|-------------------------------------------------------------------------|
-| `0`   | reserved — the log it needs is kept                                    |
-| `1`   | extended — it has reached beyond the checkpoint, still kept            |
-| `2`   | unreserved — the log it needs may be removed at any moment             |
-| `3`   | lost — the log it needs is gone, and the slot is dead                  |
-| `4`   | absent — no slot of that name exists                                   |
+| Value | Slot                                                          |
+|-------|---------------------------------------------------------------|
+| `0`   | reserved — the log it needs is kept                         |
+| `1`   | extended — it has reached beyond the checkpoint, still kept |
+| `2`   | unreserved — the log it needs may be removed at any moment  |
+| `3`   | lost — the log it needs is gone, and the slot is dead       |
+| `4`   | absent — no slot of that name exists                        |
 
 A slot the database cannot classify reads as lost.
 

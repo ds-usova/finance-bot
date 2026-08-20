@@ -5,7 +5,7 @@ import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.*;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
@@ -54,7 +54,7 @@ public class CreateExpenseProposalMcpTool {
             AuthenticatedUserId userId = AuthenticatedCaller.authenticatedUserId();
             IncomingMessageId reference = AuthenticatedCaller.incomingMessageId();
 
-            ExpenseProposal stored =
+            Expense stored =
                     createExpenseProposalPort.create(ExpenseProposalToolMapper.toCommand(request, userId, reference));
             CreateExpenseProposalToolResponse response =
                     ExpenseProposalToolMapper.toResponse(stored, request.category());
@@ -63,7 +63,7 @@ public class CreateExpenseProposalMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidExpenseProposalException | InvalidUserException | InvalidMoneyException e) {
+        } catch (InvalidExpenseException | InvalidUserException | InvalidMoneyException e) {
             return rejected(e, "invalid request: " + e.getMessage());
         } catch (InvalidCategoryException | InvalidGroupingException e) {
             return rejected(e, e.getMessage());

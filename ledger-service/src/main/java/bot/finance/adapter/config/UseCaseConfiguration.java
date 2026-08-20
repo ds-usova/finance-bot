@@ -9,7 +9,6 @@ import bot.finance.application.port.ChangeExpenseCategoryPort;
 import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
@@ -51,7 +50,6 @@ public class UseCaseConfiguration {
             InitializeUserPort initializeUserPort,
             GroupingRepository groupingRepository,
             IntentExtractionPort intentExtractionPort,
-            ExpenseProposalRepository expenseProposalRepository,
             MessageDeliveryPort messageDeliveryPort,
             SpendingQueryRepository spendingQueryRepository,
             ExpenseRepository expenseRepository,
@@ -61,7 +59,6 @@ public class UseCaseConfiguration {
                 initializeUserPort,
                 groupingRepository,
                 intentExtractionPort,
-                expenseProposalRepository,
                 messageDeliveryPort,
                 Clock.systemUTC(),
                 spendingQueryRepository,
@@ -92,13 +89,13 @@ public class UseCaseConfiguration {
             UserRepository userRepository,
             GroupingRepository groupingRepository,
             CategoryRepository categoryRepository,
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             LoggerFactory loggerFactory) {
         return new CreateExpenseProposalUseCase(
                 userRepository,
                 groupingRepository,
                 categoryRepository,
-                expenseProposalRepository,
+                expenseRepository,
                 Clock.systemUTC(),
                 loggerFactory);
     }
@@ -106,17 +103,11 @@ public class UseCaseConfiguration {
     @Bean
     ResolveProposalsPort resolveProposalsPort(
             UserRepository userRepository,
-            ExpenseProposalRepository expenseProposalRepository,
             ExpenseRepository expenseRepository,
             MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
         return new ResolveProposalsUseCase(
-                userRepository,
-                expenseProposalRepository,
-                expenseRepository,
-                messageDeliveryPort,
-                Clock.systemUTC(),
-                loggerFactory);
+                userRepository, expenseRepository, messageDeliveryPort, Clock.systemUTC(), loggerFactory);
     }
 
     @Bean
@@ -146,15 +137,11 @@ public class UseCaseConfiguration {
     @Bean
     AcceptExpensesPort acceptExpensesPort(
             UserRepository userRepository,
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             ReportClearingDispatchPort reportClearingDispatchPort,
             LoggerFactory loggerFactory) {
         return new AcceptExpensesUseCase(
-                userRepository,
-                expenseProposalRepository,
-                reportClearingDispatchPort,
-                Clock.systemUTC(),
-                loggerFactory);
+                userRepository, expenseRepository, reportClearingDispatchPort, Clock.systemUTC(), loggerFactory);
     }
 
     @Bean
@@ -162,15 +149,9 @@ public class UseCaseConfiguration {
             UserRepository userRepository,
             CategoryRepository categoryRepository,
             ExpenseRepository expenseRepository,
-            ExpenseProposalRepository expenseProposalRepository,
             LoggerFactory loggerFactory) {
         return new ChangeExpenseCategoryUseCase(
-                userRepository,
-                categoryRepository,
-                expenseRepository,
-                expenseProposalRepository,
-                Clock.systemUTC(),
-                loggerFactory);
+                userRepository, categoryRepository, expenseRepository, Clock.systemUTC(), loggerFactory);
     }
 
     @Bean
@@ -180,11 +161,11 @@ public class UseCaseConfiguration {
 
     @Bean
     ClearEmptiedReportsPort clearEmptiedReportsPort(
-            ExpenseProposalRepository expenseProposalRepository,
+            ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
             MessageDeliveryPort messageDeliveryPort,
             LoggerFactory loggerFactory) {
         return new ClearEmptiedReportsUseCase(
-                expenseProposalRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
+                expenseRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
     }
 }

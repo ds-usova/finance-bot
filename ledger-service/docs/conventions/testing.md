@@ -1,6 +1,7 @@
 # [Conventions](../conventions.md) > Testing Conventions
 
-How tests are built, named, and styled.
+How tests are built, named, and styled, on top of the repository-wide
+[Testing](../../../docs/conventions/testing.md).
 
 ## Package Structure
 
@@ -19,6 +20,7 @@ bot.finance
     │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
     │   ├── TheSecurityChain      # role — the real filter chains, their signing keys and the secret filter
     │   ├── AbstractSystemTest    # full-application base class
+    │   ├── InMemoryMeters        # role — a meter registry a slice does not carry, for a metered adapter
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
@@ -41,15 +43,15 @@ bot.finance
     │   └── GrpcStubServer        # a real in-JVM gRPC server on a dynamic port, fronting the AI connector's contract
     ├── rows                  # seeds a table's rows and reads them back, one class per table
     │   ├── CategoryRowUtils      # reads back a user's stored category rows, and stores a grouping or a category under one
-    │   ├── ExpenseRowUtils       # reads back a user's stored expense rows, and stores one directly
-    │   ├── ExpenseProposalRowUtils # reads back a user's stored expense proposal rows, and stores one directly
+    │   ├── ExpenseRowUtils       # reads back a user's stored expense rows under a status, and stores one directly
+    │   ├── OutboxRowUtils        # reads back a user's outbox rows, counts the table, and stores one row directly
     │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
     │   ├── CdcConfigurations     # CdcProperties for a test building a capture component itself, by slot or by stream
-    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by source.table and user_id
+    │   ├── ChangeStreamEntries   # reads entries back off a named stream, parsed and filtered by event type and the payload's userId
     │   ├── ChangeStreamHealth    # reads the engine's state off /actuator/health on the management port
     │   ├── ExpensePatches        # the JSON Patch bodies a browser sends to /api/v1/expenses
     │   ├── IncomingMessages      # a fresh incoming message id, for a test that needs one but asserts nothing about it
@@ -65,7 +67,8 @@ bot.finance
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
     │                             #   verification, and Bot API method recording
     ├── LogCapture            # Logback appender, for asserting on log output
-    └── ReplicationSlots      # creates a slot, reads its wal_status, drops one, and burns WAL past the bound
+    └── ReplicationSlots      # creates a slot, reads its wal_status, holds one the way another consumer would,
+                              #   drops one, and burns WAL past the bound
 ```
 
 The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus
@@ -167,7 +170,7 @@ one context, one engine and one slot. Postgres allows a slot one active consumer
 property founds a second engine rather than joining the first.
 
 What separates two classes' entries on the shared stream is the user each creates: read them back through
-`ChangeStreamEntries.entriesOnFor(key, table, userId)`, never off the whole stream. A class booting a database
+`ChangeStreamEntries.entriesOnFor(key, type, userId)`, never off the whole stream. A class booting a database
 of its own is the exception, since its `user_id` values repeat ids another class already published under — it
 names a stream key of its own and reads that stream whole.
 

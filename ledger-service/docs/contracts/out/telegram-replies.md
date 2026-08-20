@@ -1,8 +1,7 @@
 # Telegram — outgoing replies (Bot API)
 
-What the bot says back crosses this boundary. Every message the service handles is answered here, with a report
-of what that message produced — the totals it asked for, and the spending it named; so is every tap on that
-report's buttons.
+Every message the service handles is answered here, with a report of what that message produced. So is every tap
+on that report's buttons.
 
 - **Counterpart:** Telegram, the messaging platform hosting the bot
 - **Transport:** Telegram Bot API over HTTP
@@ -27,7 +26,7 @@ report's buttons.
 - A report is addressed to the conversation, not the sender, and threaded onto the message it answers.
 - A report whose target has been deleted is sent unthreaded rather than refused.
 - The pair Telegram answers with is [recorded](../../domain/proposal-report.md). It is the only way back to a
-  report once its proposals are gone.
+  report once nothing under it is pending.
 - Each button carries a payload this service writes and alone reads
   ([incoming messages](../in/telegram-updates.md)).
 - A button stays until something clears it.
@@ -85,6 +84,12 @@ The rest, one line each:
 | The turn failed, having recorded nothing   | `Something went wrong and nothing was noted — please try again.`                     |
 | The turn failed, having recorded something | `Something went wrong, so this may be incomplete. What I could read:` then the bullets |
 
+One report is always one message. Its length limit is spent in this order:
+
+| Filled first | Then                                                       | When it still does not fit                              |
+|--------------|------------------------------------------------------------|---------------------------------------------------------|
+| The totals   | the proposal list, trimmed, with what was left out counted | whole periods drop from the oldest, and are counted too |
+
 A trimmed report closes with the count it left out — `… and 3 more.` for proposals, `… and 3 more periods.`
 when the totals alone fill the limit.
 
@@ -99,12 +104,6 @@ when the totals alone fill the limit.
 
 A count of one drops the plural: `Confirmed 1 expense.`
 
-One report is always one message. Its length limit is spent in this order:
-
-| Filled first | Then                                                       | When it still does not fit                              |
-|--------------|------------------------------------------------------------|---------------------------------------------------------|
-| The totals   | the proposal list, trimmed, with what was left out counted | whole periods drop from the oldest, and are counted too |
-
 ## Failures
 
 | Condition                                            | Signal                                                                         |
@@ -116,9 +115,7 @@ One report is always one message. Its length limit is spent in this order:
 | The buttons the tap asks to clear are already gone   | clearing fails after the tapper has been answered                              |
 | The buttons an emptied report asks to clear are gone | clearing fails, and the failure stays on the clearing's own thread             |
 
-A delivery failure rolls nothing back: the spending the report was going to name stays recorded, a resolution
-whose answer was lost stays resolved, and spending accepted from the page stays accepted whether or not its
-report loses its buttons.
+A delivery failure rolls nothing back: the spending the report was going to name stays recorded.
 
 ## Compatibility
 

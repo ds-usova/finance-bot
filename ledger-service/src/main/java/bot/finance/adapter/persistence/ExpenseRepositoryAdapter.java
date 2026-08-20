@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.dto.ExpenseEntry;
+import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -9,11 +10,15 @@ import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
+import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +29,16 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     private static final String USER_FOREIGN_KEY = "expense_user_id_fkey";
 
     private final ExpenseEntityRepository expenseEntityRepository;
+    private final CategoryEntityRepository categoryEntityRepository;
+    private final LedgerEventOutbox ledgerEventOutbox;
 
-    public ExpenseRepositoryAdapter(ExpenseEntityRepository expenseEntityRepository) {
+    public ExpenseRepositoryAdapter(
+            ExpenseEntityRepository expenseEntityRepository,
+            CategoryEntityRepository categoryEntityRepository,
+            LedgerEventOutbox ledgerEventOutbox) {
         this.expenseEntityRepository = expenseEntityRepository;
+        this.categoryEntityRepository = categoryEntityRepository;
+        this.ledgerEventOutbox = ledgerEventOutbox;
     }
 
     @Override
@@ -34,14 +46,95 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     public Expense create(Expense expense) {
         ColumnLimits.validateExpenseText(
                 expense.description(), expense.merchant().orElse(null));
+        requireFileableCategory(expense.categoryId());
 
         ExpenseEntity saved;
         try {
             saved = expenseEntityRepository.save(truncatedToMicros(expense));
+            SpendingRowProjection eventRow =
+                    expenseEntityRepository.findEventRow(saved.id()).orElseThrow();
+            ledgerEventOutbox.append(
+                    LedgerEventType.created(expense.status()), List.of(eventRow), eventRow.createdAt());
         } catch (RuntimeException e) {
             throw classify(expense, e);
         }
+
         return saved.toDomain();
+    }
+
+    @Override
+    public List<ProposalSummary> findSummariesByMessageReference(long userId, IncomingMessageId reference) {
+        try {
+            return expenseEntityRepository.findSummariesByMessageReference(userId, reference.value()).stream()
+                    .map(ProposalSummaryProjection::toSummary)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find proposal summaries for user " + userId + " and message reference "
+                            + reference.value(),
+                    e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public int accept(long userId, IncomingMessageId reference, Instant now) {
+        try {
+            List<SpendingRowProjection> changed =
+                    expenseEntityRepository.accept(userId, reference.value(), now.truncatedTo(ChronoUnit.MICROS));
+            ledgerEventOutbox.append(LedgerEventType.ProposalAccepted, changed, now);
+            return changed.size();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to accept proposals for user " + userId + " and message reference " + reference.value(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public int discard(long userId, IncomingMessageId reference, Instant now) {
+        try {
+            List<SpendingRowProjection> changed = expenseEntityRepository.discard(userId, reference.value());
+            ledgerEventOutbox.append(LedgerEventType.ProposalDiscarded, changed, now);
+            return changed.size();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to discard proposals for user " + userId + " and message reference " + reference.value(),
+                    e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now) {
+        try {
+            List<SpendingRowProjection> changed =
+                    expenseEntityRepository.acceptByIds(userId, ids.ids(), now.truncatedTo(ChronoUnit.MICROS));
+            ledgerEventOutbox.append(LedgerEventType.ProposalAccepted, changed, now);
+            return changed.stream()
+                    .map(row -> IncomingMessageId.of(row.incomingMessageId()))
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to accept proposals by id for user " + userId, e);
+        }
+    }
+
+    @Override
+    public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+
+        try {
+            List<String> incomingMessageIds =
+                    ids.stream().map(IncomingMessageId::value).toList();
+            return expenseEntityRepository.findWithPendingProposals(userId, incomingMessageIds).stream()
+                    .map(IncomingMessageId::of)
+                    .collect(Collectors.toUnmodifiableSet());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find messages with pending proposals for user " + userId, e);
+        }
     }
 
     @Override
@@ -105,13 +198,30 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     @Transactional
-    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
+    public Optional<ExpenseEntry> refile(
+            long userId, long entryId, long categoryId, ExpenseStatus status, Instant now) {
+        requireFileableCategory(categoryId);
+
         try {
-            return expenseEntityRepository
-                    .refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS))
-                    .map(projection -> projection.toExpenseEntry(ExpenseStatus.RECORDED));
+            Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
+                    userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
+            ledgerEventOutbox.append(
+                    LedgerEventType.refiled(status), changed.map(List::of).orElseGet(List::of), now);
+
+            return changed.map(projection -> projection.toExpenseEntry(status));
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
+        }
+    }
+
+    /**
+     * A grouping and a category are rows of the same table, so the foreign key admits either. Spending is filed
+     * under a category, and an id naming a grouping is refused here rather than reaching the column. An id naming
+     * no row at all is left to the foreign key, which already answers it.
+     */
+    private void requireFileableCategory(long categoryId) {
+        if (categoryEntityRepository.existsByIdAndParentIdIsNull(categoryId)) {
+            throw new EntityNotFoundException("category", "id " + categoryId + " names a grouping, not a category");
         }
     }
 
@@ -152,6 +262,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
                 mapped.currencyCode(),
                 mapped.incomingMessageId(),
                 mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
-                mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
+                mapped.updatedAt().truncatedTo(ChronoUnit.MICROS),
+                mapped.status());
     }
 }

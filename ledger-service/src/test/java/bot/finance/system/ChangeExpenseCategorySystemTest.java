@@ -7,9 +7,9 @@ import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -75,9 +75,10 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            createdAt)
+                            createdAt,
+                            ExpenseStatus.RECORDED)
                     .id();
-            long proposalId = ExpenseProposalRowUtils.storedProposal(
+            long proposalId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             firstCategoryId,
@@ -86,7 +87,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            createdAt)
+                            createdAt,
+                            ExpenseStatus.PENDING)
                     .id();
 
             String csrfToken = BrowserSessions.csrfToken();
@@ -134,10 +136,13 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .as("the pending proposal now lists under the new category")
                     .containsExactly("snacks");
 
-            // then: the pending one is still PENDING
-            assertThat(pendingResponse.jsonPath().getString("status"))
-                    .as("the refiled proposal keeps its PENDING status")
-                    .isEqualTo("PENDING");
+            // then: the pending one is still PENDING and keeps its id
+            List<ExpenseEntity> stillPending =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING);
+            assertThat(stillPending)
+                    .as("the refiled proposal is still PENDING and keeps its id")
+                    .extracting(ExpenseEntity::id)
+                    .containsExactly(proposalId);
         }
 
         @Test
@@ -149,7 +154,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             long userId = userIdOf(externalId);
             long firstCategoryId = groceriesCategoryId(userId, "Supermarkets");
             long secondCategoryId = groceriesCategoryId(userId, "Markets");
-            long proposalId = ExpenseProposalRowUtils.storedProposal(
+            long proposalId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             firstCategoryId,
@@ -158,7 +163,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             800L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.PENDING)
                     .id();
 
             String csrfToken = BrowserSessions.csrfToken();
@@ -180,11 +186,15 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             logResponse(acceptResponse);
             acceptResponse.then().statusCode(200);
 
-            // then: the recorded expense carries the new category
-            List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+            // then: the recorded expense carries the new category and the id it was refiled under
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows)
                     .as("the accepted proposal is now one recorded expense")
                     .hasSize(1);
+            assertThat(expenseRows.get(0).id())
+                    .as("the recorded expense keeps the id it was refiled under")
+                    .isEqualTo(proposalId);
             assertThat(expenseRows.get(0).categoryId())
                     .as("the recorded expense carries the category it was refiled to")
                     .isEqualTo(secondCategoryId);
@@ -202,10 +212,24 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String externalId = "change-category-missing-entry-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
             long userId = userIdOf(externalId);
-            long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
+            long categoryId = groceriesCategoryId(userId, "Supermarkets");
+            long otherCategoryId = groceriesCategoryId(userId, "Markets");
+            long expenseId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "groceries",
+                            "Market",
+                            1500L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
+                    .id();
             String csrfToken = BrowserSessions.csrfToken();
 
-            Response response = patchCategory(sessionCookie, csrfToken, "RECORDED", 999_999L, categoryId);
+            // when: the entry is patched under the wrong status - it exists, but not as PENDING
+            Response response = patchCategory(sessionCookie, csrfToken, "PENDING", expenseId, otherCategoryId);
             logResponse(response);
 
             // then: the response is 404 and its message names the entry rather than the caller
@@ -213,6 +237,14 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             assertThat(response.jsonPath().getString("message"))
                     .as("the 404 names the entry, not the caller-unknown message")
                     .isEqualTo("no entry of yours carries that id");
+
+            // then: the entry is unchanged - still RECORDED, under its original category
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
+            assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
+            assertThat(expenseRows.get(0).categoryId())
+                    .as("the entry's category is untouched")
+                    .isEqualTo(categoryId);
         }
 
         @Test
@@ -233,7 +265,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
 
             Response response = RestAssured.given()
@@ -245,7 +278,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
             // then: the response is 401 and the row still carries its original category
             response.then().statusCode(401);
-            List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows).hasSize(1);
             assertThat(expenseRows.get(0).categoryId())
                     .as("the row's category is untouched")
@@ -269,7 +303,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
 
             Response response = RestAssured.given()
@@ -282,7 +317,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
             // then: the response is 403 and the row still carries its original category
             response.then().statusCode(403);
-            List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows).hasSize(1);
             assertThat(expenseRows.get(0).categoryId())
                     .as("the row's category is untouched")

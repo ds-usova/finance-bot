@@ -4,25 +4,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.UserEntityRepository;
+import bot.finance.common.LogCapture;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
 import bot.finance.common.boot.CdcAdapterTestOnItsOwnDatabase;
+import bot.finance.common.containers.PostgresContainers;
 import bot.finance.common.containers.ToxiproxyContainers;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.OutboxRowUtils;
+import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
 import bot.finance.common.rows.ProposalReportRowUtils;
 import bot.finance.common.rows.SpendingQueryRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.domain.value.ExpenseStatus;
+import io.debezium.connector.postgresql.connection.PostgresReplicationConnection;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.LongStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,8 +47,8 @@ import org.testcontainers.junit.jupiter.Container;
  * {@link ChangeStreamReader} together with its real collaborators - the real {@link ChangeEventPublisher} chain and
  * the real containerized Postgres and Redis {@link CdcAdapterTest} boots - and calls only the reader's own
  * {@code start()}, {@code stop()} and {@code state()}; nothing is mocked. A captured row is written directly
- * through {@code JdbcAggregateTemplate}, the same idiom {@link CategoryRowUtils} already uses, rather than through
- * a use case, since only the row change reaching the log is under test here.
+ * into {@code outbox} through {@link OutboxRowUtils}, rather than through a use case, since only the row change
+ * reaching the log is under test here.
  */
 @CdcAdapterTest
 @TestPropertySource(
@@ -61,6 +65,7 @@ class ChangeStreamReaderTest {
 
     private static final String SLOT_NAME = "change_stream_reader_test";
     private static final String STREAM_KEY = "change-stream-reader-test.cdc";
+    private static final String PUBLICATION = "finance_ledger_cdc";
     private static final Duration STATE_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration EVENT_TIMEOUT = Duration.ofSeconds(15);
 
@@ -108,13 +113,22 @@ class ChangeStreamReaderTest {
                         350L,
                         "USD",
                         UUID.randomUUID().toString(),
-                        Instant.now())
+                        Instant.now(),
+                        ExpenseStatus.RECORDED)
                 .id();
     }
 
     private void awaitState(ChangeStreamState expected) {
         await().atMost(STATE_TIMEOUT)
                 .untilAsserted(() -> assertThat(changeStreamReader.state()).isEqualTo(expected));
+    }
+
+    private void awaitEventIdsInOrder(String type, long userId, UUID... expectedIds) {
+        List<String> expected = Arrays.stream(expectedIds).map(UUID::toString).toList();
+        await().atMost(EVENT_TIMEOUT)
+                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, type, userId))
+                        .extracting(ChangeStreamEntry::eventId)
+                        .containsExactlyElementsOf(expected));
     }
 
     @Nested
@@ -125,19 +139,18 @@ class ChangeStreamReaderTest {
         @DisplayName("when start() is called against a fresh slot - then only the change made afterward is offered")
         void whenStartedAgainstFreshSlot_thenReachesStreamingAndOnlyChangeMadeAfterwardIsOffered() {
             long userId = seedUser();
-            long groupingId = seedGrouping(userId);
-            long existingCategoryId = seedCategory(userId, groupingId);
+            String eventType = "ExpenseRecorded";
+            UUID existingId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, existingId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            long newCategoryId = CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
+            UUID newId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, newId, eventType, Instant.now(), userId);
 
-            List<ChangeStreamEntry> entries = awaitEntriesFor("category", userId, 1);
-            assertThat(entries)
-                    .extracting(ChangeStreamEntry::after)
-                    .noneMatch(after -> after.path("id").asLong() == existingCategoryId);
+            List<ChangeStreamEntry> entries = awaitEntriesFor(eventType, userId, 1);
+            assertThat(entries).extracting(ChangeStreamEntry::eventId).containsExactly(newId.toString());
         }
 
         @Nested
@@ -231,21 +244,21 @@ class ChangeStreamReaderTest {
                 + "in order")
         void whenStoredPositionExistsFromEarlierRun_thenStreamingResumesAndEveryChangeIsOfferedInOrder() {
             long userId = seedUser();
-            long groupingId = seedGrouping(userId);
+            String eventType = "ExpenseRecorded";
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
             changeStreamReader.stop(Duration.ofSeconds(5));
 
-            long firstCategoryId = CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
-            long secondCategoryId = CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Household " + UUID.randomUUID());
+            UUID firstId = UUID.randomUUID();
+            UUID secondId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            awaitCategoryIdsInOrder(userId, firstCategoryId, secondCategoryId);
+            awaitEventIdsInOrder(eventType, userId, firstId, secondId);
         }
     }
 
@@ -278,95 +291,66 @@ class ChangeStreamReaderTest {
                     Instant.now());
             jdbcTemplate.update("UPDATE cdc_heartbeat SET beat_at = now()");
 
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "app_user", userId))
-                    .isEmpty();
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "spending_query", userId))
-                    .isEmpty();
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "proposal_report", userId))
-                    .isEmpty();
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "cdc_heartbeat", userId))
-                    .isEmpty();
+            assertThat(ChangeStreamEntries.allEntriesOn(STREAM_KEY)).noneMatch(entry -> entry.userId() == userId);
         }
 
         @Test
-        @DisplayName("when a pending proposal is discarded as a lone DELETE - then no expense insert shares its "
-                + "transaction")
-        void whenPendingProposalDiscardedAsLoneDelete_thenOneDeleteEventCarriesWholeRowAndNoExpenseSharesTxn() {
+        @DisplayName("when a category is renamed and an expense is updated by SQL - then nothing reaches the stream")
+        void whenCategoryRenamedAndExpenseUpdatedBySql_thenNothingReachesTheStream() {
             long userId = seedUser();
             long groupingId = seedGrouping(userId);
             long categoryId = seedCategory(userId, groupingId);
-
-            var proposal = ExpenseProposalRowUtils.storedProposal(
-                    jdbcAggregateTemplate,
-                    userId,
-                    categoryId,
-                    "Coffee",
-                    "Corner Cafe",
-                    500L,
-                    "EUR",
-                    UUID.randomUUID().toString(),
-                    Instant.now());
+            long expenseId = seedExpense(userId, categoryId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            jdbcAggregateTemplate.delete(proposal);
+            CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, categoryId, "Renamed " + UUID.randomUUID());
+            jdbcTemplate.update(
+                    "UPDATE expense SET description = ? WHERE id = ?", "Updated " + UUID.randomUUID(), expenseId);
 
-            // The slot outlives each test method, so the seeding insert is captured too. What the discard has
-            // to prove is not how many entries there are but what the delete carries, and that nothing was
-            // written to `expense` in the same transaction - which is exactly what separates a discard from an
-            // acceptance.
-            ChangeStreamEntry deleteEntry = awaitDeleteFor("expense_proposal", userId, proposal.id());
+            // Neither table is in table.include.list any more, so nothing the engine offers can carry this user -
+            // the heartbeat-driven slot advance is what proves the writes were actually seen rather than the
+            // engine never catching up to them.
+            String initialLsn = confirmedFlushLsn();
+            await().atMost(Duration.ofSeconds(20))
+                    .untilAsserted(() -> assertThat(confirmedFlushLsn()).isNotEqualTo(initialLsn));
 
-            assertThat(deleteEntry.before().path("id").asLong()).isEqualTo(proposal.id());
-            assertThat(deleteEntry.before().path("description").asText()).isEqualTo("Coffee");
-            assertThat(deleteEntry.before().path("merchant").asText()).isEqualTo("Corner Cafe");
-
-            long discardTransactionId = deleteEntry.source().path("txId").asLong();
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
-                    .noneMatch(entry -> entry.source().path("txId").asLong() == discardTransactionId);
+            assertThat(ChangeStreamEntries.allEntriesOn(STREAM_KEY)).noneMatch(entry -> entry.userId() == userId);
         }
 
         @Test
-        @DisplayName("when a category is renamed through the row helper - then a category event is offered "
-                + "carrying the tree's own change")
-        void whenCategoryRenamedThroughRowHelper_thenCategoryEventOfferedCarryingTreesOwnChange() {
+        @DisplayName("when two outbox rows are inserted then deleted - then the stream gains exactly two entries")
+        void whenTwoOutboxRowsInsertedThenDeleted_thenStreamGainsExactlyTwoEntries() {
             long userId = seedUser();
-            long groupingId = seedGrouping(userId);
-            long categoryId = seedCategory(userId, groupingId);
-            String newName = "Renamed " + UUID.randomUUID();
+            String eventType = "ExpenseRecorded";
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, categoryId, newName);
+            UUID firstId = UUID.randomUUID();
+            UUID secondId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
+            List<OutboxRow> insertedRows = OutboxRowUtils.outboxRowsFor(jdbcTemplate, userId);
 
-            List<ChangeStreamEntry> entries = awaitEntriesFor("category", userId, 1);
-            assertThat(entries.get(0).op()).isEqualTo("u");
-            assertThat(entries.get(0).after().path("name").asText()).isEqualTo(newName);
-        }
+            jdbcTemplate.update("DELETE FROM outbox WHERE id = ?", firstId);
+            jdbcTemplate.update("DELETE FROM outbox WHERE id = ?", secondId);
 
-        @Test
-        @DisplayName("when a grouping is renamed between two expenses - then the second entry carries its new name")
-        void whenGroupingIsRenamedBetweenTwoExpenses_thenSecondEntryCarriesItsNewName() {
-            long userId = seedUser();
-            long groupingId = seedGrouping(userId);
-            long categoryId = seedCategory(userId, groupingId);
-            String newGroupingName = "Household " + UUID.randomUUID();
+            // The publication only carries insert and update (V010), so a third entry here would mean the
+            // delete leaked through rather than just the two inserts reaching the stream.
+            List<ChangeStreamEntry> entries = awaitEntriesFor(eventType, userId, 2);
 
-            changeStreamReader.start();
-            awaitState(ChangeStreamState.STREAMING);
-
-            long firstExpenseId = seedExpense(userId, categoryId);
-            awaitExpenseEntryFor(userId, firstExpenseId);
-
-            CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, groupingId, newGroupingName);
-            awaitEntriesFor("category", userId, 1);
-            long secondExpenseId = seedExpense(userId, categoryId);
-
-            ChangeStreamEntry entry = awaitExpenseEntryFor(userId, secondExpenseId);
-            assertThat(entry.enrichment().path("after").path("groupingName").asText())
-                    .isEqualTo(newGroupingName);
+            assertThat(entries)
+                    .extracting(ChangeStreamEntry::eventId)
+                    .containsExactlyInAnyOrderElementsOf(insertedRows.stream()
+                            .map(row -> row.id().toString())
+                            .toList());
+            assertThat(entries).allSatisfy(entry -> assertThat(entry.type()).isEqualTo(eventType));
+            assertThat(entries).extracting(ChangeStreamEntry::occurredAt).doesNotContainNull();
+            assertThat(entries)
+                    .extracting(entry -> entry.payload().path("userId").asLong())
+                    .containsOnly(userId);
         }
 
         @Test
@@ -382,8 +366,7 @@ class ChangeStreamReaderTest {
             await().atMost(Duration.ofSeconds(20))
                     .untilAsserted(() -> assertThat(confirmedFlushLsn()).isNotEqualTo(initialLsn));
 
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "cdc_heartbeat", userId))
-                    .isEmpty();
+            assertThat(ChangeStreamEntries.allEntriesOn(STREAM_KEY)).noneMatch(entry -> entry.userId() == userId);
         }
 
         @Nested
@@ -399,7 +382,6 @@ class ChangeStreamReaderTest {
                 })
         class RedisUnavailable {
 
-            private static final String REDIS_DOWN_SLOT_NAME = "change_stream_reader_test_redis_down";
             private static final String REDIS_DOWN_STREAM_KEY = "change-stream-reader-test-redis-down.cdc";
 
             @Autowired
@@ -409,15 +391,12 @@ class ChangeStreamReaderTest {
             private JdbcTemplate jdbcTemplateInDeadRedisContext;
 
             @Autowired
-            private JdbcAggregateTemplate jdbcAggregateTemplateInDeadRedisContext;
-
-            @Autowired
             private UserEntityRepository userEntityRepositoryInDeadRedisContext;
 
             @Test
-            @DisplayName("when a captured row changes - then the change is held back and the log position is "
-                    + "not committed")
-            void whenCapturedRowChanges_thenChangeHeldBackAndPositionNotCommitted() {
+            @DisplayName(
+                    "when Redis recovers after refusing a write - then the entry reaches the stream exactly " + "once")
+            void whenRedisRecoversAfterRefusingWrite_thenEntryReachesStreamExactlyOnce() {
                 // Redis is refused at the proxy rather than by pointing this context at a closed port: the
                 // capture annotation registers the Redis URL through a bean applied during the refresh, which
                 // outranks a property a class sets for itself, so such an override would silently do nothing.
@@ -425,29 +404,24 @@ class ChangeStreamReaderTest {
                 try {
                     long userId = UserRowUtils.storedUserId(
                             userEntityRepositoryInDeadRedisContext, "redis-down-" + UUID.randomUUID());
-                    long groupingId = CategoryRowUtils.storedGroupingId(
-                            jdbcAggregateTemplateInDeadRedisContext, userId, "Groceries " + UUID.randomUUID());
+                    String eventType = "ExpenseRecorded";
 
                     readerAgainstDeadRedis.start();
                     awaitStateAgainstDeadRedis(ChangeStreamState.STREAMING);
-                    String positionBeforeChange =
-                            confirmedFlushLsn(jdbcTemplateInDeadRedisContext, REDIS_DOWN_SLOT_NAME);
 
-                    CategoryRowUtils.storedCategoryId(
-                            jdbcAggregateTemplateInDeadRedisContext,
-                            userId,
-                            groupingId,
-                            "Markets " + UUID.randomUUID());
+                    UUID eventId = UUID.randomUUID();
+                    OutboxRowUtils.storedOutboxRowFor(
+                            jdbcTemplateInDeadRedisContext, eventId, eventType, Instant.now(), userId);
 
                     // A refused publish is the only thing that takes a streaming reader back to DOWN, so
-                    // reaching it is what establishes the engine got to the change and Redis rejected it. An
-                    // empty stream on its own cannot tell that from an engine that never arrived.
+                    // reaching it is what establishes the engine got to the change before Redis is restored.
                     awaitStateAgainstDeadRedis(ChangeStreamState.DOWN);
 
-                    assertThat(ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, "category", userId))
-                            .isEmpty();
-                    assertThat(confirmedFlushLsn(jdbcTemplateInDeadRedisContext, REDIS_DOWN_SLOT_NAME))
-                            .isEqualTo(positionBeforeChange);
+                    ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
+                    awaitStateAgainstDeadRedis(ChangeStreamState.STREAMING);
+
+                    List<ChangeStreamEntry> entries = awaitEntriesForInDeadRedisContext(eventType, userId, 1);
+                    assertThat(entries).extracting(ChangeStreamEntry::eventId).containsExactly(eventId.toString());
                 } finally {
                     ToxiproxyContainers.REDIS_PROXY.setConnectionCut(false);
                     readerAgainstDeadRedis.stop(Duration.ofSeconds(5));
@@ -457,6 +431,14 @@ class ChangeStreamReaderTest {
             private void awaitStateAgainstDeadRedis(ChangeStreamState expected) {
                 await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(readerAgainstDeadRedis.state())
                         .isEqualTo(expected));
+            }
+
+            private List<ChangeStreamEntry> awaitEntriesForInDeadRedisContext(
+                    String type, long userId, int expectedCount) {
+                await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(
+                                ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, type, userId))
+                        .hasSize(expectedCount));
+                return ChangeStreamEntries.entriesOnFor(REDIS_DOWN_STREAM_KEY, type, userId);
             }
         }
     }
@@ -470,14 +452,14 @@ class ChangeStreamReaderTest {
                 + "position")
         void whenStreamingReaderStopped_thenTaskFinishesSlotLeftInPlaceAndFreshReaderResumes() {
             long userId = seedUser();
-            long groupingId = seedGrouping(userId);
+            String eventType = "ExpenseRecorded";
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            long firstCategoryId = CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
-            long firstChangeLsn = awaitCategoryChangeLsn(userId, firstCategoryId);
+            long firstChangeLsn = currentWalLsnOffset();
+            UUID firstId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, firstId, eventType, Instant.now(), userId);
 
             boolean stoppedInTime = changeStreamReader.stop(Duration.ofSeconds(5));
             assertThat(stoppedInTime).isTrue();
@@ -492,71 +474,43 @@ class ChangeStreamReaderTest {
             // is durable. A restart over a position still behind the first change resumes from before it.
             awaitPositionCommittedPast(firstChangeLsn);
 
-            long secondCategoryId = CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Household " + UUID.randomUUID());
+            UUID secondId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, secondId, eventType, Instant.now(), userId);
 
             changeStreamReader.start();
             awaitState(ChangeStreamState.STREAMING);
 
-            awaitCategoryIdsInOrder(userId, firstCategoryId, secondCategoryId);
+            awaitEventIdsInOrder(eventType, userId, firstId, secondId);
+        }
+
+        @Test
+        @DisplayName("when stopped while its connector is still retrying a slot held elsewhere - then it stops "
+                + "within ten seconds")
+        void whenStoppedWhileConnectorStillTryingToOpenHeldSlot_thenStopsWithinTenSeconds() throws Exception {
+            ReplicationSlots.create(jdbcTemplate, SLOT_NAME);
+            try (AutoCloseable heldElsewhere = ReplicationSlots.hold(
+                            PostgresContainers.POSTGRES_CONTAINER.getJdbcUrl(),
+                            PostgresContainers.POSTGRES_CONTAINER.getUsername(),
+                            PostgresContainers.POSTGRES_CONTAINER.getPassword(),
+                            SLOT_NAME,
+                            PUBLICATION);
+                    LogCapture connectorLog = LogCapture.attachedTo(PostgresReplicationConnection.class)) {
+                changeStreamReader.start();
+                // The connector tries the slot again from a thread of its own, and leaves no trace of that but
+                // this line - so the line is what says the trying has begun.
+                await().atMost(STATE_TIMEOUT).untilAsserted(() -> assertThat(connectorLog.messages())
+                        .anyMatch(message -> message.startsWith("Failed to start replication stream")));
+
+                assertThat(changeStreamReader.stop(Duration.ofSeconds(10))).isTrue();
+            }
         }
     }
 
-    private static List<ChangeStreamEntry> awaitEntriesFor(String table, long userId, int expectedCount) {
+    private static List<ChangeStreamEntry> awaitEntriesFor(String type, long userId, int expectedCount) {
         await().atMost(EVENT_TIMEOUT)
-                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId))
+                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, type, userId))
                         .hasSize(expectedCount));
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId);
-    }
-
-    /**
-     * Waits for one user's category entries to carry the given ids in that relative order, among whatever else
-     * the stream holds. Delivery is at-least-once - a restart between an entry being appended and its position
-     * being committed republishes it - so a count is not a property of a correct pipeline.
-     */
-    private static void awaitCategoryIdsInOrder(long userId, long... categoryIds) {
-        Long[] expected = LongStream.of(categoryIds).boxed().toArray(Long[]::new);
-        await().atMost(EVENT_TIMEOUT)
-                .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-                        .extracting(entry -> entry.after().path("id").asLong())
-                        .containsSubsequence(expected));
-    }
-
-    /** The log position one awaited category change was committed at, as its own event reports it. */
-    private static long awaitCategoryChangeLsn(long userId, long categoryId) {
-        awaitCategoryIdsInOrder(userId, categoryId);
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId).stream()
-                .filter(entry -> entry.after().path("id").asLong() == categoryId)
-                .findFirst()
-                .orElseThrow()
-                .source()
-                .path("lsn")
-                .asLong();
-    }
-
-    private static ChangeStreamEntry awaitExpenseEntryFor(long userId, long expenseId) {
-        await().atMost(EVENT_TIMEOUT).untilAsserted(() -> assertThat(expenseEntryFor(userId, expenseId))
-                .isPresent());
-        return expenseEntryFor(userId, expenseId).orElseThrow();
-    }
-
-    private static Optional<ChangeStreamEntry> expenseEntryFor(long userId, long expenseId) {
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId).stream()
-                .filter(entry -> entry.after().path("id").asLong() == expenseId)
-                .findFirst();
-    }
-
-    private static ChangeStreamEntry awaitDeleteFor(String table, long userId, long rowId) {
-        await().atMost(EVENT_TIMEOUT)
-                .untilAsserted(() -> assertThat(deleteFor(table, userId, rowId)).isPresent());
-        return deleteFor(table, userId, rowId).orElseThrow();
-    }
-
-    private static Optional<ChangeStreamEntry> deleteFor(String table, long userId, long rowId) {
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, table, userId).stream()
-                .filter(entry -> "d".equals(entry.op()))
-                .filter(entry -> entry.before().path("id").asLong() == rowId)
-                .findFirst();
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, type, userId);
     }
 
     private String confirmedFlushLsn() {
@@ -568,6 +522,15 @@ class ChangeStreamReaderTest {
                 "SELECT confirmed_flush_lsn::text FROM pg_replication_slots WHERE slot_name = ?",
                 String.class,
                 slotName);
+    }
+
+    /**
+     * The current log position as an offset from {@code 0/0}, comparable with {@link #positionPassed(long)}'s
+     * {@code confirmed_flush_lsn} check - the same function {@code ReplicationCatalogue} reads.
+     */
+    private long currentWalLsnOffset() {
+        Number offset = jdbcTemplate.queryForObject("SELECT pg_current_wal_lsn() - '0/0'::pg_lsn", Number.class);
+        return offset == null ? 0 : offset.longValue();
     }
 
     private void awaitPositionCommittedPast(long lsn) {

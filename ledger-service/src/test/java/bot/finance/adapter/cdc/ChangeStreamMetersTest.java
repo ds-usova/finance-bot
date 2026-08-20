@@ -6,8 +6,6 @@ import static org.assertj.core.api.Assertions.within;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,36 +27,25 @@ class ChangeStreamMetersTest {
     class TheCountersAndTheGauges {
 
         @Test
-        @DisplayName("when an event is counted - then the published counter carries only the table and op tags")
-        void whenEventIsCounted_thenPublishedCounterCarriesOnlyTableAndOpTags() {
-            meters.countPublished("expense", "u");
+        @DisplayName("when an event is counted - then the published counter carries one type tag")
+        void whenEventIsCounted_thenPublishedCounterCarriesOneTypeTag() {
+            meters.countPublished("ProposalAccepted");
 
             Counter counter = registry.get("ledger_cdc_events_published_total")
-                    .tag("table", "expense")
-                    .tag("op", "u")
+                    .tag("type", "ProposalAccepted")
                     .counter();
 
             assertThat(counter.count()).isEqualTo(1.0);
-            assertThat(counter.getId().getTags()).hasSize(2);
+            assertThat(counter.getId().getTags()).hasSize(1);
         }
 
         @Test
-        @DisplayName("when a lookup is counted as a hit and another as a miss - then the category lookups counter "
-                + "separates the two by tag")
-        void whenLookupCountedHitAndAnotherMiss_thenCategoryLookupsCounterSeparatesTheTwoByTag() {
-            meters.countCategoryLookupHit();
-            meters.countCategoryLookupMiss();
+        @DisplayName("when the outbox row count is set to a non-zero value - then the outbox rows gauge reads "
+                + "that value back")
+        void whenOutboxRowCountIsSetToNonZeroValue_thenOutboxRowsGaugeReadsThatValueBack() {
+            meters.setOutboxRows(3L);
 
-            Collection<Counter> counters =
-                    registry.find("ledger_cdc_category_lookups_total").counters();
-
-            assertThat(counters).hasSize(2);
-            assertThat(counters.stream()
-                            .map(counter -> counter.getId().getTags())
-                            .collect(Collectors.toSet()))
-                    .hasSize(2);
-            assertThat(counters)
-                    .allSatisfy(counter -> assertThat(counter.count()).isEqualTo(1.0));
+            assertThat(registry.get("ledger_cdc_outbox_rows").gauge().value()).isEqualTo(3.0);
         }
 
         @Test

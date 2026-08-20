@@ -1,21 +1,27 @@
 # [Conventions](../conventions.md) > Agent Configuration
 
-How the coding agent parallelizes work on this module, and which model does what.
-
 ## Version Control
 
-Repository-wide, since every module shares one history: [Version Control](../../../docs/conventions/version-control.md).
+Commit contents, scope and message are repository-wide:
+[Version Control](../../../docs/conventions/version-control.md). What the agent does with them:
+
+- **Commit as the work goes**, once each check gating the change has passed, without being asked each time. A
+  single edit inside a check earns no commit of its own.
+- **Never create, switch or delete a branch.** The developer checks one out before work starts; commit to
+  whatever is current, `main` included.
+- **A commit refused because the repository index is locked is retried once**, after a moment. Only that failure
+  is retried: a rejected hook, an empty commit or a bad path is reported, never repeated. A retry that also fails
+  is left alone, and the next commit takes the files.
+- **Another module's files may be half-written beside yours**, and naming your paths is what keeps them out.
 
 ## Sub-Agent Models
 
-Delegated work splits by how much judgment it needs, and each kind runs on the model that matches:
+Delegated work splits by how much judgment it needs:
 
 - **Deciding work — the strongest model** (`opus`): planning a task, reviewing a plan, and the refactor pass over
-  a finished diff. These choose what gets built and judge finished work against the conventions, so a weak call
-  here is inherited by every step downstream and costs far more than the model does.
+  a finished diff. These choose what gets built and judge finished work against the conventions.
 - **Executing work — a cheaper model** (`sonnet`): the stabilization agent and every red- and green-phase step
-  agent. Such an agent is handed one target class, its scenarios, and the conventions, and writes code against
-  them — the decisions were made in the plan, and the stage guardrails catch what it gets wrong.
+  agent. Each is handed one target class, its scenarios and the conventions, and writes code against them.
 - The orchestrator, and anything not listed above, runs on whatever model the session runs on.
 
 The model name is the `model` parameter of the agent-spawning tool.
@@ -24,7 +30,7 @@ The model name is the `model` parameter of the agent-spawning tool.
 
 What the machine allows across every module at once is repository-wide:
 [Parallelism](../../../docs/conventions/parallelism.md). This module's suite is the one that starts containers,
-so that file limits how it runs beside another module. Below is what is contended inside this module.
+so that file limits how it runs beside another module.
 
 Concurrent runs share the Gradle caches, `build/classes`, one Docker daemon and this machine's memory — memory
 being the scarce one. Each concurrent test run starts its **own** Postgres container and WireMock server (JVM
@@ -44,12 +50,17 @@ their work in progress, not a finding. Reconciling across steps is the orchestra
 
 ## Follow-Up Work in a Plan
 
-What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md) — true of this service
-however the work was done, so it does not live here.
+What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md).
 
 A plan carries one of those kinds in its **Post-Implementation Steps** group:
 
-- **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+- **ADR placeholders** — one item per approved decision, as `Place ADR: <the decision, stated as a fact>`.
+
+**An agent places an ADR; it never writes one.** Placing means creating the file at the number, tier and
+filename [Architecture Decision Records](../../../docs/conventions/adr.md) gives it, with the title, the date,
+the source link, and each section left as the angle-bracket brief that page's template carries. `Status:` reads
+`Proposed` until the developer replaces the briefs with the content and moves it to `Accepted`. The decision was
+the developer's, so the explanation is theirs.
 
 The approval is a numbered open question in the plan, and only an answered `yes` becomes an item. Nothing
-downstream writes an ADR that has no item.
+downstream places an ADR that has no item.

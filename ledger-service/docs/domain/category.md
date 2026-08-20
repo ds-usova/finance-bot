@@ -5,9 +5,13 @@ itself.
 
 ## Invariants
 
-| Field  | Bound                |
-|--------|----------------------|
-| `name` | mandatory, non-blank |
+| Field    | Bound                                          |
+|----------|------------------------------------------------|
+| `name`   | mandatory, non-blank                           |
+| `parent` | mandatory — always a [grouping](grouping.md) |
+
+Spending is filed under a category, never under a grouping. A grouping holds categories, and a category holds
+spending; nothing is filed under a heading that is itself a heading.
 
 ## Made of / held by
 

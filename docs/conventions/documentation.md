@@ -27,20 +27,28 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
   carries what the diagram cannot: a field, a rule, a failure, a setting.
 - **Docs describe what a thing does and why it matters to a reader** — never how it is wired. No DI, bean
   registration, annotation, or framework mechanics in a README or a diagram label.
+- **A conventions page names no agent.** A rule that holds only because an agent does it — committing as the work
+  goes, a cap on concurrent work, what one orchestration level may not do — belongs in the module's
+  `conventions/agent.md`. The exception is a page whose whole subject is how much may run at once,
+  [Parallelism](parallelism.md).
+- **A conventions page states the project's facts, never the framework's.** What the machine allows, what a list
+  contains, what a command does. Which level runs a step, when it runs relative to archiving, what a pipeline may
+  not do: those belong to `.claude/`.
+- **`agent.md` is documentation too.** Define a thing by its meaning, not by the workflow stage that reaches for
+  it.
 - **No justification prose.** Give the rule, not the argument for it, unless the reasoning changes what someone
   would do.
 - **Say what is, not what isn't.** Describe the thing; do not enumerate what the module lacks.
 - **A page documents what is served now.** A retired path, a dropped field, an operation that no longer exists:
-  none of them belongs on a page, and least of all a note on how one now fails. That refusal comes from a
-  default nobody chose, and writing it down promises a status the next change to that default will break.
+  none of them belongs on a page, and least of all a note on how one now fails.
 - **Prefer a table or a diagram to a paragraph.** A rule with conditions and outcomes is a table. A flow whose
   shape carries meaning is a diagram. Prose is for what neither can hold — why a rule exists, and what a reader
   would otherwise get wrong.
 - **Name the setting, not its current value** — "for as long as
   `spring.grpc.client.channel.ai-connector.default.deadline` allows", not "for sixty seconds". The value's one
   owning document is the module's `docs/configuration.md`.
-- Diagram labels are a few words. If a label needs a clause, the diagram is carrying prose that belongs in text
-  — or nowhere. The format itself is [Diagrams](diagrams.md).
+- **Diagram labels are a few words.** If a label needs a clause, the diagram is carrying prose that belongs in
+  text — or nowhere. The format itself is [Diagrams](diagrams.md).
 - **A new rule joins its siblings.** Before adding one, find where the rules of its kind already live and put it
   there. `CLAUDE.md` is not one of those homes: it carries how an agent works this repository, not what the
   repository's documents must look like.
@@ -51,7 +59,8 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
   separated by a symbol.
 - **Prerequisites.** What must already hold for the use case to run — the caller is authenticated, a user is
   stored under that identity — one line each. Two or three is a full section.
-- **A page carries the flow diagram, Prerequisites, Outcomes, Collaborators and References**, and nothing else.
+- **A page carries the flow diagram, Prerequisites, Outcomes, Collaborators, Components and References**, and
+  nothing else. Components is the C3 of the components, ports and external systems the use case touches.
 - **References is the last section**, and it is links only: the ADRs that decided how this use case works, and
   the use cases a reader needs next. One line each, each saying in a few words why it is worth opening. A
   collaborator the table already lists is not repeated, and a page with nothing to point at carries no section.
@@ -72,6 +81,15 @@ identity, whose page describes something the store keeps rows of — carries one
   named back to a caller are the boundary's, and its contract page owns them.
 - **Prose is for the invariant that has no symbol** — what the type refuses to be, and what a reader would
   otherwise get wrong. Three of those under a table of bounds is a full page.
+- **Invariants is a table of `Field | Bound`**, one row per component, each field named as the code names it. A
+  field bounded by another domain type links that type from its own cell. A type with no fields to bound — an
+  enum — states its values and its transitions as bullets instead.
+- **A bound belonging to no single field goes under the table**, never in it: how two stored instances compare,
+  what the currency scales, what a reader would otherwise get wrong.
+- **Made of / held by is a link list, never a second pass over the fields.** One line naming what the type is
+  composed of, then one link per domain type, contract page and use case that touches it, each saying in a few
+  words what it does with the type. The fields are the Invariants table's; repeating them here is the commonest
+  way this page goes wrong.
 
 - **`## Lifecycle`, on every entity page.** A table of what brings the entity into being, what changes it, and
   what removes it, each naming the use case that does it. Where nothing does, the row says so: "never changed",

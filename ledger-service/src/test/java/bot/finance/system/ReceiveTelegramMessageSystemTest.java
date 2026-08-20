@@ -8,7 +8,7 @@ import static bot.finance.common.stubs.TelegramTestBot.replyParameters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import bot.finance.adapter.persistence.ExpenseProposalEntity;
+import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
@@ -18,10 +18,11 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramFixtures;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Grouping;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -203,14 +204,14 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(incomingMessageIdClaim).as("jwt imi claim").isNotNull();
 
             // then: one proposal is stored, filed under the message that produced it
-            List<ExpenseProposalEntity> proposalRows = ExpenseProposalRowUtils.expenseProposalRowsFor(
-                    jdbcAggregateTemplate, storedUser.id().orElseThrow());
+            List<ExpenseEntity> proposalRows = ExpenseRowUtils.expenseRowsFor(
+                    jdbcAggregateTemplate, storedUser.id().orElseThrow(), ExpenseStatus.PENDING);
             assertThat(proposalRows)
                     .as(
-                            "stored expense_proposal rows for user %s",
+                            "stored PENDING expense rows for user %s",
                             storedUser.id().orElseThrow())
                     .hasSize(1);
-            ExpenseProposalEntity proposalRow = proposalRows.get(0);
+            ExpenseEntity proposalRow = proposalRows.get(0);
             assertThat(proposalRow.incomingMessageId())
                     .as("stored proposal's incoming message id matches the bearer token's imi claim")
                     .isEqualTo(incomingMessageIdClaim);

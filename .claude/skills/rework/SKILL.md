@@ -83,7 +83,8 @@ answer or re-classification written in Phase 2.
    on the seam. Its exit condition: every module on the seam compiles, passes its layering check, and its suite
    stands where phase 0 left it apart from exactly what its `disables:` turned off. A blocked shared file stops
    the run there.
-2. **One `rework-module` agent per steps file, concurrently**, each handed its file's path, its module, its
+2. **One `rework-module` agent per steps file, concurrently**, spawned and waited for as
+   [`templates/sub-agents.md`](../../templates/sub-agents.md) says, each handed its file's path, its module, its
    baseline figures, what the shared file disabled in its module, and `rework.md`. It applies its steps in ID
    order and returns finished or blocked. A blocked agent's question is written into its file; answer it there
    and spawn the agent again.
@@ -115,7 +116,8 @@ follows, and the commit is provisional: the closing full run proves the whole.
    the file.
 4. **Close the row this rework came from.** Where `Source:` names a findings file and a row, set the row's
    `Status`: `done · <this rework's number>`, or leave it `open` with one clause naming what remains. Re-emit the
-   count line. Nothing here blocks.
+   count line. A row set to `done` leaves `docs/backlog.md` in the same edit
+   ([`backlog.md`](../../templates/backlog.md)); one left `open` keeps its backlog row. Nothing here blocks.
 5. **Archive** once the closing gate is clean and `rework.sh status` reports every steps file ticked — a manual
    check open in `review/findings.md` never blocks: move `docs/<n>-<name>/` into `docs/implemented/`, and commit
    the move where the conventions commit at all.

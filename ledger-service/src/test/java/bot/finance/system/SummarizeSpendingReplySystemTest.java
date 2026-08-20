@@ -17,6 +17,7 @@ import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Grouping;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Clock;
@@ -93,7 +94,8 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                 EUR_AMOUNT_MINOR_UNITS,
                 "EUR",
                 null,
-                INSIDE_PERIOD_INSTANT);
+                INSIDE_PERIOD_INSTANT,
+                ExpenseStatus.RECORDED);
         ExpenseRowUtils.storedExpense(
                 jdbcAggregateTemplate,
                 userId,
@@ -103,7 +105,8 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                 USD_AMOUNT_MINOR_UNITS,
                 "USD",
                 null,
-                INSIDE_PERIOD_INSTANT);
+                INSIDE_PERIOD_INSTANT,
+                ExpenseStatus.RECORDED);
         ExpenseRowUtils.storedExpense(
                 jdbcAggregateTemplate,
                 userId,
@@ -113,7 +116,8 @@ class SummarizeSpendingReplySystemTest extends AbstractSystemTest {
                 OUTSIDE_AMOUNT_MINOR_UNITS,
                 "EUR",
                 null,
-                OUTSIDE_PERIOD_INSTANT);
+                OUTSIDE_PERIOD_INSTANT,
+                ExpenseStatus.RECORDED);
 
         WireMockStubs.telegramReturnsNoUpdates(TOKEN);
         WireMockStubs.telegramAcceptsSendMessage(TOKEN);

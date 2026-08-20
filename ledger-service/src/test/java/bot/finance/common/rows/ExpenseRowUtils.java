@@ -1,6 +1,7 @@
 package bot.finance.common.rows;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
+import bot.finance.domain.value.ExpenseStatus;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
@@ -15,6 +16,13 @@ public class ExpenseRowUtils {
                 .toList();
     }
 
+    public static List<ExpenseEntity> expenseRowsFor(
+            JdbcAggregateTemplate jdbcAggregateTemplate, long userId, ExpenseStatus status) {
+        return expenseRowsFor(jdbcAggregateTemplate, userId).stream()
+                .filter(row -> status.name().equals(row.status()))
+                .toList();
+    }
+
     public static ExpenseEntity storedExpense(
             JdbcAggregateTemplate jdbcAggregateTemplate,
             long userId,
@@ -24,7 +32,8 @@ public class ExpenseRowUtils {
             long amountMinorUnits,
             String currencyCode,
             String incomingMessageId,
-            Instant createdAt) {
+            Instant createdAt,
+            ExpenseStatus status) {
         return jdbcAggregateTemplate.insert(new ExpenseEntity(
                 null,
                 userId,
@@ -35,6 +44,7 @@ public class ExpenseRowUtils {
                 currencyCode,
                 incomingMessageId,
                 createdAt,
-                createdAt));
+                createdAt,
+                status.name()));
     }
 }

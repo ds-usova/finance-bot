@@ -6,14 +6,15 @@ import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.ProposalReportRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -78,7 +79,7 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
 
             String incomingMessageId = UUID.randomUUID().toString();
             Instant now = Instant.now();
-            long firstProposalId = ExpenseProposalRowUtils.storedProposal(
+            long firstProposalId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             categoryId,
@@ -87,9 +88,10 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                             350L,
                             "EUR",
                             incomingMessageId,
-                            now)
+                            now,
+                            ExpenseStatus.PENDING)
                     .id();
-            long secondProposalId = ExpenseProposalRowUtils.storedProposal(
+            long secondProposalId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             categoryId,
@@ -98,7 +100,20 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                             1230L,
                             "EUR",
                             incomingMessageId,
-                            now)
+                            now,
+                            ExpenseStatus.PENDING)
+                    .id();
+            long alreadyRecordedId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "groceries",
+                            "Market",
+                            560L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            now,
+                            ExpenseStatus.RECORDED)
                     .id();
             String conversationId = SCENARIO.conversationId();
             String sentMessageId = "4242";
@@ -113,36 +128,24 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .cookie(CSRF_COOKIE, csrfToken)
                     .header(CSRF_HEADER, csrfToken)
-                    .body(Map.of("ids", List.of(firstProposalId, secondProposalId)))
+                    .body(Map.of("ids", List.of(firstProposalId, secondProposalId, alreadyRecordedId)))
                     .when()
                     .post(ACCEPTANCES_PATH);
             logResponse(response);
 
-            // then: the response is 200 with accepted 2 and missing 0
+            // then: the response is 200 with accepted 2 and missing 1 for the already-recorded id
             response.then().statusCode(200);
             assertThat(response.jsonPath().getInt("accepted")).isEqualTo(2);
-            assertThat(response.jsonPath().getInt("missing")).isEqualTo(0);
+            assertThat(response.jsonPath().getInt("missing")).isEqualTo(1);
 
-            // then: a later listing shows both as RECORDED and neither as PENDING
-            Response pending = RestAssured.given()
-                    .cookie(SESSION_COOKIE, sessionCookie)
-                    .queryParam("status", "PENDING")
-                    .when()
-                    .get(EXPENSES_PATH);
-            logResponse(pending);
-            assertThat(pending.jsonPath().getInt("total"))
+            // then: the two posted proposals come back RECORDED under the ids they were posted with
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED))
+                    .as("recorded expenses for user %s", userId)
+                    .extracting(ExpenseEntity::id)
+                    .contains(firstProposalId, secondProposalId);
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING))
                     .as("nothing pending remains for this user")
-                    .isZero();
-
-            Response recorded = RestAssured.given()
-                    .cookie(SESSION_COOKIE, sessionCookie)
-                    .queryParam("status", "RECORDED")
-                    .when()
-                    .get(EXPENSES_PATH);
-            logResponse(recorded);
-            assertThat(recorded.jsonPath().getList("items.description", String.class))
-                    .as("both proposals are now recorded expenses")
-                    .containsExactlyInAnyOrder("coffee", "lunch");
+                    .isEmpty();
 
             // then: the buttons come off that report without its text being resent
             await("one editMessageReplyMarkup is recorded").atMost(TIMEOUT).untilAsserted(() -> assertThat(
@@ -187,10 +190,10 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
 
             // then: the response is 401 and nothing is moved
             response.then().statusCode(401);
-            assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId))
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING))
                     .as("the proposal is still pending")
                     .hasSize(1);
-            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId))
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED))
                     .as("nothing became a recorded expense")
                     .isEmpty();
         }
@@ -217,17 +220,17 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
 
             // then: the response is 403 and nothing is moved
             response.then().statusCode(403);
-            assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId))
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING))
                     .as("the proposal is still pending")
                     .hasSize(1);
-            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId))
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED))
                     .as("nothing became a recorded expense")
                     .isEmpty();
         }
 
         private long storedPendingProposal(long userId) {
             long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
-            return ExpenseProposalRowUtils.storedProposal(
+            return ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             categoryId,
@@ -236,7 +239,8 @@ class AcceptExpensesSystemTest extends AbstractSystemTest {
                             900L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.PENDING)
                     .id();
         }
     }

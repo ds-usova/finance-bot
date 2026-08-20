@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jdbc.repository.query.Query;
@@ -11,8 +12,93 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            SELECT count(*) FROM expense
-            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId
+            SELECT c.name AS category_name, p.name AS grouping_name, e.description AS description,
+                   e.merchant AS merchant, e.amount_minor_units AS amount_minor_units,
+                   e.currency_code AS currency_code
+            FROM expense e
+            JOIN category c ON e.category_id = c.id
+            JOIN category p ON c.parent_id = p.id
+            WHERE e.user_id = :userId AND e.incoming_message_id = :incomingMessageId AND e.status = 'PENDING'
+            ORDER BY e.created_at, e.id
+            """)
+    List<ProposalSummaryProjection> findSummariesByMessageReference(
+            @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
+
+    @Query(
+            """
+            WITH changed AS (
+                UPDATE expense
+                SET status = 'RECORDED', updated_at = :now
+                WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            """)
+    List<SpendingRowProjection> accept(
+            @Param("userId") Long userId,
+            @Param("incomingMessageId") String incomingMessageId,
+            @Param("now") Instant now);
+
+    @Query(
+            """
+            WITH changed AS (
+                DELETE FROM expense
+                WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            """)
+    List<SpendingRowProjection> discard(
+            @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
+
+    @Query(
+            """
+            WITH changed AS (
+                UPDATE expense
+                SET status = 'RECORDED', updated_at = :now
+                WHERE user_id = :userId AND id IN (:ids) AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            """)
+    List<SpendingRowProjection> acceptByIds(
+            @Param("userId") Long userId, @Param("ids") List<Long> ids, @Param("now") Instant now);
+
+    @Query(
+            """
+            SELECT DISTINCT incoming_message_id
+            FROM expense
+            WHERE user_id = :userId AND incoming_message_id IN (:incomingMessageIds) AND status = 'PENDING'
+            """)
+    List<String> findWithPendingProposals(
+            @Param("userId") Long userId, @Param("incomingMessageIds") Collection<String> incomingMessageIds);
+
+    @Query(
+            """
+            SELECT count(*)
+            FROM expense
+            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId AND status = 'RECORDED'
             """)
     int countByMessageReference(@Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
 
@@ -20,7 +106,8 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             """
             SELECT currency_code, sum(amount_minor_units) AS total_minor_units, count(*) AS expense_count
             FROM expense
-            WHERE user_id = :userId AND created_at >= :from AND created_at < :toExclusive
+            WHERE user_id = :userId AND status = 'RECORDED'
+              AND created_at >= :from AND created_at < :toExclusive
             GROUP BY currency_code
             ORDER BY currency_code
             """)
@@ -29,24 +116,13 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            SELECT 'RECORDED' AS status, e.id AS id, e.category_id AS category_id, e.description AS description,
-                   e.merchant AS merchant, e.amount_minor_units AS amount_minor_units,
-                   e.currency_code AS currency_code, e.created_at AS created_at
-            FROM expense e
-            WHERE e.user_id = :userId
-              AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'RECORDED')
-              AND (CAST(:categoryId AS BIGINT) IS NULL OR e.category_id = :categoryId)
-              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR e.created_at >= :from)
-              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR e.created_at < :toExclusive)
-            UNION ALL
-            SELECT 'PENDING', ep.id, ep.category_id, ep.description, ep.merchant,
-                   ep.amount_minor_units, ep.currency_code, ep.created_at
-            FROM expense_proposal ep
-            WHERE ep.user_id = :userId
-              AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'PENDING')
-              AND (CAST(:categoryId AS BIGINT) IS NULL OR ep.category_id = :categoryId)
-              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR ep.created_at >= :from)
-              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR ep.created_at < :toExclusive)
+            SELECT status, id, category_id, description, merchant, amount_minor_units, currency_code, created_at
+            FROM expense
+            WHERE user_id = :userId
+              AND (CAST(:status AS VARCHAR) IS NULL OR status = :status)
+              AND (CAST(:categoryId AS BIGINT) IS NULL OR category_id = :categoryId)
+              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR created_at >= :from)
+              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR created_at < :toExclusive)
             ORDER BY created_at DESC, status, id DESC
             LIMIT :limit OFFSET :offset
             """)
@@ -61,21 +137,13 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            SELECT (
-                SELECT count(*) FROM expense e
-                WHERE e.user_id = :userId
-                  AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'RECORDED')
-                  AND (CAST(:categoryId AS BIGINT) IS NULL OR e.category_id = :categoryId)
-                  AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR e.created_at >= :from)
-                  AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR e.created_at < :toExclusive)
-            ) + (
-                SELECT count(*) FROM expense_proposal ep
-                WHERE ep.user_id = :userId
-                  AND (CAST(:status AS VARCHAR) IS NULL OR :status = 'PENDING')
-                  AND (CAST(:categoryId AS BIGINT) IS NULL OR ep.category_id = :categoryId)
-                  AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR ep.created_at >= :from)
-                  AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR ep.created_at < :toExclusive)
-            ) AS total
+            SELECT count(*)
+            FROM expense
+            WHERE user_id = :userId
+              AND (CAST(:status AS VARCHAR) IS NULL OR status = :status)
+              AND (CAST(:categoryId AS BIGINT) IS NULL OR category_id = :categoryId)
+              AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR created_at >= :from)
+              AND (CAST(:toExclusive AS TIMESTAMPTZ) IS NULL OR created_at < :toExclusive)
             """)
     long countMatching(
             @Param("userId") Long userId,
@@ -86,14 +154,39 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
-            UPDATE expense
-            SET category_id = :categoryId, updated_at = :now
-            WHERE id = :id AND user_id = :userId
-            RETURNING id, category_id, description, merchant, amount_minor_units, currency_code, created_at
+            WITH changed AS (
+                UPDATE expense
+                SET category_id = :categoryId, updated_at = :now
+                WHERE id = :id AND user_id = :userId AND status = :status
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
             """)
-    Optional<RefiledEntryProjection> refile(
+    Optional<SpendingRowProjection> refile(
             @Param("userId") Long userId,
             @Param("id") Long id,
             @Param("categoryId") Long categoryId,
+            @Param("status") String status,
             @Param("now") Instant now);
+
+    @Query(
+            """
+            SELECT e.id AS id, e.user_id AS user_id, e.incoming_message_id AS incoming_message_id,
+                   e.status AS status, e.description AS description, e.merchant AS merchant,
+                   e.amount_minor_units AS amount_minor_units, e.currency_code AS currency_code,
+                   e.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM expense e
+            JOIN category cat ON e.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            WHERE e.id = :id
+            """)
+    Optional<SpendingRowProjection> findEventRow(@Param("id") Long id);
 }

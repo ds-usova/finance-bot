@@ -2,6 +2,8 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.ExpenseStatus;
+import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.Money;
 import java.time.Instant;
 import java.util.Optional;
@@ -19,15 +21,33 @@ public record ExpenseEntity(
         String currencyCode,
         String incomingMessageId,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        String status) {
 
     public Expense toDomain() {
         Money money = new Money(amountMinorUnits, CurrencyCode.of(currencyCode));
         Optional<String> merchantOptional = Optional.ofNullable(merchant);
+        ExpenseStatus expenseStatus = ExpenseStatus.valueOf(status);
+        Optional<IncomingMessageId> messageId =
+                Optional.ofNullable(incomingMessageId).map(IncomingMessageId::of);
         if (id == null) {
+            if (expenseStatus == ExpenseStatus.PENDING) {
+                return Expense.newProposal(
+                        userId, categoryId, description, merchantOptional, money, messageId.orElse(null), createdAt);
+            }
             return Expense.newExpense(userId, categoryId, description, merchantOptional, money, createdAt);
         }
-        return Expense.stored(id, userId, categoryId, description, merchantOptional, money, createdAt, updatedAt);
+        return Expense.stored(
+                id,
+                userId,
+                categoryId,
+                description,
+                merchantOptional,
+                money,
+                expenseStatus,
+                messageId,
+                createdAt,
+                updatedAt);
     }
 
     public static ExpenseEntity fromDomain(Expense expense) {
@@ -39,8 +59,9 @@ public record ExpenseEntity(
                 expense.merchant().orElse(null),
                 expense.money().minorUnits(),
                 expense.money().currencyCode().code(),
-                null,
+                expense.incomingMessageId().map(IncomingMessageId::value).orElse(null),
                 expense.createdAt(),
-                expense.updatedAt());
+                expense.updatedAt(),
+                expense.status().name());
     }
 }

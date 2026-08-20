@@ -23,7 +23,7 @@ request never carries it afterwards.
 
 A single stored user id.
 
-- [The change stream](../contracts/out/change-stream.md) — the id a captured row change names a person by.
+- [The change stream](../contracts/out/change-stream.md) — the id every published fact names a person by.
 - [User](user.md) — the stored person it names, and where the platform's own identity lives instead.
 - [Read the current session](../usecases/read-the-current-session.md) — resolves it back to that person.
 - [Create an expense proposal](../usecases/create-an-expense-proposal.md) — records spending against the caller

@@ -125,11 +125,18 @@ by its own `implement-plan-module` agent.
 
 ## Phase 2 — One Pipeline Per Plan
 
-Spawn one `implement-plan-module` sub-agent per module plan. Give each its plan path, its module's phase-0
+Spawn one `implement-plan-module` sub-agent per module plan, in the shape
+[`templates/sub-agents.md`](../../templates/sub-agents.md) gives. Give each its plan path, its module's phase-0
 figures, and the section name if the user narrowed the run to one.
 
 - **Nothing waits.** Phase 1 landed everything that crosses, so the module plans are independent by
   construction. One blocking does not stop the rest.
+- **A pipeline that returns with children in flight is resumed, not restarted.** It picks up its own plan and
+  ticks. Resuming is [`templates/sub-agents.md`](../../templates/sub-agents.md)'s **continue an agent** row, and
+  a message left without its blocking read stalls the pipeline a second time.
+- **A step agent's report can arrive here.** You are the level a grandchild's task-notification reaches, and the
+  pipeline that spawned it never saw it. Relay what it says in the message that resumes the pipeline, rather than
+  waiting for a report that has already been delivered to the wrong level.
 - **How many start at once is the repository tier's answer.** One machine runs every module, and a module's own
   conventions cannot see what a sibling is doing. Read the **Parallelism** rules at the level that binds all the
   modules and start no more pipelines than they allow, starting the next as a running one finishes. If no such
@@ -161,6 +168,11 @@ When every pipeline has returned:
 
    Write it before archiving, so the whole directory moves once and the folder is there for the evidence to
    land in.
+
+   **Every `R` row it files is appended to `docs/backlog.md`**, one pointer each, in the shape
+   [`backlog.md`](../../templates/backlog.md) gives — with the link written to the archived path, since that
+   is where the file is about to move. The findings file stays the row's owner; the backlog is how the row is
+   found once the task directory has left `docs/`.
 3. **Archive**, on exit 0 and on nothing else: move the **whole task directory** — every `plan.md`, the
    `design.md` they link, `review/`, and anything else the task accumulated — into `docs/implemented/`. Moving the
    directory rather than the files keeps every link inside it working.

@@ -1,7 +1,10 @@
 # List a grouping's categories
 
-- **In:** the identity of the authenticated caller · a grouping, by name
-- **Out:** the names of the categories filed under that grouping, ordered by name
+- **In**
+  - the identity of the authenticated caller
+  - a grouping, by name
+- **Out**
+  - the names of the categories filed under that grouping, ordered by name
 - **Why:** spending is filed under a category, and this is how a caller holding only a grouping finds the
   categories it may choose between
 
@@ -12,7 +15,7 @@
 | Direction | Collaborator                                                                                                 | Through                                                                           | For                                                                                             |
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | in        | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [MCP — the list categories tool](../contracts/in/mcp.md)                          | narrowing a grouping to the categories an expense may be filed under                            |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, resolving the grouping, reading its categories, telling a category from a grouping |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, resolving the grouping, reading its categories, telling a category from a grouping |
 
 ## Outcomes
 
@@ -39,7 +42,7 @@ AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1
 AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(agent, "Agent acting for a user", "An MCP client", $tags="mcpExternal")
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses and expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid token", $tags="mcpExternal")

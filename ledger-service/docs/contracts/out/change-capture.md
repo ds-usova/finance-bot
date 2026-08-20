@@ -1,32 +1,34 @@
 # Change capture — the write-ahead log this service reads (logical replication)
 
-The service reads its own committed row changes back out of Postgres's write-ahead log and republishes them onto
-[the change stream](change-stream.md). What the rows hold is [the database's own contract](database.md).
+Every spending write appends the facts it produced to an outbox table, in the transaction that made the change.
+The service reads those rows back out of Postgres's write-ahead log and publishes them onto
+[the change stream](change-stream.md)
+([ADR 0019](../../../../docs/adr/0019-the-ledger-publishes-facts-through-a-transactional-outbox-rather-than-its-own-row-changes.md)).
 
 - **Counterpart:** the same PostgreSQL database the rows live in — [Database](database.md)
 - **Transport:** logical replication through the `pgoutput` plugin, consumed by an engine embedded in this service
-- **Schema:** the publication `finance_ledger_cdc` and the replica identity, declared in
-  `src/main/resources/db/migration/V009__publish_ledger_changes.sql`
+- **Schema:** the publication `finance_ledger_cdc`, declared in
+  `src/main/resources/db/migration/V010__publish_facts_through_an_outbox.sql`
 
 ## What is published
 
-| Table              | Published |
-|--------------------|-----------|
-| `expense`          | yes       |
-| `expense_proposal` | yes       |
-| `category`         | yes       |
-| `cdc_heartbeat`    | yes       |
-| every other table  | no        |
+| Table             | Published |
+|-------------------|-----------|
+| `outbox`          | yes       |
+| `cdc_heartbeat`   | yes       |
+| every other table | no        |
 
-Which of them a consumer receives is [the change stream](change-stream.md).
+The publication sends inserts and updates, and no deletes. The insert is the fact; the update is the heartbeat.
 
-The first three run under `REPLICA IDENTITY FULL`. The publication is restricted to inserts, updates and
-deletes.
+**The outbox row is deleted in the transaction that wrote it**, so the table is empty at rest. That delete must
+never reach a consumer, so the publication filters it out before the replication slot. What is left behind is
+watched through [meters](../in/operations.md#meters).
 
 `cdc_heartbeat`'s single row is advanced on a timer, which moves the replication slot forward while only
 uncaptured tables are written. Retained log is cluster-wide, so without it ordinary traffic would pin the log.
+Its own change is dropped in the reader and reaches no consumer.
 
-## How a change travels
+## How a fact travels
 
 ```plantuml
 @startuml
@@ -36,25 +38,18 @@ participant "the change stream reader" as Reader
 participant "the change publisher" as Publisher
 queue "Redis" as Redis
 
-Write -> PG : commits a transaction touching a captured table
-PG -> PG : records it in the write-ahead log
-PG -> Reader : streams the change from the replication slot, whole row on both sides
-Reader -> Publisher : offers the change
-
-opt the category is not already cached
-    Publisher -> PG : reads the category and its grouping by id
-    PG --> Publisher : the two names
-end
-
-Publisher -> Redis : appends the payload, with the names beside it
+Write -> PG : the change, its facts appended, the same rows deleted — one transaction
+PG -> PG : records the insert and the delete in the write-ahead log
+PG -> Reader : streams the outbox insert from the replication slot
+Reader -> Publisher : offers the fact
+Publisher -> Redis : appends the entry
 Redis --> Publisher : the entry id
 Publisher --> Reader : published
 Reader -> PG : confirms the position, releasing the log behind it
 @enduml
 ```
 
-The position is confirmed only after Redis has taken the entry, which is what makes delivery
-[at-least-once](change-stream.md). What a refusal does to the reported state is [Health](../in/operations.md#health).
+What a refusal does to the reported state is [Health](../in/operations.md#health).
 
 ## The slot and the stored position
 
@@ -80,7 +75,4 @@ The bound is the database's setting, not the service's. A slot that passes it is
 
 ## Compatibility
 
-A change to the captured set is a migration, so it shows in a diff.
-
-Adding a table publishes its changes from that point on, never retrospectively. A consumer sees nothing about
-rows that existed before. Removing one silently stops a consumer being told about it.
+A change to the captured set is a migration.

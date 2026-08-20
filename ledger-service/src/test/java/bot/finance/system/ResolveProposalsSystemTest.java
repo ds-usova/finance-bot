@@ -8,21 +8,22 @@ import static bot.finance.common.stubs.WireMockStubs.telegramAcceptsEditMessageR
 import static bot.finance.common.stubs.WireMockStubs.telegramDeliversOnce;
 import static bot.finance.common.stubs.WireMockStubs.telegramReturnsNoUpdates;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
-import bot.finance.adapter.persistence.ExpenseProposalEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +68,10 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
 
     private long userId;
 
+    private long proposalId1;
+    private long proposalId2;
+    private Instant createdAt;
+
     /**
      * The order below is load-bearing: the poll loop is already running, so the catch-all and response stubs must
      * be registered before the update-bearing stub, or the loop consumes the update before the response it
@@ -77,27 +82,33 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
         userId = UserRowUtils.storedUserId(userEntityRepository, FROM_ID_STRING);
         long groupingId = CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, GROUPING_NAME);
         long categoryId = CategoryRowUtils.storedCategoryId(jdbcAggregateTemplate, userId, groupingId, CATEGORY_NAME);
-        Instant now = Instant.now();
-        ExpenseProposalRowUtils.storedProposal(
-                jdbcAggregateTemplate,
-                userId,
-                categoryId,
-                DESCRIPTION_1,
-                MERCHANT,
-                AMOUNT_MINOR_UNITS,
-                CURRENCY_CODE,
-                reference,
-                now);
-        ExpenseProposalRowUtils.storedProposal(
-                jdbcAggregateTemplate,
-                userId,
-                categoryId,
-                DESCRIPTION_2,
-                MERCHANT,
-                AMOUNT_MINOR_UNITS,
-                CURRENCY_CODE,
-                reference,
-                now);
+        // the expense.created_at column stores microseconds, so seeding at that precision keeps the round trip
+        // exact and avoids asserting against a value the driver would otherwise round on the way in
+        createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        proposalId1 = ExpenseRowUtils.storedExpense(
+                        jdbcAggregateTemplate,
+                        userId,
+                        categoryId,
+                        DESCRIPTION_1,
+                        MERCHANT,
+                        AMOUNT_MINOR_UNITS,
+                        CURRENCY_CODE,
+                        reference,
+                        createdAt,
+                        ExpenseStatus.PENDING)
+                .id();
+        proposalId2 = ExpenseRowUtils.storedExpense(
+                        jdbcAggregateTemplate,
+                        userId,
+                        categoryId,
+                        DESCRIPTION_2,
+                        MERCHANT,
+                        AMOUNT_MINOR_UNITS,
+                        CURRENCY_CODE,
+                        reference,
+                        createdAt,
+                        ExpenseStatus.PENDING)
+                .id();
 
         telegramReturnsNoUpdates(TOKEN);
         telegramAcceptsAnswerCallbackQuery(TOKEN);
@@ -129,15 +140,20 @@ class ResolveProposalsSystemTest extends AbstractSystemTest {
                             .isNotEmpty());
 
             // then: nothing the message proposed is left pending
-            List<ExpenseProposalEntity> remainingProposals =
-                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            List<ExpenseEntity> remainingProposals =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING);
             assertThat(remainingProposals)
-                    .as("expense_proposal rows for user %s", userId)
+                    .as("PENDING expense rows for user %s", userId)
                     .isEmpty();
 
-            // then: both proposals are now expenses, each still naming the message it came from
-            List<ExpenseEntity> expenseRows = ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId);
+            // then: both proposals are now expenses, under the ids they were seeded with, created_at untouched
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows).as("expense rows for user %s", userId).hasSize(2);
+            assertThat(expenseRows)
+                    .as("accepted expenses carry the ids and created_at of the proposals they came from")
+                    .extracting(ExpenseEntity::id, ExpenseEntity::createdAt)
+                    .containsExactlyInAnyOrder(tuple(proposalId1, createdAt), tuple(proposalId2, createdAt));
             assertThat(expenseRows)
                     .as("every accepted expense carries the resolved message reference")
                     .allSatisfy(row -> assertThat(row.incomingMessageId()).isEqualTo(reference));

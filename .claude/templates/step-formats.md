@@ -67,17 +67,29 @@ non-redundant test suite, not a mechanical one-test-per-plan-bullet mapping. If 
 scenario adequately, omit it from the plan.
 
 **Existing-test updates rule.** The same review cuts the other way: when the change alters behaviour an existing
-test already covers — a new field the test's assertions would now omit, or a grown enum/case set that an
-exhaustive parameterized test iterates — list the required change as an explicit `update:` sub-bullet under the
-affected method:
+test already covers, the step carries an `update:` sub-bullet saying so. It takes one of two forms, and the form
+is chosen by whether the change is derivable from a premise:
 
 ```
-- update: `existingTestMethod()` — [what to add or change, e.g. assert the new `status` field]
+- update: `existingTestMethod()` — [one outcome, written from the method's body: assert the new `status` field; delete]
+- update: premise — [what the change did to what this class's tests touch] · [what follows for a test that meets it]
 ```
 
-The step sub-agent implements exactly the scenarios and `update:` bullets listed; it never decides on its own which
-existing tests to touch. An update missing here is a plan defect, caught by the sub-agent's report or the plan review
-— not the sub-agent's call to fix.
+- **Per method** — one method, one outcome, read off that method's body. For a change no premise derives: a
+  test to delete, an assertion a new field needs, a case a grown enum adds. `— delete` is always per method: the
+  red exit check counts what left the tree against these bullets.
+- **Per class (premise)** — a fact about the change, and what it implies for a test that meets it: `two ports
+  merged into one ExpenseRepository; spendingQueryRepository untouched · a test verifying either merged port
+  verifies the one mock`. Whichever tests meet the premise is decided by the step agent, from each test's body —
+  the premise names the collaborator, the field or the value it turns on, so that reading a body settles it. Never
+  a transformation to work out per method with the premise left implicit, and never one sentence stretched over
+  methods it does not all hold for. Name a method under a premise bullet only as an example.
+
+The step sub-agent writes exactly the scenarios listed and applies every `update:` bullet — a per-method one as
+written, a premise one to each test in its class whose body meets the premise, and to no other. It never widens
+a premise to make a test fit; a test the sentence seems to reach but the body does not is left alone and named in
+the report. An update missing here is a plan defect, caught by the sub-agent's report or the plan review — not
+the sub-agent's call to fix.
 
 **Removed behaviour is searched for, not remembered.** Reviewing the classes a step already names finds a test that
 asserts *more* than it should; it does not find the test in some other class that asserts something the change

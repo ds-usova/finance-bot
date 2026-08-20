@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 
 import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.dto.ReportLocation;
-import bot.finance.application.port.ExpenseProposalRepository;
+import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
@@ -38,7 +38,7 @@ class ClearEmptiedReportsUseCaseTest {
     private static final IncomingMessageId MESSAGE_A = IncomingMessageId.of("777:1");
     private static final IncomingMessageId MESSAGE_B = IncomingMessageId.of("777:2");
 
-    private ExpenseProposalRepository expenseProposalRepository;
+    private ExpenseRepository expenseRepository;
     private ProposalReportRepository proposalReportRepository;
     private MessageDeliveryPort messageDeliveryPort;
     private Logger log;
@@ -49,11 +49,11 @@ class ClearEmptiedReportsUseCaseTest {
         log = mock(Logger.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         when(loggerFactory.getLogger(ClearEmptiedReportsUseCase.class)).thenReturn(log);
-        expenseProposalRepository = mock(ExpenseProposalRepository.class);
+        expenseRepository = mock(ExpenseRepository.class);
         proposalReportRepository = mock(ProposalReportRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
         useCase = new ClearEmptiedReportsUseCase(
-                expenseProposalRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
+                expenseRepository, proposalReportRepository, messageDeliveryPort, loggerFactory);
     }
 
     private ClearEmptiedReportsCommand commandFor(List<IncomingMessageId> messageIds) {
@@ -71,8 +71,7 @@ class ClearEmptiedReportsUseCaseTest {
         @Test
         @DisplayName("when the only message is emptied and holds one report - then its buttons come off")
         void whenMessageEmptiedWithOneReport_thenButtonsComeOffThatReportAndNothingElseSent() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             ProposalReport report = reportOn(10L, MESSAGE_A, "42");
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
                     .thenReturn(List.of(report));
@@ -85,8 +84,7 @@ class ClearEmptiedReportsUseCaseTest {
         @Test
         @DisplayName("when the one message still has a pending proposal - then nothing is sent for it")
         void whenMessageStillHasPendingProposal_thenNothingIsSentForIt() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of(MESSAGE_A));
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of(MESSAGE_A));
 
             useCase.clear(commandFor(List.of(MESSAGE_A)));
 
@@ -98,8 +96,7 @@ class ClearEmptiedReportsUseCaseTest {
         @DisplayName("when one of two messages is emptied and the other still pending - then only the emptied one's "
                 + "report is cleared")
         void whenOneOfTwoMessagesEmptiedAndOtherPending_thenOnlyEmptiedOnesReportCleared() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of(MESSAGE_B));
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of(MESSAGE_B));
             ProposalReport report = reportOn(10L, MESSAGE_A, "42");
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
                     .thenReturn(List.of(report));
@@ -115,8 +112,7 @@ class ClearEmptiedReportsUseCaseTest {
         @DisplayName("when an emptied message has two reports recorded - then the buttons come off both, in the "
                 + "order they were recorded")
         void whenEmptiedMessageHasTwoReports_thenButtonsComeOffBothInRecordedOrder() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             ProposalReport firstReport = reportOn(10L, MESSAGE_A, "42");
             ProposalReport secondReport = reportOn(11L, MESSAGE_A, "43");
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
@@ -133,8 +129,7 @@ class ClearEmptiedReportsUseCaseTest {
         @DisplayName("when an emptied message has no report recorded - then nothing is sent, and the remaining "
                 + "messages are still cleared")
         void whenEmptiedMessageHasNoReportRecorded_thenNothingSentAndRemainingMessagesStillCleared() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
                     .thenReturn(List.of());
             ProposalReport report = reportOn(11L, MESSAGE_B, "43");
@@ -152,7 +147,7 @@ class ClearEmptiedReportsUseCaseTest {
         void whenCommandIsAbsent_thenThrowsInvalidProposalReportExceptionAndNoPortIsRead() {
             assertThatThrownBy(() -> useCase.clear(null)).isInstanceOf(InvalidProposalReportException.class);
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(proposalReportRepository);
             verifyNoInteractions(messageDeliveryPort);
         }
@@ -160,8 +155,7 @@ class ClearEmptiedReportsUseCaseTest {
         @Test
         @DisplayName("when an emptied message has no report recorded - then it is not reported as cleared")
         void whenEmptiedMessageHasNoReportRecorded_thenItIsNotReportedAsCleared() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
                     .thenReturn(List.of());
 
@@ -178,7 +172,7 @@ class ClearEmptiedReportsUseCaseTest {
         @DisplayName("when the counts read throws PersistenceFailedException - then nothing is sent, and nothing "
                 + "propagates out of clear()")
         void whenCountsReadThrowsPersistenceFailedException_thenNothingSentAndNothingPropagates() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any()))
                     .thenThrow(new PersistenceFailedException("read failed", new RuntimeException()));
 
             assertThatCode(() -> useCase.clear(commandFor(List.of(MESSAGE_A)))).doesNotThrowAnyException();
@@ -190,8 +184,7 @@ class ClearEmptiedReportsUseCaseTest {
         @Test
         @DisplayName("when the report lookup fails for the first message - then the second is still cleared")
         void whenReportLookupFailsForFirstMessage_thenSecondIsStillClearedAndNothingPropagates() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
                     .thenThrow(new PersistenceFailedException("read failed", new RuntimeException()));
             ProposalReport second = reportOn(11L, MESSAGE_B, "43");
@@ -208,8 +201,7 @@ class ClearEmptiedReportsUseCaseTest {
         @Test
         @DisplayName("when the first of two clearings is refused - then the second is still attempted")
         void whenFirstClearingRefused_thenSecondStillAttemptedAndNothingPropagates() {
-            when(expenseProposalRepository.findWithPendingProposals(eq(USER_ID), any()))
-                    .thenReturn(Set.of());
+            when(expenseRepository.findWithPendingProposals(eq(USER_ID), any())).thenReturn(Set.of());
             ProposalReport firstReport = reportOn(10L, MESSAGE_A, "42");
             ProposalReport secondReport = reportOn(11L, MESSAGE_A, "43");
             when(proposalReportRepository.findByIncomingMessageId(USER_ID, MESSAGE_A))
@@ -228,7 +220,7 @@ class ClearEmptiedReportsUseCaseTest {
         void whenCommandCarriesNoMessageIds_thenNeitherRepositoryReadAndNothingSent() {
             useCase.clear(commandFor(List.of()));
 
-            verifyNoInteractions(expenseProposalRepository);
+            verifyNoInteractions(expenseRepository);
             verifyNoInteractions(proposalReportRepository);
             verifyNoInteractions(messageDeliveryPort);
         }

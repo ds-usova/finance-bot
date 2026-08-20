@@ -62,8 +62,8 @@ this module however the work was done, so it is not an agent-only fact and does 
 This section says only how a **plan** carries those two things:
 
 - Which kinds from that file a plan lists under its **Post-Implementation Steps** group, and what one item looks
-  like: `<e.g. a decision record, as `Write ADR: <the decision, stated as a fact>`; or "none — nothing there is
-  written per plan">`
+  like: `<e.g. a decision record's placeholder, as `Place ADR: <the decision, stated as a fact>`; or "none —
+  nothing there is written per plan">`
 - Where an artifact needs the developer's consent, the plan raises it as a numbered question and only an answered
   yes becomes an item. Nothing downstream writes one that has no item.
 

@@ -21,7 +21,7 @@
 | Direction | Collaborator                                                                           | Through                                                                           | For                                                                       |
 |-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | naming the category on each listed expense, and filling the filter        |
-| out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and reading their categories with their groupings |
+| out       | [Database](../contracts/out/database.md)                                               | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, and reading their categories with their groupings |
 
 ## Outcomes
 
@@ -47,7 +47,7 @@ AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1
 AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(browser, "A signed-in person's browser", "The web app's page", $tags="webExternal")
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses and expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid session cookie", $tags="webExternal")

@@ -14,4 +14,4 @@ invent a name.
 
 Currency to assume when the user states an amount without one: {assumedCurrency}
 
-Message: {text}
+{examples}Message: {text}

@@ -1,6 +1,6 @@
 # ADR 0006: An expense proposal is a table and an entity of its own
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR 0018
 - **Date:** 2026-07-30
 - **Source:** [Create an Expense Proposal](../../../docs/implemented/7-create-expense-proposal/plan.md)
 

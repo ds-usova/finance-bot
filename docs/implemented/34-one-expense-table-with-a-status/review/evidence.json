@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/34-one-expense-table-with-a-status/plan.md",
+  "commit": "3c258d3",
+  "branch": "dev",
+  "workingTree": "5 uncommitted file(s)",
+  "generated": "2026-08-17T22:46:12Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 410, "passed": 410, "failed": 0, "skipped": 0, "instructions": "97.2%", "branches": "93.6%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "FAIL", "tests": 1127, "passed": 1126, "failed": 1, "skipped": 0, "instructions": "96.3%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}

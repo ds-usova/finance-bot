@@ -61,6 +61,7 @@ dependencies {
     implementation "org.flywaydb:flyway-database-postgresql"
     implementation "org.postgresql:postgresql"
     implementation "org.springframework.security:spring-security-oauth2-jose"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
 
     testImplementation "org.springframework.boot:spring-boot-starter-grpc-server-test"
     testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
@@ -78,6 +79,7 @@ dependencies {
 
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
     testImplementation "org.testcontainers:testcontainers-postgresql"
+    testImplementation "org.testcontainers:testcontainers-toxiproxy"
 
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }

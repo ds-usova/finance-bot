@@ -13,6 +13,7 @@ import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Duration;
@@ -84,7 +85,8 @@ class ChangeStreamMetersSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 
@@ -94,8 +96,9 @@ class ChangeStreamMetersSystemTest {
                     .statusCode(200);
             await("the first category change reaches the stream")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId))
-                            .isNotEmpty());
+                    .untilAsserted(
+                            () -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId))
+                                    .isNotEmpty());
 
             // given: Redis has refused at least one write, cut at the proxy
             ToxiproxyContainers.REDIS_PROXY.setConnectionCut(true);
@@ -113,11 +116,11 @@ class ChangeStreamMetersSystemTest {
             response.then().statusCode(200);
             String body = response.getBody().asString();
 
-            // then: it carries a published count tagged by table and op
+            // then: it carries a published count tagged by the type the refile produced
             assertThat(body)
-                    .as("published count tagged by table and op")
-                    .containsPattern(Pattern.compile("(?m)^ledger_cdc_events_published_total\\{"
-                            + "(?=[^}]*table=\"expense\")(?=[^}]*op=\"u\")[^}]*}"));
+                    .as("published count tagged by the event type")
+                    .containsPattern(Pattern.compile(
+                            "(?m)^ledger_cdc_events_published_total\\{(?=[^}]*type=\"ExpenseRefiled\")[^}]*}"));
             // then: a failure count
             assertThat(body).as("publish failure count").contains("ledger_cdc_publish_failures_total");
             // then: the event lag
@@ -125,6 +128,8 @@ class ChangeStreamMetersSystemTest {
             // then: the slot's retained bytes and wal status
             assertThat(body).as("slot retained bytes").contains("ledger_cdc_slot_retained_bytes");
             assertThat(body).as("slot wal status").contains("ledger_cdc_slot_wal_status");
+            // then: the outbox row count
+            assertThat(body).as("outbox row count").contains("ledger_cdc_outbox_rows");
             // then: the engine's state
             assertThat(body).as("engine state").contains("ledger_cdc_state");
         }

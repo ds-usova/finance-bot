@@ -52,7 +52,8 @@ class CleanArchitectureTest {
                     "org.springframework.jdbc..",
                     "org.springframework.security..",
                     "com.nimbusds..",
-                    "org.flywaydb..")
+                    "org.flywaydb..",
+                    "org.springframework.data.redis..")
             .allowEmptyShould(true);
 
     /**
@@ -78,6 +79,8 @@ class CleanArchitectureTest {
             .haveSimpleNameContaining("Jwt")
             .orShould()
             .haveSimpleNameContaining("Jwks")
+            .orShould()
+            .haveSimpleNameContaining("Redis")
             .allowEmptyShould(true);
 
     /**

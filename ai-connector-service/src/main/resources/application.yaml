@@ -17,6 +17,9 @@ spring:
   data:
     jdbc:
       dialect: postgresql
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      timeout: 2s
   flyway:
     enabled: ${memory.enabled}
   ai:
@@ -26,6 +29,8 @@ spring:
       chat:
         model: ${OPENAI_MODEL:gpt-4o-mini}
         temperature: 0
+      embedding:
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
     mcp:
       client:
         name: ai-connector-service
@@ -48,6 +53,16 @@ memory:
   max-age: ${MEMORY_MAX_AGE:365d}
   purge-interval: ${MEMORY_PURGE_INTERVAL:1d}
   purge-batch: ${MEMORY_PURGE_BATCH:1000}
+  entry-attempts: ${MEMORY_ENTRY_ATTEMPTS:3}
+  embedding-timeout: ${MEMORY_EMBEDDING_TIMEOUT:15s}
+  embedding-attempts: ${MEMORY_EMBEDDING_ATTEMPTS:3}
+  examples: ${MEMORY_EXAMPLES:3}
+  min-similarity: ${MEMORY_MIN_SIMILARITY:0.6}
+  recent-window: ${MEMORY_RECENT_WINDOW:30d}
+  example-lines: ${MEMORY_EXAMPLE_LINES:10}
+  backfill-batch: ${MEMORY_BACKFILL_BATCH:100}
+  backfill-batches: ${MEMORY_BACKFILL_BATCHES:10}
+  backfill-timeout: ${MEMORY_BACKFILL_TIMEOUT:60s}
 
 ledger:
   token:
@@ -55,6 +70,9 @@ ledger:
     audience: ${LEDGER_TOKEN_AUDIENCE:mcp-adapter}
     jwks-timeout: ${LEDGER_JWKS_TIMEOUT:3s}
     jwks-uri: ${spring.ai.mcp.client.streamable-http.connections.ledger.url}/.well-known/jwks.json
+  change-stream:
+    key: ${CDC_STREAM_KEY:ledger.cdc}
+    claim-idle: 30s
 
 management:
   endpoints:
@@ -79,4 +97,6 @@ management:
           include: readinessState
   health:
     db:
+      enabled: ${memory.enabled}
+    redis:
       enabled: ${memory.enabled}

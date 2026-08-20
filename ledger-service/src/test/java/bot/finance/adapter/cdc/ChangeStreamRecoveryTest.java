@@ -7,9 +7,12 @@ import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.ReplicationSlots;
 import bot.finance.common.boot.CdcAdapterTest;
 import bot.finance.common.fixtures.ChangeStreamEntries;
-import bot.finance.common.rows.CategoryRowUtils;
+import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
+import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -123,15 +126,17 @@ class ChangeStreamRecoveryTest {
         }
 
         @Test
-        @DisplayName("when captured rows changed while invalidated - then none of them is ever offered")
-        void whenCapturedRowsChangedWhileSlotInvalidated_thenNoneOfThoseChangesIsEverOfferedOnceStreamingResumes() {
+        @DisplayName("when a row is inserted after the slot is rebuilt - then its entry reaches the stream and "
+                + "the abandoned row does not")
+        void whenRowInsertedAfterRebuild_thenItsEntryReachesStreamAndAbandonedRowDoesNot() {
             long userId = UserRowUtils.storedUserId(userEntityRepository, "recovery-test-" + UUID.randomUUID());
+            String eventType = "ExpenseRecorded";
             invalidateSlot();
 
             // Written while no slot is holding the log, so the rebuilt slot starts past it. A consumer never
             // learns of it - the cost of a rebuild, and the reason the abandoned position is logged at error.
-            long groupingId =
-                    CategoryRowUtils.storedGroupingId(jdbcAggregateTemplate, userId, "Groceries " + UUID.randomUUID());
+            UUID abandonedId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, abandonedId, eventType, Instant.now(), userId);
 
             changeStreamRecovery.recover();
             changeStreamReader.start();
@@ -139,14 +144,17 @@ class ChangeStreamRecoveryTest {
 
             // A later change does reach the stream, which is what makes the absence above a real absence rather
             // than a stream nobody ever wrote to.
-            CategoryRowUtils.storedCategoryId(
-                    jdbcAggregateTemplate, userId, groupingId, "Markets " + UUID.randomUUID());
+            UUID afterRebuildId = UUID.randomUUID();
+            OutboxRowUtils.storedOutboxRowFor(jdbcTemplate, afterRebuildId, eventType, Instant.now(), userId);
+
             await().atMost(Duration.ofSeconds(20))
-                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
+                    .untilAsserted(() -> assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, eventType, userId))
                             .hasSize(1));
-            assertThat(ChangeStreamEntries.entriesOnFor(STREAM_KEY, "category", userId))
-                    .extracting(entry -> entry.after().path("id").asLong())
-                    .doesNotContain(groupingId);
+            List<ChangeStreamEntry> entries = ChangeStreamEntries.entriesOnFor(STREAM_KEY, eventType, userId);
+            assertThat(entries)
+                    .extracting(ChangeStreamEntry::eventId)
+                    .containsExactly(afterRebuildId.toString())
+                    .doesNotContain(abandonedId.toString());
 
             assertThat(currentWalStatus()).isIn("reserved", "extended");
         }

@@ -9,8 +9,9 @@ import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.ChangeStreamEntries;
 import bot.finance.common.fixtures.ChangeStreamEntries.ChangeStreamEntry;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -18,7 +19,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,8 +63,9 @@ class AcceptedProposalChangeStreamSystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when a pending proposal is accepted - then the delete and the insert share one txId")
-        void whenAPendingProposalIsAccepted_thenTheDeleteAndTheInsertShareOneTransactionId() {
+        @DisplayName(
+                "when two proposals on two messages are accepted - then two ProposalAccepted entries reach the stream")
+        void whenTwoProposalsAcceptedById_thenTwoProposalAcceptedEntriesReachStream() {
             String externalId = "accepted-proposal-happy-user";
             String sessionCookie = BrowserSessions.signIn(TelegramTestBot.PROFILE_DEFAULT_TOKEN, externalId)
                     .getCookie(SESSION_COOKIE);
@@ -73,7 +74,7 @@ class AcceptedProposalChangeStreamSystemTest {
                     .orElseThrow()
                     .id();
             long categoryId = CategoryRowUtils.firstLeafCategoryId(jdbcAggregateTemplate, userId);
-            long proposalId = ExpenseProposalRowUtils.storedProposal(
+            long firstProposalId = ExpenseRowUtils.storedExpense(
                             jdbcAggregateTemplate,
                             userId,
                             categoryId,
@@ -82,48 +83,53 @@ class AcceptedProposalChangeStreamSystemTest {
                             350L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.PENDING)
+                    .id();
+            long secondProposalId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "lunch",
+                            "Cafe",
+                            1230L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            Instant.now(),
+                            ExpenseStatus.PENDING)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 
-            // when: the proposal is accepted through the endpoint
+            // when: both proposals are accepted by id through the endpoint
             Response response = RestAssured.given()
                     .contentType(ContentType.JSON)
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .cookie(CSRF_COOKIE, csrfToken)
                     .header(CSRF_HEADER, csrfToken)
-                    .body(Map.of("ids", List.of(proposalId)))
+                    .body(Map.of("ids", List.of(firstProposalId, secondProposalId)))
                     .when()
                     .post(ACCEPTANCES_PATH);
             response.then().statusCode(200);
+            assertThat(response.jsonPath().getInt("accepted"))
+                    .as("both proposals reported on their own message are accepted")
+                    .isEqualTo(2);
 
-            // then: a d entry on expense_proposal and a c entry on expense reach the stream
-            await("the proposal's delete and the expense's insert both reach the stream")
-                    .atMost(TIMEOUT)
-                    .untilAsserted(() -> {
-                        assertThat(deleteEntry(userId, proposalId))
-                                .as("the proposal's delete entry")
-                                .isPresent();
-                        assertThat(insertEntry(userId))
-                                .as("the expense's insert entry")
-                                .isPresent();
-                    });
-            ChangeStreamEntry delete = deleteEntry(userId, proposalId).orElseThrow();
-            ChangeStreamEntry insert = insertEntry(userId).orElseThrow();
+            // then: two ProposalAccepted entries reach the stream, keeping their pending expenseId
+            await("both acceptances reach the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalAccepted", userId))
+                    .as("ProposalAccepted entries for this user")
+                    .hasSize(2));
+            List<ChangeStreamEntry> accepted = ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ProposalAccepted", userId);
+            assertThat(accepted)
+                    .extracting(ChangeStreamEntry::expenseId)
+                    .as("each entry keeps the expenseId its pending entry already had")
+                    .containsExactlyInAnyOrder(firstProposalId, secondProposalId);
 
-            // then: the two share one source.txId
-            assertThat(insert.payload().path("source").path("txId").asLong())
-                    .as("the expense insert's txId")
-                    .isEqualTo(delete.payload().path("source").path("txId").asLong());
-
-            // then: before is the whole deleted row, and after matches it
-            assertThat(delete.before().path("description").asText()).isEqualTo("coffee");
-            assertThat(insert.after().path("description").asText())
-                    .as("the recorded expense's description matches the deleted proposal's")
-                    .isEqualTo(delete.before().path("description").asText());
-            assertThat(insert.after().path("amount_minor_units").asLong())
-                    .as("the recorded expense's amount matches the deleted proposal's")
-                    .isEqualTo(delete.before().path("amount_minor_units").asLong());
+            // then: each entry carries status RECORDED, the pending-to-recorded fact
+            assertThat(accepted)
+                    .extracting(entry -> entry.payload().path("status").asText())
+                    .as("both entries now read RECORDED")
+                    .containsExactly("RECORDED", "RECORDED");
         }
     }
 
@@ -164,23 +170,10 @@ class AcceptedProposalChangeStreamSystemTest {
                     .as("the unknown id is missing")
                     .isEqualTo(1);
 
-            // then: no entry for that id reaches the stream
-            assertThat(deleteEntry(userId, unknownProposalId))
-                    .as("no delete entry for an id that never named a row")
-                    .isEmpty();
+            // then: no entry of any type carries that expenseId
+            assertThat(ChangeStreamEntries.allEntriesOn(STREAM_KEY))
+                    .as("no entry, of any type, carries an id that never named a row")
+                    .noneMatch(entry -> userId == entry.userId() && unknownProposalId == entry.expenseId());
         }
-    }
-
-    private Optional<ChangeStreamEntry> deleteEntry(long userId, long proposalId) {
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense_proposal", userId).stream()
-                .filter(entry ->
-                        "d".equals(entry.op()) && entry.before().path("id").asLong() == proposalId)
-                .findFirst();
-    }
-
-    private Optional<ChangeStreamEntry> insertEntry(long userId) {
-        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId).stream()
-                .filter(entry -> "c".equals(entry.op()))
-                .findFirst();
     }
 }

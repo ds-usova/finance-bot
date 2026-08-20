@@ -18,6 +18,8 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
 
     boolean existsByIdAndUserIdAndParentIdIsNotNull(Long id, Long userId);
 
+    boolean existsByIdAndParentIdIsNull(Long id);
+
     @Query(
             """
             SELECT c.name
@@ -50,12 +52,4 @@ public interface CategoryEntityRepository extends CrudRepository<CategoryEntity,
             ORDER BY name
             """)
     List<GroupingEntryProjection> findGroupingEntriesForUser(@Param("userId") Long userId);
-
-    @Query(
-            """
-            SELECT name, parent_id
-            FROM category
-            WHERE id = :categoryId
-            """)
-    Optional<CategoryRowProjection> findCategoryRow(@Param("categoryId") Long categoryId);
 }

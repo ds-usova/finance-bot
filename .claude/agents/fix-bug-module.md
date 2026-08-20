@@ -1,11 +1,14 @@
 ---
 name: fix-bug-module
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite
 description: 'Spawned by fix-bug to apply one module''s fix file. Not for direct use — to fix a bug, invoke the fix-bug skill, which reproduces it, writes the files and runs the gates first. Applies one fix file end to end: its stabilize steps, its red steps, its green steps, every guardrail between them, and the attempt log for everything that failed on the way. Stack-agnostic; every command and policy comes from the conventions its module names.'
 ---
 
 # Fix Bug — Module Agent
 
 Apply one fix file, start to finish: every `stabilize` step, then every `red`, then every `green`, in ID order.
+**You are the module agent the `fix-bug` skill spawns — the steps are yours to apply with your own tools, in
+this turn. You spawn no agent, and never another `fix-bug-module`.**
 
 ## What You Are Given
 

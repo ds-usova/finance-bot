@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.adapter.persistence.LedgerEventOutbox;
 import bot.finance.adapter.persistence.ReplicationCatalogue;
 import bot.finance.adapter.persistence.ReplicationSlotRetention;
 import bot.finance.common.fixtures.CdcConfigurations;
@@ -28,14 +29,17 @@ class ReplicationSlotMonitorGaugesTest {
     private static final String SLOT_NAME = "replication_slot_monitor_gauges_test";
     private static final String RETAINED_BYTES_METER = "ledger_cdc_slot_retained_bytes";
     private static final String WAL_STATUS_METER = "ledger_cdc_slot_wal_status";
+    private static final String OUTBOX_ROWS_METER = "ledger_cdc_outbox_rows";
 
     private ReplicationCatalogue replicationCatalogue;
+    private LedgerEventOutbox ledgerEventOutbox;
     private MeterRegistry meterRegistry;
     private ReplicationSlotMonitor replicationSlotMonitor;
 
     @BeforeEach
     void wireTheCollaborators() {
         replicationCatalogue = mock(ReplicationCatalogue.class);
+        ledgerEventOutbox = mock(LedgerEventOutbox.class);
         meterRegistry = new SimpleMeterRegistry();
 
         replicationSlotMonitor = new ReplicationSlotMonitor(
@@ -43,6 +47,7 @@ class ReplicationSlotMonitorGaugesTest {
                 CdcConfigurations.forSlot(SLOT_NAME),
                 new ChangeStreamMeters(meterRegistry),
                 mock(ScheduledExecutorService.class),
+                ledgerEventOutbox,
                 new Slf4jLoggerFactory());
     }
 
@@ -82,6 +87,34 @@ class ReplicationSlotMonitorGaugesTest {
             replicationSlotMonitor.readSlot();
 
             assertThat(gauge(WAL_STATUS_METER).value()).isEqualTo(ReplicationSlotState.LOST.ordinal());
+        }
+
+        @Test
+        @DisplayName("when the outbox holds one row a write never deleted - then the outbox rows gauge reads 1 "
+                + "beside the slot gauges")
+        void whenOutboxHoldsOneRowAWriteNeverDeleted_thenOutboxRowsGaugeReadsOneBesideSlotGauges() {
+            when(replicationCatalogue.findSlotRetention(SLOT_NAME))
+                    .thenReturn(Optional.of(new ReplicationSlotRetention(4096L, "extended")));
+            when(ledgerEventOutbox.rowCount()).thenReturn(1L);
+
+            replicationSlotMonitor.readSlot();
+
+            assertThat(gauge(OUTBOX_ROWS_METER).value()).isEqualTo(1.0);
+            assertThat(gauge(RETAINED_BYTES_METER).value()).isEqualTo(4096.0);
+            assertThat(gauge(WAL_STATUS_METER).value()).isEqualTo(ReplicationSlotState.EXTENDED.ordinal());
+        }
+
+        @Test
+        @DisplayName("when no slot exists and the outbox answers one row - then the outbox rows gauge reads 1")
+        void whenNoSlotExistsAndOutboxAnswersOneRow_thenOutboxRowsGaugeReadsOne() {
+            when(replicationCatalogue.findSlotRetention(SLOT_NAME)).thenReturn(Optional.empty());
+            when(ledgerEventOutbox.rowCount()).thenReturn(1L);
+
+            replicationSlotMonitor.readSlot();
+
+            assertThat(gauge(OUTBOX_ROWS_METER).value()).isEqualTo(1.0);
+            assertThat(gauge(RETAINED_BYTES_METER).value()).isZero();
+            assertThat(gauge(WAL_STATUS_METER).value()).isEqualTo(ReplicationSlotState.ABSENT.ordinal());
         }
 
         private Gauge gauge(String name) {

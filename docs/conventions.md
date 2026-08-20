@@ -13,11 +13,12 @@ them.
 - [Building a Node Module](conventions/node-build.md) — the npm scripts, the coverage guardrail, the
   formatting gate and dependency versions, for every npm/TypeScript module.
 - [Code Style](conventions/code-style.md) — what holds for production code in every module, whatever its stack.
+- [Testing](conventions/testing.md) — what holds for tests in every module, whatever its stack.
 - [Diagrams](conventions/diagrams.md) — the diagram language, its includes, and what each C4 level shows.
 - [Version Control](conventions/version-control.md) — when a change is committed, what a message says, and how a
   commit is scoped while another module is being worked.
 - [Parallelism](conventions/parallelism.md) — how much may run at once on the machine every module shares, and
   how many plans may be implemented side by side.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what documents it earns.
-- [ADR Lifecycle](conventions/adr.md) — how a decision record is superseded or deprecated, and how it is
-  numbered across the two tiers.
+- [Architecture Decision Records](conventions/adr.md) — what earns a decision record, where it goes, how it is
+  numbered across the two tiers, who writes it, and how it is superseded or deprecated.

@@ -25,6 +25,7 @@
 | in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)                          | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
 | out       | [Ledger key set](../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates)               | [Ledger tools](../contracts/out/ledger-mcp.md)            | reading who the token acts for                  |
 | out       | [Message store](../contracts/out/database.md)                                                               | [Database](../contracts/out/database.md)                  | keeping the message the caller handed over      |
+| out       | [Recall the person's own worked examples](recall-examples.md)                                               | Recall Examples Port                                      | showing the model how this person files things  |
 | out       | [AI Provider](../contracts/out/ai-provider.md)                                                              | [Chat completions](../contracts/out/ai-provider.md)       | reading the message and deciding what to do     |
 | out       | [Category Lookup Tool](../../../ledger-service/docs/usecases/list-categories.md)                            | [Ledger tools](../contracts/out/ledger-mcp.md)            | learning which categories a grouping holds      |
 | out       | [Expense Proposal Tool](../../../ledger-service/docs/usecases/create-an-expense-proposal.md)                | [Ledger tools](../contracts/out/ledger-mcp.md)            | recording one expense                           |
@@ -36,8 +37,11 @@
 |-------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | Turn acted on           | the model finished the turn                                                       | an empty answer                                                                      |
 | Message kept            | the token names a person and a message                                            | the message is stored under that pair before the model is called                     |
-| Message already known   | the same person and message arrive a second time                                  | the turn runs again                                                                  |
+| Message already known   | the same person and message arrive a second time                                  | the first row and its text stand; the turn runs again                                |
 | Message not kept        | the store refuses the write                                                       | an empty answer; the turn runs as if it had been kept                                |
+| Examples offered        | the recall answered examples                                                      | they reach the model beside the message                                              |
+| No examples to offer    | the recall answered no examples                                                   | the model is told this person has no comparable earlier message                      |
+| Examples not looked for | the recall answered nothing at all                                                | the model gets the message with no examples; the turn runs unchanged                 |
 | Nothing recorded        | the message names no spending                                                     | an empty answer                                                                      |
 | Summary asked for       | the message asks what was spent over a period                                     | an empty answer                                                                      |
 | Expense left unrecorded | the ledger refused it and its one corrected retry, or the message under-said it   | an empty answer; the rest of the message still recorded                              |
@@ -76,6 +80,8 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
 
   Component(storePort, "Message Store Port", "Interface", "Outbound port", $tags="portOut")
   Component(storeAdapter, "Message Store Adapter", "Spring Data JDBC", "Writes the message under the person and the message it names", $tags="storeExternal")
+  Component(recallPort, "Recall Examples Port", "Interface", "Outbound port", $tags="portOut")
+  Component(recallUseCase, "Recall Examples Use Case", "Plain Java", "Answers this person's closest earlier messages, or nothing", $tags="core")
   Component(recordingPort, "Expense Recording Port", "Interface", "Outbound port", $tags="portOut")
   Component(recordingAdapter, "Expense Recording Adapter", "Spring AI ChatClient", "Prompts the model with the ledger's tools attached", $tags="aiExternal")
   Component(toolClient, "Ledger Tool Client", "MCP client", "Lists the tools, calls them as the turn's caller", $tags="callerExternal")
@@ -92,6 +98,8 @@ Rel_L(useCase, extractIntentsPort, "Implements", $tags="implements")
 Rel_D(useCase, storePort, "Registers the message through")
 Rel_U(storeAdapter, storePort, "Implements", $tags="implements")
 Rel_R(storeAdapter, database, "The message, under its person and message id", "SQL")
+Rel_D(useCase, recallPort, "Recalls the examples through")
+Rel_U(recallUseCase, recallPort, "Implements", $tags="implements")
 Rel_R(useCase, recordingPort, "Uses")
 Rel_R(recordingAdapter, recordingPort, "Implements", $tags="implements")
 Rel_R(recordingAdapter, aiProvider, "Message, groupings, today, tool schemas", "HTTPS")
@@ -102,6 +110,7 @@ Rel_L(toolClient, ledger, "The ledger's published tools", "MCP over HTTP")
 
 Lay_D(useCase, currency)
 Lay_D(storePort, storeAdapter)
+Lay_D(recallPort, recallUseCase)
 Lay_D(recordingAdapter, toolClient)
 
 SHOW_LEGEND()
@@ -109,9 +118,6 @@ SHOW_LEGEND()
 ```
 
 ## Flow
-
-Three diagrams: the turn every message goes through, then what happens inside it when the model records
-spending, and when it answers a spending question.
 
 ### The turn
 
@@ -121,6 +127,7 @@ participant "Ledger Service" as Caller
 participant "AI Connector Service" as Service
 participant "Ledger Key Set" as KeySet
 participant "Message Store" as Store
+participant "Recall" as Recall
 participant "Ledger Tools" as Tools
 participant "AI Provider" as Provider
 
@@ -137,13 +144,15 @@ else the request cannot be used
 else the request is usable
     Service -> Store : keep this message, under that person and message
     Store --> Service : kept, already there, or refused
+    Service -> Recall : this person's own worked examples
+    Recall --> Service : the examples, none of them, or nothing looked for
     Service -> Tools : list the tools, as the caller
 
     alt the ledger cannot be reached
         Tools --> Service : transport failure
         Service --> Caller : unavailable
     else the tools are known
-        Service -> Provider : the standing instructions, the message, the groupings, the catch-all, today, the tool schemas
+        Service -> Provider : the standing instructions, the message, the examples, the groupings, the catch-all, today, the tool schemas
 
         alt the provider fails
             Provider --> Service : failure
@@ -164,9 +173,6 @@ end
 ```
 
 ### Recording spending
-
-Every arm ends with the model answering without a further tool call, which is the turn's "acted on" above; a
-ledger that cannot be reached ends the turn as unavailable instead.
 
 ```plantuml
 @startuml ExtractIntents-RecordingSpending
@@ -226,4 +232,6 @@ Provider --> Service : an answer with no further tool call
   why the token is verified here and what the store is for
 - [ADR 0010: A message reference rides the caller token](../../../ledger-service/docs/adr/0010-a-message-reference-rides-the-caller-token-not-the-extraction-request.md) —
   why the request carries no message id
+- [Learn what the ledger did with a message](learn-message-outcome.md) — what becomes of the message once the
+  ledger has acted on it
 - [Delete the messages kept past their age](purge-messages.md) — what removes a kept message again

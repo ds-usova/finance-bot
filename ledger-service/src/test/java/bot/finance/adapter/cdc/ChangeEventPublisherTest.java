@@ -1,43 +1,31 @@
 package bot.finance.adapter.cdc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bot.finance.adapter.redis.RedisChangeStreamWriter;
-import bot.finance.common.fixtures.JsonUtils;
-import bot.finance.domain.exception.PersistenceFailedException;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.debezium.engine.ChangeEvent;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 class ChangeEventPublisherTest {
 
-    private CategoryNameResolver categoryNameResolver;
     private RedisChangeStreamWriter redisChangeStreamWriter;
     private ChangeStreamMeters meters;
     private ChangeEventPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        categoryNameResolver = mock(CategoryNameResolver.class);
         redisChangeStreamWriter = mock(RedisChangeStreamWriter.class);
         meters = mock(ChangeStreamMeters.class);
-        publisher = new ChangeEventPublisher(categoryNameResolver, redisChangeStreamWriter, meters);
+        publisher = new ChangeEventPublisher(redisChangeStreamWriter, meters);
     }
 
     private static ChangeEvent<String, String> changeEvent(String value) {
@@ -47,203 +35,107 @@ class ChangeEventPublisherTest {
         return event;
     }
 
+    /** {@code payload} is the outbox row's raw JSON text; it is escaped here for embedding as {@code after.payload}. */
+    private static String outboxInsertValue(String id, String type, String occurredAt, String payload) {
+        String escapedPayload = payload.replace("\"", "\\\"");
+        return """
+                {
+                  "before": null,
+                  "after": {
+                    "id": "%s",
+                    "type": "%s",
+                    "occurred_at": "%s",
+                    "payload": "%s"
+                  },
+                  "source": { "table": "outbox" },
+                  "op": "c",
+                  "ts_ms": 1700000000000
+                }
+                """
+                .formatted(id, type, occurredAt, escapedPayload);
+    }
+
     @Nested
     @DisplayName("publishing a captured change event")
     class Publish {
 
         @Test
-        @DisplayName("when an expense update is published - then one entry is written enriched with both categories")
-        void whenExpenseUpdateIsPublished_thenOneEntryWrittenEnrichedWithBothCategories() {
-            String payload =
-                    """
-                    {"before":{"category_id":1},"after":{"category_id":2},\
-                    "source":{"table":"expense","ts_ms":1700000000000},"op":"u"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(1L)).thenReturn(Optional.of(new CategoryNames("Coffee", "Food")));
-            when(categoryNameResolver.resolve(2L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
-
-            boolean result = publisher.publish(event);
-
-            assertThat(result).isTrue();
-            ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Optional<String>> enrichmentCaptor = ArgumentCaptor.forClass(Optional.class);
-            verify(redisChangeStreamWriter, times(1)).write(payloadCaptor.capture(), enrichmentCaptor.capture());
-            assertThat(payloadCaptor.getValue()).isEqualTo(payload);
-            JsonNode enrichment = JsonUtils.readJson(enrichmentCaptor.getValue().orElseThrow());
-            assertThat(enrichment.path("before").path("categoryName").asText()).isEqualTo("Coffee");
-            assertThat(enrichment.path("before").path("groupingName").asText()).isEqualTo("Food");
-            assertThat(enrichment.path("after").path("categoryName").asText()).isEqualTo("Rent");
-            assertThat(enrichment.path("after").path("groupingName").asText()).isEqualTo("Housing");
-        }
-
-        @Test
-        @DisplayName("when an expense_proposal insert is published - then the enrichment block carries the after "
-                + "side alone")
-        void whenExpenseProposalInsertIsPublished_thenEnrichmentBlockCarriesAfterSideAlone() {
-            String payload =
-                    """
-                    {"after":{"category_id":5},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(5L)).thenReturn(Optional.of(new CategoryNames("Coffee", "Food")));
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
-
-            publisher.publish(event);
-
-            ArgumentCaptor<Optional<String>> enrichmentCaptor = enrichmentArgumentCaptor();
-            verify(redisChangeStreamWriter).write(anyString(), enrichmentCaptor.capture());
-            JsonNode enrichment = JsonUtils.readJson(enrichmentCaptor.getValue().orElseThrow());
-            assertThat(enrichment.path("after").path("categoryName").asText()).isEqualTo("Coffee");
-            assertThat(enrichment.has("before")).isFalse();
-        }
-
-        @Test
-        @DisplayName(
-                "when an expense delete is published - then the enrichment block carries the before side " + "alone")
-        void whenExpenseDeleteIsPublished_thenEnrichmentBlockCarriesBeforeSideAlone() {
-            String payload =
-                    """
-                    {"before":{"category_id":7},"source":{"table":"expense","ts_ms":1700000000000},"op":"d"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(7L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
-
-            publisher.publish(event);
-
-            ArgumentCaptor<Optional<String>> enrichmentCaptor = enrichmentArgumentCaptor();
-            verify(redisChangeStreamWriter).write(anyString(), enrichmentCaptor.capture());
-            JsonNode enrichment = JsonUtils.readJson(enrichmentCaptor.getValue().orElseThrow());
-            assertThat(enrichment.path("before").path("categoryName").asText()).isEqualTo("Rent");
-            assertThat(enrichment.has("after")).isFalse();
-        }
-
-        @Test
-        @DisplayName("when an expense delete's category resolves to nothing - then no names are written and "
+        @DisplayName("when an outbox insert is published - then the writer is handed the four columns and "
                 + "publish answers published")
-        void whenExpenseDeleteCategoryResolvesToNothing_thenNoNamesWrittenAndPublishAnswersPublished() {
-            String payload =
-                    """
-                    {"before":{"category_id":9},"source":{"table":"expense","ts_ms":1700000000000},"op":"d"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(9L)).thenReturn(Optional.empty());
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+        void whenOutboxInsertIsPublished_thenWriterIsHandedTheFourColumnsAndPublishAnswersPublished() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalCreated";
+            String occurredAt = "2026-08-18T10:15:30.123456Z";
+            String payload = "{\"userId\":41,\"expenseId\":9013}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
 
-            boolean result = publisher.publish(event);
+            boolean published = publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
 
-            assertThat(result).isTrue();
-            ArgumentCaptor<Optional<String>> enrichmentCaptor = enrichmentArgumentCaptor();
-            verify(redisChangeStreamWriter).write(anyString(), enrichmentCaptor.capture());
-            String enrichmentJson = enrichmentCaptor.getValue().orElse("");
-            assertThat(enrichmentJson).doesNotContain("categoryName").doesNotContain("groupingName");
+            verify(redisChangeStreamWriter).write(id, type, occurredAt, payload);
+            assertThat(published).isTrue();
         }
 
         @Test
-        @DisplayName(
-                "when a category update is published - then the resolver takes the row and no enrichment " + "is added")
-        void whenCategoryUpdateIsPublished_thenResolverTakesRowAndNoEnrichmentIsAdded() {
-            String payload =
-                    """
-                    {"after":{"id":42,"name":"Household","parent_id":null},\
-                    "source":{"table":"category","ts_ms":1700000000000},"op":"u"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+        @DisplayName("when the same outbox insert is published twice - then the writer sees identical values")
+        void whenSameOutboxInsertIsPublishedTwice_thenWriterSeesIdenticalValues() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalAccepted";
+            String occurredAt = "2026-08-18T10:20:00.000001Z";
+            String payload = "{\"userId\":41,\"expenseId\":9013,\"status\":\"RECORDED\"}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
+            ChangeEvent<String, String> event = changeEvent(outboxInsertValue(id, type, occurredAt, payload));
 
             publisher.publish(event);
-
-            verify(categoryNameResolver).refresh(42L, new CategoryRow("Household", Optional.empty()));
-            verify(categoryNameResolver, never()).resolve(anyLong());
-            verify(redisChangeStreamWriter).write(payload, Optional.empty());
-        }
-
-        @Test
-        @DisplayName("when a category filed under a grouping is published - then the row carries its parent id")
-        void whenCategoryFiledUnderAGroupingIsPublished_thenRowCarriesItsParentId() {
-            String payload =
-                    """
-                    {"after":{"id":7,"name":"Coffee","parent_id":42},\
-                    "source":{"table":"category","ts_ms":1700000000000},"op":"c"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
-
             publisher.publish(event);
 
-            verify(categoryNameResolver).refresh(7L, new CategoryRow("Coffee", Optional.of(42L)));
+            verify(redisChangeStreamWriter, times(2)).write(id, type, occurredAt, payload);
         }
 
         @Test
-        @DisplayName(
-                "when a category delete is published - then the resolver drops that id rather than storing " + "a row")
-        void whenCategoryDeleteIsPublished_thenResolverDropsThatIdRatherThanStoringARow() {
+        @DisplayName("when the payload nests objects - then it reaches the writer unchanged")
+        void whenPayloadNestsObjects_thenItReachesWriterUnchanged() {
+            String id = UUID.randomUUID().toString();
+            String type = "ProposalCreated";
+            String occurredAt = "2026-08-18T10:25:00.000000Z";
             String payload =
-                    """
-                    {"before":{"id":42,"name":"Household","parent_id":null},\
-                    "source":{"table":"category","ts_ms":1700000000000},"op":"d"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+                    "{\"userId\":41,\"category\":{\"id\":77,\"name\":\"Coffee\"},\"grouping\":{\"id\":12,\"name\":\"Dining\"}}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
 
-            publisher.publish(event);
+            publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
 
-            verify(categoryNameResolver).evict(42L);
-            verify(categoryNameResolver, never()).refresh(anyLong(), any());
-        }
-
-        @Test
-        @DisplayName("when the resolver fails the lookup - then nothing is written and publish answers not published")
-        void whenResolverFailsLookup_thenNothingWrittenAndPublishAnswersNotPublished() {
-            String payload =
-                    """
-                    {"before":{"category_id":1},"after":{"category_id":2},\
-                    "source":{"table":"expense","ts_ms":1700000000000},"op":"u"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(1L))
-                    .thenThrow(new PersistenceFailedException("read failed", new RuntimeException()));
-
-            boolean result = publisher.publish(event);
-
-            assertThat(result).isFalse();
-            verifyNoInteractions(redisChangeStreamWriter);
+            verify(redisChangeStreamWriter).write(id, type, occurredAt, payload);
         }
 
         @Test
         @DisplayName("when the writer refuses - then publish answers not published and a publish failure is counted")
         void whenWriterRefuses_thenPublishAnswersNotPublishedAndPublishFailureCounted() {
-            String payload =
-                    """
-                    {"after":{"category_id":2},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(2L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(false);
+            String id = UUID.randomUUID().toString();
+            String type = "ExpenseRecorded";
+            String occurredAt = "2026-08-18T10:30:00.000000Z";
+            String payload = "{\"userId\":41,\"expenseId\":9014}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(false);
 
-            boolean result = publisher.publish(event);
+            boolean published = publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
 
-            assertThat(result).isFalse();
+            assertThat(published).isFalse();
             verify(meters).countPublishFailure();
         }
 
         @Test
-        @DisplayName("when an event publishes - then the published counter is tagged and the lag gauge is set "
-                + "from source.ts_ms")
-        void whenEventPublishes_thenPublishedCounterTaggedAndLagGaugeSetFromSourceTsMs() {
-            String payload =
-                    """
-                    {"after":{"category_id":2},"source":{"table":"expense_proposal","ts_ms":1700000000000},"op":"c"}""";
-            ChangeEvent<String, String> event = changeEvent(payload);
-            when(categoryNameResolver.resolve(2L)).thenReturn(Optional.of(new CategoryNames("Rent", "Housing")));
-            when(redisChangeStreamWriter.write(anyString(), any())).thenReturn(true);
+        @DisplayName("when an event publishes - then the published counter is tagged by type and the lag gauge "
+                + "is set from occurred_at")
+        void whenEventPublishes_thenPublishedCounterTaggedAndLagGaugeSetFromOccurredAt() {
+            String id = UUID.randomUUID().toString();
+            String type = "ExpenseRefiled";
+            Instant occurredAtInstant = Instant.now().minusSeconds(60);
+            String occurredAt = occurredAtInstant.toString();
+            String payload = "{\"userId\":41,\"expenseId\":9015}";
+            when(redisChangeStreamWriter.write(id, type, occurredAt, payload)).thenReturn(true);
 
-            publisher.publish(event);
+            publisher.publish(changeEvent(outboxInsertValue(id, type, occurredAt, payload)));
 
-            verify(meters).countPublished(eq("expense_proposal"), eq("c"));
-            ArgumentCaptor<Instant> lagCaptor = ArgumentCaptor.forClass(Instant.class);
-            verify(meters).setEventLag(lagCaptor.capture());
-            assertThat(lagCaptor.getValue()).isEqualTo(Instant.ofEpochMilli(1700000000000L));
-        }
-
-        private ArgumentCaptor<Optional<String>> enrichmentArgumentCaptor() {
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Optional<String>> captor = ArgumentCaptor.forClass(Optional.class);
-            return captor;
+            verify(meters).countPublished(type);
+            verify(meters).setEventLag(occurredAtInstant);
         }
     }
 }

@@ -1,5 +1,6 @@
 ---
 name: tdd-integration-green-phase-step
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite
 description: 'Spawned by implement-plan-module, Stage 3. Not for direct use — it needs step context only that orchestrator has. TDD Integration Green Phase step agent: implements one class until every test in its integration test class passes (GREEN phase of TDD). Handles both variants: a class driven directly against real infrastructure, and a class the framework calls with its collaborators mocked. Stack-agnostic; all framework, style, and run-command detail comes from the module conventions passed in by the orchestrator.'
 ---
 
@@ -118,9 +119,8 @@ editing the test.
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
 - confirmation the full test class is green, with the passing-test count — per scenario group in the framework
   variant — and which tests were already green on arrival;

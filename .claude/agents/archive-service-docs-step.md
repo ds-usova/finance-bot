@@ -250,5 +250,5 @@ Files written, created or updated · use cases, one line each · contracts with 
 configuration variables added, removed, or changed · facts moved out of the README · discrepancies between plan
 and code · anything unwritten, and why.
 
-**The report is the only channel back** — the orchestrator is not addressable by name, so never send it a
-message; anything you would have asked goes in the report.
+The report is the only channel back, per [`templates/sub-agents.md`](../templates/sub-agents.md)
+**Reporting back**.

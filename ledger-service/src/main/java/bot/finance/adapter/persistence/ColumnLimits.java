@@ -2,13 +2,11 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.value.Category;
 import bot.finance.domain.value.Grouping;
 import java.util.List;
-import java.util.function.Function;
 
 final class ColumnLimits {
 
@@ -36,20 +34,11 @@ final class ColumnLimits {
     }
 
     static void validateExpenseText(String description, String merchant) {
-        validateDescriptionAndMerchant(description, merchant, InvalidExpenseException::new);
-    }
-
-    static void validateExpenseProposalText(String description, String merchant) {
-        validateDescriptionAndMerchant(description, merchant, InvalidExpenseProposalException::new);
-    }
-
-    private static void validateDescriptionAndMerchant(
-            String description, String merchant, Function<String, RuntimeException> invalid) {
         if (description.length() > DESCRIPTION) {
-            throw invalid.apply("description exceeds " + DESCRIPTION + " characters");
+            throw new InvalidExpenseException("description exceeds " + DESCRIPTION + " characters");
         }
         if (merchant != null && merchant.length() > MERCHANT) {
-            throw invalid.apply("merchant exceeds " + MERCHANT + " characters");
+            throw new InvalidExpenseException("merchant exceeds " + MERCHANT + " characters");
         }
     }
 

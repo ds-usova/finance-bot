@@ -22,7 +22,7 @@ again and reported back to whoever sent it.
 
 A single unique value.
 
-- [Expense proposal](expense-proposal.md) — every stored proposal records the message it came from.
+- [Expense](expense.md) — every pending one records the message it came from, and keeps it once recorded.
 - [Spending query](spending-query.md) — every period asked about records the message that asked.
 - [Proposal report](proposal-report.md) — every recorded report names the message it is about.
 - [Act on a user's message](../usecases/handle-incoming-message.md) — derives one per message, and reads back

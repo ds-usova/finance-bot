@@ -5,7 +5,10 @@ and puts it to a language model with the Ledger Service's tools attached, so the
 message names, as the caller whose token arrived with the request.
 
 What the service keeps of a call is the message itself, stored under the person and the message the caller's
-token names, for as long as `MEMORY_MAX_AGE` allows.
+token names, for as long as `MEMORY_MAX_AGE` allows. Beside each message it records what the ledger made of it —
+the expenses proposed, accepted and discarded, and where each was filed — read off the ledger's change stream.
+It also keeps the vector each message was embedded as, and uses it to put a person's own earlier messages, and
+what was made of them, in front of the model.
 
 For C1 (System Context) and C2 (Container) see the [root README](../README.md#architecture); C3 is below.
 Package structure is in the
@@ -14,13 +17,17 @@ Package structure is in the
 ### Use Cases
 
 - [Record the spending a user's message names](docs/usecases/extract-intents.md)
+- [Recall the person's own worked examples](docs/usecases/recall-examples.md)
 - [Purge messages past their retention](docs/usecases/purge-messages.md)
+- [Embed the messages nothing has embedded yet](docs/usecases/backfill-embeddings.md)
+- [Learn what the ledger did with a message](docs/usecases/learn-message-outcome.md)
 
 ### Contracts
 
 - [Ledger Service — intent extraction](docs/contracts/in/intent-extraction.md) (inbound)
-- [AI provider — recording spending](docs/contracts/out/ai-provider.md) (outbound)
+- [AI provider — reading and embedding a message](docs/contracts/out/ai-provider.md) (outbound)
 - [Ledger Service — the ledger's tools and its key set](docs/contracts/out/ledger-mcp.md) (outbound)
+- [Ledger Service — the change stream](docs/contracts/out/change-stream.md) (outbound)
 - [The connector's database](docs/contracts/out/database.md) (outbound)
 
 ### Running It
@@ -42,7 +49,8 @@ AddRelTag("implements", $lineStyle="dashed")
 
 Container(ledger, "Ledger Service", "Java, Spring Boot", "Calls this service, publishes its signing key", $tags="callerExternal")
 System_Ext(aiProvider, "AI Provider", "OpenAI-compatible chat completions API", $tags="aiExternal")
-ContainerDb(store, "finance_ai", "PostgreSQL", "The messages received")
+ContainerDb(store, "finance_ai", "PostgreSQL", "The messages received, and what the ledger made of them")
+ContainerQueue(changeStream, "Change stream", "Redis, ledger.cdc", "Every fact the ledger publishes about a piece of spending", $tags="callerExternal")
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(grpcService, "Intent Extraction Endpoint", "gRPC endpoint", "Serves the extraction call", $tags="callerExternal")
@@ -57,6 +65,14 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(toolClient, "Ledger Tool Client", "MCP client", "Calls the tools as the turn's caller", $tags="callerExternal")
   Component(storePort, "Message Store Port", "Interface", "Outbound port", $tags="portOut")
   Component(storeAdapter, "Message Store Adapter", "Spring Data JDBC", "Keeps each message under its person and message id", $tags="core")
+
+  Component(streamConsumer, "Change Stream Consumer", "Redis consumer group", "Reads each published fact and acknowledges it once learned", $tags="callerExternal")
+  Component(learnPort, "Learn Message Outcome Port", "Interface", "Inbound port", $tags="portIn")
+  Component(learnUseCase, "Learn Message Outcome Use Case", "Plain Java", "Records what became of a message, bounds a failing delivery's attempts", $tags="core")
+  Component(recordedStorePort, "Recorded Expense Store Port", "Interface", "Outbound port", $tags="portOut")
+  Component(recordedStoreAdapter, "Recorded Expense Store Adapter", "Spring Data JDBC", "Applies one fact to the expense's row", $tags="core")
+  Component(attemptsPort, "Change Attempt Store Port", "Interface", "Outbound port", $tags="portOut")
+  Component(attemptsAdapter, "Change Attempt Store Adapter", "Spring Data JDBC", "Counts a change's failed attempts", $tags="core")
 }
 
 Rel(ledger, grpcService, "ExtractIntents + token", "gRPC")
@@ -76,6 +92,17 @@ Rel_L(toolClient, ledger, "list_categories, create_expense_proposal", "MCP over 
 Rel_D(useCase, storePort, "Registers through")
 Rel_U(storeAdapter, storePort, "Implements", $tags="implements")
 Rel_D(storeAdapter, store, "INSERT, DELETE", "JDBC")
+
+Rel_L(ledger, changeStream, "XADD", "RESP")
+Rel_D(changeStream, streamConsumer, "XREADGROUP, XACK", "RESP")
+Rel_R(streamConsumer, learnPort, "Invokes")
+Rel_L(learnUseCase, learnPort, "Implements", $tags="implements")
+Rel_R(learnUseCase, recordedStorePort, "Writes through")
+Rel_L(recordedStoreAdapter, recordedStorePort, "Implements", $tags="implements")
+Rel_D(learnUseCase, attemptsPort, "Counts through")
+Rel_L(attemptsAdapter, attemptsPort, "Implements", $tags="implements")
+Rel_D(recordedStoreAdapter, store, "INSERT, UPDATE", "JDBC")
+Rel_D(attemptsAdapter, store, "INSERT, DELETE", "JDBC")
 
 SHOW_LEGEND()
 @enduml

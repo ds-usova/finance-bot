@@ -12,8 +12,7 @@ patch:
       in: path
       required: true
       description: >-
-        Which of the two tables the id names. An id is unique within its status and not across it, so the token
-        is what says which entry is meant.
+        Guards the entry's current status: an id under the other status is not found.
       schema:
         $ref: '../ledger-api.yaml#/components/schemas/ExpenseStatus'
       example: RECORDED

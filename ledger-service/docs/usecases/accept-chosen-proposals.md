@@ -4,10 +4,9 @@
   - the identity of the authenticated caller
   - the [ids of the pending entries](../domain/proposal-ids.md) to accept
 - **Out**
-  - how many proposals became expenses
+  - how many pending entries became recorded
   - how many of the ids named nothing
-- **Why:** it lets a person turn spending into their ledger from the page they are already reading it on, one
-  entry or a whole day at a time
+- **Why:** a person turns spending into their ledger from the page they read it on, one entry or a day at a time
 
 *Implemented by `AcceptExpensesUseCase`.*
 
@@ -21,26 +20,24 @@ What bounds the list, what an id is taken as, and how the two counts relate are 
 
 ## Collaborators
 
-| Direction | Collaborator                                                                         | Through                                                                           | For                                                                                 |
-|-----------|--------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| in        | [Accept pending expenses](../../../web-app/docs/usecases/accept-pending-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | turning the entries a person ticked into their ledger                               |
-| out       | [Database](../contracts/out/database.md)                                             | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, and moving the chosen proposals into that person's expenses |
-| out       | [Clear the emptied reports](clear-emptied-reports.md)                                | [Clear the emptied reports](clear-emptied-reports.md)                             | handing over the messages this acceptance may have emptied                          |
+| Direction | Collaborator                                                                         | Through                                                                 | For                                                                    |
+|-----------|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------|
+| in        | [Accept pending expenses](../../../web-app/docs/usecases/accept-pending-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md) | turning the entries a person ticked into their ledger                  |
+| out       | [Database](../contracts/out/database.md)                                             | [Users, categories and expenses](../contracts/out/database.md)          | resolving the identity, and recording the pending entries the ids name |
+| out       | [Clear the emptied reports](clear-emptied-reports.md)                                | [Clear the emptied reports](clear-emptied-reports.md)                   | handing over the messages this acceptance may have emptied             |
+| out       | [A consumer of the ledger's changes](../contracts/out/change-stream.md)              | [The change stream](../contracts/out/change-stream.md)                  | publishing the fact each acceptance produces                           |
 
 ## Outcomes
 
 | Outcome           | When                                                               | Result                                                                                       |
 |-------------------|--------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| Spending accepted | the ids name pending proposals of the caller's                     | those become expenses, both counts are answered, and the emptied messages go to the clearing |
-| Nothing matched   | no id names a pending proposal of theirs                           | both counts are answered, and no clearing is handed over                                     |
-| List rejected     | the list is empty, too long, repeats an id, or holds an id below 1 | invalid expense acceptance, naming the bound — nothing is moved                            |
-| Body rejected     | the body is not JSON, or breaks a bound the specification declares | the request is refused, naming the field — nothing is moved                                |
+| Spending accepted | the ids name pending entries of the caller's                       | those become recorded, both counts are answered, and the emptied messages go to the clearing |
+| Nothing matched   | no id names a pending entry of theirs                              | both counts are answered, and no clearing is handed over                                     |
+| List rejected     | the list breaks a bound [proposal ids](../domain/proposal-ids.md) sets | invalid expense acceptance, naming the bound — nothing is recorded                       |
+| Body rejected     | the body is not JSON                                               | the request is refused, naming the field — nothing is recorded                             |
 | Request rejected  | the request names no ids                                           | the request is refused — nothing is looked up                                              |
-| Identity unknown  | nothing is stored under the caller's identity                      | the request is rejected, and nothing is moved or handed over                                 |
-| Storage failed    | the move fails                                                     | the failure reaches the caller, and nothing is moved or handed over                          |
-
-What each outcome answers a browser with is [the browse API](../contracts/in/web-browse-api.md)'s, and the
-[specification](../../../openapi/ledger-api.yaml) describes every one.
+| Identity unknown  | nothing is stored under the caller's identity                      | the request is rejected, and nothing is recorded or handed over                              |
+| Storage failed    | the write fails                                                    | the failure reaches the caller, and nothing is recorded or handed over                       |
 
 ## Components
 
@@ -56,18 +53,18 @@ AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1
 AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(browser, "A signed-in person's browser", "The web app's page", $tags="webExternal")
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, expenses and expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users and their expenses, pending and recorded", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only a call carrying a valid session cookie and a matching token", $tags="webExternal")
   Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the ids and the caller, and renders the two counts", $tags="webExternal")
   Component(acceptPort, "Accept Expenses Port", "Interface", "Inbound port", $tags="portIn")
-  Component(acceptService, "Accept the Chosen Proposals Use Case", "Plain Java", "Resolves the person, moves the chosen proposals, then hands the emptied messages on", $tags="core")
+  Component(acceptService, "Accept the Chosen Proposals Use Case", "Plain Java", "Resolves the person, records the chosen entries, then hands the emptied messages on", $tags="core")
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
-  Component(proposalRepositoryPort, "Expense Proposal Repository Port", "Interface", "Outbound port", $tags="portOut")
+  Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(dispatchPort, "Report Clearing Dispatch Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Reads the person stored under an identity", $tags="dbExternal")
-  Component(proposalRepositoryAdapter, "Expense Proposal Repository Adapter", "Spring Data Relational", "Moves the chosen proposals into expenses, and says which messages they were reported on", $tags="dbExternal")
+  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Records the chosen pending entries, and says which messages they were reported on", $tags="dbExternal")
   Component(dispatcher, "Report Clearing Dispatcher", "Bounded thread pool", "Takes the clearing off the request thread", $tags="core")
 }
 
@@ -76,24 +73,22 @@ Rel_D(accessControl, endpoint, "Admits the call, with the caller's identity")
 Rel_D(endpoint, acceptPort, "Invokes")
 Rel_L(acceptService, acceptPort, "Implements", $tags="implements")
 Rel_R(acceptService, userRepositoryPort, "Resolves the identity through")
-Rel_R(acceptService, proposalRepositoryPort, "Moves the proposals through")
+Rel_R(acceptService, expenseRepositoryPort, "Records the entries through")
 Rel_R(acceptService, dispatchPort, "Hands the emptied messages to")
 Rel_L(userRepositoryAdapter, userRepositoryPort, "Implements", $tags="implements")
-Rel_L(proposalRepositoryAdapter, proposalRepositoryPort, "Implements", $tags="implements")
+Rel_L(expenseRepositoryAdapter, expenseRepositoryPort, "Implements", $tags="implements")
 Rel_L(dispatcher, dispatchPort, "Implements", $tags="implements")
 Rel_R(userRepositoryAdapter, db, "SQL", "JDBC")
-Rel_R(proposalRepositoryAdapter, db, "SQL", "JDBC")
+Rel_R(expenseRepositoryAdapter, db, "SQL", "JDBC")
 
-Lay_D(userRepositoryPort, proposalRepositoryPort)
-Lay_D(proposalRepositoryPort, dispatchPort)
-Lay_D(userRepositoryAdapter, proposalRepositoryAdapter)
-Lay_D(proposalRepositoryAdapter, dispatcher)
+Lay_D(userRepositoryPort, expenseRepositoryPort)
+Lay_D(expenseRepositoryPort, dispatchPort)
+Lay_D(userRepositoryAdapter, expenseRepositoryAdapter)
+Lay_D(expenseRepositoryAdapter, dispatcher)
 
 SHOW_LEGEND()
 @enduml
 ```
-
-Where the clearing goes from there is [its own page](clear-emptied-reports.md).
 
 ## Flow
 
@@ -102,6 +97,7 @@ Where the clearing goes from there is [its own page](clear-emptied-reports.md).
 participant "A signed-in person's browser" as Web
 participant "Accept the proposals a person chose" as UC
 database "Database" as DB
+queue "The change stream" as Stream
 participant "Clear the emptied reports" as Clearing
 
 Web -> UC : the ids that were ticked, and the caller's identity
@@ -115,16 +111,17 @@ else the list is usable
     UC --> Web : the caller is unknown
   else the person is known
     DB --> UC : the person
-    UC -> DB : move their pending proposals with those ids into their expenses
-    alt the move fails
-      DB --> UC : storage failed, nothing moved
+    UC -> DB : record their pending entries carrying those ids
+    alt the write fails
+      DB --> UC : storage failed, nothing recorded
       UC --> Web : the failure
-    else the move ran
-      DB --> UC : the message each moved proposal was reported on
-      opt anything moved
+    else the write ran
+      DB --> UC : the message each recorded entry was reported on
+      opt anything was recorded
+        DB -> Stream : the facts, once committed
         UC -> Clearing : those messages, off this thread
       end
-      UC --> Web : how many moved, and how many named nothing
+      UC --> Web : how many were recorded, and how many named nothing
     end
   end
 end
@@ -133,7 +130,5 @@ end
 
 ## References
 
-- [ADR 0012: A set of rows moves between tables in one statement](../adr/0012-a-set-of-rows-moves-between-tables-in-one-statement.md) —
-  why an acceptance and a Telegram tap over the same rows move them once
-- [ADR 0006: An expense proposal is a table and an entity of its own](../adr/0006-an-expense-proposal-is-a-table-and-an-entity-of-its-own.md) —
-  why accepting moves a row rather than changing a status
+- [ADR 0018: A proposal is a status on the expense table](../adr/0018-a-proposal-is-a-status-on-the-expense-table.md) —
+  why an acceptance and a Telegram tap over the same entries record them once, and why an id survives

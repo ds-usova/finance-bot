@@ -234,9 +234,19 @@ step reports:
 Numbering restarts at `01` per prefix and follows the order the items are listed. An ID is never reused or
 renumbered once the plan is written — a dropped step leaves a gap.
 
+**An ID never leaves those places.** Not a commit message, not a test or display name, not a class, a file or a
+comment. Each of those outlives the plan directory, which moves into `docs/implemented/` the moment the work
+lands — so an ID written into one stops resolving exactly when a reader meets it. The same holds for a design's
+`D`, `F` and `A` entries, an Open Question's `Q`, and a findings file's `R`. Say what the thing does instead. A
+`@Disabled` reason is the one exception, since it names the step that owes the rework and clears itself when that
+step lands.
+
 **An `update:` bullet is written from the test's body, never from its name.** Open the method, read what it
 asserts, and say what changes about those assertions. `plan.sh validate` only checks that the method exists, so
-a bullet written off the name passes and reaches a step agent describing work nobody verified.
+a bullet written off the name passes and reaches a step agent describing work nobody verified. Where the same
+change reaches many tests of one class, do not stretch one sentence over a list of names: write a **premise**
+bullet — the fact about the change and what follows for a test that meets it — and let the step agent decide
+test by test which bodies meet it. The forms are in `step-formats.md`'s **Existing-test updates rule**.
 
 `plan.sh validate` checks the result: duplicate IDs, items with no ID, `after:` naming an ID nothing defines,
 dependency cycles, a `given:`/`when:`/`then:` left as a placeholder, an `update:` bullet naming a test method that
@@ -247,49 +257,10 @@ installed as a plugin, under `.claude/` in a plain checkout.
 
 #### Stabilization
 
-- **API Contract** — API schema and path changes, in the module's schema format and location (see conventions
-  file); first within this group when contract changes are involved
-- **Database** — migrations, schema changes, in the module's migration format (see conventions file). Contract
-  artifacts — the API schema and migrations — are created entirely in these two sections: red-phase tests must fail
-  on assertions, never on a missing table or schema constraint, and TDD step agents never create or edit contract
-  artifacts (a gap found later is a blocker back to the plan)
-- **Interface-First / Build Stabilization** — update interfaces/signatures first, add temporary stubs for new
-  methods, add/update configuration, add or extend shared test infrastructure the upcoming Red Phase steps will
-  need, and resolve build errors (compile/type-check per the module's stack) before implementing full logic.
-  Always present and always last within this group. Its own checklist items group under the following labeled
-  sub-groups (bold labels, not headings), in this order — include only the sub-groups the task actually needs, omit
-  one entirely rather than leaving it empty:
-
-  How each item is carried out — the stub's intent comment, the `TODO` on a changed signature, what a comment
-  may never name, how a broken test is disabled — is
-  [`.claude/templates/stabilizing.md`](../../templates/stabilizing.md), the one statement of it for every
-  workflow that stabilizes. An item here says *what* is created or changed; that file says *how*. The worked
-  stub shape is in [`example-plan.md`](../../templates/example-plan.md).
-
-  **Interface & Signature Sync**
-
-    - sync all affected API/interface contracts and method signatures,
-    - for **new** methods and fields: an item per stub, its intent stated,
-    - for **existing** methods whose signature changes: an item naming the change and the call sites it breaks,
-      test tree included, until the module builds green.
-
-  **Configuration**
-
-    - add or update any configuration this task's design requires — an outbound client's address, a schedule
-      expression, a pool setting, a new environment variable and its default. Config belongs here, never inside
-      a step agent's scope: a red-phase test fails on an assertion, never on a missing property.
-
-  **Shared Test Infrastructure**
-
-    - add or extend any test fixture, builder, or base-class capability more than one upcoming Red Phase step will
-      need. Every red-phase step agent is scoped to add "no shared fixtures beyond what this step needs", so shared
-      test infrastructure has exactly one owner and gets written once — list it here instead of leaving two parallel
-      steps to duplicate it or block on each other.
-
-  Close with:
-
-    - after stabilization, confirm the module's architecture-enforcement test (per conventions file, if the module
-      has one) still passes.
+Its sections — **API Contract**, **Database**, **Interface-First / Build Stabilization** and its three labelled
+sub-groups, and the closing architecture-test item — are
+[`.claude/templates/stabilization-group.md`](../../templates/stabilization-group.md). How each item is carried out
+is [`stabilizing.md`](../../templates/stabilizing.md) beside it.
 
 #### Red Phase
 
@@ -433,6 +404,11 @@ ADR, the schema. Answer it when the evidence is there and write the evidence int
 when the answer is a product, operational, or business rule that exists nowhere yet — and add a
 `- Missing: [what the repository does not say]` line beside it, nested under the finding like the rest, so the user
 answers a question rather than picking from a menu.
+
+**An `Action:` prescribing a mechanism this session did not exercise ends `— unverified`.** Reading that a thing
+exists is evidence that it exists, and nothing more; whether it behaves as the fix assumes is a separate claim, and
+the two reach a step agent in one voice unless the line separates them. The agent that consumes an `unverified`
+`Action:` tests it before building on it.
 
 How to apply them:
 

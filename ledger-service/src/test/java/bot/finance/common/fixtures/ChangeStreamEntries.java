@@ -15,8 +15,10 @@ import java.util.List;
  */
 public class ChangeStreamEntries {
 
+    private static final String ID_FIELD = "id";
+    private static final String TYPE_FIELD = "type";
+    private static final String OCCURRED_AT_FIELD = "occurredAt";
     private static final String PAYLOAD_FIELD = "payload";
-    private static final String ENRICHMENT_FIELD = "enrichment";
 
     private ChangeStreamEntries() {}
 
@@ -38,50 +40,34 @@ public class ChangeStreamEntries {
     }
 
     /**
-     * Entries on one named stream naming {@code table} in {@code source.table} and {@code userId} in the row's own
-     * {@code user_id} - read from {@code after} where present, {@code before} otherwise, since a delete carries no
-     * {@code after}.
+     * Entries on one named stream naming {@code type} in the event's own type and {@code userId} in its payload's
+     * {@code userId}.
      */
-    public static List<ChangeStreamEntry> entriesOnFor(String streamKey, String table, long userId) {
+    public static List<ChangeStreamEntry> entriesOnFor(String streamKey, String type, long userId) {
         return allEntriesOn(streamKey).stream()
-                .filter(entry -> table.equals(entry.table()) && userId == entry.userId())
+                .filter(entry -> type.equals(entry.type()) && userId == entry.userId())
                 .toList();
     }
 
     private static ChangeStreamEntry toEntry(StreamMessage<String, String> message) {
+        String eventId = message.getBody().get(ID_FIELD);
+        String type = message.getBody().get(TYPE_FIELD);
+        String occurredAt = message.getBody().get(OCCURRED_AT_FIELD);
         String payloadJson = message.getBody().get(PAYLOAD_FIELD);
-        String enrichmentJson = message.getBody().get(ENRICHMENT_FIELD);
         JsonNode payload = payloadJson == null ? null : JsonUtils.readJson(payloadJson);
-        JsonNode enrichment = enrichmentJson == null ? null : JsonUtils.readJson(enrichmentJson);
-        return new ChangeStreamEntry(message.getId(), payload, enrichment);
+        return new ChangeStreamEntry(message.getId(), eventId, type, occurredAt, payload);
     }
 
-    public record ChangeStreamEntry(String entryId, JsonNode payload, JsonNode enrichment) {
+    public record ChangeStreamEntry(String entryId, String eventId, String type, String occurredAt, JsonNode payload) {
 
-        public String op() {
-            return payload.path("op").asText();
-        }
-
-        public JsonNode source() {
-            return payload.path("source");
-        }
-
-        public String table() {
-            return source().path("table").asText();
-        }
-
-        public JsonNode after() {
-            return payload.path("after");
-        }
-
-        public JsonNode before() {
-            return payload.path("before");
-        }
-
-        /** The row's own {@code user_id} - {@link #after()} where present, {@link #before()} otherwise. */
+        /** The event's own {@code userId}, off its payload. */
         public long userId() {
-            JsonNode row = after().isMissingNode() || after().isNull() ? before() : after();
-            return row.path("user_id").asLong();
+            return payload.path("userId").asLong();
+        }
+
+        /** The spending row the event is about, off its payload; zero for an event carrying none. */
+        public long expenseId() {
+            return payload.path("expenseId").asLong();
         }
     }
 }

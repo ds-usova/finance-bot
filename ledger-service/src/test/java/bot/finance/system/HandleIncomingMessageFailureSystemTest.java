@@ -11,10 +11,11 @@ import bot.finance.application.port.UserRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.TelegramFixtures;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.ExpenseStatus;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.grpc.Status;
 import java.time.Duration;
@@ -107,9 +108,9 @@ class HandleIncomingMessageFailureSystemTest extends AbstractSystemTest {
 
             // then: a failed turn leaves nothing half-recorded behind it
             Optional<User> storedUser = userRepository.findByExternalId(SCENARIO.userExternalId());
-            storedUser.ifPresent(user -> assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(
-                            jdbcAggregateTemplate, user.id().orElseThrow()))
-                    .as("expense_proposal rows for the conversation's user")
+            storedUser.ifPresent(user -> assertThat(ExpenseRowUtils.expenseRowsFor(
+                            jdbcAggregateTemplate, user.id().orElseThrow(), ExpenseStatus.PENDING))
+                    .as("PENDING expense rows for the conversation's user")
                     .isEmpty());
         }
     }

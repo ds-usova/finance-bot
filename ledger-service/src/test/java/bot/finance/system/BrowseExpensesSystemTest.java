@@ -6,9 +6,9 @@ import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Instant;
@@ -72,8 +72,9 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
                     1230L,
                     "EUR",
                     UUID.randomUUID().toString(),
-                    now.minusSeconds(60));
-            ExpenseProposalRowUtils.storedProposal(
+                    now.minusSeconds(60),
+                    ExpenseStatus.RECORDED);
+            ExpenseRowUtils.storedExpense(
                     jdbcAggregateTemplate,
                     userId,
                     categoryId,
@@ -82,7 +83,8 @@ class BrowseExpensesSystemTest extends AbstractSystemTest {
                     2450L,
                     "EUR",
                     UUID.randomUUID().toString(),
-                    now);
+                    now,
+                    ExpenseStatus.PENDING);
 
             Response response = RestAssured.given()
                     .cookie(SESSION_COOKIE, sessionCookie)

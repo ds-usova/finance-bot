@@ -21,13 +21,20 @@ public class ChangeStreamConfiguration {
     private static final String THREAD_NAME_PREFIX = "change-stream-";
     private static final String SLOT_MONITOR_THREAD_NAME_PREFIX = "slot-monitor-";
 
-    private static final String CAPTURED_TABLES = "public.expense,public.expense_proposal,public.category";
+    private static final String CAPTURED_TABLES = "public.outbox";
 
     /**
      * Moves the slot forward when nothing captured is written. Its own event is dropped in the reader rather
      * than published, so no heartbeat ever reaches the stream.
      */
     private static final String HEARTBEAT_ACTION_QUERY = "UPDATE cdc_heartbeat SET beat_at = now()";
+
+    // These three are every wait the connector takes between attempts to open its slot, each on a thread that
+    // ChangeStreamReader.stop cannot interrupt. Left at Debezium's defaults they run past the ten seconds
+    // ChangeStreamRecovery and ChangeStreamLifecycle give stop() to return, so each is capped well under it.
+    private static final int SLOT_OPEN_MAX_RETRIES = 1;
+    private static final int SLOT_OPEN_RETRY_DELAY_MS = 1000;
+    private static final int RESTART_WAIT_MS = 2000;
 
     @Bean(destroyMethod = "shutdown")
     Executor changeStreamExecutor() {
@@ -76,6 +83,9 @@ public class ChangeStreamConfiguration {
                 .with("heartbeat.action.query", HEARTBEAT_ACTION_QUERY)
                 .with("tombstones.on.delete", false)
                 .with("snapshot.mode", properties.snapshotMode())
+                .with("slot.max.retries", SLOT_OPEN_MAX_RETRIES)
+                .with("slot.retry.delay.ms", SLOT_OPEN_RETRY_DELAY_MS)
+                .with("retriable.restart.connector.wait.ms", RESTART_WAIT_MS)
                 .build();
     }
 }

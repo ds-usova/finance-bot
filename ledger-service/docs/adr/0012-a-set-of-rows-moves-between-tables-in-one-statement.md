@@ -1,6 +1,6 @@
 # ADR 0012: A set of rows moves between tables in one statement
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR 0018
 - **Date:** 2026-08-05
 - **Source:** [Accept or Discard a Reported Proposal from the Chat](../../../docs/implemented/15-accept-or-discard-a-reported-proposal/plan.md)
 

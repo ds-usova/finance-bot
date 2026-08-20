@@ -14,11 +14,11 @@ import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +86,8 @@ class BroadcastLedgerChangesSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 
@@ -94,34 +95,22 @@ class BroadcastLedgerChangesSystemTest {
             Response response = patchCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
             response.then().statusCode(200);
 
-            // then: an entry reaches ledger.cdc with op:u, source.table:expense, and both category ids
-            await("the category change reaches the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
-                            updateEntryFor(userId, expenseId))
-                    .as("an update entry for the changed expense")
+            // then: one ExpenseRefiled entry reaches ledger.cdc carrying the expenseId
+            await("the refile reaches the stream").atMost(TIMEOUT).untilAsserted(() -> assertThat(
+                            refiledEntryFor(userId, expenseId))
+                    .as("an ExpenseRefiled entry for the changed expense")
                     .isPresent());
-            ChangeStreamEntry entry = updateEntryFor(userId, expenseId).orElseThrow();
-            assertThat(entry.op()).as("op").isEqualTo("u");
-            assertThat(entry.table()).as("source.table").isEqualTo("expense");
-            assertThat(entry.before().path("category_id").asLong())
-                    .as("before.category_id")
-                    .isEqualTo(firstCategoryId);
-            assertThat(entry.after().path("category_id").asLong())
-                    .as("after.category_id")
-                    .isEqualTo(secondCategoryId);
+            ChangeStreamEntry entry = refiledEntryFor(userId, expenseId).orElseThrow();
 
-            // then: the enrichment names both categories and both groupings - read straight off the expense
-            // event, with no category event needed first
-            assertThat(entry.enrichment().path("before").path("categoryName").asText())
-                    .as("enrichment.before.categoryName")
-                    .isEqualTo("Supermarkets");
-            assertThat(entry.enrichment().path("before").path("groupingName").asText())
-                    .as("enrichment.before.groupingName")
-                    .isEqualTo("Groceries");
-            assertThat(entry.enrichment().path("after").path("categoryName").asText())
-                    .as("enrichment.after.categoryName")
+            // then: the payload names the new category and grouping, with their ids beside them
+            assertThat(entry.payload().path("category").path("id").asLong())
+                    .as("payload.category.id")
+                    .isEqualTo(secondCategoryId);
+            assertThat(entry.payload().path("category").path("name").asText())
+                    .as("payload.category.name")
                     .isEqualTo("Restaurants");
-            assertThat(entry.enrichment().path("after").path("groupingName").asText())
-                    .as("enrichment.after.groupingName")
+            assertThat(entry.payload().path("grouping").path("name").asText())
+                    .as("payload.grouping.name")
                     .isEqualTo("Dining");
         }
     }
@@ -151,7 +140,8 @@ class BroadcastLedgerChangesSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
 
@@ -166,8 +156,8 @@ class BroadcastLedgerChangesSystemTest {
                 ChangeStreamHealth.awaitState(managementPort, "DOWN", TIMEOUT);
 
                 // then: nothing is published while it refuses
-                assertThat(updateEntryFor(userId, expenseId))
-                        .as("no update entry published while Redis refuses")
+                assertThat(refiledEntryFor(userId, expenseId))
+                        .as("no ExpenseRefiled entry published while Redis refuses")
                         .isEmpty();
             } finally {
                 // when: Redis becomes reachable afterwards
@@ -177,17 +167,15 @@ class BroadcastLedgerChangesSystemTest {
             // then: the held change reaches the stream once Redis returns
             await("the held change reaches the stream once redis returns")
                     .atMost(TIMEOUT)
-                    .untilAsserted(() -> assertThat(updateEntryFor(userId, expenseId))
-                            .as("the held update eventually reaches the stream")
+                    .untilAsserted(() -> assertThat(refiledEntryFor(userId, expenseId))
+                            .as("the held ExpenseRefiled entry eventually reaches the stream")
                             .isPresent());
         }
     }
 
-    private Optional<ChangeStreamEntry> updateEntryFor(long userId, long expenseId) {
-        List<ChangeStreamEntry> entries = ChangeStreamEntries.entriesOnFor(STREAM_KEY, "expense", userId);
-        return entries.stream()
-                .filter(entry ->
-                        "u".equals(entry.op()) && entry.after().path("id").asLong() == expenseId)
+    private Optional<ChangeStreamEntry> refiledEntryFor(long userId, long expenseId) {
+        return ChangeStreamEntries.entriesOnFor(STREAM_KEY, "ExpenseRefiled", userId).stream()
+                .filter(entry -> expenseId == entry.expenseId())
                 .findFirst();
     }
 

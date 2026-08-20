@@ -2,6 +2,9 @@ package bot.finance.ai.common.rows;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Static helpers over a {@link JdbcTemplate}, for a test that reaches the {@code incoming_message} table directly. */
@@ -17,6 +20,26 @@ public final class IncomingMessageRowUtils {
                 incomingMessageId,
                 text,
                 Timestamp.from(receivedAt));
+    }
+
+    /** Inserts a row and answers its generated id. */
+    public static long insertReturningId(
+            JdbcTemplate jdbcTemplate, long userId, String incomingMessageId, String text, Instant receivedAt) {
+        insert(jdbcTemplate, userId, incomingMessageId, text, receivedAt);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
+    /** The generated id of the row under {@code userId} and {@code incomingMessageId}. */
+    public static long id(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
+        Long id = jdbcTemplate.queryForObject(
+                "SELECT id FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
+                Long.class,
+                userId,
+                incomingMessageId);
+        if (id == null) {
+            throw new AssertionError("no incoming_message row for user " + userId + " and " + incomingMessageId);
+        }
+        return id;
     }
 
     public static int count(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
@@ -47,5 +70,112 @@ public final class IncomingMessageRowUtils {
 
     public static void deleteAll(JdbcTemplate jdbcTemplate) {
         jdbcTemplate.update("DELETE FROM incoming_message");
+    }
+
+    /** Inserts a row already carrying a vector, a received-at and an embedding-attempt count. */
+    public static void insertWithVector(
+            JdbcTemplate jdbcTemplate,
+            long userId,
+            String incomingMessageId,
+            String text,
+            Instant receivedAt,
+            List<Float> embedding,
+            int embeddingAttempts) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding,
+                                               embedding_attempts)
+                VALUES (?, ?, ?, ?, CAST(? AS vector), ?)
+                """,
+                userId,
+                incomingMessageId,
+                text,
+                Timestamp.from(receivedAt),
+                vectorLiteral(embedding),
+                embeddingAttempts);
+    }
+
+    /** Inserts a row already carrying a vector, and answers its generated id. */
+    public static long insertWithVectorReturningId(
+            JdbcTemplate jdbcTemplate,
+            long userId,
+            String incomingMessageId,
+            String text,
+            Instant receivedAt,
+            List<Float> embedding,
+            int embeddingAttempts) {
+        insertWithVector(jdbcTemplate, userId, incomingMessageId, text, receivedAt, embedding, embeddingAttempts);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
+    /** Inserts a row with no vector but an embedding-attempt count, and answers its generated id. */
+    public static long insertWithAttemptsReturningId(
+            JdbcTemplate jdbcTemplate,
+            long userId,
+            String incomingMessageId,
+            String text,
+            Instant receivedAt,
+            int embeddingAttempts) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO incoming_message (user_id, incoming_message_id, text, received_at, embedding_attempts)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                userId,
+                incomingMessageId,
+                text,
+                Timestamp.from(receivedAt),
+                embeddingAttempts);
+        return id(jdbcTemplate, userId, incomingMessageId);
+    }
+
+    public static void setBackfillClaimedAt(JdbcTemplate jdbcTemplate, long messageId, Instant claimedAt) {
+        jdbcTemplate.update(
+                "UPDATE incoming_message SET backfill_claimed_at = ? WHERE id = ?",
+                Timestamp.from(claimedAt),
+                messageId);
+    }
+
+    public static void deleteByUser(JdbcTemplate jdbcTemplate, long userId) {
+        jdbcTemplate.update("DELETE FROM incoming_message WHERE user_id = ?", userId);
+    }
+
+    public static List<Float> vector(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
+        String literal = jdbcTemplate.queryForObject(
+                "SELECT embedding::text FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
+                String.class,
+                userId,
+                incomingMessageId);
+        return literal == null ? List.of() : parseVectorLiteral(literal);
+    }
+
+    public static int embeddingAttempts(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
+        Integer attempts = jdbcTemplate.queryForObject(
+                "SELECT embedding_attempts FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
+                Integer.class,
+                userId,
+                incomingMessageId);
+        return attempts == null ? 0 : attempts;
+    }
+
+    public static Instant backfillClaimedAt(JdbcTemplate jdbcTemplate, long userId, String incomingMessageId) {
+        Timestamp claimedAt = jdbcTemplate.queryForObject(
+                "SELECT backfill_claimed_at FROM incoming_message WHERE user_id = ? AND incoming_message_id = ?",
+                Timestamp.class,
+                userId,
+                incomingMessageId);
+        return claimedAt == null ? null : claimedAt.toInstant();
+    }
+
+    private static String vectorLiteral(List<Float> embedding) {
+        return embedding.stream().map(String::valueOf).collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private static List<Float> parseVectorLiteral(String literal) {
+        String trimmed = literal.substring(1, literal.length() - 1);
+        if (trimmed.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(trimmed.split(",")).map(Float::parseFloat).toList();
     }
 }

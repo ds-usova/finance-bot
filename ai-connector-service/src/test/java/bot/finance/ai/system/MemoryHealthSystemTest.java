@@ -20,14 +20,16 @@ class MemoryHealthSystemTest extends AbstractMemorySystemTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when GET /actuator/health is called with the memory on - then it answers 200, UP, and db UP")
-        void whenActuatorHealthCalledWithMemoryOn_thenAnswers200UpAndDbUp() {
+        @DisplayName("when GET /actuator/health is called with the memory on - then it answers 200, UP, db UP and "
+                + "redis UP")
+        void whenActuatorHealthCalledWithMemoryOn_thenAnswers200UpDbUpAndRedisUp() {
             Response response = given().port(actuatorPort).when().get("/actuator/health");
             log.info("response: {}", response.getBody().asString());
 
             response.then().statusCode(200);
             assertThat(response.jsonPath().getString("status")).isEqualTo("UP");
             assertThat(response.jsonPath().getString("components.db.status")).isEqualTo("UP");
+            assertThat(response.jsonPath().getString("components.redis.status")).isEqualTo("UP");
         }
     }
 }

@@ -1,8 +1,8 @@
 package bot.finance.adapter.mcp;
 
 import bot.finance.application.dto.CreateExpenseProposalCommand;
-import bot.finance.domain.exception.InvalidExpenseProposalException;
-import bot.finance.domain.model.ExpenseProposal;
+import bot.finance.domain.exception.InvalidExpenseException;
+import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
@@ -20,17 +20,17 @@ public final class ExpenseProposalToolMapper {
     public static CreateExpenseProposalCommand toCommand(
             CreateExpenseProposalToolRequest request, AuthenticatedUserId userId, IncomingMessageId reference) {
         if (request == null) {
-            throw new InvalidExpenseProposalException("expense proposal request must be present");
+            throw new InvalidExpenseException("expense proposal request must be present");
         }
         if (request.amount() == null) {
-            throw new InvalidExpenseProposalException("expense proposal request has no amount");
+            throw new InvalidExpenseException("expense proposal request has no amount");
         }
         String strippedAmount = request.amount().strip();
         if (!AMOUNT_PATTERN.matcher(strippedAmount).matches()) {
-            throw new InvalidExpenseProposalException("amount must be digits with an optional dot, like 7200 or 12.50");
+            throw new InvalidExpenseException("amount must be digits with an optional dot, like 7200 or 12.50");
         }
         if (request.grouping() == null || request.grouping().isBlank()) {
-            throw new InvalidExpenseProposalException("expense proposal request has no grouping");
+            throw new InvalidExpenseException("expense proposal request has no grouping");
         }
         Optional<String> merchant = blankToEmpty(request.merchant());
         Money money = Money.ofMajorUnits(new BigDecimal(strippedAmount), CurrencyCode.of(request.currencyCode()));
@@ -42,7 +42,7 @@ public final class ExpenseProposalToolMapper {
         return Optional.ofNullable(value).filter(v -> !v.isBlank());
     }
 
-    public static CreateExpenseProposalToolResponse toResponse(ExpenseProposal proposal, String categoryName) {
+    public static CreateExpenseProposalToolResponse toResponse(Expense proposal, String categoryName) {
         return new CreateExpenseProposalToolResponse(
                 proposal.id().orElseThrow(),
                 categoryName,

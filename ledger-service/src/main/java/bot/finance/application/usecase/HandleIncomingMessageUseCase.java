@@ -8,7 +8,6 @@ import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.SpendingSummary;
 import bot.finance.application.dto.TurnReport;
-import bot.finance.application.port.ExpenseProposalRepository;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleIncomingMessagePort;
@@ -38,7 +37,6 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final InitializeUserPort initializeUserPort;
     private final GroupingRepository groupingRepository;
     private final IntentExtractionPort intentExtractionPort;
-    private final ExpenseProposalRepository expenseProposalRepository;
     private final MessageDeliveryPort messageDeliveryPort;
     private final Clock clock;
     private final SpendingQueryRepository spendingQueryRepository;
@@ -50,7 +48,6 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             InitializeUserPort initializeUserPort,
             GroupingRepository groupingRepository,
             IntentExtractionPort intentExtractionPort,
-            ExpenseProposalRepository expenseProposalRepository,
             MessageDeliveryPort messageDeliveryPort,
             Clock clock,
             SpendingQueryRepository spendingQueryRepository,
@@ -60,7 +57,6 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
         this.intentExtractionPort = intentExtractionPort;
-        this.expenseProposalRepository = expenseProposalRepository;
         this.messageDeliveryPort = messageDeliveryPort;
         this.clock = clock;
         this.spendingQueryRepository = spendingQueryRepository;
@@ -83,8 +79,8 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
         boolean extractionFailed = extract(command, categoryGroupings, user, reference);
 
-        List<ProposalSummary> proposals = expenseProposalRepository.findSummariesByMessageReference(
-                user.id().orElseThrow(), reference);
+        List<ProposalSummary> proposals =
+                expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
         List<SpendingSummary> summaries = spendingSummaries(user.id().orElseThrow(), reference);
 
         ReportOutcome outcome = outcomeFor(extractionFailed, proposals, summaries);

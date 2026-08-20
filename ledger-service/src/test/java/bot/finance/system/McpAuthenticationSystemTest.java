@@ -2,7 +2,7 @@ package bot.finance.system;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bot.finance.adapter.persistence.ExpenseProposalEntity;
+import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.common.boot.AbstractSystemTest;
@@ -10,8 +10,9 @@ import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.rows.CategoryRowUtils;
-import bot.finance.common.rows.ExpenseProposalRowUtils;
+import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.UserRowUtils;
+import bot.finance.domain.value.ExpenseStatus;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -153,10 +154,10 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
                     .isNotEqualTo(Boolean.TRUE);
 
             // then: the proposal is stored under the same user_id the token's subject carries
-            List<ExpenseProposalEntity> rows =
-                    ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId);
+            List<ExpenseEntity> rows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING);
             assertThat(rows)
-                    .as("stored expense_proposal rows carrying the token's subject as user_id")
+                    .as("stored PENDING expense rows carrying the token's subject as user_id")
                     .hasSize(1);
         }
     }
@@ -183,8 +184,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             assertThat(response.getBody().asString())
                     .as("rejected response body carries no tool result")
                     .doesNotContain("\"result\"");
-            assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, userId))
-                    .as("expense_proposal rows for %s", externalId)
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING))
+                    .as("PENDING expense rows for %s", externalId)
                     .isEmpty();
         }
 
@@ -207,8 +208,8 @@ class McpAuthenticationSystemTest extends AbstractSystemTest {
             assertThat(response.jsonPath().getString("result.content[0].text"))
                     .as("%s - tool error message", scenario)
                     .contains("the user is unknown");
-            assertThat(ExpenseProposalRowUtils.expenseProposalRowsFor(jdbcAggregateTemplate, unknownUserId))
-                    .as("%s - expense_proposal rows for the unknown subject", scenario)
+            assertThat(ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, unknownUserId, ExpenseStatus.PENDING))
+                    .as("%s - PENDING expense rows for the unknown subject", scenario)
                     .isEmpty();
         }
 

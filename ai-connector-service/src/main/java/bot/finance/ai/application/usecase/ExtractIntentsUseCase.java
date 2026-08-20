@@ -1,25 +1,35 @@
 package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.ExtractIntentsCommand;
+import bot.finance.ai.application.dto.RecallExamplesCommand;
 import bot.finance.ai.application.port.ExpenseRecordingPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.MessageStorePort;
+import bot.finance.ai.application.port.RecallExamplesPort;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
+import bot.finance.ai.domain.value.MessageExample;
 import bot.finance.ai.domain.value.MessageIdentity;
+import java.util.List;
+import java.util.Optional;
 
 public class ExtractIntentsUseCase implements ExtractIntentsPort {
 
     private final ExpenseRecordingPort expenseRecordingPort;
     private final MessageStorePort messageStorePort;
+    private final RecallExamplesPort recallExamplesPort;
     private final Logger log;
 
     public ExtractIntentsUseCase(
-            ExpenseRecordingPort expenseRecordingPort, MessageStorePort messageStorePort, LoggerFactory loggerFactory) {
+            ExpenseRecordingPort expenseRecordingPort,
+            MessageStorePort messageStorePort,
+            RecallExamplesPort recallExamplesPort,
+            LoggerFactory loggerFactory) {
         this.expenseRecordingPort = expenseRecordingPort;
         this.messageStorePort = messageStorePort;
+        this.recallExamplesPort = recallExamplesPort;
         this.log = loggerFactory.getLogger(ExtractIntentsUseCase.class);
     }
 
@@ -29,14 +39,20 @@ public class ExtractIntentsUseCase implements ExtractIntentsPort {
             throw new InvalidValueException("Command must not be null");
         }
 
-        command.messageIdentity().ifPresent(identity -> registerMessage(identity, command.text()));
+        Optional<List<MessageExample>> examples = Optional.empty();
+        Optional<MessageIdentity> identity = command.messageIdentity();
+        if (identity.isPresent()) {
+            registerMessage(identity.get(), command.text());
+            examples = recallExamplesPort.recall(new RecallExamplesCommand(identity.get(), command.text()));
+        }
 
         expenseRecordingPort.record(
                 command.text(),
                 command.categoryGroupings(),
                 command.catchAllGrouping(),
                 command.defaultCurrency(),
-                command.currentDate());
+                command.currentDate(),
+                examples);
 
         log.info(
                 "Acted on turn with {} groupings offered",

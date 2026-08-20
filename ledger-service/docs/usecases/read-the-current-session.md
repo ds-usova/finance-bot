@@ -16,7 +16,7 @@
 | Direction | Collaborator                             | Through                                                                           | For                                            |
 |-----------|------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------|
 | in        | [Web App](../../../web-app/README.md)    | [The session API](../contracts/in/web-session-api.md)                             | deciding whether to show the shell or the sign-in |
-| out       | [Database](../contracts/out/database.md) | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the caller's own row                 |
+| out       | [Database](../contracts/out/database.md) | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the caller's own row                 |
 
 ## Outcomes
 

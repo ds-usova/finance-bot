@@ -137,10 +137,13 @@ sensible checkpoints. A refactoring that goes wrong is fully reverted, never lef
 
 ## Report Back
 
-End with a short, structured report the orchestrator can act on. **It is the only channel back** — the
-orchestrator is not addressable by name, so never send it a message; anything you would have asked goes in the
-report as a blocker.
+End with a short, structured report the orchestrator can act on — the only channel back, per
+[`templates/sub-agents.md`](../templates/sub-agents.md) **Reporting back**.
 
+- **one line per priority the module's Refactoring Conventions list, in their order, each answered**: what you
+  looked for, and what you found or why nothing qualified. A priority you never reached is reported as such. An
+  unanswered priority and one that found nothing read identically otherwise, which is how a diff carrying a
+  duplicated policy in two classes and a mapper on the wrong type passed two of these passes;
 - refactorings applied, grouped by checklist category, with the files touched (including new files created and
   any conventions-designated shared helpers extended);
 - confirmation the full suite and the architecture-enforcement test are green, with the test count matching

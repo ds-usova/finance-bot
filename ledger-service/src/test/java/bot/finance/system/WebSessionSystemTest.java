@@ -13,6 +13,7 @@ import bot.finance.common.fixtures.TelegramLoginPayloads;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
+import bot.finance.domain.value.ExpenseStatus;
 import com.nimbusds.jwt.SignedJWT;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -213,7 +214,8 @@ class WebSessionSystemTest extends AbstractSystemTest {
                             1500L,
                             "EUR",
                             UUID.randomUUID().toString(),
-                            Instant.now())
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
                     .id();
 
             // when: they browse

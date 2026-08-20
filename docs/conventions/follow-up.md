@@ -20,9 +20,8 @@ module that differs says so in its own section file.
 
 ## What Gets Written
 
-- **An ADR** — one per technical decision approved for recording, stated as a fact. Its number is not chosen in
-  advance; it is assigned when the ADR is written, so a rejected candidate consumes none. How one is superseded
-  or deprecated afterwards is [ADR Lifecycle](adr.md).
+- **An ADR** — one per technical decision approved for recording. What earns one, where it goes, how it is
+  numbered, who writes it and what it looks like are all [Architecture Decision Records](adr.md).
 
 **An ADR exists only because it was approved.** Each candidate is raised as a question — the decision as a fact,
 and the page that holds it if no ADR is written — and only an answered `yes` produces one. A candidate rejected,

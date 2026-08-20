@@ -16,29 +16,12 @@
 - The caller is authenticated. The request never names whose expenses it is.
 - A user is stored under that identity.
 
-## What a page holds
-
-| Kind     | An entry is this when                      | Read from        |
-|----------|--------------------------------------------|------------------|
-| Recorded | the spending is already in the ledger      | stored expenses  |
-| Pending  | a proposal is still waiting for a decision | stored proposals |
-
-Both kinds carry the same parts, and the [status](../domain/expense-status.md) tells them apart. A category
-arrives as an id; [the category listing](browse-categories.md) names it.
-
-### The day figures
-
-What the [specification](../../../openapi/ledger-api.yaml) does not fix:
-
-- A day split by the page boundary is figured on each page, over its own part.
-- A narrowed filter narrows the figures. A listing of one category figures that category alone.
-
 ## Collaborators
 
 | Direction | Collaborator                                                                           | Through                                                                           | For                                                                            |
 |-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | showing a signed-in person their spending, newest first                        |
-| out       | [Database](../contracts/out/database.md)                                               | [Users, categories, expenses and expense proposals](../contracts/out/database.md) | resolving the identity, reading the page, and counting what the filter matches |
+| out       | [Database](../contracts/out/database.md)                                               | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, reading the page, and counting what the filter matches |
 
 ## Outcomes
 
@@ -50,6 +33,19 @@ What the [specification](../../../openapi/ledger-api.yaml) does not fix:
 | Filter rejected  | the page size is out of bounds, or the offset is negative      | invalid expense filter, naming the bound — nothing is looked up                           |
 | Identity unknown | nothing is stored under the identity                           | the request is rejected and nothing is listed                                             |
 | Storage failed   | the store cannot be reached                                    | the failure reaches the caller                                                            |
+
+An unfiltered listing answers both kinds. A category arrives as an id, named by
+[the category listing](browse-categories.md).
+
+| Kind     | Counts towards the day's figures |
+|----------|----------------------------------|
+| Recorded | yes                              |
+| Pending  | no                               |
+
+What the [specification](../../../openapi/ledger-api.yaml) does not fix about those figures:
+
+- A day split by the page boundary is figured on each page, over its own part.
+- A narrowed filter narrows the figures.
 
 ## Components
 
@@ -65,7 +61,7 @@ AddElementTag("core", $bgColor="#2c3e50", $fontColor="#ffffff", $borderColor="#1
 AddRelTag("implements", $lineStyle="dashed")
 
 System_Ext(browser, "A signed-in person's browser", "The web app's page", $tags="webExternal")
-ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories, expenses and expense proposals", $tags="dbExternal")
+ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories and expenses", $tags="dbExternal")
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only calls carrying a valid session cookie", $tags="webExternal")
@@ -75,7 +71,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Checks if user exists", $tags="dbExternal")
-  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads one page across both stores, and counts what the filter matches", $tags="dbExternal")
+  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads one page across both statuses, and counts what the filter matches", $tags="dbExternal")
 }
 
 Rel(browser, accessControl, "Asks for a page of expenses", "HTTP, session cookie")
@@ -119,7 +115,7 @@ if (the identity names a stored user?) then (no)
   :identity unknown;
   stop
 endif
-:read one page of their expenses and proposals from the database, newest first;
+:read one page of their entries from the database, under the status asked for or both, newest first;
 if (the read fails?) then (yes)
   :storage failed;
   stop
