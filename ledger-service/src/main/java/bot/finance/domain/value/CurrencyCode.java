@@ -21,4 +21,10 @@ public record CurrencyCode(String code) {
     public static CurrencyCode of(String code) {
         return new CurrencyCode(code);
     }
+
+    public boolean recordsAmounts() {
+        // whether an amount can be recorded in this code — false for one whose default fraction digits are
+        // negative, such as XAU
+        return false;
+    }
 }

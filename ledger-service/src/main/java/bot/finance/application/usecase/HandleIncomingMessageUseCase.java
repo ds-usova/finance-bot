@@ -19,6 +19,7 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
+import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
@@ -44,6 +45,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final ExpenseRepository expenseRepository;
     private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
+    private final UserPreferenceRepository userPreferenceRepository;
     private final Logger log;
 
     public HandleIncomingMessageUseCase(
@@ -56,6 +58,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
             TurnMeters turnMeters,
+            UserPreferenceRepository userPreferenceRepository,
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
@@ -66,6 +69,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.expenseRepository = expenseRepository;
         this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
+        this.userPreferenceRepository = userPreferenceRepository;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
     }
 
@@ -77,6 +81,8 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
+        // TODO: read the sender's stored default currency through userPreferenceRepository, logging and carrying
+        // on with none where the read fails, and pass it through to the extraction request below
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 

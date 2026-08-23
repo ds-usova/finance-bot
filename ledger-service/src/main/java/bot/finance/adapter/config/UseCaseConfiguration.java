@@ -18,12 +18,15 @@ import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
+import bot.finance.application.port.ReadPreferencesPort;
 import bot.finance.application.port.ReadSessionPort;
+import bot.finance.application.port.ReplacePreferencesPort;
 import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.TurnMeters;
+import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
@@ -36,7 +39,9 @@ import bot.finance.application.usecase.CreateExpenseUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.application.usecase.InitializeUserUseCase;
 import bot.finance.application.usecase.ListCategoriesUseCase;
+import bot.finance.application.usecase.ReadPreferencesUseCase;
 import bot.finance.application.usecase.ReadSessionUseCase;
+import bot.finance.application.usecase.ReplacePreferencesUseCase;
 import bot.finance.application.usecase.ResolveProposalsUseCase;
 import bot.finance.application.usecase.SummarizeSpendingUseCase;
 import java.time.Clock;
@@ -56,6 +61,7 @@ public class UseCaseConfiguration {
             ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
             TurnMeters turnMeters,
+            UserPreferenceRepository userPreferenceRepository,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
                 initializeUserPort,
@@ -67,6 +73,7 @@ public class UseCaseConfiguration {
                 expenseRepository,
                 proposalReportRepository,
                 turnMeters,
+                userPreferenceRepository,
                 loggerFactory);
     }
 
@@ -161,6 +168,18 @@ public class UseCaseConfiguration {
     @Bean
     ReadSessionPort readSessionPort(UserRepository userRepository) {
         return new ReadSessionUseCase(userRepository);
+    }
+
+    @Bean
+    ReadPreferencesPort readPreferencesPort(
+            UserRepository userRepository, UserPreferenceRepository userPreferenceRepository) {
+        return new ReadPreferencesUseCase(userRepository, userPreferenceRepository);
+    }
+
+    @Bean
+    ReplacePreferencesPort replacePreferencesPort(
+            UserRepository userRepository, UserPreferenceRepository userPreferenceRepository) {
+        return new ReplacePreferencesUseCase(userRepository, userPreferenceRepository);
     }
 
     @Bean

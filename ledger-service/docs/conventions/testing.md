@@ -47,6 +47,7 @@ bot.finance
     │   ├── OutboxRowUtils        # reads back a user's outbox rows, counts the table, and stores one row directly
     │   ├── ProposalReportRowUtils # reads back a user's stored proposal report rows, and stores one directly
     │   ├── SpendingQueryRowUtils # reads back a user's stored spending query rows, and stores one directly
+    │   ├── UserPreferenceRowUtils # stores a preference row directly and reads a user's stored code back
     │   └── UserRowUtils          # stores a user row and returns its generated id
     ├── fixtures              # payloads a test sends, and the loader for the ones kept on disk
     │   ├── BrowserSessions       # the session and CSRF cookie names, a session cookie, and the sign-in exchange
