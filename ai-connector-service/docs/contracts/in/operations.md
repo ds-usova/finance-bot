@@ -45,19 +45,18 @@ The framework's, from the calls it makes on the service's behalf:
 
 The service's own:
 
-| Meter                             | Kind                 | Says                                                                   |
-|-----------------------------------|----------------------|------------------------------------------------------------------------|
-| `ai_recall_examples_*`            | distribution summary | how many worked examples a recall that searched came back with         |
-| `ai_recall_best_similarity_*`     | distribution summary | how close the closest of them was, on a recall that came back with any |
-| `ai_cdc_entries_pending`          | gauge                | [the group's pending summary](../out/change-stream.md#operations)      |
-| `ai_cdc_deliveries_dropped_total` | counter              | deliveries given up on                                                 |
+| Meter                             | Kind                 | Says                                                                       |
+|-----------------------------------|----------------------|----------------------------------------------------------------------------|
+| `ai_recall_examples_*`            | distribution summary | how many worked examples a recall that searched came back with             |
+| `ai_recall_best_similarity_*`     | distribution summary | how close the closest of them was, on a recall that came back with any     |
+| `ai_cdc_entries_pending`          | gauge                | [the group's pending summary](../out/change-stream.md#operations)          |
+| `ai_cdc_deliveries_dropped_total` | counter              | deliveries [given up on](../../usecases/learn-message-outcome.md#outcomes) |
 
 - The pending gauge is what the group holds undone, not a backlog: entries nobody has read yet, and a consumer
   that is down, both read zero. Every instance publishes the same number, so a panel takes the maximum, never
   the sum.
 - Before the first successful pending read the gauge answers `NaN`, which no panel plots as a value. Whether
   the value is stale is what [the health endpoint](#health) says.
-- What a drop costs is [the use case's](../../usecases/learn-message-outcome.md#outcomes).
 - With the memory switched off every `ai_` meter is absent — [configuration](../../configuration.md).
 
 ## Compatibility
