@@ -19,6 +19,7 @@ public final class PreferencesWebMapper {
             throw new InvalidMoneyException(
                     "Currency code " + defaultCurrency.code() + ": no amount can be recorded in it");
         }
+
         return new ReplacePreferencesCommand(userId, defaultCurrency);
     }
 

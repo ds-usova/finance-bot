@@ -387,6 +387,15 @@ write with no CSRF token is refused by the enforcement filter.
 
 ## Open Questions / Blockers
 
+- **Suspected bug the tests do not catch (refactor pass, unverified):**
+  `UserPreferenceRepositoryAdapter.findDefaultCurrency` constructs the `CurrencyCode` *inside* its
+  `catch (RuntimeException e)`, so an `InvalidMoneyException` from the record's compact constructor is wrapped into
+  `PersistenceFailedException` and the caller is told the store was unavailable — a 503 where the plan's exception
+  table intends a 400. Reachable only by a write that bypasses the endpoint (`default_currency_code` is
+  `VARCHAR(3)` with no check constraint) or by a code the JDK later stops recognising. Derived by reading, not
+  executed: demonstrating it needs a new test, which the refactor pass's unchanged-count guardrail forbids. A
+  developer should decide whether the mapping belongs outside the `try`.
+
 - **Over-specified test (RU05/GU05):** `HandleIncomingMessageUseCaseTest`'s
   `whenSendersPreferenceReadThrowsPersistenceFailedException_thenRequestCarriesNoCurrencyAndTurnDelivered()` asserts
   `verify(log).warn(anyString(), any())`, which pins the two-argument SLF4J overload rather than the fact that the

@@ -18,9 +18,7 @@ public class UserPreferenceRepositoryAdapter implements UserPreferenceRepository
     @Override
     public Optional<CurrencyCode> findDefaultCurrency(long userId) {
         try {
-            return userPreferenceEntityRepository
-                    .findById(userId)
-                    .map(entity -> new CurrencyCode(entity.defaultCurrencyCode()));
+            return userPreferenceEntityRepository.findById(userId).map(UserPreferenceEntity::toDefaultCurrency);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find default currency for user " + userId, e);
         }

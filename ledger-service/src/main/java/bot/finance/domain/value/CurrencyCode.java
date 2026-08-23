@@ -23,6 +23,10 @@ public record CurrencyCode(String code) {
     }
 
     public boolean recordsAmounts() {
-        return Currency.getInstance(code).getDefaultFractionDigits() >= 0;
+        return fractionDigits() >= 0;
+    }
+
+    public int fractionDigits() {
+        return Currency.getInstance(code).getDefaultFractionDigits();
     }
 }
