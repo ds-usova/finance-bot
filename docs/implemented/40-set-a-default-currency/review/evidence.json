@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/40-set-a-default-currency/ledger-service/plan.md",
+  "commit": "2b902591",
+  "branch": "dev",
+  "workingTree": "1 uncommitted file(s)",
+  "generated": "2026-08-23T23:46:46Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 397, "passed": 397, "failed": 0, "skipped": 0, "instructions": "98.1%", "branches": "94.5%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1193, "passed": 1193, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 272, "passed": 272, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.8%", "minimum": "80%", "format": "clean"}
+  ]
+}
