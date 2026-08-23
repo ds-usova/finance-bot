@@ -5,6 +5,7 @@ export const en = {
     productName: 'Finance Bot',
     themeToggle: 'Toggle color theme',
     signOut: 'Sign out',
+    settings: 'Settings',
   },
   listing: {
     today: 'Today',
@@ -58,5 +59,29 @@ export const en = {
     pitch: 'Everything the bot recorded, and everything still awaiting a decision, in one place.',
     continueWith: 'Continue with',
     refused: 'That sign-in was not accepted. Please try again.',
+  },
+  settings: {
+    heading: 'Settings',
+    defaultCurrency: 'Default currency',
+    currencyUnset: 'Not set',
+    searchCurrencies: 'Search currencies',
+    noCurrency: 'No currency found.',
+    save: 'Save',
+    saved: 'Saved.',
+    readFailed: 'Your settings could not be read.',
+  },
+  // The codes a currency amount can be recorded in. Unlike every other namespace, this one names data rather
+  // than the surface reading it, and the full set is transcribed here from the ISO 4217 published table
+  // (https://www.iso.org/iso-4217-currency-codes.html). Only a handful stand here for now, and nothing checks
+  // the transcription afterwards.
+  currencies: {
+    EUR: 'Euro',
+    USD: 'US Dollar',
+    GBP: 'British Pound',
+    JPY: 'Japanese Yen',
+    CHF: 'Swiss Franc',
+    PLN: 'Polish Zloty',
+    TRY: 'Turkish Lira',
+    ZAR: 'South African Rand',
   },
 } as const;
