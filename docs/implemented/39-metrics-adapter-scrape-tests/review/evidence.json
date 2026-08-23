@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/39-metrics-adapter-scrape-tests/rework.md",
+  "commit": "8703c7fa",
+  "branch": "dev",
+  "workingTree": "clean",
+  "generated": "2026-08-20T23:42:23Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 397, "passed": 397, "failed": 0, "skipped": 0, "instructions": "98.1%", "branches": "94.5%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1144, "passed": 1144, "failed": 0, "skipped": 0, "instructions": "96.4%", "branches": "92.3%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 241, "passed": 241, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.7%", "minimum": "80%", "format": "clean"}
+  ]
+}

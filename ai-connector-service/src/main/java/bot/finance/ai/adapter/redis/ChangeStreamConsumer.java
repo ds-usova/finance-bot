@@ -34,7 +34,6 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "memory.enabled", havingValue = "true")
 public class ChangeStreamConsumer implements SmartLifecycle {
 
-    private static final String GROUP = "ai-connector";
     private static final String FALLBACK_CONSUMER_NAME = "ai-connector-unknown-host";
     private static final Duration RETRY_BACKOFF = Duration.ofSeconds(1);
     private static final Duration RECONNECT_BACKOFF = Duration.ofSeconds(2);
@@ -124,7 +123,7 @@ public class ChangeStreamConsumer implements SmartLifecycle {
 
     private void createGroup(StreamOperations<String, String, String> streamOperations) {
         try {
-            streamOperations.createGroup(properties.key(), ReadOffset.latest(), GROUP);
+            streamOperations.createGroup(properties.key(), ReadOffset.latest(), ChangeStreamProperties.GROUP);
         } catch (DataAccessException e) {
             String cause = e.getMostSpecificCause().getMessage();
             if (cause == null || !cause.contains(BUSYGROUP_MARKER)) {
@@ -160,7 +159,11 @@ public class ChangeStreamConsumer implements SmartLifecycle {
     private List<MapRecord<String, String, String>> claimIdleEntries(
             StreamOperations<String, String, String> streamOperations, String consumerName) {
         PendingMessages pendingMessages = streamOperations.pending(
-                properties.key(), GROUP, Range.unbounded(), CLAIM_BATCH_SIZE, properties.claimIdle());
+                properties.key(),
+                ChangeStreamProperties.GROUP,
+                Range.unbounded(),
+                CLAIM_BATCH_SIZE,
+                properties.claimIdle());
         List<RecordId> idleRecordIds =
                 pendingMessages.stream().map(PendingMessage::getId).toList();
 
@@ -169,13 +172,17 @@ public class ChangeStreamConsumer implements SmartLifecycle {
         }
 
         return streamOperations.claim(
-                properties.key(), GROUP, consumerName, properties.claimIdle(), idleRecordIds.toArray(RecordId[]::new));
+                properties.key(),
+                ChangeStreamProperties.GROUP,
+                consumerName,
+                properties.claimIdle(),
+                idleRecordIds.toArray(RecordId[]::new));
     }
 
     private List<MapRecord<String, String, String>> readOwnPending(
             StreamOperations<String, String, String> streamOperations, String consumerName) {
         return streamOperations.read(
-                Consumer.from(GROUP, consumerName),
+                Consumer.from(ChangeStreamProperties.GROUP, consumerName),
                 StreamReadOptions.empty(),
                 StreamOffset.create(properties.key(), ReadOffset.from("0")));
     }
@@ -183,7 +190,7 @@ public class ChangeStreamConsumer implements SmartLifecycle {
     private List<MapRecord<String, String, String>> readNewEntries(
             StreamOperations<String, String, String> streamOperations, String consumerName) {
         return streamOperations.read(
-                Consumer.from(GROUP, consumerName),
+                Consumer.from(ChangeStreamProperties.GROUP, consumerName),
                 StreamReadOptions.empty().block(NEW_ENTRIES_BLOCK),
                 StreamOffset.create(properties.key(), ReadOffset.lastConsumed()));
     }
@@ -256,7 +263,7 @@ public class ChangeStreamConsumer implements SmartLifecycle {
     }
 
     private void acknowledge(StreamOperations<String, String, String> streamOperations, String entryId) {
-        streamOperations.acknowledge(properties.key(), GROUP, entryId);
+        streamOperations.acknowledge(properties.key(), ChangeStreamProperties.GROUP, entryId);
     }
 
     private void sleep(Duration duration) {

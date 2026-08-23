@@ -4,6 +4,7 @@ import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -20,6 +21,7 @@ import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.MessageDeliveryFailedException;
@@ -50,6 +52,7 @@ class ResolveProposalsUseCaseTest {
     private UserRepository userRepository;
     private ExpenseRepository expenseRepository;
     private MessageDeliveryPort messageDeliveryPort;
+    private TurnMeters turnMeters;
     private ResolveProposalsUseCase useCase;
 
     @BeforeEach
@@ -60,9 +63,10 @@ class ResolveProposalsUseCaseTest {
         userRepository = mock(UserRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
         messageDeliveryPort = mock(MessageDeliveryPort.class);
+        turnMeters = mock(TurnMeters.class);
         Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
         useCase = new ResolveProposalsUseCase(
-                userRepository, expenseRepository, messageDeliveryPort, clock, loggerFactory);
+                userRepository, expenseRepository, messageDeliveryPort, clock, turnMeters, loggerFactory);
     }
 
     private ResolveProposalsCommand newCommand(ProposalResolution resolution) {
@@ -109,6 +113,7 @@ class ResolveProposalsUseCaseTest {
             assertThat(ack.conversationId()).isEqualTo(CONVERSATION_ID);
             assertThat(ack.reportMessageId()).isEqualTo(REPORT_MESSAGE_ID);
             assertThat(ack.interactionId()).isEqualTo(INTERACTION_ID);
+            verify(turnMeters).countResolved(ProposalResolution.ACCEPT, 2);
         }
 
         @Test
@@ -128,6 +133,7 @@ class ResolveProposalsUseCaseTest {
             assertThat(ack.count()).isEqualTo(3);
 
             verify(expenseRepository, never()).accept(anyLong(), any(), any());
+            verify(turnMeters).countResolved(ProposalResolution.DISCARD, 3);
         }
 
         @Test
@@ -148,6 +154,7 @@ class ResolveProposalsUseCaseTest {
             ResolutionAcknowledgement ack = ackCaptor.getValue();
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.ALREADY_ACCEPTED);
             assertThat(ack.count()).isEqualTo(2);
+            verify(turnMeters, never()).countResolved(any(), anyInt());
         }
 
         @Test
@@ -166,6 +173,7 @@ class ResolveProposalsUseCaseTest {
             ResolutionAcknowledgement ack = ackCaptor.getValue();
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.ALREADY_ACCEPTED);
             assertThat(ack.count()).isEqualTo(2);
+            verify(turnMeters, never()).countResolved(any(), anyInt());
         }
 
         @Test
@@ -183,6 +191,7 @@ class ResolveProposalsUseCaseTest {
             ResolutionAcknowledgement ack = ackCaptor.getValue();
             assertThat(ack.outcome()).isEqualTo(ResolutionOutcome.NOTHING_TO_RESOLVE);
             assertThat(ack.count()).isEqualTo(0);
+            verify(turnMeters, never()).countResolved(any(), anyInt());
         }
 
         @Test
@@ -201,6 +210,7 @@ class ResolveProposalsUseCaseTest {
             assertThat(ack.count()).isEqualTo(0);
 
             verifyNoInteractions(expenseRepository);
+            verify(turnMeters, never()).countResolved(any(), anyInt());
         }
 
         @Test
@@ -228,6 +238,8 @@ class ResolveProposalsUseCaseTest {
 
             assertThatThrownBy(() -> useCase.resolve(newCommand(ProposalResolution.DISCARD)))
                     .isSameAs(failure);
+
+            verify(turnMeters).countResolved(ProposalResolution.DISCARD, 2);
         }
     }
 }

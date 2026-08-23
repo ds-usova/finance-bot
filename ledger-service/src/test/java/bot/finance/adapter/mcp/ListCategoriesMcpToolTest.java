@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.common.LogCapture;
 import bot.finance.common.boot.McpAdapterTest;
 import bot.finance.common.fixtures.McpRequests;
@@ -38,8 +39,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 /**
  * Integration test for the inbound MCP-tool adapter. Enters through the protocol - a JSON-RPC {@code tools/call}
  * POST to {@code /mcp} - never by calling {@link ListCategoriesMcpTool}'s method directly, since request binding
- * and the tool's own error-to-result mapping live in the adapter body itself. Only {@link ListCategoriesPort} is
- * mocked.
+ * and the tool's own error-to-result mapping live in the adapter body itself. Only {@link ListCategoriesPort} and
+ * {@link ToolCallMeters} are mocked.
  */
 @McpAdapterTest
 class ListCategoriesMcpToolTest {
@@ -54,6 +55,9 @@ class ListCategoriesMcpToolTest {
 
     @Autowired
     private ListCategoriesPort listCategoriesPort;
+
+    @Autowired
+    private ToolCallMeters toolCallMeters;
 
     private String token(long userId) {
         return McpTokens.tokenFor(accessTokenMinter, userId);
@@ -99,6 +103,7 @@ class ListCategoriesMcpToolTest {
             verify(listCategoriesPort).list(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
             assertThat(command.getValue().groupingName()).isEqualTo("Groceries");
+            verify(toolCallMeters).countOk("list_categories");
         }
 
         @Test
@@ -170,6 +175,7 @@ class ListCategoriesMcpToolTest {
 
             assertThat(response.jsonPath().getBoolean("result.isError")).isTrue();
             assertThat(response.jsonPath().getString("result.content[0].text")).contains(exceptionMessage);
+            verify(toolCallMeters).countRejected("list_categories", "InvalidGroupingException");
         }
 
         @Test

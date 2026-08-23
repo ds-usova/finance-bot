@@ -2,6 +2,7 @@ package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.OutboxMeters;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -44,7 +45,7 @@ public class LedgerEventOutbox {
         try {
             outboxWriter.write(type, rows, occurredAt);
         } catch (RuntimeException e) {
-            outboxMeters.countFactsDropped(type, rows.size());
+            outboxMeters.countFactsDropped(type.name(), rows.size());
             log.error(
                     "Failed to record {} {} facts, which reach no consumer: {}",
                     rows.size(),

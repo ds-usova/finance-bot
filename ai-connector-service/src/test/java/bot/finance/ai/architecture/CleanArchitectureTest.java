@@ -53,7 +53,8 @@ class CleanArchitectureTest {
                     "org.springframework.security..",
                     "com.nimbusds..",
                     "org.flywaydb..",
-                    "org.springframework.data.redis..")
+                    "org.springframework.data.redis..",
+                    "io.micrometer..")
             .allowEmptyShould(true);
 
     /**

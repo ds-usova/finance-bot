@@ -5,7 +5,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.springframework.context.annotation.Import;
 
 /**
  * Composed annotation for outbound persistence-adapter integration tests.
@@ -19,5 +18,4 @@ import org.springframework.context.annotation.Import;
 @Documented
 @TheDatabaseSlice
 @OnTheContainerizedDatabase
-@Import(InMemoryMeters.class)
 public @interface PersistenceAdapterTest {}

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import bot.finance.ai.application.dto.LearnMessageOutcomeCommand;
 import bot.finance.ai.application.dto.LearnOutcome;
 import bot.finance.ai.application.port.ChangeAttemptStorePort;
+import bot.finance.ai.application.port.ChangeStreamMeters;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.RecordedExpenseStorePort;
@@ -46,6 +47,7 @@ class LearnMessageOutcomeUseCaseTest {
 
     private RecordedExpenseStorePort recordedExpenseStorePort;
     private ChangeAttemptStorePort changeAttemptStorePort;
+    private ChangeStreamMeters changeStreamMeters;
     private Logger log;
     private LearnMessageOutcomeUseCase useCase;
 
@@ -53,11 +55,12 @@ class LearnMessageOutcomeUseCaseTest {
     void setUp() {
         recordedExpenseStorePort = mock(RecordedExpenseStorePort.class);
         changeAttemptStorePort = mock(ChangeAttemptStorePort.class);
+        changeStreamMeters = mock(ChangeStreamMeters.class);
         LoggerFactory loggerFactory = mock(LoggerFactory.class);
         log = mock(Logger.class);
         when(loggerFactory.getLogger(any())).thenReturn(log);
         useCase = new LearnMessageOutcomeUseCase(
-                recordedExpenseStorePort, changeAttemptStorePort, ENTRY_ATTEMPTS, loggerFactory);
+                recordedExpenseStorePort, changeAttemptStorePort, ENTRY_ATTEMPTS, changeStreamMeters, loggerFactory);
     }
 
     @Nested
@@ -72,7 +75,11 @@ class LearnMessageOutcomeUseCaseTest {
             when(loggerFactory.getLogger(any())).thenReturn(mock(Logger.class));
 
             assertThatThrownBy(() -> new LearnMessageOutcomeUseCase(
-                            recordedExpenseStorePort, changeAttemptStorePort, entryAttempts, loggerFactory))
+                            recordedExpenseStorePort,
+                            changeAttemptStorePort,
+                            entryAttempts,
+                            changeStreamMeters,
+                            loggerFactory))
                     .isInstanceOf(InvalidValueException.class);
         }
     }
@@ -144,6 +151,7 @@ class LearnMessageOutcomeUseCaseTest {
             assertThat(outcome).isEqualTo(LearnOutcome.RETRY_LATER);
             verify(changeAttemptStorePort).countFailure(DELIVERY_ID, "store failed");
             assertThat(MockedLoggerUtils.linesAt(log, "error")).isEmpty();
+            verify(changeStreamMeters, never()).countDropped();
         }
 
         @Test
@@ -168,6 +176,21 @@ class LearnMessageOutcomeUseCaseTest {
             verify(changeAttemptStorePort).clear(DELIVERY_ID);
             verify(recordedExpenseStorePort).apply(entry, STATUS, POSITION);
             verifyNoMoreInteractions(recordedExpenseStorePort);
+        }
+
+        @Test
+        @DisplayName("when the store fails at entryAttempts - then ChangeStreamMeters.countDropped is called once")
+        void whenStoreFailsAtEntryAttempts_thenChangeStreamMetersCountsDroppedOnce() {
+            SpendingRow entry = spendingRow();
+            LearnMessageOutcomeCommand command = new LearnMessageOutcomeCommand(DELIVERY_ID, POSITION, STATUS, entry);
+            doThrow(new MessageStoreFailedException("store failed"))
+                    .when(recordedExpenseStorePort)
+                    .apply(any(), any(), any());
+            when(changeAttemptStorePort.countFailure(eq(DELIVERY_ID), any())).thenReturn(ENTRY_ATTEMPTS);
+
+            useCase.learn(command);
+
+            verify(changeStreamMeters).countDropped();
         }
 
         @Test

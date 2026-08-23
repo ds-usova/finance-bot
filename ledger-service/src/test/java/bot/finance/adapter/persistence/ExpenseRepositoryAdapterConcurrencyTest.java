@@ -3,6 +3,7 @@ package bot.finance.adapter.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.application.port.OutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,10 +43,10 @@ import org.springframework.transaction.annotation.Transactional;
     ExpenseRepositoryAdapter.class,
     LedgerEventOutbox.class,
     OutboxWriter.class,
-    OutboxMeters.class,
     SpendingEventRenderer.class,
     Slf4jLoggerFactory.class
 })
+@MockitoBean(types = OutboxMeters.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ExpenseRepositoryAdapterConcurrencyTest {
 

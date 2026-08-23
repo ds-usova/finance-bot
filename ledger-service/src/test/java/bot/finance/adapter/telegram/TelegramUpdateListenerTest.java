@@ -17,6 +17,8 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -26,6 +28,7 @@ import bot.finance.application.dto.ProposalResolution;
 import bot.finance.application.dto.ResolveProposalsCommand;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.ResolveProposalsPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.common.containers.WireMockSupport;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -64,6 +67,7 @@ class TelegramUpdateListenerTest {
 
     private HandleIncomingMessagePort handleIncomingMessagePort;
     private ResolveProposalsPort resolveProposalsPort;
+    private TurnMeters turnMeters;
     private TelegramBot bot;
     private TelegramUpdateListener listener;
 
@@ -71,8 +75,9 @@ class TelegramUpdateListenerTest {
     void setUp() {
         handleIncomingMessagePort = mock(HandleIncomingMessagePort.class);
         resolveProposalsPort = mock(ResolveProposalsPort.class);
-        listener =
-                new TelegramUpdateListener(handleIncomingMessagePort, resolveProposalsPort, new Slf4jLoggerFactory());
+        turnMeters = mock(TurnMeters.class);
+        listener = new TelegramUpdateListener(
+                handleIncomingMessagePort, resolveProposalsPort, turnMeters, new Slf4jLoggerFactory());
         bot = forToken(LISTENER_TOKEN);
         telegramReturnsNoUpdates(LISTENER_TOKEN);
     }
@@ -132,6 +137,7 @@ class TelegramUpdateListenerTest {
             assertThat(handled.inboundMessageId()).isEqualTo(INBOUND_MESSAGE_ID);
             assertThat(handled.text()).isEqualTo(MESSAGE_TEXT);
             awaitFollowUpPollWithOffset("43");
+            verify(turnMeters, never()).countUnreported();
         }
 
         @Test
@@ -174,6 +180,7 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset("43");
+            verify(turnMeters, times(1)).countUnreported();
         }
 
         @Test
@@ -191,6 +198,7 @@ class TelegramUpdateListenerTest {
             startLoop();
 
             awaitFollowUpPollWithOffset(String.valueOf(CALLBACK_UPDATE_ID + 1));
+            verify(turnMeters, never()).countUnreported();
         }
     }
 

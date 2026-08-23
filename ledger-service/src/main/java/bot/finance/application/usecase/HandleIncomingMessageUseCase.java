@@ -18,6 +18,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
@@ -42,6 +43,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final SpendingQueryRepository spendingQueryRepository;
     private final ExpenseRepository expenseRepository;
     private final ProposalReportRepository proposalReportRepository;
+    private final TurnMeters turnMeters;
     private final Logger log;
 
     public HandleIncomingMessageUseCase(
@@ -53,6 +55,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             SpendingQueryRepository spendingQueryRepository,
             ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
@@ -62,6 +65,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.spendingQueryRepository = spendingQueryRepository;
         this.expenseRepository = expenseRepository;
         this.proposalReportRepository = proposalReportRepository;
+        this.turnMeters = turnMeters;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
     }
 
@@ -91,6 +95,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
                 .deliver(new TurnReport(
                         command.conversationId(), command.inboundMessageId(), outcome, proposals, summaries, reference))
                 .ifPresent(location -> storeReport(user.id().orElseThrow(), reference, location));
+        turnMeters.countTurn(outcome);
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);

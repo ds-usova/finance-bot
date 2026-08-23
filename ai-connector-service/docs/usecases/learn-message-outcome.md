@@ -27,19 +27,19 @@
 One row per fact of
 [the ledger's catalogue](../../../ledger-service/docs/contracts/out/change-stream.md#the-catalogue).
 
-| Outcome              | When                                                                | Result                                                                                              |
-|----------------------|---------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| Proposal learned     | `ProposalCreated`                                                   | one row holds the whole entry, pending                                                               |
-| Proposal refiled     | `ProposalRefiled`                                                   | that row takes the new category and grouping, and stays pending                                      |
-| Proposal accepted    | `ProposalAccepted`                                                  | that row is accepted                                                                                 |
-| Proposal discarded   | `ProposalDiscarded`                                                 | that row is discarded                                                                                |
-| Expense learned      | `ExpenseRecorded`, naming a message kept here                       | one accepted row holds the whole entry                                                               |
-| Expense refiled      | `ExpenseRefiled`                                                    | one accepted row holds the new category and grouping                                                 |
-| Older fact ignored   | the fact stands at a position the row was already written past      | nothing is written; the row keeps the newer fact                                                     |
-| Nothing to learn     | the fact names no message, or names one this service does not keep  | nothing is written; the delivery is finished with                                                    |
-| Delivery held        | the store cannot be reached                                         | nothing is counted against the delivery; it is offered again                                         |
-| Delivery held        | the store refused the fact, fewer than `MEMORY_ENTRY_ATTEMPTS` times | the refusal is counted; the delivery is offered again                                                |
-| Delivery dropped     | the store refused the fact `MEMORY_ENTRY_ATTEMPTS` times            | logged at `ERROR` naming the delivery, the status it carried and the expense; the count is cleared   |
+| Outcome            | When                                                                 | Result                                                                                                                                                                                                                    |
+|--------------------|----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Proposal learned   | `ProposalCreated`                                                    | one row holds the whole entry, pending                                                                                                                                                                                    |
+| Proposal refiled   | `ProposalRefiled`                                                    | that row takes the new category and grouping, and stays pending                                                                                                                                                           |
+| Proposal accepted  | `ProposalAccepted`                                                   | that row is accepted                                                                                                                                                                                                      |
+| Proposal discarded | `ProposalDiscarded`                                                  | that row is discarded                                                                                                                                                                                                     |
+| Expense learned    | `ExpenseRecorded`, naming a message kept here                        | one accepted row holds the whole entry                                                                                                                                                                                    |
+| Expense refiled    | `ExpenseRefiled`                                                     | one accepted row holds the new category and grouping                                                                                                                                                                      |
+| Older fact ignored | the fact stands at a position the row was already written past       | nothing is written; the row keeps the newer fact                                                                                                                                                                          |
+| Nothing to learn   | the fact names no message, or names one this service does not keep   | nothing is written; the delivery is finished with                                                                                                                                                                         |
+| Delivery held      | the store cannot be reached                                          | nothing is counted against the delivery; it is offered again                                                                                                                                                              |
+| Delivery held      | the store refused the fact, fewer than `MEMORY_ENTRY_ATTEMPTS` times | the refusal is counted; the delivery is offered again                                                                                                                                                                     |
+| Delivery dropped   | the store refused the fact `MEMORY_ENTRY_ATTEMPTS` times             | counted as a [dropped delivery](../contracts/in/operations.md#meters); the fact the delivery carried is never learned; logged at `ERROR` naming the delivery, the status it carried and the expense; the count is cleared |
 
 A fact for an expense no row holds yet is inserted whole, whatever it says happened. A fact's status replaces
 the row's, whatever the row held before.
@@ -127,6 +127,7 @@ if (has it now been refused MEMORY_ENTRY_ATTEMPTS times?) then (no)
   stop
 endif
 
+:the drop is counted;
 :the drop is logged;
 :the delivery attempt store forgets the delivery;
 :the delivery is dropped;

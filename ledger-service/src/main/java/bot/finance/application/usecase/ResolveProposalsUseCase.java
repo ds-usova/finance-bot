@@ -9,6 +9,7 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ResolveProposalsPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserRepository;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.value.IncomingMessageId;
@@ -21,6 +22,7 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
     private final ExpenseRepository expenseRepository;
     private final MessageDeliveryPort messageDeliveryPort;
     private final Clock clock;
+    private final TurnMeters turnMeters;
     private final Logger log;
 
     public ResolveProposalsUseCase(
@@ -28,11 +30,13 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
             ExpenseRepository expenseRepository,
             MessageDeliveryPort messageDeliveryPort,
             Clock clock,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         this.userRepository = userRepository;
         this.expenseRepository = expenseRepository;
         this.messageDeliveryPort = messageDeliveryPort;
         this.clock = clock;
+        this.turnMeters = turnMeters;
         this.log = loggerFactory.getLogger(ResolveProposalsUseCase.class);
     }
 
@@ -59,6 +63,7 @@ public class ResolveProposalsUseCase implements ResolveProposalsPort {
     private ResolutionAcknowledgement acknowledgementFor(long userId, ResolveProposalsCommand command) {
         int resolvedCount = applyResolution(userId, command);
         if (resolvedCount > 0) {
+            turnMeters.countResolved(command.resolution(), resolvedCount);
             return acknowledgement(command, resolvedOutcome(command.resolution()), resolvedCount);
         }
         int alreadyAcceptedCount = expenseRepository.countByMessageReference(userId, command.reference());

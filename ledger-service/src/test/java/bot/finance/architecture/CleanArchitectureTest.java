@@ -57,7 +57,8 @@ class CleanArchitectureTest {
                     "io.modelcontextprotocol..",
                     "io.debezium..",
                     "org.apache.kafka..",
-                    "org.springframework.data.redis..")
+                    "org.springframework.data.redis..",
+                    "io.micrometer..")
             .allowEmptyShould(true);
 
     /**

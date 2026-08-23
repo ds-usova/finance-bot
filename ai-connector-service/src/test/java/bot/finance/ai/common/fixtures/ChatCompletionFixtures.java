@@ -75,7 +75,12 @@ public final class ChatCompletionFixtures {
                       },
                       "finish_reason": "tool_calls"
                     }
-                  ]
+                  ],
+                  "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 20,
+                    "total_tokens": 120
+                  }
                 }"""
                 .formatted(String.join(",", toolCalls));
     }
@@ -100,7 +105,12 @@ public final class ChatCompletionFixtures {
                       },
                       "finish_reason": "stop"
                     }
-                  ]
+                  ],
+                  "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 20,
+                    "total_tokens": 120
+                  }
                 }"""
                 .formatted(content);
     }

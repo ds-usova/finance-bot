@@ -5,6 +5,7 @@ import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidGroupingException;
@@ -23,12 +24,17 @@ public class ListCategoriesMcpTool {
 
     private final ListCategoriesPort listCategoriesPort;
     private final JsonMapper jsonMapper;
+    private final ToolCallMeters toolCallMeters;
     private final Logger log;
 
     public ListCategoriesMcpTool(
-            ListCategoriesPort listCategoriesPort, JsonMapper jsonMapper, LoggerFactory loggerFactory) {
+            ListCategoriesPort listCategoriesPort,
+            JsonMapper jsonMapper,
+            ToolCallMeters toolCallMeters,
+            LoggerFactory loggerFactory) {
         this.listCategoriesPort = listCategoriesPort;
         this.jsonMapper = jsonMapper;
+        this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(ListCategoriesMcpTool.class);
     }
 
@@ -47,6 +53,7 @@ public class ListCategoriesMcpTool {
             ListCategoriesToolResponse response = new ListCategoriesToolResponse(grouping, categories);
 
             log.debug("list_categories call succeeded: {}", response);
+            toolCallMeters.countOk("list_categories");
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
@@ -59,12 +66,17 @@ public class ListCategoriesMcpTool {
         } catch (PersistenceFailedException e) {
             return rejected(e, "the categories could not be read");
         } catch (RuntimeException e) {
-            return rejected(e, "the categories could not be listed");
+            return rejected(e, "the categories could not be listed", "unexpected");
         }
     }
 
     private CallToolResult rejected(RuntimeException e, String message) {
+        return rejected(e, message, e.getClass().getSimpleName());
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message, String reason) {
         log.warn("rejected list_categories call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        toolCallMeters.countRejected("list_categories", reason);
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

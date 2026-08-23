@@ -21,6 +21,7 @@ bot.finance.ai
     │   ├── PersistenceAdapterTest # composed annotation — the persistence slice on the containerized database
     │   ├── SecurityAdapterTest    # composed annotation — the token reader on the stubbed key-set endpoint
     │   ├── RedisAdapterTest       # composed annotation — the change-stream consumer on the containerized Redis
+    │   ├── MetricsAdapterTest     # composed annotation — the metrics adapter on the rendered actuator scrape
     │   ├── RedisPropertiesConfiguration # the Redis URL and a stream key of its own, shared by AbstractMemorySystemTest and RedisAdapterTest
     │   ├── WireMockUrlConfiguration # points the provider and the ledger at the stub server's runtime port
     │   └── InProcessGrpcTransportConfiguration # the in-process gRPC transport, one server name per context
@@ -50,11 +51,12 @@ bot.finance.ai
     │   ├── CapturedRequestUtils   # reads back the requests WireMock recorded, and their JSON bodies
     │   └── LedgerChangeStreamStubs # stands in for the ledger's writes to the change stream, and a second consumer
     ├── LogCapture             # Logback appender, for asserting on log output
-    └── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
+    ├── MockedLoggerUtils      # reads a mocked Logger's calls back as lines
+    └── PrometheusScrapeUtils  # reads the actuator's rendered scrape, and one sample out of it
 ```
 
-A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `MockedLoggerUtils` sit
-at the root because they belong to none of them. The same names carry the same meanings in `ledger-service`, so a
+A new helper joins the subpackage its role names, and is listed above. `LogCapture`, `MockedLoggerUtils` and
+`PrometheusScrapeUtils` sit at the root because they belong to none of them. The same names carry the same meanings in `ledger-service`, so a
 helper is looked for in the same place in either module.
 
 ## Test Layers
@@ -68,8 +70,11 @@ helper is looked for in the same place in either module.
 - **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/persistence/` via
   `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`, `adapter/redis/`'s consumer,
   `ChangeStreamConsumer`, via `@RedisAdapterTest` against the containerized Redis with the inbound port
-  (`LearnMessageOutcomePort`) mocked. Wire only the adapter under test, call its public methods directly, and
-  mock nothing the container or the stub server can stand in for. `adapter/ai/` owns the request Spring AI
+  (`LearnMessageOutcomePort`) mocked, and `adapter/metrics/` via `@MetricsAdapterTest`, which boots only the two
+  Micrometer classes with autoconfiguration on and the prometheus actuator endpoint exposed, with
+  `PendingEntryCountPort` mocked for the pending gauge to sample — the rendered meter names and values on the
+  scrape are its own, asserted over RestAssured. Wire only the adapter under test, call its public methods
+  directly, and mock nothing the container or the stub server can stand in for. `adapter/ai/` owns the request Spring AI
   sends, the tool calls it makes against a stubbed ledger, and how a stubbed response, a tool refusal, a
   transport failure and a malformed body map onto the port's result or exception. `adapter/persistence/` runs
   against the containerized database and owns what a statement writes, what it leaves untouched, and how a
@@ -77,7 +82,9 @@ helper is looked for in the same place in either module.
   owns which caller tokens are read, which are refused, and what an unreachable or slow key set answers.
   `adapter/redis/`'s consumer owns reading the stream, claiming and acknowledging entries, and how the store's
   answer decides retry, acknowledgement or drop; its reader, `ChangeStreamEntryReader`, is a unit target instead
-  — stateless parsing with no infrastructure of its own.
+  — stateless parsing with no infrastructure of its own. `RedisPendingEntries` is driven directly against a
+  `RedisContainers` template, with no Spring context of its own — the class carries
+  `@Testcontainers(disabledWithoutDocker = true)` itself, so it skips rather than fails without Docker.
 - **Integration, inbound** — `adapter/grpc/` via `@GrpcAdapterTest`, entered through a generated blocking stub
   with the inbound port mocked. Owns request binding, delegation, proto mapping, and the RPC's validation
   matrix and status-code contract.

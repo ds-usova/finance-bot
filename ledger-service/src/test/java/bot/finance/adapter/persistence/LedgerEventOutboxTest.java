@@ -9,10 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
+import bot.finance.application.port.OutboxMeters;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.OutboxRowUtils;
 import bot.finance.common.rows.OutboxRowUtils.OutboxRow;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -24,16 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @PersistenceAdapterTest
-@Import({
-    LedgerEventOutbox.class,
-    OutboxWriter.class,
-    OutboxMeters.class,
-    SpendingEventRenderer.class,
-    Slf4jLoggerFactory.class
-})
+@Import({LedgerEventOutbox.class, OutboxWriter.class, SpendingEventRenderer.class, Slf4jLoggerFactory.class})
 class LedgerEventOutboxTest {
 
     @Autowired
@@ -42,11 +37,8 @@ class LedgerEventOutboxTest {
     @MockitoSpyBean
     private OutboxWriter outboxWriter;
 
-    @MockitoSpyBean
+    @MockitoBean
     private OutboxMeters outboxMeters;
-
-    @Autowired
-    private MeterRegistry meterRegistry;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -133,12 +125,7 @@ class LedgerEventOutboxTest {
 
             outbox.append(LedgerEventType.ProposalAccepted, List.of(row(1L, 5005L), row(2L, 5005L)), Instant.now());
 
-            assertThat(meterRegistry
-                            .get("ledger_cdc_facts_dropped_total")
-                            .tag("type", "ProposalAccepted")
-                            .counter()
-                            .count())
-                    .isEqualTo(2.0);
+            verify(outboxMeters).countFactsDropped("ProposalAccepted", 2L);
         }
 
         @Test

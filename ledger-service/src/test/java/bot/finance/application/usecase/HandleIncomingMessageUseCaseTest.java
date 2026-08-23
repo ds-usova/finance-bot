@@ -31,6 +31,7 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
@@ -74,6 +75,7 @@ class HandleIncomingMessageUseCaseTest {
     private SpendingQueryRepository spendingQueryRepository;
     private ExpenseRepository expenseRepository;
     private ProposalReportRepository proposalReportRepository;
+    private TurnMeters turnMeters;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -89,6 +91,7 @@ class HandleIncomingMessageUseCaseTest {
         spendingQueryRepository = mock(SpendingQueryRepository.class);
         expenseRepository = mock(ExpenseRepository.class);
         proposalReportRepository = mock(ProposalReportRepository.class);
+        turnMeters = mock(TurnMeters.class);
         when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any()))
                 .thenReturn(List.of());
         when(expenseRepository.totalsByCurrency(anyLong(), any())).thenReturn(List.of());
@@ -102,6 +105,7 @@ class HandleIncomingMessageUseCaseTest {
                 spendingQueryRepository,
                 expenseRepository,
                 proposalReportRepository,
+                turnMeters,
                 loggerFactory);
     }
 
@@ -276,6 +280,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
             assertThat(report.reference()).isEqualTo(reference);
             assertThat(report.summaries()).isEmpty();
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -293,6 +298,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.NOTHING_IDENTIFIED);
             assertThat(report.proposals()).isEmpty();
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -311,6 +317,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.PARTIAL);
             assertThat(report.proposals()).containsExactlyElementsOf(summaries);
+            verify(turnMeters).countTurn(ReportOutcome.PARTIAL);
         }
 
         @Test
@@ -328,6 +335,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             assertThat(deliveredReport().outcome()).isEqualTo(ReportOutcome.FAILED);
+            verify(turnMeters).countTurn(ReportOutcome.FAILED);
         }
 
         @Test
@@ -425,6 +433,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(proposalReportRepository);
+            verify(turnMeters, never()).countTurn(any());
         }
 
         @Test
@@ -472,6 +481,22 @@ class HandleIncomingMessageUseCaseTest {
                     .thenThrow(new PersistenceFailedException("store failed", new RuntimeException()));
 
             assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("when storing the report row fails after delivery - then the turn is still counted by its report")
+        void whenStoringReportRowFailsAfterDelivery_thenTurnIsStillCountedByItsReport() {
+            stubKnownUserAndGroupings();
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+            when(messageDeliveryPort.deliver(any()))
+                    .thenReturn(Optional.of(new ReportLocation(CONVERSATION_ID, SENT_MESSAGE_ID)));
+            when(proposalReportRepository.store(any()))
+                    .thenThrow(new PersistenceFailedException("store failed", new RuntimeException()));
+
+            useCase.handle(newCommand());
+
+            verify(turnMeters).countTurn(ReportOutcome.NOTHING_IDENTIFIED);
         }
 
         @Test
@@ -604,6 +629,7 @@ class HandleIncomingMessageUseCaseTest {
             useCase.handle(newCommand());
 
             assertThat(deliveredReport().outcome()).isEqualTo(ReportOutcome.ANSWERED);
+            verify(turnMeters).countTurn(ReportOutcome.ANSWERED);
         }
 
         @Test
@@ -626,6 +652,7 @@ class HandleIncomingMessageUseCaseTest {
             assertThat(report.outcome()).isEqualTo(ReportOutcome.RECORDED);
             assertThat(report.proposals()).containsExactlyElementsOf(proposals);
             assertThat(report.summaries()).containsExactly(new SpendingSummary(period, totals));
+            verify(turnMeters).countTurn(ReportOutcome.RECORDED);
         }
 
         @Test
@@ -649,6 +676,7 @@ class HandleIncomingMessageUseCaseTest {
             TurnReport report = deliveredReport();
             assertThat(report.outcome()).isEqualTo(ReportOutcome.PARTIAL);
             assertThat(report.summaries()).containsExactly(new SpendingSummary(period, totals));
+            verify(turnMeters).countTurn(ReportOutcome.PARTIAL);
         }
 
         @Test

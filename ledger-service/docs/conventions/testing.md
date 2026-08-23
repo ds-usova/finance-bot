@@ -20,10 +20,10 @@ bot.finance
     │   ├── TheCaptureAdapter     # role — the capture beans on the slice, committing, database unsaid
     │   ├── TheSecurityChain      # role — the real filter chains, their signing keys and the secret filter
     │   ├── AbstractSystemTest    # full-application base class
-    │   ├── InMemoryMeters        # role — a meter registry a slice does not carry, for a metered adapter
     │   ├── PersistenceAdapterTest # composed annotation — persistence-adapter tests
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
+    │   ├── MetricsAdapterTest    # composed annotation — the metrics adapters behind the prometheus scrape
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
     │   ├── CaptureAdapterConfiguration # the capture adapter's beans, a meter registry and a Redis template
     │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
@@ -31,7 +31,7 @@ bot.finance
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired
     │                             #   in, on the application's own slot and stream key
     │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
-    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the four whose bean
+    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the five whose bean
     │                             #   graph only proves itself at runtime
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
@@ -58,6 +58,7 @@ bot.finance
     │   ├── JsonUtils             # loads JSON fixtures from src/test/resources, and parses a JSON string
     │   ├── McpRequests           # JSON-RPC request bodies posted to /mcp
     │   ├── McpTokens             # tokens minted through the application's own AccessTokenMinter
+    │   ├── PrometheusScrapes     # reads a meter's rendered value off /actuator/prometheus on the management port
     │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
     │   ├── SigningKeys           # the keystore configuration the test profile runs with, and the key pair it resolves to
     │   ├── TelegramFixtures      # Bot API JSON bodies
@@ -73,8 +74,8 @@ bot.finance
 
 The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus
 the one thing that distinguishes it. An annotation naming an explicit bean list — `AiConnectorAdapterTest`,
-`McpAdapterTest`, `WebAdapterTest` — composes the roles it can and names the rest, rather than restating what a
-role already holds.
+`McpAdapterTest`, `MetricsAdapterTest`, `WebAdapterTest` — composes the roles it can and names the rest, rather
+than restating what a role already holds.
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
 the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper
@@ -90,6 +91,11 @@ where its role is honest.
   infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`; the change-capture
   adapter uses `@CdcAdapterTest`, which is the same slice plus the capture beans, a Redis template and no
   rolled-back transaction — an uncommitted row never reaches the write-ahead log the engine reads.
+
+  The metrics adapters in `adapter/metrics/` are outbound too, but what they produce is only observable at the
+  scrape, so `@MetricsAdapterTest` boots them from an explicit bean list with autoconfiguration on over a random
+  port, the prometheus actuator endpoint exposed with a `PrometheusMeterRegistry`, and the datasource and Redis
+  excluded; a test drives the meter port and asserts the rendered Prometheus text over RestAssured.
 - **Integration, inbound** — `adapter/web/` through `@WebMvcTest` with the inbound-port beans mocked. Owns
   validation, binding, delegation and error-to-response mapping; never business logic or real infrastructure.
 

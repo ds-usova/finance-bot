@@ -5,6 +5,7 @@ import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.ToolCallMeters;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidSpendingQueryException;
@@ -24,12 +25,17 @@ public class SummarizeSpendingMcpTool {
 
     private final SummarizeSpendingPort summarizeSpendingPort;
     private final JsonMapper jsonMapper;
+    private final ToolCallMeters toolCallMeters;
     private final Logger log;
 
     public SummarizeSpendingMcpTool(
-            SummarizeSpendingPort summarizeSpendingPort, JsonMapper jsonMapper, LoggerFactory loggerFactory) {
+            SummarizeSpendingPort summarizeSpendingPort,
+            JsonMapper jsonMapper,
+            ToolCallMeters toolCallMeters,
+            LoggerFactory loggerFactory) {
         this.summarizeSpendingPort = summarizeSpendingPort;
         this.jsonMapper = jsonMapper;
+        this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(SummarizeSpendingMcpTool.class);
     }
 
@@ -53,6 +59,7 @@ public class SummarizeSpendingMcpTool {
                     period.from().toString(), period.to().toString());
 
             log.debug("summarize_spending call succeeded: {}", response);
+            toolCallMeters.countOk("summarize_spending");
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
@@ -65,12 +72,17 @@ public class SummarizeSpendingMcpTool {
         } catch (PersistenceFailedException e) {
             return rejected(e, "the summary could not be recorded");
         } catch (RuntimeException e) {
-            return rejected(e, "the spending could not be summarized");
+            return rejected(e, "the spending could not be summarized", "unexpected");
         }
     }
 
     private CallToolResult rejected(RuntimeException e, String message) {
+        return rejected(e, message, e.getClass().getSimpleName());
+    }
+
+    private CallToolResult rejected(RuntimeException e, String message, String reason) {
         log.warn("rejected summarize_spending call: {} {}", e.getClass().getSimpleName(), e.getMessage());
+        toolCallMeters.countRejected("summarize_spending", reason);
         return CallToolResult.builder().isError(true).addTextContent(message).build();
     }
 }

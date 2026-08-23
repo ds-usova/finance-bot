@@ -4,6 +4,7 @@ import bot.finance.ai.application.dto.ExampleQuery;
 import bot.finance.ai.application.dto.RegisteredMessage;
 import bot.finance.ai.application.dto.UnembeddedMessage;
 import bot.finance.ai.application.port.MessageMemoryPort;
+import bot.finance.ai.application.port.RecallMeters;
 import bot.finance.ai.domain.value.Embedding;
 import bot.finance.ai.domain.value.ExampleExpense;
 import bot.finance.ai.domain.value.MessageExample;
@@ -30,14 +31,17 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     private final IncomingMessageEntityRepository messageRepository;
     private final RecordedExpenseEntityRepository expenseRepository;
     private final Clock clock;
+    private final RecallMeters recallMeters;
 
     public JdbcMessageMemoryAdapter(
             IncomingMessageEntityRepository messageRepository,
             RecordedExpenseEntityRepository expenseRepository,
-            Clock clock) {
+            Clock clock,
+            RecallMeters recallMeters) {
         this.messageRepository = messageRepository;
         this.expenseRepository = expenseRepository;
         this.clock = clock;
+        this.recallMeters = recallMeters;
     }
 
     @Override
@@ -80,23 +84,10 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
     public List<MessageExample> findExamples(ExampleQuery query) {
         try {
             List<Long> orderedIds = neighbourIds(query);
-            if (orderedIds.isEmpty()) {
-                return List.of();
-            }
 
-            Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
-            Map<Long, List<RecordedExpenseEntity>> decidedByMessageId =
-                    decidedExpensesByMessageId(orderedIds, query.exampleLines());
+            List<MessageExample> examples = orderedIds.isEmpty() ? List.of() : examplesFor(orderedIds, query);
 
-            List<MessageExample> examples = new ArrayList<>();
-            for (Long id : orderedIds) {
-                IncomingMessageEntity message = messagesById.get(id);
-                List<RecordedExpenseEntity> decided = decidedByMessageId.get(id);
-                if (message == null || decided == null || decided.isEmpty()) {
-                    continue;
-                }
-                examples.add(toExample(message, decided));
-            }
+            recallMeters.recordExamples(examples.size());
             return examples;
         } catch (DataAccessException e) {
             throw MessageStoreExceptionMapper.toDomain(e, "failed to find examples");
@@ -119,18 +110,39 @@ public class JdbcMessageMemoryAdapter implements MessageMemoryPort {
         }
     }
 
+    private List<MessageExample> examplesFor(List<Long> orderedIds, ExampleQuery query) {
+        Map<Long, IncomingMessageEntity> messagesById = messagesById(orderedIds);
+        Map<Long, List<RecordedExpenseEntity>> decidedByMessageId =
+                decidedExpensesByMessageId(orderedIds, query.exampleLines());
+
+        List<MessageExample> examples = new ArrayList<>();
+        for (Long id : orderedIds) {
+            IncomingMessageEntity message = messagesById.get(id);
+            List<RecordedExpenseEntity> decided = decidedByMessageId.get(id);
+            if (message == null || decided == null || decided.isEmpty()) {
+                continue;
+            }
+            examples.add(toExample(message, decided));
+        }
+        return examples;
+    }
+
     private List<Long> neighbourIds(ExampleQuery query) {
         String embedding = VectorText.toLiteral(query.embedding());
         Instant now = clock.instant();
         Instant cut = now.minus(query.maxAge());
         Instant recentCut = now.minus(query.recentWindow());
 
-        List<Long> closestIds = messageRepository.findClosestIds(
+        List<ClosestMatchRow> closestRows = messageRepository.findClosestMatches(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, query.examples());
+        if (!closestRows.isEmpty()) {
+            recallMeters.recordBestSimilarity(closestRows.getFirst().similarity());
+        }
         Optional<Long> closestRecentId = messageRepository.findClosestRecentId(
                 query.userId(), embedding, query.messageId(), query.minSimilarity(), cut, recentCut);
 
-        Set<Long> ids = new LinkedHashSet<>(closestIds);
+        Set<Long> ids = new LinkedHashSet<>(
+                closestRows.stream().map(ClosestMatchRow::id).toList());
         closestRecentId.ifPresent(ids::add);
         return new ArrayList<>(ids);
     }

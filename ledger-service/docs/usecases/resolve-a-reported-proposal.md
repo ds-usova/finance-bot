@@ -39,6 +39,8 @@
 
 A failure of any kind is [logged, and its batch acknowledged with the rest](../contracts/in/telegram-updates.md).
 
+What a tap resolves is [counted](../contracts/in/operations.md#meters).
+
 ## Components
 
 ```plantuml

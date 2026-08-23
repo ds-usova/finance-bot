@@ -25,6 +25,7 @@ src/main
 │       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── mcp         # the MCP server's tools and their wire types
 │       ├── security    # the filter chain, the token decoder, the minter and the JWKS endpoint
+│       ├── metrics     # Micrometer implementations of the application core's meter ports
 │       ├── cdc         # the embedded Debezium engine, its recovery operation and its meters
 │       ├── redis       # the change stream writer
 │       ├── web
@@ -88,8 +89,8 @@ The first is enforced below, along with how a command is named. The second by re
   current list behind every rule below; a list repeated here drifts.
 - Rules:
   - the layer-dependency rules;
-  - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC
-    and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
+  - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC,
+    Micrometer and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
     `bot.finance.api..`. A library joins as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
     system's, such as `Telegram`, `Postgres` or `Mcp`;

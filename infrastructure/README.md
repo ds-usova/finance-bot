@@ -23,3 +23,17 @@ the data already there.
 
 The instance is started with `wal_level=logical` and `max_slot_wal_keep_size`, which the ledger's change capture
 needs; what each costs is [the ledger's configuration](../ledger-service/docs/configuration.md).
+
+## Monitoring
+
+Prometheus scrapes each service's management port over the compose network, per
+[`prometheus/prometheus.yml`](prometheus/prometheus.yml). Neither the management ports nor the Prometheus UI is
+published; what each service serves there is its operations contract —
+[the ledger's](../ledger-service/docs/contracts/in/operations.md) and
+[the connector's](../ai-connector-service/docs/contracts/in/operations.md).
+
+Grafana is published on port `1005`, behind the admin account `FINANCE_BOT_GRAFANA_USER` /
+`FINANCE_BOT_GRAFANA_PASSWORD`. Its Prometheus datasource and its dashboards — one per service — are
+provisioned from [`grafana/`](grafana/), so a fresh clone starts with them in place. The provisioned dashboards
+are read-only in the UI; changing one is an edit to its JSON under
+[`grafana/dashboards/`](grafana/dashboards/).

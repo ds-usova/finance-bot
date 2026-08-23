@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.grpc.test.autoconfigure.LocalGrpcServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -37,7 +37,7 @@ public abstract class AbstractSystemTest {
     @LocalGrpcServerPort
     private int grpcPort;
 
-    @LocalServerPort
+    @LocalManagementPort
     protected int actuatorPort;
 
     protected ManagedChannel channel;

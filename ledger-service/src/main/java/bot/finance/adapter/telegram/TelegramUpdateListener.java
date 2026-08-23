@@ -6,6 +6,7 @@ import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ResolveProposalsPort;
+import bot.finance.application.port.TurnMeters;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
 import java.util.List;
@@ -17,14 +18,17 @@ public class TelegramUpdateListener implements UpdatesListener {
 
     private final HandleIncomingMessagePort handleIncomingMessagePort;
     private final ResolveProposalsPort resolveProposalsPort;
+    private final TurnMeters turnMeters;
     private final Logger log;
 
     public TelegramUpdateListener(
             HandleIncomingMessagePort handleIncomingMessagePort,
             ResolveProposalsPort resolveProposalsPort,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         this.handleIncomingMessagePort = handleIncomingMessagePort;
         this.resolveProposalsPort = resolveProposalsPort;
+        this.turnMeters = turnMeters;
         this.log = loggerFactory.getLogger(TelegramUpdateListener.class);
     }
 
@@ -41,14 +45,18 @@ public class TelegramUpdateListener implements UpdatesListener {
      * poll loop on one bad update.
      */
     private void handle(Update update) {
-        try {
-            Optional<HandleIncomingMessageCommand> command =
-                    TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
-            if (command.isPresent()) {
+        Optional<HandleIncomingMessageCommand> command = TelegramUpdateMapper.toHandleIncomingMessageCommand(update);
+        if (command.isPresent()) {
+            try {
                 handleIncomingMessagePort.handle(command.get());
-                return;
+            } catch (RuntimeException e) {
+                turnMeters.countUnreported();
+                log.error("failed to handle telegram update {}", update.updateId(), e);
             }
+            return;
+        }
 
+        try {
             Optional<ResolveProposalsCommand> resolution = TelegramUpdateMapper.toResolveProposalsCommand(update);
             if (resolution.isPresent()) {
                 resolveProposalsPort.resolve(resolution.get());

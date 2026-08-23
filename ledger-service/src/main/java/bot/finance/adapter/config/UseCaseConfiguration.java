@@ -23,6 +23,7 @@ import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
@@ -54,6 +55,7 @@ public class UseCaseConfiguration {
             SpendingQueryRepository spendingQueryRepository,
             ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         return new HandleIncomingMessageUseCase(
                 initializeUserPort,
@@ -64,6 +66,7 @@ public class UseCaseConfiguration {
                 spendingQueryRepository,
                 expenseRepository,
                 proposalReportRepository,
+                turnMeters,
                 loggerFactory);
     }
 
@@ -105,9 +108,10 @@ public class UseCaseConfiguration {
             UserRepository userRepository,
             ExpenseRepository expenseRepository,
             MessageDeliveryPort messageDeliveryPort,
+            TurnMeters turnMeters,
             LoggerFactory loggerFactory) {
         return new ResolveProposalsUseCase(
-                userRepository, expenseRepository, messageDeliveryPort, Clock.systemUTC(), loggerFactory);
+                userRepository, expenseRepository, messageDeliveryPort, Clock.systemUTC(), turnMeters, loggerFactory);
     }
 
     @Bean
