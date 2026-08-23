@@ -68,12 +68,10 @@ export const en = {
     noCurrency: 'No currency found.',
     save: 'Save',
     saved: 'Saved.',
-    readFailed: 'Your settings could not be read.',
   },
   // The codes a currency amount can be recorded in. Unlike every other namespace, this one names data rather
   // than the surface reading it, and the full set is transcribed here from the ISO 4217 published table
-  // (https://www.iso.org/iso-4217-currency-codes.html). Only a handful stand here for now, and nothing checks
-  // the transcription afterwards.
+  // (https://www.iso.org/iso-4217-currency-codes.html). Nothing checks the transcription afterwards.
   currencies: {
     AED: 'UAE Dirham',
     AFN: 'Afghan Afghani',

@@ -28,7 +28,9 @@ function renderPicker(props: Partial<CurrencyPickerProps> = {}) {
   const onChange = vi.fn();
   const user = userEvent.setup();
 
-  render(<CurrencyPicker currencyCode={undefined} onChange={onChange} label="Currency" {...props} />);
+  render(
+    <CurrencyPicker currencyCode={undefined} onChange={onChange} label="Currency" {...props} />,
+  );
 
   return { onChange, user };
 }

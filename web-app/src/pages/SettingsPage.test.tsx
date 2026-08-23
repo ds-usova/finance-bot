@@ -6,7 +6,9 @@ import { readPreferences, replacePreferences } from '../api/preferences';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import { en } from '../i18n/en';
 import { substituteCatalogue } from '../testing/catalogue';
+import { chooseFromList } from '../testing/combobox';
 import { anAuthContext } from '../testing/fixtures';
+import { inFlight } from '../testing/inFlight';
 import { SettingsPage } from './SettingsPage';
 
 vi.mock('../api/preferences', () => ({
@@ -16,17 +18,6 @@ vi.mock('../api/preferences', () => ({
 
 const readPreferencesMock = vi.mocked(readPreferences);
 const replacePreferencesMock = vi.mocked(replacePreferences);
-
-/** A call the test settles itself, so it can be held open across two interactions. */
-function inFlight<T>() {
-  let answer!: (value: T) => void;
-  let refuse!: (error: unknown) => void;
-  const promise = new Promise<T>((resolve, reject) => {
-    answer = resolve;
-    refuse = reject;
-  });
-  return { promise, answer, refuse };
-}
 
 function renderPage(context: Partial<AuthContextValue> = {}) {
   const value = anAuthContext(context);
@@ -38,13 +29,9 @@ function renderPage(context: Partial<AuthContextValue> = {}) {
   );
 }
 
-function trigger() {
-  return screen.getByRole('button', { name: en.settings.defaultCurrency });
-}
-
+/** Opens the currency list from the field's own trigger and picks the option named. */
 async function pickCurrency(optionName: string | RegExp) {
-  await userEvent.click(trigger());
-  await userEvent.click(await screen.findByRole('option', { name: optionName }));
+  await chooseFromList(en.settings.defaultCurrency, optionName);
 }
 
 describe('the settings page', () => {
@@ -185,14 +172,9 @@ describe('the settings page', () => {
     substituteCatalogue();
     renderPage();
     await screen.findByText('Euro (EUR)');
-    await userEvent.click(
-      screen.getByRole('button', { name: `‹${en.settings.defaultCurrency}›` }),
-    );
-    await userEvent.click(await screen.findByRole('option', { name: /USD/ }));
+    await chooseFromList(`‹${en.settings.defaultCurrency}›`, /USD/);
 
-    expect(
-      screen.getByRole('heading', { name: `‹${en.settings.heading}›` }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: `‹${en.settings.heading}›` })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: `‹${en.settings.defaultCurrency}›` }),
     ).toBeInTheDocument();

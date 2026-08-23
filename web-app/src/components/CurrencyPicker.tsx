@@ -24,12 +24,7 @@ export type CurrencyPickerProps = {
 
 const collator = new Intl.Collator('en');
 
-const codes = Object.keys(en.currencies).sort((a, b) =>
-  collator.compare(
-    en.currencies[a as keyof typeof en.currencies],
-    en.currencies[b as keyof typeof en.currencies],
-  ),
-);
+const currencies = Object.entries(en.currencies).sort(([, a], [, b]) => collator.compare(a, b));
 
 function nameOf(code: string): string | undefined {
   return (en.currencies as Record<string, string>)[code];
@@ -63,17 +58,13 @@ export function CurrencyPicker({ currencyCode, onChange, label }: CurrencyPicker
           <CommandList>
             <CommandEmpty>{t('settings.noCurrency')}</CommandEmpty>
             <CommandGroup>
-              {codes.map((code) => (
-                <CommandItem
-                  key={code}
-                  value={`${nameOf(code)} ${code}`}
-                  onSelect={() => choose(code)}
-                >
+              {currencies.map(([code, name]) => (
+                <CommandItem key={code} value={`${name} ${code}`} onSelect={() => choose(code)}>
                   <Check
                     aria-hidden="true"
                     className={`h-4 w-4 ${code === currencyCode ? 'opacity-100' : 'opacity-0'}`}
                   />
-                  {nameOf(code)} ({code})
+                  {name} ({code})
                 </CommandItem>
               ))}
             </CommandGroup>

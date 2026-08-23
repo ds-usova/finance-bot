@@ -14,8 +14,7 @@ export function SettingsPage() {
   const [pickedCurrency, setPickedCurrency] = useState<string | undefined>();
   const [readFailure, setReadFailure] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [saveFailure, setSaveFailure] = useState<string | null>(null);
 
   const report = useCallback(
@@ -53,24 +52,23 @@ export function SettingsPage() {
 
   const onPick = (code: string) => {
     setPickedCurrency(code);
-    setSaved(false);
+    setSaveState('idle');
     setSaveFailure(null);
   };
 
   const onSave = () => {
-    if (saving || pickedCurrency === undefined) {
+    if (saveState === 'saving' || pickedCurrency === undefined) {
       return;
     }
-    setSaving(true);
+    setSaveState('saving');
     setSaveFailure(null);
 
     replacePreferences(pickedCurrency)
       .then(() => {
-        setSaving(false);
-        setSaved(true);
+        setSaveState('saved');
       })
       .catch((error: unknown) => {
-        setSaving(false);
+        setSaveState('idle');
         report(error, setSaveFailure);
       });
   };
@@ -96,10 +94,10 @@ export function SettingsPage() {
       />
       {offerSave && (
         <div className="flex items-center gap-3">
-          <Button onClick={onSave} disabled={saving}>
+          <Button onClick={onSave} disabled={saveState === 'saving'}>
             {t('settings.save')}
           </Button>
-          {saved && <span>{t('settings.saved')}</span>}
+          {saveState === 'saved' && <span>{t('settings.saved')}</span>}
           {saveFailure && <ErrorBanner message={saveFailure} />}
         </div>
       )}

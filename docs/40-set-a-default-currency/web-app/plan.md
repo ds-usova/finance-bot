@@ -263,6 +263,13 @@ icon-button shape, and the product name is a `Link` wearing the ghost button's h
   the route table. Stabilization should have widened the fixture; it was widened here instead, and the widening
   is recorded rather than left silent.
 
+- **Finding from the refactor pass — a decision, not a cleanup:** ST02 added `settings.readFailed`
+  ("Your settings could not be read.") because the plan named a read-failure wording, but nothing ever read it:
+  RU04's scenario says only that the failure is shown at the top of the page, and the page shows the `ApiError`'s
+  own message, which is what `SettingsPage.test.tsx` asserts. The refactor deleted the unread key rather than
+  leave dead scaffolding. If the fixed catalogue wording was what the design intended, the page and that
+  assertion both need reworking — a behaviour change, outside this plan's remit. Left for whoever owns the task.
+
 - **Blocker note:** [What the Suite Cannot See](../../../web-app/docs/conventions/testing.md#what-the-suite-cannot-see)
   reaches most of this change — position, wrapping, colour in both themes, and a list clipped by a bound it never
   got. The design's F25 already names the screens and the states to look at. Nothing in this plan waits on that,
