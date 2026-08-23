@@ -15,8 +15,8 @@ public class MicrometerChangeStreamMeters implements ChangeStreamMeters {
     private final Counter dropped;
 
     public MicrometerChangeStreamMeters(MeterRegistry meterRegistry, PendingEntryCountPort pendingEntryCount) {
-        this.dropped = Counter.builder(MeterName.CDC_DELIVERIES_DROPPED.meterName())
-                .register(meterRegistry);
+        this.dropped =
+                Counter.builder(MeterName.CDC_DELIVERIES_DROPPED.meterName()).register(meterRegistry);
         // Sampled at each scrape via the port itself, never a locally constructed holder: Micrometer holds a
         // gauge's state object weakly and a holder with no other reference would decay to NaN after a GC.
         Gauge.builder(MeterName.CDC_ENTRIES_PENDING.meterName(), pendingEntryCount, PendingEntryCountPort::count)

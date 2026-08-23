@@ -42,9 +42,12 @@ class MicrometerRecallMetersTest {
             recallMeters.recordExamples(3);
 
             String body = scrape(managementPort);
-            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_count")).isEqualTo(countBefore + 1);
-            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_sum")).isEqualTo(sumBefore + 3);
-            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_max")).isGreaterThanOrEqualTo(3);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_count"))
+                    .isEqualTo(countBefore + 1);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_sum"))
+                    .isEqualTo(sumBefore + 3);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_max"))
+                    .isGreaterThanOrEqualTo(3);
         }
     }
 
@@ -63,9 +66,12 @@ class MicrometerRecallMetersTest {
             recallMeters.recordBestSimilarity(0.75);
 
             String body = scrape(managementPort);
-            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_count")).isEqualTo(countBefore + 1);
-            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_sum")).isEqualTo(sumBefore + 0.75);
-            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_max")).isGreaterThanOrEqualTo(0.75);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_count"))
+                    .isEqualTo(countBefore + 1);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_sum"))
+                    .isEqualTo(sumBefore + 0.75);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_max"))
+                    .isGreaterThanOrEqualTo(0.75);
         }
     }
 }

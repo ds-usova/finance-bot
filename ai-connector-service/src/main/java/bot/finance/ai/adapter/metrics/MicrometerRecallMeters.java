@@ -16,9 +16,8 @@ public class MicrometerRecallMeters implements RecallMeters {
     public MicrometerRecallMeters(MeterRegistry meterRegistry) {
         this.examples = DistributionSummary.builder(MeterName.RECALL_EXAMPLES.meterName())
                 .register(meterRegistry);
-        this.bestSimilarity =
-                DistributionSummary.builder(MeterName.RECALL_BEST_SIMILARITY.meterName())
-                        .register(meterRegistry);
+        this.bestSimilarity = DistributionSummary.builder(MeterName.RECALL_BEST_SIMILARITY.meterName())
+                .register(meterRegistry);
     }
 
     @Override
