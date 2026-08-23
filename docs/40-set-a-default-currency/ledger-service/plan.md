@@ -185,7 +185,7 @@ write with no CSRF token is refused by the enforcement filter.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `ReadPreferencesUseCase` · test: `ReadPreferencesUseCaseTest` · covers: `read()` · scenarios: A1, A2, A19
+- [x] RU01 · `ReadPreferencesUseCase` · test: `ReadPreferencesUseCaseTest` · covers: `read()` · scenarios: A1, A2, A19
     - `read()`:
         - given: a caller whose stored preference holds `EUR`
           when: read() is called
@@ -199,7 +199,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: a repository that throws PersistenceFailedException
           when: read() is called
           then: the exception propagates unchanged
-- [ ] RU02 · `ReplacePreferencesUseCase` · test: `ReplacePreferencesUseCaseTest` · covers: `replace()` · scenarios: A4, A5, A9
+- [x] RU02 · `ReplacePreferencesUseCase` · test: `ReplacePreferencesUseCaseTest` · covers: `replace()` · scenarios: A4, A5, A9
     - `replace()`:
         - given: a caller with no preference row and a command carrying `EUR`
           when: replace() is called
@@ -213,7 +213,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: a repository that throws PersistenceFailedException on the write
           when: replace() is called
           then: the exception propagates unchanged
-- [ ] RU03 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `recordsAmounts()` · scenarios: A8
+- [x] RU03 · `CurrencyCode` · test: `CurrencyCodeTest` · covers: `recordsAmounts()` · scenarios: A8
     - `recordsAmounts()`:
         - given: a currency an amount can be recorded in, such as `EUR`
           when: recordsAmounts() is called
@@ -224,7 +224,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: the same `XAU`
           when: the code is constructed
           then: it is accepted — the predicate answers a question and never narrows what the record admits
-- [ ] RU04 · `PreferencesWebMapper` · test: `PreferencesWebMapperTest` · covers: `toReplacePreferencesCommand()`, `toResponse()` · scenarios: A4, A7, A8
+- [x] RU04 · `PreferencesWebMapper` · test: `PreferencesWebMapperTest` · covers: `toReplacePreferencesCommand()`, `toResponse()` · scenarios: A4, A7, A8
     - `toReplacePreferencesCommand()`:
         - given: a request carrying `eur`
           when: it is mapped
@@ -242,7 +242,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: preferences carrying no currency
           when: they are mapped
           then: the response carries `null`
-- [ ] RU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` · scenarios: A16, A17, A18
+- [x] RU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest` · covers: `handle()` · scenarios: A16, A17, A18
     - `handle()`:
         - given: a sender whose stored preference holds `EUR`
           when: handle() is called
@@ -255,7 +255,7 @@ write with no CSRF token is refused by the enforcement filter.
           preference port to the collaborators it verifies were never touched
     - A sender with no preference row is already what every other test in this class exercises, so it earns no
       scenario of its own.
-- [ ] RU06 · `Preferences` · test: `PreferencesTest` · covers: the record's constructor
+- [x] RU06 · `Preferences` · test: `PreferencesTest` · covers: the record's constructor
     - the constructor:
         - given: a `null` optional
           when: the record is constructed
@@ -263,7 +263,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: an optional carrying a currency, and an empty optional
           when: the record is constructed
           then: it holds what it was given, in both cases
-- [ ] RU07 · `ReadPreferencesCommand` · test: `ReadPreferencesCommandTest` · covers: the record's constructor
+- [x] RU07 · `ReadPreferencesCommand` · test: `ReadPreferencesCommandTest` · covers: the record's constructor
     - the constructor:
         - given: a `null` caller
           when: the record is constructed
@@ -271,7 +271,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: a caller
           when: the record is constructed
           then: it holds that caller
-- [ ] RU08 · `ReplacePreferencesCommand` · test: `ReplacePreferencesCommandTest` · covers: the record's constructor
+- [x] RU08 · `ReplacePreferencesCommand` · test: `ReplacePreferencesCommandTest` · covers: the record's constructor
     - the constructor:
         - given: a `null` caller
           when: the record is constructed
@@ -285,7 +285,7 @@ write with no CSRF token is refused by the enforcement filter.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `UserPreferenceRepositoryAdapter` · test: `UserPreferenceRepositoryAdapterTest` · covers: `findDefaultCurrency()`, `replaceDefaultCurrency()` · scenarios: A4, A5
+- [x] RI01 · `UserPreferenceRepositoryAdapter` · test: `UserPreferenceRepositoryAdapterTest` · covers: `findDefaultCurrency()`, `replaceDefaultCurrency()` · scenarios: A4, A5
     - `findDefaultCurrency()`:
         - given: a stored user whose preference row holds `EUR`
           when: findDefaultCurrency() is called for that user
@@ -306,7 +306,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: a user id no `app_user` row holds
           when: replaceDefaultCurrency() is called
           then: PersistenceFailedException is thrown
-- [ ] RI02 · `PreferencesController` · test: `PreferencesControllerTest` · covers: `GET /api/v1/preferences`, `PUT /api/v1/preferences` · mocks: `ReadPreferencesPort`, `ReplacePreferencesPort` · scenarios: A1, A2, A7, A9, A19, A24, A29
+- [x] RI02 · `PreferencesController` · test: `PreferencesControllerTest` · covers: `GET /api/v1/preferences`, `PUT /api/v1/preferences` · mocks: `ReadPreferencesPort`, `ReplacePreferencesPort` · scenarios: A1, A2, A7, A9, A19, A24, A29
     - Happy Path:
         - given: the read port answers preferences carrying `EUR`
           when: the preferences are read
@@ -334,7 +334,7 @@ write with no CSRF token is refused by the enforcement filter.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `SetDefaultCurrencySystemTest` · covers: `PUT /api/v1/preferences`, `GET /api/v1/preferences` · scenarios: A1, A3, A4, A20
+- [x] RS01 · `SetDefaultCurrencySystemTest` · covers: `PUT /api/v1/preferences`, `GET /api/v1/preferences` · scenarios: A1, A3, A4, A20
     - Happy Path:
         - given: a signed-in browser session for a person with no preference row
           when: they replace their preferences with `eur` and then read them back
@@ -346,7 +346,7 @@ write with no CSRF token is refused by the enforcement filter.
         - given: a signed-in session whose request omits the CSRF header
           when: the preferences are replaced
           then: 403 is returned and the stored preference is unchanged
-- [ ] RS02 · `ReceiveTelegramMessageSystemTest` · covers: `TelegramUpdateListener.process()` · scenarios: A16
+- [x] RS02 · `ReceiveTelegramMessageSystemTest` · covers: `TelegramUpdateListener.process()` · scenarios: A16
     - Happy Path:
         - given: a person whose stored preference holds `EUR`, on a scenario of its own in `TelegramTestBot`
           when: they send a message the bot polls
@@ -386,6 +386,16 @@ write with no CSRF token is refused by the enforcement filter.
   [Architecture & Layering](../../../ledger-service/docs/conventions/architecture.md) requires.
 
 ## Open Questions / Blockers
+
+- **Implementation note (RS02):** the scenario-arming `WireMockStubs.telegramDeliversOnce(...)` call moved out of
+  `ReceiveTelegramMessageSystemTest`'s shared `@BeforeEach` into each `@Test` body, the pre-existing test included.
+  Two scenarios cannot share one WireMock delivery state machine, so arming both from a scenario-agnostic
+  `@BeforeEach` would have raced. No `update:` bullet authorized this; the assertions and the execution order of
+  the existing test are unchanged, and the red exit run confirms every pre-existing test in that class still passes.
+
+- **Implementation note (red phase):** ten `@DisplayName` values written by the red step agents exceeded the
+  120-character limit `bot.finance.architecture.DisplayNameConventionsTest` enforces, failing it. The owning step
+  agents shortened them; nothing else changed, and the re-run returned the same 1193 total and 0 skipped.
 
 - **Blocker note:** `RI01`, `RS01` and `RS02` need Docker for the containerized Postgres. Without it those
   classes skip rather than fail — [Build](../../../ledger-service/docs/conventions/build.md) says so — and the
