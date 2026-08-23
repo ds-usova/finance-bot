@@ -97,7 +97,7 @@ with it.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `preferences` · test: `preferences.test.ts` · covers: `readPreferences()`, `replacePreferences()` · scenarios: A12
+- [x] RU01 · `preferences` · test: `preferences.test.ts` · covers: `readPreferences()`, `replacePreferences()` · scenarios: A12
     - `readPreferences()`:
         - given: a stubbed fetch answering 200 with `defaultCurrency` `EUR`
           when: readPreferences() is called
@@ -116,7 +116,7 @@ with it.
         - given: a stubbed fetch answering 400 with a problem body
           when: replacePreferences() is called
           then: it rejects with an `ApiError` carrying 400 and the message the body named
-- [ ] RU02 · `en` · test: `en.test.ts` · covers: the `currencies` namespace · scenarios: A25
+- [x] RU02 · `en` · test: `en.test.ts` · covers: the `currencies` namespace · scenarios: A25
     - the `currencies` namespace:
         - given: the namespace's keys
           when: they are compared with a hand-written list of the codes no amount can be recorded in — `XAU`,
@@ -130,7 +130,7 @@ with it.
           `GBP`, `JPY`, `CHF`, `PLN`, `TRY`, `ZAR`
           then: every one of them is offered, and the namespace holds well over a hundred codes rather than the
           handful stabilization left
-- [ ] RU03 · `CurrencyPicker` · test: `CurrencyPicker.test.tsx` · covers: the rendered picker · scenarios: A11, A26, A28, A30
+- [x] RU03 · `CurrencyPicker` · test: `CurrencyPicker.test.tsx` · covers: the rendered picker · scenarios: A11, A26, A28, A30
     - the trigger:
         - given: a stored code the catalogue names, `EUR`
           when: the picker is rendered
@@ -156,7 +156,7 @@ with it.
         - given: the picker is open
           when: an entry is chosen
           then: `onChange` is called with that entry's code alone, and the list closes
-- [ ] RU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A11, A12, A13, A14, A15, A22, A23, A26, A30
+- [x] RU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A11, A12, A13, A14, A15, A22, A23, A26, A30
     - the read on mount:
         - given: `api/preferences` mocked to answer `EUR`
           when: the page is rendered
@@ -191,9 +191,9 @@ with it.
           when: the save control is used
           then: `sessionExpired` is called on the auth context
         - given: the catalogue is substituted
-          when: the page is rendered
+          when: the page is rendered and a different currency is then picked, so the save control is offered
           then: its heading, its field label and its save control read the catalogue's text
-- [ ] RU05 · `AppShell` · test: `AppShell.test.tsx` · covers: the header · scenarios: A27
+- [x] RU05 · `AppShell` · test: `AppShell.test.tsx` · covers: the header · scenarios: A27
     - the header:
         - given: a signed-in person
           when: the shell is rendered
@@ -209,7 +209,7 @@ with it.
         - update: the test named `shows the catalogue’s text for the product name, the theme control and the
           sign-out control` enumerates every header string read from the catalogue and asserts each substituted
           form — it gains the gear's label among them
-- [ ] RU06 · `AppRoutes` · test: `App.test.tsx` · covers: the `/settings` route
+- [x] RU06 · `AppRoutes` · test: `App.test.tsx` · covers: the `/settings` route
     - the route table:
         - given: no session
           when: `/settings` is asked for
@@ -243,6 +243,11 @@ icon-button shape, and the product name is a `Link` wearing the ghost button's h
   maintenance cost, and neither is stated anywhere outside this task's design. Record them as one ADR?
   - A: No ADR. The design's D1 and D7 carry the reasoning, and the task directory is archived rather than
     deleted. This plan has no **Post-Implementation Steps** group.
+
+- **Defect found while implementing (RU04):** the catalogue-substitution scenario asked for the save control's
+  text on a bare render, which the two read-on-mount scenarios rule out — no save control is offered until a
+  differing currency is picked. The scenario's `when` now names that interaction, and the test asserts all three
+  substituted strings after it. No behaviour changed; the plan text was corrected in place.
 
 - **Blocker note:** [What the Suite Cannot See](../../../web-app/docs/conventions/testing.md#what-the-suite-cannot-see)
   reaches most of this change — position, wrapping, colour in both themes, and a list clipped by a bound it never
