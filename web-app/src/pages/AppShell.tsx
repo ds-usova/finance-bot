@@ -1,6 +1,6 @@
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Settings, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../auth/useAuth';
 import { Button } from '../components/ui/button';
 import { useTheme } from '../theme/useTheme';
@@ -16,8 +16,22 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-          <h1 className="text-base font-semibold tracking-tight">{t('shell.productName')}</h1>
+          <h1 className="text-base font-semibold tracking-tight">
+            <Link
+              to="/"
+              className="rounded-md outline-none transition-colors hover:bg-muted focus-visible:ring-1 focus-visible:ring-accent"
+            >
+              {t('shell.productName')}
+            </Link>
+          </h1>
           <div className="flex items-center gap-1">
+            {status === 'authenticated' && (
+              <Button variant="ghost" size="icon" aria-label={t('shell.settings')} asChild>
+                <NavLink to="/settings">
+                  <Settings aria-hidden="true" />
+                </NavLink>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

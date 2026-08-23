@@ -20,6 +20,7 @@ describe('the wired application', () => {
       ['/categories', [aCategory()]],
       ['/groupings', [aGrouping()]],
       ['/session', { externalId }],
+      ['/api/v1/preferences', { defaultCurrency: null }],
     ];
 
     vi.stubGlobal(

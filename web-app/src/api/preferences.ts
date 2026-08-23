@@ -1,17 +1,28 @@
+import { request } from './client';
 import type { components } from './generated/ledger-api';
 
 export type Preferences = components['schemas']['Preferences'];
 export type PreferencesUpdate = components['schemas']['PreferencesUpdate'];
 
-// TODO: GET /api/v1/preferences through `request` from `./client`, answering the preferences as read. A
-// non-2xx reaches the caller as an `ApiError` carrying the status and the problem body's message.
+const PREFERENCES_PATH = '/api/v1/preferences';
+
 export async function readPreferences(): Promise<Preferences> {
-  return { defaultCurrency: null };
+  const preferences = await request<Preferences>(PREFERENCES_PATH);
+  if (!preferences) {
+    throw new Error('the preferences answered with no body');
+  }
+  return preferences;
 }
 
-// TODO: PUT /api/v1/preferences through `request` from `./client`, sending `{ defaultCurrency }` as the body
-// and the CSRF token in the header, answering the preferences as they now stand. A non-2xx reaches the caller
-// as an `ApiError` carrying the status and the problem body's message.
 export async function replacePreferences(defaultCurrency: string): Promise<Preferences> {
-  return { defaultCurrency };
+  const update: PreferencesUpdate = { defaultCurrency };
+  const preferences = await request<Preferences>(PREFERENCES_PATH, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(update),
+  });
+  if (!preferences) {
+    throw new Error('the preferences answered with no body');
+  }
+  return preferences;
 }

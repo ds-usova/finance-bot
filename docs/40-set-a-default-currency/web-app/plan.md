@@ -222,12 +222,12 @@ with it.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `preferences` · test: `preferences.test.ts`
-- [ ] GU02 · `en` · test: `en.test.ts`
-- [ ] GU03 · `CurrencyPicker` · test: `CurrencyPicker.test.tsx` · after: GU02
-- [ ] GU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · after: GU03
-- [ ] GU05 · `AppShell` · test: `AppShell.test.tsx`
-- [ ] GU06 · `AppRoutes` · test: `App.test.tsx` · after: GU04, GU05
+- [x] GU01 · `preferences` · test: `preferences.test.ts`
+- [x] GU02 · `en` · test: `en.test.ts`
+- [x] GU03 · `CurrencyPicker` · test: `CurrencyPicker.test.tsx` · after: GU02
+- [x] GU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · after: GU03
+- [x] GU05 · `AppShell` · test: `AppShell.test.tsx`
+- [x] GU06 · `AppRoutes` · test: `App.test.tsx` · after: GU04, GU05
 
 `CurrencyPicker` reuses the `Popover` and `Command` primitives under `components/ui/`; `CategoryPicker` itself is
 not reused, its props being category-shaped throughout. The picker sits in a `bg-card` panel at the width
@@ -248,6 +248,20 @@ icon-button shape, and the product name is a `Link` wearing the ghost button's h
   text on a bare render, which the two read-on-mount scenarios rule out — no save control is offered until a
   differing currency is picked. The scenario's `when` now names that interaction, and the test asserts all three
   substituted strings after it. No behaviour changed; the plan text was corrected in place.
+
+- **Defect found while implementing (RU04 / GU04):** RU04's catalogue-substitution scenario names three strings —
+  the heading, the field label and the save control. The test written for it also asserted the picker's trigger
+  text in its substituted form (`‹Euro› (EUR)`), which no scenario asks for and which the picker cannot produce:
+  `CurrencyPicker` resolves a currency's name by indexing `en.currencies`, the offered set the Components section
+  defines, rather than through `t()`. RU03's own tests substitute that module directly and depend on it. The test
+  was corrected to assert exactly the three strings the scenario names; `CurrencyPicker` was left as it is.
+
+- **Defect found while implementing (RU06 / GU04):** `stubSignedIn` in `App.test.tsx` is shared test
+  infrastructure answering `/expenses`, `/categories`, `/groupings` and `/session`. The settings route adds a
+  read of `/api/v1/preferences`, which the fixture did not answer, so the page took its read-failure path and
+  showed the banner instead of the heading — RU06's signed-in scenario failing on a fixture gap rather than on
+  the route table. Stabilization should have widened the fixture; it was widened here instead, and the widening
+  is recorded rather than left silent.
 
 - **Blocker note:** [What the Suite Cannot See](../../../web-app/docs/conventions/testing.md#what-the-suite-cannot-see)
   reaches most of this change — position, wrapping, colour in both themes, and a list clipped by a bound it never

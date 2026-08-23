@@ -184,7 +184,7 @@ describe('the settings page', () => {
     readPreferencesMock.mockResolvedValue({ defaultCurrency: 'EUR' });
     substituteCatalogue();
     renderPage();
-    await screen.findByText(`‹${en.currencies.EUR}› (EUR)`);
+    await screen.findByText('Euro (EUR)');
     await userEvent.click(
       screen.getByRole('button', { name: `‹${en.settings.defaultCurrency}›` }),
     );
