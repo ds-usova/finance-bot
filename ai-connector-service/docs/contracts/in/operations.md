@@ -29,32 +29,27 @@ framework alongside these.
 
 The framework's, from the calls it makes on the service's behalf:
 
-| Meter                               | Kind    | Says                                                                                                       |
-|-------------------------------------|---------|------------------------------------------------------------------------------------------------------------|
-| `grpc_server_seconds_*`             | timer   | how long an extraction call took, tagged by `rpc_method` and `grpc_status_code`                            |
-| `gen_ai_client_operation_seconds_*` | timer   | how long a provider call took, tagged by `gen_ai_operation_name` — `chat` or `embedding` — and `error` |
-| `gen_ai_client_token_usage_total`   | counter | tokens a chat answer reported, tagged by `gen_ai_token_type` — `input`, `output` and `total`             |
-| `spring_ai_tool_seconds_*`          | timer   | how long a tool call the model made took, tagged by `spring_ai_tool_definition_name` and `error`           |
+| Meter                               | Kind    | Says                                                                                                                                                                                                                                    |
+|-------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `grpc_server_seconds_*`             | timer   | how long an extraction call took, tagged by `rpc_method` and `grpc_status_code`                                                                                                                                                         |
+| `gen_ai_client_operation_seconds_*` | timer   | how long a provider call took, tagged by `error` and `gen_ai_operation_name` — `chat`, one sample per model round-trip, or `embedding`                                                                                                |
+| `gen_ai_client_token_usage_total`   | counter | tokens each chat round-trip reported, tagged by `gen_ai_token_type` — `input`, `output`, and `total`, which carries the other two: summing across the tag double-counts                                                               |
+| `spring_ai_tool_seconds_*`          | timer   | how long a tool call the model made took, tagged by `error` and `spring_ai_tool_definition_name`, the prefixed form of the name [the ledger's own counter](../../../../ledger-service/docs/contracts/in/operations.md#meters) tags with |
 
-- A chat sample and its token counts move once per model round-trip, so one turn produces several.
-- `gen_ai_token_type="total"` already carries input plus output. Summing across the tag counts them twice.
-- `spring_ai_tool_definition_name` carries the tool's prefixed name, ending in the bare name
-  [the ledger's own counter](../../../../ledger-service/docs/contracts/in/operations.md#meters) uses.
 - An embedding call a turn stopped waiting for still records the provider's eventual outcome. What the turn did
   instead is [the recall's](../../usecases/recall-examples.md#outcomes).
 
 The service's own:
 
-| Meter                             | Kind                 | Says                                                                       |
-|-----------------------------------|----------------------|----------------------------------------------------------------------------|
-| `ai_recall_examples_*`            | distribution summary | how many worked examples a recall that searched came back with             |
-| `ai_recall_best_similarity_*`     | distribution summary | how close the closest of them was, on a recall that came back with any     |
-| `ai_cdc_entries_pending`          | gauge                | [the group's pending summary](../out/change-stream.md#operations)          |
-| `ai_cdc_deliveries_dropped_total` | counter              | deliveries [given up on](../../usecases/learn-message-outcome.md#outcomes) |
+| Meter                             | Kind                 | Says                                                                                                                                          |
+|-----------------------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `ai_recall_examples_*`            | distribution summary | how many worked examples a recall that searched came back with                                                                                |
+| `ai_recall_best_similarity_*`     | distribution summary | how close the closest of them was, on a recall that came back with any                                                                        |
+| `ai_cdc_entries_pending`          | gauge                | [the group's pending summary](../out/change-stream.md#operations), identical from every instance — a panel takes the maximum, never the sum |
+| `ai_cdc_deliveries_dropped_total` | counter              | deliveries [given up on](../../usecases/learn-message-outcome.md#outcomes)                                                                    |
 
 - The pending gauge is what the group holds undone, not a backlog: entries nobody has read yet, and a consumer
-  that is down, both read zero. Every instance publishes the same number, so a panel takes the maximum, never
-  the sum.
+  that is down, both read zero.
 - Before the first successful pending read the gauge answers `NaN`, which no panel plots as a value. Whether
   the value is stale is what [the health endpoint](#health) says.
 - With the memory switched off every `ai_` meter is absent — [configuration](../../configuration.md).
