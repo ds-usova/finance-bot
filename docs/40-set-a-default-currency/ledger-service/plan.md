@@ -381,7 +381,7 @@ write with no CSRF token is refused by the enforcement filter.
 
 #### Manual Request Files
 
-- [ ] P01 · Add `ledger-service/docs/requests/preferences/read-preferences.http` and
+- [x] P01 · Add `ledger-service/docs/requests/preferences/read-preferences.http` and
   `replace-preferences.http`, one file per operation in a directory named for the tag, as
   [Architecture & Layering](../../../ledger-service/docs/conventions/architecture.md) requires.
 
