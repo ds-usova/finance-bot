@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.metrics.MeterName;
 import bot.finance.ai.common.boot.AbstractMemorySystemTest;
 import bot.finance.ai.common.fixtures.CallerTokens;
 import bot.finance.ai.common.fixtures.ChatCompletionFixtures;
@@ -103,7 +104,7 @@ class MetersSystemTest extends AbstractMemorySystemTest {
                             "(?m)^gen_ai_client_operation_seconds_count\\{(?=[^}]*gen_ai_operation_name=\"embedding"
                                     + "\")[^}]*}"));
 
-            assertThat(gaugeValue(body, "ai_cdc_entries_pending"))
+            assertThat(gaugeValue(body, MeterName.CDC_ENTRIES_PENDING.meterName()))
                     .as("the pending gauge reads a numeric 0, not NaN")
                     .isEqualTo(0.0);
         }

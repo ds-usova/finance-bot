@@ -39,11 +39,11 @@ class MicrometerChangeStreamMetersTest {
         @Test
         @DisplayName("when a delivery is dropped - then the scrape's dropped total grows by one")
         void whenDeliveryIsDropped_thenScrapeDroppedTotalGrowsByOne() {
-            double before = sample(scrape(managementPort), "ai_cdc_deliveries_dropped_total");
+            double before = sample(scrape(managementPort), MeterName.CDC_DELIVERIES_DROPPED.meterName());
 
             changeStreamMeters.countDropped();
 
-            assertThat(sample(scrape(managementPort), "ai_cdc_deliveries_dropped_total"))
+            assertThat(sample(scrape(managementPort), MeterName.CDC_DELIVERIES_DROPPED.meterName()))
                     .isEqualTo(before + 1);
         }
     }
@@ -57,7 +57,7 @@ class MicrometerChangeStreamMetersTest {
         void whenPendingCountAnswersValue_thenScrapeGaugeRendersIt() {
             when(pendingEntryCount.count()).thenReturn(4.0);
 
-            assertThat(sample(scrape(managementPort), "ai_cdc_entries_pending")).isEqualTo(4.0);
+            assertThat(sample(scrape(managementPort), MeterName.CDC_ENTRIES_PENDING.meterName())).isEqualTo(4.0);
         }
 
         @Test
@@ -65,7 +65,7 @@ class MicrometerChangeStreamMetersTest {
         void whenPendingCountAnswersNaN_thenScrapeGaugeRendersNaNSample() {
             when(pendingEntryCount.count()).thenReturn(Double.NaN);
 
-            assertThat(sample(scrape(managementPort), "ai_cdc_entries_pending")).isNaN();
+            assertThat(sample(scrape(managementPort), MeterName.CDC_ENTRIES_PENDING.meterName())).isNaN();
         }
     }
 }

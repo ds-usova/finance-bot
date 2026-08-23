@@ -36,15 +36,15 @@ class MicrometerRecallMetersTest {
                 + "the count")
         void whenReturnedCountIsRecorded_thenScrapeCountGrowsByOneAndSumByCount() {
             String before = scrape(managementPort);
-            double countBefore = sample(before, "ai_recall_examples_count");
-            double sumBefore = sample(before, "ai_recall_examples_sum");
+            double countBefore = sample(before, MeterName.RECALL_EXAMPLES.meterName() + "_count");
+            double sumBefore = sample(before, MeterName.RECALL_EXAMPLES.meterName() + "_sum");
 
             recallMeters.recordExamples(3);
 
             String body = scrape(managementPort);
-            assertThat(sample(body, "ai_recall_examples_count")).isEqualTo(countBefore + 1);
-            assertThat(sample(body, "ai_recall_examples_sum")).isEqualTo(sumBefore + 3);
-            assertThat(sample(body, "ai_recall_examples_max")).isGreaterThanOrEqualTo(3);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_count")).isEqualTo(countBefore + 1);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_sum")).isEqualTo(sumBefore + 3);
+            assertThat(sample(body, MeterName.RECALL_EXAMPLES.meterName() + "_max")).isGreaterThanOrEqualTo(3);
         }
     }
 
@@ -57,15 +57,15 @@ class MicrometerRecallMetersTest {
                 + "the score")
         void whenSimilarityScoreIsRecorded_thenScrapeCountGrowsByOneAndSumByScore() {
             String before = scrape(managementPort);
-            double countBefore = sample(before, "ai_recall_best_similarity_count");
-            double sumBefore = sample(before, "ai_recall_best_similarity_sum");
+            double countBefore = sample(before, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_count");
+            double sumBefore = sample(before, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_sum");
 
             recallMeters.recordBestSimilarity(0.75);
 
             String body = scrape(managementPort);
-            assertThat(sample(body, "ai_recall_best_similarity_count")).isEqualTo(countBefore + 1);
-            assertThat(sample(body, "ai_recall_best_similarity_sum")).isEqualTo(sumBefore + 0.75);
-            assertThat(sample(body, "ai_recall_best_similarity_max")).isGreaterThanOrEqualTo(0.75);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_count")).isEqualTo(countBefore + 1);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_sum")).isEqualTo(sumBefore + 0.75);
+            assertThat(sample(body, MeterName.RECALL_BEST_SIMILARITY.meterName() + "_max")).isGreaterThanOrEqualTo(0.75);
         }
     }
 }

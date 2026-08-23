@@ -14,9 +14,11 @@ public class MicrometerRecallMeters implements RecallMeters {
     private final DistributionSummary bestSimilarity;
 
     public MicrometerRecallMeters(MeterRegistry meterRegistry) {
-        this.examples = DistributionSummary.builder("ai_recall_examples").register(meterRegistry);
+        this.examples = DistributionSummary.builder(MeterName.RECALL_EXAMPLES.meterName())
+                .register(meterRegistry);
         this.bestSimilarity =
-                DistributionSummary.builder("ai_recall_best_similarity").register(meterRegistry);
+                DistributionSummary.builder(MeterName.RECALL_BEST_SIMILARITY.meterName())
+                        .register(meterRegistry);
     }
 
     @Override
