@@ -39,6 +39,6 @@ class MicrometerOutboxMetersTest {
     }
 
     private double scrapedValue(String tags) {
-        return PrometheusScrapes.value(managementPort, "ledger_cdc_facts_dropped_total", tags);
+        return PrometheusScrapes.value(managementPort, MeterName.OUTBOX_FACTS_DROPPED.meterName(), tags);
     }
 }

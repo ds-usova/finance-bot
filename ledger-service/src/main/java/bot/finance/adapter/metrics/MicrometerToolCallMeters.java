@@ -26,7 +26,7 @@ public class MicrometerToolCallMeters implements ToolCallMeters {
     }
 
     private void count(String tool, String outcome, String reason) {
-        Counter.builder("ledger_mcp_tool_calls_total")
+        Counter.builder(MeterName.TOOL_CALLS.meterName())
                 .tags(Tags.of("tool", tool, "outcome", outcome, "reason", reason))
                 .register(registry)
                 .increment();

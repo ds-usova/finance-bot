@@ -29,14 +29,14 @@ public class MicrometerTurnMeters implements TurnMeters {
 
     @Override
     public void countResolved(ProposalResolution resolution, int count) {
-        Counter.builder("ledger_proposals_resolved_total")
+        Counter.builder(MeterName.PROPOSALS_RESOLVED.meterName())
                 .tags(Tags.of("resolution", resolutionTag(resolution)))
                 .register(registry)
                 .increment(count);
     }
 
     private void count(String outcome) {
-        Counter.builder("ledger_turns_total")
+        Counter.builder(MeterName.TURNS.meterName())
                 .tags(Tags.of("outcome", outcome))
                 .register(registry)
                 .increment();

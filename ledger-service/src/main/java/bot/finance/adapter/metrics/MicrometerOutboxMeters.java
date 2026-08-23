@@ -17,7 +17,7 @@ public class MicrometerOutboxMeters implements OutboxMeters {
 
     @Override
     public void countFactsDropped(String type, long facts) {
-        Counter.builder("ledger_cdc_facts_dropped_total")
+        Counter.builder(MeterName.OUTBOX_FACTS_DROPPED.meterName())
                 .tags(Tags.of("type", type))
                 .register(registry)
                 .increment(facts);

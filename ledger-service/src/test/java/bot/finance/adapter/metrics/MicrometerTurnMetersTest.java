@@ -40,7 +40,7 @@ class MicrometerTurnMetersTest {
         void whenTurnCountedUnderOutcome_thenScrapeRendersCounterUnderThatOutcomeName(ReportOutcome outcome) {
             meters.countTurn(outcome);
 
-            assertThat(scrapedValue("ledger_turns_total", "outcome=\"" + outcome.name() + "\""))
+            assertThat(scrapedValue(MeterName.TURNS.meterName(), "outcome=\"" + outcome.name() + "\""))
                     .isEqualTo(1.0);
         }
     }
@@ -54,7 +54,7 @@ class MicrometerTurnMetersTest {
         void whenUnreportedTurnCounted_thenScrapeRendersCounterUnderUnreported() {
             meters.countUnreported();
 
-            assertThat(scrapedValue("ledger_turns_total", "outcome=\"UNREPORTED\""))
+            assertThat(scrapedValue(MeterName.TURNS.meterName(), "outcome=\"UNREPORTED\""))
                     .isEqualTo(1.0);
         }
     }
@@ -66,22 +66,22 @@ class MicrometerTurnMetersTest {
         @Test
         @DisplayName("when two proposals are counted resolved as ACCEPT - then the accepted counter grows by two")
         void whenTwoProposalsCountedResolvedAsAccept_thenAcceptedCounterGrowsByTwo() {
-            double before = scrapedValue("ledger_proposals_resolved_total", "resolution=\"accepted\"");
+            double before = scrapedValue(MeterName.PROPOSALS_RESOLVED.meterName(), "resolution=\"accepted\"");
 
             meters.countResolved(ProposalResolution.ACCEPT, 2);
 
-            double after = scrapedValue("ledger_proposals_resolved_total", "resolution=\"accepted\"");
+            double after = scrapedValue(MeterName.PROPOSALS_RESOLVED.meterName(), "resolution=\"accepted\"");
             assertThat(after - before).isEqualTo(2.0);
         }
 
         @Test
         @DisplayName("when a proposal is counted resolved as DISCARD - then the scrape renders it under discarded")
         void whenProposalCountedResolvedAsDiscard_thenScrapeRendersItUnderDiscarded() {
-            double before = scrapedValue("ledger_proposals_resolved_total", "resolution=\"discarded\"");
+            double before = scrapedValue(MeterName.PROPOSALS_RESOLVED.meterName(), "resolution=\"discarded\"");
 
             meters.countResolved(ProposalResolution.DISCARD, 1);
 
-            double after = scrapedValue("ledger_proposals_resolved_total", "resolution=\"discarded\"");
+            double after = scrapedValue(MeterName.PROPOSALS_RESOLVED.meterName(), "resolution=\"discarded\"");
             assertThat(after - before).isEqualTo(1.0);
         }
     }

@@ -66,6 +66,6 @@ class MicrometerToolCallMetersTest {
     }
 
     private double scrapedValue(String tags) {
-        return PrometheusScrapes.value(managementPort, "ledger_mcp_tool_calls_total", tags);
+        return PrometheusScrapes.value(managementPort, MeterName.TOOL_CALLS.meterName(), tags);
     }
 }

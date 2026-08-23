@@ -5,6 +5,7 @@ import static bot.finance.common.stubs.TelegramTestBot.recordedPollsWithOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import bot.finance.adapter.metrics.MeterName;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.port.UserRepository;
@@ -169,15 +170,15 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
             String body = scrape.getBody().asString();
 
             // then: the scrape carries a turn count, a successful tool call count and an accepted resolution count
-            assertThat(body).as("turn count").contains("ledger_turns_total");
+            assertThat(body).as("turn count").contains(MeterName.TURNS.meterName());
             assertThat(body)
                     .as("successful tool call count")
-                    .containsPattern(
-                            Pattern.compile("(?m)^ledger_mcp_tool_calls_total\\{(?=[^}]*outcome=\"ok\")[^}]*}"));
+                    .containsPattern(Pattern.compile(
+                            "(?m)^" + MeterName.TOOL_CALLS.meterName() + "\\{(?=[^}]*outcome=\"ok\")[^}]*}"));
             assertThat(body)
                     .as("accepted resolution count")
-                    .containsPattern(Pattern.compile(
-                            "(?m)^ledger_proposals_resolved_total\\{(?=[^}]*resolution=\"accepted\")[^}]*}"));
+                    .containsPattern(Pattern.compile("(?m)^" + MeterName.PROPOSALS_RESOLVED.meterName()
+                            + "\\{(?=[^}]*resolution=\"accepted\")[^}]*}"));
         }
     }
 
@@ -212,8 +213,8 @@ class PipelineMetersSystemTest extends AbstractSystemTest {
             // then: the scrape carries a rejected tool call sample naming the refusing exception as its reason
             assertThat(body)
                     .as("rejected tool call count, tagged with the refusing exception")
-                    .containsPattern(Pattern.compile("(?m)^ledger_mcp_tool_calls_total\\{"
-                            + "(?=[^}]*outcome=\"rejected\")(?=[^}]*reason=\"InvalidGroupingException\")[^}]*}"));
+                    .containsPattern(Pattern.compile("(?m)^" + MeterName.TOOL_CALLS.meterName()
+                            + "\\{(?=[^}]*outcome=\"rejected\")(?=[^}]*reason=\"InvalidGroupingException\")[^}]*}"));
         }
     }
 }
