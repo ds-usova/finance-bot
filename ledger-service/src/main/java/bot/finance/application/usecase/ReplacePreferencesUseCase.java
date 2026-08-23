@@ -5,6 +5,7 @@ import bot.finance.application.dto.ReplacePreferencesCommand;
 import bot.finance.application.port.ReplacePreferencesPort;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.UserRepository;
+import java.util.Optional;
 
 public class ReplacePreferencesUseCase implements ReplacePreferencesPort {
 
@@ -18,8 +19,9 @@ public class ReplacePreferencesUseCase implements ReplacePreferencesPort {
 
     @Override
     public Preferences replace(ReplacePreferencesCommand command) {
-        // resolves the caller through UserRepository, writes the command's currency through
-        // UserPreferenceRepository for that caller's id, then answers preferences carrying it back
-        return null;
+        long userId = userRepository.requireById(command.userId().userId()).id().orElseThrow();
+
+        userPreferenceRepository.replaceDefaultCurrency(userId, command.defaultCurrency());
+        return new Preferences(Optional.of(command.defaultCurrency()));
     }
 }

@@ -1,6 +1,7 @@
 package bot.finance.adapter.persistence;
 
 import bot.finance.application.port.UserPreferenceRepository;
+import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.CurrencyCode;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -16,12 +17,21 @@ public class UserPreferenceRepositoryAdapter implements UserPreferenceRepository
 
     @Override
     public Optional<CurrencyCode> findDefaultCurrency(long userId) {
-        // reads the user's stored row, if any, and answers its currency code
-        return Optional.empty();
+        try {
+            return userPreferenceEntityRepository
+                    .findById(userId)
+                    .map(entity -> new CurrencyCode(entity.defaultCurrencyCode()));
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find default currency for user " + userId, e);
+        }
     }
 
     @Override
     public void replaceDefaultCurrency(long userId, CurrencyCode defaultCurrency) {
-        // upserts the user's row through the entity repository's conflict-handling write
+        try {
+            userPreferenceEntityRepository.upsertDefaultCurrencyCode(userId, defaultCurrency.code());
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to replace default currency for user " + userId, e);
+        }
     }
 }

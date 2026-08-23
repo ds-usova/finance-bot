@@ -18,8 +18,8 @@ public class ReadPreferencesUseCase implements ReadPreferencesPort {
 
     @Override
     public Preferences read(ReadPreferencesCommand command) {
-        // resolves the caller through UserRepository, then answers the stored default currency for that caller's
-        // id, or an empty optional where none is stored
-        return null;
+        long userId = userRepository.requireById(command.userId().userId()).id().orElseThrow();
+
+        return new Preferences(userPreferenceRepository.findDefaultCurrency(userId));
     }
 }

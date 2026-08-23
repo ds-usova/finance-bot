@@ -358,24 +358,24 @@ write with no CSRF token is refused by the enforcement filter.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `CurrencyCode` · test: `CurrencyCodeTest`
-- [ ] GU02 · `ReadPreferencesUseCase` · test: `ReadPreferencesUseCaseTest` · after: GU06, GU07
-- [ ] GU03 · `ReplacePreferencesUseCase` · test: `ReplacePreferencesUseCaseTest` · after: GU06, GU08
-- [ ] GU04 · `PreferencesWebMapper` · test: `PreferencesWebMapperTest` · after: GU01
-- [ ] GU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
-- [ ] GU06 · `Preferences` · test: `PreferencesTest`
-- [ ] GU07 · `ReadPreferencesCommand` · test: `ReadPreferencesCommandTest`
-- [ ] GU08 · `ReplacePreferencesCommand` · test: `ReplacePreferencesCommandTest`
+- [x] GU01 · `CurrencyCode` · test: `CurrencyCodeTest`
+- [x] GU02 · `ReadPreferencesUseCase` · test: `ReadPreferencesUseCaseTest` · after: GU06, GU07
+- [x] GU03 · `ReplacePreferencesUseCase` · test: `ReplacePreferencesUseCaseTest` · after: GU06, GU08
+- [x] GU04 · `PreferencesWebMapper` · test: `PreferencesWebMapperTest` · after: GU01
+- [x] GU05 · `HandleIncomingMessageUseCase` · test: `HandleIncomingMessageUseCaseTest`
+- [x] GU06 · `Preferences` · test: `PreferencesTest`
+- [x] GU07 · `ReadPreferencesCommand` · test: `ReadPreferencesCommandTest`
+- [x] GU08 · `ReplacePreferencesCommand` · test: `ReplacePreferencesCommandTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `UserPreferenceRepositoryAdapter` · test: `UserPreferenceRepositoryAdapterTest`
-- [ ] GI02 · `PreferencesController` · test: `PreferencesControllerTest` · after: GU04
+- [x] GI01 · `UserPreferenceRepositoryAdapter` · test: `UserPreferenceRepositoryAdapterTest`
+- [x] GI02 · `PreferencesController` · test: `PreferencesControllerTest` · after: GU04
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `SetDefaultCurrencySystemTest` · covers: `PUT /api/v1/preferences`, `GET /api/v1/preferences`
-- [ ] GS02 · `ReceiveTelegramMessageSystemTest` · covers: `TelegramUpdateListener.process()`
+- [x] GS01 · `SetDefaultCurrencySystemTest` · covers: `PUT /api/v1/preferences`, `GET /api/v1/preferences`
+- [x] GS02 · `ReceiveTelegramMessageSystemTest` · covers: `TelegramUpdateListener.process()`
 
 ### Post-Implementation Steps
 
@@ -386,6 +386,16 @@ write with no CSRF token is refused by the enforcement filter.
   [Architecture & Layering](../../../ledger-service/docs/conventions/architecture.md) requires.
 
 ## Open Questions / Blockers
+
+- **Over-specified test (RU05/GU05):** `HandleIncomingMessageUseCaseTest`'s
+  `whenSendersPreferenceReadThrowsPersistenceFailedException_thenRequestCarriesNoCurrencyAndTurnDelivered()` asserts
+  `verify(log).warn(anyString(), any())`, which pins the two-argument SLF4J overload rather than the fact that the
+  failure was logged. `HandleIncomingMessageUseCase.readDefaultCurrency` therefore logs
+  `log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()))`, formatting
+  eagerly, while its neighbour `storeReport` uses the class's normal three-argument form. The behaviour is right and
+  the suite is green; what is wrong is the assertion's grip on the overload. The refactor pass cannot correct it —
+  it may not change a test assertion — so this is left for a developer to loosen to an assertion about the warning
+  itself.
 
 - **Implementation note (RS02):** the scenario-arming `WireMockStubs.telegramDeliversOnce(...)` call moved out of
   `ReceiveTelegramMessageSystemTest`'s shared `@BeforeEach` into each `@Test` body, the pre-existing test included.

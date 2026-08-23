@@ -23,8 +23,6 @@ public record CurrencyCode(String code) {
     }
 
     public boolean recordsAmounts() {
-        // whether an amount can be recorded in this code — false for one whose default fraction digits are
-        // negative, such as XAU
-        return false;
+        return Currency.getInstance(code).getDefaultFractionDigits() >= 0;
     }
 }

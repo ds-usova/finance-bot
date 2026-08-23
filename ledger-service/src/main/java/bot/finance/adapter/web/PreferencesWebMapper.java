@@ -4,7 +4,9 @@ import bot.finance.api.model.ReadPreferences200Response;
 import bot.finance.api.model.ReplacePreferencesRequest;
 import bot.finance.application.dto.Preferences;
 import bot.finance.application.dto.ReplacePreferencesCommand;
+import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.CurrencyCode;
 
 public final class PreferencesWebMapper {
 
@@ -12,13 +14,17 @@ public final class PreferencesWebMapper {
 
     public static ReplacePreferencesCommand toReplacePreferencesCommand(
             ReplacePreferencesRequest request, AuthenticatedUserId userId) {
-        // upper-cases the request's code through CurrencyCode and pairs it with the caller, refusing a code ISO
-        // 4217 does not know or one no amount can be recorded in before the command is built
-        return null;
+        CurrencyCode defaultCurrency = CurrencyCode.of(request.getDefaultCurrency());
+        if (!defaultCurrency.recordsAmounts()) {
+            throw new InvalidMoneyException(
+                    "Currency code " + defaultCurrency.code() + ": no amount can be recorded in it");
+        }
+        return new ReplacePreferencesCommand(userId, defaultCurrency);
     }
 
     public static ReadPreferences200Response toResponse(Preferences preferences) {
-        // renders the stored currency's upper-cased code, or null where none is set
-        return null;
+        return new ReadPreferences200Response()
+                .defaultCurrency(
+                        preferences.defaultCurrency().map(CurrencyCode::code).orElse(null));
     }
 }

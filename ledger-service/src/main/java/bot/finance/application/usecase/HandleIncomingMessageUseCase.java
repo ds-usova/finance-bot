@@ -26,6 +26,7 @@ import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
@@ -81,13 +82,12 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        // TODO: read the sender's stored default currency through userPreferenceRepository, logging and carrying
-        // on with none where the read fails, and pass it through to the extraction request below
+        Optional<CurrencyCode> defaultCurrency = readDefaultCurrency(user.id().orElseThrow());
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
-        boolean extractionFailed = extract(command, categoryGroupings, user, reference);
+        boolean extractionFailed = extract(command, categoryGroupings, user, reference, defaultCurrency);
 
         List<ProposalSummary> proposals =
                 expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
@@ -105,6 +105,15 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
+    }
+
+    private Optional<CurrencyCode> readDefaultCurrency(long userId) {
+        try {
+            return userPreferenceRepository.findDefaultCurrency(userId);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private void storeReport(long userId, IncomingMessageId reference, ReportLocation location) {
@@ -131,13 +140,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             HandleIncomingMessageCommand command,
             List<String> categoryGroupings,
             User user,
-            IncomingMessageId reference) {
+            IncomingMessageId reference,
+            Optional<CurrencyCode> defaultCurrency) {
         try {
             intentExtractionPort.extract(new IntentExtractionRequest(
                     command.text(),
                     categoryGroupings,
                     catchAllGrouping(categoryGroupings),
-                    Optional.empty(),
+                    defaultCurrency,
                     user.id().orElseThrow(),
                     reference,
                     LocalDate.now(clock)));

@@ -28,11 +28,11 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
             throw new InvalidMoneyException("Currency code must not be null");
         }
 
-        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
-        if (fractionDigits < 0) {
+        if (!currencyCode.recordsAmounts()) {
             throw new InvalidMoneyException(currencyCode.code() + " is not a currency an amount can be recorded in");
         }
 
+        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
         BigDecimal scaled;
         try {
             scaled = amount.movePointRight(fractionDigits).setScale(0);
