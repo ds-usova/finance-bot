@@ -9,6 +9,7 @@ tags:
   - name: categories
   - name: groupings
   - name: session
+  - name: preferences
 paths:
   /api/v1/expenses:
     $ref: './paths/expenses.yaml'
@@ -22,6 +23,8 @@ paths:
     $ref: './paths/expense-acceptances.yaml'
   /api/v1/expenses/{status}/{id}:
     $ref: './paths/expense-category.yaml'
+  /api/v1/preferences:
+    $ref: './paths/preferences.yaml'
 components:
   schemas:
     ExpenseStatus:
@@ -329,6 +332,32 @@ components:
       example:
         accepted: 2
         missing: 0
+    Preferences:
+      type: object
+      description: The signed-in person's settings, as they currently stand.
+      properties:
+        defaultCurrency:
+          type: [string, "null"]
+          pattern: '^[A-Za-z]{3}$'
+          description: >-
+            The ISO 4217 code, upper-cased, new entries are recorded in when none is given, or `null` where the
+            person has not set one.
+      required:
+        - defaultCurrency
+      example:
+        defaultCurrency: EUR
+    PreferencesUpdate:
+      type: object
+      description: The settings to apply to the signed-in person's preferences.
+      properties:
+        defaultCurrency:
+          type: string
+          pattern: '^[A-Za-z]{3}$'
+          description: The ISO 4217 code new entries should be recorded in. Never null.
+      required:
+        - defaultCurrency
+      example:
+        defaultCurrency: eur
   securitySchemes:
     sessionCookie:
       type: apiKey

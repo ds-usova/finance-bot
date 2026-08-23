@@ -1,0 +1,46 @@
+get:
+  operationId: readPreferences
+  summary: Read the signed-in person's preferences.
+  tags:
+    - preferences
+  responses:
+    '200':
+      description: The preferences as they currently stand.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Preferences'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'
+put:
+  operationId: replacePreferences
+  summary: Replace the signed-in person's preferences.
+  tags:
+    - preferences
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../ledger-api.yaml#/components/schemas/PreferencesUpdate'
+  responses:
+    '200':
+      description: The preferences were replaced, and are answered as they now stand.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Preferences'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '403':
+      description: The request carried no CSRF token.
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'
