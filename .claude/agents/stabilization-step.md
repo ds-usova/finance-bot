@@ -23,8 +23,10 @@ step is allowed to.
 
 The orchestrator's prompt provides:
 
-- **the plan file path** and the **item ids** to apply, in order — read each item's text with `plan.sh show`
-  (`.claude/scripts/plan/plan.sh`, README beside it), never by extracting it from the plan by hand;
+- **the plan file path** and the **item ids** to apply, in order — read each item's text with `plan.sh show`,
+  never by extracting it from the plan by hand. `plan.sh` ships with the skill at `scripts/plan/plan.sh` —
+  under `${CLAUDE_PLUGIN_ROOT}` when installed as a plugin, under `.claude/` in a plain checkout — README
+  beside it;
 - **the module**, and its **baseline figures** — the suite's total and skipped counts before anything changed;
 - **the module conventions** — `docs/conventions.md` and the sections it indexes, plus the repository-wide ones:
   the build and compile commands, the architecture-enforcement test, file locations, how a test is disabled, the

@@ -26,7 +26,9 @@ reached.
 
 ## The Mechanics
 
-`upgrade.sh` (`.claude/scripts/upgrade/upgrade.sh`, README beside it) is how you read and write the file:
+`upgrade.sh` ships with the skill at `scripts/upgrade/upgrade.sh` — under `${CLAUDE_PLUGIN_ROOT}` when
+installed as a plugin, under `.claude/` in a plain checkout — README beside it, and is how you read and write
+the file:
 
 | Need                 | Command                                   |
 |----------------------|-------------------------------------------|

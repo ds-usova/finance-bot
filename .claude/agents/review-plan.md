@@ -52,7 +52,7 @@ job — do not re-derive them by hand and do not report them again as findings.
   follows its mandated step format exactly (`<TargetClass>` · test: `<TestClass>` · covers: line — plus `mocks:`
   for a framework-variant integration step — given/when/then sub-bullets, and optional `update:` sub-bullets for
   existing tests). The formats and the scenario-authoring rules they carry are
-  `.claude/templates/step-formats.md`; read them there rather than from memory.
+  `templates/step-formats.md` beside the skills; read them there rather than from memory.
 - Confirm every Green-phase step corresponds 1-to-1 with a Red-phase step (same target class, same test class) — no
   Green step without a matching Red step, and no Red step left without a Green step.
 - Confirm every `after:` reference on a Green-phase step names a class that is itself a Green-phase target in the

@@ -57,8 +57,8 @@ Nothing is written before this passes.
 ## Phase 1 — Write the Files
 
 A rework owns `docs/<n>-<name>/`: `rework.md`, and one steps file per agent where it reaches more than one
-module. What each holds is [`the-files.md`](the-files.md). `rework.sh` (`.claude/scripts/rework/`, README
-beside it) reads, ticks and validates them.
+module. What each holds is [`the-files.md`](the-files.md). `rework.sh` (`scripts/rework/` under the plugin
+root, README beside it) reads, ticks and validates them.
 
 Run `rework.sh validate --file <each file>` until it exits 0 before presenting anything.
 

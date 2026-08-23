@@ -25,7 +25,8 @@ reached.
 
 ## The Mechanics
 
-`rework.sh` (`.claude/scripts/rework/rework.sh`, README beside it) is how you read and write the file:
+`rework.sh` ships with the skill at `scripts/rework/rework.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed
+as a plugin, under `.claude/` in a plain checkout — README beside it, and is how you read and write the file:
 
 | Need                 | Command                                  |
 |----------------------|------------------------------------------|

@@ -33,7 +33,8 @@ with the output it produced — [`attempts.md`](../../templates/attempts.md).
 The fix owns `docs/<n>-<name>/`: one `bug.md`, one `fix.md` per module, and `shared/fix.md` where two modules
 must agree on a contract. What each carries is [`the-files.md`](the-files.md). Where the diagnosis reaches more
 than one module, [`crossing-modules.md`](crossing-modules.md) decides which module the fix is cut in and what
-`shared/fix.md` holds. `fix.sh` (`.claude/scripts/fix/`, README beside it) reads, ticks and validates them, and
+`shared/fix.md` holds. `fix.sh` (`scripts/fix/` under the plugin root, README beside it) reads, ticks and
+validates them, and
 writes the two lines that otherwise go stale — `In flight:` and `bug.md`'s `Attempts:`.
 
 ## Conventions

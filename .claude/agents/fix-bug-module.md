@@ -28,7 +28,8 @@ sequence runs each time it is reached.
 
 ## The Mechanics
 
-`fix.sh` (`.claude/scripts/fix/fix.sh`, README beside it) is how you read and write the file:
+`fix.sh` ships with the skill at `scripts/fix/fix.sh` — under `${CLAUDE_PLUGIN_ROOT}` when installed as a
+plugin, under `.claude/` in a plain checkout — README beside it, and is how you read and write the file:
 
 | Need                    | Command                                                     |
 |-------------------------|-------------------------------------------------------------|

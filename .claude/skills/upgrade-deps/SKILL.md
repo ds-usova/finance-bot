@@ -99,8 +99,8 @@ documentation site. What each says binds the step:
 | several, through one version catalog | one more: `shared/steps.md`, holding the catalog's bumps, applied before any module's file  |
 
 **Each steps file is owned by exactly one agent.** `upgrade.md` is what a fresh session resumes from. What it
-holds is [`the-files.md`](the-files.md). `upgrade.sh` (`.claude/scripts/upgrade/`, README beside it) reads,
-ticks and validates them.
+holds is [`the-files.md`](the-files.md). `upgrade.sh` (`scripts/upgrade/` under the plugin root, README
+beside it) reads, ticks and validates them.
 
 Run `upgrade.sh validate --file <each file>` until it exits 0 before presenting anything.
 
