@@ -194,12 +194,13 @@ nothing: it reports each fact written on the wrong page, with the page that owns
 - Answer what it escalates against the code, or carry it into the report unanswered, naming what is missing.
 - A finding you decline stays in the report with the reason.
 
-Then run the `tighten` skill on every file this run created or updated, one file per invocation. Tighten last,
-so a file is tightened once, in its final state.
+Then run the `tighten` skill on every file this run *wrote* — a page created from scratch, or one whose section
+was rewritten — one file per invocation. Tighten last, so a file is tightened once, in its final state.
 
 - Take the cuts it reports. It removes words, never rules.
 - Restore anything it dropped that no other page states. Name the restore in the report.
-- A file another stage did not touch is not tightened here.
+- A file another stage did not touch is not tightened here. Neither is one that only gained a link, a row or a
+  cell: it was tight before this run and is not re-read for it. List those files in the report as skipped.
 
 ## Stage 7 — Commit
 
