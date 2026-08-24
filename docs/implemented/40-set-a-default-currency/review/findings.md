@@ -1,8 +1,14 @@
 # Review: Set a default currency
 
-**1 bug, 2 refactoring candidates open, 11 manual checks.**
+**1 bug, fixed · 2 refactoring candidates open, 11 manual checks.**
 
 ## Bug
+
+**Fixed** in
+[41-an-unrecognised-stored-currency-code](../../41-an-unrecognised-stored-currency-code/bug.md): the row is read
+inside the `try` and the `CurrencyCode` built outside it, so only the query is guarded as a store failure. A code
+the domain refuses is answered as nothing chosen — the state the use case's **Nothing chosen** outcome already
+describes — and logged as a warning, rather than reaching the caller as a refusal they sent nothing to cause.
 
 **`ledger-service` — a stored currency code the JDK no longer recognises is answered as a store outage**
 
