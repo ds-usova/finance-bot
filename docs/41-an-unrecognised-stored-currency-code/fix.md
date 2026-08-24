@@ -17,7 +17,7 @@
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/persistence/UserPreferenceRepositoryAdapterTest.java`
 
-- [ ] R01 · red · enable the disabled reproduction, so a row holding a code the JDK does not recognise is asked
+- [x] R01 · red · enable the disabled reproduction, so a row holding a code the JDK does not recognise is asked
   for and the answer is asserted to be nothing
   - test-files:
     - `ledger-service/src/test/java/bot/finance/adapter/persistence/UserPreferenceRepositoryAdapterTest.java`

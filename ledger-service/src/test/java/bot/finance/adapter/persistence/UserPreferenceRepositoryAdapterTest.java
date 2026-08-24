@@ -10,7 +10,6 @@ import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.CurrencyCode;
 import java.util.Optional;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -68,7 +67,6 @@ class UserPreferenceRepositoryAdapterTest {
         }
 
         @Test
-        @Disabled("R01: the reproduction, enabled by the red step")
         @DisplayName("when the row holds a code the JDK does not recognise - then nothing is answered")
         void whenRowHoldsUnrecognisedCode_thenNothingAnswered() {
             long userId = storedUserId("user-preference-find-unrecognised");
