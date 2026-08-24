@@ -22,13 +22,13 @@
 
 ## Outcomes
 
-| Outcome              | When                                                                   | Result                                             |
-|----------------------|-------------------------------------------------------------------------|-----------------------------------------------------|
-| Preferences answered | the identity names a stored person                                    | the currency they chose                            |
-| Nothing chosen       | that person has never chosen one, or their stored choice cannot be read | no currency, and no failure                        |
-| Identity unknown     | nothing is stored under the identity                                  | the request is rejected and nothing is read        |
-| Request rejected     | the request carries no identity                                       | no browser session is open — nothing is looked up  |
-| Storage failed       | the store cannot be reached                                           | the failure reaches the caller                     |
+| Outcome              | When                                                                    | Result                                            |
+|----------------------|-------------------------------------------------------------------------|---------------------------------------------------|
+| Preferences answered | the identity names a stored person                                      | the currency they chose                           |
+| Nothing chosen       | that person has never chosen one, or their stored choice cannot be read | no currency, and no failure                       |
+| Identity unknown     | nothing is stored under the identity                                    | the request is rejected and nothing is read       |
+| Request rejected     | the request carries no identity                                         | no browser session is open — nothing is looked up |
+| Storage failed       | the store cannot be reached                                             | the failure reaches the caller                    |
 
 ## Components
 
