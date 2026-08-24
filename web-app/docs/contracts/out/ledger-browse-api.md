@@ -7,40 +7,39 @@ the currency they chose.
   which owns what each request takes and answers with
 - **Specification:** [`openapi/ledger-api.yaml`](../../../../openapi/ledger-api.yaml), from which this module
   generates the types it declares the calls against
-- **Transport:** HTTP on `/api/v1/expenses`, `/api/v1/expenses/acceptances`, `/api/v1/categories`,
-  `/api/v1/groupings` and `/api/v1/preferences`, on the same origin as the page
-- **Used by:** [Browse recorded expenses](../../usecases/browse-recorded-expenses.md)
-- **Used by:** [Accept pending expenses](../../usecases/accept-pending-expenses.md)
-- **Used by:** [Set a default currency](../../usecases/set-a-default-currency.md)
+- **Transport:** HTTP under `/api/v1`, on the same origin as the page
 
 [The session API](ledger-session-api.md) is a separate interface on the same transport.
 
 ## What It Sends, and When
 
-| When                                   | It sends                                               | Answered by                                                                                    |
-|----------------------------------------|--------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| The expenses page opens                | a read of the listing, carrying no filter              | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)                 |
-| The expenses page opens                | a read of every category                               | [Browse categories](../../../../ledger-service/docs/usecases/browse-categories.md)             |
-| The expenses page opens                | a read of every grouping                               | [Browse groupings](../../../../ledger-service/docs/usecases/browse-groupings.md)               |
-| A filter other than the period changes | a read of the listing, carrying the filter             | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)                 |
-| The period is completed or cleared     | a read of the listing, carrying the filter             | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)                 |
-| One day of the period is set alone     | nothing                                                | —                                                                                            |
-| The person accepts what is ticked      | the ids of the ticked entries                          | [Accept chosen proposals](../../../../ledger-service/docs/usecases/accept-chosen-proposals.md) |
-| An acceptance is answered              | a read of the listing, narrowed to the days it touched | [Browse expenses](../../../../ledger-service/docs/usecases/browse-expenses.md)                 |
-| The settings page opens                | a read of the preferences                              | [Read the preferences](../../../../ledger-service/docs/usecases/read-the-preferences.md)       |
-| A currency is picked                   | nothing                                                | —                                                                                            |
-| A picked currency is saved             | the picked code, replacing the preferences             | [Replace the preferences](../../../../ledger-service/docs/usecases/replace-the-preferences.md) |
+One endpoint serves more than one of this module's use cases, so the endpoint leads and the caller follows.
+[The counterpart](../../../../ledger-service/docs/contracts/in/web-browse-api.md) owns what each one takes and
+answers with.
+
+| Endpoint                               | Called by                                                              | When                                    | It sends                         |
+|----------------------------------------|------------------------------------------------------------------------|-----------------------------------------|----------------------------------|
+| `GET /api/v1/expenses`                 | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens, or a filter changes     | the filter, where one is set     |
+| `GET /api/v1/expenses`                 | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a refile lands under a category filter  | the day that entry sat on        |
+| `GET /api/v1/expenses`                 | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | an acceptance is answered               | the days it touched              |
+| `GET /api/v1/categories`               | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
+| `GET /api/v1/groupings`                | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
+| `PATCH /api/v1/expenses/{status}/{id}` | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a row is refiled under another category | the category id, as a JSON Patch |
+| `POST /api/v1/expenses/acceptances`    | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | the person accepts what is ticked       | the ids of the ticked entries    |
+| `GET /api/v1/preferences`              | [Set a default currency](../../usecases/set-a-default-currency.md)     | the settings page opens                 | —                              |
+| `PUT /api/v1/preferences`              | [Set a default currency](../../usecases/set-a-default-currency.md)     | a picked currency is saved              | the picked code                  |
 
 The listing carries only the filter fields that are set. An unset field is the ledger's default rather than an
-explicit value. The period is the exception: `from` and `to` go together or not at all. The category read never
-narrows by grouping, and asks for the whole tree once.
+explicit value. The period is the exception: `from` and `to` go together or not at all, so setting one day alone
+sends nothing until the other follows. The category read never narrows by grouping, and asks for the whole tree
+once.
 
 The read back after an acceptance carries the status and the category the page holds when the answer arrives,
 its own period spanning the days that were touched, no offset, and a limit of the bound the specification sets
 on one acceptance.
 
-Every request carries cookies. The acceptance and the replacement are the writes, and each carries the CSRF
-token, read back from the cookie the ledger set it in.
+Every request carries cookies. Every write carries the CSRF token, read back from the cookie the ledger set it
+in.
 
 ## What It Does With the Answer
 

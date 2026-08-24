@@ -11,6 +11,9 @@ document in a `docs/<n>-<name>/` directory — the `design.md`, each `plan.md`, 
 - **A consumer's contract page links the provider's; it never restates it.** `contracts/in/` owns the
   interface — what it takes, what it answers, what it refuses. `contracts/out/` describes only this service's
   own side: what it sends and when, what it does with the answer, and how it behaves when the call fails.
+- **An out-contract's table leads with the endpoint, then the use case that calls it.** One endpoint serves
+  several use cases, so a table keyed on the trigger buries that fan-in and never names the caller. Both sides of
+  an edge then read on the same axis. An endpoint a use case calls under two conditions gets a row each.
 - **Where a schema exists, it is the contract, and the page links it.** The page carries the tags, the
   operations, who implements each, and the link. Never a parameter, a field, a type or a bound.
 - **A failure belongs in the schema too**, in a response's `description`: what raises it, and what the message
