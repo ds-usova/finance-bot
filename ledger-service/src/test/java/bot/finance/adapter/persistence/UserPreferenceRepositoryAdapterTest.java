@@ -3,12 +3,14 @@ package bot.finance.adapter.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.common.boot.PersistenceAdapterTest;
 import bot.finance.common.rows.UserPreferenceRowUtils;
 import bot.finance.common.rows.UserRowUtils;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.CurrencyCode;
 import java.util.Optional;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 @PersistenceAdapterTest
-@Import(UserPreferenceRepositoryAdapter.class)
+@Import({UserPreferenceRepositoryAdapter.class, Slf4jLoggerFactory.class})
 class UserPreferenceRepositoryAdapterTest {
 
     @Autowired
@@ -63,6 +65,18 @@ class UserPreferenceRepositoryAdapterTest {
             Optional<CurrencyCode> defaultCurrency = adapter.findDefaultCurrency(userId);
 
             assertThat(defaultCurrency).contains(new CurrencyCode("EUR"));
+        }
+
+        @Test
+        @Disabled("R01: the reproduction, enabled by the red step")
+        @DisplayName("when the row holds a code the JDK does not recognise - then nothing is answered")
+        void whenRowHoldsUnrecognisedCode_thenNothingAnswered() {
+            long userId = storedUserId("user-preference-find-unrecognised");
+            storedPreference(userId, "ZZZ");
+
+            Optional<CurrencyCode> defaultCurrency = adapter.findDefaultCurrency(userId);
+
+            assertThat(defaultCurrency).isEmpty();
         }
     }
 
