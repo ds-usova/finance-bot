@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/41-an-unrecognised-stored-currency-code/bug.md",
+  "commit": "4136534b",
+  "branch": "dev",
+  "workingTree": "1 uncommitted file(s)",
+  "generated": "2026-08-24T21:29:39Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 397, "passed": 397, "failed": 0, "skipped": 0, "instructions": "98.1%", "branches": "94.5%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1194, "passed": 1194, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 272, "passed": 272, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.8%", "minimum": "80%", "format": "clean"}
+  ]
+}
