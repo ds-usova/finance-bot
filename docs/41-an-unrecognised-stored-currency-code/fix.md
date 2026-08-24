@@ -26,7 +26,7 @@
   - runs: `UserPreferenceRepositoryAdapterTest$FindDefaultCurrency#whenRowHoldsUnrecognisedCode_thenNothingAnswered`
   - needs: S01
 
-- [ ] G01 · green · read the row inside the `try` and build the `CurrencyCode` outside it, answering nothing and
+- [x] G01 · green · read the row inside the `try` and build the `CurrencyCode` outside it, answering nothing and
   warning where the domain refuses the stored code, so only the query is guarded as a store failure
   - files:
     - `ledger-service/src/main/java/bot/finance/adapter/persistence/UserPreferenceRepositoryAdapter.java`
