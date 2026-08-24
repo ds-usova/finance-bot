@@ -33,21 +33,21 @@ public class UserPreferenceRepositoryAdapter implements UserPreferenceRepository
         return row.flatMap(this::toDefaultCurrency);
     }
 
-    private Optional<CurrencyCode> toDefaultCurrency(UserPreferenceEntity entity) {
-        try {
-            return Optional.of(entity.toDefaultCurrency());
-        } catch (InvalidMoneyException e) {
-            log.warn("Dropping stored default currency for user {}: {}", entity.userId(), e.getMessage());
-            return Optional.empty();
-        }
-    }
-
     @Override
     public void replaceDefaultCurrency(long userId, CurrencyCode defaultCurrency) {
         try {
             userPreferenceEntityRepository.upsertDefaultCurrencyCode(userId, defaultCurrency.code());
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to replace default currency for user " + userId, e);
+        }
+    }
+
+    private Optional<CurrencyCode> toDefaultCurrency(UserPreferenceEntity entity) {
+        try {
+            return Optional.of(entity.toDefaultCurrency());
+        } catch (InvalidMoneyException e) {
+            log.warn("Dropping stored default currency for user {}: {}", entity.userId(), e.getMessage());
+            return Optional.empty();
         }
     }
 }
