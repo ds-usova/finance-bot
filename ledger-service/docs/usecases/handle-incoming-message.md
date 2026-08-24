@@ -40,7 +40,7 @@ opens with.
 |-----------|--------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | in        | [Telegram](../contracts/in/telegram-updates.md)                                                              | [Incoming messages](../contracts/in/telegram-updates.md)                          | delivering what a user typed to the bot                                                                   |
 | out       | [Initialize a new user](initialize-a-new-user.md)                                                            | [Initialize a new user](initialize-a-new-user.md)                                 | resolving the person who sent the message, creating them on first sight                                   |
-| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | reading the groupings that person's categories sit under, what this message left pending and what it spent, and recording where the report landed |
+| out       | [Database](../contracts/out/database.md)                                                                     | [Users, categories and expenses](../contracts/out/database.md)                    | reading the currency that person's amounts are assumed to be in, the groupings their categories sit under, what this message left pending and what it spent, and recording where the report landed |
 | out       | [Record the spending a user's message names](../../../ai-connector-service/docs/usecases/extract-intents.md) | [AI Connector Service — intent extraction](../contracts/out/ai-connector.md)    | acting on whatever the message asks for, as that person                                                   |
 | out       | [Summarize spending over a period](summarize-spending.md)                                                    | [Users, categories and expenses](../contracts/out/database.md)                    | picking up the periods that message asked about, so each can be totalled                                  |
 | out       | [Telegram](../contracts/out/telegram-replies.md)                                                             | [Outgoing replies](../contracts/out/telegram-replies.md)                          | putting the report in front of whoever sent the message                                                   |
@@ -54,6 +54,7 @@ opens with.
 | Message skipped   | the message names no sender or no conversation, or carries no text                        | nothing happens and the message is not seen again                                        |
 | Message rejected  | the message is absent                                                                     | invalid incoming message — nothing is looked up                                        |
 | Catch-all missing | the person's groupings do not carry the designated catch-all, or they have none           | the connector is never reached, no report is sent, and the failure reaches the caller    |
+| Currency unread   | the person's assumed currency cannot be read                                               | the turn runs, assuming no currency, and the failure is logged                           |
 | Storage failed    | the person cannot be resolved, their categories not read, or a read-back or a total fails | the failure reaches the caller and no report is sent                                     |
 | Delivery failed   | the report cannot be put in front of the user                                              | the failure reaches the caller; what was recorded stays recorded, and no location is kept |
 | Location unkept   | the report was delivered but where it landed cannot be stored                              | the turn stands, and nothing records where the report is                                 |
@@ -87,12 +88,14 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(initializeUserPort, "Initialize User Port", "Interface", "Inbound port", $tags="portIn")
   Component(initializeUserService, "Initialize a New User Use Case", "Plain Java", "Finds or creates the person", $tags="core")
   Component(messageDeliveryPort, "Message Delivery Port", "Interface", "Outbound port", $tags="portOut")
+  Component(preferenceRepositoryPort, "User Preference Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(groupingRepositoryPort, "Grouping Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(spendingQueryRepositoryPort, "Spending Query Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(reportRepositoryPort, "Proposal Report Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(intentExtractionPort, "Intent Extraction Port", "Interface", "Outbound port", $tags="portOut")
   Component(deliveryAdapter, "Telegram Message Delivery Adapter", "Spring Component", "Sends the report as a reply", $tags="telegramExternal")
+  Component(preferenceRepositoryAdapter, "User Preference Repository Adapter", "Spring Data Relational", "Reads a person's chosen currency", $tags="dbExternal")
   Component(groupingRepositoryAdapter, "Grouping Repository Adapter", "Spring Data Relational", "Reads a user's groupings", $tags="dbExternal")
   Component(spendingQueryRepositoryAdapter, "Spending Query Repository Adapter", "Spring Data Relational", "Reads the periods a message asked about", $tags="dbExternal")
   Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Reads what a message left pending, and totals recorded spending by currency", $tags="dbExternal")
@@ -113,6 +116,7 @@ Rel_U(handleMessageService, initializeUserPort, "Uses")
 Rel_U(initializeUserService, initializeUserPort, "Implements", $tags="implements")
 
 Rel_L(handleMessageService, messageDeliveryPort, "Uses")
+Rel_D(handleMessageService, preferenceRepositoryPort, "Reads the currency to assume through")
 Rel_D(handleMessageService, groupingRepositoryPort, "Uses")
 Rel_D(handleMessageService, spendingQueryRepositoryPort, "Reads the periods asked about through")
 Rel_D(handleMessageService, expenseRepositoryPort, "Reads what is pending, and totals each period, through")
@@ -120,6 +124,7 @@ Rel_D(handleMessageService, reportRepositoryPort, "Records where the report land
 Rel_R(handleMessageService, intentExtractionPort, "Uses")
 
 Rel_U(deliveryAdapter, messageDeliveryPort, "Implements", $tags="implements")
+Rel_U(preferenceRepositoryAdapter, preferenceRepositoryPort, "Implements", $tags="implements")
 Rel_U(groupingRepositoryAdapter, groupingRepositoryPort, "Implements", $tags="implements")
 Rel_U(spendingQueryRepositoryAdapter, spendingQueryRepositoryPort, "Implements", $tags="implements")
 Rel_U(expenseRepositoryAdapter, expenseRepositoryPort, "Implements", $tags="implements")
@@ -130,6 +135,7 @@ Rel_D(intentExtractionAdapter, tokenMinter, "Mints with")
 Rel_D(deliveryAdapter, reportRenderer, "Writes the text with")
 Rel_R(reportRenderer, buttonPayload, "Writes the buttons with")
 
+Rel_D(preferenceRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(groupingRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(spendingQueryRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(expenseRepositoryAdapter, db, "SQL", "JDBC")
@@ -137,13 +143,15 @@ Rel_D(reportRepositoryAdapter, db, "SQL", "JDBC")
 Rel_D(intentExtractionAdapter, connector, "Text, groupings, today's date and a credential", "gRPC")
 Rel_L(deliveryAdapter, telegram, "The report, as a reply", "Telegram Bot API")
 
-Lay_R(messageDeliveryPort, groupingRepositoryPort)
+Lay_R(messageDeliveryPort, preferenceRepositoryPort)
+Lay_R(preferenceRepositoryPort, groupingRepositoryPort)
 Lay_R(groupingRepositoryPort, spendingQueryRepositoryPort)
 Lay_R(spendingQueryRepositoryPort, expenseRepositoryPort)
 Lay_R(expenseRepositoryPort, reportRepositoryPort)
 Lay_R(reportRepositoryPort, intentExtractionPort)
 
-Lay_R(deliveryAdapter, groupingRepositoryAdapter)
+Lay_R(deliveryAdapter, preferenceRepositoryAdapter)
+Lay_R(preferenceRepositoryAdapter, groupingRepositoryAdapter)
 Lay_R(groupingRepositoryAdapter, spendingQueryRepositoryAdapter)
 Lay_R(spendingQueryRepositoryAdapter, expenseRepositoryAdapter)
 Lay_R(expenseRepositoryAdapter, reportRepositoryAdapter)
@@ -177,6 +185,12 @@ loop each message in the batch
     IU -> DB : find or create the person
     DB --> IU : the person, with their categories on a first message
     IU --> UC : the person
+    UC -> DB : read the currency their amounts are assumed to be in
+    alt the read fails
+      DB --> UC : log it, and assume no currency
+    else the read answers
+      DB --> UC : their chosen currency, or nothing
+    end
     UC -> DB : read the groupings holding at least one category
     alt the store fails
       DB --> UC : storage failed, no report
@@ -185,7 +199,7 @@ loop each message in the batch
     else the groupings are read
       UC -> UC : derive this message's own id
       UC -> UC : designate the catch-all grouping
-      UC -> AI : the text, the grouping names, the catch-all, today's date, a credential naming the person and the message
+      UC -> AI : the text, the grouping names, the catch-all, the currency to assume, today's date, a credential naming the person and the message
       AI -> SS : whichever periods the message asked about
       SS -> DB : record each period under the message's id
       alt the turn completes
@@ -239,3 +253,4 @@ UC --> TG : acknowledge the whole batch
   how the connector acts as the person for the length of the turn
 - [ADR 0015: A turn is named by the message that started it](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md) —
   why everything the turn records carries the message's own id
+- [Replace a person's preferences](replace-the-preferences.md) — where the currency this turn assumes is chosen

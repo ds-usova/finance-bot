@@ -64,6 +64,12 @@ entity "proposal_report" as proposal_report {
   * updated_at : TIMESTAMPTZ
 }
 
+entity "user_preference" as user_preference {
+  * user_id : BIGINT <<PK>> <<FK app_user.id>>
+  --
+  * default_currency_code : VARCHAR(3)
+}
+
 entity "cdc_heartbeat" as cdc_heartbeat {
   * id : BOOLEAN <<PK>> <<check id>>
   --
@@ -84,6 +90,7 @@ app_user ||--o{ expense
 category ||--o{ expense
 app_user ||--o{ spending_query
 app_user ||--o{ proposal_report
+app_user ||--o| user_preference
 @enduml
 ```
 
@@ -100,16 +107,17 @@ Indexes beyond the constraints above:
 
 ## What a Table Holds
 
-| Table              | Domain                                                | A row is                                                          |
-|--------------------|-------------------------------------------------------|--------------------------------------------------------------------|
-| `app_user`         | [User](../../domain/user.md)                          | a person, under the identity Telegram knows them by                |
-| `category`         | [Grouping](../../domain/grouping.md), with no parent  | a heading spending is filed under, never spending itself           |
-| `category`         | [Category](../../domain/category.md), with a parent   | what one expense is filed under, inside its grouping               |
-| `expense`          | [Expense](../../domain/expense.md)                    | one piece of spending, pending or recorded                         |
-| `spending_query`   | [Spending query](../../domain/spending-query.md)      | a period a message asked about, waiting to be totalled in a report |
-| `proposal_report`  | [Proposal report](../../domain/proposal-report.md)    | the message the bot sent back, so its buttons can be reached again |
-| `cdc_heartbeat`    | none                                                  | no use case writes it — see [Change capture](change-capture.md)    |
-| `outbox`           | none                                                  | a fact a write produced — see [Change capture](change-capture.md)  |
+| Table             | Domain                                               | A row is                                                            |
+|-------------------|------------------------------------------------------|---------------------------------------------------------------------|
+| `app_user`        | [User](../../domain/user.md)                         | a person, under the identity Telegram knows them by                 |
+| `category`        | [Grouping](../../domain/grouping.md), with no parent | a heading spending is filed under, never spending itself            |
+| `category`        | [Category](../../domain/category.md), with a parent  | what one expense is filed under, inside its grouping                |
+| `expense`         | [Expense](../../domain/expense.md)                   | one piece of spending, pending or recorded                          |
+| `spending_query`  | [Spending query](../../domain/spending-query.md)     | a period a message asked about, waiting to be totalled in a report  |
+| `proposal_report` | [Proposal report](../../domain/proposal-report.md)   | the message the bot sent back, so its buttons can be reached again  |
+| `user_preference` | [Currency code](../../domain/currency-code.md)       | the currency one person's amounts are assumed to be in, at most one |
+| `cdc_heartbeat`   | none                                                 | no use case writes it — see [Change capture](change-capture.md)   |
+| `outbox`          | none                                                 | a fact a write produced — see [Change capture](change-capture.md) |
 
 - A grouping and a category are the same table. The parent is what tells them apart.
 - `incoming_message_id` is a [message a person sent](../../domain/incoming-message-id.md), in all three tables

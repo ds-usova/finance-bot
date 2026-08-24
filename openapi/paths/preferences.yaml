@@ -35,7 +35,15 @@ put:
           schema:
             $ref: '../ledger-api.yaml#/components/schemas/Preferences'
     '400':
-      $ref: '../components/responses/errors.yaml#/BadRequest'
+      description: >-
+        `defaultCurrency` broke a bound of its own, or names no ISO 4217 currency, or names one no amount can be
+        recorded in. The message names the code. Nothing is stored.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
+          example:
+            message: 'XAU is not a currency an amount can be recorded in'
     '401':
       $ref: '../components/responses/errors.yaml#/Unauthorized'
     '403':
