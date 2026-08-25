@@ -16,7 +16,7 @@ public class ExpensePatches {
 
     private ExpensePatches() {}
 
-    /** Refiles a recorded expense under another category, the way the browser's category picker does. */
+    /** Refiles an entry, named by its id, under another category, the way the browser's category picker does. */
     public static Response replaceCategory(String sessionCookie, String csrfToken, long expenseId, long categoryId) {
         return RestAssured.given()
                 .contentType(PATCH_MEDIA_TYPE)

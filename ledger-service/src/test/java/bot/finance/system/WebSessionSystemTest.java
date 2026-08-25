@@ -6,6 +6,7 @@ import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.SessionTokens;
@@ -20,7 +21,6 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -233,14 +233,8 @@ class WebSessionSystemTest extends AbstractSystemTest {
 
             // when: they refile it
             String csrfToken = freshCsrfToken();
-            Response refileResponse = RestAssured.given()
-                    .contentType("application/json-patch+json")
-                    .cookie(SESSION_COOKIE, sessionCookie)
-                    .cookie(CSRF_COOKIE, csrfToken)
-                    .header(CSRF_HEADER, csrfToken)
-                    .body(List.of(Map.of("op", "replace", "path", "/categoryId", "value", secondCategoryId)))
-                    .when()
-                    .patch("/api/v1/expenses/" + expenseId);
+            Response refileResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
             logResponse(refileResponse);
 
             // then: the refile acts on their own ledger

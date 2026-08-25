@@ -6,6 +6,7 @@ import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
@@ -25,10 +26,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 /**
- * Covers {@code PATCH /api/v1/expenses/{id}} end to end against the fully wired application, entered the
- * way a browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it
- * needs to write. It triggers no poll-loop scenario, so it signs with the {@code test} profile's own bot token and
- * needs no {@code @TestPropertySource} override.
+ * Covers {@code PATCH /api/v1/expenses/{id}} end to end against the fully wired application, entered the way a
+ * browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it needs
+ * to write. It triggers no poll-loop scenario, so it signs with the {@code test} profile's own bot token and needs
+ * no {@code @TestPropertySource} override.
  */
 class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
@@ -94,9 +95,11 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String csrfToken = BrowserSessions.csrfToken();
 
             // when: each is patched to the second category with the session cookie and the CSRF token
-            Response recordedResponse = patchCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
+            Response recordedResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
             logResponse(recordedResponse);
-            Response pendingResponse = patchCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
+            Response pendingResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(pendingResponse);
 
             // then: both answer 200 carrying the new categoryId
@@ -169,7 +172,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String csrfToken = BrowserSessions.csrfToken();
 
             // given: the refiled PENDING entry
-            Response refileResponse = patchCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
+            Response refileResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(refileResponse);
             refileResponse.then().statusCode(200);
 
@@ -228,7 +232,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             long missingId = 999_999_999L;
 
             // when: an id naming no entry of theirs is patched
-            Response response = patchCategory(sessionCookie, csrfToken, missingId, otherCategoryId);
+            Response response = ExpensePatches.replaceCategory(sessionCookie, csrfToken, missingId, otherCategoryId);
             logResponse(response);
 
             // then: the response is 404 and its message names the entry rather than the caller
@@ -336,17 +340,6 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
     private long groceriesCategoryId(long userId, String name) {
         long groupingId = CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, null, "Groceries");
         return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
-    }
-
-    private Response patchCategory(String sessionCookie, String csrfToken, long entryId, long categoryId) {
-        return RestAssured.given()
-                .contentType(PATCH_MEDIA_TYPE)
-                .cookie(SESSION_COOKIE, sessionCookie)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(patchDocument(categoryId))
-                .when()
-                .patch(path(entryId));
     }
 
     private static String path(long entryId) {

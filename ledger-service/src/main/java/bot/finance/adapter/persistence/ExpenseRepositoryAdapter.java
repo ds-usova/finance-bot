@@ -204,7 +204,7 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
         try {
             Optional<SpendingRowProjection> changed =
                     expenseEntityRepository.refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS));
-            LedgerEventType type = changed.map(row -> LedgerEventType.refiled(ExpenseStatus.valueOf(row.status())))
+            LedgerEventType type = changed.map(row -> LedgerEventType.refiled(row.expenseStatus()))
                     .orElse(null);
             ledgerEventOutbox.append(type, changed.map(List::of).orElseGet(List::of), now);
 

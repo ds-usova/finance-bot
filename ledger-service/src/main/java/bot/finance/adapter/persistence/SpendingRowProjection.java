@@ -22,9 +22,13 @@ public record SpendingRowProjection(
         Long groupingId,
         String groupingName) {
 
+    public ExpenseStatus expenseStatus() {
+        return ExpenseStatus.valueOf(status);
+    }
+
     public ExpenseEntry toExpenseEntry() {
         return new ExpenseEntry(
-                ExpenseStatus.valueOf(status),
+                expenseStatus(),
                 id,
                 categoryId,
                 description,
