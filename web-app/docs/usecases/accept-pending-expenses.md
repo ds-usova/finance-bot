@@ -35,7 +35,7 @@ The listing this acts on is [Browse recorded expenses](browse-recorded-expenses.
 | Some had moved on      | the answer names ids that matched nothing         | the person is told in words how many, and the touched days are still read back |
 | Nothing more is ticked | the bound on one request is reached               | every unticked tick is disabled, and the ticked ones stay live                 |
 | Nothing is sent        | the action is pressed again while the call is out | nothing, and one call stands                                                   |
-| Failure reported       | the acceptance is refused for any other reason    | the wording is shown, the ticks stand, and the listing on screen is unchanged  |
+| Failure reported       | the acceptance is refused for any other reason    | the refusal is shown, the ticks stand, and the listing on screen is unchanged  |
 | Sent to sign in        | the acceptance is refused for want of a session   | the sign-in page is shown, and nothing is read back                            |
 | The days stand         | the read back fails                               | the failure is shown, and the days on screen stay as the acceptance found them |
 

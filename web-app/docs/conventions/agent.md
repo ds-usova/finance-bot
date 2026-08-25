@@ -29,9 +29,10 @@ What the machine allows across every module at once is repository-wide:
 
 What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md).
 
-A plan carries one kind in its **Post-Implementation Steps** group:
+A plan carries two kinds in its **Post-Implementation Steps** group:
 
 - **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+- **A contract-page rewrite the design already commits to** — one item per page, naming what changes.
 
 An ADR's approval is a numbered open question in the plan, and only an answered `yes` becomes an item.
 

@@ -31,7 +31,7 @@
 | Saved                      | the replacement is answered                             | the page reports it was saved, and the picker stands on the saved currency |
 | Nothing is sent            | the save is used again while one is out                 | nothing, and one call stands                                               |
 | The report clears          | another currency is picked                              | the save is offered again for the new choice                               |
-| Save refused               | the replacement is refused for any reason but a session | the wording is shown beside the save, and the picked currency stands       |
+| Save refused               | the replacement is refused for any reason but a session | the refusal is shown beside the save, and the picked currency stands      |
 | Nothing to configure       | the read fails for any reason but a session             | the failure is shown in place of the picker                                |
 | Sent to sign in            | either call is refused for want of a session            | the sign-in page is shown, and no failure is left behind                   |
 

@@ -36,7 +36,9 @@ the page's first request.
 
 ## When the Call Fails
 
-- A network failure, a proxy failure and a 500 are indistinguishable from here, and are all reported as a
-  refused sign-in.
-- Nothing is retried. A person who wants another attempt uses the widget again.
-- Nothing is cached. A reload reads the session again rather than trusting what the last one found.
+| The failure                                  | What the person gets                                                      |
+|-----------------------------------------------|------------------------------------------------------------------------------|
+| A network failure, a proxy failure, or a 500 | reported as a refused sign-in — the three are indistinguishable from here |
+
+Nothing is retried. A person who wants another attempt uses the widget again. Nothing is cached. A reload reads
+the session again rather than trusting what the last one found.

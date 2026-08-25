@@ -45,5 +45,4 @@ The image builds from the **repository root**, as every module's does:
 docker compose -f infrastructure/docker-compose.yaml build web-app
 ```
 
-The build stage bakes `VITE_TELEGRAM_BOT_USERNAME` into the bundle, so the image is specific to one bot. The
-serve stage is nginx, which also proxies `/api` to the ledger so the browser sees one origin.
+What the image bakes in and how it serves are [Configuration](../configuration.md)'s.

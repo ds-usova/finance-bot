@@ -17,17 +17,17 @@ One endpoint serves more than one of this module's use cases, so the endpoint le
 [The counterpart](../../../../ledger-service/docs/contracts/in/web-browse-api.md) owns what each one takes and
 answers with.
 
-| Endpoint                               | Called by                                                              | When                                    | It sends                         |
-|----------------------------------------|------------------------------------------------------------------------|-----------------------------------------|----------------------------------|
-| `GET /api/v1/expenses`                 | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens, or a filter changes     | the filter, where one is set     |
-| `GET /api/v1/expenses`                 | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a refile lands under a category filter  | the day that entry sat on        |
-| `GET /api/v1/expenses`                 | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | an acceptance is answered               | the days it touched              |
-| `GET /api/v1/categories`               | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
-| `GET /api/v1/groupings`                | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
-| `PATCH /api/v1/expenses/{status}/{id}` | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a row is refiled under another category | the category id, as a JSON Patch |
-| `POST /api/v1/expenses/acceptances`    | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | the person accepts what is ticked       | the ids of the ticked entries    |
-| `GET /api/v1/preferences`              | [Set a default currency](../../usecases/set-a-default-currency.md)     | the settings page opens                 | —                              |
-| `PUT /api/v1/preferences`              | [Set a default currency](../../usecases/set-a-default-currency.md)     | a picked currency is saved              | the picked code                  |
+| Endpoint                            | Called by                                                              | When                                    | It sends                         |
+|-------------------------------------|------------------------------------------------------------------------|-----------------------------------------|----------------------------------|
+| `GET /api/v1/expenses`              | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens, or a filter changes     | the filter, where one is set     |
+| `GET /api/v1/expenses`              | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a refile lands under a category filter  | the day that entry sat on        |
+| `GET /api/v1/expenses`              | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | an acceptance is answered               | the days it touched              |
+| `GET /api/v1/categories`            | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
+| `GET /api/v1/groupings`             | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | the page opens                          | —                              |
+| `PATCH /api/v1/expenses/{id}`       | [Browse recorded expenses](../../usecases/browse-recorded-expenses.md) | a row is refiled under another category | the category id, as a JSON Patch |
+| `POST /api/v1/expenses/acceptances` | [Accept pending expenses](../../usecases/accept-pending-expenses.md)   | the person accepts what is ticked       | the ids of the ticked entries    |
+| `GET /api/v1/preferences`           | [Set a default currency](../../usecases/set-a-default-currency.md)     | the settings page opens                 | —                              |
+| `PUT /api/v1/preferences`           | [Set a default currency](../../usecases/set-a-default-currency.md)     | a picked currency is saved              | the picked code                  |
 
 The listing carries only the filter fields that are set. An unset field is the ledger's default rather than an
 explicit value. The period is the exception: `from` and `to` go together or not at all, so setting one day alone
@@ -50,6 +50,8 @@ in.
 - **The categories**: held for the life of the page. They name each row's category and fill the category control.
 - **The groupings**: order the sections of the category list and name their headings. A heading cannot be chosen,
   so a grouping is never sent. This read alone fixes the order the groupings appear in.
+- **The refiled row**: replaced in place. Under a category filter the day it sits on is read again instead,
+  since only a fresh read tells whether the row still belongs on the page.
 - **The acceptance**: neither count is shown as a number of its own. Ids that matched nothing are reported to the
   person in words. The days the ticked entries sat on are read again and merged back into the page on screen.
 - **The replacement's answer**: required, but its content is not read. The save is reported from the call
@@ -58,15 +60,17 @@ in.
 
 ## When the Call Fails
 
-| The failure                  | What the person gets                                                                  |
-|------------------------------|---------------------------------------------------------------------------------------|
-| A refusal carrying a body    | the calling surface's fixed wording, not the body's message                           |
-| A body empty or not JSON     | the calling surface's fixed wording, same as any other refusal                        |
-| A 401 on any request         | nothing: the page treats it as an expired session and sends them to sign in           |
-| A 403 on the acceptance      | `listing.refused`, shown like any other refusal, and the ticks stand                  |
-| A refusal on the replacement | `settings.refused`, beside the save control, and the picked code stands               |
-| The network                  | the browser's own words, never the ledger's                                           |
-| Any other refusal            | the calling surface's fixed wording, with whatever is already on screen left in place |
+| The failure                  | What the person gets                                                                   |
+|------------------------------|----------------------------------------------------------------------------------------|
+| A refusal carrying a body    | the calling surface's fixed wording, not the body's message                            |
+| A body empty or not JSON     | the calling surface's fixed wording, same as any other refusal                         |
+| A 401 on any request         | nothing: the page treats it as an expired session and sends them to sign in            |
+| A 403 on the acceptance      | the listing's fixed wording, shown like any other refusal, and the ticks stand         |
+| A refusal on a refile        | the row's own fixed wording, under that row, and its category stands                   |
+| A 404 on a refile            | the same, and the day it sat on is read again                                          |
+| A refusal on the replacement | the settings page's fixed wording, beside the save control, and the picked code stands |
+| The network                  | the browser's own words, never the ledger's                                            |
+| Any other refusal            | the calling surface's fixed wording, with whatever is already on screen left in place  |
 
 Nothing is retried. A person who wants another attempt changes a filter or reloads.
 

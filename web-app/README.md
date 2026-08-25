@@ -68,6 +68,7 @@ Rel_R(loginPage, catalogue, "Reads its wording from")
 Rel_R(expenseFilters, catalogue, "Reads its wording from")
 Rel_R(expenseList, catalogue, "Reads its wording from")
 Rel_R(daySection, catalogue, "Reads its wording from")
+Rel_R(expensesPage, catalogue, "Reads its wording from")
 
 Lay_D(theme, catalogue)
 
