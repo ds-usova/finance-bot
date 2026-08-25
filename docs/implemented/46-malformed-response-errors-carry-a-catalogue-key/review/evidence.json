@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/46-malformed-response-errors-carry-a-catalogue-key/plan.md",
+  "commit": "8140924e",
+  "branch": "dev",
+  "workingTree": "3 uncommitted file(s)",
+  "generated": "2026-08-25T18:51:56Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 403, "passed": 403, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "94.8%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1188, "passed": 1188, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 290, "passed": 290, "failed": 0, "skipped": 0, "instructions": "98.7%", "branches": "92.7%", "minimum": "80%", "format": "clean"}
+  ]
+}
