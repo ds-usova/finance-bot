@@ -32,18 +32,18 @@
     - `ledger-service/src/test/java/bot/finance/system/WebSessionSystemTest.java`
     - `ledger-service/src/test/java/bot/finance/common/fixtures/ExpensePatches.java`
     - `web-app/src/api/expenses.test.ts`
-  - disables: `ChangeExpenseCategorySystemTest$UnhappyPath#whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry` — cleared by R02
-  - disables: `ExpenseRepositoryAdapterTest$Refile#whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched` — cleared by R02
-  - disables: `ChangeExpenseCategoryCommandTest$ChangeExpenseCategoryCommandConstructor#whenEveryFieldIsWithinItsBounds_thenTheRecordCarriesAllFourUnchanged` — cleared by R02
-  - disables: `ChangeExpenseCategoryCommandTest$ChangeExpenseCategoryCommandConstructor#whenStatusIsAbsent_thenThrowsInvalidExpenseCategoryChangeExceptionNamingStatus` — cleared by R02
-  - disables: `ExpenseWebMapperTest#whenDocumentReplacesCategoryIdUnderRecorded_thenCommandCarriesCallerRecordedIdAndCategory` — cleared by R02
-  - disables: `ExpenseWebMapperTest#whenSameDocumentIsGivenUnderPending_thenCommandCarriesPendingStatus` — cleared by R02
-  - disables: `ExpensesControllerTest$HappyPath#whenARecordedEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry` — cleared by R02
-  - disables: `ExpensesControllerTest$HappyPath#whenAPendingEntryIsPatchedToANewCategoryId_thenCommandCarriesPendingAndResponseStatusIsPending` — cleared by R02
-  - disables: `ExpensesControllerTest$Validation#whenStatusOrIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled` — cleared by R02
-  - disables: `ChangeExpenseCategoryUseCaseTest$Change#whenCommandNamesPendingAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithPendingAndEntryReturned` — cleared by R02
-  - disables: `expenses.test.ts` › `patches the entry by its status and id, replacing /categoryId, with the CSRF header and the cookies` — cleared by R03
-  - disables: `expenses.test.ts` › `carries the PENDING status in the path, so the two statuses are never confused for one id` — cleared by R03
+  - disables: `ChangeExpenseCategorySystemTest$UnhappyPath#whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpenseRepositoryAdapterTest$Refile#whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched` — cleared by ledger-service/steps.md · R02
+  - disables: `ChangeExpenseCategoryCommandTest$ChangeExpenseCategoryCommandConstructor#whenEveryFieldIsWithinItsBounds_thenTheRecordCarriesAllFourUnchanged` — cleared by ledger-service/steps.md · R02
+  - disables: `ChangeExpenseCategoryCommandTest$ChangeExpenseCategoryCommandConstructor#whenStatusIsAbsent_thenThrowsInvalidExpenseCategoryChangeExceptionNamingStatus` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpenseWebMapperTest#whenDocumentReplacesCategoryIdUnderRecorded_thenCommandCarriesCallerRecordedIdAndCategory` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpenseWebMapperTest#whenSameDocumentIsGivenUnderPending_thenCommandCarriesPendingStatus` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpensesControllerTest$HappyPath#whenARecordedEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpensesControllerTest$HappyPath#whenAPendingEntryIsPatchedToANewCategoryId_thenCommandCarriesPendingAndResponseStatusIsPending` — cleared by ledger-service/steps.md · R02
+  - disables: `ExpensesControllerTest$Validation#whenStatusOrIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled` — cleared by ledger-service/steps.md · R02
+  - disables: `ChangeExpenseCategoryUseCaseTest$Change#whenCommandNamesPendingAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithPendingAndEntryReturned` — cleared by ledger-service/steps.md · R02
+  - disables: `expenses.test.ts` › `patches the entry by its status and id, replacing /categoryId, with the CSRF header and the cookies` — cleared by web-app/steps.md · R03
+  - disables: `expenses.test.ts` › `carries the PENDING status in the path, so the two statuses are never confused for one id` — cleared by web-app/steps.md · R03
   - docs: `ledger-service/docs/usecases/change-an-expense-category.md`
   - docs: `ledger-service/docs/domain/expense-status.md`
   - docs: `web-app/docs/contracts/out/ledger-browse-api.md`

@@ -21,4 +21,4 @@
   - survives: a command within bounds carries its fields unchanged · `ChangeExpenseCategoryCommandTest`, plain JUnit
   - survives: the use case calls `refile` once with the caller, the id, the category and the clock's instant, and answers the entry · `ChangeExpenseCategoryUseCaseTest` with the ports mocked
   - measures: tests skipped in this module 10 -> 0
-  - needs: R01
+  - needs: shared/steps.md · R01
