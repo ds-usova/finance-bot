@@ -1,4 +1,4 @@
-import { MalformedResponseError, request } from './client';
+import { request, requireBody } from './client';
 import type { components } from './generated/ledger-api';
 
 export type Preferences = components['schemas']['Preferences'];
@@ -8,13 +8,11 @@ const PREFERENCES_PATH = '/api/v1/preferences';
 
 export async function readPreferences(): Promise<Preferences> {
   const preferences = await request<Preferences>(PREFERENCES_PATH);
-  if (!preferences) {
-    throw new MalformedResponseError(
-      'settings.preferencesMalformed',
-      'the preferences answered with no body',
-    );
-  }
-  return preferences;
+  return requireBody(
+    preferences,
+    'settings.preferencesMalformed',
+    'the preferences answered with no body',
+  );
 }
 
 export async function replacePreferences(defaultCurrency: string): Promise<Preferences> {
@@ -24,11 +22,9 @@ export async function replacePreferences(defaultCurrency: string): Promise<Prefe
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(update),
   });
-  if (!preferences) {
-    throw new MalformedResponseError(
-      'settings.preferencesMalformed',
-      'the preferences answered with no body',
-    );
-  }
-  return preferences;
+  return requireBody(
+    preferences,
+    'settings.preferencesMalformed',
+    'the preferences answered with no body',
+  );
 }

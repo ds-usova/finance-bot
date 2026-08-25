@@ -16,8 +16,7 @@ type MalformedResponseKey =
   | 'listing.categoryChangeMalformed'
   | 'settings.preferencesMalformed';
 
-// Carries the catalogue key a 2xx response's caller could not make sense of, so the page that catches it can
-// show the catalogue's wording for that key instead of this error's own (diagnostic-only) message.
+// The message is diagnostic only — a page shows the catalogue's wording for `key` instead.
 export class MalformedResponseError extends Error {
   readonly key: MalformedResponseKey;
 
@@ -26,6 +25,14 @@ export class MalformedResponseError extends Error {
     this.name = 'MalformedResponseError';
     this.key = key;
   }
+}
+
+/** Answers the body a call needs, or throws when the response carried none it can use. */
+export function requireBody<T>(body: T | null, key: MalformedResponseKey, message: string): T {
+  if (!body) {
+    throw new MalformedResponseError(key, message);
+  }
+  return body;
 }
 
 /**

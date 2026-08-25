@@ -217,14 +217,16 @@ export function ExpensesPage() {
             sessionExpired();
             return;
           }
+          if (error instanceof MalformedResponseError) {
+            setChangeFailure({ key, message: t(error.key) });
+            return;
+          }
           setChangeFailure({
             key,
             message:
-              error instanceof MalformedResponseError
-                ? t(error.key)
-                : error instanceof ApiError || !(error instanceof Error)
-                  ? t('listing.categoryChangeRefused')
-                  : error.message,
+              error instanceof ApiError || !(error instanceof Error)
+                ? t('listing.categoryChangeRefused')
+                : error.message,
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.

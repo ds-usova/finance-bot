@@ -1,4 +1,4 @@
-import { MalformedResponseError, request } from './client';
+import { request, requireBody } from './client';
 import type { components } from './generated/ledger-api';
 
 export type Expense = components['schemas']['Expense'];
@@ -51,13 +51,11 @@ export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
   });
-  if (!acceptance) {
-    throw new MalformedResponseError(
-      'listing.acceptanceMalformed',
-      'the acceptance answered with no counts',
-    );
-  }
-  return acceptance;
+  return requireBody(
+    acceptance,
+    'listing.acceptanceMalformed',
+    'the acceptance answered with no counts',
+  );
 }
 
 export async function changeCategory(entry: Expense, categoryId: number): Promise<Expense> {
@@ -67,13 +65,11 @@ export async function changeCategory(entry: Expense, categoryId: number): Promis
     headers: { 'Content-Type': 'application/json-patch+json' },
     body: JSON.stringify(patch),
   });
-  if (!updated) {
-    throw new MalformedResponseError(
-      'listing.categoryChangeMalformed',
-      'the changed entry answered with no body',
-    );
-  }
-  return updated;
+  return requireBody(
+    updated,
+    'listing.categoryChangeMalformed',
+    'the changed entry answered with no body',
+  );
 }
 
 async function get<T>(
