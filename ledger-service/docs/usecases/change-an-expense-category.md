@@ -2,7 +2,6 @@
 
 - **In**
   - the identity of the authenticated caller
-  - the [status](../domain/expense-status.md) the entry stands under
   - the entry's id
   - the category to file it under, by its stored id
 - **Out**
@@ -28,15 +27,15 @@ The path, the document and each refusal are fixed by [the specification](../../.
 
 ## Outcomes
 
-| Outcome          | When                                                                         | Result                                                                                     |
-|------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| Entry refiled    | the id names an entry of theirs under that status, and the category is theirs | its category changes, and the change is logged                                             |
-| Same category    | the category named is the one the entry already carries                      | answered the same way; only the last-updated instant moves                                 |
-| Entry not found  | no entry of theirs carries that id under that status                         | the request is refused, naming the entry — nothing is refiled                              |
-| Category refused | the category id names no category of theirs                                  | the request is refused, naming the category id — the entry is never read                   |
-| Request rejected | the request is absent                                                        | the request is refused — nothing is looked up                                              |
-| Identity unknown | nothing is stored under the caller's identity                                | the request is rejected and nothing is refiled                                             |
-| Storage failed   | admitting the category, or the refile itself, fails                          | the failure reaches the caller, and nothing is refiled                                     |
+| Outcome           | When                                                      | Result                                                                    |
+|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------|
+| Entry refiled     | the id names an entry of theirs, and the category is theirs | its category changes, and the change is logged                           |
+| Same category     | the category named is the one the entry already carries     | answered the same way; only the last-updated instant moves               |
+| Entry not found   | no entry of theirs carries that id                           | the request is refused, naming the entry — nothing is refiled            |
+| Category refused  | the category id names no category of theirs                 | the request is refused, naming the category id — the entry is never read |
+| Request rejected  | the request is absent                                        | the request is refused — nothing is looked up                            |
+| Identity unknown  | nothing is stored under the caller's identity                | the request is rejected and nothing is refiled                           |
+| Storage failed    | admitting the category, or the refile itself, fails          | the failure reaches the caller, and nothing is refiled                   |
 
 ## Components
 
@@ -56,7 +55,7 @@ ContainerDb(db, "Database", "PostgreSQL", "Stores users, categories and expenses
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(accessControl, "Access Control", "Spring Security", "Admits only a call carrying a valid session cookie and a matching token", $tags="webExternal")
-  Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the status, the id and the document, and renders the entry", $tags="webExternal")
+  Component(endpoint, "Expenses Endpoint", "Spring MVC", "Reads the id and the document, and renders the entry", $tags="webExternal")
   Component(changePort, "Change Expense Category Port", "Interface", "Inbound port", $tags="portIn")
   Component(changeService, "Change an Entry's Category Use Case", "Plain Java", "Resolves the person, admits the category, then refiles the entry", $tags="core")
   Component(userRepositoryPort, "User Repository Port", "Interface", "Outbound port", $tags="portOut")
@@ -64,7 +63,7 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(expenseRepositoryPort, "Expense Repository Port", "Interface", "Outbound port", $tags="portOut")
   Component(userRepositoryAdapter, "User Repository Adapter", "Spring Data Relational", "Reads the person stored under an identity", $tags="dbExternal")
   Component(categoryRepositoryAdapter, "Category Repository Adapter", "Spring Data Relational", "Says whether a category is the caller's own", $tags="dbExternal")
-  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Refiles the caller's entry under that status", $tags="dbExternal")
+  Component(expenseRepositoryAdapter, "Expense Repository Adapter", "Spring Data Relational", "Refiles the caller's entry", $tags="dbExternal")
 }
 
 Rel(browser, accessControl, "Patches one entry's category", "HTTP, session cookie, CSRF token")
@@ -99,7 +98,7 @@ participant "Change an entry's category" as UC
 database "Database" as DB
 queue "The change stream" as Stream
 
-Web -> UC : the status, the entry's id, the category, and the caller's identity
+Web -> UC : the entry's id, the category, and the caller's identity
 
 alt the request is absent or a value is out of bounds
   UC --> Web : the request is refused, naming what was refused
@@ -116,7 +115,7 @@ else the request is usable
       UC --> Web : the category id is refused
     else it is
       DB --> UC : yes
-      UC -> DB : refile their entry carrying that id under that status
+      UC -> DB : refile their entry carrying that id
       alt no such entry
         DB --> UC : nothing
         UC --> Web : no entry of theirs carries that id
@@ -134,7 +133,7 @@ end
 
 ## References
 
-- [Browse a person's expenses](browse-expenses.md) — where the status and the id this takes are answered
+- [Browse a person's expenses](browse-expenses.md) — where the id this takes is answered
 - [Browse a person's categories](browse-categories.md) — where the category id this takes is answered
 - [ADR 0003: A category is unique per user and parent, not per user](../adr/0003-a-category-is-unique-per-user-and-parent-not-per-user.md) —
   why the caller sends a stored id rather than a category's name
