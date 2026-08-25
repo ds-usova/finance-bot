@@ -11,6 +11,23 @@ export class ApiError extends Error {
   }
 }
 
+type MalformedResponseKey =
+  | 'listing.acceptanceMalformed'
+  | 'listing.categoryChangeMalformed'
+  | 'settings.preferencesMalformed';
+
+// Carries the catalogue key a 2xx response's caller could not make sense of, so the page that catches it can
+// show the catalogue's wording for that key instead of this error's own (diagnostic-only) message.
+export class MalformedResponseError extends Error {
+  readonly key: MalformedResponseKey;
+
+  constructor(key: MalformedResponseKey, message: string) {
+    super(message);
+    this.name = 'MalformedResponseError';
+    this.key = key;
+  }
+}
+
 /**
  * The only place the application calls `fetch`. Every request carries cookies, and every write carries the
  * CSRF token the ledger handed out, read back from the cookie it set.

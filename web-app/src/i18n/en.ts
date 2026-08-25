@@ -30,6 +30,8 @@ export const en = {
     noCategory: 'No category found.',
     refused: 'That list was not shown. Please try again.',
     categoryChangeRefused: 'That category change was not accepted. Please try again.',
+    acceptanceMalformed: 'Something went wrong. Please try again.',
+    categoryChangeMalformed: 'Something went wrong. Please try again.',
   },
   filters: {
     title: 'Filters',
@@ -71,6 +73,7 @@ export const en = {
     save: 'Save',
     saved: 'Saved.',
     refused: 'That was not accepted. Please try again.',
+    preferencesMalformed: 'Something went wrong. Please try again.',
   },
   // The codes a currency amount can be recorded in. Unlike every other namespace, this one names data rather
   // than the surface reading it, and the full set is transcribed here from the ISO 4217 published table
