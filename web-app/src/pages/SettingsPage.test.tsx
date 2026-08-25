@@ -78,12 +78,29 @@ describe('the settings page', () => {
 
     renderPage();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'the ledger is temporarily unavailable',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.settings.refused);
     expect(
       screen.queryByRole('button', { name: en.settings.defaultCurrency }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows that error’s own message at the top of the page when the read fails before any response comes back', async () => {
+    readPreferencesMock.mockRejectedValue(new Error('the network is unreachable'));
+
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('the network is unreachable');
+  });
+
+  it('shows the catalogue’s refusal wording at the top of the page when the read is refused', async () => {
+    substituteCatalogue();
+    readPreferencesMock.mockRejectedValue(
+      new ApiError(503, 'the ledger is temporarily unavailable'),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(`‹${en.settings.refused}›`);
   });
 
   it('reports an expired session and leaves no failure banner behind when the read is refused with 401', async () => {
@@ -150,7 +167,7 @@ describe('the settings page', () => {
 
     await userEvent.click(screen.getByRole('button', { name: en.settings.save }));
 
-    expect(await screen.findByText('the ledger is temporarily unavailable')).toBeInTheDocument();
+    expect(await screen.findByText(en.settings.refused)).toBeInTheDocument();
     expect(screen.getByText('US Dollar (USD)')).toBeInTheDocument();
   });
 

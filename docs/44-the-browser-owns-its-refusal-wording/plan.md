@@ -64,7 +64,7 @@ Exact wording is left to the implementing step, in `signIn.refused`'s tone — s
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A1, A2, A7
+- [x] RU01 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A1, A2, A7
     - the read failing:
         - update: `shows the failure at the top of the page and renders no picker when the read fails for a reason other than a refused session` — the rejection still carries `'the ledger is temporarily unavailable'` as the `ApiError`'s own message, but the banner now asserts `en.settings.refused` instead of that message
     - the write failing:
@@ -80,7 +80,7 @@ Exact wording is left to the implementing step, in `signIn.refused`'s tone — s
           then: the banner shows `‹en.settings.refused›`, proving the string is read from the catalogue rather than
           written as a literal
 
-- [ ] RU02 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the rendered page · scenarios: A3, A4, A5, A6, A7
+- [x] RU02 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the rendered page · scenarios: A3, A4, A5, A6, A7
     - a listing-page refusal:
         - update: `shows a refused filter’s message while the list that was already there still stands` — asserts
           `en.listing.refused` instead of `'from must be a date'`; renamed, since the banner is no longer specific

@@ -13,7 +13,9 @@ import {
   type ExpensePage,
 } from '../api/expenses';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
+import { en } from '../i18n/en';
 import { expandDays, listingArrives, openDayHeaders } from '../testing/accordion';
+import { substituteCatalogue } from '../testing/catalogue';
 import { chooseFromList } from '../testing/combobox';
 import {
   aCategory,
@@ -146,7 +148,7 @@ describe('the expenses page', () => {
     await waitFor(() => expect(sessionExpired).toHaveBeenCalledOnce());
   });
 
-  it('shows a refused filter’s message while the list that was already there still stands', async () => {
+  it('shows the listing’s refusal while the list that was already there still stands', async () => {
     listExpensesMock
       .mockResolvedValueOnce(page)
       .mockRejectedValueOnce(new ApiError(400, 'from must be a date'));
@@ -155,7 +157,7 @@ describe('the expenses page', () => {
 
     await chooseGroceries();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('from must be a date');
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.listing.refused);
     expect(screen.getByText('lunch')).toBeInTheDocument();
   });
 
@@ -165,10 +167,25 @@ describe('the expenses page', () => {
 
     renderPage({ sessionExpired });
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'the ledger is temporarily unavailable',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.listing.refused);
     expect(sessionExpired).not.toHaveBeenCalled();
+  });
+
+  it('shows that error’s own message as the page’s banner when the listing fails before any response comes back', async () => {
+    listExpensesMock.mockRejectedValue(new Error('the network is unreachable'));
+
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('the network is unreachable');
+  });
+
+  it('shows the catalogue’s refusal wording as the page’s banner when the listing is refused', async () => {
+    substituteCatalogue();
+    listExpensesMock.mockRejectedValue(new ApiError(503, 'the ledger is temporarily unavailable'));
+
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(`‹${en.listing.refused}›`);
   });
 
   it('reports an expired session when the categories read is refused', async () => {
@@ -196,9 +213,7 @@ describe('the expenses page', () => {
 
     renderPage();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'the ledger is temporarily unavailable',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.listing.refused);
     expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
     expect(screen.queryByText('Groceries')).not.toBeInTheDocument();
@@ -452,9 +467,7 @@ describe('the expenses page', () => {
     await tickEntry(/ferry/i);
     await userEvent.click(screen.getByRole('button', { name: 'Accept 1 entry' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'the ledger is temporarily unavailable',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.listing.refused);
     expect(screen.getByRole('button', { name: 'Accept 1 entry' })).toBeInTheDocument();
     expect(listExpensesMock).toHaveBeenCalledOnce();
   });
@@ -881,7 +894,7 @@ describe('the expenses page', () => {
     expect(changeCategoryMock).toHaveBeenCalledTimes(2);
   });
 
-  it('shows the ledger’s own message under the row, keeps its old category, leaves the page’s banner untouched, reads nothing back and leaves every control usable again, when the ledger refuses with 503', async () => {
+  it('shows the category-change refusal under the row, keeps its old category, leaves the page’s banner untouched, reads nothing back and leaves every control usable again, when the ledger refuses with 503', async () => {
     const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
     listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
     listCategoriesMock.mockResolvedValue(twoCategories);
@@ -895,7 +908,7 @@ describe('the expenses page', () => {
     await changeCategoryOnRow('lunch', /Transport/);
 
     const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
-    expect(within(lunchRow).getByText('the ledger is temporarily unavailable')).toBeInTheDocument();
+    expect(within(lunchRow).getByText(en.listing.categoryChangeRefused)).toBeInTheDocument();
     expect(within(lunchRow).getByText('Groceries')).toBeInTheDocument();
     // The row's own message renders through the same `Alert` (role="alert") as the page's banner, so the
     // banner staying untouched means exactly one alert exists — the row's — not zero.
@@ -904,7 +917,7 @@ describe('the expenses page', () => {
     expect(screen.getByRole('button', { name: /change lunch/i })).toBeEnabled();
   });
 
-  it('shows the ledger’s message under the row and reads back the day it was on, when the ledger refuses with 404', async () => {
+  it('shows the category-change refusal under the row and reads back the day it was on, when the ledger refuses with 404', async () => {
     const taxi = anExpense({
       id: 3,
       description: 'taxi',
@@ -925,7 +938,7 @@ describe('the expenses page', () => {
     await changeCategoryOnRow('taxi', /Transport/);
 
     const taxiRow = await screen.findByRole('listitem', { name: /taxi/i });
-    expect(within(taxiRow).getByText('that entry has moved on')).toBeInTheDocument();
+    expect(within(taxiRow).getByText(en.listing.categoryChangeRefused)).toBeInTheDocument();
     expect(listExpensesMock).toHaveBeenCalledTimes(2);
     expect(listExpensesMock).toHaveBeenLastCalledWith(
       expect.objectContaining({ from: '2026-08-04', to: '2026-08-04' }),
@@ -955,7 +968,7 @@ describe('the expenses page', () => {
     await waitFor(() => expect(sessionExpired).toHaveBeenCalledOnce());
     expect(listExpensesMock).toHaveBeenCalledOnce();
     const lunchRow = screen.getByRole('listitem', { name: /lunch/i });
-    expect(within(lunchRow).queryByText('no session')).not.toBeInTheDocument();
+    expect(within(lunchRow).queryByText(en.listing.categoryChangeRefused)).not.toBeInTheDocument();
   });
 
   it('clears a row’s refusal before the second call’s answer arrives', async () => {
@@ -973,17 +986,48 @@ describe('the expenses page', () => {
 
     await changeCategoryOnRow('lunch', /Transport/);
     const firstRefusal = await screen.findByRole('listitem', { name: /lunch/i });
-    expect(
-      within(firstRefusal).getByText('the ledger is temporarily unavailable'),
-    ).toBeInTheDocument();
+    expect(within(firstRefusal).getByText(en.listing.categoryChangeRefused)).toBeInTheDocument();
 
     await changeCategoryOnRow('lunch', /Transport/);
 
     expect(
       within(screen.getByRole('listitem', { name: /lunch/i })).queryByText(
-        'the ledger is temporarily unavailable',
+        en.listing.categoryChangeRefused,
       ),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows that error’s own message under the row when the category change fails before any response comes back', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(new Error('the network is unreachable'));
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText('the network is unreachable')).toBeInTheDocument();
+  });
+
+  it('shows the catalogue’s refusal wording under the row when the category change is refused', async () => {
+    substituteCatalogue();
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(
+      new ApiError(503, 'the ledger is temporarily unavailable'),
+    );
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText(`‹${en.listing.categoryChangeRefused}›`)).toBeInTheDocument();
   });
 
   it('reads back against the filter the page holds now, not the one the change call left with, and drops an answer for a row the page no longer holds', async () => {
