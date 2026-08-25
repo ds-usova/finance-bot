@@ -24,11 +24,9 @@ export function SettingsPage() {
         return;
       }
       setFailure(
-        error instanceof ApiError
+        error instanceof ApiError || !(error instanceof Error)
           ? t('settings.refused')
-          : error instanceof Error
-            ? error.message
-            : t('settings.refused'),
+          : error.message,
       );
     },
     [sessionExpired, t],

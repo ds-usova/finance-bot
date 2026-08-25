@@ -65,11 +65,9 @@ export function ExpensesPage() {
         return;
       }
       setFailure(
-        error instanceof ApiError
+        error instanceof ApiError || !(error instanceof Error)
           ? t('listing.refused')
-          : error instanceof Error
-            ? error.message
-            : t('listing.refused'),
+          : error.message,
       );
     },
     [sessionExpired, t],
@@ -218,11 +216,9 @@ export function ExpensesPage() {
           setChangeFailure({
             key,
             message:
-              error instanceof ApiError
+              error instanceof ApiError || !(error instanceof Error)
                 ? t('listing.categoryChangeRefused')
-                : error instanceof Error
-                  ? error.message
-                  : t('listing.categoryChangeRefused'),
+                : error.message,
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.
