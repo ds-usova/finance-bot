@@ -52,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -449,10 +450,9 @@ class ExpensesControllerTest {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#changeCategoryPathViolations")
+        @ValueSource(strings = {"0", "abc"})
         @DisplayName("when the id path segment is refused - then the response is 400, and the port is never called")
-        void whenIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(String description, String id)
-                throws Exception {
+        void whenIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(String id) throws Exception {
             mockMvc.perform(patch(CHANGE_CATEGORY_PATH, id)
                             .with(csrf())
                             .cookie(sessionCookie())
@@ -650,10 +650,6 @@ class ExpensesControllerTest {
 
     static Stream<Arguments> invalidOffsets() {
         return Stream.of(arguments("negative", "-1"), arguments("not a number", "xyz"));
-    }
-
-    static Stream<Arguments> changeCategoryPathViolations() {
-        return Stream.of(arguments("id of 0", "0"), arguments("id that is not a number", "abc"));
     }
 
     static Stream<Arguments> changeCategoryDocumentViolations() {
