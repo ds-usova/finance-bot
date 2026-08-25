@@ -2,24 +2,16 @@ patch:
   operationId: changeExpenseCategory
   summary: Refile one of the signed-in person's entries under a different category.
   description: >-
-    The entry is named by the `status` the listing answered and by the id it answered within that status. The
-    document replaces `/categoryId` and nothing else, and the answer is the entry as it now stands. Both a
-    pending proposal and a recorded expense can be refiled.
+    The entry is named by its id alone: since ADR 0018 an id is unique across both statuses, so the id and the
+    signed-in caller name the row on their own. The document replaces `/categoryId` and nothing else, and the
+    answer is the entry as it now stands. Both a pending proposal and a recorded expense can be refiled.
   tags:
     - expenses
   parameters:
-    - name: status
-      in: path
-      required: true
-      description: >-
-        Guards the entry's current status: an id under the other status is not found.
-      schema:
-        $ref: '../ledger-api.yaml#/components/schemas/ExpenseStatus'
-      example: RECORDED
     - name: id
       in: path
       required: true
-      description: The id of the caller's entry, as the listing answered it under this `status`.
+      description: The id of the caller's entry, unique across both statuses.
       schema:
         type: integer
         format: int64
@@ -42,10 +34,10 @@ patch:
             $ref: '../ledger-api.yaml#/components/schemas/Expense'
     '400':
       description: >-
-        The document is not one `replace` of `/categoryId`, its value is below 1, the body is not JSON,
-        `status` is neither token, or `categoryId` names no category of the caller's. The message names what
-        was refused. Unlike every other refusal on this API, a row is read before this one: an unknown
-        category, a grouping and another person's category are one answer.
+        The document is not one `replace` of `/categoryId`, its value is below 1, the body is not JSON, or
+        `categoryId` names no category of the caller's. The message names what was refused. Unlike every other
+        refusal on this API, a row is read before this one: an unknown category, a grouping and another person's
+        category are one answer.
       content:
         application/json:
           schema:
@@ -58,8 +50,8 @@ patch:
       description: The request carried no CSRF token.
     '404':
       description: >-
-        No entry of the caller's carries that id under that status, or the session outlives the user row it
-        names. The two carry different messages: one names the entry, the other says the caller is unknown.
+        No entry of the caller's carries that id, or the session outlives the user row it names. The two carry
+        different messages: one names the entry, the other says the caller is unknown.
       content:
         application/json:
           schema:

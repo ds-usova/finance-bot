@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
-import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
@@ -46,6 +45,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -74,7 +74,7 @@ class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
-    private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{status}/{id}";
+    private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{id}";
     private static final long USER_ID = 778899001L;
     private static final String VALID_DOCUMENT = """
             [{"op":"replace","path":"/categoryId","value":42}]""";
@@ -189,74 +189,76 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when a RECORDED entry is patched to a new categoryId - then the response is 200 with the "
                 + "entry in listing shape")
+        @Disabled("R01: the command no longer carries status; retargeted to the id-alone shape by R02")
         void whenARecordedEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry()
                 throws Exception {
-            ExpenseEntry answeredEntry = new ExpenseEntry(
-                    ExpenseStatus.RECORDED,
-                    7L,
-                    42L,
-                    "Coffee",
-                    Optional.of("Corner Cafe"),
-                    new Money(500L, CurrencyCode.of("EUR")),
-                    Instant.parse("2026-01-01T10:00:00Z"));
-            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
-
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
-                            .with(csrf())
-                            .cookie(sessionCookie())
-                            .contentType(JSON_PATCH)
-                            .content(VALID_DOCUMENT))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
-                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
-            verify(changeExpenseCategoryPort).change(command.capture());
-            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
-            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.RECORDED);
-            assertThat(command.getValue().entryId()).isEqualTo(7L);
-            assertThat(command.getValue().categoryId()).isEqualTo(42L);
-
-            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
-            assertThat(json.getLong("id")).isEqualTo(7L);
-            assertThat(json.getString("status")).isEqualTo("RECORDED");
-            assertThat(json.getLong("categoryId")).isEqualTo(42L);
-            assertThat(json.getString("description")).isEqualTo("Coffee");
-            assertThat(json.getString("merchant")).isEqualTo("Corner Cafe");
-            assertThat(json.getString("money.amount")).isEqualTo("5.00");
-            assertThat(json.getString("money.currency")).isEqualTo("€");
+            //            ExpenseEntry answeredEntry = new ExpenseEntry(
+            //                    ExpenseStatus.RECORDED,
+            //                    7L,
+            //                    42L,
+            //                    "Coffee",
+            //                    Optional.of("Corner Cafe"),
+            //                    new Money(500L, CurrencyCode.of("EUR")),
+            //                    Instant.parse("2026-01-01T10:00:00Z"));
+            //            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
+            //
+            //            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
+            //                            .with(csrf())
+            //                            .cookie(sessionCookie())
+            //                            .contentType(JSON_PATCH)
+            //                            .content(VALID_DOCUMENT))
+            //                    .andExpect(status().isOk())
+            //                    .andReturn();
+            //
+            //            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
+            //                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
+            //            verify(changeExpenseCategoryPort).change(command.capture());
+            //            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
+            //            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.RECORDED);
+            //            assertThat(command.getValue().entryId()).isEqualTo(7L);
+            //            assertThat(command.getValue().categoryId()).isEqualTo(42L);
+            //
+            //            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            //            assertThat(json.getLong("id")).isEqualTo(7L);
+            //            assertThat(json.getString("status")).isEqualTo("RECORDED");
+            //            assertThat(json.getLong("categoryId")).isEqualTo(42L);
+            //            assertThat(json.getString("description")).isEqualTo("Coffee");
+            //            assertThat(json.getString("merchant")).isEqualTo("Corner Cafe");
+            //            assertThat(json.getString("money.amount")).isEqualTo("5.00");
+            //            assertThat(json.getString("money.currency")).isEqualTo("€");
         }
 
         @Test
         @DisplayName("when a PENDING entry is patched to a new categoryId - then the command and response both "
                 + "carry PENDING")
+        @Disabled("R01: the command no longer carries status; retargeted to the id-alone shape by R02")
         void whenAPendingEntryIsPatchedToANewCategoryId_thenCommandCarriesPendingAndResponseStatusIsPending()
                 throws Exception {
-            ExpenseEntry answeredEntry = new ExpenseEntry(
-                    ExpenseStatus.PENDING,
-                    9L,
-                    42L,
-                    "Coffee",
-                    Optional.of("Corner Cafe"),
-                    new Money(500L, CurrencyCode.of("EUR")),
-                    Instant.parse("2026-01-01T10:00:00Z"));
-            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
-
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "PENDING", "9")
-                            .with(csrf())
-                            .cookie(sessionCookie())
-                            .contentType(JSON_PATCH)
-                            .content(VALID_DOCUMENT))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
-                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
-            verify(changeExpenseCategoryPort).change(command.capture());
-            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.PENDING);
-
-            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
-            assertThat(json.getString("status")).isEqualTo("PENDING");
+            //            ExpenseEntry answeredEntry = new ExpenseEntry(
+            //                    ExpenseStatus.PENDING,
+            //                    9L,
+            //                    42L,
+            //                    "Coffee",
+            //                    Optional.of("Corner Cafe"),
+            //                    new Money(500L, CurrencyCode.of("EUR")),
+            //                    Instant.parse("2026-01-01T10:00:00Z"));
+            //            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
+            //
+            //            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "PENDING", "9")
+            //                            .with(csrf())
+            //                            .cookie(sessionCookie())
+            //                            .contentType(JSON_PATCH)
+            //                            .content(VALID_DOCUMENT))
+            //                    .andExpect(status().isOk())
+            //                    .andReturn();
+            //
+            //            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
+            //                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
+            //            verify(changeExpenseCategoryPort).change(command.capture());
+            //            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.PENDING);
+            //
+            //            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            //            assertThat(json.getString("status")).isEqualTo("PENDING");
         }
     }
 
@@ -486,6 +488,7 @@ class ExpensesControllerTest {
         @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#changeCategoryPathViolations")
         @DisplayName("when the status or the id path segment is refused - then the response is 400, and the port "
                 + "is never called")
+        @Disabled("R01: the path no longer carries a status segment; retargeted to the id-alone shape by R02")
         void whenStatusOrIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(
                 String description, String status, String id) throws Exception {
             mockMvc.perform(patch(CHANGE_CATEGORY_PATH, status, id)
@@ -503,7 +506,7 @@ class ExpensesControllerTest {
         @DisplayName("when the document is refused - then the response is 400, and the port is never called")
         void whenTheDocumentIsRefused_thenResponseIs400AndPortNeverCalled(String description, String body)
                 throws Exception {
-            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -516,7 +519,7 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when the document is not JSON at all - then the response is 400 and the port is never called")
         void whenTheDocumentIsNotJsonAtAll_thenResponseIs400AndPortNeverCalled() throws Exception {
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -591,7 +594,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new InvalidExpenseCategoryChangeException(exceptionMessage));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -611,7 +614,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new ExpenseEntryNotFoundException(exceptionMessage));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -629,7 +632,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new PersistenceFailedException("the refile statement failed", new RuntimeException()));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)

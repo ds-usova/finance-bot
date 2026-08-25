@@ -240,7 +240,7 @@ class WebSessionSystemTest extends AbstractSystemTest {
                     .header(CSRF_HEADER, csrfToken)
                     .body(List.of(Map.of("op", "replace", "path", "/categoryId", "value", secondCategoryId)))
                     .when()
-                    .patch("/api/v1/expenses/RECORDED/" + expenseId);
+                    .patch("/api/v1/expenses/" + expenseId);
             logResponse(refileResponse);
 
             // then: the refile acts on their own ledger

@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,29 +71,32 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             stubCategoryAdmitted();
             ExpenseEntry entry = newEntry(CATEGORY_ID);
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
                     .thenReturn(Optional.of(entry));
 
-            ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.RECORDED));
+            ExpenseEntry result = useCase.change(newCommand());
 
             assertThat(result).isSameAs(entry);
-            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT);
+            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT);
         }
 
         @Test
         @DisplayName(
                 "when the command names PENDING - then refile is called with PENDING and the entry is " + "returned")
+        @Disabled("R01: the command no longer carries status; merged with the RECORDED case by R02")
         void whenCommandNamesPendingAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithPendingAndEntryReturned() {
-            stubStoredUser();
-            stubCategoryAdmitted();
-            ExpenseEntry entry = newEntry(CATEGORY_ID);
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING, FIXED_INSTANT))
-                    .thenReturn(Optional.of(entry));
-
-            ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.PENDING));
-
-            assertThat(result).isSameAs(entry);
-            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING, FIXED_INSTANT);
+            //            stubStoredUser();
+            //            stubCategoryAdmitted();
+            //            ExpenseEntry entry = newEntry(CATEGORY_ID);
+            //            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING,
+            // FIXED_INSTANT))
+            //                    .thenReturn(Optional.of(entry));
+            //
+            //            ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.PENDING));
+            //
+            //            assertThat(result).isSameAs(entry);
+            //            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING,
+            // FIXED_INSTANT);
         }
 
         @Test
@@ -102,7 +106,7 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             when(categoryRepository.existsOwnedCategory(USER_ID, CATEGORY_ID)).thenReturn(false);
 
-            assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
+            assertThatThrownBy(() -> useCase.change(newCommand()))
                     .isInstanceOf(InvalidExpenseCategoryChangeException.class)
                     .hasMessageContaining("categoryId");
 
@@ -115,10 +119,10 @@ class ChangeExpenseCategoryUseCaseTest {
         void whenRefileAnswersNothing_thenThrowsExpenseEntryNotFoundExceptionNamingEntryRatherThanCaller() {
             stubStoredUser();
             stubCategoryAdmitted();
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
                     .thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
+            assertThatThrownBy(() -> useCase.change(newCommand()))
                     .isInstanceOf(ExpenseEntryNotFoundException.class)
                     .hasMessageContaining("entry")
                     .hasMessageNotContaining("user")
@@ -132,8 +136,7 @@ class ChangeExpenseCategoryUseCaseTest {
             EntityNotFoundException failure = new EntityNotFoundException("user", "no user stored");
             when(userRepository.requireById(USER_ID)).thenThrow(failure);
 
-            assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
-                    .isSameAs(failure);
+            assertThatThrownBy(() -> useCase.change(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(categoryRepository);
             verifyNoInteractions(expenseRepository);
@@ -147,8 +150,7 @@ class ChangeExpenseCategoryUseCaseTest {
             PersistenceFailedException failure = new PersistenceFailedException("read failed", new RuntimeException());
             when(categoryRepository.existsOwnedCategory(USER_ID, CATEGORY_ID)).thenThrow(failure);
 
-            assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
-                    .isSameAs(failure);
+            assertThatThrownBy(() -> useCase.change(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(expenseRepository);
         }
@@ -159,11 +161,10 @@ class ChangeExpenseCategoryUseCaseTest {
             stubStoredUser();
             stubCategoryAdmitted();
             PersistenceFailedException failure = new PersistenceFailedException("write failed", new RuntimeException());
-            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.RECORDED, FIXED_INSTANT))
+            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT))
                     .thenThrow(failure);
 
-            assertThatThrownBy(() -> useCase.change(newCommand(ExpenseStatus.RECORDED)))
-                    .isSameAs(failure);
+            assertThatThrownBy(() -> useCase.change(newCommand())).isSameAs(failure);
         }
 
         @Test
@@ -178,8 +179,8 @@ class ChangeExpenseCategoryUseCaseTest {
         }
     }
 
-    private ChangeExpenseCategoryCommand newCommand(ExpenseStatus status) {
-        return new ChangeExpenseCategoryCommand(CALLER, status, ENTRY_ID, CATEGORY_ID);
+    private ChangeExpenseCategoryCommand newCommand() {
+        return new ChangeExpenseCategoryCommand(CALLER, ENTRY_ID, CATEGORY_ID);
     }
 
     private void stubStoredUser() {

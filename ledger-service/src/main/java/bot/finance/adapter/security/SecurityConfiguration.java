@@ -84,7 +84,7 @@ public class SecurityConfiguration {
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/expenses/acceptances")
                         .authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/expenses/*/*")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/expenses/*")
                         .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/preferences")
                         .authenticated()

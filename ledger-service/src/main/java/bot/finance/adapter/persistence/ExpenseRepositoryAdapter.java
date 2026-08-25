@@ -198,17 +198,17 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
 
     @Override
     @Transactional
-    public Optional<ExpenseEntry> refile(
-            long userId, long entryId, long categoryId, ExpenseStatus status, Instant now) {
+    public Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now) {
         requireFileableCategory(categoryId);
 
         try {
-            Optional<SpendingRowProjection> changed = expenseEntityRepository.refile(
-                    userId, entryId, categoryId, status.name(), now.truncatedTo(ChronoUnit.MICROS));
-            ledgerEventOutbox.append(
-                    LedgerEventType.refiled(status), changed.map(List::of).orElseGet(List::of), now);
+            Optional<SpendingRowProjection> changed =
+                    expenseEntityRepository.refile(userId, entryId, categoryId, now.truncatedTo(ChronoUnit.MICROS));
+            LedgerEventType type = changed.map(row -> LedgerEventType.refiled(ExpenseStatus.valueOf(row.status())))
+                    .orElse(null);
+            ledgerEventOutbox.append(type, changed.map(List::of).orElseGet(List::of), now);
 
-            return changed.map(projection -> projection.toExpenseEntry(status));
+            return changed.map(SpendingRowProjection::toExpenseEntry);
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to refile expense " + entryId + " for user " + userId, e);
         }

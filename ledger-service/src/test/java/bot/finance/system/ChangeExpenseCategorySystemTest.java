@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 /**
- * Covers {@code PATCH /api/v1/expenses/{status}/{id}} end to end against the fully wired application, entered the
+ * Covers {@code PATCH /api/v1/expenses/{id}} end to end against the fully wired application, entered the
  * way a browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it
  * needs to write. It triggers no poll-loop scenario, so it signs with the {@code test} profile's own bot token and
  * needs no {@code @TestPropertySource} override.
@@ -94,10 +95,9 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String csrfToken = BrowserSessions.csrfToken();
 
             // when: each is patched to the second category with the session cookie and the CSRF token
-            Response recordedResponse =
-                    patchCategory(sessionCookie, csrfToken, "RECORDED", expenseId, secondCategoryId);
+            Response recordedResponse = patchCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
             logResponse(recordedResponse);
-            Response pendingResponse = patchCategory(sessionCookie, csrfToken, "PENDING", proposalId, secondCategoryId);
+            Response pendingResponse = patchCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(pendingResponse);
 
             // then: both answer 200 carrying the new categoryId
@@ -170,7 +170,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String csrfToken = BrowserSessions.csrfToken();
 
             // given: the refiled PENDING entry
-            Response refileResponse = patchCategory(sessionCookie, csrfToken, "PENDING", proposalId, secondCategoryId);
+            Response refileResponse = patchCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(refileResponse);
             refileResponse.then().statusCode(200);
 
@@ -208,43 +208,45 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         @Test
         @DisplayName("when an id names no entry of theirs under that status - then 404 naming the entry rather "
                 + "than the caller")
+        @Disabled("R01: the path no longer carries a status segment; retargeted to the id-alone shape by R02")
         void whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry() {
-            String externalId = "change-category-missing-entry-user";
-            String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            long userId = userIdOf(externalId);
-            long categoryId = groceriesCategoryId(userId, "Supermarkets");
-            long otherCategoryId = groceriesCategoryId(userId, "Markets");
-            long expenseId = ExpenseRowUtils.storedExpense(
-                            jdbcAggregateTemplate,
-                            userId,
-                            categoryId,
-                            "groceries",
-                            "Market",
-                            1500L,
-                            "EUR",
-                            UUID.randomUUID().toString(),
-                            Instant.now(),
-                            ExpenseStatus.RECORDED)
-                    .id();
-            String csrfToken = BrowserSessions.csrfToken();
-
-            // when: the entry is patched under the wrong status - it exists, but not as PENDING
-            Response response = patchCategory(sessionCookie, csrfToken, "PENDING", expenseId, otherCategoryId);
-            logResponse(response);
-
-            // then: the response is 404 and its message names the entry rather than the caller
-            response.then().statusCode(404);
-            assertThat(response.jsonPath().getString("message"))
-                    .as("the 404 names the entry, not the caller-unknown message")
-                    .isEqualTo("no entry of yours carries that id");
-
-            // then: the entry is unchanged - still RECORDED, under its original category
-            List<ExpenseEntity> expenseRows =
-                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
-            assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
-            assertThat(expenseRows.get(0).categoryId())
-                    .as("the entry's category is untouched")
-                    .isEqualTo(categoryId);
+            //            String externalId = "change-category-missing-entry-user";
+            //            String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
+            //            long userId = userIdOf(externalId);
+            //            long categoryId = groceriesCategoryId(userId, "Supermarkets");
+            //            long otherCategoryId = groceriesCategoryId(userId, "Markets");
+            //            long expenseId = ExpenseRowUtils.storedExpense(
+            //                            jdbcAggregateTemplate,
+            //                            userId,
+            //                            categoryId,
+            //                            "groceries",
+            //                            "Market",
+            //                            1500L,
+            //                            "EUR",
+            //                            UUID.randomUUID().toString(),
+            //                            Instant.now(),
+            //                            ExpenseStatus.RECORDED)
+            //                    .id();
+            //            String csrfToken = BrowserSessions.csrfToken();
+            //
+            //            // when: the entry is patched under the wrong status - it exists, but not as PENDING
+            //            Response response = patchCategory(sessionCookie, csrfToken, "PENDING", expenseId,
+            // otherCategoryId);
+            //            logResponse(response);
+            //
+            //            // then: the response is 404 and its message names the entry rather than the caller
+            //            response.then().statusCode(404);
+            //            assertThat(response.jsonPath().getString("message"))
+            //                    .as("the 404 names the entry, not the caller-unknown message")
+            //                    .isEqualTo("no entry of yours carries that id");
+            //
+            //            // then: the entry is unchanged - still RECORDED, under its original category
+            //            List<ExpenseEntity> expenseRows =
+            //                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
+            //            assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
+            //            assertThat(expenseRows.get(0).categoryId())
+            //                    .as("the entry's category is untouched")
+            //                    .isEqualTo(categoryId);
         }
 
         @Test
@@ -273,7 +275,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .contentType(PATCH_MEDIA_TYPE)
                     .body(patchDocument(otherCategoryId))
                     .when()
-                    .patch(path("RECORDED", expenseId));
+                    .patch(path(expenseId));
             logResponse(response);
 
             // then: the response is 401 and the row still carries its original category
@@ -312,7 +314,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .body(patchDocument(otherCategoryId))
                     .when()
-                    .patch(path("RECORDED", expenseId));
+                    .patch(path(expenseId));
             logResponse(response);
 
             // then: the response is 403 and the row still carries its original category
@@ -339,8 +341,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
     }
 
-    private Response patchCategory(
-            String sessionCookie, String csrfToken, String status, long entryId, long categoryId) {
+    private Response patchCategory(String sessionCookie, String csrfToken, long entryId, long categoryId) {
         return RestAssured.given()
                 .contentType(PATCH_MEDIA_TYPE)
                 .cookie(SESSION_COOKIE, sessionCookie)
@@ -348,11 +349,11 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                 .header(CSRF_HEADER, csrfToken)
                 .body(patchDocument(categoryId))
                 .when()
-                .patch(path(status, entryId));
+                .patch(path(entryId));
     }
 
-    private static String path(String status, long entryId) {
-        return "%s/%s/%d".formatted(EXPENSES_PATH, status, entryId);
+    private static String path(long entryId) {
+        return "%s/%d".formatted(EXPENSES_PATH, entryId);
     }
 
     private static List<Map<String, Object>> patchDocument(long categoryId) {

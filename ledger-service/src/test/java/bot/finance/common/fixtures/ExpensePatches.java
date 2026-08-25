@@ -25,6 +25,6 @@ public class ExpensePatches {
                 .header(BrowserSessions.CSRF_HEADER, csrfToken)
                 .body(List.of(Map.of("op", "replace", "path", "/categoryId", "value", categoryId)))
                 .when()
-                .patch("%s/RECORDED/%d".formatted(EXPENSES_PATH, expenseId));
+                .patch("%s/%d".formatted(EXPENSES_PATH, expenseId));
     }
 }

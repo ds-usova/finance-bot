@@ -8,7 +8,6 @@ import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.ExpenseFilter;
-import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
@@ -87,9 +86,9 @@ public interface ExpenseRepository {
 
     /**
      * Files the caller's entry under a new category, answering it as it now stands. An empty result means no
-     * entry of theirs carries that id under that status.
+     * entry of theirs carries that id.
      *
      * @throws PersistenceFailedException if the write fails
      */
-    Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, ExpenseStatus status, Instant now);
+    Optional<ExpenseEntry> refile(long userId, long entryId, long categoryId, Instant now);
 }

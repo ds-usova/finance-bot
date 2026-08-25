@@ -21,7 +21,7 @@ paths:
     $ref: './paths/session.yaml'
   /api/v1/expenses/acceptances:
     $ref: './paths/expense-acceptances.yaml'
-  /api/v1/expenses/{status}/{id}:
+  /api/v1/expenses/{id}:
     $ref: './paths/expense-category.yaml'
   /api/v1/preferences:
     $ref: './paths/preferences.yaml'

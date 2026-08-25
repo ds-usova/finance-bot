@@ -59,7 +59,7 @@ export async function acceptExpenses(ids: number[]): Promise<Acceptance> {
 
 export async function changeCategory(entry: Expense, categoryId: number): Promise<Expense> {
   const patch: CategoryPatch = [{ op: 'replace', path: '/categoryId', value: categoryId }];
-  const updated = await request<Expense>(`${EXPENSES_PATH}/${entry.status}/${entry.id}`, {
+  const updated = await request<Expense>(`${EXPENSES_PATH}/${entry.id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json-patch+json' },
     body: JSON.stringify(patch),

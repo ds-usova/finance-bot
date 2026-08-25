@@ -52,9 +52,9 @@ public class ExpensesController implements ExpensesApi {
 
     @Override
     public ResponseEntity<ChangeExpenseCategory200Response> changeExpenseCategory(
-            String status, Long id, List<CategoryPatchOperation> categoryPatchOperation) {
+            Long id, List<CategoryPatchOperation> categoryPatchOperation) {
         ChangeExpenseCategoryCommand command = ExpenseWebMapper.toChangeExpenseCategoryCommand(
-                status, id, categoryPatchOperation, AuthenticatedCaller.authenticatedUserId());
+                id, categoryPatchOperation, AuthenticatedCaller.authenticatedUserId());
         return ResponseEntity.ok(
                 ExpenseWebMapper.toChangeExpenseCategoryResponse(changeExpenseCategoryPort.change(command)));
     }

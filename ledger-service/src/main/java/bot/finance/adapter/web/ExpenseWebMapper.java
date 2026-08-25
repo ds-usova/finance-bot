@@ -60,7 +60,7 @@ public final class ExpenseWebMapper {
     }
 
     public static ChangeExpenseCategoryCommand toChangeExpenseCategoryCommand(
-            String status, Long id, List<CategoryPatchOperation> document, AuthenticatedUserId userId) {
+            Long id, List<CategoryPatchOperation> document, AuthenticatedUserId userId) {
         if (document.size() != 1) {
             throw new InvalidExpenseCategoryChangeException("a category change document carries one operation");
         }
@@ -76,14 +76,7 @@ public final class ExpenseWebMapper {
             throw new InvalidExpenseCategoryChangeException("a category change document's operation needs a value");
         }
 
-        ExpenseStatus parsedStatus;
-        try {
-            parsedStatus = ExpenseStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new InvalidExpenseCategoryChangeException("status must be PENDING or RECORDED");
-        }
-
-        return new ChangeExpenseCategoryCommand(userId, parsedStatus, id, operation.getValue());
+        return new ChangeExpenseCategoryCommand(userId, id, operation.getValue());
     }
 
     public static ChangeExpenseCategory200Response toChangeExpenseCategoryResponse(ExpenseEntry entry) {
