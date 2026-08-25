@@ -58,15 +58,15 @@ in.
 
 ## When the Call Fails
 
-| The failure                  | What the person gets                                                        |
-|------------------------------|-----------------------------------------------------------------------------|
-| A refusal carrying a body    | the ledger's own wording, from the body's message                           |
-| A body empty or not JSON     | wording this module synthesizes from the method, the path and the status    |
-| A 401 on any request         | nothing: the page treats it as an expired session and sends them to sign in |
-| A 403 on the acceptance      | the ledger's wording, shown like any other refusal, and the ticks stand     |
-| A refusal on the replacement | the ledger's wording, beside the save control, and the picked code stands   |
-| The network                  | the browser's own words, never the ledger's                                 |
-| Any other refusal            | the wording as it came, with whatever is already on screen left in place    |
+| The failure                  | What the person gets                                                                  |
+|------------------------------|---------------------------------------------------------------------------------------|
+| A refusal carrying a body    | the calling surface's fixed wording, not the body's message                           |
+| A body empty or not JSON     | the calling surface's fixed wording, same as any other refusal                        |
+| A 401 on any request         | nothing: the page treats it as an expired session and sends them to sign in           |
+| A 403 on the acceptance      | `listing.refused`, shown like any other refusal, and the ticks stand                  |
+| A refusal on the replacement | `settings.refused`, beside the save control, and the picked code stands               |
+| The network                  | the browser's own words, never the ledger's                                           |
+| Any other refusal            | the calling surface's fixed wording, with whatever is already on screen left in place |
 
 Nothing is retried. A person who wants another attempt changes a filter or reloads.
 

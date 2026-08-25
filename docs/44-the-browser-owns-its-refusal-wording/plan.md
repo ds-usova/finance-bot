@@ -140,7 +140,7 @@ not the ledger's.
 
 ### Post-Implementation Steps
 
-- [ ] P01 · Rewrite `web-app/docs/contracts/out/ledger-browse-api.md`'s **When the Call Fails** table: the
+- [x] P01 · Rewrite `web-app/docs/contracts/out/ledger-browse-api.md`'s **When the Call Fails** table: the
   "A refusal carrying a body" row, the "A body empty or not JSON" row, the "A 403 on the acceptance" row and the
   "A refusal on the replacement" row all change from "the ledger's own wording" / client-synthesized wording to a
   fixed, surface-owned string; the "Any other refusal" row changes the same way. The 401 row, the network row and
