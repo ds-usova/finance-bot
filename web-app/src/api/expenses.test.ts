@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { aCategory, aGrouping, anAcceptance, anExpense, anExpensePage } from '../testing/fixtures';
+import { MalformedResponseError } from './client';
 import {
   acceptExpenses,
   changeCategory,
@@ -142,6 +143,15 @@ describe('the expense calls', () => {
         status: 401,
       });
     });
+
+    it('rejects with a MalformedResponseError carrying listing.acceptanceMalformed when the ledger answers 204 with no body', async () => {
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = acceptExpenses([1]);
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'listing.acceptanceMalformed' });
+    });
   });
 
   describe('changing an expense category', () => {
@@ -207,6 +217,16 @@ describe('the expense calls', () => {
         name: 'ApiError',
         status: 404,
       });
+    });
+
+    it('rejects with a MalformedResponseError carrying listing.categoryChangeMalformed when the ledger answers 204 with no body', async () => {
+      const entry = anExpense({ id: 12 });
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = changeCategory(entry, 42);
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'listing.categoryChangeMalformed' });
     });
   });
 });

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
+import { MalformedResponseError } from './client';
 import { readPreferences, replacePreferences } from './preferences';
 
 describe('the preferences calls', () => {
@@ -34,6 +35,15 @@ describe('the preferences calls', () => {
         status: 401,
       });
     });
+
+    it('rejects with a MalformedResponseError carrying settings.preferencesMalformed when the ledger answers 204 with no body', async () => {
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = readPreferences();
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'settings.preferencesMalformed' });
+    });
   });
 
   describe('replacing preferences', () => {
@@ -66,6 +76,15 @@ describe('the preferences calls', () => {
         status: 400,
         message: 'defaultCurrency must be an ISO 4217 code',
       });
+    });
+
+    it('rejects with a MalformedResponseError carrying settings.preferencesMalformed when the ledger answers 204 with no body', async () => {
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = replacePreferences('EUR');
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'settings.preferencesMalformed' });
     });
   });
 });

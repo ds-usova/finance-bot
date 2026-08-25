@@ -73,13 +73,13 @@ only `pages/` gains a new read of the catalogue, which it already had.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `client` · test: `client.test.ts` · covers: `MalformedResponseError` constructor · scenarios: A1, A2, A3, A4
+- [x] RU01 · `client` · test: `client.test.ts` · covers: `MalformedResponseError` constructor · scenarios: A1, A2, A3, A4
     - the new class:
         - given: a `MalformedResponseError` constructed with a key and a message
           when: it is inspected
           then: it is an instance of `Error`, and its `key` and `message` read back what it was given
 
-- [ ] RU02 · `expenses` · test: `expenses.test.ts` · covers: `acceptExpenses()`, `changeCategory()` · scenarios: A1, A2
+- [x] RU02 · `expenses` · test: `expenses.test.ts` · covers: `acceptExpenses()`, `changeCategory()` · scenarios: A1, A2
     - `acceptExpenses()`:
         - given: a stubbed fetch answering 204 with no body
           when: `acceptExpenses()` is called
@@ -89,7 +89,7 @@ only `pages/` gains a new read of the catalogue, which it already had.
           when: `changeCategory()` is called
           then: it rejects with a `MalformedResponseError` carrying `key: 'listing.categoryChangeMalformed'`
 
-- [ ] RU03 · `preferences` · test: `preferences.test.ts` · covers: `readPreferences()`, `replacePreferences()` · scenarios: A3, A4
+- [x] RU03 · `preferences` · test: `preferences.test.ts` · covers: `readPreferences()`, `replacePreferences()` · scenarios: A3, A4
     - `readPreferences()`:
         - given: a stubbed fetch answering 204 with no body
           when: `readPreferences()` is called
@@ -99,7 +99,7 @@ only `pages/` gains a new read of the catalogue, which it already had.
           when: `replacePreferences()` is called
           then: it rejects with a `MalformedResponseError` carrying `key: 'settings.preferencesMalformed'`
 
-- [ ] RU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A3, A4
+- [x] RU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · covers: the rendered page · scenarios: A3, A4
     - a malformed body:
         - given: `readPreferences` rejects with a `MalformedResponseError` carrying `key: 'settings.preferencesMalformed'`
           when: the page is rendered
@@ -110,7 +110,7 @@ only `pages/` gains a new read of the catalogue, which it already had.
           then: `en.settings.preferencesMalformed` is shown beside the save control, and the picker stands on what
           was picked
 
-- [ ] RU05 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the rendered page · scenarios: A1, A2
+- [x] RU05 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: the rendered page · scenarios: A1, A2
     - a malformed body:
         - given: the listing holds a PENDING entry, ticked, and `acceptExpenses` rejects with a
           `MalformedResponseError` carrying `key: 'listing.acceptanceMalformed'`

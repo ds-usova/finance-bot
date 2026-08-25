@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../api/client';
+import { ApiError, MalformedResponseError } from '../api/client';
 import {
   acceptExpenses,
   changeCategory,
@@ -472,6 +472,26 @@ describe('the expenses page', () => {
     expect(listExpensesMock).toHaveBeenCalledOnce();
   });
 
+  it('shows the catalogue’s malformed-response wording as the page’s own banner when the acceptance answers a malformed body', async () => {
+    const entry = anExpense({
+      id: 26,
+      description: 'ferry',
+      status: 'PENDING',
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    listExpensesMock.mockResolvedValue(anExpensePage([entry]));
+    acceptExpensesMock.mockRejectedValueOnce(
+      new MalformedResponseError('listing.acceptanceMalformed', 'no usable body'),
+    );
+
+    renderPage();
+    await listedEntries();
+    await tickEntry(/ferry/i);
+    await userEvent.click(screen.getByRole('button', { name: 'Accept 1 entry' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.listing.acceptanceMalformed);
+  });
+
   it('reports an expired session and re-reads nothing when the ledger refuses the acceptance with 401', async () => {
     const entry = anExpense({
       id: 22,
@@ -915,6 +935,24 @@ describe('the expenses page', () => {
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(listExpensesMock).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: /change lunch/i })).toBeEnabled();
+  });
+
+  it('shows the catalogue’s malformed-response wording beside the row and keeps its old category, when the category change answers a malformed body', async () => {
+    const lunch = anExpense({ id: 1, description: 'lunch', categoryId: 10 });
+    listExpensesMock.mockResolvedValue(anExpensePage([lunch]));
+    listCategoriesMock.mockResolvedValue(twoCategories);
+    changeCategoryMock.mockRejectedValueOnce(
+      new MalformedResponseError('listing.categoryChangeMalformed', 'no usable body'),
+    );
+
+    renderPage();
+    await listedEntries();
+
+    await changeCategoryOnRow('lunch', /Transport/);
+
+    const lunchRow = await screen.findByRole('listitem', { name: /lunch/i });
+    expect(within(lunchRow).getByText(en.listing.categoryChangeMalformed)).toBeInTheDocument();
+    expect(within(lunchRow).getByText('Groceries')).toBeInTheDocument();
   });
 
   it('shows the category-change refusal under the row and reads back the day it was on, when the ledger refuses with 404', async () => {

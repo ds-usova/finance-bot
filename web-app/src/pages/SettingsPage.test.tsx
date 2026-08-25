@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../api/client';
+import { ApiError, MalformedResponseError } from '../api/client';
 import { readPreferences, replacePreferences } from '../api/preferences';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import { en } from '../i18n/en';
@@ -92,6 +92,19 @@ describe('the settings page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('the network is unreachable');
   });
 
+  it('shows the catalogue’s malformed-response wording at the top of the page and renders no picker when the read answers a malformed body', async () => {
+    readPreferencesMock.mockRejectedValue(
+      new MalformedResponseError('settings.preferencesMalformed', 'no usable body'),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(en.settings.preferencesMalformed);
+    expect(
+      screen.queryByRole('button', { name: en.settings.defaultCurrency }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the catalogue’s refusal wording at the top of the page when the read is refused', async () => {
     substituteCatalogue();
     readPreferencesMock.mockRejectedValue(
@@ -168,6 +181,21 @@ describe('the settings page', () => {
     await userEvent.click(screen.getByRole('button', { name: en.settings.save }));
 
     expect(await screen.findByText(en.settings.refused)).toBeInTheDocument();
+    expect(screen.getByText('US Dollar (USD)')).toBeInTheDocument();
+  });
+
+  it('shows the catalogue’s malformed-response wording beside the save control and leaves the picker standing on what was picked when the write answers a malformed body', async () => {
+    readPreferencesMock.mockResolvedValue({ defaultCurrency: 'EUR' });
+    replacePreferencesMock.mockRejectedValue(
+      new MalformedResponseError('settings.preferencesMalformed', 'no usable body'),
+    );
+    renderPage();
+    await screen.findByText('Euro (EUR)');
+    await pickCurrency('US Dollar (USD)');
+
+    await userEvent.click(screen.getByRole('button', { name: en.settings.save }));
+
+    expect(await screen.findByText(en.settings.preferencesMalformed)).toBeInTheDocument();
     expect(screen.getByText('US Dollar (USD)')).toBeInTheDocument();
   });
 
