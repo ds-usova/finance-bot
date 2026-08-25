@@ -29,6 +29,8 @@ src/
 - **A pure helper sits in `components/` too**, beside the components that render through it. `lib/` holds one
   thing: the class-name helper every `components/ui/` component imports.
 - **A page composes.** Reading context, calling `api/`, and deciding what to render belong to `pages/`.
+- **A pure helper shared by more than one page sits in `pages/` too**, beside the pages that call it — the way a
+  shared rendering helper sits in `components/`.
 - **The shell is a page.** `pages/AppShell.tsx` is the layout element every route renders inside. It reads the
   session to decide whether the sign-out control is shown.
 - **Session state has one owner**, the auth context. Nothing else stores who is signed in.

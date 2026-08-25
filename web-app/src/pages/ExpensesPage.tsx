@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, MalformedResponseError } from '../api/client';
+import { ApiError } from '../api/client';
 import {
   acceptExpenses,
   changeCategory,
@@ -27,6 +27,7 @@ import {
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
+import { refusalText } from './errorText';
 
 // How many ids the acceptance endpoint takes in one request, and so the cap on the tick set — a merged day
 // can hold more than a page's worth of pending entries, so the listing's page size does not bound it.
@@ -64,15 +65,7 @@ export function ExpensesPage() {
         sessionExpired();
         return;
       }
-      if (error instanceof MalformedResponseError) {
-        setFailure(t(error.key));
-        return;
-      }
-      setFailure(
-        error instanceof ApiError || !(error instanceof Error)
-          ? t('listing.refused')
-          : error.message,
-      );
+      setFailure(refusalText(error, t, 'listing.refused'));
     },
     [sessionExpired, t],
   );
@@ -217,16 +210,9 @@ export function ExpensesPage() {
             sessionExpired();
             return;
           }
-          if (error instanceof MalformedResponseError) {
-            setChangeFailure({ key, message: t(error.key) });
-            return;
-          }
           setChangeFailure({
             key,
-            message:
-              error instanceof ApiError || !(error instanceof Error)
-                ? t('listing.categoryChangeRefused')
-                : error.message,
+            message: refusalText(error, t, 'listing.categoryChangeRefused'),
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.

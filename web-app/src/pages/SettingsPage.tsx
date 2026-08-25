@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, MalformedResponseError } from '../api/client';
+import { ApiError } from '../api/client';
 import { readPreferences, replacePreferences } from '../api/preferences';
 import { useAuth } from '../auth/useAuth';
 import { CurrencyPicker } from '../components/CurrencyPicker';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { Button } from '../components/ui/button';
+import { refusalText } from './errorText';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -23,15 +24,7 @@ export function SettingsPage() {
         sessionExpired();
         return;
       }
-      if (error instanceof MalformedResponseError) {
-        setFailure(t(error.key));
-        return;
-      }
-      setFailure(
-        error instanceof ApiError || !(error instanceof Error)
-          ? t('settings.refused')
-          : error.message,
-      );
+      setFailure(refusalText(error, t, 'settings.refused'));
     },
     [sessionExpired, t],
   );
