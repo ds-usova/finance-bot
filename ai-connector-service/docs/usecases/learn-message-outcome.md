@@ -64,6 +64,7 @@ ContainerDb(database, "Message Store", "PostgreSQL", "The messages this service 
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
   Component(consumer, "Change Stream Consumer", "Redis consumer group", "Claims stalled entries, reads its own and then new ones, acknowledges what is finished with", $tags="callerExternal")
+  Component(handler, "Change Stream Entry Handler", "Plain Java", "Reads one entry, offers it, and acknowledges what is finished with", $tags="callerExternal")
   Component(entryReader, "Change Stream Entry Reader", "Plain Java", "Reads an entry's body as one spending fact and its position", $tags="callerExternal")
   Component(learnPort, "Learn Message Outcome Port", "Interface", "Inbound port", $tags="portIn")
   Component(useCase, "Learn Message Outcome Use Case", "Plain Java", "Applies one fact, and bounds a delivery the store keeps refusing", $tags="core")
@@ -76,8 +77,9 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
 
 Rel_D(ledger, changeStream, "Publishes each fact", "RESP")
 Rel_D(changeStream, consumer, "Reads, claims and acknowledges", "RESP")
-Rel_R(consumer, entryReader, "Reads an entry through")
-Rel_D(consumer, learnPort, "Invokes")
+Rel_R(consumer, handler, "Hands each entry to")
+Rel_R(handler, entryReader, "Reads an entry through")
+Rel_D(handler, learnPort, "Invokes")
 Rel_L(useCase, learnPort, "Implements", $tags="implements")
 Rel_D(useCase, recordedStorePort, "Applies the fact through")
 Rel_R(useCase, attemptsPort, "Counts and clears a delivery through")
@@ -86,7 +88,7 @@ Rel_U(attemptsAdapter, attemptsPort, "Implements", $tags="implements")
 Rel_D(recordedStoreAdapter, database, "The expense's row", "SQL")
 Rel_D(attemptsAdapter, database, "The delivery's refusals", "SQL")
 
-Lay_D(consumer, learnPort)
+Lay_D(handler, learnPort)
 Lay_D(learnPort, useCase)
 Lay_D(recordedStorePort, recordedStoreAdapter)
 Lay_D(attemptsPort, attemptsAdapter)

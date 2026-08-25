@@ -65,8 +65,9 @@ helper is looked for in the same place in either module.
   helper classes in an adapter package — the mappers, renderers and their kind
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A proto mapper is
   a unit target. The same goes for an adapter-layer class doing something non-trivial — branching logic with no
-  infrastructure of its own, like `LedgerToolFailureProcessor` or `CallerTokenMcpRequestCustomizer`; a class
-  whose behaviour is trivial is left to its adapter's integration test instead.
+  infrastructure of its own, like `LedgerToolFailureProcessor`, `CallerTokenMcpRequestCustomizer` or
+  `ChangeStreamEntryHandler`; a class whose behaviour is trivial is left to its adapter's integration test
+  instead.
 - **Integration, outbound** — `adapter/ai/` via `@AiAdapterTest`, `adapter/persistence/` via
   `@PersistenceAdapterTest`, `adapter/security/` via `@SecurityAdapterTest`, `adapter/redis/`'s consumer,
   `ChangeStreamConsumer`, via `@RedisAdapterTest` against the containerized Redis with the inbound port
@@ -80,8 +81,9 @@ helper is looked for in the same place in either module.
   against the containerized database and owns what a statement writes, what it leaves untouched, and how a
   store failure becomes the port's exception. `adapter/security/` runs against the stubbed key-set endpoint and
   owns which caller tokens are read, which are refused, and what an unreachable or slow key set answers.
-  `adapter/redis/`'s consumer owns reading the stream, claiming and acknowledging entries, and how the store's
-  answer decides retry, acknowledgement or drop; its reader, `ChangeStreamEntryReader`, is a unit target instead
+  `adapter/redis/`'s consumer owns the thread, the group and the read cycle; its per-entry mapping —
+  acknowledging what is finished with, and how the store's answer decides retry, acknowledgement or drop — is
+  `ChangeStreamEntryHandler`, a unit target instead. Its reader, `ChangeStreamEntryReader`, is a unit target too
   — stateless parsing with no infrastructure of its own. `RedisPendingEntries` is driven directly against a
   `RedisContainers` template, with no Spring context of its own — the class carries
   `@Testcontainers(disabledWithoutDocker = true)` itself, so it skips rather than fails without Docker.
