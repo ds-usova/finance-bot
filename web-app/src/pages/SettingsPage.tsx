@@ -23,9 +23,15 @@ export function SettingsPage() {
         sessionExpired();
         return;
       }
-      setFailure(error instanceof Error ? error.message : 'That call was not answered.');
+      setFailure(
+        error instanceof ApiError
+          ? t('settings.refused')
+          : error instanceof Error
+            ? error.message
+            : t('settings.refused'),
+      );
     },
-    [sessionExpired],
+    [sessionExpired, t],
   );
 
   useEffect(() => {

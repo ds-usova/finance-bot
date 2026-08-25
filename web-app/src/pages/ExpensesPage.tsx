@@ -64,9 +64,15 @@ export function ExpensesPage() {
         sessionExpired();
         return;
       }
-      setFailure(error instanceof Error ? error.message : 'That read was not answered.');
+      setFailure(
+        error instanceof ApiError
+          ? t('listing.refused')
+          : error instanceof Error
+            ? error.message
+            : t('listing.refused'),
+      );
     },
-    [sessionExpired],
+    [sessionExpired, t],
   );
 
   useEffect(() => {
@@ -211,7 +217,12 @@ export function ExpensesPage() {
           }
           setChangeFailure({
             key,
-            message: error instanceof Error ? error.message : 'That change was not answered.',
+            message:
+              error instanceof ApiError
+                ? t('listing.categoryChangeRefused')
+                : error instanceof Error
+                  ? error.message
+                  : t('listing.categoryChangeRefused'),
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.
@@ -219,7 +230,7 @@ export function ExpensesPage() {
           }
         });
     },
-    [changingKey, rereadChangedDay, sessionExpired],
+    [changingKey, rereadChangedDay, sessionExpired, t],
   );
 
   const onAccept = useCallback(() => {

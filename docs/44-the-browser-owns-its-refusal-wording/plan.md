@@ -123,8 +123,8 @@ Exact wording is left to the implementing step, in `signIn.refused`'s tone — s
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `SettingsPage` · test: `SettingsPage.test.tsx`
-- [ ] GU02 · `ExpensesPage` · test: `ExpensesPage.test.tsx`
+- [x] GU01 · `SettingsPage` · test: `SettingsPage.test.tsx`
+- [x] GU02 · `ExpensesPage` · test: `ExpensesPage.test.tsx`
 
 Each `report`-style catch shows the surface's catalogue string unless the caught value is an `Error` that is not an
 `ApiError` — the one case that still shows that error's own message, since it's what a genuine network failure
