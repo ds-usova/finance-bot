@@ -28,6 +28,7 @@
       "Bash(git commit:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
+      "Bash(git rev-parse:*)",
       "Bash(git show:*)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
