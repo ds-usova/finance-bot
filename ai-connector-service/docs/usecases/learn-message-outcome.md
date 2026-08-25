@@ -63,9 +63,9 @@ ContainerQueue(changeStream, "Change stream", "Redis", "The facts the ledger pub
 ContainerDb(database, "Message Store", "PostgreSQL", "The messages this service was handed, and what became of each", $tags="storeExternal")
 
 Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
-  Component(consumer, "Change Stream Consumer", "Redis consumer group", "Claims stalled entries, reads its own and then new ones, acknowledges what is finished with", $tags="callerExternal")
-  Component(handler, "Change Stream Entry Handler", "Plain Java", "Reads one entry, offers it, and acknowledges what is finished with", $tags="callerExternal")
-  Component(entryReader, "Change Stream Entry Reader", "Plain Java", "Reads an entry's body as one spending fact and its position", $tags="callerExternal")
+  Component(consumer, "Change Stream Consumer", "Redis consumer group", "Reads the group's entries", $tags="callerExternal")
+  Component(handler, "Change Stream Entry Handler", "Plain Java", "Offers one entry to the port", $tags="callerExternal")
+  Component(entryReader, "Change Stream Entry Reader", "Plain Java", "Entry body to command", $tags="callerExternal")
   Component(learnPort, "Learn Message Outcome Port", "Interface", "Inbound port", $tags="portIn")
   Component(useCase, "Learn Message Outcome Use Case", "Plain Java", "Applies one fact, and bounds a delivery the store keeps refusing", $tags="core")
 
@@ -77,7 +77,7 @@ Container_Boundary(aiConnector, "AI Connector Service (Java, Spring Boot)") {
 
 Rel_D(ledger, changeStream, "Publishes each fact", "RESP")
 Rel_D(changeStream, consumer, "Reads, claims and acknowledges", "RESP")
-Rel_R(consumer, handler, "Hands each entry to")
+Rel_D(consumer, handler, "Hands each entry to")
 Rel_R(handler, entryReader, "Reads an entry through")
 Rel_D(handler, learnPort, "Invokes")
 Rel_L(useCase, learnPort, "Implements", $tags="implements")
