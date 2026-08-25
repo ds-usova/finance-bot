@@ -12,8 +12,7 @@ never changes once given.
 
 ## Refactoring candidates
 
-| #  | Raised by | Module                 | What                                                                                                     | Where                                                                                       |
-|----|-----------|------------------------|----------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| C2 | task 32   | `ai-connector-service` | keep a hand-entered expense as a row of its own, with its own retention                                  | [findings](implemented/32-the-connector-learns-what-became-of-a-message/review/findings.md) |
-| C6 | task 40   | `ledger-service`       | loosen the log assertion pinning an SLF4J overload, and restore the class's own three-argument idiom     | [findings](implemented/40-set-a-default-currency/review/findings.md)                        |
-| C9 | task 46   | `web-app`              | give `SettingsPage.report`/`ExpensesPage.report` and `onChangeCategory` a shared home                    | [findings](implemented/46-malformed-response-errors-carry-a-catalogue-key/review/findings.md) |
+| #  | Raised by | Module                 | What                                                                                                  | Where                                                                                       |
+|----|-----------|------------------------|-----------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| C2 | task 32   | `ai-connector-service` | keep a hand-entered expense as a row of its own, with its own retention                               | [findings](implemented/32-the-connector-learns-what-became-of-a-message/review/findings.md) |
+| C6 | task 40   | `ledger-service`       | loosen the log assertion pinning an SLF4J overload, and restore the class's own three-argument idiom  | [findings](implemented/40-set-a-default-currency/review/findings.md)                        |
