@@ -129,11 +129,11 @@ still showing its own message, are already held by the existing regression tests
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `client` · test: `client.test.ts`
-- [ ] GU02 · `expenses` · test: `expenses.test.ts` · after: GU01
-- [ ] GU03 · `preferences` · test: `preferences.test.ts` · after: GU01
-- [ ] GU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · after: GU01
-- [ ] GU05 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU01
+- [x] GU01 · `client` · test: `client.test.ts`
+- [x] GU02 · `expenses` · test: `expenses.test.ts` · after: GU01
+- [x] GU03 · `preferences` · test: `preferences.test.ts` · after: GU01
+- [x] GU04 · `SettingsPage` · test: `SettingsPage.test.tsx` · after: GU01
+- [x] GU05 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU01
 
 `SettingsPage.report` and `ExpensesPage.report`/`onChangeCategory` each gain one branch, checked before the
 existing `instanceof ApiError` one: a caught `MalformedResponseError` shows `t(error.key)`. Every other branch —

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError } from '../api/client';
+import { ApiError, MalformedResponseError } from '../api/client';
 import {
   acceptExpenses,
   changeCategory,
@@ -62,6 +62,10 @@ export function ExpensesPage() {
     (error: unknown) => {
       if (error instanceof ApiError && error.status === 401) {
         sessionExpired();
+        return;
+      }
+      if (error instanceof MalformedResponseError) {
+        setFailure(t(error.key));
         return;
       }
       setFailure(
@@ -216,9 +220,11 @@ export function ExpensesPage() {
           setChangeFailure({
             key,
             message:
-              error instanceof ApiError || !(error instanceof Error)
-                ? t('listing.categoryChangeRefused')
-                : error.message,
+              error instanceof MalformedResponseError
+                ? t(error.key)
+                : error instanceof ApiError || !(error instanceof Error)
+                  ? t('listing.categoryChangeRefused')
+                  : error.message,
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.

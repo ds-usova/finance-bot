@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError } from '../api/client';
+import { ApiError, MalformedResponseError } from '../api/client';
 import { readPreferences, replacePreferences } from '../api/preferences';
 import { useAuth } from '../auth/useAuth';
 import { CurrencyPicker } from '../components/CurrencyPicker';
@@ -21,6 +21,10 @@ export function SettingsPage() {
     (error: unknown, setFailure: (message: string | null) => void) => {
       if (error instanceof ApiError && error.status === 401) {
         sessionExpired();
+        return;
+      }
+      if (error instanceof MalformedResponseError) {
+        setFailure(t(error.key));
         return;
       }
       setFailure(
