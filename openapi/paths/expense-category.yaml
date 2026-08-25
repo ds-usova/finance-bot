@@ -2,16 +2,16 @@ patch:
   operationId: changeExpenseCategory
   summary: Refile one of the signed-in person's entries under a different category.
   description: >-
-    The entry is named by its id alone: since ADR 0018 an id is unique across both statuses, so the id and the
-    signed-in caller name the row on their own. The document replaces `/categoryId` and nothing else, and the
-    answer is the entry as it now stands. Both a pending proposal and a recorded expense can be refiled.
+    The entry is named by the id the listing answered, whatever its status. The document replaces `/categoryId`
+    and nothing else, and the answer is the entry as it now stands. Both a pending proposal and a recorded
+    expense can be refiled.
   tags:
     - expenses
   parameters:
     - name: id
       in: path
       required: true
-      description: The id of the caller's entry, unique across both statuses.
+      description: The id of the caller's entry, as the listing answered it.
       schema:
         type: integer
         format: int64
