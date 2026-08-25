@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -206,47 +205,45 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when an id names no entry of theirs under that status - then 404 naming the entry rather "
-                + "than the caller")
-        @Disabled("R01: the path no longer carries a status segment; retargeted to the id-alone shape by R02")
-        void whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry() {
-            //            String externalId = "change-category-missing-entry-user";
-            //            String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
-            //            long userId = userIdOf(externalId);
-            //            long categoryId = groceriesCategoryId(userId, "Supermarkets");
-            //            long otherCategoryId = groceriesCategoryId(userId, "Markets");
-            //            long expenseId = ExpenseRowUtils.storedExpense(
-            //                            jdbcAggregateTemplate,
-            //                            userId,
-            //                            categoryId,
-            //                            "groceries",
-            //                            "Market",
-            //                            1500L,
-            //                            "EUR",
-            //                            UUID.randomUUID().toString(),
-            //                            Instant.now(),
-            //                            ExpenseStatus.RECORDED)
-            //                    .id();
-            //            String csrfToken = BrowserSessions.csrfToken();
-            //
-            //            // when: the entry is patched under the wrong status - it exists, but not as PENDING
-            //            Response response = patchCategory(sessionCookie, csrfToken, "PENDING", expenseId,
-            // otherCategoryId);
-            //            logResponse(response);
-            //
-            //            // then: the response is 404 and its message names the entry rather than the caller
-            //            response.then().statusCode(404);
-            //            assertThat(response.jsonPath().getString("message"))
-            //                    .as("the 404 names the entry, not the caller-unknown message")
-            //                    .isEqualTo("no entry of yours carries that id");
-            //
-            //            // then: the entry is unchanged - still RECORDED, under its original category
-            //            List<ExpenseEntity> expenseRows =
-            //                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
-            //            assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
-            //            assertThat(expenseRows.get(0).categoryId())
-            //                    .as("the entry's category is untouched")
-            //                    .isEqualTo(categoryId);
+        @DisplayName("when an id names no entry of theirs - then 404 naming the entry rather than the caller")
+        void whenAnIdNamesNoEntryOfTheirs_then404NamingTheEntry() {
+            String externalId = "change-category-missing-entry-user";
+            String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
+            long userId = userIdOf(externalId);
+            long categoryId = groceriesCategoryId(userId, "Supermarkets");
+            long otherCategoryId = groceriesCategoryId(userId, "Markets");
+            long expenseId = ExpenseRowUtils.storedExpense(
+                            jdbcAggregateTemplate,
+                            userId,
+                            categoryId,
+                            "groceries",
+                            "Market",
+                            1500L,
+                            "EUR",
+                            UUID.randomUUID().toString(),
+                            Instant.now(),
+                            ExpenseStatus.RECORDED)
+                    .id();
+            String csrfToken = BrowserSessions.csrfToken();
+            long missingId = 999_999_999L;
+
+            // when: an id naming no entry of theirs is patched
+            Response response = patchCategory(sessionCookie, csrfToken, missingId, otherCategoryId);
+            logResponse(response);
+
+            // then: the response is 404 and its message names the entry rather than the caller
+            response.then().statusCode(404);
+            assertThat(response.jsonPath().getString("message"))
+                    .as("the 404 names the entry, not the caller-unknown message")
+                    .isEqualTo("no entry of yours carries that id");
+
+            // then: the stored entry is unchanged - still under its original category
+            List<ExpenseEntity> expenseRows =
+                    ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
+            assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
+            assertThat(expenseRows.get(0).categoryId())
+                    .as("the entry's category is untouched")
+                    .isEqualTo(categoryId);
         }
 
         @Test

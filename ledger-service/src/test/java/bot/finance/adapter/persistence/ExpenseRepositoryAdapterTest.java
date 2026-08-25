@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -1259,26 +1258,26 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when the id names a pending proposal, not an expense - then the answer is empty and the proposal row is untouched")
-        @Disabled("R01: refile no longer guards by status; retargeted to the id-alone shape by R02")
-        void whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched() {
-            //            long userId = storedUserId("refile-names-proposal-user");
-            //            long groupingId = groupingIdNamed(userId, "Groceries");
-            //            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
-            //            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
-            //            ExpenseEntity proposal =
-            //                    storedProposalAt(userId, originalCategoryId, "Pending purchase", 500, "USD",
-            // Instant.now());
-            //
-            //            Optional<ExpenseEntry> refiled =
-            //                    adapter.refile(userId, proposal.id(), newCategoryId, ExpenseStatus.RECORDED,
-            // Instant.now());
-            //
-            //            assertThat(refiled).isEmpty();
-            //            assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING))
-            //                    .singleElement()
-            //                    .satisfies(row -> assertThat(row.categoryId()).isEqualTo(originalCategoryId));
+        @DisplayName("when the id names a pending proposal, not an expense - then it is refiled and stays PENDING")
+        void whenIdNamesCallersPendingProposal_thenItIsRefiledAndStaysPending() {
+            long userId = storedUserId("refile-names-proposal-user");
+            long groupingId = groupingIdNamed(userId, "Groceries");
+            long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
+            long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
+            ExpenseEntity proposal =
+                    storedProposalAt(userId, originalCategoryId, "Pending purchase", 500, "USD", Instant.now());
+
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, proposal.id(), newCategoryId, Instant.now());
+
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(refiled.get().categoryId()).isEqualTo(newCategoryId);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING))
+                    .singleElement()
+                    .satisfies(row -> {
+                        assertThat(row.id()).isEqualTo(proposal.id());
+                        assertThat(row.categoryId()).isEqualTo(newCategoryId);
+                    });
         }
 
         @Test

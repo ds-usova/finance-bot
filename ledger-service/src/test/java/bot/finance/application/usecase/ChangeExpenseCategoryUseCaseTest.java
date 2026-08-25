@@ -28,7 +28,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -78,25 +77,6 @@ class ChangeExpenseCategoryUseCaseTest {
 
             assertThat(result).isSameAs(entry);
             verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, FIXED_INSTANT);
-        }
-
-        @Test
-        @DisplayName(
-                "when the command names PENDING - then refile is called with PENDING and the entry is " + "returned")
-        @Disabled("R01: the command no longer carries status; merged with the RECORDED case by R02")
-        void whenCommandNamesPendingAndStoreAnswersRefiledEntry_thenRefileCalledOnceWithPendingAndEntryReturned() {
-            //            stubStoredUser();
-            //            stubCategoryAdmitted();
-            //            ExpenseEntry entry = newEntry(CATEGORY_ID);
-            //            when(expenseRepository.refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING,
-            // FIXED_INSTANT))
-            //                    .thenReturn(Optional.of(entry));
-            //
-            //            ExpenseEntry result = useCase.change(newCommand(ExpenseStatus.PENDING));
-            //
-            //            assertThat(result).isSameAs(entry);
-            //            verify(expenseRepository).refile(USER_ID, ENTRY_ID, CATEGORY_ID, ExpenseStatus.PENDING,
-            // FIXED_INSTANT);
         }
 
         @Test
