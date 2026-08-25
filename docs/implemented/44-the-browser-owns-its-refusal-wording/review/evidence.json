@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/44-the-browser-owns-its-refusal-wording/plan.md",
+  "commit": "e4c67dcf",
+  "branch": "dev",
+  "workingTree": "3 uncommitted file(s)",
+  "generated": "2026-08-25T14:35:32Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 403, "passed": 403, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "94.8%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1188, "passed": 1188, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 277, "passed": 277, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "91.8%", "minimum": "80%", "format": "clean"}
+  ]
+}
