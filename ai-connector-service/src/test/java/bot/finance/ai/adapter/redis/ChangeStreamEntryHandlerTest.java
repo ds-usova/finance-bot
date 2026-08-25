@@ -1,5 +1,7 @@
 package bot.finance.ai.adapter.redis;
 
+import static bot.finance.ai.common.fixtures.SpendingFactFixtures.position;
+import static bot.finance.ai.common.fixtures.SpendingFactFixtures.spendingRow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,11 +17,7 @@ import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.common.MockedLoggerUtils;
 import bot.finance.ai.domain.exception.InvalidValueException;
-import bot.finance.ai.domain.value.CategoryRef;
-import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.RecordedStatus;
-import bot.finance.ai.domain.value.SpendingRow;
-import bot.finance.ai.domain.value.StreamPosition;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -61,18 +59,8 @@ class ChangeStreamEntryHandlerTest {
     }
 
     private static LearnMessageOutcomeCommand command() {
-        SpendingRow row = new SpendingRow(
-                1L,
-                10L,
-                Optional.of("message-1"),
-                "lunch",
-                Optional.of("Deli Co"),
-                "15.00",
-                CurrencyCode.of("EUR"),
-                new CategoryRef(42L, "Lunch"),
-                new CategoryRef(7L, "Food"));
         return new LearnMessageOutcomeCommand(
-                ENTRY_ID, new StreamPosition(1_700_000_000_000L, 1L), RecordedStatus.PROPOSED, row);
+                ENTRY_ID, position(1_700_000_000_000L, 1L), RecordedStatus.PROPOSED, spendingRow());
     }
 
     @Nested
