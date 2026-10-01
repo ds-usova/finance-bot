@@ -27,6 +27,7 @@ import {
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
+import { Sheet } from '../components/Sheet';
 import { refusalText } from './errorText';
 
 // How many ids the acceptance endpoint takes in one request, and so the cap on the tick set — a merged day
@@ -47,6 +48,7 @@ export function ExpensesPage() {
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [changeFailure, setChangeFailure] = useState<{ key: string; message: string } | null>(null);
   const [focusDay, setFocusDay] = useState<string | null>(null);
+  const [postedDays, setPostedDays] = useState<ReadonlySet<string>>(new Set());
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
   // not the ones the call left with — a ref rather than the closed-over state keeps them current.
@@ -102,7 +104,15 @@ export function ExpensesPage() {
   );
 
   // A narrower filter matches other rows, so the offset the previous one reached means nothing under it.
-  const narrow = (next: ExpenseFilter) => setFilter({ ...next, offset: undefined });
+  const narrow = (next: ExpenseFilter) => {
+    setPostedDays(new Set());
+    setFilter({ ...next, offset: undefined });
+  };
+
+  const turnTo = (offset: number) => {
+    setPostedDays(new Set());
+    setFilter({ ...filter, offset });
+  };
 
   const onTickDay = useCallback((ids: number[], ticked: boolean) => {
     setTickedIds((prev) => {
@@ -236,6 +246,7 @@ export function ExpensesPage() {
       .then((acceptance) => {
         setAccepting(false);
         setTickedIds(new Set());
+        setPostedDays(days);
         setFailure(null);
         setMissingMessage(
           acceptance.missing > 0
@@ -250,19 +261,30 @@ export function ExpensesPage() {
       });
   }, [accepting, tickedIds, rereadTouchedDays, report, t]);
 
+  const awaitingOnPage = page?.items.filter((item) => item.status !== 'RECORDED').length ?? 0;
+
   return (
-    <div className="flex flex-col gap-6">
-      {failure && <ErrorBanner message={failure} />}
+    <Sheet>
+      {failure && (
+        <div className="mb-3">
+          <ErrorBanner message={failure} />
+        </div>
+      )}
       <ExpenseFilters
         groupings={groupings}
         categories={categories}
         filter={filter}
         onChange={narrow}
       />
-      <ExpenseActionBar count={tickedIds.size} onAccept={onAccept} busy={accepting} />
-      {missingMessage && <p className="text-sm text-muted-foreground">{missingMessage}</p>}
+      {missingMessage && <p className="mt-4 text-sm text-pencil">{missingMessage}</p>}
       {page && (
-        <>
+        <div className="mt-8 flex-1">
+          {/* The page's one headline: what still needs the person. Each day below repeats its own share. */}
+          {awaitingOnPage > 0 && (
+            <p className="mb-3 text-lg font-semibold tracking-[-0.01em] text-ink">
+              {t('listing.awaitingCount', { count: awaitingOnPage })}
+            </p>
+          )}
           <ExpenseList
             page={page}
             categoryNames={categoryNames}
@@ -276,10 +298,12 @@ export function ExpensesPage() {
             changeFailure={changeFailure}
             focusDay={focusDay}
             onChangeCategory={onChangeCategory}
+            postedDays={postedDays}
           />
-          <Pager page={page} onOffset={(offset) => setFilter({ ...filter, offset })} />
-        </>
+          <Pager page={page} onOffset={turnTo} />
+        </div>
       )}
-    </div>
+      <ExpenseActionBar count={tickedIds.size} onAccept={onAccept} busy={accepting} />
+    </Sheet>
   );
 }

@@ -3,7 +3,7 @@ import { Select as SelectPrimitive } from 'radix-ui';
 import type { ComponentProps } from 'react';
 import { cn } from '../../lib/utils';
 
-const SCROLL_BUTTON = 'flex cursor-default items-center justify-center py-1 text-muted-foreground';
+const SCROLL_BUTTON = 'flex cursor-default items-center justify-center py-1 text-pencil';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
@@ -17,14 +17,14 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm outline-none focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 text-left text-sm text-ink outline-none transition-colors hover:bg-ink/[0.05] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 opacity-50" />
+        <ChevronDown className="h-4 w-4 text-pencil" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -40,11 +40,12 @@ export function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         position={position}
+        sideOffset={4}
         className={cn(
           // Radix measures the room between the trigger and the edge of the window and publishes it as
           // `--radix-select-content-available-height`. Without a height bound the list is simply cut off
           // at whatever the popup happens to be, and the options past the cut cannot be reached at all.
-          'z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-card text-foreground shadow-md',
+          'z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-rule-strong bg-leaf text-ink',
           className,
         )}
         {...props}
@@ -71,7 +72,7 @@ export function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex w-full cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 text-sm outline-none select-none focus:bg-muted',
+        'relative flex min-h-10 w-full cursor-pointer items-center rounded-sm pr-2 pl-8 text-sm outline-none select-none focus:bg-cover/10 sm:min-h-8',
         className,
       )}
       {...props}

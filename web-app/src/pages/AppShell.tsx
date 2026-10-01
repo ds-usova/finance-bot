@@ -1,55 +1,72 @@
-import { Moon, Settings, Sun } from 'lucide-react';
+import { LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../auth/useAuth';
 import { Button } from '../components/ui/button';
 import { useTheme } from '../theme/useTheme';
 
-// The layout element every route renders inside. Reads the session from the context to decide whether the
-// sign-out control is shown, and carries the theme control.
+// The layout element every route renders inside: the passbook's cover. Reads the session from the context to
+// decide whether settings and sign-out are shown, and carries the theme control.
 export function AppShell() {
   const { t } = useTranslation();
   const { status, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-          <h1 className="text-base font-semibold tracking-tight">
+    <div className="cloth flex min-h-dvh flex-col">
+      <header className="cloth sticky top-0 z-30 border-b border-cover-edge">
+        {/* As wide as the page below it plus the cover showing either side, so the title and the controls
+            stand over the page's own edges. */}
+        <div className="mx-auto flex h-14 w-full max-w-[75rem] items-center justify-between gap-3 px-3 sm:px-6">
+          <h1 className="min-w-0">
+            {/* The foil title, set plainly on the cloth. */}
             <Link
               to="/"
-              className="rounded-md outline-none transition-colors hover:bg-muted focus-visible:ring-1 focus-visible:ring-accent"
+              className="-ml-1.5 inline-flex items-center rounded-sm px-1.5 py-1 font-sans text-[1.0625rem] font-bold tracking-[-0.005em] text-foil transition-colors hover:bg-black/15 focus-visible:ring-2 focus-visible:ring-foil focus-visible:ring-offset-2 focus-visible:ring-offset-cover"
             >
               {t('shell.productName')}
             </Link>
           </h1>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
             {status === 'authenticated' && (
-              <Button variant="ghost" size="icon" aria-label={t('shell.settings')} asChild>
+              <Button
+                variant="cover"
+                size="icon"
+                aria-label={t('shell.settings')}
+                className="aria-[current=page]:bg-black/20 aria-[current=page]:text-foil"
+                asChild
+              >
                 <NavLink to="/settings">
-                  <Settings aria-hidden="true" />
+                  <Settings aria-hidden="true" className="h-[18px] w-[18px]" />
                 </NavLink>
               </Button>
             )}
             <Button
-              variant="ghost"
+              variant="cover"
               size="icon"
               aria-label={t('shell.themeToggle')}
               onClick={toggleTheme}
             >
-              {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+              {theme === 'dark' ? (
+                <Sun aria-hidden="true" className="h-[18px] w-[18px]" />
+              ) : (
+                <Moon aria-hidden="true" className="h-[18px] w-[18px]" />
+              )}
             </Button>
             {status === 'authenticated' && (
-              <Button variant="ghost" onClick={() => void signOut()}>
-                {t('shell.signOut')}
-              </Button>
+              <>
+                <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-foil/25" />
+                <Button variant="cover" className="px-2.5" onClick={() => void signOut()}>
+                  <LogOut aria-hidden="true" className="h-4 w-4 sm:hidden" />
+                  <span className="sr-only sm:not-sr-only">{t('shell.signOut')}</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
       </header>
-      {/* `flex-1` so a route that wants the rest of the viewport — the sign-in card — can centre in it. */}
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+      {/* `flex-1` so a route that wants the rest of the viewport — the sign-in cover — can fill it. */}
+      <main className="flex w-full flex-1 flex-col sm:px-6 sm:py-8">
         <Outlet />
       </main>
     </div>

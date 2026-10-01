@@ -7,20 +7,20 @@ export function Checkbox({ className, ...props }: ComponentProps<typeof Checkbox
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        // The box is 16px because that is what reads well beside 14px text, but 16px is far too small to hit.
-        // The `before` pseudo-element carries the press out to 32px in every direction without moving anything
-        // on screen, and `z-10` puts it over whatever follows it in the DOM — beside a day's tick that is the
-        // accordion trigger, so a near miss used to open the day instead of clearing the tick.
-        'relative z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-border outline-none transition-colors before:absolute before:-inset-2 before:content-[""] focus-visible:ring-2 focus-visible:ring-accent data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
+        // The box is 18px because that is what reads well beside the line's text, but 18px is far too small to
+        // hit. The `before` pseudo-element carries the press out to 44px without moving anything on screen, and
+        // `z-10` puts it over whatever follows it in the DOM — beside a day's tick that is the accordion
+        // trigger, so a near miss used to open the day instead of clearing the tick.
+        'relative z-10 flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-sm border-[1.5px] border-pencil bg-leaf outline-none transition-colors before:absolute before:-inset-[13px] before:content-[""] hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-paper data-[state=checked]:border-stamp data-[state=checked]:bg-stamp data-[state=indeterminate]:border-stamp data-[state=indeterminate]:bg-stamp disabled:cursor-not-allowed disabled:opacity-40',
         className,
       )}
       {...props}
     >
-      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-surface">
+      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-stamp-foreground">
         {props.checked === 'indeterminate' ? (
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-3.5 w-3.5" strokeWidth={3} />
         ) : (
-          <Check className="h-3.5 w-3.5" />
+          <Check className="h-3.5 w-3.5" strokeWidth={3} />
         )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>

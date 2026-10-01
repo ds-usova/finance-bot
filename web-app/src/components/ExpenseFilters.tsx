@@ -54,37 +54,46 @@ export function ExpenseFilters({ groupings, categories, filter, onChange }: Expe
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3 sm:p-5">
+    // A passbook's form block: each filter one ruled line, side by side once the page is wide enough.
+    <section aria-labelledby="filters-title" className="flex flex-col">
       {/* Always in the flow, whether or not it holds the reset: a row that comes and goes moves every
           control under it the moment a filter is set. */}
-      <div className="flex min-h-9 items-center justify-between gap-4 sm:col-span-3">
-        <span className="text-sm font-medium text-muted-foreground">{t('filters.title')}</span>
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b-2 border-double border-rule-strong pb-1">
+        <h2 id="filters-title" className="column-head">
+          {t('filters.title')}
+        </h2>
         {narrowed && (
-          <Button variant="ghost" className="h-auto px-2 py-1 text-sm font-normal" onClick={reset}>
+          <Button
+            variant="ghost"
+            className="-mr-2 h-8 px-2 text-sm font-medium underline decoration-rule-strong underline-offset-4"
+            onClick={reset}
+          >
             {t('filters.reset')}
           </Button>
         )}
       </div>
-      <CategoryFilter
-        groupings={groupings}
-        categories={categories}
-        categoryId={filter.categoryId}
-        onChange={chooseCategory}
-      />
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor="filter-status">{t('filters.status')}</Label>
-        <Select value={filter.status ?? ALL} onValueChange={chooseStatus}>
-          <SelectTrigger id="filter-status">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
-            <SelectItem value="RECORDED">{t('filters.statusRecorded')}</SelectItem>
-            <SelectItem value="PENDING">{t('filters.statusPending')}</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-1 sm:grid-cols-3 sm:gap-x-6 sm:[&>*]:grid-cols-1 sm:[&>*]:gap-y-1 sm:[&>*]:pt-2.5 sm:[&>*]:pb-1">
+        <CategoryFilter
+          groupings={groupings}
+          categories={categories}
+          categoryId={filter.categoryId}
+          onChange={chooseCategory}
+        />
+        <div className="form-line">
+          <Label htmlFor="filter-status">{t('filters.status')}</Label>
+          <Select value={filter.status ?? ALL} onValueChange={chooseStatus}>
+            <SelectTrigger id="filter-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t('filters.all')}</SelectItem>
+              <SelectItem value="RECORDED">{t('filters.statusRecorded')}</SelectItem>
+              <SelectItem value="PENDING">{t('filters.statusPending')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <PeriodFilter period={{ from: filter.from, to: filter.to }} onChange={choosePeriod} />
       </div>
-      <PeriodFilter period={{ from: filter.from, to: filter.to }} onChange={choosePeriod} />
-    </div>
+    </section>
   );
 }

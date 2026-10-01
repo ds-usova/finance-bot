@@ -13,6 +13,8 @@ export type ExpenseListProps = ExpenseTickingProps &
     page: ExpensePage;
     /** Each category's name by its id. A row whose category is missing renders unnamed rather than failing. */
     categoryNames: Map<number, string>;
+    /** The days an acceptance just posted entries on. */
+    postedDays?: ReadonlySet<string>;
   };
 
 export function ExpenseList({
@@ -28,15 +30,22 @@ export function ExpenseList({
   changeFailure,
   focusDay,
   onChangeCategory,
+  postedDays,
 }: ExpenseListProps) {
   const { t } = useTranslation();
 
   if (page.items.length === 0) {
-    return <Alert>{t('listing.empty')}</Alert>;
+    return (
+      // A blank page: ruled lines with nothing printed on them yet.
+      <Alert className="min-h-40 items-center justify-center border-y-0 bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_calc(2.5rem-1px),var(--rule)_calc(2.5rem-1px),var(--rule)_2.5rem)] text-pencil">
+        {/* On a patch of the page's own paper, so the rules behind it never run through the words. */}
+        <span className="bg-paper px-4 py-2">{t('listing.empty')}</span>
+      </Alert>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       {toDaySections(page.items, page.dayTotals).map((day) => (
         <ExpenseDaySection
           key={day.day}
@@ -52,6 +61,7 @@ export function ExpenseList({
           changeFailure={changeFailure}
           focusDay={focusDay}
           onChangeCategory={onChangeCategory}
+          posted={postedDays?.has(day.day) ?? false}
         />
       ))}
     </div>

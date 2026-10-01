@@ -4,19 +4,28 @@ import type { ComponentProps } from 'react';
 import { cn } from '../../lib/utils';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-colors focus-visible:ring-1 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-[color,background-color,border-color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-paper active:translate-y-px disabled:pointer-events-none disabled:opacity-45',
   {
     variants: {
       variant: {
-        default: 'bg-accent text-surface hover:opacity-90',
-        outline: 'border border-border bg-surface shadow-sm hover:bg-muted',
-        ghost: 'hover:bg-muted',
+        default: 'bg-ink text-paper hover:bg-ink/85',
+        // The teller's stamp: the one action that posts. A second rule inset from the edge is the rubber
+        // stamp's own frame.
+        stamp:
+          'bg-stamp text-[0.9375rem] font-semibold text-stamp-foreground outline outline-1 -outline-offset-[5px] outline-stamp-foreground/55 hover:bg-stamp/90',
+        outline: 'border border-rule-strong bg-transparent text-ink hover:bg-ink/[0.04]',
+        ghost: 'text-ink hover:bg-ink/[0.06]',
+        // Controls printed on the cover: foil on cloth.
+        cover:
+          'text-foil/85 hover:bg-black/15 hover:text-foil focus-visible:ring-foil focus-visible:ring-offset-cover',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        // The shape a form field takes, so a button that opens a list stands beside a select unnoticed.
-        field: 'h-9 w-full justify-between px-3 py-2',
-        icon: 'h-9 w-9',
+        default: 'h-10 px-4',
+        // A value written on a form line: no box of its own, since the line's rule already is one.
+        field:
+          'h-10 w-full justify-between rounded-sm px-2 text-left font-normal hover:bg-ink/[0.05]',
+        icon: 'h-10 w-10',
+        key: 'h-12 px-6',
       },
     },
     defaultVariants: {
