@@ -157,7 +157,7 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             WITH changed AS (
                 UPDATE expense
                 SET category_id = :categoryId, updated_at = :now
-                WHERE id = :id AND user_id = :userId AND status = :status
+                WHERE id = :id AND user_id = :userId
                 RETURNING *
             )
             SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
@@ -173,7 +173,6 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
             @Param("userId") Long userId,
             @Param("id") Long id,
             @Param("categoryId") Long categoryId,
-            @Param("status") String status,
             @Param("now") Instant now);
 
     @Query(

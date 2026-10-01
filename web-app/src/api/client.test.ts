@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
-import { ApiError, request } from './client';
+import { ApiError, MalformedResponseError, request } from './client';
 
 describe('the API client', () => {
   beforeEach(() => {
@@ -96,5 +96,16 @@ describe('the API client', () => {
 
   it('is an Error, so an unhandled ApiError still reports a message', () => {
     expect(new ApiError(503, 'unavailable')).toBeInstanceOf(Error);
+  });
+
+  it('is an Error, and reads back the key and message it was given', () => {
+    const error = new MalformedResponseError(
+      'listing.acceptanceMalformed',
+      'the acceptance answered with no counts',
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.key).toBe('listing.acceptanceMalformed');
+    expect(error.message).toBe('the acceptance answered with no counts');
   });
 });

@@ -326,7 +326,7 @@ class ExpenseRepositoryAdapterEventsTest {
             long newCategoryId = storedCategoryId(userId, groupingIdNamed(userId, "Leisure"), "Dining");
             ExpenseEntity stored = storedRecorded(userId, originalCategoryId, "Weekly shop", 1500);
 
-            adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
 
             Appended appended = appended();
             assertThat(appended.type()).isEqualTo(LedgerEventType.ExpenseRefiled);
@@ -350,7 +350,7 @@ class ExpenseRepositoryAdapterEventsTest {
                     500,
                     IncomingMessageId.of(UUID.randomUUID().toString()));
 
-            adapter.refile(userId, proposal.id(), newCategoryId, ExpenseStatus.PENDING, Instant.now());
+            adapter.refile(userId, proposal.id(), newCategoryId, Instant.now());
 
             assertThat(appended().type()).isEqualTo(LedgerEventType.ProposalRefiled);
         }
@@ -366,7 +366,7 @@ class ExpenseRepositoryAdapterEventsTest {
             ExpenseEntity stored = storedRecorded(userId, originalCategoryId, "Purchase", 100);
             CategoryRowUtils.renameCategory(jdbcAggregateTemplate, userId, newCategoryId, "Fine Dining");
 
-            adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
 
             assertThat(appended().rows()).singleElement().satisfies(row -> assertThat(row.categoryName())
                     .isEqualTo("Fine Dining"));
@@ -378,7 +378,7 @@ class ExpenseRepositoryAdapterEventsTest {
             long userId = storedUserId("events-refile-unknown-entry-user");
             long categoryId = leafCategoryId(userId, "Groceries");
 
-            adapter.refile(userId, 999_999_999L, categoryId, ExpenseStatus.RECORDED, Instant.now());
+            adapter.refile(userId, 999_999_999L, categoryId, Instant.now());
 
             assertNothingRecorded();
         }

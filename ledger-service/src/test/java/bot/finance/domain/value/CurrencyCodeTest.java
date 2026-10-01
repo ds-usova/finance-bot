@@ -54,4 +54,33 @@ class CurrencyCodeTest {
             assertThat(currencyCode).isEqualTo(new CurrencyCode("JPY"));
         }
     }
+
+    @Nested
+    @DisplayName("recordsAmounts()")
+    class RecordsAmounts {
+
+        @Test
+        @DisplayName("when the currency can record an amount - then answers true")
+        void whenCurrencyCanRecordAnAmount_thenAnswersTrue() {
+            CurrencyCode currencyCode = new CurrencyCode("EUR");
+
+            assertThat(currencyCode.recordsAmounts()).isTrue();
+        }
+
+        @Test
+        @DisplayName("when the currency's default fraction digits are negative - then answers false")
+        void whenDefaultFractionDigitsAreNegative_thenAnswersFalse() {
+            CurrencyCode currencyCode = new CurrencyCode("XAU");
+
+            assertThat(currencyCode.recordsAmounts()).isFalse();
+        }
+
+        @Test
+        @DisplayName("when the currency's default fraction digits are negative - then the code is still accepted")
+        void whenDefaultFractionDigitsAreNegative_thenTheCodeIsStillAccepted() {
+            CurrencyCode currencyCode = new CurrencyCode("XAU");
+
+            assertThat(currencyCode.code()).isEqualTo("XAU");
+        }
+    }
 }

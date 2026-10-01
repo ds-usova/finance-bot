@@ -26,7 +26,8 @@
 
 - **Priorities**: (1) deduplicate logic written independently in two places; (2) align idioms with this file;
   (3) collapse scaffolding left over from getting tests to pass.
-- **Extraction targets**: shared rendering goes to `components/`; shared calls go to `api/`. A helper used by
-  one page stays in that page's file.
+- **Extraction targets**: shared rendering goes to `components/`; shared calls go to `api/`; a helper shared by
+  more than one page goes to `pages/`, beside them ([Dependency Rules](architecture.md#dependency-rules)). A
+  helper used by one page stays in that page's file.
 - **Leave alone**: generated files, and anything under `dist/`.
 - **Thresholds**: extract only when logic repeats in two or more files.

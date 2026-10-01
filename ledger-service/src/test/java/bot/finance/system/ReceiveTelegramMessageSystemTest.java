@@ -15,10 +15,12 @@ import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.LogCapture;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
+import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.fixtures.McpTokens;
 import bot.finance.common.fixtures.TelegramFixtures;
 import bot.finance.common.rows.ExpenseRowUtils;
+import bot.finance.common.rows.UserPreferenceRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
@@ -97,6 +99,10 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
      * {@code sendMessage}/catch-all stubs and the gRPC callback armed before the update-bearing stub exists, or
      * the loop consumes the update before the response it triggers can be recorded. The catch-all comes before the
      * update-bearing stub so the loop never sees a bare 404.
+     *
+     * <p>The update-bearing stub itself is armed by each test, once its own preconditions are ready — two
+     * scenarios share this token's one poll loop, so only the test that is about to assert on its outcome may put
+     * the delivery scenario into {@code STARTED}.
      */
     @BeforeEach
     void stubTelegram() {
@@ -113,10 +119,6 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                         PROPOSAL_MERCHANT,
                         PROPOSAL_AMOUNT_TEXT,
                         PROPOSAL_CURRENCY_CODE));
-        WireMockStubs.telegramDeliversOnce(
-                TOKEN,
-                TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
-                        SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
     }
 
     @AfterEach
@@ -143,6 +145,11 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                 + "back with its buttons")
         void whenRunningPollLoopPicksUpTextMessageUpdate_thenBatchIsConfirmedAndMessageIsPrinted()
                 throws ParseException {
+            WireMockStubs.telegramDeliversOnce(
+                    TOKEN,
+                    TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                            SCENARIO.updateId(), SCENARIO.userId(), SCENARIO.chatId(), MESSAGE_TEXT)));
+
             // then: the message is consumed and its batch confirmed
             await("the batch is confirmed with a follow-up getUpdates carrying offset=" + NEXT_OFFSET)
                     .atMost(POLL_TIMEOUT)
@@ -270,6 +277,45 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(callbackDataValues)
                     .as("both buttons' callback_data carry the imi claim's incoming message id")
                     .allSatisfy(callbackData -> assertThat(callbackData).endsWith(incomingMessageIdClaim));
+        }
+
+        @Test
+        @DisplayName("when the sender's stored preference holds EUR - then the extraction request carries EUR as "
+                + "the default currency")
+        void whenSendersStoredPreferenceHoldsEur_thenExtractionRequestCarriesEurAsDefaultCurrency() {
+            TelegramTestBot.TelegramScenario scenario = TelegramTestBot.RECEIVE_MESSAGE_WITH_DEFAULT_CURRENCY;
+            String externalId = scenario.userExternalId();
+
+            // given: the person already exists, with a preference row holding EUR
+            BrowserSessions.signIn(TOKEN, externalId);
+            long userId = userRepository
+                    .findByExternalId(externalId)
+                    .orElseThrow(() -> new AssertionError("sign-in stored no user for external id " + externalId))
+                    .id()
+                    .orElseThrow();
+            UserPreferenceRowUtils.storedPreference(jdbcAggregateTemplate, userId, "EUR");
+
+            WireMockStubs.telegramDeliversOnce(
+                    TOKEN,
+                    TelegramFixtures.updatesResponse(TelegramFixtures.textMessageUpdate(
+                            scenario.updateId(), scenario.userId(), scenario.chatId(), MESSAGE_TEXT)));
+
+            // when: they send a message the bot polls
+            await("the AI connector receives an extraction request")
+                    .atMost(POLL_TIMEOUT)
+                    .pollInterval(POLL_INTERVAL)
+                    .untilAsserted(() -> assertThat(GrpcStubServer.lastExtractionRequest())
+                            .as("last ExtractIntentsRequest received by the stub AI connector")
+                            .isNotNull());
+
+            // then: the extraction request the AI connector stub recorded carries default_currency EUR
+            ExtractIntentsRequest request = GrpcStubServer.lastExtractionRequest();
+            assertThat(request.hasDefaultCurrency())
+                    .as("extraction request carries a default_currency")
+                    .isTrue();
+            assertThat(request.getDefaultCurrency())
+                    .as("extraction request default_currency")
+                    .isEqualTo("EUR");
         }
     }
 }

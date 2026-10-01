@@ -15,7 +15,7 @@ import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidMoneyException;
+import bot.finance.domain.exception.InvalidValueException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.Cookie;
@@ -117,7 +117,7 @@ class WebExceptionHandlerTest {
                 + "the exception's own wording")
         void whenPortThrowsARefusedValueNoHandlerNames_thenResponseIs400WithoutTheExceptionsWording() throws Exception {
             String internalWording = "externalId must not be absent, empty or whitespace-only";
-            when(browseExpensesPort.browse(any())).thenThrow(new InvalidMoneyException(internalWording));
+            when(browseExpensesPort.browse(any())).thenThrow(new InvalidValueException(internalWording));
 
             MvcResult result = mockMvc.perform(get(PATH).cookie(sessionCookie()))
                     .andExpect(status().isBadRequest())

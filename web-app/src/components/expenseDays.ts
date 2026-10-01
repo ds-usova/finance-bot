@@ -34,7 +34,7 @@ export type ExpenseCategoryChangeProps = {
   groupings: Grouping[];
   /** The `entryKey` of the row whose change is out, or nothing. */
   changingKey: string | null;
-  /** The ledger's own words, and the row they were refused for. */
+  /** The surface's own refusal wording, and the row it was refused for. */
   changeFailure: { key: string; message: string } | null;
   /** The day whose header takes focus, set when a read back removed the row a person's control was on. */
   focusDay: string | null;

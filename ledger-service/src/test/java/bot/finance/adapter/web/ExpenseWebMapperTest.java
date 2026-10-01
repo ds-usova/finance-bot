@@ -294,30 +294,17 @@ class ExpenseWebMapperTest {
         private static final AuthenticatedUserId USER_ID = new AuthenticatedUserId(1L);
 
         @Test
-        @DisplayName("when the document replaces /categoryId under RECORDED - then the command carries the caller, "
-                + "status, id and category")
-        void whenDocumentReplacesCategoryIdUnderRecorded_thenCommandCarriesCallerRecordedIdAndCategory() {
+        @DisplayName("when the document replaces /categoryId - then the command carries the caller, the id and "
+                + "the category")
+        void whenDocumentReplacesCategoryId_thenCommandCarriesCallerIdAndCategory() {
             List<CategoryPatchOperation> document = List.of(replaceCategoryId(42L));
 
             ChangeExpenseCategoryCommand command =
-                    ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID);
+                    ExpenseWebMapper.toChangeExpenseCategoryCommand(7L, document, USER_ID);
 
             assertThat(command.userId()).isEqualTo(USER_ID);
-            assertThat(command.status()).isEqualTo(ExpenseStatus.RECORDED);
             assertThat(command.entryId()).isEqualTo(7L);
             assertThat(command.categoryId()).isEqualTo(42L);
-        }
-
-        @Test
-        @DisplayName("when the same document is given under PENDING - then the command carries PENDING as the "
-                + "domain status")
-        void whenSameDocumentIsGivenUnderPending_thenCommandCarriesPendingStatus() {
-            List<CategoryPatchOperation> document = List.of(replaceCategoryId(42L));
-
-            ChangeExpenseCategoryCommand command =
-                    ExpenseWebMapper.toChangeExpenseCategoryCommand("PENDING", 7L, document, USER_ID);
-
-            assertThat(command.status()).isEqualTo(ExpenseStatus.PENDING);
         }
 
         @ParameterizedTest(name = "{0}")
@@ -326,7 +313,7 @@ class ExpenseWebMapperTest {
                 + "InvalidExpenseCategoryChangeException")
         void whenDocumentCarriesWrongNumberOfOperations_thenThrowsInvalidExpenseCategoryChangeException(
                 String description, List<CategoryPatchOperation> document) {
-            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand(7L, document, USER_ID))
                     .isInstanceOf(InvalidExpenseCategoryChangeException.class)
                     .hasMessageContaining("one operation");
         }
@@ -345,7 +332,7 @@ class ExpenseWebMapperTest {
                     CategoryPatchOperation.OpEnum.REPLACE, CategoryPatchOperation.PathEnum._CATEGORY_ID, null);
             List<CategoryPatchOperation> document = List.of(operation);
 
-            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand(7L, document, USER_ID))
                     .isInstanceOf(InvalidExpenseCategoryChangeException.class)
                     .hasMessageContaining("value");
         }
@@ -356,7 +343,7 @@ class ExpenseWebMapperTest {
                 + "InvalidExpenseCategoryChangeException")
         void whenOperationNamesSomethingOtherThanReplaceOrCategoryId_thenThrowsExceptionNamingWhatWasRefused(
                 String description, List<CategoryPatchOperation> document, String expectedMessageFragment) {
-            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand("RECORDED", 7L, document, USER_ID))
+            assertThatThrownBy(() -> ExpenseWebMapper.toChangeExpenseCategoryCommand(7L, document, USER_ID))
                     .isInstanceOf(InvalidExpenseCategoryChangeException.class)
                     .hasMessageContaining(expectedMessageFragment);
         }

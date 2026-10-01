@@ -8,6 +8,7 @@ import bot.finance.domain.exception.ExpenseEntryNotFoundException;
 import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
+import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.InvalidValueException;
@@ -60,6 +61,12 @@ public class WebExceptionHandler {
 
     @ExceptionHandler(InvalidExpenseCategoryChangeException.class)
     public ResponseEntity<Map<String, String>> onInvalidExpenseCategoryChange(InvalidExpenseCategoryChangeException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidMoneyException.class)
+    public ResponseEntity<Map<String, String>> onInvalidMoney(InvalidMoneyException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
     }

@@ -104,8 +104,11 @@ foreach ($rule in $rules) {
         hookEventName = "PreToolUse"
         permissionDecision = "deny"
         permissionDecisionReason = "No allow rule covers this command, and this project refuses what it has " +
-            "not whitelisted rather than asking - nobody may be at the terminal to answer. Use a tool or " +
-            "script that is already allowed, or ask for a rule to be added to permissions.allow in " +
-            ".claude/settings.json. Refused: '$cmd'."
+            "not whitelisted rather than asking - nobody may be at the terminal to answer. Both " +
+            ".claude/settings.json and .claude/settings.local.json were checked, so read the second before " +
+            "concluding a rule is missing. A prefix rule is compared literally, so a quoted path matches no " +
+            "rule written bare: try the command again unquoted before asking for a rule. Otherwise use a tool " +
+            "or script that is already allowed, or ask for a rule to be added to permissions.allow in either " +
+            "file. Refused: '$cmd'."
     }
 } | ConvertTo-Json -Compress

@@ -20,6 +20,7 @@ describe('the wired application', () => {
       ['/categories', [aCategory()]],
       ['/groupings', [aGrouping()]],
       ['/session', { externalId }],
+      ['/api/v1/preferences', { defaultCurrency: null }],
     ];
 
     vi.stubGlobal(
@@ -52,6 +53,27 @@ describe('the wired application', () => {
     await listingArrives();
     expandDays();
     expect(screen.getByText('lunch')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: en.shell.productName }),
+    ).toBeInTheDocument();
+  });
+
+  it('sends a visitor with no session to the sign-in page when they ask for settings', async () => {
+    window.history.pushState({}, '', '/settings');
+    stubFetch(new Response(null, { status: 401 }));
+
+    render(<App />);
+
+    expect(await screen.findByRole('region', { name: 'Telegram sign-in' })).toBeInTheDocument();
+  });
+
+  it('shows a visitor whose session is already open the settings page inside the shell', async () => {
+    window.history.pushState({}, '', '/settings');
+    stubSignedIn('987654321');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: en.settings.heading })).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: en.shell.productName }),
     ).toBeInTheDocument();

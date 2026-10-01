@@ -1,0 +1,19 @@
+### Replace the preferences — PUT /api/v1/preferences
+# Sets the signed-in person's default currency, the code new entries are recorded in when none is given. The
+# code is a three-letter ISO 4217 code and never null. Needs an open session and the CSRF header, since it writes.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie a "read the session" response returns — see ../session/current-session.http.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### Set the default currency.
+PUT {{host}}/api/v1/preferences
+Content-Type: application/json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "defaultCurrency": "EUR"
+}

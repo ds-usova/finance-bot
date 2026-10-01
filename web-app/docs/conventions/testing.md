@@ -61,6 +61,9 @@ matchers are registered once in `vitest.setup.ts`, which also cleans up between 
   client. Nothing reaches past that.
 - **Assert the invariant, not the mechanism.** That a write carries the CSRF header, not that a particular
   header-building helper was called.
+- **An accessible role or name the design specifies is asserted**, not left to the rule above. For assistive
+  technology the role *is* the invariant: a save reported in a `role="status"` line is found by
+  `getByRole('status')`, and a bare `<span>` with the same text is a failing test.
 - **Build the expected value by hand, never from the expression under test.** A case that formats its
   expectation with the same `Intl` call it is checking asserts only that the component called `Intl` the way the
   test did, and passes just as happily when the output is wrong.

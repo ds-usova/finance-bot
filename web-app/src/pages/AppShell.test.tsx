@@ -44,6 +44,7 @@ describe('the shell', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: en.shell.themeToggle })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: en.shell.signOut })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: en.shell.settings })).not.toBeInTheDocument();
   });
 
   it('shows the product name, the theme control and a sign-out control for a signed-in person', () => {
@@ -102,5 +103,50 @@ describe('the shell', () => {
     expect(screen.getByRole('heading', { name: `‹${en.shell.productName}›` })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: `‹${en.shell.themeToggle}›` })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: `‹${en.shell.signOut}›` })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: `‹${en.shell.settings}›` })).toBeInTheDocument();
+  });
+
+  it('leads to /settings through a gear control carrying the catalogue’s settings label for a signed-in person', () => {
+    renderShell({ status: 'authenticated', session: { externalId: '42' } });
+
+    expect(screen.getByRole('link', { name: en.shell.settings })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
+  });
+
+  it('marks the gear control as the current page when the shell is rendered on /settings', () => {
+    renderShell(
+      { status: 'authenticated', session: { externalId: '42' } },
+      '/settings',
+      <p>settings content</p>,
+    );
+
+    expect(screen.getByRole('link', { name: en.shell.settings })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('shows the listing route when the product name is followed from /settings', async () => {
+    const user = userEvent.setup();
+    const value = anAuthContext({ status: 'authenticated', session: { externalId: '42' } });
+
+    render(
+      <AuthContext.Provider value={value}>
+        <MemoryRouter initialEntries={['/settings']}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="/" element={<p>listing content</p>} />
+              <Route path="/settings" element={<p>settings content</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    await user.click(screen.getByRole('link', { name: en.shell.productName }));
+
+    expect(screen.getByText('listing content')).toBeInTheDocument();
   });
 });

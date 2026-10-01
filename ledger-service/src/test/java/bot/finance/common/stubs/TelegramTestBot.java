@@ -103,6 +103,12 @@ public final class TelegramTestBot {
     /** Scenario owned by {@code PipelineMetersSystemTest}. */
     public static final TelegramScenario PIPELINE_METERS = new TelegramScenario(801, 1008, 2008);
 
+    /**
+     * Scenario owned by {@code ReceiveTelegramMessageSystemTest}'s default-currency turn: a sender who already
+     * exists, with a preference row set before the turn runs.
+     */
+    public static final TelegramScenario RECEIVE_MESSAGE_WITH_DEFAULT_CURRENCY = new TelegramScenario(901, 1009, 2009);
+
     private static final long UPDATE_LISTENER_SLEEP_MILLIS = 50L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

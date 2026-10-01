@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jsonResponse, stubFetch } from '../testing/fetchStub';
 import { aCategory, aGrouping, anAcceptance, anExpense, anExpensePage } from '../testing/fixtures';
+import { MalformedResponseError } from './client';
 import {
   acceptExpenses,
   changeCategory,
@@ -142,6 +143,15 @@ describe('the expense calls', () => {
         status: 401,
       });
     });
+
+    it('rejects with a MalformedResponseError carrying listing.acceptanceMalformed when the ledger answers 204 with no body', async () => {
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = acceptExpenses([1]);
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'listing.acceptanceMalformed' });
+    });
   });
 
   describe('changing an expense category', () => {
@@ -153,13 +163,13 @@ describe('the expense calls', () => {
       document.cookie = 'XSRF-TOKEN=; path=/; max-age=0';
     });
 
-    it('patches the entry by its status and id, replacing /categoryId, with the CSRF header and the cookies', async () => {
-      const entry = anExpense({ id: 12, status: 'RECORDED' });
+    it('patches the entry by its id, replacing /categoryId, with the CSRF header and the cookies', async () => {
+      const entry = anExpense({ id: 12 });
       const fetchMock = stubFetch(jsonResponse(anExpense({ id: 12, categoryId: 42 })));
 
       await changeCategory(entry, 42);
 
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/RECORDED/12');
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/12');
       const [, init] = fetchMock.mock.calls[0]!;
       expect(init).toMatchObject({ method: 'PATCH', credentials: 'include' });
       expect(JSON.parse(String(init?.body))).toEqual([
@@ -168,15 +178,6 @@ describe('the expense calls', () => {
       const headers = new Headers(init?.headers);
       expect(headers.get('Content-Type')).toBe('application/json-patch+json');
       expect(headers.get('X-XSRF-TOKEN')).toBe('csrf-token-value');
-    });
-
-    it('carries the PENDING status in the path, so the two statuses are never confused for one id', async () => {
-      const entry = anExpense({ id: 12, status: 'PENDING' });
-      const fetchMock = stubFetch(jsonResponse(anExpense({ id: 12, status: 'PENDING' })));
-
-      await changeCategory(entry, 42);
-
-      expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/expenses/PENDING/12');
     });
 
     it('answers the entry as the ledger now holds it', async () => {
@@ -216,6 +217,16 @@ describe('the expense calls', () => {
         name: 'ApiError',
         status: 404,
       });
+    });
+
+    it('rejects with a MalformedResponseError carrying listing.categoryChangeMalformed when the ledger answers 204 with no body', async () => {
+      const entry = anExpense({ id: 12 });
+      stubFetch(new Response(null, { status: 204 }));
+
+      const rejection = changeCategory(entry, 42);
+
+      await expect(rejection).rejects.toBeInstanceOf(MalformedResponseError);
+      await expect(rejection).rejects.toMatchObject({ key: 'listing.categoryChangeMalformed' });
     });
   });
 });

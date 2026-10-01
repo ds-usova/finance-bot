@@ -70,6 +70,13 @@ to be short of the threshold and are never failed for it. The verdict for a gree
 
 Where it is worth running: at the end of a change, once every step of it is implemented.
 
+**Not where [`plan-evidence.sh`](#evidence-for-a-finished-plan) is about to run.** It runs `--coverage` over every
+module itself, so a guardrail run of the same commit minutes earlier measures what the evidence is about to
+measure, and this module's suite starts a container to do it. Let the evidence be the guardrail, and read its
+per-module verdict. The same holds for a finishing full-suite run of the same tree with no coverage asked of
+it: the evidence is that run too, and a workflow that ends in `plan-evidence.sh` runs the whole suite once,
+there.
+
 ## Evidence for a Finished Plan
 
 A finished task carries `evidence.md` and `evidence.json` in its `review/` folder, written by

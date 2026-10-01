@@ -7,6 +7,7 @@ directory with its README and whatever helper files it needs, so a tool is added
 |---------------------------------------------|--------------------------------------------------------------|
 | [`agent-log/`](agent-log/README.md)         | Which sub-agents ran, of what type and model, and how long.  |
 | [`agent-test/`](agent-test/README.md)       | Did the module compile, which tests failed, is it covered.   |
+| [`claude-tdd/`](claude-tdd/README.md)       | Boots Claude Code here with the tdd-sdlc plugin flags set.   |
 | [`inspect-jar/`](inspect-jar/README.md)     | What is inside a dependency already in the Gradle cache.     |
 | [`plan-evidence/`](plan-evidence/README.md) | Was a finished plan's suite green and its coverage met.      |
 | [`repad-tables/`](repad-tables/README.md)   | Realigns the markdown tables in the files it is given.       |

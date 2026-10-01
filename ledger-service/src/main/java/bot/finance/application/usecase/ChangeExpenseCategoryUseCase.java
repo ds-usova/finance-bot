@@ -50,8 +50,7 @@ public class ChangeExpenseCategoryUseCase implements ChangeExpenseCategoryPort {
         }
 
         Instant now = Instant.now(clock);
-        Optional<ExpenseEntry> refiled =
-                expenseRepository.refile(userId, command.entryId(), command.categoryId(), command.status(), now);
+        Optional<ExpenseEntry> refiled = expenseRepository.refile(userId, command.entryId(), command.categoryId(), now);
         ExpenseEntry entry =
                 refiled.orElseThrow(() -> new ExpenseEntryNotFoundException("no entry of yours carries that id"));
 
@@ -59,7 +58,7 @@ public class ChangeExpenseCategoryUseCase implements ChangeExpenseCategoryPort {
                 "changed category for user {} entry {} ({}) to category {}",
                 userId,
                 entry.id(),
-                command.status(),
+                entry.status(),
                 entry.categoryId());
         return entry;
     }

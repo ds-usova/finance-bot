@@ -19,12 +19,14 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
+import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
@@ -44,6 +46,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
     private final ExpenseRepository expenseRepository;
     private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
+    private final UserPreferenceRepository userPreferenceRepository;
     private final Logger log;
 
     public HandleIncomingMessageUseCase(
@@ -56,6 +59,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             ExpenseRepository expenseRepository,
             ProposalReportRepository proposalReportRepository,
             TurnMeters turnMeters,
+            UserPreferenceRepository userPreferenceRepository,
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
@@ -66,6 +70,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.expenseRepository = expenseRepository;
         this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
+        this.userPreferenceRepository = userPreferenceRepository;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
     }
 
@@ -77,11 +82,12 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
+        Optional<CurrencyCode> defaultCurrency = readDefaultCurrency(user.id().orElseThrow());
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
-        boolean extractionFailed = extract(command, categoryGroupings, user, reference);
+        boolean extractionFailed = extract(command, categoryGroupings, user, reference, defaultCurrency);
 
         List<ProposalSummary> proposals =
                 expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
@@ -99,6 +105,15 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
         discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
+    }
+
+    private Optional<CurrencyCode> readDefaultCurrency(long userId) {
+        try {
+            return userPreferenceRepository.findDefaultCurrency(userId);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private void storeReport(long userId, IncomingMessageId reference, ReportLocation location) {
@@ -125,13 +140,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             HandleIncomingMessageCommand command,
             List<String> categoryGroupings,
             User user,
-            IncomingMessageId reference) {
+            IncomingMessageId reference,
+            Optional<CurrencyCode> defaultCurrency) {
         try {
             intentExtractionPort.extract(new IntentExtractionRequest(
                     command.text(),
                     categoryGroupings,
                     catchAllGrouping(categoryGroupings),
-                    Optional.empty(),
+                    defaultCurrency,
                     user.id().orElseThrow(),
                     reference,
                     LocalDate.now(clock)));

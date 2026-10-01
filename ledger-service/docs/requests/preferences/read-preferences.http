@@ -1,0 +1,11 @@
+### Read the preferences — GET /api/v1/preferences
+# The signed-in person's default currency, or null where none is set. Needs an open session; no CSRF token,
+# since it is a read.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### The preferences as they currently stand.
+GET {{host}}/api/v1/preferences
+Cookie: fb_session={{sessionCookie}}

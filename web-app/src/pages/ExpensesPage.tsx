@@ -27,6 +27,7 @@ import {
 import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
+import { refusalText } from './errorText';
 
 // How many ids the acceptance endpoint takes in one request, and so the cap on the tick set — a merged day
 // can hold more than a page's worth of pending entries, so the listing's page size does not bound it.
@@ -64,9 +65,9 @@ export function ExpensesPage() {
         sessionExpired();
         return;
       }
-      setFailure(error instanceof Error ? error.message : 'That read was not answered.');
+      setFailure(refusalText(error, t, 'listing.refused'));
     },
-    [sessionExpired],
+    [sessionExpired, t],
   );
 
   useEffect(() => {
@@ -211,7 +212,7 @@ export function ExpensesPage() {
           }
           setChangeFailure({
             key,
-            message: error instanceof Error ? error.message : 'That change was not answered.',
+            message: refusalText(error, t, 'listing.categoryChangeRefused'),
           });
           if (error instanceof ApiError && error.status === 404) {
             // The row has moved on under the ledger; only a fresh read can tell it apart from the page.
@@ -219,7 +220,7 @@ export function ExpensesPage() {
           }
         });
     },
-    [changingKey, rereadChangedDay, sessionExpired],
+    [changingKey, rereadChangedDay, sessionExpired, t],
   );
 
   const onAccept = useCallback(() => {

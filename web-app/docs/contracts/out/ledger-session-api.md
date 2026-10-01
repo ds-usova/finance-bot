@@ -11,11 +11,11 @@ the session.
 
 ## What It Sends, and When
 
-| When                         | It sends                                                     |
-|------------------------------|--------------------------------------------------------------|
-| The page loads               | a read of the session, to decide whether to show the sign-in |
-| Telegram's widget calls back | the widget's payload, unchanged, to open a session           |
-| The sign-out control is used | an end of the session                                        |
+| Endpoint                 | Called by                                                        | When                         | It sends                        |
+|--------------------------|------------------------------------------------------------------|------------------------------|---------------------------------|
+| `GET /api/v1/session`    | [Sign in with Telegram](../../usecases/sign-in-with-telegram.md) | the page loads               | —                             |
+| `POST /api/v1/session`   | [Sign in with Telegram](../../usecases/sign-in-with-telegram.md) | Telegram's widget calls back | the widget's payload, unchanged |
+| `DELETE /api/v1/session` | [Sign in with Telegram](../../usecases/sign-in-with-telegram.md) | the sign-out control is used | —                             |
 
 The Login Widget's payload is forwarded **field for field**, including any field this module does not
 understand. Telegram signs all of them, so dropping or adding one makes the sign-in unverifiable.
@@ -36,7 +36,9 @@ the page's first request.
 
 ## When the Call Fails
 
-- A network failure, a proxy failure and a 500 are indistinguishable from here, and are all reported as a
-  refused sign-in.
-- Nothing is retried. A person who wants another attempt uses the widget again.
-- Nothing is cached. A reload reads the session again rather than trusting what the last one found.
+| The failure                                  | What the person gets                                                      |
+|-----------------------------------------------|------------------------------------------------------------------------------|
+| A network failure, a proxy failure, or a 500 | reported as a refused sign-in — the three are indistinguishable from here |
+
+Nothing is retried. A person who wants another attempt uses the widget again. Nothing is cached. A reload reads
+the session again rather than trusting what the last one found.

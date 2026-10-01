@@ -2,7 +2,6 @@ package bot.finance.domain.value;
 
 import bot.finance.domain.exception.InvalidMoneyException;
 import java.math.BigDecimal;
-import java.util.Currency;
 
 public record Money(long minorUnits, CurrencyCode currencyCode) {
 
@@ -16,8 +15,7 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
     }
 
     public BigDecimal amount() {
-        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
-        return BigDecimal.valueOf(minorUnits, fractionDigits);
+        return BigDecimal.valueOf(minorUnits, currencyCode.fractionDigits());
     }
 
     public static Money ofMajorUnits(BigDecimal amount, CurrencyCode currencyCode) {
@@ -28,11 +26,11 @@ public record Money(long minorUnits, CurrencyCode currencyCode) {
             throw new InvalidMoneyException("Currency code must not be null");
         }
 
-        int fractionDigits = Currency.getInstance(currencyCode.code()).getDefaultFractionDigits();
-        if (fractionDigits < 0) {
+        if (!currencyCode.recordsAmounts()) {
             throw new InvalidMoneyException(currencyCode.code() + " is not a currency an amount can be recorded in");
         }
 
+        int fractionDigits = currencyCode.fractionDigits();
         BigDecimal scaled;
         try {
             scaled = amount.movePointRight(fractionDigits).setScale(0);

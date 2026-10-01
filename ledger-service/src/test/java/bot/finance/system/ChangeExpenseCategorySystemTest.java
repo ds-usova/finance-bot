@@ -6,6 +6,7 @@ import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.fixtures.BrowserSessions;
+import bot.finance.common.fixtures.ExpensePatches;
 import bot.finance.common.rows.CategoryRowUtils;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
@@ -25,10 +26,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 
 /**
- * Covers {@code PATCH /api/v1/expenses/{status}/{id}} end to end against the fully wired application, entered the
- * way a browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it
- * needs to write. It triggers no poll-loop scenario, so it signs with the {@code test} profile's own bot token and
- * needs no {@code @TestPropertySource} override.
+ * Covers {@code PATCH /api/v1/expenses/{id}} end to end against the fully wired application, entered the way a
+ * browser does: signing in over the real sign-in endpoint and carrying the session cookie and CSRF token it needs
+ * to write. It triggers no poll-loop scenario, so it signs with the {@code test} profile's own bot token and needs
+ * no {@code @TestPropertySource} override.
  */
 class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
@@ -95,9 +96,10 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
 
             // when: each is patched to the second category with the session cookie and the CSRF token
             Response recordedResponse =
-                    patchCategory(sessionCookie, csrfToken, "RECORDED", expenseId, secondCategoryId);
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, expenseId, secondCategoryId);
             logResponse(recordedResponse);
-            Response pendingResponse = patchCategory(sessionCookie, csrfToken, "PENDING", proposalId, secondCategoryId);
+            Response pendingResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(pendingResponse);
 
             // then: both answer 200 carrying the new categoryId
@@ -170,7 +172,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
             String csrfToken = BrowserSessions.csrfToken();
 
             // given: the refiled PENDING entry
-            Response refileResponse = patchCategory(sessionCookie, csrfToken, "PENDING", proposalId, secondCategoryId);
+            Response refileResponse =
+                    ExpensePatches.replaceCategory(sessionCookie, csrfToken, proposalId, secondCategoryId);
             logResponse(refileResponse);
             refileResponse.then().statusCode(200);
 
@@ -206,9 +209,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
     class UnhappyPath {
 
         @Test
-        @DisplayName("when an id names no entry of theirs under that status - then 404 naming the entry rather "
-                + "than the caller")
-        void whenAnIdNamesNoEntryOfTheirsUnderThatStatus_then404NamingTheEntry() {
+        @DisplayName("when an id names no entry of theirs - then 404 naming the entry rather than the caller")
+        void whenAnIdNamesNoEntryOfTheirs_then404NamingTheEntry() {
             String externalId = "change-category-missing-entry-user";
             String sessionCookie = signIn(externalId).getCookie(SESSION_COOKIE);
             long userId = userIdOf(externalId);
@@ -227,9 +229,10 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                             ExpenseStatus.RECORDED)
                     .id();
             String csrfToken = BrowserSessions.csrfToken();
+            long missingId = 999_999_999L;
 
-            // when: the entry is patched under the wrong status - it exists, but not as PENDING
-            Response response = patchCategory(sessionCookie, csrfToken, "PENDING", expenseId, otherCategoryId);
+            // when: an id naming no entry of theirs is patched
+            Response response = ExpensePatches.replaceCategory(sessionCookie, csrfToken, missingId, otherCategoryId);
             logResponse(response);
 
             // then: the response is 404 and its message names the entry rather than the caller
@@ -238,7 +241,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .as("the 404 names the entry, not the caller-unknown message")
                     .isEqualTo("no entry of yours carries that id");
 
-            // then: the entry is unchanged - still RECORDED, under its original category
+            // then: the stored entry is unchanged - still under its original category
             List<ExpenseEntity> expenseRows =
                     ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.RECORDED);
             assertThat(expenseRows).extracting(ExpenseEntity::id).containsExactly(expenseId);
@@ -273,7 +276,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .contentType(PATCH_MEDIA_TYPE)
                     .body(patchDocument(otherCategoryId))
                     .when()
-                    .patch(path("RECORDED", expenseId));
+                    .patch(path(expenseId));
             logResponse(response);
 
             // then: the response is 401 and the row still carries its original category
@@ -312,7 +315,7 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
                     .cookie(SESSION_COOKIE, sessionCookie)
                     .body(patchDocument(otherCategoryId))
                     .when()
-                    .patch(path("RECORDED", expenseId));
+                    .patch(path(expenseId));
             logResponse(response);
 
             // then: the response is 403 and the row still carries its original category
@@ -339,20 +342,8 @@ class ChangeExpenseCategorySystemTest extends AbstractSystemTest {
         return CategoryRowUtils.categoryIdNamed(jdbcAggregateTemplate, userId, groupingId, name);
     }
 
-    private Response patchCategory(
-            String sessionCookie, String csrfToken, String status, long entryId, long categoryId) {
-        return RestAssured.given()
-                .contentType(PATCH_MEDIA_TYPE)
-                .cookie(SESSION_COOKIE, sessionCookie)
-                .cookie(CSRF_COOKIE, csrfToken)
-                .header(CSRF_HEADER, csrfToken)
-                .body(patchDocument(categoryId))
-                .when()
-                .patch(path(status, entryId));
-    }
-
-    private static String path(String status, long entryId) {
-        return "%s/%s/%d".formatted(EXPENSES_PATH, status, entryId);
+    private static String path(long entryId) {
+        return "%s/%d".formatted(EXPENSES_PATH, entryId);
     }
 
     private static List<Map<String, Object>> patchDocument(long categoryId) {

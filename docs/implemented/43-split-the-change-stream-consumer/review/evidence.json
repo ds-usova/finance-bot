@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/43-split-the-change-stream-consumer/rework.md",
+  "commit": "66d0bff0",
+  "branch": "dev",
+  "workingTree": "1 uncommitted file(s)",
+  "generated": "2026-08-25T12:24:16Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 403, "passed": 403, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "94.8%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1188, "passed": 1188, "failed": 0, "skipped": 0, "instructions": "96.5%", "branches": "92.4%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 271, "passed": 271, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "90.8%", "minimum": "80%", "format": "clean"}
+  ]
+}

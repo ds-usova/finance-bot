@@ -52,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -74,7 +75,7 @@ class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
-    private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{status}/{id}";
+    private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{id}";
     private static final long USER_ID = 778899001L;
     private static final String VALID_DOCUMENT = """
             [{"op":"replace","path":"/categoryId","value":42}]""";
@@ -187,10 +188,9 @@ class ExpensesControllerTest {
         }
 
         @Test
-        @DisplayName("when a RECORDED entry is patched to a new categoryId - then the response is 200 with the "
-                + "entry in listing shape")
-        void whenARecordedEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry()
-                throws Exception {
+        @DisplayName("when an entry is patched to a new categoryId - then the port receives it and the response "
+                + "is 200 with the entry")
+        void whenAnEntryIsPatchedToANewCategoryId_thenPortIsCalledAndResponseIs200WithTheEntry() throws Exception {
             ExpenseEntry answeredEntry = new ExpenseEntry(
                     ExpenseStatus.RECORDED,
                     7L,
@@ -201,7 +201,7 @@ class ExpensesControllerTest {
                     Instant.parse("2026-01-01T10:00:00Z"));
             when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -213,7 +213,6 @@ class ExpensesControllerTest {
                     ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
             verify(changeExpenseCategoryPort).change(command.capture());
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
-            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.RECORDED);
             assertThat(command.getValue().entryId()).isEqualTo(7L);
             assertThat(command.getValue().categoryId()).isEqualTo(42L);
 
@@ -225,38 +224,6 @@ class ExpensesControllerTest {
             assertThat(json.getString("merchant")).isEqualTo("Corner Cafe");
             assertThat(json.getString("money.amount")).isEqualTo("5.00");
             assertThat(json.getString("money.currency")).isEqualTo("€");
-        }
-
-        @Test
-        @DisplayName("when a PENDING entry is patched to a new categoryId - then the command and response both "
-                + "carry PENDING")
-        void whenAPendingEntryIsPatchedToANewCategoryId_thenCommandCarriesPendingAndResponseStatusIsPending()
-                throws Exception {
-            ExpenseEntry answeredEntry = new ExpenseEntry(
-                    ExpenseStatus.PENDING,
-                    9L,
-                    42L,
-                    "Coffee",
-                    Optional.of("Corner Cafe"),
-                    new Money(500L, CurrencyCode.of("EUR")),
-                    Instant.parse("2026-01-01T10:00:00Z"));
-            when(changeExpenseCategoryPort.change(any())).thenReturn(answeredEntry);
-
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "PENDING", "9")
-                            .with(csrf())
-                            .cookie(sessionCookie())
-                            .contentType(JSON_PATCH)
-                            .content(VALID_DOCUMENT))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            ArgumentCaptor<ChangeExpenseCategoryCommand> command =
-                    ArgumentCaptor.forClass(ChangeExpenseCategoryCommand.class);
-            verify(changeExpenseCategoryPort).change(command.capture());
-            assertThat(command.getValue().status()).isEqualTo(ExpenseStatus.PENDING);
-
-            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
-            assertThat(json.getString("status")).isEqualTo("PENDING");
         }
     }
 
@@ -483,12 +450,10 @@ class ExpensesControllerTest {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#changeCategoryPathViolations")
-        @DisplayName("when the status or the id path segment is refused - then the response is 400, and the port "
-                + "is never called")
-        void whenStatusOrIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(
-                String description, String status, String id) throws Exception {
-            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, status, id)
+        @ValueSource(strings = {"0", "abc"})
+        @DisplayName("when the id path segment is refused - then the response is 400, and the port is never called")
+        void whenIdPathSegmentIsRefused_thenResponseIs400AndPortNeverCalled(String id) throws Exception {
+            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, id)
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -503,7 +468,7 @@ class ExpensesControllerTest {
         @DisplayName("when the document is refused - then the response is 400, and the port is never called")
         void whenTheDocumentIsRefused_thenResponseIs400AndPortNeverCalled(String description, String body)
                 throws Exception {
-            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -516,7 +481,7 @@ class ExpensesControllerTest {
         @Test
         @DisplayName("when the document is not JSON at all - then the response is 400 and the port is never called")
         void whenTheDocumentIsNotJsonAtAll_thenResponseIs400AndPortNeverCalled() throws Exception {
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -591,7 +556,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new InvalidExpenseCategoryChangeException(exceptionMessage));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -611,7 +576,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new ExpenseEntryNotFoundException(exceptionMessage));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -629,7 +594,7 @@ class ExpensesControllerTest {
             when(changeExpenseCategoryPort.change(any()))
                     .thenThrow(new PersistenceFailedException("the refile statement failed", new RuntimeException()));
 
-            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "RECORDED", "7")
+            MvcResult result = mockMvc.perform(patch(CHANGE_CATEGORY_PATH, "7")
                             .with(csrf())
                             .cookie(sessionCookie())
                             .contentType(JSON_PATCH)
@@ -685,14 +650,6 @@ class ExpensesControllerTest {
 
     static Stream<Arguments> invalidOffsets() {
         return Stream.of(arguments("negative", "-1"), arguments("not a number", "xyz"));
-    }
-
-    static Stream<Arguments> changeCategoryPathViolations() {
-        return Stream.of(
-                arguments("status ACCEPTED", "ACCEPTED", "7"),
-                arguments("status in lower case", "recorded", "7"),
-                arguments("id of 0", "RECORDED", "0"),
-                arguments("id that is not a number", "RECORDED", "abc"));
     }
 
     static Stream<Arguments> changeCategoryDocumentViolations() {

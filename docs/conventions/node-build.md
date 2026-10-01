@@ -38,6 +38,9 @@ tools/agent-test/agent-test.sh --module <module> --coverage
 `--tests` takes a path fragment matched against test file names. Concurrent runs queue on the module's own lock
 and keep their results apart, which raw `npm test` does not.
 
+**A change gated by `verify` does not also run `--all` over the same tree.** `--all` is for a verdict wanted
+without the stages `verify` runs in front of the tests.
+
 ## Test Coverage
 
 Coverage runs under `npm run verify:coverage` and is deliberately **outside** `verify`. A run filtered to part of the suite, and

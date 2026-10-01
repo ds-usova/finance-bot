@@ -1,16 +1,11 @@
 package bot.finance.ai.adapter.redis;
 
-import bot.finance.ai.application.dto.LearnMessageOutcomeCommand;
-import bot.finance.ai.application.dto.LearnOutcome;
-import bot.finance.ai.application.port.LearnMessageOutcomePort;
 import bot.finance.ai.application.port.Logger;
 import bot.finance.ai.application.port.LoggerFactory;
-import bot.finance.ai.domain.exception.InvalidValueException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,8 +40,7 @@ public class ChangeStreamConsumer implements SmartLifecycle {
 
     private final StringRedisTemplate redisTemplate;
     private final ChangeStreamProperties properties;
-    private final ChangeStreamEntryReader reader;
-    private final LearnMessageOutcomePort learnMessageOutcomePort;
+    private final ChangeStreamEntryHandler handler;
     private final ExecutorService executorService;
     private final Logger log;
 
@@ -56,14 +50,12 @@ public class ChangeStreamConsumer implements SmartLifecycle {
     public ChangeStreamConsumer(
             StringRedisTemplate redisTemplate,
             ChangeStreamProperties properties,
-            ChangeStreamEntryReader reader,
-            LearnMessageOutcomePort learnMessageOutcomePort,
+            ChangeStreamEntryHandler handler,
             @Qualifier("changeStreamExecutor") ExecutorService executorService,
             LoggerFactory loggerFactory) {
         this.redisTemplate = redisTemplate;
         this.properties = properties;
-        this.reader = reader;
-        this.learnMessageOutcomePort = learnMessageOutcomePort;
+        this.handler = handler;
         this.executorService = executorService;
         this.log = loggerFactory.getLogger(ChangeStreamConsumer.class);
     }
@@ -204,7 +196,7 @@ public class ChangeStreamConsumer implements SmartLifecycle {
             boolean stopOnRetry) {
         boolean retryNeeded = false;
         for (MapRecord<String, String, String> entry : entries) {
-            if (processEntry(streamOperations, entry)) {
+            if (handler.handle(streamOperations, entry)) {
                 if (stopOnRetry) {
                     return true;
                 }
@@ -212,58 +204,6 @@ public class ChangeStreamConsumer implements SmartLifecycle {
             }
         }
         return retryNeeded;
-    }
-
-    private boolean processEntry(
-            StreamOperations<String, String, String> streamOperations, MapRecord<String, String, String> entry) {
-        String entryId = entry.getId().getValue();
-
-        Optional<LearnMessageOutcomeCommand> command;
-        try {
-            command = reader.read(entryId, entry.getValue());
-        } catch (InvalidValueException e) {
-            log.warn(
-                    "Change-stream entry {} could not be read, acknowledging without applying: {}",
-                    entryId,
-                    e.getMessage());
-            acknowledge(streamOperations, entryId);
-            return false;
-        }
-
-        if (command.isEmpty()) {
-            acknowledge(streamOperations, entryId);
-            return false;
-        }
-
-        return offer(streamOperations, entryId, command.get());
-    }
-
-    private boolean offer(
-            StreamOperations<String, String, String> streamOperations,
-            String entryId,
-            LearnMessageOutcomeCommand command) {
-        LearnOutcome outcome;
-        try {
-            outcome = learnMessageOutcomePort.learn(command);
-        } catch (RuntimeException e) {
-            log.error(
-                    "Learning the outcome of change-stream entry {} failed, leaving it pending: {}",
-                    entryId,
-                    e.getMessage());
-            return true;
-        }
-
-        return switch (outcome) {
-            case APPLIED, DROPPED -> {
-                acknowledge(streamOperations, entryId);
-                yield false;
-            }
-            case RETRY_LATER -> true;
-        };
-    }
-
-    private void acknowledge(StreamOperations<String, String, String> streamOperations, String entryId) {
-        streamOperations.acknowledge(properties.key(), ChangeStreamProperties.GROUP, entryId);
     }
 
     private void sleep(Duration duration) {

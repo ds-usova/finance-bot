@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -32,6 +33,7 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
+import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
 import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidExtractionRequestException;
@@ -76,6 +78,7 @@ class HandleIncomingMessageUseCaseTest {
     private ExpenseRepository expenseRepository;
     private ProposalReportRepository proposalReportRepository;
     private TurnMeters turnMeters;
+    private UserPreferenceRepository userPreferenceRepository;
     private HandleIncomingMessageUseCase useCase;
 
     @BeforeEach
@@ -92,6 +95,7 @@ class HandleIncomingMessageUseCaseTest {
         expenseRepository = mock(ExpenseRepository.class);
         proposalReportRepository = mock(ProposalReportRepository.class);
         turnMeters = mock(TurnMeters.class);
+        userPreferenceRepository = mock(UserPreferenceRepository.class);
         when(spendingQueryRepository.findPeriodsByMessageReference(anyLong(), any()))
                 .thenReturn(List.of());
         when(expenseRepository.totalsByCurrency(anyLong(), any())).thenReturn(List.of());
@@ -106,6 +110,7 @@ class HandleIncomingMessageUseCaseTest {
                 expenseRepository,
                 proposalReportRepository,
                 turnMeters,
+                userPreferenceRepository,
                 loggerFactory);
     }
 
@@ -162,6 +167,7 @@ class HandleIncomingMessageUseCaseTest {
             verifyNoInteractions(intentExtractionPort);
             verifyNoInteractions(expenseRepository);
             verifyNoInteractions(messageDeliveryPort);
+            verifyNoInteractions(userPreferenceRepository);
         }
 
         @Test
@@ -711,6 +717,38 @@ class HandleIncomingMessageUseCaseTest {
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
             verifyNoInteractions(messageDeliveryPort);
+        }
+
+        @Test
+        @DisplayName("when the sender's stored preference holds a currency - then the extraction request carries "
+                + "it, read by stored id")
+        void whenSendersStoredPreferenceHoldsCurrency_thenExtractionRequestCarriesItReadForSendersStoredId() {
+            stubKnownUserAndGroupings();
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+            when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenReturn(Optional.of(CurrencyCode.of("EUR")));
+
+            useCase.handle(newCommand());
+
+            verify(userPreferenceRepository).findDefaultCurrency(USER_ID);
+            assertThat(capturedExtractionRequest().defaultCurrency()).contains(CurrencyCode.of("EUR"));
+        }
+
+        @Test
+        @DisplayName(
+                "when the preference read fails - then the request carries no currency, and delivery still " + "runs")
+        void whenSendersPreferenceReadThrowsPersistenceFailedException_thenRequestCarriesNoCurrencyAndTurnDelivered() {
+            stubKnownUserAndGroupings();
+            when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
+                    .thenReturn(List.of());
+            when(userPreferenceRepository.findDefaultCurrency(USER_ID))
+                    .thenThrow(new PersistenceFailedException("lookup failed", new RuntimeException()));
+
+            assertThatCode(() -> useCase.handle(newCommand())).doesNotThrowAnyException();
+
+            assertThat(capturedExtractionRequest().defaultCurrency()).isEmpty();
+            verify(messageDeliveryPort).deliver(any(TurnReport.class));
+            verify(log).warn(anyString(), any());
         }
 
         @Test

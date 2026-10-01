@@ -21,4 +21,12 @@ public record CurrencyCode(String code) {
     public static CurrencyCode of(String code) {
         return new CurrencyCode(code);
     }
+
+    public boolean recordsAmounts() {
+        return fractionDigits() >= 0;
+    }
+
+    public int fractionDigits() {
+        return Currency.getInstance(code).getDefaultFractionDigits();
+    }
 }

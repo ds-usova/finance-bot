@@ -212,7 +212,7 @@ class ChangeStreamConsumerTest {
         @DisplayName("when a body with no payload is published - then it is WARN-logged by entry id, "
                 + "acknowledged, and skipped")
         void whenBodyWithNoPayloadIsPublished_thenItIsWarnLoggedAcknowledgedAndSkipped() {
-            try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamConsumer.class)) {
+            try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamEntryHandler.class)) {
                 String entryId =
                         LedgerChangeStreamStubs.publish(properties.key(), ChangeStreamEntryFixtures.withNoPayload());
 
@@ -262,7 +262,7 @@ class ChangeStreamConsumerTest {
         @DisplayName("when the port throws a RuntimeException - then it is ERROR-logged, stays pending, and "
                 + "the consumer runs on")
         void whenPortThrowsRuntimeException_thenItIsErrorLoggedStaysPendingAndConsumerRunsOn() {
-            try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamConsumer.class)) {
+            try (LogCapture logCapture = LogCapture.attachedTo(ChangeStreamEntryHandler.class)) {
                 when(learnMessageOutcomePort.learn(any())).thenThrow(new RuntimeException("port failed"));
 
                 String entryId = LedgerChangeStreamStubs.publish(properties.key(), expenseCreatedFixture(7L));
@@ -292,6 +292,7 @@ class ChangeStreamConsumerTest {
                 classes = {
                     ChangeStreamConfiguration.class,
                     ChangeStreamConsumer.class,
+                    ChangeStreamEntryHandler.class,
                     ChangeStreamEntryReader.class,
                     Slf4jLoggerFactory.class
                 })

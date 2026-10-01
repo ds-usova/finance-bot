@@ -1183,8 +1183,7 @@ class ExpenseRepositoryAdapterTest {
                     Instant.now().minusSeconds(120).truncatedTo(ChronoUnit.MICROS),
                     ExpenseStatus.RECORDED);
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
 
             assertThat(refiled).isPresent();
             assertThat(refiled.get().categoryId()).isEqualTo(newCategoryId);
@@ -1208,8 +1207,7 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntity stored = storedExpenseAt(userId, originalCategoryId, "Old purchase", 1000, "USD", createdAt);
             Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, now);
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, now);
 
             assertThat(refiled).isPresent();
             assertThat(refiled.get().createdAt()).isEqualTo(createdAt);
@@ -1229,8 +1227,7 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntity stored = storedExpenseAt(userId, categoryId, "Weekly shop", 1500, "USD", createdAt);
             Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, stored.id(), categoryId, ExpenseStatus.RECORDED, now);
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), categoryId, now);
 
             assertThat(refiled).isPresent();
             assertThat(refiled.get().categoryId()).isEqualTo(categoryId);
@@ -1252,8 +1249,8 @@ class ExpenseRepositoryAdapterTest {
             long callerUserId = storedUserId("refile-cross-user-caller");
             long callerCategoryId = leafCategoryId(callerUserId, "Dining");
 
-            Optional<ExpenseEntry> refiled = adapter.refile(
-                    callerUserId, ownerExpense.id(), callerCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            Optional<ExpenseEntry> refiled =
+                    adapter.refile(callerUserId, ownerExpense.id(), callerCategoryId, Instant.now());
 
             assertThat(refiled).isEmpty();
             assertThat(expenseRowsFor(ownerUserId)).singleElement().satisfies(row -> assertThat(row.categoryId())
@@ -1261,9 +1258,8 @@ class ExpenseRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName(
-                "when the id names a pending proposal, not an expense - then the answer is empty and the proposal row is untouched")
-        void whenIdNamesCallersPendingProposal_thenAnswerIsEmptyAndProposalRowUntouched() {
+        @DisplayName("when the id names a pending proposal, not an expense - then it is refiled and stays PENDING")
+        void whenIdNamesCallersPendingProposal_thenItIsRefiledAndStaysPending() {
             long userId = storedUserId("refile-names-proposal-user");
             long groupingId = groupingIdNamed(userId, "Groceries");
             long originalCategoryId = storedCategoryId(userId, groupingId, "Supermarkets");
@@ -1271,13 +1267,17 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntity proposal =
                     storedProposalAt(userId, originalCategoryId, "Pending purchase", 500, "USD", Instant.now());
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, proposal.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, proposal.id(), newCategoryId, Instant.now());
 
-            assertThat(refiled).isEmpty();
+            assertThat(refiled).isPresent();
+            assertThat(refiled.get().status()).isEqualTo(ExpenseStatus.PENDING);
+            assertThat(refiled.get().categoryId()).isEqualTo(newCategoryId);
             assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING))
                     .singleElement()
-                    .satisfies(row -> assertThat(row.categoryId()).isEqualTo(originalCategoryId));
+                    .satisfies(row -> {
+                        assertThat(row.id()).isEqualTo(proposal.id());
+                        assertThat(row.categoryId()).isEqualTo(newCategoryId);
+                    });
         }
 
         @Test
@@ -1290,8 +1290,7 @@ class ExpenseRepositoryAdapterTest {
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "No merchant purchase", 100, "USD", null);
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, stored.id(), newCategoryId, Instant.now());
 
             assertThat(refiled).isPresent();
             assertThat(refiled.get().merchant()).isEmpty();
@@ -1308,7 +1307,7 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
             Instant nanosecondInstant = Instant.parse("2026-01-15T10:30:00.123456789Z");
 
-            adapter.refile(userId, stored.id(), newCategoryId, ExpenseStatus.RECORDED, nanosecondInstant);
+            adapter.refile(userId, stored.id(), newCategoryId, nanosecondInstant);
 
             Instant truncated = nanosecondInstant.truncatedTo(ChronoUnit.MICROS);
             assertThat(expenseRowsFor(userId)).singleElement().satisfies(row -> assertThat(row.updatedAt())
@@ -1325,8 +1324,7 @@ class ExpenseRepositoryAdapterTest {
             ExpenseEntity stored = storedExpense(userId, originalCategoryId, "Purchase", 100, "USD", null);
 
             assertThatExceptionOfType(EntityNotFoundException.class)
-                    .isThrownBy(() ->
-                            adapter.refile(userId, stored.id(), groupingId, ExpenseStatus.RECORDED, Instant.now()))
+                    .isThrownBy(() -> adapter.refile(userId, stored.id(), groupingId, Instant.now()))
                     .extracting(EntityNotFoundException::entityType)
                     .isEqualTo("category");
 
@@ -1344,8 +1342,7 @@ class ExpenseRepositoryAdapterTest {
             long newCategoryId = storedCategoryId(userId, groupingId, "Dining");
             long unknownEntryId = 999_999_999L;
 
-            Optional<ExpenseEntry> refiled =
-                    adapter.refile(userId, unknownEntryId, newCategoryId, ExpenseStatus.RECORDED, Instant.now());
+            Optional<ExpenseEntry> refiled = adapter.refile(userId, unknownEntryId, newCategoryId, Instant.now());
 
             assertThat(refiled).isEmpty();
         }
@@ -1550,10 +1547,10 @@ class ExpenseRepositoryAdapterTest {
         @DisplayName("when refile() hits a database failure - then throws PersistenceFailedException wrapping it")
         void whenRefileHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
             QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
-            when(mockedExpenseEntityRepository.refile(any(), any(), any(), any(), any()))
+            when(mockedExpenseEntityRepository.refile(any(), any(), any(), any()))
                     .thenThrow(frameworkException);
 
-            assertThatThrownBy(() -> mockedAdapter.refile(1L, 1L, 1L, ExpenseStatus.RECORDED, Instant.now()))
+            assertThatThrownBy(() -> mockedAdapter.refile(1L, 1L, 1L, Instant.now()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
