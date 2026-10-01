@@ -1,4 +1,4 @@
 /**
- * Value objects: {@code Money}, {@code CurrencyCode}, and the {@code Intent} sealed hierarchy.
+ * Value objects, equal by their attributes.
  */
 package bot.finance.ai.domain.value;
