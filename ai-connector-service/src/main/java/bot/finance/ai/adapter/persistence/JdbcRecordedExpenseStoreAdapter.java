@@ -4,7 +4,7 @@ import bot.finance.ai.application.port.RecordedExpenseStorePort;
 import bot.finance.ai.domain.value.RecordedStatus;
 import bot.finance.ai.domain.value.SpendingRow;
 import bot.finance.ai.domain.value.StreamPosition;
-import java.time.Instant;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
@@ -14,9 +14,11 @@ import org.springframework.stereotype.Component;
 public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort {
 
     private final RecordedExpenseEntityRepository repository;
+    private final Clock clock;
 
-    public JdbcRecordedExpenseStoreAdapter(RecordedExpenseEntityRepository repository) {
+    public JdbcRecordedExpenseStoreAdapter(RecordedExpenseEntityRepository repository, Clock clock) {
         this.repository = repository;
+        this.clock = clock;
     }
 
     @Override
@@ -37,7 +39,7 @@ public class JdbcRecordedExpenseStoreAdapter implements RecordedExpenseStorePort
                     status.name(),
                     position.ms(),
                     position.seq(),
-                    Instant.now());
+                    clock.instant());
         } catch (DataAccessException e) {
             throw MessageStoreExceptionMapper.toDomain(e, "failed to apply a recorded expense");
         }
