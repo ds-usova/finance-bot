@@ -12,8 +12,9 @@ What is specific to this module. The wrapper, how to read a run, queueing, and d
 
 ## Module Tasks
 
+- Architecture check: `tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.architecture.CleanArchitectureTest"`
 - Coverage guardrail: `tools/agent-test/agent-test.sh --module ledger-service --coverage`
-- Coverage report (JaCoCo): `ledger-service/gradlew -p ledger-service test jacocoTestReport`
+- Coverage report (JaCoCo): `ledger-service/gradlew -p ledger-service jacocoTestReport`, after a `--coverage` run
 - Reformat to style (Spotless): `ledger-service/gradlew -p ledger-service spotlessApply`
 - Check formatting (Spotless): `ledger-service/gradlew -p ledger-service spotlessCheck` — runs as part of `check`
 - Contract codegen: `ledger-service/gradlew -p ledger-service openApiGenerate`, reading `openapi/ledger-api.yaml`
@@ -23,9 +24,19 @@ A schema named in `components/schemas` and reached from inside another schema ge
 `Expense`, `RenderedMoney`, `DayTotal`, `ExpenseStatus`. An operation's **top-level** response schema does not:
 the generator derives that name from the operation and status code, because every operation is reached through
 an externally-`$ref`ed file under `openapi/paths/`. So `ExpensePage` is generated but unreferenced, and the
-endpoint answers `ListExpenses200Response`; the same holds for `Category`, `Grouping`, `Session` and `Problem`.
+endpoint answers `ListExpenses200Response`. The same holds for `Category`, `Grouping`, `Session`, `Problem`,
+`AcceptanceRequest`, `Acceptance`, `Preferences` and `PreferencesUpdate`.
 
-Reordering the paths renames those five and breaks this module's build; no caller notices.
+Reordering the paths renames those types and breaks this module's build; no caller notices.
+
+## Test JVM
+
+`build.gradle` gives the test JVM a 1 GB heap and strips `TELEGRAM_BOT_TOKEN` from its environment.
+
+## CI
+
+`.github/workflows/build.yml` runs `./gradlew build` on every pull request to `main`. The coverage guardrail is not
+part of it.
 
 ## Dependencies
 

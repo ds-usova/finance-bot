@@ -22,3 +22,4 @@ them.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what documents it earns.
 - [Architecture Decision Records](conventions/adr.md) — what earns a decision record, where it goes, how it is
   numbered across the two tiers, who writes it, and how it is superseded or deprecated.
+- [Backlog](backlog.md) — the open bugs and refactoring candidates from reviews. A closed entry's row is removed.

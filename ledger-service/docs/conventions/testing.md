@@ -75,8 +75,8 @@ bot.finance
 
 The roles at the top of `boot` are what an annotation below them is assembled from, so it reads as a role plus
 the one thing that distinguishes it. An annotation naming an explicit bean list — `AiConnectorAdapterTest`,
-`McpAdapterTest`, `MetricsAdapterTest`, `WebAdapterTest` — composes the roles it can and names the rest, rather
-than restating what a role already holds.
+`McpAdapterTest`, `MetricsAdapterTest` — composes the roles it can and names the rest, rather than restating
+what a role already holds. `WebAdapterTest` imports `SecurityConfiguration` and `Slf4jLoggerFactory` directly.
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture` and `ReplicationSlots` sit at
 the root because they belong to none of them — a bucket of one is worth less than the honesty of leaving a helper
@@ -87,17 +87,30 @@ where its role is honest.
 - **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and the stateless
   helper classes in an adapter package — the renderers, mappers and their kind
   ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context.
-- **Integration, outbound** — `adapter/persistence/` and future outbound HTTP adapters, one subpackage per
-  external system. Wire only the adapter under test and call its public methods directly against real test
-  infrastructure; nothing is mocked. Persistence adapters use `@PersistenceAdapterTest`; the change-capture
-  adapter uses `@CdcAdapterTest`, which is the same slice plus the capture beans, a Redis template and no
-  rolled-back transaction — an uncommitted row never reaches the write-ahead log the engine reads.
+- **Integration, outbound** — one subpackage per external system. Wire only the adapter under test and call its
+  public methods directly against real test infrastructure:
+
+  | Adapter                     | Runs against                                                 |
+  |-----------------------------|--------------------------------------------------------------|
+  | `adapter/persistence`       | the Postgres container, through `@PersistenceAdapterTest`    |
+  | `adapter/cdc`               | the Postgres and Redis containers, through `@CdcAdapterTest` |
+  | `adapter/redis`             | the Redis container                                          |
+  | `adapter/aiconnector`       | `GrpcStubServer`, through `@AiConnectorAdapterTest`          |
+  | `adapter/telegram` delivery | WireMock                                                     |
+
+  The real thing is never mocked. A persistence test's failure scenarios are the exception: they sit in a
+  `@Nested class WithAMockedStore` over `mock(<X>EntityRepository.class)` throwing `QueryTimeoutException`, and
+  assert a `PersistenceFailedException` cause. A meter port the adapter calls is a `@MockitoBean`.
+
+  `@CdcAdapterTest` is the persistence slice plus the capture beans, a Redis template and no rolled-back
+  transaction — an uncommitted row never reaches the write-ahead log the engine reads.
 
   The metrics adapters in `adapter/metrics/` are outbound too, but what they produce is only observable at the
   scrape, so `@MetricsAdapterTest` boots them from an explicit bean list with autoconfiguration on over a random
   port, the prometheus actuator endpoint exposed with a `PrometheusMeterRegistry`, and the datasource and Redis
   excluded; a test drives the meter port and asserts the rendered Prometheus text over RestAssured.
-- **Integration, inbound** — `adapter/web/` through `@WebMvcTest` with the inbound-port beans mocked. Owns
+- **Integration, inbound** — `adapter/web/` and `adapter/security`'s JWKS endpoint through `@WebMvcTest` with the
+  inbound-port beans mocked. Owns
   validation, binding, delegation and error-to-response mapping; never business logic or real infrastructure.
 
   An inbound adapter whose protocol is not HTTP has no slice, so it is entered through its own protocol:
@@ -127,11 +140,15 @@ where its role is honest.
   suite skips rather than errors without Docker; `GrpcStubServer` needs no Docker and carries no such
   annotation.
 - `AbstractSystemTest` — the full-application base class, reaching the containerized database through
-  `TheWholeApplication`; subclasses declare nothing. System tests extend it; outbound-adapter and slice tests do
-  not.
+  `TheWholeApplication`; subclasses declare nothing. A system test extends it, or carries `@CdcCaptureTest` when it
+  needs capture on. Outbound-adapter and slice tests do neither.
 - `PersistenceAdapterTest` — boots the `@DataJdbcTest` slice against the containerized Postgres, never the full
   context. The test class adds `@Import(<AdapterUnderTest>.class)` and calls the adapter directly. Each test
-  runs in a rolled-back transaction; use `@Commit` plus explicit cleanup only when committed state matters.
+  runs in a rolled-back transaction. Where committed state matters, the class carries
+  `@Transactional(propagation = NOT_SUPPORTED)` and cleans up explicitly.
+- Unit tests build mocks with `mock(...)` in setup and construct the class under test by hand — never
+  `MockitoExtension`, `@Mock` or `@InjectMocks`. A class that logs gets `mock(LoggerFactory.class)` handing out a
+  mocked `Logger`.
 - **Reach WireMock through `WireMockSupport.SERVER`, never the static DSL.** `WireMock.stubFor(...)`,
   `verify(...)` and `findAll(...)` address `localhost:8080` and fail with a connection error before any
   assertion runs. Only the pure builders — `post`, `urlPathEqualTo`, `okJson`, `postRequestedFor`, `equalTo`,
@@ -184,7 +201,10 @@ names a stream key of its own and reads that stream whole.
 ## Naming Conventions
 
 - Test methods: `when<Condition>_then<Result>()`.
-- Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
+- Test classes: `<ClassUnderTest>Test`, or `<ClassUnderTest><Aspect>Test` for a second class on one aspect —
+  `UserRepositoryAdapterConcurrencyTest`, `ExpenseRepositoryAdapterEventsTest`. `<Flow>SystemTest` for system
+  tests. A composed annotation's boot test drops the annotation's `Test` suffix for `ContextTest` —
+  `WebAdapterContextTest`.
 - Helpers: static `*Utils` classes with a private constructor; stub helpers as static methods on
   `WireMockStubs`. Test helpers are the one place `*Utils` is kept — production code names a helper for its role
   ([Code Style](code-style.md#general)) — because a test helper genuinely is a bag of conveniences keyed to a
@@ -233,8 +253,9 @@ names a stream key of its own and reads that stream whole.
   A log line is a diagnostic, not a contract; wording drifts with every edit to the class, and a test bound to it
   fails for a change that broke nothing. Reserve a `LogCapture` assertion for the case where the behaviour leaves
   no other trace — a failure that is swallowed on purpose, a path whose whole point is that nothing else happens.
-- **A system test signposts its phases with `// then:` comments.** One per thing the flow proves — the batch was
-  confirmed, the tool was called, the reply went back — written in the same words the display name uses. A system
+- **A system test signposts its phases with `// given:`, `// when:` and `// then:` comments.** One `// then:` per
+  thing the flow proves — the batch was confirmed, the tool was called, the reply went back — written in the same
+  words the display name uses. A system
   test is a long sequence of awaits and assertions against a stack the reader cannot see, and the phases are what
   a reader scans for; nothing else in the method says where one ends and the next begins. This is the one place a
   comment restating the code earns its place, and it does not license them elsewhere: a unit or adapter test
@@ -242,4 +263,13 @@ names a stream key of its own and reads that stream whole.
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution, which is why
   `TelegramFixtures` stays a set of text-block builders. Move any body past roughly fifteen lines to a file.
-- Log responses in system tests.
+- A system test awaits with a class constant `private static final Duration TIMEOUT = Duration.ofSeconds(30)`,
+  and labels each assertion with `.as("…")`.
+
+## Performance
+
+Not measured. No benchmark or load-test tool is in the build.
+
+## Known Unstable Tests
+
+None.

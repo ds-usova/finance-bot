@@ -77,10 +77,12 @@ Applies across all layers.
 
 - The service implementation extends the generated base class and does three things: map the request into a
   command, call the inbound port, map the result onto the response. Business decisions never live here.
-- Domain ↔ proto mapping lives in one static mapper class — never private helpers scattered through the service
-  implementation.
-- Exception-to-status mapping lives in a single `GrpcExceptionHandler` bean declared from configuration; the
-  service implementation never catches domain exceptions itself. A handler returns `null` for a throwable it
+- Reading a request into a command lives in one static `*Reader` class per request — `ExtractIntentsRequestReader`
+  — never in private helpers scattered through the service implementation. A class that parses external input
+  into a command is a `*Reader` across the module — `ChangeStreamEntryReader` too.
+- Exception-to-status mapping lives in a single `GrpcExceptionHandler` bean declared from configuration. The
+  service implementation catches only the `InvalidValueException` its reader raises, answering
+  `INVALID_ARGUMENT`; it never catches what the inbound port throws. A handler returns `null` for a throwable it
   does not recognize, so the next one gets a turn and an unmapped failure does not leak its message.
 - Every call terminates its `StreamObserver` — `onNext` then `onCompleted`, or `onError`. A caller waits until
   its deadline for one.
@@ -94,6 +96,21 @@ Applies across all layers.
 - A provider or tool failure — transport error, non-2xx, unparseable body — is translated into a module
   exception at this boundary and stops. A framework or HTTP-client exception never escapes into the core.
 
+### Adapter — Persistence
+
+- Persistence entities are Spring Data JDBC `*Entity` types with an `*EntityRepository` whose queries are
+  hand-written `@Query` SQL. An entity maps to the domain with a `to<Type>()` method. A query's projection is a
+  `*Row` record.
+- A `Jdbc*Adapter` translates every `DataAccessException` through `MessageStoreExceptionMapper.toDomain(e, "…")`.
+
+### Adapter — Configuration and Scheduling
+
+- Configuration is a `@ConfigurationProperties("<prefix>")` record named `<Concern>Properties`, registered by
+  `@EnableConfigurationProperties` on the `*Configuration` of the same subpackage.
+- Background work runs on a single-thread executor bean declared `@Bean(destroyMethod = "shutdown")`, never
+  `@Scheduled`.
+- **Time comes from an injected `Clock`**, never `Instant.now()`.
+
 ## Refactoring Conventions
 
 The default cleanup checklist (cross-class duplication, duplicated test fixtures, idiom inconsistency, leftover
@@ -103,8 +120,9 @@ scaffolding, needless complexity, import hygiene) applies; the points below prio
   (2) align idioms with this file; (3) import hygiene — no unused imports, no fully qualified names in bodies;
   (4) collapse needless conditionals and scaffolding left over from getting tests to pass.
 - **Extraction targets**: shared test helpers go to the shared test package, and get listed there (see
-  [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes into the proto mapper
-  or onto the value object that owns the data, never into a new helper beside the service implementation.
+  [Testing Conventions](testing.md#naming-conventions)); shared production mapping goes into the request's
+  `*Reader` or onto the value object that owns the data, never into a new helper beside the service
+  implementation.
 - **Misplaced behaviour is moved, not counted.** A private static method taking a domain object and reading only
   its own fields belongs on that type ([Domain](#domain)). Moving it is a relocation, not an extraction, so the
   threshold below does not apply: one occurrence is enough.

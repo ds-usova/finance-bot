@@ -6,7 +6,7 @@ On top of the repository-wide [Testing](../../../docs/conventions/testing.md).
 
 | Layer     | Test type | Covers                                               | Boundary                               |
 |-----------|-----------|------------------------------------------------------|----------------------------------------|
-| Unit      | unit      | A module's own logic — the API client, a hook        | `fetch` stubbed with `vi.stubGlobal`   |
+| Unit      | unit      | A module's own logic — the API client, a hook      | `fetch` stubbed with `vi.stubGlobal`   |
 | Component | unit      | What a component renders and what it calls back with | Its own props, or a hand-built context |
 | Page      | unit      | A route's composition, including its redirects       | `api/` mocked with `vi.mock`           |
 
@@ -22,12 +22,12 @@ jsdom parses markup and runs script; it lays nothing out. Every element measures
 colour resolves, no animation runs, and a third-party iframe renders nothing at all. So a whole class of defect
 is invisible here whatever the suite's size:
 
-| Outside the suite                          | Where it shows instead |
-|--------------------------------------------|------------------------|
-| Position, width, wrapping, what is cut off | the running app        |
-| Colour, contrast, both themes              | the running app        |
-| Scrolling, and a list clipped by a bound it never got | the running app |
-| Motion, and what reduced motion gives      | the running app        |
+| Outside the suite                                     | Where it shows instead |
+|-------------------------------------------------------|------------------------|
+| Position, width, wrapping, what is cut off            | the running app        |
+| Colour, contrast, both themes                         | the running app        |
+| Scrolling, and a list clipped by a bound it never got | the running app        |
+| Motion, and what reduced motion gives                 | the running app        |
 
 **A test that asserts a class name is not a substitute.** It pins the mechanism rather than the outcome, which
 [Testing Style](#testing-style) rules out, and it passes just as happily when the rule it names does nothing.
@@ -38,27 +38,45 @@ it as a decision, so the list is agreed before the code exists rather than recal
 
 ## Time Zones in a Test
 
-The runner is fixed to UTC, so an assertion about a reader in another zone proves nothing by default. Pin the
-zone with `vi.stubEnv('TZ', 'Pacific/Kiritimati')` and release it with `vi.unstubAllEnvs()`; `process.env.TZ`
-directly does not type-check, `@types/node` not being a dependency.
+The runner takes the machine's zone; nothing pins it. A test whose outcome depends on the zone pins it with
+`vi.stubEnv('TZ', 'Pacific/Kiritimati')` and releases it with `vi.unstubAllEnvs()`. `process.env.TZ` directly
+does not type-check, `@types/node` not being a dependency.
 
 ## Test Tooling
 
-Vitest with jsdom, Testing Library, and `@testing-library/user-event` for interaction. `@testing-library/jest-dom`
-matchers are registered once in `vitest.setup.ts`, which also cleans up between tests.
+Vitest with jsdom, Testing Library, and `@testing-library/user-event` for interaction. `vitest.setup.ts` registers
+the `@testing-library/jest-dom` matchers, loads the i18n instance, cleans up between tests, and stubs what jsdom
+lacks and radix-ui reaches for: `matchMedia` (not dark), `ResizeObserver`, `hasPointerCapture` and
+`scrollIntoView`.
+
+### Shared Helpers
+
+`src/testing/` holds them. A new one joins it and is listed here.
+
+| File                  | Gives a test                                                                               |
+|-----------------------|--------------------------------------------------------------------------------------------|
+| `fixtures.ts`         | `a…`/`an…` builders for the API's types and the auth context, and the category names   |
+| `catalogue.ts`        | `substituteCatalogue()`: a marked catalogue, proving text comes from it; restored per test |
+| `combobox.ts`         | `chooseOption`, `chooseFromList`: picking from a radix combobox                            |
+| `accordion.ts`        | the day headers, open or collapsed, `expandDays`, and `listingArrives`                     |
+| `inFlight.ts`         | a call the test answers or refuses itself, held open across other work                     |
+| `fetchStub.ts`        | `stubFetch` and `jsonResponse`                                                             |
+| `localStorageStub.ts` | `stubLocalStorage`                                                                         |
+| `matchMediaStub.ts`   | `stubMatchMedia(dark)`                                                                     |
 
 ## Naming Conventions
 
 - A test file sits beside its subject: `client.ts` / `client.test.ts`.
-- `describe` names the subject as a noun phrase — *the API client*, *the sign-in page*.
+- `describe` names the subject: a noun phrase for a component, page or module — *the API client*, *the sign-in
+  page* — and the function's own name for a helper — `refusalText`, `resolveTheme()`.
 - `it` names the behaviour as a sentence completing "it …", stating the outcome, not the mechanism.
 
 ## Testing Style
 
 - **Query by role and accessible name**, never by test id or class. A control a test cannot find by its
   accessible name is a control a screen reader cannot find either.
-- **Stub at the module boundary.** `vi.mock('../api/session')` for a page, `vi.stubGlobal('fetch', …)` for the
-  client. Nothing reaches past that.
+- **Stub at the module boundary.** `vi.mock('../api/<module>')` for a page or a provider — `../api/expenses`,
+  `../api/session` — and `vi.stubGlobal('fetch', …)` for the client. Nothing reaches past that.
 - **Assert the invariant, not the mechanism.** That a write carries the CSRF header, not that a particular
   header-building helper was called.
 - **An accessible role or name the design specifies is asserted**, not left to the rule above. For assistive
@@ -71,3 +89,11 @@ matchers are registered once in `vitest.setup.ts`, which also cleans up between 
 - **A rule that holds for every file is asserted once**, in `src/conventions.test.ts`, rather than repeated per
   file. It reads the sources through `import.meta.glob` — `@types/node` is not a dependency, so `node:fs` does
   not type-check — and names every offending line, so a failure says what to rewrite.
+
+## Performance
+
+Not measured. No benchmark or load-test tool is in the manifest.
+
+## Known Unstable Tests
+
+None.

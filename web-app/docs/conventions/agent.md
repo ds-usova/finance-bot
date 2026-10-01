@@ -4,7 +4,12 @@ How the coding agent works this module, and what it cannot exercise here.
 
 ## Version Control
 
-Repository-wide: [Version Control](../../../docs/conventions/version-control.md).
+Repository-wide: [Version Control](../../../docs/conventions/version-control.md). What the agent does with it:
+
+- **Commit as the work goes**, once each check gating the change has passed, without being asked each time.
+- **Never create, switch or delete a branch.** Commit to whatever is current, `main` included.
+- **A commit refused because the repository index is locked is retried once**, after a moment. Any other refusal
+  is reported, never repeated.
 
 ## Sub-Agent Models
 
@@ -25,13 +30,22 @@ What the machine allows across every module at once is repository-wide:
 - Concurrent test runs: **1** — two runs share `coverage/` and `dist/`, so a coverage run and a test run never
   start together.
 
+## Implementation Bundles
+
+- Prefer items from the same: source grouping. A bundle never mixes test types.
+- Max plan items per implementation agent: unlimited.
+- Max plan brief characters per implementation agent: unlimited.
+
 ## Follow-Up Work in a Plan
 
 What runs once a change is complete, and what it earns, is [Follow-Up Work](follow-up.md).
 
 A plan carries two kinds in its **Post-Implementation Steps** group:
 
-- **ADRs** — one item per approved decision, as `Write ADR: <the decision, stated as a fact>`.
+- **ADR placeholders** — one item per approved decision, as `Place ADR: <the decision, stated as a fact>`.
+  Placing creates the file at the number, tier and filename
+  [Architecture Decision Records](../../../docs/conventions/adr.md) gives it, each section left as that page's
+  angle-bracket brief, `Status: Proposed`. An agent never writes an ADR's content.
 - **A contract-page rewrite the design already commits to** — one item per page, naming what changes.
 
 An ADR's approval is a numbered open question in the plan, and only an answered `yes` becomes an item.

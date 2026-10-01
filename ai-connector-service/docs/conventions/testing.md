@@ -32,7 +32,7 @@ bot.finance.ai
     │   ├── Network                # the Testcontainers network Redis and Toxiproxy share
     │   └── ToxiproxyContainers    # fronts the Redis singleton, for a test that cuts and restores the connection
     ├── fixtures               # payloads a test sends, and the loader for the ones kept on disk
-    │   ├── JsonUtils              # loads JSON fixtures from src/test/resources
+    │   ├── JsonUtils              # loads a classpath resource as text or as a parsed JSON tree
     │   ├── ChatCompletionFixtures # provider response bodies
     │   ├── CallerTokens           # the test signing key, its key set, and the caller tokens it mints
     │   ├── RequestFixtures        # valid ExtractIntentsRequest builders
@@ -56,15 +56,17 @@ bot.finance.ai
 ```
 
 A new helper joins the subpackage its role names, and is listed above. `LogCapture`, `MockedLoggerUtils` and
-`PrometheusScrapeUtils` sit at the root because they belong to none of them. The same names carry the same meanings in `ledger-service`, so a
-helper is looked for in the same place in either module.
+`PrometheusScrapeUtils` sit at the root because they belong to none of them. The subpackage names carry the same
+meanings in `ledger-service`, so a helper is looked for in the same place in either module.
+
+A composed annotation's boot test is `<Annotation>BootTest` — `PersistenceAdapterTestBootTest`.
 
 ## Test Layers
 
 - **Unit** — `domain/`, `application/usecase/`, self-validating `application/dto` records, and the stateless
   helper classes in an adapter package — the mappers, renderers and their kind
-  ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A proto mapper is
-  a unit target. The same goes for an adapter-layer class doing something non-trivial — branching logic with no
+  ([Code Style](code-style.md#general)). Plain JUnit, outbound ports mocked, no Spring context. A request
+  `*Reader` is a unit target. The same goes for an adapter-layer class doing something non-trivial — branching logic with no
   infrastructure of its own, like `LedgerToolFailureProcessor`, `CallerTokenMcpRequestCustomizer`,
   `ChangeStreamEntryHandler` or `ChangeStreamEntryReader`; a class whose behaviour is trivial is left to its
   adapter's integration test instead.
@@ -99,8 +101,15 @@ helper is looked for in the same place in either module.
 - JUnit 5, AssertJ, Mockito, WireMock, Awaitility. Every gRPC test enters through a generated blocking stub;
   RestAssured covers Actuator's HTTP endpoints.
 - `AbstractSystemTest` boots the application on a **random real gRPC port**, exposes a blocking stub built
-  against that port and the Actuator port for HTTP assertions, and resets stubs after each test; subclasses
-  declare nothing. System tests extend it, adapter tests do not.
+  against that port and the Actuator port for HTTP assertions, and resets stubs before and after each test;
+  subclasses declare nothing. System tests extend it, adapter tests do not.
+- `AbstractMemorySystemTest` runs the purge timer at `memory.purge-interval=1s`; a test fires it by waiting with
+  Awaitility. A change-stream entry reaches the consumer through `LedgerChangeStreamStubs`, which writes it to
+  Redis the way the ledger would.
+- Unit tests build mocks with `mock(...)` and construct the class under test by hand — never `MockitoExtension`,
+  `@Mock` or `@InjectMocks`. A unit test asserting a log line mocks `LoggerFactory` and reads the lines back
+  through `MockedLoggerUtils`; `LogCapture` is for a Spring-context test.
+- A metrics assertion is a delta over a scrape taken before the call, since the context is shared.
 - Building a stub is `AbstractSystemTest`'s and `@GrpcAdapterTest`'s job, never a test class's. A test that
   hand-builds a channel picks a transport by accident.
 - `@GrpcAdapterTest` — `@SpringBootTest` + `InProcessGrpcTransportConfiguration` + the test profile. Isolation
@@ -133,23 +142,29 @@ helper is looked for in the same place in either module.
 
 - Test methods: `when<Condition>_then<Result>()`.
 - Test classes: `<ClassUnderTest>Test`; `<Flow>SystemTest` for system tests.
-- Helpers: static `*Utils` classes with a private constructor. Test helpers are the one place `*Utils` is kept —
-  production code names a helper for its role ([Code Style](code-style.md#general)).
+- Helpers: static classes with a private constructor, named by role — `*Fixtures`, `*Stubs`, `*Containers`,
+  `*Support` — or `*Utils` for a bag of conveniences keyed to a table or a recorder. Test helpers are the one
+  place `*Utils` is kept — production code names a helper for its role ([Code Style](code-style.md#general)).
 - New shared builders and factories go in the `bot.finance.ai.common` subpackage their role names — `boot`,
-  `containers`, `fixtures` or `stubs` — and get listed in
+  `containers`, `fixtures`, `rows` or `stubs` — and get listed in
   [Package Structure](#package-structure). The exception is a helper needing package-private access to the class
   it fronts: it stays in that class's package and is listed there, as `adapter/grpc/CallerTokenTestSupport` is.
 
 ## Testing Style
 
 - Group tests into `@Nested` classes, never a flat list. Unit and outbound-adapter tests group by the method
-  under test (`infer()` → `@Nested class Infer`); inbound-adapter and system tests group by scenario kind
-  (`HappyPath`, `UnhappyPath`, `ErrorMapping`, `Validation`). Each nested class carries a prose `@DisplayName`;
-  only the outer class is suffixed `Test`. A class whose tests form one group still uses a nested class.
-- A nested class named after the type under test shadows its import — `@Nested class Money` inside `MoneyTest`
-  makes `Money.of(...)` resolve to the test class. Name it for the role instead: `MoneyFactory`.
+  under test (`embed()` → `@Nested class Embed`); inbound-adapter and system tests group by scenario kind
+  (`HappyPath`, `UnhappyPath`, `ErrorMapping`, `Validation`). A nested class's `@DisplayName` is prose, or the
+  method form `"embed()"` for a method group. Only the outer class is suffixed `Test`. A class whose tests form
+  one group still uses a nested class.
+- A precondition shared by several groups gets a second `@Nested` level named for it — "with the caller
+  identified".
+- A nested class named after the type under test shadows its import — `@Nested class CurrencyCode` inside
+  `CurrencyCodeTest` makes `CurrencyCode` resolve to the test class. Name it for the role instead:
+  `CurrencyCodeFactory`.
 - `@ParameterizedTest` when one behaviour spans several values (currency scales, enum cases, validation
-  matrices). Never duplicate a case as both a parameterized entry and a one-off test.
+  matrices). Never duplicate a case as both a parameterized entry and a one-off test. A `@MethodSource` case
+  carries its name as the first argument, shown with `@ParameterizedTest(name = "{0}")`.
 - **Assert the invariant, not the mechanism.** Where an outcome depends on how a dependency routes a call
   internally, assert what must hold whichever route it takes, never which route was taken. The opposite error is
   as bad: a disjunction covering every possible outcome asserts nothing. Assert what a user would notice going
@@ -165,4 +180,11 @@ helper is looked for in the same place in either module.
 - Text blocks for long literals. Move a payload shared by more than one test to `src/test/resources` +
   `JsonUtils` — except a parameterized one, since `JsonUtils` performs no substitution. Move any body past
   roughly fifteen lines to a file.
-- Log responses in system tests.
+
+## Performance
+
+Not measured. No benchmark or load-test tool is in the build.
+
+## Known Unstable Tests
+
+None.
