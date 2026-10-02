@@ -29,7 +29,7 @@ const STRING_LITERAL = /(['"`])((?:(?!\1)[^\\\n]|\\.)*)\1/g;
 // throws the start line away from that breakpoint up and leaves the cell to auto-placement. Rows likewise.
 function spansDroppingAStartIn(contents: string): string[] {
   return [...contents.matchAll(STRING_LITERAL)]
-    .map((match) => match[2])
+    .map((match) => match[2] ?? '')
     .filter((literal) => {
       const tokens = literal.split(/\s+/);
       return (['col', 'row'] as const).some(
@@ -53,7 +53,6 @@ describe('the module’s own conventions', () => {
       'class lists pairing a col-start or row-start with a breakpoint’s span on the same axis; end the cell with col-end or row-end instead',
     ).toEqual([]);
   });
-
 
   it('cites no plan step, design decision or acceptance scenario by number, in any comment', () => {
     const offenders = Object.entries(sources)
