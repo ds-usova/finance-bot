@@ -66,6 +66,24 @@
 
 - **RL01 (ST06):** the stabilization suite counts 1189 against the baseline's 1188: the one added test is the
   `ColumnLimitsSchemaTest$WrittenText` width case ST06 names.
+- **RL02 (RU02):** expected passes against the stubs — `WrittenMessageTest$NewMessage` and `$Stored` happy paths:
+  ST02 has the private constructor assign the fields; only the refusals are stubbed.
+- **RL03 (RU03):** expected pass — `FileWrittenMessageCommandTest`'s "carries both unchanged": a record carries
+  its components; only the refusals are stubbed. Likewise RU04's `ReadWrittenMessageCommandTest` and RU05's
+  `BrowseWrittenMessagesCommandTest` happy paths.
+- **RL04 (RU06):** expected passes — the three `UniqueViolationsTest$ConstraintName` cases answering `null`
+  (SQLState `23503`, no `SQLException`, a `23505` with no message) match the stub's `null`; they assert absence.
+- **RL05 (RU12):** expected pass — `WrittenMessageWebMapperTest$ToResponses` with no message answers an empty
+  list, which the stub returns; it asserts absence.
+- **RL06 (RI01):** expected passes — `WrittenMessageRepositoryAdapterTest`: `ClaimOldestWaiting` with nothing
+  waiting, `FindForUser` for another person's message and for an id naming nothing, `StampHandOver` on a `DONE`
+  row, and `Settle` on settled and waiting rows; each asserts an empty answer or `false` with the row unchanged.
+- **RL07 (RI03):** expected pass — `ExpenseRepositoryAdapterTest$FindDaysByMessageReference` for another
+  person's entry and another message answers no day; it asserts absence.
+- **RL08 (RI04):** expected passes — `MessagesControllerTest`: four `ErrorMapping` cases (429, 400 from the port,
+  404, and the 401/403 security cases) reach `WebExceptionHandler`'s handlers and the security chain, written
+  implemented in stabilization (RF03); nine `Validation` cases (`text` refusals, not-JSON, `id`, absent `state`)
+  are enforced by the generated contract's bean validation and the stabilization handlers.
 
 ## Caveats
 

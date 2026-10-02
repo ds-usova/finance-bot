@@ -336,7 +336,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `ofWrittenMessage()` · scenarios: AC13
+- [x] RU01 · `IncomingMessageId` · test: `IncomingMessageIdTest` · covers: `ofWrittenMessage()` · scenarios: AC13
   - `ofWrittenMessage()`:
     - given: a written message id of 42
       when: ofWrittenMessage() is called
@@ -344,7 +344,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an id of 0, and one below 0
       when: ofWrittenMessage() is called for each
       then: `InvalidIncomingMessageException` is thrown
-- [ ] RU02 · `WrittenMessage` · test: `WrittenMessageTest` · covers: `newMessage()`, `stored()` · scenarios: AC02
+- [x] RU02 · `WrittenMessage` · test: `WrittenMessageTest` · covers: `newMessage()`, `stored()` · scenarios: AC02
   - `newMessage()`:
     - given: a user id, `coffee 3.40, taxi home 14` and an instant
       when: newMessage() is called
@@ -362,7 +362,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an absent status
       when: stored() is called
       then: `InvalidWrittenMessageException` is thrown
-- [ ] RU03 · `FileWrittenMessageCommand` · test: `FileWrittenMessageCommandTest` · covers: `FileWrittenMessageCommand()` · scenarios: AC01
+- [x] RU03 · `FileWrittenMessageCommand` · test: `FileWrittenMessageCommandTest` · covers: `FileWrittenMessageCommand()` · scenarios: AC01
   - the compact constructor:
     - given: a caller and a text
       when: the command is constructed
@@ -373,7 +373,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an absent text
       when: the command is constructed
       then: `InvalidWrittenMessageException` is thrown
-- [ ] RU04 · `ReadWrittenMessageCommand` · test: `ReadWrittenMessageCommandTest` · covers: `ReadWrittenMessageCommand()` · scenarios: AC11
+- [x] RU04 · `ReadWrittenMessageCommand` · test: `ReadWrittenMessageCommandTest` · covers: `ReadWrittenMessageCommand()` · scenarios: AC11
   - the compact constructor:
     - given: a caller and a message id of 1
       when: the command is constructed
@@ -384,7 +384,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: a message id of 0, and one below 0
       when: the command is constructed for each
       then: `InvalidWrittenMessageException` is thrown
-- [ ] RU05 · `BrowseWrittenMessagesCommand` · test: `BrowseWrittenMessagesCommandTest` · covers: `BrowseWrittenMessagesCommand()` · scenarios: AC12
+- [x] RU05 · `BrowseWrittenMessagesCommand` · test: `BrowseWrittenMessagesCommandTest` · covers: `BrowseWrittenMessagesCommand()` · scenarios: AC12
   - the compact constructor:
     - given: a caller
       when: the command is constructed
@@ -392,7 +392,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an absent caller
       when: the command is constructed
       then: `InvalidUserException` is thrown
-- [ ] RU06 · `UniqueViolations` · test: `UniqueViolationsTest` · covers: `constraintName()` · scenarios: AC07
+- [x] RU06 · `UniqueViolations` · test: `UniqueViolationsTest` · covers: `constraintName()` · scenarios: AC07
   - `constraintName()`:
     - given: an exception whose cause chain holds an `SQLException` with SQLState `23505` and the message
       `duplicate key value violates unique constraint "ux_written_message_one_unsettled_per_user"`
@@ -404,7 +404,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: a chain holding no `SQLException`, and one whose `23505` exception carries no message
       when: constraintName() is called for each
       then: it answers `null`
-- [ ] RU07 · `FileWrittenMessageUseCase` · test: `FileWrittenMessageUseCaseTest` · covers: `file()` · scenarios: AC01, AC02, AC05, AC06, AC07
+- [x] RU07 · `FileWrittenMessageUseCase` · test: `FileWrittenMessageUseCaseTest` · covers: `file()` · scenarios: AC01, AC02, AC05, AC06, AC07
   - `file()`:
     - given: a stored user for the caller, a repository answering the stored message, and a fixed clock
       when: file() is called with `coffee 3.40, taxi home 14`
@@ -423,7 +423,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an absent command
       when: file() is called
       then: `InvalidWrittenMessageException` is thrown
-- [ ] RU08 · `ReadWrittenMessageUseCase` · test: `ReadWrittenMessageUseCaseTest` · covers: `read()` · scenarios: AC08, AC09, AC10, AC11
+- [x] RU08 · `ReadWrittenMessageUseCase` · test: `ReadWrittenMessageUseCaseTest` · covers: `read()` · scenarios: AC08, AC09, AC10, AC11
   - `read()`:
     - given: the caller's message 42, `DONE` with `RECORDED`, and the expense repository answering one day
       when: read() is called
@@ -441,7 +441,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: no user row for the caller
       when: read() is called
       then: `EntityNotFoundException` is thrown and no message is looked for
-- [ ] RU09 · `BrowseWrittenMessagesUseCase` · test: `BrowseWrittenMessagesUseCaseTest` · covers: `browse()` · scenarios: AC12
+- [x] RU09 · `BrowseWrittenMessagesUseCase` · test: `BrowseWrittenMessagesUseCaseTest` · covers: `browse()` · scenarios: AC12
   - `browse()`:
     - given: a stored user and a repository answering one `READING` message for that user's stored id
       when: browse() is called
@@ -452,7 +452,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: no user row for the caller
       when: browse() is called
       then: `EntityNotFoundException` is thrown and the repository is never asked for messages
-- [ ] RU10 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · covers: `handleNext()` · scenarios: AC13, AC14, AC15, AC16, AC17, AC18, AC35
+- [x] RU10 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · covers: `handleNext()` · scenarios: AC13, AC14, AC15, AC16, AC17, AC18, AC35
   - `handleNext()`:
     - given: a claim answering nothing
       when: handleNext() is called
@@ -504,7 +504,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: the days read throwing `PersistenceFailedException` after the extraction returned
       when: handleNext() is called
       then: that exception reaches the caller, and the message is never settled
-- [ ] RU11 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · covers: `sweep()` · scenarios: AC20, AC21, AC34, AC35
+- [x] RU11 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · covers: `sweep()` · scenarios: AC20, AC21, AC34, AC35
   - `sweep()`:
     - given: a fixed clock, a longest turn life of 3 minutes 30 seconds, and no stale message
       when: sweep() is called
@@ -526,7 +526,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
       it
       when: sweep() is called for each
       then: that exception reaches the caller
-- [ ] RU12 · `WrittenMessageWebMapper` · test: `WrittenMessageWebMapperTest` · covers: `toResponse()`, `toResponses()`, `toBrowseWrittenMessagesCommand()` · scenarios: AC01, AC08, AC09, AC10, AC12
+- [x] RU12 · `WrittenMessageWebMapper` · test: `WrittenMessageWebMapperTest` · covers: `toResponse()`, `toResponses()`, `toBrowseWrittenMessagesCommand()` · scenarios: AC01, AC08, AC09, AC10, AC12
   - `toResponse()`:
     - given: a `WAITING` message, and a `READING` one
       when: each is mapped
@@ -551,7 +551,10 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an absent state, and any other value the generated parameter can carry
       when: each is mapped
       then: `InvalidWrittenMessageException` is thrown
-- [ ] RU13 · `WrittenMessageReader` · test: `WrittenMessageReaderTest` · covers: `start()`, `stop()`, `dispatch()` · scenarios: AC01, AC22, AC36
+    - (added) given: the state `reading`, an empty state, and a blank one
+      when: each is mapped
+      then: `InvalidWrittenMessageException` is thrown
+- [x] RU13 · `WrittenMessageReader` · test: `WrittenMessageReaderTest` · covers: `start()`, `stop()`, `dispatch()` · scenarios: AC01, AC22, AC36
   - `start()`:
     - given: a mocked scheduled executor and a poll interval of 10 seconds
       when: start() is called
@@ -580,7 +583,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · covers: `store()`, `findForUser()`, `findUnsettledForUser()`, `claimOldestWaiting()`, `stampHandOver()`, `settle()`, `findReadingUpdatedBefore()` · scenarios: AC01, AC02, AC06, AC07, AC11, AC12, AC20, AC21, AC34, AC35
+- [x] RI01 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · covers: `store()`, `findForUser()`, `findUnsettledForUser()`, `claimOldestWaiting()`, `stampHandOver()`, `settle()`, `findReadingUpdatedBefore()` · scenarios: AC01, AC02, AC06, AC07, AC11, AC12, AC20, AC21, AC34, AC35
   - `store()`:
     - given: a stored user with no message
       when: store() is called with a new message
@@ -645,7 +648,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
       two `store()` classifies
       when: store() is called
       then: `PersistenceFailedException` is thrown carrying it as the cause
-- [ ] RI02 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · covers: `claimOldestWaiting()`, `store()` · scenarios: AC07, AC19
+- [x] RI02 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · covers: `claimOldestWaiting()`, `store()` · scenarios: AC07, AC19
   - `claimOldestWaiting()`:
     - given: one committed `WAITING` message
       when: two threads call claimOldestWaiting() at the same moment
@@ -655,7 +658,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
       when: two threads store a message for that user at the same moment
       then: exactly one is stored, the other throws `WrittenMessageInProgressException`, and the user holds one
       row
-- [ ] RI03 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `findDaysByMessageReference()` · scenarios: AC09, AC10, AC33
+- [x] RI03 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `findDaysByMessageReference()` · scenarios: AC09, AC10, AC33
   - `findDaysByMessageReference()`:
     - given: under `web:42`, a pending entry stored on one UTC day and a recorded one on the day before
       when: findDaysByMessageReference() is called for `web:42`
@@ -672,7 +675,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: an entity repository throwing `QueryTimeoutException`, in the `WithAMockedStore` class
       when: it is called
       then: `PersistenceFailedException` is thrown carrying it as the cause
-- [ ] RI04 · `MessagesController` · test: `MessagesControllerTest` · covers: `POST /api/v1/messages`, `GET /api/v1/messages/{id}`, `GET /api/v1/messages` · mocks: `FileWrittenMessagePort`, `ReadWrittenMessagePort`, `BrowseWrittenMessagesPort` · scenarios: AC01, AC02, AC03, AC04, AC07, AC08, AC09, AC11, AC12
+- [x] RI04 · `MessagesController` · test: `MessagesControllerTest` · covers: `POST /api/v1/messages`, `GET /api/v1/messages/{id}`, `GET /api/v1/messages` · mocks: `FileWrittenMessagePort`, `ReadWrittenMessagePort`, `BrowseWrittenMessagesPort` · scenarios: AC01, AC02, AC03, AC04, AC07, AC08, AC09, AC11, AC12
   - Happy Path:
     - given: the file port answering message 42 `WAITING`
       when: `coffee 3.40, taxi home 14` is posted with a session and a CSRF token
@@ -709,7 +712,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages` · scenarios: AC01, AC07, AC09, AC13
+- [x] RS01 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages` · scenarios: AC01, AC07, AC09, AC13
   - Happy Path:
     - given: a person signed in, and the stub connector armed to make two create-expense-proposal tool calls
       back into `/mcp`, one per expense
@@ -720,7 +723,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: a person signed in, with a `READING` message seeded for them
       when: they file a text
       then: 429, and they still hold one message row
-- [ ] RS02 · `ReadWrittenMessageSystemTest` · covers: `GET /api/v1/messages/{id}` · scenarios: AC09, AC11
+- [x] RS02 · `ReadWrittenMessageSystemTest` · covers: `GET /api/v1/messages/{id}` · scenarios: AC09, AC11
   - Happy Path:
     - given: a person signed in, a `DONE` message settled `RECORDED` seeded for them, and a pending entry under
       `web:<id>` stored on a known UTC day
@@ -730,7 +733,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: a person signed in, and a message seeded for another person
       when: they ask for it by id
       then: 404
-- [ ] RS03 · `BrowseWrittenMessagesSystemTest` · covers: `GET /api/v1/messages` · scenarios: AC12
+- [x] RS03 · `BrowseWrittenMessagesSystemTest` · covers: `GET /api/v1/messages` · scenarios: AC12
   - Happy Path:
     - given: a person signed in with a `READING` message, and another person with one too
       when: the person asks for their texts being read
@@ -739,7 +742,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
     - given: a person signed in, whose user row is then deleted
       when: they ask for their texts being read
       then: 404
-- [ ] RS04 · `WrittenMessageReadingSystemTest` · covers: `WrittenMessageReader.start()` · scenarios: AC13, AC16, AC22
+- [x] RS04 · `WrittenMessageReadingSystemTest` · covers: `WrittenMessageReader.start()` · scenarios: AC13, AC16, AC22
   - Happy Path:
     - given: a `WAITING` message `coffee 3.40, taxi home 14` seeded directly for a stored person, as one stored
       before a restart, and the stub connector armed to make two create-expense-proposal tool calls

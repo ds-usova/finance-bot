@@ -42,6 +42,28 @@ class IncomingMessageIdTest {
     }
 
     @Nested
+    @DisplayName("deriving a reference from a written message")
+    class OfWrittenMessage {
+
+        @Test
+        @DisplayName("when ofWrittenMessage is called with an id of 42 - then the value is web:42")
+        void whenCalledWithId42_thenValueIsWebColon42() {
+            IncomingMessageId reference = IncomingMessageId.ofWrittenMessage(42L);
+
+            assertThat(reference.value()).isEqualTo("web:42");
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {0L, -1L})
+        @DisplayName("when ofWrittenMessage is called with an id below 1 - then InvalidIncomingMessageException is "
+                + "thrown")
+        void whenCalledWithIdBelowOne_thenThrowsInvalidIncomingMessageException(long id) {
+            assertThatThrownBy(() -> IncomingMessageId.ofWrittenMessage(id))
+                    .isInstanceOf(InvalidIncomingMessageException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("parsing a reference from text")
     class Of {
 
