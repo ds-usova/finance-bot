@@ -316,6 +316,9 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
   `SecurityConfiguration`'s web-session chain as `.authenticated()`, beside the matchers there and ahead of
   `anyRequest().denyAll()` · after: ST09
   - writes: `ledger-service/src/main/java/bot/finance/adapter/security/SecurityConfiguration.java`
+- [x] ST14 · Raise the Spring test context cache limit to 100: `spring.test.context.cache.maxSize=100` in
+  `ledger-service/src/test/resources/spring.properties`
+  - writes: `ledger-service/src/test/resources/spring.properties`
 
 **Shared Test Infrastructure**
 

@@ -97,6 +97,8 @@
   classes alone pass (76/76), and the full suite passes 1335/1335 in 170 s with
   `spring.test.context.cache.maxSize=100` set for that one run. No plan item owns the test-context or container
   configuration; refactor and wrap-up wait on the decision.
+  - Resolved: option 1 — ST14 sets `spring.test.context.cache.maxSize=100` in
+    `ledger-service/src/test/resources/spring.properties`; chosen by the session; user unanswered.
 - **RL12 (GU10):** hypothesis: `HandleWrittenMessageUseCase` counts a `FAILED` turn on the meter when the stamp
   throws, which RU10 does not pin — settled by reading RU10 against the design page.
 - **RL13 (GU12):** hypothesis: the refused-state message in `WrittenMessageWebMapper` ("unsupported written
@@ -116,6 +118,7 @@
 - baseline · tree a4d3db855db0ccf48cd8da09a790543ceca5cfe0 · total 1188 · skipped 0 · green · paths: ledger-service
 - stabilization · tree f75fc395f1c01971531043e7cf9b703ac1308c55 · total 1189 · skipped 0 · green · paths: ledger-service
 
+- green · tree 2de886746b68011e8eae38621d870b1202d47256 · total 1335 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`
