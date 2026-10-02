@@ -64,6 +64,19 @@
   - Action: resolved — the page's acceptance read back already catches into `report`, giving the listing's banner
     or `sessionExpired` (`web-app/src/pages/ExpensesPage.tsx` `rereadTouchedDays`); added both RU06 scenarios.
 
+## Run Log
+
+- **RL01 (RU02):** expected pass — `WriteInLine.test.tsx` "the field > takes a line break on Shift+Enter without
+  filing" passes against the stub: it asserts `onFile` is never called, and a bare textarea takes the line break.
+- **RL02 (RU03):** expected pass — `useWrittenMessage.test.tsx` "filing > files nothing from an editable line
+  holding only spaces" passes against the stub: it asserts `fileMessage` is never called.
+- **RL03 (RU03):** expected pass — `useWrittenMessage.test.tsx` "filing > files nothing from a held line holding a
+  text" passes against the stub: it asserts `fileMessage` is never called.
+- **RL04 (RU02):** hypothesis: the reading line is queried by `getByLabelText('Reading your text: …')`, which
+  fits an `aria-label` or `aria-labelledby` — settled by the markup `WriteInLine` gets in green.
+- **RL05 (RU03):** hypothesis: the held-line row relies on `onTextChange` setting the text while the line is
+  held — settled by reading the hook once it is implemented.
+
 ## Caveats
 
 - **CV01:** `plan.sh` refused at the plugin path by the project hook — "No allow rule covers this command" — and

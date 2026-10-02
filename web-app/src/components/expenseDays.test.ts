@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DayTotal, ExpensePage } from '../api/expenses';
 import { aDay, anExpense, anExpensePage } from '../testing/fixtures';
 import {
+  listingCanShow,
   mergeDay,
   pendingIdsOf,
   relativeDay,
@@ -427,6 +428,45 @@ describe('the ticks still on a page', () => {
     const page = anExpensePage([pendingA, pendingB]);
 
     expect(ticksStillOnPage(page, new Set([1, 2]))).toEqual(new Set([1, 2]));
+  });
+});
+
+describe('listingCanShow()', () => {
+  const onSeptember15 = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-09-15T09:00:00Z' });
+
+  it('answers true for a day already on the page, whatever the offset and the period', () => {
+    const entry = anExpense({ id: 1, status: 'PENDING', createdAt: '2026-10-01T09:00:00Z' });
+    const page = anExpensePage([entry], { offset: 20 });
+
+    expect(listingCanShow(page, { to: '2026-09-30' }, '2026-10-01')).toBe(true);
+  });
+
+  it('answers a day not on the page true only when the page is the first', () => {
+    const later = anExpensePage([onSeptember15], { offset: 20 });
+    const first = anExpensePage([onSeptember15], { offset: 0 });
+
+    expect(listingCanShow(later, {}, '2026-10-01')).toBe(false);
+    expect(listingCanShow(first, {}, '2026-10-01')).toBe(true);
+  });
+
+  it('answers true for a day not on the first page under an empty filter', () => {
+    expect(listingCanShow(anExpensePage([onSeptember15]), {}, '2026-10-01')).toBe(true);
+  });
+
+  it('answers a day not on the first page false under RECORDED and true under PENDING', () => {
+    const page = anExpensePage([onSeptember15]);
+
+    expect(listingCanShow(page, { status: 'RECORDED' }, '2026-10-01')).toBe(false);
+    expect(listingCanShow(page, { status: 'PENDING' }, '2026-10-01')).toBe(true);
+  });
+
+  it('answers true for the first and last day of the period and false for the day after it', () => {
+    const page = anExpensePage([onSeptember15]);
+    const filter = { from: '2026-09-01', to: '2026-09-30' };
+
+    expect(listingCanShow(page, filter, '2026-09-01')).toBe(true);
+    expect(listingCanShow(page, filter, '2026-09-30')).toBe(true);
+    expect(listingCanShow(page, filter, '2026-10-01')).toBe(false);
   });
 });
 

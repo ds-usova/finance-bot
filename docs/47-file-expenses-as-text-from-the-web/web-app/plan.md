@@ -115,7 +115,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `messages` · test: `messages.test.ts` · covers: `fileMessage()`, `readMessage()`, `listReadingMessages()` · scenarios: AC01, AC08, AC12
+- [x] RU01 · `messages` · test: `messages.test.ts` · covers: `fileMessage()`, `readMessage()`, `listReadingMessages()` · scenarios: AC01, AC08, AC12
   - `fileMessage()`:
     - given: a stubbed fetch answering 202 with a `READING` message, and a CSRF cookie the ledger set
       when: fileMessage() is called with `coffee 3.40, taxi home 14`
@@ -135,7 +135,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
     - given: a stubbed fetch answering 200 with a list of one message
       when: listReadingMessages() is called
       then: it requests `/api/v1/messages?state=READING` with GET, and answers that list
-- [ ] RU02 · `WriteInLine` · test: `WriteInLine.test.tsx` · covers: `WriteInLine` · scenarios: AC23, AC27, AC29, AC40
+- [x] RU02 · `WriteInLine` · test: `WriteInLine.test.tsx` · covers: `WriteInLine` · scenarios: AC23, AC27, AC29, AC40
   - the field:
     - given: an editable line
       when: the person types into the field found by the label `Write what you spent`
@@ -178,7 +178,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
       when: the line is rendered with a text being read
       then: the label, the placeholder, the file control, the hint and the reading mark read the catalogue's
       text
-- [ ] RU03 · `useWrittenMessage` · test: `useWrittenMessage.test.tsx` · covers: `useWrittenMessage()` · scenarios: AC23, AC24, AC25, AC26, AC27, AC28, AC29, AC30, AC31, AC32, AC37, AC38, AC39
+- [x] RU03 · `useWrittenMessage` · test: `useWrittenMessage.test.tsx` · covers: `useWrittenMessage()` · scenarios: AC23, AC24, AC25, AC26, AC27, AC28, AC29, AC30, AC31, AC32, AC37, AC38, AC39
   - the load-time ask, with `api/messages` mocked and the hook mounted inside a hand-built auth context:
     - given: `listReadingMessages` held unanswered
       when: the hook mounts
@@ -232,6 +232,9 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
     - given: `readMessage` answering `READING`, then `READING`, then `DONE`
       when: 20 seconds pass
       then: `readMessage` was asked for 42 three times, once every 5 seconds, and not again after `DONE`
+    - (added) given: a filing answered as message 42
+      when: 4999 ms pass, then 1 ms more
+      then: `readMessage` is not asked before 5 seconds, and is asked at 5 seconds
     - given: `readMessage` rejecting with an `ApiError` carrying 503, then a network failure, then answering
       `READING`
       when: 15 seconds pass
@@ -269,7 +272,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
     - given: a reading line standing, and `readMessage` asked once after 5 seconds
       when: the hook unmounts and 10 seconds pass
       then: `readMessage` was still asked once
-- [ ] RU04 · `expenseDays` · test: `expenseDays.test.ts` · covers: `listingCanShow()` · scenarios: AC25, AC39
+- [x] RU04 · `expenseDays` · test: `expenseDays.test.ts` · covers: `listingCanShow()` · scenarios: AC25, AC39
   - `listingCanShow()`:
     - given: a page holding an entry on `2026-10-01`, at offset 20, under a period ending `2026-09-30`
       when: listingCanShow() is called for `2026-10-01`
@@ -286,7 +289,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
     - given: the first page under the period `2026-09-01` to `2026-09-30`
       when: listingCanShow() is called for `2026-09-01`, `2026-09-30` and `2026-10-01`
       then: it answers `true`, `true` and `false`
-- [ ] RU05 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: `ExpenseDaySection` · scenarios: AC25
+- [x] RU05 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx` · covers: `ExpenseDaySection` · scenarios: AC25
   - opening:
     - given: a day rendered with `opened` false
       when: it is rendered again with `opened` true
@@ -294,7 +297,7 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
     - given: a day opened that way
       when: the person activates its header
       then: the day closes
-- [ ] RU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: `ExpensesPage` · scenarios: AC23, AC25, AC26, AC32, AC39
+- [x] RU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · covers: `ExpensesPage` · scenarios: AC23, AC25, AC26, AC32, AC39
   - the write-in line:
     - given: the listing, categories and groupings answered with a pending entry, no text being read, and an
       acceptance that reported entries already moved on

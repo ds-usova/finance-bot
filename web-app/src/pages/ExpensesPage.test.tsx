@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, MalformedResponseError } from '../api/client';
@@ -12,9 +12,10 @@ import {
   type Expense,
   type ExpensePage,
 } from '../api/expenses';
+import { fileMessage, listReadingMessages, readMessage } from '../api/messages';
 import { AuthContext, type AuthContextValue } from '../auth/authContext';
 import { en } from '../i18n/en';
-import { expandDays, listingArrives, openDayHeaders } from '../testing/accordion';
+import { dayHeaders, expandDays, listingArrives, openDayHeaders } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { chooseFromList } from '../testing/combobox';
 import {
@@ -24,6 +25,7 @@ import {
   anAuthContext,
   anExpense,
   anExpensePage,
+  aWrittenMessage,
 } from '../testing/fixtures';
 import { ExpensesPage } from './ExpensesPage';
 
@@ -34,6 +36,16 @@ vi.mock('../api/expenses', () => ({
   acceptExpenses: vi.fn(),
   changeCategory: vi.fn(),
 }));
+
+vi.mock('../api/messages', () => ({
+  fileMessage: vi.fn(),
+  readMessage: vi.fn(),
+  listReadingMessages: vi.fn(),
+}));
+
+const fileMessageMock = vi.mocked(fileMessage);
+const readMessageMock = vi.mocked(readMessage);
+const listReadingMessagesMock = vi.mocked(listReadingMessages);
 
 const listExpensesMock = vi.mocked(listExpenses);
 const listCategoriesMock = vi.mocked(listCategories);
@@ -100,9 +112,11 @@ describe('the expenses page', () => {
     listCategoriesMock.mockResolvedValue(categories);
     listGroupingsMock.mockResolvedValue(groupings);
     acceptExpensesMock.mockResolvedValue(anAcceptance());
+    listReadingMessagesMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.resetAllMocks();
   });
 
@@ -1133,5 +1147,164 @@ describe('the expenses page', () => {
 
     await waitFor(() => expect(listExpensesMock).toHaveBeenCalledTimes(3));
     await waitFor(() => expect(document.activeElement).toEqual(openDayHeaders()[0]));
+  });
+
+  it('stands the write-in field after the filters’ controls and before the moved-on line, the awaiting headline and the first day', async () => {
+    const entry = anExpense({
+      id: 20,
+      description: 'ferry',
+      status: 'PENDING',
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+    listExpensesMock.mockResolvedValue(anExpensePage([entry]));
+    acceptExpensesMock.mockResolvedValueOnce(anAcceptance({ accepted: 0, missing: 1 }));
+
+    renderPage();
+    await listedEntries();
+    await tickEntry(/ferry/i);
+    await userEvent.click(screen.getByRole('button', { name: 'Accept 1 entry' }));
+    const movedOn = await screen.findByText('1 entry had already moved on');
+
+    const filterControl = screen.getByRole('button', { name: /^category/i });
+    const field = screen.getByLabelText(en.writeIn.label);
+    const headline = screen
+      .getAllByText('1 entry awaits a decision')
+      .find((element) => element.tagName === 'P');
+    const firstDay = dayHeaders()[0];
+
+    expect(headline).toBeDefined();
+    expect(firstDay).toBeDefined();
+    const follows = (earlier: Element, later: Element | undefined) =>
+      Boolean(later && earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(filterControl, field)).toBe(true);
+    expect(follows(field, movedOn)).toBe(true);
+    expect(follows(field, headline)).toBe(true);
+    expect(follows(field, firstDay)).toBe(true);
+  });
+
+  describe('when a written text is read', () => {
+    const FILED = 'coffee 3.40, taxi home 14';
+
+    /** Files a text from the field with the listing already on screen, and lets 5 seconds pass. */
+    async function fileAndLetItBeRead(outcome: Parameters<typeof aWrittenMessage>[0]) {
+      fileMessageMock.mockResolvedValueOnce(aWrittenMessage({ id: 42, text: FILED }));
+      readMessageMock.mockResolvedValue(
+        aWrittenMessage({ id: 42, state: 'DONE', text: FILED, ...outcome }),
+      );
+      const field = screen.getByLabelText(en.writeIn.label);
+      act(() => field.focus());
+      fireEvent.change(field, { target: { value: FILED } });
+      vi.useFakeTimers();
+
+      fireEvent.click(screen.getByRole('button', { name: en.writeIn.file }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      return field;
+    }
+
+    function expectNote(message: string) {
+      expect(screen.getAllByText(message).length).toBeGreaterThan(0);
+    }
+
+    const earlierDay = anExpense({
+      id: 1,
+      description: 'lunch',
+      status: 'PENDING',
+      createdAt: '2026-08-05T09:00:00Z',
+    });
+
+    it('reads back the day alone, merges and opens it showing the new entry, ticks nothing and leaves focus in the field', async () => {
+      const newEntry = anExpense({
+        id: 60,
+        description: 'parking',
+        status: 'PENDING',
+        createdAt: '2026-10-01T09:00:00Z',
+      });
+      listExpensesMock
+        .mockResolvedValueOnce(anExpensePage([earlierDay]))
+        .mockResolvedValueOnce(anExpensePage([newEntry]));
+      renderPage();
+      await listingArrives();
+
+      const field = await fileAndLetItBeRead({ outcome: 'RECORDED', days: ['2026-10-01'] });
+
+      expect(listExpensesMock).toHaveBeenCalledTimes(2);
+      expect(listExpensesMock).toHaveBeenLastCalledWith({
+        status: undefined,
+        categoryId: undefined,
+        from: '2026-10-01',
+        to: '2026-10-01',
+        offset: undefined,
+        limit: 100,
+      });
+      const row = screen.getByRole('listitem', { name: /parking/i });
+      expect(within(row).getByRole('checkbox')).not.toBeChecked();
+      expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+      expect(field).toHaveFocus();
+    });
+
+    it('reads nothing back and notes that the list does not show the days when the listing is on a later page', async () => {
+      listExpensesMock.mockResolvedValue(
+        anExpensePage([earlierDay], { limit: 20, offset: 20, total: 40 }),
+      );
+      renderPage();
+      await listingArrives();
+
+      await fileAndLetItBeRead({ outcome: 'RECORDED', days: ['2026-10-01'] });
+
+      expect(listExpensesMock).toHaveBeenCalledOnce();
+      expectNote(en.writeIn.outOfView);
+    });
+
+    it('reads the day back, opens it and notes that the list may be incomplete when the reading was partial', async () => {
+      const added = anExpense({
+        id: 61,
+        description: 'parking',
+        status: 'PENDING',
+        createdAt: '2026-08-05T10:00:00Z',
+      });
+      listExpensesMock
+        .mockResolvedValueOnce(anExpensePage([earlierDay]))
+        .mockResolvedValueOnce(anExpensePage([earlierDay, added]));
+      renderPage();
+      await listingArrives();
+
+      await fileAndLetItBeRead({ outcome: 'PARTIAL', days: ['2026-08-05'] });
+
+      expect(listExpensesMock).toHaveBeenCalledTimes(2);
+      expect(listExpensesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ from: '2026-08-05', to: '2026-08-05', offset: undefined }),
+      );
+      expect(screen.getByText('parking')).toBeInTheDocument();
+      expectNote(en.writeIn.listIncomplete);
+    });
+
+    it('shows the listing’s refusal banner and keeps the list on screen when the read back is refused with 503', async () => {
+      listExpensesMock
+        .mockResolvedValueOnce(anExpensePage([earlierDay]))
+        .mockRejectedValueOnce(new ApiError(503, 'the ledger is temporarily unavailable'));
+      renderPage();
+      await listingArrives();
+
+      await fileAndLetItBeRead({ outcome: 'RECORDED', days: ['2026-08-05'] });
+
+      expect(screen.getByRole('alert')).toHaveTextContent(en.listing.refused);
+      expandDays();
+      expect(screen.getByText('lunch')).toBeInTheDocument();
+    });
+
+    it('reports an expired session when the read back is refused with 401', async () => {
+      listExpensesMock
+        .mockResolvedValueOnce(anExpensePage([earlierDay]))
+        .mockRejectedValueOnce(new ApiError(401, 'no session'));
+      const sessionExpired = vi.fn();
+      renderPage({ sessionExpired });
+      await listingArrives();
+
+      await fileAndLetItBeRead({ outcome: 'RECORDED', days: ['2026-08-05'] });
+
+      expect(sessionExpired).toHaveBeenCalledOnce();
+    });
   });
 });
