@@ -7,7 +7,11 @@ import { ApiError, MalformedResponseError } from '../api/client';
 export function refusalText(
   error: unknown,
   t: ReturnType<typeof useTranslation>['t'],
-  refusedKey: 'settings.refused' | 'listing.refused' | 'listing.categoryChangeRefused',
+  refusedKey:
+    | 'settings.refused'
+    | 'listing.refused'
+    | 'listing.categoryChangeRefused'
+    | 'writeIn.filingRefused',
 ): string {
   if (error instanceof MalformedResponseError) {
     return t(error.key);

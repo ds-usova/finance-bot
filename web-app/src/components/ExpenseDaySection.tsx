@@ -23,6 +23,8 @@ export type ExpenseDaySectionProps = ExpenseTickingProps &
     categoryNames: Map<number, string>;
     /** Whether an acceptance just posted entries on this day, which lands the stamp on its header. */
     posted?: boolean;
+    // stub-intent: the day opens when this becomes `true`, and the person can still close it.
+    opened?: boolean;
   };
 
 function formatMoney(money: RenderedMoney): string {

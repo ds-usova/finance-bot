@@ -15,6 +15,8 @@ export type ExpenseListProps = ExpenseTickingProps &
     categoryNames: Map<number, string>;
     /** The days an acceptance just posted entries on. */
     postedDays?: ReadonlySet<string>;
+    /** The days a filed text just recorded entries on, which open. */
+    openedDays?: ReadonlySet<string>;
   };
 
 export function ExpenseList({
@@ -31,6 +33,7 @@ export function ExpenseList({
   focusDay,
   onChangeCategory,
   postedDays,
+  openedDays,
 }: ExpenseListProps) {
   const { t } = useTranslation();
 
@@ -62,6 +65,7 @@ export function ExpenseList({
           focusDay={focusDay}
           onChangeCategory={onChangeCategory}
           posted={postedDays?.has(day.day) ?? false}
+          opened={openedDays?.has(day.day) ?? false}
         />
       ))}
     </div>

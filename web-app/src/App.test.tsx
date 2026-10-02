@@ -21,6 +21,7 @@ describe('the wired application', () => {
       ['/groupings', [aGrouping()]],
       ['/session', { externalId }],
       ['/api/v1/preferences', { defaultCurrency: null }],
+      ['/api/v1/messages', []],
     ];
 
     vi.stubGlobal(

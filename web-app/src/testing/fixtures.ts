@@ -1,4 +1,5 @@
 import type { Acceptance, Category, Expense, ExpensePage, Grouping } from '../api/expenses';
+import type { WrittenMessage } from '../api/messages';
 import type { AuthContextValue } from '../auth/authContext';
 import type { ExpenseDay } from '../components/expenseDays';
 
@@ -67,6 +68,17 @@ export function anAcceptance(overrides: Partial<Acceptance> = {}): Acceptance {
   return {
     accepted: 1,
     missing: 0,
+    ...overrides,
+  };
+}
+
+export function aWrittenMessage(overrides: Partial<WrittenMessage> = {}): WrittenMessage {
+  return {
+    id: 1,
+    state: 'READING',
+    text: 'lunch 12.50',
+    outcome: null,
+    days: [],
     ...overrides,
   };
 }
