@@ -90,6 +90,20 @@
 - **RL10 (GS04):** `WrittenMessageReadingSystemTest` seeded its person through `UserRowUtils.storedUserId`, a user
   with no groupings, so the turn settled `FAILED` before extraction and the unhappy path passed for the wrong
   reason. RS04's test was corrected to seed with `Grouping.defaults()`; no production change.
+- **RL11 (GS04):** the Stage 3 full suite is red: 1335 tests, 45 failed, 0 skipped, 2094 s
+  (`suite-20261002-043859-1398468`), nearly all `bot.finance.system.*` with `Connection refused` on the shared
+  Postgres's old port. The suite now creates more than 32 Spring test contexts; an evicted context's close
+  stops the shared `@ImportTestcontainers` Postgres and the still-cached contexts keep its dead port. The system
+  classes alone pass (76/76), and the full suite passes 1335/1335 in 170 s with
+  `spring.test.context.cache.maxSize=100` set for that one run. No plan item owns the test-context or container
+  configuration; refactor and wrap-up wait on the decision.
+- **RL12 (GU10):** hypothesis: `HandleWrittenMessageUseCase` counts a `FAILED` turn on the meter when the stamp
+  throws, which RU10 does not pin — settled by reading RU10 against the design page.
+- **RL13 (GU12):** hypothesis: the refused-state message in `WrittenMessageWebMapper` ("unsupported written
+  message state: X") names `state` as ST07 requires — settled by reading the mapper against ST07.
+- **RL14 (GS04):** hypothesis: raising the cache limit leaves the suite one added context away from the same
+  failure; a shared container whose lifecycle no context owns would not — settled by running the suite at the
+  default limit after making the container a plain singleton.
 
 ## Caveats
 
