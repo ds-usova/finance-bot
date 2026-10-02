@@ -106,6 +106,13 @@
 - **RL14 (GS04):** hypothesis: raising the cache limit leaves the suite one added context away from the same
   failure; a shared container whose lifecycle no context owns would not — settled by running the suite at the
   default limit after making the container a plain singleton.
+- **RL15 (GU10):** the refactor pass moved the turn's shared middle (default currency, catch-all, extraction
+  request, period discard) into `ExtractionTurn`, used by `HandleWrittenMessageUseCase` and
+  `HandleIncomingMessageUseCase`; each keeps its own outcome rule, since RF08 makes the web's differ. Suite
+  1335 / 0 skipped, `CleanArchitectureTest` green. Left outside the diff: `UniqueViolations` duplicates
+  `ForeignKeyViolations` and both return `null`; 45 test lookups of a user id by external id repeat one idiom.
+- **RL16 (GU10):** hypothesis: the web turn's log lines print the reference as `IncomingMessageId[value=web:42]`
+  where the sweep prints `web:42` — settled by reading one web-turn log line from a running service.
 
 ## Caveats
 
@@ -119,6 +126,7 @@
 - stabilization · tree f75fc395f1c01971531043e7cf9b703ac1308c55 · total 1189 · skipped 0 · green · paths: ledger-service
 
 - green · tree 2de886746b68011e8eae38621d870b1202d47256 · total 1335 · skipped 0 · green · paths: ledger-service
+- refactor · tree 2fa0acd36fc0c5f4301066539af98fdfa271cdea · total 1335 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`

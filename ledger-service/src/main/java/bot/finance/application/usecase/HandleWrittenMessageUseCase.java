@@ -14,10 +14,7 @@ import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.exception.CatchAllGroupingMissingException;
-import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.PersistenceFailedException;
-import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
@@ -30,13 +27,12 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
     private final WrittenMessageRepository writtenMessageRepository;
     private final GroupingRepository groupingRepository;
-    private final UserPreferenceRepository userPreferenceRepository;
-    private final IntentExtractionPort intentExtractionPort;
     private final ExpenseRepository expenseRepository;
     private final SpendingQueryRepository spendingQueryRepository;
     private final TurnMeters turnMeters;
     private final Clock clock;
     private final Logger log;
+    private final ExtractionTurn extractionTurn;
 
     public HandleWrittenMessageUseCase(
             WrittenMessageRepository writtenMessageRepository,
@@ -50,13 +46,13 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
             LoggerFactory loggerFactory) {
         this.writtenMessageRepository = writtenMessageRepository;
         this.groupingRepository = groupingRepository;
-        this.userPreferenceRepository = userPreferenceRepository;
-        this.intentExtractionPort = intentExtractionPort;
         this.expenseRepository = expenseRepository;
         this.spendingQueryRepository = spendingQueryRepository;
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.log = loggerFactory.getLogger(HandleWrittenMessageUseCase.class);
+        this.extractionTurn = new ExtractionTurn(
+                userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
     }
 
     @Override
@@ -85,7 +81,7 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
             return true;
         }
 
-        boolean extractionFailed = extract(request.get());
+        boolean extractionFailed = extractionTurn.extractionFailed(request.get());
         List<LocalDate> days = expenseRepository.findDaysByMessageReference(message.userId(), reference);
         List<SpendingPeriod> periods =
                 spendingQueryRepository.findPeriodsByMessageReference(message.userId(), reference);
@@ -93,7 +89,9 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
         if (extractionFailed) {
             log.error("intent extraction failed for written message {}, outcome {}", reference, outcome);
         }
-        discardPeriods(message.userId(), reference, periods);
+        if (!periods.isEmpty()) {
+            extractionTurn.discardPeriods(message.userId(), reference);
+        }
         settle(message, reference, outcome);
         return true;
     }
@@ -101,50 +99,17 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
     private Optional<IntentExtractionRequest> prepare(WrittenMessageView message, IncomingMessageId reference) {
         try {
             List<String> categoryGroupings = groupingRepository.findNamesWithCategories(message.userId());
-            String catchAll = Grouping.catchAllName();
-            if (!categoryGroupings.contains(catchAll)) {
-                throw new CatchAllGroupingMissingException("no grouping named " + catchAll + " is stored for this user");
-            }
-            return Optional.of(new IntentExtractionRequest(
+            String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
+            return Optional.of(extractionTurn.request(
                     message.text(),
                     categoryGroupings,
                     catchAll,
-                    readDefaultCurrency(message.userId()),
+                    extractionTurn.readDefaultCurrency(message.userId()),
                     message.userId(),
-                    reference,
-                    LocalDate.now(clock)));
+                    reference));
         } catch (PersistenceFailedException | CatchAllGroupingMissingException e) {
             log.warn("failed to prepare written message {}: {}", reference, e.getMessage());
             return Optional.empty();
-        }
-    }
-
-    private Optional<CurrencyCode> readDefaultCurrency(long userId) {
-        try {
-            return userPreferenceRepository.findDefaultCurrency(userId);
-        } catch (PersistenceFailedException e) {
-            log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()));
-            return Optional.empty();
-        }
-    }
-
-    private boolean extract(IntentExtractionRequest request) {
-        try {
-            intentExtractionPort.extract(request);
-            return false;
-        } catch (IntentExtractionFailedException e) {
-            return true;
-        }
-    }
-
-    private void discardPeriods(long userId, IncomingMessageId reference, List<SpendingPeriod> periods) {
-        if (periods.isEmpty()) {
-            return;
-        }
-        try {
-            spendingQueryRepository.discard(userId, reference);
-        } catch (PersistenceFailedException e) {
-            log.warn("failed to discard spending queries for message {}: {}", reference, e.getMessage());
         }
     }
 
