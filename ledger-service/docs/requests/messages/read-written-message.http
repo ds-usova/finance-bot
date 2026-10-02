@@ -1,0 +1,12 @@
+### Reading a written message — GET /api/v1/messages/{id}
+# One text the signed-in person filed, as it now stands, named by the id filing it answered. Once its state is DONE
+# the answer also carries its outcome and the days its entries were stored on. Needs an open session; no CSRF
+# token, since it is a read.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### A message of the signed-in person's own, named by its id.
+GET {{host}}/api/v1/messages/42
+Cookie: fb_session={{sessionCookie}}

@@ -793,7 +793,7 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
 
 #### Manual Request Files
 
-- [ ] PI01 · Add one request file per new operation under `ledger-service/docs/requests/messages/`, named after
+- [x] PI01 · Add one request file per new operation under `ledger-service/docs/requests/messages/`, named after
   the operation as the other tags' files are, each shaped as `preferences/replace-preferences.http` is
   - writes: `ledger-service/docs/requests/messages/file-written-message.http`,
     `ledger-service/docs/requests/messages/read-written-message.http`,

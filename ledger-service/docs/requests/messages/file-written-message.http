@@ -1,0 +1,20 @@
+### Filing a written message — POST /api/v1/messages
+# Files a text of the signed-in person's for reading and answers 202 at once, in the state READING, with the id to
+# follow it by — see read-written-message.http. A person with a text already waiting or being read is refused with
+# 429. Needs an open session and the CSRF header, since it writes.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+# Set from the XSRF-TOKEN cookie a "read the session" response returns — see ../session/current-session.http.
+@csrfToken = paste-the-XSRF-TOKEN-cookie-value-here
+
+### File a text.
+POST {{host}}/api/v1/messages
+Content-Type: application/json
+Cookie: fb_session={{sessionCookie}}; XSRF-TOKEN={{csrfToken}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "text": "coffee 3.40, taxi home 14"
+}
