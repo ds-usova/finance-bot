@@ -86,6 +86,7 @@
   that the filing did not touch — settled by comparing the `listExpenses` calls with the spec's outcomes.
 - **RL10 (GU01):** hypothesis: a null body from the messages endpoints throws a plain `Error`, not
   `MalformedResponseError`, whose key union in `client.ts` has no messages key — settled by reading `client.ts`.
+- **RL11 (GU06):** the refactor pass was not run: the user asked for no step beyond the plan and its tests.
 
 ## Caveats
 
