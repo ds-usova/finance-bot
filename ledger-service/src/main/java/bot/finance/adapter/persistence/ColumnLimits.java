@@ -4,6 +4,7 @@ import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.Category;
 import bot.finance.domain.value.Grouping;
 import java.util.List;
@@ -21,8 +22,9 @@ final class ColumnLimits {
     private ColumnLimits() {}
 
     static void validateWrittenText(String text) {
-        // stub-intent: refuse a text longer than WRITTEN_TEXT, counted in UTF-16 code units, with
-        // InvalidWrittenMessageException naming `text`.
+        if (text.length() > WRITTEN_TEXT) {
+            throw new InvalidWrittenMessageException("text exceeds " + WRITTEN_TEXT + " characters");
+        }
     }
 
     static void validateExternalId(String externalId) {

@@ -758,33 +758,33 @@ report (DN06, no Telegram report) and counts accepted entries too (DN20, every e
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `IncomingMessageId` · test: `IncomingMessageIdTest`
-- [ ] GU02 · `WrittenMessage` · test: `WrittenMessageTest`
-- [ ] GU03 · `FileWrittenMessageCommand` · test: `FileWrittenMessageCommandTest`
-- [ ] GU04 · `ReadWrittenMessageCommand` · test: `ReadWrittenMessageCommandTest`
-- [ ] GU05 · `BrowseWrittenMessagesCommand` · test: `BrowseWrittenMessagesCommandTest`
-- [ ] GU06 · `UniqueViolations` · test: `UniqueViolationsTest`
-- [ ] GU07 · `FileWrittenMessageUseCase` · test: `FileWrittenMessageUseCaseTest` · after: GU02, GU03
-- [ ] GU08 · `ReadWrittenMessageUseCase` · test: `ReadWrittenMessageUseCaseTest` · after: GU01, GU04
-- [ ] GU09 · `BrowseWrittenMessagesUseCase` · test: `BrowseWrittenMessagesUseCaseTest` · after: GU05
-- [ ] GU10 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · after: GU01
-- [ ] GU11 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · after: GU01
-- [ ] GU12 · `WrittenMessageWebMapper` · test: `WrittenMessageWebMapperTest` · after: GU03, GU04, GU05
-- [ ] GU13 · `WrittenMessageReader` · test: `WrittenMessageReaderTest`
+- [x] GU01 · `IncomingMessageId` · test: `IncomingMessageIdTest`
+- [x] GU02 · `WrittenMessage` · test: `WrittenMessageTest`
+- [x] GU03 · `FileWrittenMessageCommand` · test: `FileWrittenMessageCommandTest`
+- [x] GU04 · `ReadWrittenMessageCommand` · test: `ReadWrittenMessageCommandTest`
+- [x] GU05 · `BrowseWrittenMessagesCommand` · test: `BrowseWrittenMessagesCommandTest`
+- [x] GU06 · `UniqueViolations` · test: `UniqueViolationsTest`
+- [x] GU07 · `FileWrittenMessageUseCase` · test: `FileWrittenMessageUseCaseTest` · after: GU02, GU03
+- [x] GU08 · `ReadWrittenMessageUseCase` · test: `ReadWrittenMessageUseCaseTest` · after: GU01, GU04
+- [x] GU09 · `BrowseWrittenMessagesUseCase` · test: `BrowseWrittenMessagesUseCaseTest` · after: GU05
+- [x] GU10 · `HandleWrittenMessageUseCase` · test: `HandleWrittenMessageUseCaseTest` · after: GU01
+- [x] GU11 · `SweepWrittenMessagesUseCase` · test: `SweepWrittenMessagesUseCaseTest` · after: GU01
+- [x] GU12 · `WrittenMessageWebMapper` · test: `WrittenMessageWebMapperTest` · after: GU03, GU04, GU05
+- [x] GU13 · `WrittenMessageReader` · test: `WrittenMessageReaderTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · after: GU02, GU06
-- [ ] GI02 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · after: GU02, GU06
-- [ ] GI03 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
-- [ ] GI04 · `MessagesController` · test: `MessagesControllerTest` · covers: `POST /api/v1/messages`, `GET /api/v1/messages/{id}`, `GET /api/v1/messages` · mocks: `FileWrittenMessagePort`, `ReadWrittenMessagePort`, `BrowseWrittenMessagesPort` · after: GU12
+- [x] GI01 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterTest` · after: GU02, GU06
+- [x] GI02 · `WrittenMessageRepositoryAdapter` · test: `WrittenMessageRepositoryAdapterConcurrencyTest` · after: GU02, GU06
+- [x] GI03 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · after: GU01
+- [x] GI04 · `MessagesController` · test: `MessagesControllerTest` · covers: `POST /api/v1/messages`, `GET /api/v1/messages/{id}`, `GET /api/v1/messages` · mocks: `FileWrittenMessagePort`, `ReadWrittenMessagePort`, `BrowseWrittenMessagesPort` · after: GU12
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages`
-- [ ] GS02 · `ReadWrittenMessageSystemTest` · covers: `GET /api/v1/messages/{id}`
-- [ ] GS03 · `BrowseWrittenMessagesSystemTest` · covers: `GET /api/v1/messages`
-- [ ] GS04 · `WrittenMessageReadingSystemTest` · covers: `WrittenMessageReader.start()`
+- [x] GS01 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages`
+- [x] GS02 · `ReadWrittenMessageSystemTest` · covers: `GET /api/v1/messages/{id}`
+- [x] GS03 · `BrowseWrittenMessagesSystemTest` · covers: `GET /api/v1/messages`
+- [x] GS04 · `WrittenMessageReadingSystemTest` · covers: `WrittenMessageReader.start()`
 
 ### Post-Implementation Steps
 

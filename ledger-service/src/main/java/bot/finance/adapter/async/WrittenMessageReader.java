@@ -5,7 +5,10 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SweepWrittenMessagesPort;
 import bot.finance.application.port.WrittenMessageReadingDispatchPort;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +20,7 @@ public class WrittenMessageReader implements SmartLifecycle, WrittenMessageReadi
     private final SweepWrittenMessagesPort sweepWrittenMessagesPort;
     private final WrittenMessageReaderProperties properties;
     private final Logger log;
+    private volatile ScheduledFuture<?> scheduledPass;
 
     public WrittenMessageReader(
             ScheduledExecutorService writtenMessageReaderExecutor,
@@ -33,24 +37,53 @@ public class WrittenMessageReader implements SmartLifecycle, WrittenMessageReadi
 
     @Override
     public void start() {
-        // stub-intent: schedule one pass every poll interval from start, each pass sweeping and then reading
-        // until nothing waits, every failure logged and swallowed.
+        scheduledPass = writtenMessageReaderExecutor.scheduleWithFixedDelay(
+                this::pass, 0, properties.pollInterval().toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void stop() {
-        // stub-intent: cancel the scheduled passes and mark the reader as not running.
+        ScheduledFuture<?> pass = scheduledPass;
+        scheduledPass = null;
+        if (pass != null) {
+            pass.cancel(false);
+        }
     }
 
     @Override
     public boolean isRunning() {
-        // stub-intent: true from start until stop.
-        return false;
+        return scheduledPass != null;
     }
 
     @Override
     public void dispatch() {
-        // stub-intent: submit one more pass now, sweeping and then reading until nothing waits, every failure
-        // logged and swallowed so the caller never sees one.
+        try {
+            writtenMessageReaderExecutor.execute(this::pass);
+        } catch (RejectedExecutionException e) {
+            log.warn("written message reading pass was refused", e);
+        }
+    }
+
+    private void pass() {
+        sweep();
+        readUntilNothingWaits();
+    }
+
+    private void sweep() {
+        try {
+            sweepWrittenMessagesPort.sweep();
+        } catch (RuntimeException e) {
+            log.error("failed to sweep written messages", e);
+        }
+    }
+
+    private void readUntilNothingWaits() {
+        try {
+            while (handleWrittenMessagePort.handleNext()) {
+                // keep reading while a text was claimed
+            }
+        } catch (RuntimeException e) {
+            log.error("failed to read written messages", e);
+        }
     }
 }

@@ -5,6 +5,7 @@ import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.BrowseWrittenMessagesPort;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.port.WrittenMessageRepository;
+import bot.finance.domain.model.User;
 import java.util.List;
 
 public class BrowseWrittenMessagesUseCase implements BrowseWrittenMessagesPort {
@@ -20,7 +21,7 @@ public class BrowseWrittenMessagesUseCase implements BrowseWrittenMessagesPort {
 
     @Override
     public List<WrittenMessageView> browse(BrowseWrittenMessagesCommand command) {
-        // stub-intent: resolve the caller by stored id and answer their unsettled texts, oldest first.
-        return List.of();
+        User user = userRepository.requireById(command.userId().userId());
+        return writtenMessageRepository.findUnsettledForUser(user.id().orElseThrow());
     }
 }

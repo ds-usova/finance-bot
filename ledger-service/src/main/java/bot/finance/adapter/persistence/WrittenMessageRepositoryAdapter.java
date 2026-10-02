@@ -4,10 +4,16 @@ import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.domain.model.WrittenMessage;
+import bot.finance.domain.exception.EntityNotFoundException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.exception.WrittenMessageInProgressException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository {
@@ -22,54 +28,102 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     }
 
     @Override
+    @Transactional(propagation = Propagation.NESTED)
     public WrittenMessageView store(WrittenMessage message) {
-        // stub-intent: check the text's width through ColumnLimits.validateWrittenText before the write, save the
-        // entity, answer its view, and classify a failure: the ux_written_message_one_unsettled_per_user
-        // violation as WrittenMessageInProgressException, the written_message_user_id_fkey violation as
-        // EntityNotFoundException, anything else as PersistenceFailedException.
-        return null;
+        ColumnLimits.validateWrittenText(message.text());
+
+        try {
+            return writtenMessageEntityRepository
+                    .save(truncatedToMicros(WrittenMessageEntity.fromDomain(message)))
+                    .toView();
+        } catch (RuntimeException e) {
+            throw classify(message, e);
+        }
     }
 
     @Override
     public Optional<WrittenMessageView> findForUser(long userId, long messageId) {
-        // stub-intent: run findByIdAndUserId and map the row to its view; a failure is PersistenceFailedException.
-        return Optional.empty();
+        try {
+            return writtenMessageEntityRepository
+                    .findByIdAndUserId(messageId, userId)
+                    .map(WrittenMessageEntity::toView);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException(
+                    "failed to find written message " + messageId + " for user " + userId, e);
+        }
     }
 
     @Override
     public List<WrittenMessageView> findUnsettledForUser(long userId) {
-        // stub-intent: run the findUnsettledForUser statement (WAITING and READING rows of the user, by id) and map
-        // each row to its view; a failure is PersistenceFailedException.
-        return List.of();
+        try {
+            return writtenMessageEntityRepository.findUnsettledForUser(userId).stream()
+                    .map(WrittenMessageEntity::toView)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find unsettled written messages for user " + userId, e);
+        }
     }
 
     @Override
     public Optional<WrittenMessageView> claimOldestWaiting(Instant now) {
-        // stub-intent: run the claimOldestWaiting statement, which moves the oldest WAITING row to READING
-        // skipping rows locked by another reader, with now truncated to microseconds; map the row to its view; a
-        // failure is PersistenceFailedException.
-        return Optional.empty();
+        try {
+            return writtenMessageEntityRepository
+                    .claimOldestWaiting(now.truncatedTo(ChronoUnit.MICROS))
+                    .map(WrittenMessageEntity::toView);
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to claim the oldest waiting written message", e);
+        }
     }
 
     @Override
     public boolean stampHandOver(long messageId, Instant now) {
-        // stub-intent: run the stampHandOver statement with now truncated to microseconds and answer whether a
-        // READING row was updated; a failure is PersistenceFailedException.
-        return false;
+        try {
+            return writtenMessageEntityRepository.stampHandOver(messageId, now.truncatedTo(ChronoUnit.MICROS)) > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to stamp the hand-over of written message " + messageId, e);
+        }
     }
 
     @Override
     public boolean settle(long messageId, ReportOutcome outcome, Instant now) {
-        // stub-intent: run the settle statement with the outcome's name and now truncated to microseconds, and
-        // answer whether a READING row was updated; a failure is PersistenceFailedException.
-        return false;
+        try {
+            return writtenMessageEntityRepository.settle(messageId, outcome.name(), now.truncatedTo(ChronoUnit.MICROS))
+                    > 0;
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to settle written message " + messageId, e);
+        }
     }
 
     @Override
     public List<WrittenMessageView> findReadingUpdatedBefore(Instant cutoff) {
-        // stub-intent: run the findReadingUpdatedBefore statement (READING rows last updated before the cutoff, by
-        // id), with the cutoff truncated to microseconds, and map each row to its view; a failure is
-        // PersistenceFailedException.
-        return List.of();
+        try {
+            return writtenMessageEntityRepository.findReadingUpdatedBefore(cutoff.truncatedTo(ChronoUnit.MICROS)).stream()
+                    .map(WrittenMessageEntity::toView)
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to find stale reading written messages", e);
+        }
+    }
+
+    private static RuntimeException classify(WrittenMessage message, RuntimeException e) {
+        if (UNSETTLED_UNIQUE_INDEX.equals(UniqueViolations.constraintName(e))) {
+            return new WrittenMessageInProgressException(
+                    "user " + message.userId() + " already has a written message waiting or being read");
+        }
+        if (USER_FOREIGN_KEY.equals(ForeignKeyViolations.constraintName(e))) {
+            return new EntityNotFoundException("user", "no user stored for id " + message.userId());
+        }
+        return new PersistenceFailedException("failed to store written message for user " + message.userId(), e);
+    }
+
+    private static WrittenMessageEntity truncatedToMicros(WrittenMessageEntity mapped) {
+        return new WrittenMessageEntity(
+                mapped.id(),
+                mapped.userId(),
+                mapped.text(),
+                mapped.status(),
+                mapped.outcome(),
+                mapped.createdAt().truncatedTo(ChronoUnit.MICROS),
+                mapped.updatedAt().truncatedTo(ChronoUnit.MICROS));
     }
 }

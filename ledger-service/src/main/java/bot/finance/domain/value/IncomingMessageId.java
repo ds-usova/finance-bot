@@ -22,9 +22,12 @@ public record IncomingMessageId(String value) {
         return new IncomingMessageId(conversationId + ":" + inboundMessageId);
     }
 
+    /** Derives the id that the entries of a web turn carry from the written message that started it. */
     public static IncomingMessageId ofWrittenMessage(long writtenMessageId) {
-        // stub-intent: the id "web:<id>" that a web turn's entries carry, refusing an id below 1.
-        return null;
+        if (writtenMessageId < 1) {
+            throw new InvalidIncomingMessageException("written message id must be at least 1");
+        }
+        return new IncomingMessageId("web:" + writtenMessageId);
     }
 
     /** Parses a stored or transported value, rejecting an absent, blank or over-long one. */

@@ -2,12 +2,16 @@ package bot.finance.adapter.web;
 
 import bot.finance.api.model.FileWrittenMessageRequest;
 import bot.finance.api.model.ListWrittenMessages200ResponseInner;
+import bot.finance.api.model.WrittenMessageOutcome;
+import bot.finance.api.model.WrittenMessageState;
 import bot.finance.application.dto.BrowseWrittenMessagesCommand;
 import bot.finance.application.dto.FileWrittenMessageCommand;
 import bot.finance.application.dto.ReadWrittenMessageCommand;
 import bot.finance.application.dto.WrittenMessageAnswer;
 import bot.finance.application.dto.WrittenMessageView;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.WrittenMessageStatus;
 import java.util.List;
 
 public final class WrittenMessageWebMapper {
@@ -25,23 +29,29 @@ public final class WrittenMessageWebMapper {
 
     public static BrowseWrittenMessagesCommand toBrowseWrittenMessagesCommand(
             String state, AuthenticatedUserId userId) {
-        // stub-intent: refuse any state but READING with InvalidWrittenMessageException naming `state`, then build
-        // the command over the caller.
-        return null;
+        if (!"READING".equals(state)) {
+            throw new InvalidWrittenMessageException("unsupported written message state: " + state);
+        }
+        return new BrowseWrittenMessagesCommand(userId);
     }
 
     public static ListWrittenMessages200ResponseInner toResponse(WrittenMessageView view) {
-        // stub-intent: the message's id, state name, text and outcome (absent while unsettled), with no days.
-        return null;
+        WrittenMessageState state =
+                view.status() == WrittenMessageStatus.DONE ? WrittenMessageState.DONE : WrittenMessageState.READING;
+        WrittenMessageOutcome outcome =
+                view.outcome().map(o -> WrittenMessageOutcome.valueOf(o.name())).orElse(null);
+        return new ListWrittenMessages200ResponseInner()
+                .id(view.id())
+                .state(state)
+                .text(view.text())
+                .outcome(outcome);
     }
 
     public static ListWrittenMessages200ResponseInner toResponse(WrittenMessageAnswer answer) {
-        // stub-intent: the answered message as toResponse(WrittenMessageView) maps it, carrying its days.
-        return null;
+        return toResponse(answer.message()).days(answer.days());
     }
 
     public static List<ListWrittenMessages200ResponseInner> toResponses(List<WrittenMessageView> views) {
-        // stub-intent: each view mapped as toResponse(WrittenMessageView) maps it, in order.
-        return List.of();
+        return views.stream().map(WrittenMessageWebMapper::toResponse).toList();
     }
 }

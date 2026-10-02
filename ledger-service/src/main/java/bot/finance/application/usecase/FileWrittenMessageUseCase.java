@@ -8,6 +8,9 @@ import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.port.WrittenMessageReadingDispatchPort;
 import bot.finance.application.port.WrittenMessageRepository;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
+import bot.finance.domain.model.User;
+import bot.finance.domain.model.WrittenMessage;
 import java.time.Clock;
 
 public class FileWrittenMessageUseCase implements FileWrittenMessagePort {
@@ -33,8 +36,15 @@ public class FileWrittenMessageUseCase implements FileWrittenMessagePort {
 
     @Override
     public WrittenMessageView file(FileWrittenMessageCommand command) {
-        // stub-intent: resolve the caller by stored id, store a new waiting message stamped with the clock's
-        // time, then dispatch the reader and answer the stored message.
-        return null;
+        if (command == null) {
+            throw new InvalidWrittenMessageException("file written message command must be present");
+        }
+        User user = userRepository.requireById(command.userId().userId());
+        WrittenMessage message =
+                WrittenMessage.newMessage(user.id().orElseThrow(), command.text(), clock.instant());
+
+        WrittenMessageView stored = writtenMessageRepository.store(message);
+        dispatchPort.dispatch();
+        return stored;
     }
 }

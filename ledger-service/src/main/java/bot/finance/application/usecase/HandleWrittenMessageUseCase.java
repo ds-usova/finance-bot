@@ -1,5 +1,8 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.IntentExtractionRequest;
+import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.dto.WrittenMessageView;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.GroupingRepository;
 import bot.finance.application.port.HandleWrittenMessagePort;
@@ -10,7 +13,18 @@ import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.WrittenMessageRepository;
+import bot.finance.domain.exception.CatchAllGroupingMissingException;
+import bot.finance.domain.exception.IntentExtractionFailedException;
+import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.value.CurrencyCode;
+import bot.finance.domain.value.Grouping;
+import bot.finance.domain.value.IncomingMessageId;
+import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
@@ -47,9 +61,107 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
     @Override
     public boolean handleNext() {
-        // stub-intent: claim the oldest waiting text, prepare the turn, stamp the hand-over, extract the intents,
-        // read the stored result back and settle the text with its outcome, answering whether a text was claimed.
-        // Logs a line at the claim and at the settle, naming web:<id> and the person.
-        return false;
+        Optional<WrittenMessageView> claimed = writtenMessageRepository.claimOldestWaiting(Instant.now(clock));
+        if (claimed.isEmpty()) {
+            return false;
+        }
+        WrittenMessageView message = claimed.get();
+        IncomingMessageId reference = message.incomingMessageId();
+        log.info("claimed written message {} of user {}", reference, message.userId());
+
+        Optional<IntentExtractionRequest> request = prepare(message, reference);
+        if (request.isEmpty()) {
+            settle(message, reference, ReportOutcome.FAILED);
+            return true;
+        }
+        try {
+            if (!writtenMessageRepository.stampHandOver(message.id(), Instant.now(clock))) {
+                log.info("written message {} was settled before its hand-over", reference);
+                return true;
+            }
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to stamp the hand-over of written message {}: {}", reference, e.getMessage());
+            settle(message, reference, ReportOutcome.FAILED);
+            return true;
+        }
+
+        boolean extractionFailed = extract(request.get());
+        List<LocalDate> days = expenseRepository.findDaysByMessageReference(message.userId(), reference);
+        List<SpendingPeriod> periods =
+                spendingQueryRepository.findPeriodsByMessageReference(message.userId(), reference);
+        ReportOutcome outcome = outcomeFor(extractionFailed, !days.isEmpty(), !periods.isEmpty());
+        if (extractionFailed) {
+            log.error("intent extraction failed for written message {}, outcome {}", reference, outcome);
+        }
+        discardPeriods(message.userId(), reference, periods);
+        settle(message, reference, outcome);
+        return true;
+    }
+
+    private Optional<IntentExtractionRequest> prepare(WrittenMessageView message, IncomingMessageId reference) {
+        try {
+            List<String> categoryGroupings = groupingRepository.findNamesWithCategories(message.userId());
+            String catchAll = Grouping.catchAllName();
+            if (!categoryGroupings.contains(catchAll)) {
+                throw new CatchAllGroupingMissingException("no grouping named " + catchAll + " is stored for this user");
+            }
+            return Optional.of(new IntentExtractionRequest(
+                    message.text(),
+                    categoryGroupings,
+                    catchAll,
+                    readDefaultCurrency(message.userId()),
+                    message.userId(),
+                    reference,
+                    LocalDate.now(clock)));
+        } catch (PersistenceFailedException | CatchAllGroupingMissingException e) {
+            log.warn("failed to prepare written message {}: {}", reference, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private Optional<CurrencyCode> readDefaultCurrency(long userId) {
+        try {
+            return userPreferenceRepository.findDefaultCurrency(userId);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()));
+            return Optional.empty();
+        }
+    }
+
+    private boolean extract(IntentExtractionRequest request) {
+        try {
+            intentExtractionPort.extract(request);
+            return false;
+        } catch (IntentExtractionFailedException e) {
+            return true;
+        }
+    }
+
+    private void discardPeriods(long userId, IncomingMessageId reference, List<SpendingPeriod> periods) {
+        if (periods.isEmpty()) {
+            return;
+        }
+        try {
+            spendingQueryRepository.discard(userId, reference);
+        } catch (PersistenceFailedException e) {
+            log.warn("failed to discard spending queries for message {}: {}", reference, e.getMessage());
+        }
+    }
+
+    private void settle(WrittenMessageView message, IncomingMessageId reference, ReportOutcome outcome) {
+        if (writtenMessageRepository.settle(message.id(), outcome, Instant.now(clock))) {
+            turnMeters.countTurn(outcome);
+            log.info("settled written message {} of user {} as {}", reference, message.userId(), outcome);
+        }
+    }
+
+    private ReportOutcome outcomeFor(boolean extractionFailed, boolean hasDays, boolean hasPeriods) {
+        if (extractionFailed) {
+            return hasDays ? ReportOutcome.PARTIAL : ReportOutcome.FAILED;
+        }
+        if (hasDays) {
+            return ReportOutcome.RECORDED;
+        }
+        return hasPeriods ? ReportOutcome.ANSWERED : ReportOutcome.NOTHING_IDENTIFIED;
     }
 }

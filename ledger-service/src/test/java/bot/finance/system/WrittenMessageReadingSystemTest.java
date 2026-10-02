@@ -4,17 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
-import bot.finance.adapter.persistence.UserEntityRepository;
 import bot.finance.adapter.persistence.WrittenMessageEntity;
 import bot.finance.application.dto.ReportOutcome;
+import bot.finance.application.port.UserRepository;
 import bot.finance.common.boot.AbstractSystemTest;
 import bot.finance.common.containers.GrpcStubServer;
 import bot.finance.common.fixtures.McpRequests;
 import bot.finance.common.rows.ExpenseRowUtils;
 import bot.finance.common.rows.ProposalReportRowUtils;
-import bot.finance.common.rows.UserRowUtils;
 import bot.finance.common.rows.WrittenMessageRowUtils;
+import bot.finance.domain.model.User;
 import bot.finance.domain.value.ExpenseStatus;
+import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.WrittenMessageStatus;
 import io.grpc.Status;
 import java.time.Duration;
@@ -37,7 +38,7 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
     private static final Duration POLL_INTERVAL = Duration.ofMillis(200);
 
     @Autowired
-    private UserEntityRepository userEntityRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private JdbcAggregateTemplate jdbcAggregateTemplate;
@@ -50,7 +51,10 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
         @DisplayName("when the schedule comes round to a stored waiting message - then it is read to DONE with entries")
         void whenTheScheduleComesRoundToAStoredWaitingMessage_thenItIsReadToDoneWithEntries() {
             // given: a waiting message stored for a person, and the connector armed to record one proposal per expense
-            long userId = UserRowUtils.storedUserId(userEntityRepository, "written-message-reading-happy-user");
+            long userId = userRepository
+                    .create(User.newUser("written-message-reading-happy-user"), Grouping.defaults())
+                    .id()
+                    .orElseThrow();
             long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
                     jdbcAggregateTemplate, userId, MESSAGE_TEXT, WrittenMessageStatus.WAITING, null, Instant.now());
             GrpcStubServer.armMcpCallbacks(
@@ -97,7 +101,10 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
         @DisplayName("when the connector fails every extraction - then the message is settled FAILED with no entry")
         void whenTheConnectorFailsEveryExtraction_thenTheMessageIsSettledFailedWithNoEntry() {
             // given: a waiting message stored for a person, and a connector that is unavailable
-            long userId = UserRowUtils.storedUserId(userEntityRepository, "written-message-reading-failing-user");
+            long userId = userRepository
+                    .create(User.newUser("written-message-reading-failing-user"), Grouping.defaults())
+                    .id()
+                    .orElseThrow();
             long messageId = WrittenMessageRowUtils.storedWrittenMessageId(
                     jdbcAggregateTemplate, userId, MESSAGE_TEXT, WrittenMessageStatus.WAITING, null, Instant.now());
             GrpcStubServer.failExtractionWith(Status.UNAVAILABLE.withDescription("AI connector unavailable"));

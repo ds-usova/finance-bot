@@ -1,8 +1,12 @@
 package bot.finance.adapter.web;
 
+import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.api.MessagesApi;
 import bot.finance.api.model.FileWrittenMessageRequest;
 import bot.finance.api.model.ListWrittenMessages200ResponseInner;
+import bot.finance.application.dto.BrowseWrittenMessagesCommand;
+import bot.finance.application.dto.FileWrittenMessageCommand;
+import bot.finance.application.dto.ReadWrittenMessageCommand;
 import bot.finance.application.port.BrowseWrittenMessagesPort;
 import bot.finance.application.port.FileWrittenMessagePort;
 import bot.finance.application.port.ReadWrittenMessagePort;
@@ -29,22 +33,22 @@ public class MessagesController implements MessagesApi {
     @Override
     public ResponseEntity<ListWrittenMessages200ResponseInner> fileWrittenMessage(
             FileWrittenMessageRequest fileWrittenMessageRequest) {
-        // stub-intent: build the command with AuthenticatedCaller.authenticatedUserId(), call the filing port and
-        // answer 202 with the stored message through the mapper.
-        return null;
+        FileWrittenMessageCommand command = WrittenMessageWebMapper.toFileWrittenMessageCommand(
+                fileWrittenMessageRequest, AuthenticatedCaller.authenticatedUserId());
+        return ResponseEntity.accepted().body(WrittenMessageWebMapper.toResponse(fileWrittenMessagePort.file(command)));
     }
 
     @Override
     public ResponseEntity<List<ListWrittenMessages200ResponseInner>> listWrittenMessages(String state) {
-        // stub-intent: build the command with AuthenticatedCaller.authenticatedUserId(), call the browse port and
-        // answer 200 with the unsettled messages through the mapper.
-        return null;
+        BrowseWrittenMessagesCommand command =
+                WrittenMessageWebMapper.toBrowseWrittenMessagesCommand(state, AuthenticatedCaller.authenticatedUserId());
+        return ResponseEntity.ok(WrittenMessageWebMapper.toResponses(browseWrittenMessagesPort.browse(command)));
     }
 
     @Override
     public ResponseEntity<ListWrittenMessages200ResponseInner> readWrittenMessage(Long id) {
-        // stub-intent: build the command with AuthenticatedCaller.authenticatedUserId(), call the read port and
-        // answer 200 with the message and its days through the mapper.
-        return null;
+        ReadWrittenMessageCommand command =
+                WrittenMessageWebMapper.toReadWrittenMessageCommand(id, AuthenticatedCaller.authenticatedUserId());
+        return ResponseEntity.ok(WrittenMessageWebMapper.toResponse(readWrittenMessagePort.read(command)));
     }
 }

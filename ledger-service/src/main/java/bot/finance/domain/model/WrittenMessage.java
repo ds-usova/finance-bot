@@ -1,5 +1,6 @@
 package bot.finance.domain.model;
 
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.WrittenMessageStatus;
 import java.time.Instant;
 
@@ -13,9 +14,18 @@ public class WrittenMessage extends Entity {
     private WrittenMessage(
             Long id, long userId, String text, WrittenMessageStatus status, Instant createdAt) {
         super(id);
-        // stub-intent: refuse a user id of 0 or below, a text that is absent or blank, and an absent status or
-        // time, each with InvalidWrittenMessageException naming the offending field. The text's length is the
-        // persistence adapter's to check.
+        if (userId <= 0) {
+            throw new InvalidWrittenMessageException("userId must be positive");
+        }
+        if (text == null || text.isBlank()) {
+            throw new InvalidWrittenMessageException("text must be present");
+        }
+        if (status == null) {
+            throw new InvalidWrittenMessageException("status must be present");
+        }
+        if (createdAt == null) {
+            throw new InvalidWrittenMessageException("createdAt must be present");
+        }
         this.userId = userId;
         this.text = text;
         this.status = status;

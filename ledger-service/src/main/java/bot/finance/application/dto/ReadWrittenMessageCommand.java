@@ -1,11 +1,17 @@
 package bot.finance.application.dto;
 
+import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.AuthenticatedUserId;
 
 public record ReadWrittenMessageCommand(AuthenticatedUserId userId, long messageId) {
 
     public ReadWrittenMessageCommand {
-        // stub-intent: refuse an absent caller with InvalidUserException, and a message id below 1 with
-        // InvalidWrittenMessageException naming `id`.
+        if (userId == null) {
+            throw new InvalidUserException("read written message command has no user id");
+        }
+        if (messageId < 1) {
+            throw new InvalidWrittenMessageException("read written message command has an id below 1: " + messageId);
+        }
     }
 }

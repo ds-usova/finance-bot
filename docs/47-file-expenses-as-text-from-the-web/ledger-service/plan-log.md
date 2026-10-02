@@ -84,6 +84,12 @@
   404, and the 401/403 security cases) reach `WebExceptionHandler`'s handlers and the security chain, written
   implemented in stabilization (RF03); nine `Validation` cases (`text` refusals, not-JSON, `id`, absent `state`)
   are enforced by the generated contract's bean validation and the stabilization handlers.
+- **RL09 (GI01):** first verification failed on `WrittenMessageRepositoryAdapterTest$Store`'s unsettled-refusal
+  cases: the unique violation aborted the test's transaction (`25P02`). Attempt 2 put `store()` in a savepoint
+  (`Propagation.NESTED`), as `OutboxWriter` does, so a refused store leaves the caller's transaction usable.
+- **RL10 (GS04):** `WrittenMessageReadingSystemTest` seeded its person through `UserRowUtils.storedUserId`, a user
+  with no groupings, so the turn settled `FAILED` before extraction and the unhappy path passed for the wrong
+  reason. RS04's test was corrected to seed with `Grouping.defaults()`; no production change.
 
 ## Caveats
 
