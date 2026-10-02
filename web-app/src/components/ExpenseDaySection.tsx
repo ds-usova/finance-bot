@@ -37,8 +37,8 @@ function formatMoney(money: RenderedMoney): string {
 // statuses keeps its descriptions in one column.
 const LINE_WITH_MARGIN = {
   grid: 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[1.5rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_5.5rem_7.5rem]',
-  tick: 'col-start-1 row-span-2 row-start-1 sm:row-span-1',
-  description: 'col-span-2 col-start-2 row-start-1 sm:col-span-1',
+  tick: 'col-start-1 row-start-1 row-end-3 sm:row-end-2',
+  description: 'col-start-2 col-end-4 row-start-1 sm:col-end-3',
   merchant: 'col-start-2 row-start-2 sm:col-start-3 sm:row-start-1',
   category: 'col-start-3 row-start-2 sm:col-start-4 sm:row-start-1',
   mark: 'col-start-4 row-start-2 sm:col-start-5 sm:row-start-1',
@@ -48,7 +48,7 @@ const LINE_WITH_MARGIN = {
 const LINE_WITHOUT_MARGIN = {
   grid: 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_5.5rem_7.5rem]',
   tick: '',
-  description: 'col-span-2 col-start-1 row-start-1 sm:col-span-1',
+  description: 'col-start-1 col-end-3 row-start-1 sm:col-end-2',
   merchant: 'col-start-1 row-start-2 sm:col-start-2 sm:row-start-1',
   category: 'col-start-2 row-start-2 sm:col-start-3 sm:row-start-1',
   mark: 'col-start-3 row-start-2 sm:col-start-4 sm:row-start-1',
