@@ -1,6 +1,6 @@
 # Cost · 47-file-expenses-as-text-from-the-web
 
-Written by `scripts/cost/cost.sh report` at 2026-10-02 06:51:41 (UTC+02:00, the latest record's offset).
+Written by `scripts/cost/cost.sh report` at 2026-10-02 09:19:37 (UTC+02:00, the latest record's offset).
 Re-run the script rather than edit this file.
 Rates: fetched 2026-09-29.
 
@@ -68,4 +68,4 @@ Rates: fetched 2026-09-29.
 
 | $ | span |
 |---|------|
-| $63.42 | 595m (20:56 → 06:51) |
+| $63.42 | 743m (20:56 → 09:19) |
