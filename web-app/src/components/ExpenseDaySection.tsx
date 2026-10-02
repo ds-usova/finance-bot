@@ -1,5 +1,5 @@
 import { ChevronsUpDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Category, Expense, Grouping, RenderedMoney } from '../api/expenses';
 import { CategoryPicker } from './CategoryPicker';
@@ -23,7 +23,7 @@ export type ExpenseDaySectionProps = ExpenseTickingProps &
     categoryNames: Map<number, string>;
     /** Whether an acceptance just posted entries on this day, which lands the stamp on its header. */
     posted?: boolean;
-    // stub-intent: the day opens when this becomes `true`, and the person can still close it.
+    /** The day opens when this becomes `true`, and the person can still close it. */
     opened?: boolean;
   };
 
@@ -125,10 +125,18 @@ export function ExpenseDaySection({
   focusDay,
   onChangeCategory,
   posted = false,
+  opened = false,
 }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const headerRef = useRef<HTMLButtonElement>(null);
+  const [openValue, setOpenValue] = useState(opened ? day.day : '');
+
+  useEffect(() => {
+    if (opened) {
+      setOpenValue(day.day);
+    }
+  }, [opened, day.day]);
 
   useEffect(() => {
     if (focusDay === day.day) {
@@ -165,7 +173,13 @@ export function ExpenseDaySection({
       }).format(new Date(`${day.day}T00:00:00Z`));
 
   return (
-    <Accordion type="single" collapsible className="relative border-b border-rule">
+    <Accordion
+      type="single"
+      collapsible
+      value={openValue}
+      onValueChange={setOpenValue}
+      className="relative border-b border-rule"
+    >
       <AccordionItem value={day.day}>
         {/* Exactly two children, so every day's header lines up: the date on the left, the money on the
             right, flush with the amounts on the lines below. */}

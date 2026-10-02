@@ -1,21 +1,33 @@
+import { request } from './client';
 import type { components } from './generated/ledger-api';
 
 export type WrittenMessage = components['schemas']['WrittenMessage'];
 export type WrittenMessageOutcome = components['schemas']['WrittenMessageOutcome'];
 
-export function fileMessage(_text: string): Promise<WrittenMessage> {
-  // stub-intent: POST /api/v1/messages through `request` from ./client, the text as the JSON body
-  // `{ text }`, answering the filed message.
-  return Promise.reject(new Error('not implemented'));
+const MESSAGES_PATH = '/api/v1/messages';
+
+function requireMessageBody<T>(body: T | null): T {
+  if (!body) {
+    throw new Error('the messages endpoint answered with no body');
+  }
+  return body;
 }
 
-export function readMessage(_id: number): Promise<WrittenMessage> {
-  // stub-intent: GET /api/v1/messages/{id} through `request` from ./client, answering that message.
-  return Promise.reject(new Error('not implemented'));
+export async function fileMessage(text: string): Promise<WrittenMessage> {
+  const filed = await request<WrittenMessage>(MESSAGES_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  return requireMessageBody(filed);
 }
 
-export function listReadingMessages(): Promise<WrittenMessage[]> {
-  // stub-intent: GET /api/v1/messages?state=READING through `request` from ./client, answering the
-  // messages still being read.
-  return Promise.resolve([]);
+export async function readMessage(id: number): Promise<WrittenMessage> {
+  const message = await request<WrittenMessage>(`${MESSAGES_PATH}/${id}`);
+  return requireMessageBody(message);
+}
+
+export async function listReadingMessages(): Promise<WrittenMessage[]> {
+  const messages = await request<WrittenMessage[]>(`${MESSAGES_PATH}?state=READING`);
+  return requireMessageBody(messages);
 }

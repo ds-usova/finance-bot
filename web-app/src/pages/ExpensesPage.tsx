@@ -18,6 +18,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { ExpenseActionBar } from '../components/ExpenseActionBar';
 import {
   entryKey,
+  listingCanShow,
   mergeDay,
   replaceEntry,
   ticksStillOnPage,
@@ -28,7 +29,9 @@ import { ExpenseFilters } from '../components/ExpenseFilters';
 import { ExpenseList } from '../components/ExpenseList';
 import { Pager } from '../components/Pager';
 import { Sheet } from '../components/Sheet';
+import { WriteInLine } from '../components/WriteInLine';
 import { refusalText } from './errorText';
+import { useWrittenMessage } from './useWrittenMessage';
 
 // How many ids the acceptance endpoint takes in one request, and so the cap on the tick set — a merged day
 // can hold more than a page's worth of pending entries, so the listing's page size does not bound it.
@@ -49,6 +52,7 @@ export function ExpensesPage() {
   const [changeFailure, setChangeFailure] = useState<{ key: string; message: string } | null>(null);
   const [focusDay, setFocusDay] = useState<string | null>(null);
   const [postedDays, setPostedDays] = useState<ReadonlySet<string>>(new Set());
+  const [openedDays, setOpenedDays] = useState<ReadonlySet<string>>(new Set());
 
   // The filter and the page an acceptance's read back must use the values on screen when the answer arrives,
   // not the ones the call left with — a ref rather than the closed-over state keeps them current.
@@ -106,11 +110,13 @@ export function ExpensesPage() {
   // A narrower filter matches other rows, so the offset the previous one reached means nothing under it.
   const narrow = (next: ExpenseFilter) => {
     setPostedDays(new Set());
+    setOpenedDays(new Set());
     setFilter({ ...next, offset: undefined });
   };
 
   const turnTo = (offset: number) => {
     setPostedDays(new Set());
+    setOpenedDays(new Set());
     setFilter({ ...filter, offset });
   };
 
@@ -194,6 +200,36 @@ export function ExpensesPage() {
     [readSpan, report],
   );
 
+  // Reads back the days a filed text recorded entries on, for those the listing on screen can show, and opens
+  // them. Answers whether any could be shown, so the line can say when the list does not hold them.
+  const onEntriesFiled = useCallback(
+    (days: string[]): boolean => {
+      const current = pageRef.current;
+      if (!current) {
+        return false;
+      }
+      const showable = days.filter((day) => listingCanShow(current, filterRef.current, day)).sort();
+      if (showable.length === 0) {
+        return false;
+      }
+      setOpenedDays(new Set(showable));
+
+      readSpan(showable[0], showable[showable.length - 1])
+        .then((fresh) => {
+          const latest = pageRef.current;
+          if (!latest) {
+            return;
+          }
+          setPage(showable.reduce((merged, day) => mergeDay(merged, day, fresh), latest));
+        })
+        .catch(report);
+      return true;
+    },
+    [readSpan, report],
+  );
+
+  const writeIn = useWrittenMessage(onEntriesFiled);
+
   const onChangeCategory = useCallback(
     (entry: Expense, categoryId: number) => {
       if (categoryId === entry.categoryId || changingKey !== null) {
@@ -276,6 +312,9 @@ export function ExpensesPage() {
         filter={filter}
         onChange={narrow}
       />
+      <div className="mt-6">
+        <WriteInLine {...writeIn} />
+      </div>
       {missingMessage && <p className="mt-4 text-sm text-pencil">{missingMessage}</p>}
       {page && (
         <div className="mt-8 flex-1">
@@ -299,6 +338,7 @@ export function ExpensesPage() {
             focusDay={focusDay}
             onChangeCategory={onChangeCategory}
             postedDays={postedDays}
+            openedDays={openedDays}
           />
           <Pager page={page} onOffset={turnTo} />
         </div>

@@ -76,6 +76,16 @@
   fits an `aria-label` or `aria-labelledby` — settled by the markup `WriteInLine` gets in green.
 - **RL05 (RU03):** hypothesis: the held-line row relies on `onTextChange` setting the text while the line is
   held — settled by reading the hook once it is implemented.
+- **RL06 (GU03):** the first pass failed one test (the load-time ask never started asking `readMessage`);
+  re-delegated once, green on attempt 2.
+- **RL07 (GU02):** hypothesis: a refusal's message is spoken twice, by its `role="alert"` and by the status
+  region — settled by reading `WriteInLine`'s status region against a refusal note.
+- **RL08 (GU05):** hypothesis: a day whose `opened` stays `true` after the person closes it does not reopen until
+  `opened` goes `false` and back — settled by a page test filing twice onto the same day.
+- **RL09 (GU06):** hypothesis: the read back spans the earliest to the latest showable day, reading days between
+  that the filing did not touch — settled by comparing the `listExpenses` calls with the spec's outcomes.
+- **RL10 (GU01):** hypothesis: a null body from the messages endpoints throws a plain `Error`, not
+  `MalformedResponseError`, whose key union in `client.ts` has no messages key — settled by reading `client.ts`.
 
 ## Caveats
 
@@ -88,6 +98,7 @@
 - baseline · tree 06fe7bff94e06247fc12814ed0600e501e821a1c · total 290 · skipped 0 · green · paths: web-app
 - stabilization · tree 05e2af1602ed0663982933dcdd5d1ba8d00e505e · total 290 · skipped 0 · green · paths: web-app
 
+- green · tree a1af792264a587d0f22ee91f776cfcf87da57ac1 · total 356 · skipped 0 · green · paths: web-app
 ## Stubs
 
 Marker: `stub-intent:`

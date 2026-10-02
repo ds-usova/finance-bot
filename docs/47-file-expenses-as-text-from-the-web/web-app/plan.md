@@ -333,12 +333,12 @@ days back stays in `ExpensesPage`, the one holder of the listing and its filter.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `messages` · test: `messages.test.ts`
-- [ ] GU02 · `WriteInLine` · test: `WriteInLine.test.tsx`
-- [ ] GU03 · `useWrittenMessage` · test: `useWrittenMessage.test.tsx`
-- [ ] GU04 · `expenseDays` · test: `expenseDays.test.ts`
-- [ ] GU05 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx`
-- [ ] GU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU02, GU03, GU04, GU05
+- [x] GU01 · `messages` · test: `messages.test.ts`
+- [x] GU02 · `WriteInLine` · test: `WriteInLine.test.tsx`
+- [x] GU03 · `useWrittenMessage` · test: `useWrittenMessage.test.tsx`
+- [x] GU04 · `expenseDays` · test: `expenseDays.test.ts`
+- [x] GU05 · `ExpenseDaySection` · test: `ExpenseDaySection.test.tsx`
+- [x] GU06 · `ExpensesPage` · test: `ExpensesPage.test.tsx` · after: GU02, GU03, GU04, GU05
 
 ## Open Questions
 
