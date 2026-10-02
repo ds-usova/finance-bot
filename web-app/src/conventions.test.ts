@@ -23,7 +23,38 @@ function citationsIn(contents: string): string[] {
     .map((line) => line.trim());
 }
 
+const STRING_LITERAL = /(['"`])((?:(?!\1)[^\\\n]|\\.)*)\1/g;
+
+// A responsive `col-span-*` writes the whole `grid-column` shorthand, so beside a `col-start-*` in the same list it
+// throws the start line away from that breakpoint up and leaves the cell to auto-placement. Rows likewise.
+function spansDroppingAStartIn(contents: string): string[] {
+  return [...contents.matchAll(STRING_LITERAL)]
+    .map((match) => match[2])
+    .filter((literal) => {
+      const tokens = literal.split(/\s+/);
+      return (['col', 'row'] as const).some(
+        (axis) =>
+          tokens.some((token) => new RegExp(`^${axis}-start-`).test(token)) &&
+          tokens.some((token) => new RegExp(`^[\\w-]+:${axis}-span-`).test(token)),
+      );
+    });
+}
+
 describe('the module’s own conventions', () => {
+  it('never lets a breakpoint’s span move a grid cell off the line it starts on', () => {
+    const offenders = Object.entries(sources)
+      .filter(([path]) => !path.includes('/generated/') && !path.endsWith('conventions.test.ts'))
+      .flatMap(([path, contents]) =>
+        spansDroppingAStartIn(contents).map((literal) => `${path.slice(2)}: '${literal}'`),
+      );
+
+    expect(
+      offenders,
+      'class lists pairing a col-start or row-start with a breakpoint’s span on the same axis; end the cell with col-end or row-end instead',
+    ).toEqual([]);
+  });
+
+
   it('cites no plan step, design decision or acceptance scenario by number, in any comment', () => {
     const offenders = Object.entries(sources)
       .filter(([path]) => !path.includes('/generated/'))
