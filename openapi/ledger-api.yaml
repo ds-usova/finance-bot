@@ -10,6 +10,7 @@ tags:
   - name: groupings
   - name: session
   - name: preferences
+  - name: messages
 paths:
   /api/v1/expenses:
     $ref: './paths/expenses.yaml'
@@ -25,6 +26,10 @@ paths:
     $ref: './paths/expense-category.yaml'
   /api/v1/preferences:
     $ref: './paths/preferences.yaml'
+  /api/v1/messages:
+    $ref: './paths/messages.yaml'
+  /api/v1/messages/{id}:
+    $ref: './paths/message.yaml'
 components:
   schemas:
     ExpenseStatus:
@@ -358,6 +363,77 @@ components:
         - defaultCurrency
       example:
         defaultCurrency: eur
+    WrittenMessageState:
+      type: string
+      description: >-
+        Whether the text is still being read or its reading has ended. A text still waiting to be read is
+        answered as READING too.
+      enum:
+        - READING
+        - DONE
+      example: DONE
+    WrittenMessageOutcome:
+      type: string
+      description: What reading the text came to.
+      enum:
+        - RECORDED
+        - PARTIAL
+        - NOTHING_IDENTIFIED
+        - ANSWERED
+        - FAILED
+      example: RECORDED
+    WrittenMessage:
+      type: object
+      description: One text the caller filed, and what became of it.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The filed message, unique across every person's.
+        state:
+          $ref: '#/components/schemas/WrittenMessageState'
+        text:
+          type: string
+          description: The text as filed.
+        outcome:
+          description: What reading the text came to, or `null` until the state is DONE.
+          oneOf:
+            - $ref: '#/components/schemas/WrittenMessageOutcome'
+            - type: 'null'
+        days:
+          type: array
+          description: >-
+            The UTC days the message's entries were stored on, pending or since accepted, oldest first. Empty
+            until the state is DONE, and when nothing was stored.
+          items:
+            type: string
+            format: date
+      required:
+        - id
+        - state
+        - text
+        - outcome
+        - days
+      example:
+        id: 42
+        state: DONE
+        text: coffee 3.40, taxi home 14
+        outcome: RECORDED
+        days: ['2026-10-01']
+    WrittenMessageFiling:
+      type: object
+      description: The text to file.
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '^[\s\S]*\S[\s\S]*$'
+          description: 1 to 1000 UTF-16 code units, not blank or only whitespace.
+      required:
+        - text
+      example:
+        text: coffee 3.40, taxi home 14
   securitySchemes:
     sessionCookie:
       type: apiKey
