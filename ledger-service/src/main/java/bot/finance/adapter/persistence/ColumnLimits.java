@@ -16,7 +16,14 @@ final class ColumnLimits {
     static final int MERCHANT = 255;
     static final int CURRENCY_CODE = 3;
 
+    static final int WRITTEN_TEXT = 1000;
+
     private ColumnLimits() {}
+
+    static void validateWrittenText(String text) {
+        // stub-intent: refuse a text longer than WRITTEN_TEXT, counted in UTF-16 code units, with
+        // InvalidWrittenMessageException naming `text`.
+    }
 
     static void validateExternalId(String externalId) {
         if (externalId.length() > EXTERNAL_ID) {

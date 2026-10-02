@@ -46,7 +46,7 @@ public final class McpTokens {
 
     /** The {@code mcp.token.*} configuration the test profile runs with, for a hand-built {@link AccessTokenMinter}. */
     public static AccessTokenProperties properties() {
-        return new AccessTokenProperties(ISSUER, AUDIENCE, TTL);
+        return new AccessTokenProperties(ISSUER, AUDIENCE, TTL, Duration.ofSeconds(60));
     }
 
     public static AccessTokenMinter minter() {

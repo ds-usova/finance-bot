@@ -24,6 +24,10 @@ cdc:
   # operation. A class that asserts on the operation itself declares its own.
   recovery-secret: default-test-recovery-secret
 
+written-message:
+  reader:
+    poll-interval: 1s
+
 management:
   server:
     port: 0

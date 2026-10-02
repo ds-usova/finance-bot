@@ -13,6 +13,7 @@ import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
@@ -145,6 +146,14 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
             throw new PersistenceFailedException(
                     "failed to count expenses for user " + userId + " and message reference " + reference.value(), e);
         }
+    }
+
+    @Override
+    public List<LocalDate> findDaysByMessageReference(long userId, IncomingMessageId reference) {
+        // stub-intent: the creation instants of the caller's entries under that message, from
+        // findCreatedAtByMessageReference, as distinct UTC days converted in Java, oldest first; a failure is
+        // PersistenceFailedException.
+        return List.of();
     }
 
     @Override

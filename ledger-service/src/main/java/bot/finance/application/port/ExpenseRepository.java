@@ -12,6 +12,7 @@ import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.ProposalIds;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -66,6 +67,13 @@ public interface ExpenseRepository {
      * @throws PersistenceFailedException if the read fails
      */
     int countByMessageReference(long userId, IncomingMessageId reference);
+
+    /**
+     * Lists the distinct UTC days of the caller's entries under that message, pending or recorded, oldest first.
+     *
+     * @throws PersistenceFailedException if the read fails
+     */
+    List<LocalDate> findDaysByMessageReference(long userId, IncomingMessageId reference);
 
     /**
      * Totals the caller's RECORDED entries within the period.

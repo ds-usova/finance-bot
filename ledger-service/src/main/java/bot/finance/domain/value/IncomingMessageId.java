@@ -22,6 +22,11 @@ public record IncomingMessageId(String value) {
         return new IncomingMessageId(conversationId + ":" + inboundMessageId);
     }
 
+    public static IncomingMessageId ofWrittenMessage(long writtenMessageId) {
+        // stub-intent: the id "web:<id>" that a web turn's entries carry, refusing an id below 1.
+        return null;
+    }
+
     /** Parses a stored or transported value, rejecting an absent, blank or over-long one. */
     public static IncomingMessageId of(String value) {
         return new IncomingMessageId(value);

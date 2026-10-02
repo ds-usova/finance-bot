@@ -111,6 +111,20 @@ class ColumnLimitsSchemaTest {
     }
 
     @Nested
+    @DisplayName("written_message.text column width")
+    class WrittenText {
+
+        @Test
+        @DisplayName("when the migrated width of written_message.text is read - then it equals ColumnLimits.WRITTEN_TEXT")
+        void whenMigratedColumnWidthRead_thenEqualsWrittenTextConstant() {
+            Integer characterMaximumLength =
+                    jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "written_message", "text");
+
+            assertThat(characterMaximumLength).isEqualTo(ColumnLimits.WRITTEN_TEXT);
+        }
+    }
+
+    @Nested
     @DisplayName("the pending-has-message check")
     class PendingHasMessage {
 

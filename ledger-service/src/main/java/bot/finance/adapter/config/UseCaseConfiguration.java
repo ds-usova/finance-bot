@@ -1,5 +1,7 @@
 package bot.finance.adapter.config;
 
+import bot.finance.adapter.async.WrittenMessageReaderProperties;
+import bot.finance.adapter.security.AccessTokenProperties;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseCategoriesPort;
 import bot.finance.application.port.BrowseExpensesPort;
@@ -10,7 +12,10 @@ import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.ExpenseRepository;
+import bot.finance.application.port.BrowseWrittenMessagesPort;
+import bot.finance.application.port.FileWrittenMessagePort;
 import bot.finance.application.port.GroupingRepository;
+import bot.finance.application.port.HandleWrittenMessagePort;
 import bot.finance.application.port.HandleIncomingMessagePort;
 import bot.finance.application.port.InitializeUserPort;
 import bot.finance.application.port.IntentExtractionPort;
@@ -20,31 +25,41 @@ import bot.finance.application.port.MessageDeliveryPort;
 import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.ReadPreferencesPort;
 import bot.finance.application.port.ReadSessionPort;
+import bot.finance.application.port.ReadWrittenMessagePort;
 import bot.finance.application.port.ReplacePreferencesPort;
 import bot.finance.application.port.ReportClearingDispatchPort;
 import bot.finance.application.port.ResolveProposalsPort;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.SummarizeSpendingPort;
+import bot.finance.application.port.SweepWrittenMessagesPort;
 import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
 import bot.finance.application.port.UserRepository;
+import bot.finance.application.port.WrittenMessageReadingDispatchPort;
+import bot.finance.application.port.WrittenMessageRepository;
 import bot.finance.application.usecase.AcceptExpensesUseCase;
 import bot.finance.application.usecase.BrowseCategoriesUseCase;
 import bot.finance.application.usecase.BrowseExpensesUseCase;
 import bot.finance.application.usecase.BrowseGroupingsUseCase;
+import bot.finance.application.usecase.BrowseWrittenMessagesUseCase;
 import bot.finance.application.usecase.ChangeExpenseCategoryUseCase;
 import bot.finance.application.usecase.ClearEmptiedReportsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
+import bot.finance.application.usecase.FileWrittenMessageUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
+import bot.finance.application.usecase.HandleWrittenMessageUseCase;
 import bot.finance.application.usecase.InitializeUserUseCase;
 import bot.finance.application.usecase.ListCategoriesUseCase;
 import bot.finance.application.usecase.ReadPreferencesUseCase;
 import bot.finance.application.usecase.ReadSessionUseCase;
+import bot.finance.application.usecase.ReadWrittenMessageUseCase;
 import bot.finance.application.usecase.ReplacePreferencesUseCase;
 import bot.finance.application.usecase.ResolveProposalsUseCase;
 import bot.finance.application.usecase.SummarizeSpendingUseCase;
+import bot.finance.application.usecase.SweepWrittenMessagesUseCase;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -180,6 +195,71 @@ public class UseCaseConfiguration {
     ReplacePreferencesPort replacePreferencesPort(
             UserRepository userRepository, UserPreferenceRepository userPreferenceRepository) {
         return new ReplacePreferencesUseCase(userRepository, userPreferenceRepository);
+    }
+
+    @Bean
+    FileWrittenMessagePort fileWrittenMessagePort(
+            UserRepository userRepository,
+            WrittenMessageRepository writtenMessageRepository,
+            WrittenMessageReadingDispatchPort writtenMessageReadingDispatchPort,
+            LoggerFactory loggerFactory) {
+        return new FileWrittenMessageUseCase(
+                userRepository,
+                writtenMessageRepository,
+                writtenMessageReadingDispatchPort,
+                Clock.systemUTC(),
+                loggerFactory);
+    }
+
+    @Bean
+    ReadWrittenMessagePort readWrittenMessagePort(
+            UserRepository userRepository,
+            WrittenMessageRepository writtenMessageRepository,
+            ExpenseRepository expenseRepository) {
+        return new ReadWrittenMessageUseCase(userRepository, writtenMessageRepository, expenseRepository);
+    }
+
+    @Bean
+    BrowseWrittenMessagesPort browseWrittenMessagesPort(
+            UserRepository userRepository, WrittenMessageRepository writtenMessageRepository) {
+        return new BrowseWrittenMessagesUseCase(userRepository, writtenMessageRepository);
+    }
+
+    @Bean
+    HandleWrittenMessagePort handleWrittenMessagePort(
+            WrittenMessageRepository writtenMessageRepository,
+            GroupingRepository groupingRepository,
+            UserPreferenceRepository userPreferenceRepository,
+            IntentExtractionPort intentExtractionPort,
+            ExpenseRepository expenseRepository,
+            SpendingQueryRepository spendingQueryRepository,
+            TurnMeters turnMeters,
+            LoggerFactory loggerFactory) {
+        return new HandleWrittenMessageUseCase(
+                writtenMessageRepository,
+                groupingRepository,
+                userPreferenceRepository,
+                intentExtractionPort,
+                expenseRepository,
+                spendingQueryRepository,
+                turnMeters,
+                Clock.systemUTC(),
+                loggerFactory);
+    }
+
+    @Bean
+    SweepWrittenMessagesPort sweepWrittenMessagesPort(
+            WrittenMessageRepository writtenMessageRepository,
+            ExpenseRepository expenseRepository,
+            AccessTokenProperties accessTokenProperties,
+            WrittenMessageReaderProperties readerProperties,
+            LoggerFactory loggerFactory) {
+        Duration longestTurnLife = accessTokenProperties
+                .ttl()
+                .plus(accessTokenProperties.clockSkew())
+                .plus(readerProperties.sweepMargin());
+        return new SweepWrittenMessagesUseCase(
+                writtenMessageRepository, expenseRepository, Clock.systemUTC(), longestTurnLife, loggerFactory);
     }
 
     @Bean
