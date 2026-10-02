@@ -36,7 +36,8 @@ public class SweepWrittenMessagesUseCase implements SweepWrittenMessagesPort {
     public int sweep() {
         Instant now = clock.instant();
         int swept = 0;
-        for (WrittenMessageView message : writtenMessageRepository.findReadingUpdatedBefore(now.minus(longestTurnLife))) {
+        for (WrittenMessageView message :
+                writtenMessageRepository.findReadingUpdatedBefore(now.minus(longestTurnLife))) {
             if (settle(message, now)) {
                 swept++;
             }

@@ -40,8 +40,8 @@ public class MessagesController implements MessagesApi {
 
     @Override
     public ResponseEntity<List<ListWrittenMessages200ResponseInner>> listWrittenMessages(String state) {
-        BrowseWrittenMessagesCommand command =
-                WrittenMessageWebMapper.toBrowseWrittenMessagesCommand(state, AuthenticatedCaller.authenticatedUserId());
+        BrowseWrittenMessagesCommand command = WrittenMessageWebMapper.toBrowseWrittenMessagesCommand(
+                state, AuthenticatedCaller.authenticatedUserId());
         return ResponseEntity.ok(WrittenMessageWebMapper.toResponses(browseWrittenMessagesPort.browse(command)));
     }
 

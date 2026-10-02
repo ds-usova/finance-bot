@@ -79,7 +79,8 @@ class WrittenMessageRepositoryAdapterConcurrencyTest {
             Optional<WrittenMessageView> second = results.get(1).get();
             assertThat(List.of(first.isPresent(), second.isPresent())).containsExactlyInAnyOrder(true, false);
             assertThat(first.or(() -> second).orElseThrow().id()).isEqualTo(id);
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id).status())
+            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
+                            .status())
                     .isEqualTo("READING");
         }
     }

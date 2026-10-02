@@ -62,8 +62,8 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
-        this.extractionTurn = new ExtractionTurn(
-                userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
+        this.extractionTurn =
+                new ExtractionTurn(userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
     }
 
     @Override
@@ -74,14 +74,20 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        Optional<CurrencyCode> defaultCurrency = extractionTurn.readDefaultCurrency(user.id().orElseThrow());
+        Optional<CurrencyCode> defaultCurrency =
+                extractionTurn.readDefaultCurrency(user.id().orElseThrow());
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
         String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
         boolean extractionFailed = extractionTurn.extractionFailed(extractionTurn.request(
-                command.text(), categoryGroupings, catchAll, defaultCurrency, user.id().orElseThrow(), reference));
+                command.text(),
+                categoryGroupings,
+                catchAll,
+                defaultCurrency,
+                user.id().orElseThrow(),
+                reference));
 
         List<ProposalSummary> proposals =
                 expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);

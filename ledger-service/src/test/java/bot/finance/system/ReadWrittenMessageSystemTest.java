@@ -53,8 +53,7 @@ class ReadWrittenMessageSystemTest extends AbstractSystemTest {
         void whenAPersonAsksForTheirDoneMessage_then200WithItsOutcomeTextAndEntryDay() {
             // given: a person signed in, a DONE message and a pending entry under it
             String externalId = "read-written-message-happy-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
+            String sessionCookie = BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()

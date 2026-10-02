@@ -115,7 +115,8 @@ class ColumnLimitsSchemaTest {
     class WrittenText {
 
         @Test
-        @DisplayName("when the migrated width of written_message.text is read - then it equals ColumnLimits.WRITTEN_TEXT")
+        @DisplayName(
+                "when the migrated width of written_message.text is read - then it equals ColumnLimits.WRITTEN_TEXT")
         void whenMigratedColumnWidthRead_thenEqualsWrittenTextConstant() {
             Integer characterMaximumLength =
                     jdbcTemplate.queryForObject(COLUMN_WIDTH_QUERY, Integer.class, "written_message", "text");

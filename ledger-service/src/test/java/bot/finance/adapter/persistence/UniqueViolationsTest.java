@@ -18,8 +18,8 @@ class UniqueViolationsTest {
         @Test
         @DisplayName("when the chain holds a unique violation naming a constraint - then that constraint is answered")
         void whenChainHoldsUniqueViolationNamingConstraint_thenConstraintIsAnswered() {
-            SQLException violation = new SQLException(
-                    "duplicate key value violates unique constraint \"" + CONSTRAINT + "\"", "23505");
+            SQLException violation =
+                    new SQLException("duplicate key value violates unique constraint \"" + CONSTRAINT + "\"", "23505");
             Throwable thrown = new RuntimeException("insert failed", new IllegalStateException("wrapped", violation));
 
             assertThat(UniqueViolations.constraintName(thrown)).isEqualTo(CONSTRAINT);

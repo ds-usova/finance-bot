@@ -97,7 +97,9 @@ public class WrittenMessageRepositoryAdapter implements WrittenMessageRepository
     @Override
     public List<WrittenMessageView> findReadingUpdatedBefore(Instant cutoff) {
         try {
-            return writtenMessageEntityRepository.findReadingUpdatedBefore(cutoff.truncatedTo(ChronoUnit.MICROS)).stream()
+            return writtenMessageEntityRepository
+                    .findReadingUpdatedBefore(cutoff.truncatedTo(ChronoUnit.MICROS))
+                    .stream()
                     .map(WrittenMessageEntity::toView)
                     .toList();
         } catch (RuntimeException e) {

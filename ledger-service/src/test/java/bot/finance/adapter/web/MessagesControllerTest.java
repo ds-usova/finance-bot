@@ -88,7 +88,9 @@ class MessagesControllerTest {
         void whenTextIsPosted_thenAccepted202WithTheMessage() throws Exception {
             when(fileWrittenMessagePort.file(any())).thenReturn(view(42L, WrittenMessageStatus.WAITING, null));
 
-            MvcResult result = mockMvc.perform(filing(TEXT)).andExpect(status().isAccepted()).andReturn();
+            MvcResult result = mockMvc.perform(filing(TEXT))
+                    .andExpect(status().isAccepted())
+                    .andReturn();
 
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getLong("id")).isEqualTo(42L);
@@ -291,8 +293,8 @@ class MessagesControllerTest {
         void whenTextIsAtTheLimitInCodeUnits_thenAccepted() throws Exception {
             String text = "a".repeat(998) + OUTSIDE_THE_BMP;
             when(fileWrittenMessagePort.file(any()))
-                    .thenReturn(new WrittenMessageView(
-                            42L, USER_ID, text, WrittenMessageStatus.WAITING, Optional.empty()));
+                    .thenReturn(
+                            new WrittenMessageView(42L, USER_ID, text, WrittenMessageStatus.WAITING, Optional.empty()));
 
             mockMvc.perform(filing(text)).andExpect(status().isAccepted());
 
@@ -334,7 +336,9 @@ class MessagesControllerTest {
         return Stream.of(
                 arguments("an absent text", "{}"),
                 arguments("an empty text", body("")),
-                arguments("a text of only spaces and line breaks", """
+                arguments(
+                        "a text of only spaces and line breaks",
+                        """
                         {"text":"   \\n  \\n "}"""),
                 arguments(
                         "a text of 1001 UTF-16 code units ending outside the BMP",

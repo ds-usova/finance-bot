@@ -67,8 +67,7 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
         void whenAPersonFilesTwoExpensesInOneText_thenItIsReadToDoneWithTwoPendingEntries() {
             // given: a person signed in, and the connector armed to record one proposal per expense
             String externalId = "file-written-message-happy-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
+            String sessionCookie = BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()
@@ -92,7 +91,9 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
 
             // then: it is accepted as being read
             filed.then().statusCode(202);
-            assertThat(filed.jsonPath().getString("state")).as("state on filing").isEqualTo("READING");
+            assertThat(filed.jsonPath().getString("state"))
+                    .as("state on filing")
+                    .isEqualTo("READING");
             assertThat(filed.jsonPath().getString("text")).as("text on filing").isEqualTo(MESSAGE_TEXT);
             long messageId = filed.jsonPath().getLong("id");
 
@@ -112,12 +113,10 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
             // then: two pending entries are stored under the message
             List<ExpenseEntity> entries =
                     ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING);
-            assertThat(entries)
-                    .as("PENDING entries of the person")
-                    .hasSize(2)
-                    .allSatisfy(entry -> assertThat(entry.incomingMessageId())
-                            .as("the message the entry is filed under")
-                            .isEqualTo("web:" + messageId));
+            assertThat(entries).as("PENDING entries of the person").hasSize(2).allSatisfy(entry -> assertThat(
+                            entry.incomingMessageId())
+                    .as("the message the entry is filed under")
+                    .isEqualTo("web:" + messageId));
 
             // then: no proposal report is stored for them
             assertThat(ProposalReportRowUtils.proposalReportRowsFor(jdbcAggregateTemplate, userId))
@@ -135,8 +134,7 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
         void whenAPersonWithAMessageBeingReadFilesAnother_then429AndStillOneMessageRow() {
             // given: a person signed in, with a READING message
             String externalId = "file-written-message-busy-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
+            String sessionCookie = BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()
@@ -167,10 +165,7 @@ class FileWrittenMessageSystemTest extends AbstractSystemTest {
     }
 
     private Response readMessage(String sessionCookie, long messageId) {
-        return RestAssured.given()
-                .cookie(SESSION_COOKIE, sessionCookie)
-                .when()
-                .get("/api/v1/messages/{id}", messageId);
+        return RestAssured.given().cookie(SESSION_COOKIE, sessionCookie).when().get("/api/v1/messages/{id}", messageId);
     }
 
     private String readState(String sessionCookie, long messageId) {

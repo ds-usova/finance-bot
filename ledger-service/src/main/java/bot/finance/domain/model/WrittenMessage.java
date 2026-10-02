@@ -11,8 +11,7 @@ public class WrittenMessage extends Entity {
     private final WrittenMessageStatus status;
     private final Instant createdAt;
 
-    private WrittenMessage(
-            Long id, long userId, String text, WrittenMessageStatus status, Instant createdAt) {
+    private WrittenMessage(Long id, long userId, String text, WrittenMessageStatus status, Instant createdAt) {
         super(id);
         if (userId <= 0) {
             throw new InvalidWrittenMessageException("userId must be positive");

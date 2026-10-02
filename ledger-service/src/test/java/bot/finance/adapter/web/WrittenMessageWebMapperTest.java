@@ -28,8 +28,7 @@ class WrittenMessageWebMapperTest {
     private static final AuthenticatedUserId USER = new AuthenticatedUserId(7L);
     private static final String TEXT = "coffee 3.40, taxi home 14";
 
-    private static WrittenMessageView view(
-            long id, WrittenMessageStatus status, Optional<ReportOutcome> outcome) {
+    private static WrittenMessageView view(long id, WrittenMessageStatus status, Optional<ReportOutcome> outcome) {
         return new WrittenMessageView(id, USER.userId(), TEXT, status, outcome);
     }
 
@@ -59,8 +58,7 @@ class WrittenMessageWebMapperTest {
             LocalDate first = LocalDate.of(2026, 9, 30);
             LocalDate second = LocalDate.of(2026, 10, 1);
             WrittenMessageAnswer answer = new WrittenMessageAnswer(
-                    view(42L, WrittenMessageStatus.DONE, Optional.of(ReportOutcome.RECORDED)),
-                    List.of(first, second));
+                    view(42L, WrittenMessageStatus.DONE, Optional.of(ReportOutcome.RECORDED)), List.of(first, second));
 
             ListWrittenMessages200ResponseInner response = WrittenMessageWebMapper.toResponse(answer);
 
@@ -74,8 +72,7 @@ class WrittenMessageWebMapperTest {
         @DisplayName("when an answer settled with nothing identified is mapped - then its days are present and empty")
         void whenAnswerSettledWithNothingIdentifiedIsMapped_thenItsDaysArePresentAndEmpty() {
             WrittenMessageAnswer answer = new WrittenMessageAnswer(
-                    view(42L, WrittenMessageStatus.DONE, Optional.of(ReportOutcome.NOTHING_IDENTIFIED)),
-                    List.of());
+                    view(42L, WrittenMessageStatus.DONE, Optional.of(ReportOutcome.NOTHING_IDENTIFIED)), List.of());
 
             ListWrittenMessages200ResponseInner response = WrittenMessageWebMapper.toResponse(answer);
 

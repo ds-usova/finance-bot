@@ -47,8 +47,7 @@ class BrowseWrittenMessagesSystemTest extends AbstractSystemTest {
         void whenAPersonAsksForTheirTextsBeingRead_then200WithTheirOneMessageAlone() {
             // given: a person signed in with a READING message, and another person with one too
             String externalId = "browse-written-messages-happy-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
+            String sessionCookie = BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()
@@ -95,8 +94,7 @@ class BrowseWrittenMessagesSystemTest extends AbstractSystemTest {
         void whenAPersonWhoseUserRowIsDeletedAsksForTheirTextsBeingRead_then404() {
             // given: a person signed in, whose user row is then deleted
             String externalId = "browse-written-messages-deleted-user";
-            String sessionCookie =
-                    BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
+            String sessionCookie = BrowserSessions.signIn(BOT_TOKEN, externalId).getCookie(SESSION_COOKIE);
             long userId = userEntityRepository
                     .findByExternalId(externalId)
                     .orElseThrow()

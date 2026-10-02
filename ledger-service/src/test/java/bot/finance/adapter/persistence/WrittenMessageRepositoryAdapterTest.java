@@ -79,7 +79,8 @@ class WrittenMessageRepositoryAdapterTest {
         @DisplayName("when the user already has an unsettled message - then it is refused and one row remains")
         void whenUserHasUnsettledMessage_thenRefusedAndOneRowRemains(WrittenMessageStatus unsettled) {
             long userId = storedUserId("written-store-unsettled-" + unsettled);
-            WrittenMessageRowUtils.storedWrittenMessageId(jdbcAggregateTemplate, userId, "first", unsettled, null, EARLIER);
+            WrittenMessageRowUtils.storedWrittenMessageId(
+                    jdbcAggregateTemplate, userId, "first", unsettled, null, EARLIER);
 
             assertThatThrownBy(() -> adapter.store(WrittenMessage.newMessage(userId, "second", LATER)))
                     .isInstanceOf(WrittenMessageInProgressException.class);
@@ -232,7 +233,8 @@ class WrittenMessageRepositoryAdapterTest {
                         assertThat(row.status()).isEqualTo("READING");
                         assertThat(row.updatedAt()).isEqualTo(LATER);
                     });
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, newerId).status())
+            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, newerId)
+                            .status())
                     .isEqualTo("WAITING");
         }
 
@@ -261,7 +263,8 @@ class WrittenMessageRepositoryAdapterTest {
             boolean stamped = adapter.stampHandOver(id, LATER);
 
             assertThat(stamped).isTrue();
-            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id).updatedAt())
+            assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, id)
+                            .updatedAt())
                     .isEqualTo(LATER);
         }
 
@@ -311,7 +314,12 @@ class WrittenMessageRepositoryAdapterTest {
             long doneUserId = storedUserId("written-settle-done");
             long waitingUserId = storedUserId("written-settle-waiting");
             long doneId = WrittenMessageRowUtils.storedWrittenMessageId(
-                    jdbcAggregateTemplate, doneUserId, "done", WrittenMessageStatus.DONE, ReportOutcome.FAILED, EARLIER);
+                    jdbcAggregateTemplate,
+                    doneUserId,
+                    "done",
+                    WrittenMessageStatus.DONE,
+                    ReportOutcome.FAILED,
+                    EARLIER);
             long waitingId = WrittenMessageRowUtils.storedWrittenMessageId(
                     jdbcAggregateTemplate, waitingUserId, "waiting", WrittenMessageStatus.WAITING, null, EARLIER);
 
@@ -340,7 +348,8 @@ class WrittenMessageRepositoryAdapterTest {
     class FindReadingUpdatedBefore {
 
         @Test
-        @DisplayName("when messages differ in state and age - then only the READING one updated before the cutoff is answered")
+        @DisplayName(
+                "when messages differ in state and age - then only the READING one updated before the cutoff is answered")
         void whenMessagesDifferInStateAndAge_thenOnlyStaleReadingIsAnswered() {
             Instant cutoff = Instant.parse("2026-10-01T10:30:00Z");
             Instant before = Instant.parse("2026-10-01T10:00:00Z");
@@ -433,7 +442,8 @@ class WrittenMessageRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("when store() hits a constraint violation it does not classify - then PersistenceFailedException carries it")
+        @DisplayName(
+                "when store() hits a constraint violation it does not classify - then PersistenceFailedException carries it")
         void whenStoreHitsUnclassifiedConstraintViolation_thenPersistenceFailedExceptionCarriesIt() {
             SQLException sqlException = new SQLException(
                     "ERROR: duplicate key value violates unique constraint \"some_other_index\"", "23505");

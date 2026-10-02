@@ -331,7 +331,8 @@ class HandleWrittenMessageUseCaseTest {
         @DisplayName("when the days read throws PersistenceFailedException - then it reaches the caller unsettled")
         void whenDaysReadThrows_thenItReachesTheCallerAndTheMessageIsNeverSettled() {
             PersistenceFailedException failure = persistenceFailure();
-            when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE)).thenThrow(failure);
+            when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE))
+                    .thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handleNext()).isSameAs(failure);
 

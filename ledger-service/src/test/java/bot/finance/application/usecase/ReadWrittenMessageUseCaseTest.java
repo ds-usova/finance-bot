@@ -89,8 +89,7 @@ class ReadWrittenMessageUseCaseTest {
         @DisplayName("when the message is DONE and nothing is stored under it - then the answer carries no days")
         void whenMessageIsDoneAndNothingIsStored_thenAnswerCarriesNoDays() {
             givenStoredUser();
-            WrittenMessageView view =
-                    viewOf(WrittenMessageStatus.DONE, Optional.of(ReportOutcome.NOTHING_IDENTIFIED));
+            WrittenMessageView view = viewOf(WrittenMessageStatus.DONE, Optional.of(ReportOutcome.NOTHING_IDENTIFIED));
             when(expenseRepository.findDaysByMessageReference(STORED_USER_ID, REFERENCE))
                     .thenReturn(List.of());
 

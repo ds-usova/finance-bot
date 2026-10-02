@@ -51,8 +51,8 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
         this.turnMeters = turnMeters;
         this.clock = clock;
         this.log = loggerFactory.getLogger(HandleWrittenMessageUseCase.class);
-        this.extractionTurn = new ExtractionTurn(
-                userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
+        this.extractionTurn =
+                new ExtractionTurn(userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
     }
 
     @Override

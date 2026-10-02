@@ -16,8 +16,7 @@ final class UniqueViolations {
     // Postgres reports it only inside the SQLException's message text.
     static String constraintName(Throwable e) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
-            if (cause instanceof SQLException sqlException
-                    && UNIQUE_VIOLATION.equals(sqlException.getSQLState())) {
+            if (cause instanceof SQLException sqlException && UNIQUE_VIOLATION.equals(sqlException.getSQLState())) {
                 return constraintNameFromMessage(sqlException.getMessage());
             }
         }

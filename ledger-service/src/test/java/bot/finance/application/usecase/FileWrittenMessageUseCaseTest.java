@@ -98,7 +98,8 @@ class FileWrittenMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when no user row is stored for the caller - then throws EntityNotFoundException and stores nothing")
+        @DisplayName(
+                "when no user row is stored for the caller - then throws EntityNotFoundException and stores nothing")
         void whenNoUserRowIsStored_thenThrowsEntityNotFoundExceptionAndStoresNothing() {
             when(userRepository.requireById(CALLER_ID))
                     .thenThrow(new EntityNotFoundException("user", "no user stored under id " + CALLER_ID));
@@ -114,8 +115,7 @@ class FileWrittenMessageUseCaseTest {
         void whenTextIsOnlySpaces_thenThrowsInvalidWrittenMessageExceptionAndStoresNothing() {
             givenStoredUser();
 
-            assertThatThrownBy(() -> useCase.file(commandOf("   ")))
-                    .isInstanceOf(InvalidWrittenMessageException.class);
+            assertThatThrownBy(() -> useCase.file(commandOf("   "))).isInstanceOf(InvalidWrittenMessageException.class);
 
             verify(writtenMessageRepository, never()).store(any());
             verifyNoInteractions(dispatchPort);

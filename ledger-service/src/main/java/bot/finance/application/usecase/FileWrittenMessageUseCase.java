@@ -40,8 +40,7 @@ public class FileWrittenMessageUseCase implements FileWrittenMessagePort {
             throw new InvalidWrittenMessageException("file written message command must be present");
         }
         User user = userRepository.requireById(command.userId().userId());
-        WrittenMessage message =
-                WrittenMessage.newMessage(user.id().orElseThrow(), command.text(), clock.instant());
+        WrittenMessage message = WrittenMessage.newMessage(user.id().orElseThrow(), command.text(), clock.instant());
 
         WrittenMessageView stored = writtenMessageRepository.store(message);
         dispatchPort.dispatch();

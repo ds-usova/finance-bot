@@ -11,13 +11,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 @Table("written_message")
 public record WrittenMessageEntity(
-        @Id Long id,
-        Long userId,
-        String text,
-        String status,
-        String outcome,
-        Instant createdAt,
-        Instant updatedAt) {
+        @Id Long id, Long userId, String text, String status, String outcome, Instant createdAt, Instant updatedAt) {
 
     public WrittenMessageView toView() {
         return new WrittenMessageView(

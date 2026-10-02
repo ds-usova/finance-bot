@@ -66,11 +66,11 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
             await("the message is read to DONE")
                     .atMost(TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(
-                                    WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                    .untilAsserted(
+                            () -> assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
                                             .status())
-                            .as("status of message %s", messageId)
-                            .isEqualTo("DONE"));
+                                    .as("status of message %s", messageId)
+                                    .isEqualTo("DONE"));
 
             // then: it is settled RECORDED
             WrittenMessageEntity settled = WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId);
@@ -79,12 +79,10 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
             // then: two pending entries are stored under the message
             List<ExpenseEntity> entries =
                     ExpenseRowUtils.expenseRowsFor(jdbcAggregateTemplate, userId, ExpenseStatus.PENDING);
-            assertThat(entries)
-                    .as("PENDING entries of the person")
-                    .hasSize(2)
-                    .allSatisfy(entry -> assertThat(entry.incomingMessageId())
-                            .as("the message the entry is filed under")
-                            .isEqualTo("web:" + messageId));
+            assertThat(entries).as("PENDING entries of the person").hasSize(2).allSatisfy(entry -> assertThat(
+                            entry.incomingMessageId())
+                    .as("the message the entry is filed under")
+                    .isEqualTo("web:" + messageId));
 
             // then: no proposal report is stored for the person
             assertThat(ProposalReportRowUtils.proposalReportRowsFor(jdbcAggregateTemplate, userId))
@@ -113,11 +111,11 @@ class WrittenMessageReadingSystemTest extends AbstractSystemTest {
             await("the message is settled")
                     .atMost(TIMEOUT)
                     .pollInterval(POLL_INTERVAL)
-                    .untilAsserted(() -> assertThat(
-                                    WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
+                    .untilAsserted(
+                            () -> assertThat(WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId)
                                             .status())
-                            .as("status of message %s", messageId)
-                            .isEqualTo("DONE"));
+                                    .as("status of message %s", messageId)
+                                    .isEqualTo("DONE"));
 
             // then: it is settled FAILED
             WrittenMessageEntity settled = WrittenMessageRowUtils.writtenMessageRow(jdbcAggregateTemplate, messageId);
