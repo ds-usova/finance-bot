@@ -65,7 +65,10 @@ async function filedAsMessage42(options: Parameters<typeof mountHook>[0] = {}) {
   return mounted;
 }
 
-function done(outcome: 'RECORDED' | 'PARTIAL' | 'NOTHING_IDENTIFIED' | 'ANSWERED' | 'FAILED', days: string[] = []) {
+function done(
+  outcome: 'RECORDED' | 'PARTIAL' | 'NOTHING_IDENTIFIED' | 'ANSWERED' | 'FAILED',
+  days: string[] = [],
+) {
   return aWrittenMessage({ id: 42, state: 'DONE', text: FILED, outcome, days });
 }
 
@@ -93,7 +96,9 @@ describe('useWrittenMessage()', () => {
 
     it('shows the text being read, keeps the line held and asks what became of it, when a text is still being read', async () => {
       listReadingMessagesMock.mockReset();
-      listReadingMessagesMock.mockResolvedValueOnce([aWrittenMessage({ id: 7, text: 'lunch 12.50' })]);
+      listReadingMessagesMock.mockResolvedValueOnce([
+        aWrittenMessage({ id: 7, text: 'lunch 12.50' }),
+      ]);
       readMessageMock.mockResolvedValue(aWrittenMessage({ id: 7, text: 'lunch 12.50' }));
 
       const { result } = mountHook();
@@ -125,22 +130,25 @@ describe('useWrittenMessage()', () => {
       ['503', new ApiError(503, 'unavailable')],
       ['404', new ApiError(404, 'no such message')],
       ['a network failure', new Error('the network is unreachable')],
-    ])('makes the line editable, with no reading line and no note, when the ask is refused with %s', async (_name, refusal) => {
-      const ask = inFlight<never[]>();
-      listReadingMessagesMock.mockReset();
-      listReadingMessagesMock.mockReturnValueOnce(ask.promise);
+    ])(
+      'makes the line editable, with no reading line and no note, when the ask is refused with %s',
+      async (_name, refusal) => {
+        const ask = inFlight<never[]>();
+        listReadingMessagesMock.mockReset();
+        listReadingMessagesMock.mockReturnValueOnce(ask.promise);
 
-      const { result } = mountHook();
-      expect(result.current.held).toBe(true);
+        const { result } = mountHook();
+        expect(result.current.held).toBe(true);
 
-      await act(async () => {
-        ask.refuse(refusal);
-      });
+        await act(async () => {
+          ask.refuse(refusal);
+        });
 
-      expect(result.current.held).toBe(false);
-      expect(result.current.reading).toBeNull();
-      expect(result.current.note).toBeNull();
-    });
+        expect(result.current.held).toBe(false);
+        expect(result.current.reading).toBeNull();
+        expect(result.current.note).toBeNull();
+      },
+    );
 
     it('reports an expired session when the ask is refused with 401', async () => {
       const sessionExpired = vi.fn();
@@ -206,17 +214,20 @@ describe('useWrittenMessage()', () => {
       ['404', new ApiError(404, 'unknown'), en.writeIn.filingRefused],
       ['503', new ApiError(503, 'unavailable'), en.writeIn.filingRefused],
       ['a network failure', new Error('the network is unreachable'), 'the network is unreachable'],
-    ])('keeps the text in the editable line and refuses with the right words when the filing fails with %s', async (_name, refusal, message) => {
-      fileMessageMock.mockRejectedValueOnce(refusal);
-      const mounted = await editableLine();
+    ])(
+      'keeps the text in the editable line and refuses with the right words when the filing fails with %s',
+      async (_name, refusal, message) => {
+        fileMessageMock.mockRejectedValueOnce(refusal);
+        const mounted = await editableLine();
 
-      await typeAndFile(mounted);
+        await typeAndFile(mounted);
 
-      expect(mounted.result.current.text).toBe(FILED);
-      expect(mounted.result.current.held).toBe(false);
-      expect(mounted.result.current.note).toEqual({ tone: 'refusal', message });
-      expect(mounted.result.current.reading).toBeNull();
-    });
+        expect(mounted.result.current.text).toBe(FILED);
+        expect(mounted.result.current.held).toBe(false);
+        expect(mounted.result.current.note).toEqual({ tone: 'refusal', message });
+        expect(mounted.result.current.reading).toBeNull();
+      },
+    );
 
     it('shows the text already being read, keeping the new text in the held line, when the filing is refused with 429', async () => {
       fileMessageMock.mockRejectedValueOnce(new ApiError(429, 'a text is being read'));
@@ -237,26 +248,34 @@ describe('useWrittenMessage()', () => {
 
     it.each([
       ['nothing being read', () => listReadingMessagesMock.mockResolvedValueOnce([])],
-      ['a refusal', () => listReadingMessagesMock.mockRejectedValueOnce(new ApiError(503, 'unavailable'))],
-    ])('keeps the new text in an editable line, with no reading line and no note, when a 429 is followed by %s', async (_name, secondAsk) => {
-      fileMessageMock.mockRejectedValueOnce(new ApiError(429, 'a text is being read'));
-      listReadingMessagesMock.mockResolvedValueOnce([]);
-      secondAsk();
-      const mounted = mountHook();
-      await pass(0);
+      [
+        'a refusal',
+        () => listReadingMessagesMock.mockRejectedValueOnce(new ApiError(503, 'unavailable')),
+      ],
+    ])(
+      'keeps the new text in an editable line, with no reading line and no note, when a 429 is followed by %s',
+      async (_name, secondAsk) => {
+        fileMessageMock.mockRejectedValueOnce(new ApiError(429, 'a text is being read'));
+        listReadingMessagesMock.mockResolvedValueOnce([]);
+        secondAsk();
+        const mounted = mountHook();
+        await pass(0);
 
-      await typeAndFile(mounted, 'lunch 5');
+        await typeAndFile(mounted, 'lunch 5');
 
-      expect(mounted.result.current.text).toBe('lunch 5');
-      expect(mounted.result.current.held).toBe(false);
-      expect(mounted.result.current.reading).toBeNull();
-      expect(mounted.result.current.note).toBeNull();
-    });
+        expect(mounted.result.current.text).toBe('lunch 5');
+        expect(mounted.result.current.held).toBe(false);
+        expect(mounted.result.current.reading).toBeNull();
+        expect(mounted.result.current.note).toBeNull();
+      },
+    );
 
     it('leaves the new text in the line and notes that nothing was found, when the text resumed behind a 429 comes to nothing', async () => {
       fileMessageMock.mockRejectedValueOnce(new ApiError(429, 'a text is being read'));
       listReadingMessagesMock.mockResolvedValueOnce([]);
-      listReadingMessagesMock.mockResolvedValueOnce([aWrittenMessage({ id: 9, text: 'lunch 12.50' })]);
+      listReadingMessagesMock.mockResolvedValueOnce([
+        aWrittenMessage({ id: 9, text: 'lunch 12.50' }),
+      ]);
       readMessageMock.mockResolvedValue(
         aWrittenMessage({
           id: 9,
@@ -273,7 +292,10 @@ describe('useWrittenMessage()', () => {
 
       expect(mounted.result.current.text).toBe('taxi 14');
       expect(mounted.result.current.held).toBe(false);
-      expect(mounted.result.current.note).toEqual({ tone: 'pencil', message: en.writeIn.nothingFound });
+      expect(mounted.result.current.note).toEqual({
+        tone: 'pencil',
+        message: en.writeIn.nothingFound,
+      });
     });
 
     it('reports an expired session when the filing is refused with 401', async () => {
@@ -427,18 +449,21 @@ describe('useWrittenMessage()', () => {
         'the ask is refused with 404',
         () => readMessageMock.mockRejectedValueOnce(new ApiError(404, 'no such message')),
       ],
-    ])('returns the text with a refusal that it could not be read when %s', async (_name, arrange) => {
-      arrange();
-      const mounted = await filedAsMessage42();
+    ])(
+      'returns the text with a refusal that it could not be read when %s',
+      async (_name, arrange) => {
+        arrange();
+        const mounted = await filedAsMessage42();
 
-      await pass(5000);
+        await pass(5000);
 
-      expect(mounted.result.current.text).toBe(FILED);
-      expect(mounted.result.current.note).toEqual({
-        tone: 'refusal',
-        message: en.writeIn.couldNotBeRead,
-      });
-    });
+        expect(mounted.result.current.text).toBe(FILED);
+        expect(mounted.result.current.note).toEqual({
+          tone: 'refusal',
+          message: en.writeIn.couldNotBeRead,
+        });
+      },
+    );
 
     it('reports an expired session when the ask is refused with 401', async () => {
       const sessionExpired = vi.fn();

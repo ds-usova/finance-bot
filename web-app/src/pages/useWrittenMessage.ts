@@ -87,13 +87,25 @@ export function useWrittenMessage(onEntriesFiled: (days: string[]) => boolean): 
           finish('', { tone: 'pencil', message: translate('writeIn.listIncomplete') }, null);
           break;
         case 'NOTHING_IDENTIFIED':
-          finish(watched.text, { tone: 'pencil', message: translate('writeIn.nothingFound') }, null);
+          finish(
+            watched.text,
+            { tone: 'pencil', message: translate('writeIn.nothingFound') },
+            null,
+          );
           break;
         case 'ANSWERED':
-          finish(watched.text, { tone: 'pencil', message: translate('writeIn.onlyQuestion') }, null);
+          finish(
+            watched.text,
+            { tone: 'pencil', message: translate('writeIn.onlyQuestion') },
+            null,
+          );
           break;
         default:
-          finish(watched.text, { tone: 'refusal', message: translate('writeIn.couldNotBeRead') }, null);
+          finish(
+            watched.text,
+            { tone: 'refusal', message: translate('writeIn.couldNotBeRead') },
+            null,
+          );
       }
     };
 
@@ -209,7 +221,10 @@ export function useWrittenMessage(onEntriesFiled: (days: string[]) => boolean): 
               }
             });
         } else {
-          setNote({ tone: 'refusal', message: refusalText(error, latest.current.t, 'writeIn.filingRefused') });
+          setNote({
+            tone: 'refusal',
+            message: refusalText(error, latest.current.t, 'writeIn.filingRefused'),
+          });
           setHeld(false);
         }
       });
