@@ -84,10 +84,22 @@ Applies across all layers.
 - A port interface documents the runtime exceptions its operations throw, as `@throws` javadoc — the one
   exception to the no-`@param`/`@return` rule, since an unchecked exception appears in no signature.
 
+### Adapter — Configuration
+
+- Configuration is a `@ConfigurationProperties` record named `<Concern>Properties`, registered by
+  `@EnableConfigurationProperties` on the `*Configuration` of the adapter subpackage it configures.
+
 ### Adapter — Web
 
-- Error-to-response mapping lives in a single global `@RestControllerAdvice`. Controllers never catch domain
-  exceptions themselves.
+- A controller implements the generated `bot.finance.api.<Tag>Api`, takes the caller from
+  `AuthenticatedCaller.authenticatedUserId()`, and maps through a static `<Resource>WebMapper`.
+- Error-to-response mapping lives in one `@RestControllerAdvice`, scoped to the web controllers' package.
+  Controllers never catch domain exceptions themselves.
+
+### Adapter — MCP
+
+- An MCP tool catches the domain exceptions it can raise itself, mapping each to a tool response, and ends with a
+  `catch (RuntimeException)`. The web advice does not reach it.
 
 ### Adapter — Persistence
 

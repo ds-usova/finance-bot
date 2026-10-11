@@ -86,6 +86,12 @@ public class SecurityConfiguration {
                         .authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/expenses/*")
                         .authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/messages")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/messages")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/messages/*")
+                        .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/preferences")
                         .authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/preferences")
@@ -141,7 +147,8 @@ public class SecurityConfiguration {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(signingKeys.publicKey())
                 .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
-        decoder.setJwtValidator(validator(properties.issuer(), properties.audience(), properties.ttl()));
+        decoder.setJwtValidator(
+                validator(new JwtTimestampValidator(), properties.issuer(), properties.audience(), properties.ttl()));
         return decoder;
     }
 
@@ -210,13 +217,18 @@ public class SecurityConfiguration {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
                 .jwsAlgorithm(SignatureAlgorithm.RS256)
                 .build();
-        decoder.setJwtValidator(validator(properties.issuer(), properties.audience(), properties.ttl()));
+        decoder.setJwtValidator(validator(
+                new JwtTimestampValidator(properties.clockSkew()),
+                properties.issuer(),
+                properties.audience(),
+                properties.ttl()));
         return decoder;
     }
 
-    private static OAuth2TokenValidator<Jwt> validator(String issuer, String audience, Duration ttl) {
+    private static OAuth2TokenValidator<Jwt> validator(
+            JwtTimestampValidator timestampValidator, String issuer, String audience, Duration ttl) {
         return new DelegatingOAuth2TokenValidator<>(
-                new JwtTimestampValidator(),
+                timestampValidator,
                 new JwtIssuerValidator(issuer),
                 new JwtAudienceValidator(audience),
                 maxLifetimeValidator(ttl));

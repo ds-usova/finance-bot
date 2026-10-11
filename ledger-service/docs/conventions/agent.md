@@ -33,8 +33,8 @@ What the machine allows across every module at once is repository-wide:
 so that file limits how it runs beside another module.
 
 Concurrent runs share the Gradle caches, `build/classes`, one Docker daemon and this machine's memory — memory
-being the scarce one. Each concurrent test run starts its **own** Postgres container and WireMock server (JVM
-singletons, not machine singletons), both on random ports, so ports are not contended. Results cannot collide:
+being the scarce one. Each concurrent test run starts its **own** Postgres, Redis and Toxiproxy containers and
+WireMock server (JVM singletons, not machine singletons), all on random ports, so ports are not contended. Results cannot collide:
 the runner in [Build](build.md) gives every run its own directory, and its queue protects everything else on
 that list.
 
@@ -47,6 +47,12 @@ that list.
 Parallel agents share the working tree. An agent stays inside the files its step owns, and never draws
 conclusions from a file another agent is writing: a broken compile or failing test in someone else's target is
 their work in progress, not a finding. Reconciling across steps is the orchestrator's job.
+
+## Implementation Bundles
+
+- Prefer items from the same: source grouping. A bundle never mixes test types.
+- Max plan items per implementation agent: unlimited.
+- Max plan brief characters per implementation agent: unlimited.
 
 ## Follow-Up Work in a Plan
 

@@ -22,7 +22,8 @@
 
 | Direction | Collaborator                                                                                                | Through                                                   | For                                             |
 |-----------|-------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|-------------------------------------------------|
-| in        | [Ledger Service](../../../ledger-service/docs/usecases/handle-incoming-message.md)                          | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
+| in        | [Ledger Service, Telegram message](../../../ledger-service/docs/usecases/handle-incoming-message.md)        | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
+| in        | [Ledger Service, web message](../../../ledger-service/docs/usecases/handle-written-message.md)              | [Intent extraction](../contracts/in/intent-extraction.md) | acting on what a user typed, as that user       |
 | out       | [Ledger key set](../../../ledger-service/docs/contracts/in/mcp.md#how-a-caller-authenticates)               | [Ledger tools](../contracts/out/ledger-mcp.md)            | reading who the token acts for                  |
 | out       | [Message store](../contracts/out/database.md)                                                               | [Database](../contracts/out/database.md)                  | keeping the message the caller handed over      |
 | out       | [Recall the person's own worked examples](recall-examples.md)                                               | Recall Examples Port                                      | showing the model how this person files things  |

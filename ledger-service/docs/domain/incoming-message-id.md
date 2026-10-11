@@ -7,16 +7,11 @@ again and reported back to whoever sent it.
 
 - Length — at most `56` bytes in UTF-8, present and non-blank. The bound is bytes rather than characters,
   because it exists to keep a button's payload inside the 64 Telegram allows.
-- A value is derived from the conversation a message arrived in and the message that started it, joined by a
-  colon. Nothing mints one.
+- A value is derived from the message that started the turn. Nothing mints one.
+- From a Telegram message — `<conversation>:<message>`.
+- From a [written message](written-message.md) — `web:<id>`, `id` `>= 1`.
 - A value stored before this was derived is opaque text and is read back as given, so a report already in a chat
   still names its own rows.
-- While a turn is being acted on, an id is read back only from a credential this service signed, never from a
-  value the acting agent supplied
-  ([ADR 0015](../adr/0015-a-turn-is-named-by-the-message-that-started-it-not-by-a-value-minted-beside-it.md)).
-- Once the turn is reported, an id leaves the service in the buttons under that report and comes back on the
-  tap. It is not a credential and grants nothing: the tapper is who Telegram says sent the tap, and every lookup
-  by an id is scoped to that person's own rows.
 
 ## Made of / held by
 
@@ -27,6 +22,13 @@ A single unique value.
 - [Proposal report](proposal-report.md) — every recorded report names the message it is about.
 - [Act on a user's message](../usecases/handle-incoming-message.md) — derives one per message, and reads back
   what was recorded under it.
+- [Written message](written-message.md) — the text a `web:` id is derived from.
+- [Act on a text filed from the web](../usecases/handle-written-message.md) — derives one per text, and reads
+  back what was recorded under it.
+- [Read what became of a filed text](../usecases/read-written-message.md) — reads the days of the entries under
+  one.
+- [Settle the texts left reading](../usecases/sweep-written-messages.md) — reads whether anything was recorded
+  under one.
 - [AI Connector Service — intent extraction](../contracts/out/ai-connector.md) — carries it on the credential
   minted for the turn.
 - [MCP — the ledger's tools](../contracts/in/mcp.md) — where it is read back out of that credential, by the

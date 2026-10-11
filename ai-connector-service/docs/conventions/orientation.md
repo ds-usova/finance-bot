@@ -7,13 +7,13 @@ Where things are and what the module is built from.
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
 `src/main/resources/application.yaml` — neither is repeated here.
 
-| What                         | This module                                                                                          |
-|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Language / framework         | Java 25, Spring Boot                                                                                 |
-| Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md); Redis, read as the ledger's change stream |
-| Exposed interface            | gRPC only, on a Netty transport                                                                      |
+| What                         | This module                                                                                                                                                                                                                       |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Language / framework         | Java 25, Spring Boot                                                                                                                                                                                                              |
+| Database, messaging, caching | Postgres — the [message store](../contracts/out/database.md); Redis, read as the ledger's change stream                                                                                                                         |
+| Exposed interface            | gRPC on a Netty transport; Actuator over HTTP on the management port                                                                                                                                                              |
 | Services consumed            | an OpenAI-compatible chat-completions API through Spring AI's `ChatClient` and its embeddings API through Spring AI's `EmbeddingModel`, the ledger's key set, and the ledger's [change stream](../contracts/out/change-stream.md) |
-| Contract-first codegen       | the `.proto` schema is the contract                                                                  |
+| Contract-first codegen       | the `.proto` schema is the contract                                                                                                                                                                                               |
 
 Two things the table cannot carry:
 
@@ -38,11 +38,11 @@ Background reading before making changes. Where one disagrees with the conventio
   `in/` for what it receives, `out/` for what it calls.
 - Configuration: [`docs/configuration.md`](../configuration.md) — the environment variables a deployment
   supplies, and what breaks without them.
-- ADRs / design decisions: `docs/adr/` here — decisions the code cannot explain by itself, whose consequences
-  stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also constrain another
-  service or the repository. One number sequence spans both, so each tier carries gaps. Lifecycle rules:
+- ADRs / design decisions: `docs/adr/` here, not yet created — decisions the code cannot explain by itself,
+  whose consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
+  constrain another service or the repository. One number sequence spans both. Lifecycle rules:
   [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` — one directory
-  per implemented task, holding its `design.md` and `plan.md`.
+  per finished task, holding its design and plan, or its bug and fix, or its rework.
 - API reference: the Protocol Buffers schema itself, at [File Locations](architecture.md#file-locations).
 - Other: `infrastructure/docker-compose.yaml` (repo root) — the local runtime for the service and its siblings.
 

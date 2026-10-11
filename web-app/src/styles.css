@@ -2,69 +2,70 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Nothing here is pure white and nothing is near-black: page, card and text each step back from the
-   extremes. The hue is warm — around 85, the yellow-red side — so the light theme reads as paper rather
-   than as a lit panel. The accent stays blue, which is what warm paper is a ground for. */
+/* A bank passbook. The cover is bottle-green bookcloth with a gold-foil title; the pages are cool grey-green
+   security paper with hairline rules. Ink is black, a provisional line is pencil, and violet is the teller's
+   stamp: it means "post" and is used for nothing else. Red ink is kept for refusals. */
 :root {
-  --surface: oklch(0.963 0.005 85);
-  /* Nearest to neutral of the four: the Telegram widget renders its own near-white inside a card, and a
-     warm card behind it turns that patch into a visible clash. */
-  --card: oklch(0.991 0.002 85);
-  --foreground: oklch(0.25 0.01 80);
-  --muted: oklch(0.945 0.006 85);
-  --muted-foreground: oklch(0.46 0.012 80);
-  --accent: oklch(0.53 0.17 255);
-  --accent-foreground: oklch(0.985 0.006 255);
-  --border: oklch(0.886 0.008 85);
-  --pending: oklch(0.48 0.14 295);
-  --pending-surface: oklch(0.945 0.035 300);
-  --danger: oklch(0.5 0.17 27);
-  --danger-surface: oklch(0.955 0.03 32);
-  /* The sign-in panel: a deep blue-to-violet, spanning the two hues the palette already uses rather than
-     bringing in a third. Deep in both themes, so what sits on it is light in both. */
-  --panel-from: oklch(0.5 0.16 262);
-  --panel-to: oklch(0.43 0.15 300);
-  --panel-foreground: oklch(0.985 0.012 280);
+  --cover: oklch(0.39 0.06 162);
+  --cover-edge: oklch(0.3 0.05 162);
+  --foil: oklch(0.82 0.085 92);
+  --paper: oklch(0.953 0.008 140);
+  /* A loose leaf laid over the page: popovers and pickers. */
+  --leaf: oklch(0.985 0.004 140);
+  --ink: oklch(0.21 0.012 162);
+  --pencil: oklch(0.5 0.014 162);
+  --rule: oklch(0.86 0.022 155);
+  --rule-strong: oklch(0.62 0.035 160);
+  --guilloche: oklch(0.885 0.03 150);
+  --stamp: oklch(0.45 0.15 295);
+  --stamp-foreground: oklch(0.97 0.01 295);
+  --refusal: oklch(0.5 0.17 27);
+  --focus: oklch(0.45 0.09 162);
 }
 
 .dark {
-  --surface: oklch(0.16 0.008 265);
-  --card: oklch(0.205 0.009 265);
-  --foreground: oklch(0.97 0.002 265);
-  --muted: oklch(0.27 0.01 265);
-  --muted-foreground: oklch(0.7 0.015 265);
-  --accent: oklch(0.7 0.16 255);
-  /* The dark theme's accent is a light blue, so what sits on it has to be dark rather than white. */
-  --accent-foreground: oklch(0.17 0.02 255);
-  --border: oklch(1 0 0 / 10%);
-  --pending: oklch(0.82 0.13 295);
-  --pending-surface: oklch(0.32 0.06 295);
-  --danger: oklch(0.8 0.12 27);
-  --danger-surface: oklch(0.31 0.07 27);
-  --panel-from: oklch(0.34 0.11 262);
-  --panel-to: oklch(0.28 0.1 300);
-  --panel-foreground: oklch(0.97 0.01 280);
+  --cover: oklch(0.27 0.045 162);
+  --cover-edge: oklch(0.2 0.035 162);
+  --foil: oklch(0.82 0.085 92);
+  --paper: oklch(0.2 0.018 162);
+  --leaf: oklch(0.25 0.02 162);
+  --ink: oklch(0.93 0.012 140);
+  --pencil: oklch(0.72 0.016 150);
+  --rule: oklch(0.31 0.022 162);
+  --rule-strong: oklch(0.48 0.035 160);
+  --guilloche: oklch(0.24 0.026 160);
+  --stamp: oklch(0.74 0.13 295);
+  --stamp-foreground: oklch(0.2 0.05 295);
+  --refusal: oklch(0.76 0.13 27);
+  --focus: oklch(0.82 0.085 92);
 }
 
 @theme inline {
-  --color-surface: var(--surface);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
-  --color-pending: var(--pending);
-  --color-pending-surface: var(--pending-surface);
-  --color-danger: var(--danger);
-  --color-danger-surface: var(--danger-surface);
-  --color-panel-foreground: var(--panel-foreground);
+  --color-cover: var(--cover);
+  --color-cover-edge: var(--cover-edge);
+  --color-foil: var(--foil);
+  --color-paper: var(--paper);
+  --color-leaf: var(--leaf);
+  --color-ink: var(--ink);
+  --color-pencil: var(--pencil);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-stamp: var(--stamp);
+  --color-stamp-foreground: var(--stamp-foreground);
+  --color-refusal: var(--refusal);
+  --color-focus: var(--focus);
 }
 
 @theme {
-  --animate-accordion-down: accordion-down 200ms ease-out;
-  --animate-accordion-up: accordion-up 180ms ease-in;
+  --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'B612 Mono', ui-monospace, monospace;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --animate-accordion-down: accordion-down 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-accordion-up: accordion-up 160ms ease-in;
+  --animate-stamp-land: stamp-land 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Radix measures the panel and publishes its height, which is the only way to animate to `auto`. */
@@ -90,6 +91,20 @@
   }
 }
 
+@keyframes stamp-land {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% - 5px)) rotate(-5deg) scale(1.12);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0.38;
+    transform: translateY(calc(-50% - 5px)) rotate(-5deg) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -99,13 +114,89 @@
   }
 }
 
+/* Bookcloth: a fine woven grain over the cover green. */
+@utility cloth {
+  background-color: var(--cover);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.4 0.28'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* A passbook page: plain paper, with the guilloche printed only in a band across its head, where no line of
+   text sits on it. Drawn in the theme's own tint through a mask so one pattern serves both themes. */
+@utility passbook-sheet {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--paper);
+  color: var(--ink);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1.125rem;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--guilloche);
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='36' fill='none' stroke='black' stroke-width='0.7'%3E%3Cpath d='M0 18C22.5 2 67.5 2 90 18S157.5 34 180 18'/%3E%3Cpath d='M0 18C22.5 34 67.5 34 90 18S157.5 2 180 18'/%3E%3Cpath d='M0 10C30 22 60 22 90 10S150 -2 180 10'/%3E%3Cpath d='M0 26C30 14 60 14 90 26S150 38 180 26'/%3E%3C/svg%3E");
+    mask-size: 90px 18px;
+  }
+}
+
+/* The sign-in slip: light paper in both themes, because the Telegram widget paints its own near-white inside
+   it. Everything printed on the slip reads the light theme's inks. */
+@utility slip {
+  --ink: oklch(0.21 0.012 162);
+  --pencil: oklch(0.5 0.014 162);
+  --rule-strong: oklch(0.62 0.035 160);
+  --refusal: oklch(0.5 0.17 27);
+  --focus: oklch(0.45 0.09 162);
+  background-color: oklch(0.985 0.004 140);
+  color: var(--ink);
+}
+
+/* One ruled line of a passbook form: the label in the margin, the value written across the rest. Stacks the
+   label over the value once the line shares its row with others. */
+@utility form-line {
+  display: grid;
+  grid-template-columns: 6.75rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.75rem;
+  min-height: 2.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* A label printed beside or above a value: sentence case, in pencil, so it names the value without competing
+   with it. */
+@utility column-head {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pencil);
+}
+
+html {
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
 body {
-  background-color: var(--surface);
-  color: var(--foreground);
+  background-color: var(--cover);
+  font-family: var(--font-sans);
+  color: var(--ink);
+  caret-color: var(--focus);
   /* The date input's own icon is drawn by the browser, which picks its colour from this and not from the class. */
   color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .dark body {
   color-scheme: dark;
+}
+
+::selection {
+  background-color: color-mix(in oklch, var(--cover) 28%, transparent);
+  color: var(--ink);
+}
+
+.dark ::selection {
+  background-color: color-mix(in oklch, var(--foil) 30%, transparent);
 }

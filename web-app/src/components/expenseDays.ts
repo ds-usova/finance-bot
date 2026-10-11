@@ -2,6 +2,7 @@ import type {
   Category,
   DayTotal,
   Expense,
+  ExpenseFilter,
   ExpensePage,
   Grouping,
   RenderedMoney,
@@ -95,6 +96,21 @@ export function relativeDay(day: string, now: Date): 'today' | 'yesterday' | nul
   const diffDays = Math.round((todayMs - dayMs) / 86_400_000);
 
   return diffDays === 1 ? 'yesterday' : null;
+}
+
+// Whether the listing as it stands can show a day: it is already on the page, or the page is the first and the
+// filter's period and status include it.
+export function listingCanShow(page: ExpensePage, filter: ExpenseFilter, day: string): boolean {
+  if (page.items.some((item) => utcDayOf(item.createdAt) === day)) {
+    return true;
+  }
+  if (page.offset !== 0) {
+    return false;
+  }
+  const statusIncludes = filter.status === undefined || filter.status === 'PENDING';
+  const afterFrom = filter.from === undefined || day >= filter.from;
+  const beforeTo = filter.to === undefined || day <= filter.to;
+  return statusIncludes && afterFrom && beforeTo;
 }
 
 // The ids of a day's PENDING entries, which is what a "select all" tick on that day can carry in one call.

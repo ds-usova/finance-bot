@@ -11,10 +11,11 @@ bot and someone who has only ever used this page are the same user.
 - [Sign in with Telegram](docs/usecases/sign-in-with-telegram.md) — what the sign-in does.
 - [Browse recorded expenses](docs/usecases/browse-recorded-expenses.md) — what the list behind it does.
 - [Accept pending expenses](docs/usecases/accept-pending-expenses.md) — what confirming a proposal does.
+- [File expenses as text](docs/usecases/file-expenses-as-text.md) — what the write-in line does.
 - [Set a default currency](docs/usecases/set-a-default-currency.md) — what the settings page does.
 - [Ledger session API](docs/contracts/out/ledger-session-api.md) — what it sends the ledger to hold a session.
 - [Ledger browse API](docs/contracts/out/ledger-browse-api.md) — what it sends the ledger to fill the list,
-  accept what is ticked, and hold the currency a person chose.
+  accept what is ticked, file a written text, and hold the currency a person chose.
 
 ## Components
 

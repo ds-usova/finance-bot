@@ -106,41 +106,41 @@ export function PeriodFilter({ period, onChange }: PeriodFilterProps) {
   ];
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="form-line">
       <Label id="filter-period-label">{t('filters.period')}</Label>
       <div className="flex min-w-0 items-center gap-1">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
-              variant="outline"
+              variant="ghost"
               size="field"
               aria-labelledby="filter-period-label filter-period-value"
-              className="min-w-0 gap-2 font-normal"
+              className="min-w-0 gap-2"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                <CalendarDays
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                />
-                <span id="filter-period-value" className="truncate">
-                  {triggerLabel}
-                </span>
+              <span id="filter-period-value" className="truncate">
+                {triggerLabel}
               </span>
+              <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-pencil" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="flex w-auto flex-col gap-3 sm:flex-row">
-            <div className="flex shrink-0 flex-row gap-1 sm:w-36 sm:flex-col">
+            {/* A wrapping row of presets on a phone, where two months of calendar already fill the leaf. */}
+            <div className="flex shrink-0 flex-row flex-wrap gap-1 border-b border-rule pb-2 sm:w-36 sm:flex-col sm:flex-nowrap sm:border-r sm:border-b-0 sm:pr-2 sm:pb-0">
               {presets.map(({ key, apply }) => (
                 <Button
                   key={key}
                   variant="ghost"
-                  className="justify-start font-normal"
+                  className="h-9 justify-start px-2.5 font-normal"
                   onClick={apply}
                 >
                   {t(key as 'filters.presetThisMonth')}
                 </Button>
               ))}
-              <Button variant="ghost" className="justify-start font-normal" onClick={clear}>
+              <Button
+                variant="ghost"
+                className="h-9 justify-start px-2.5 font-normal"
+                onClick={clear}
+              >
                 {t('filters.presetAllTime')}
               </Button>
             </div>
@@ -159,7 +159,7 @@ export function PeriodFilter({ period, onChange }: PeriodFilterProps) {
           <Button
             variant="ghost"
             aria-label={t('filters.periodClear')}
-            className="h-9 w-7 shrink-0 px-0"
+            className="h-10 w-9 shrink-0 px-0 text-pencil hover:text-ink"
             onClick={clear}
           >
             <X aria-hidden="true" className="h-4 w-4" />

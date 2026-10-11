@@ -129,15 +129,16 @@ where the script sits, and this repository's root holds no Gradle build — so `
 
 ## Dependencies
 
-| Fact              | Value                                                                                                          |
-|-------------------|----------------------------------------------------------------------------------------------------------------|
-| Manifest          | `<module>/gradle.properties` declares every version as a property; `<module>/build.gradle` reads them          |
-| Managed versions  | a library declared without a version takes it from the Spring Boot BOM, so `springBootVersion` moves them all  |
-| Lock file         | none                                                                                                           |
-| Outdated versions | no plugin; each property is read against Maven Central                                                         |
-| Vulnerabilities   | no scanner                                                                                                     |
-| Routine upgrades  | patch and minor; a major is its own task, run for that dependency by name                                     |
-| Custom flow       | none                                                                                                           |
+| Fact                | Value                                                                                                         |
+|---------------------|---------------------------------------------------------------------------------------------------------------|
+| Manifest            | `<module>/gradle.properties` declares every version as a property; `<module>/build.gradle` reads them         |
+| Managed versions    | a library declared without a version takes it from the Spring Boot BOM, so `springBootVersion` moves them all |
+| Lock file           | none, so no hash check                                                                                        |
+| Outdated versions   | no plugin; each property is read against Maven Central                                                        |
+| Vulnerabilities     | no scanner                                                                                                    |
+| Routine upgrades    | patch and minor; a major is its own task, run for that dependency by name                                     |
+| Minimum release age | 7 days; a younger release is not proposed                                                                     |
+| Custom flow         | none                                                                                                          |
 
 A version held back on purpose is named in the module's own [Build](../../ledger-service/docs/conventions/build.md)
 page, with the reason beside it.

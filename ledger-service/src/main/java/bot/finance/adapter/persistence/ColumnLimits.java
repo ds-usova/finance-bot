@@ -4,6 +4,7 @@ import bot.finance.domain.exception.InvalidCategoryException;
 import bot.finance.domain.exception.InvalidExpenseException;
 import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidUserException;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.value.Category;
 import bot.finance.domain.value.Grouping;
 import java.util.List;
@@ -16,7 +17,15 @@ final class ColumnLimits {
     static final int MERCHANT = 255;
     static final int CURRENCY_CODE = 3;
 
+    static final int WRITTEN_TEXT = 1000;
+
     private ColumnLimits() {}
+
+    static void validateWrittenText(String text) {
+        if (text.length() > WRITTEN_TEXT) {
+            throw new InvalidWrittenMessageException("text exceeds " + WRITTEN_TEXT + " characters");
+        }
+    }
 
     static void validateExternalId(String externalId) {
         if (externalId.length() > EXTERNAL_ID) {

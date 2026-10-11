@@ -54,6 +54,12 @@ mcp:
     issuer: ledger-service
     audience: mcp-adapter
     ttl: ${MCP_JWT_TTL:2m}
+    clock-skew: ${MCP_JWT_CLOCK_SKEW:60s}
+
+written-message:
+  reader:
+    poll-interval: ${WRITTEN_MESSAGE_READER_POLL_INTERVAL:10s}
+    sweep-margin: ${WRITTEN_MESSAGE_SWEEP_MARGIN:30s}
 
 session:
   token:

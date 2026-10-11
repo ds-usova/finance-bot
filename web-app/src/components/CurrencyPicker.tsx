@@ -45,32 +45,38 @@ export function CurrencyPicker({ currencyCode, onChange, label }: CurrencyPicker
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="field" aria-label={label} className="font-normal">
-          <span className="truncate">{triggerText}</span>
-          <ChevronsUpDown aria-hidden="true" className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
-        <Command>
-          <CommandInput placeholder={t('settings.searchCurrencies')} />
-          <CommandList>
-            <CommandEmpty>{t('settings.noCurrency')}</CommandEmpty>
-            <CommandGroup>
-              {currencies.map(([code, name]) => (
-                <CommandItem key={code} value={`${name} ${code}`} onSelect={() => choose(code)}>
-                  <Check
-                    aria-hidden="true"
-                    className={`h-4 w-4 ${code === currencyCode ? 'opacity-100' : 'opacity-0'}`}
-                  />
-                  {name} ({code})
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="form-line sm:grid-cols-[10rem_minmax(0,1fr)]">
+      {/* The trigger names itself through `aria-label`; this is the printed margin label sighted readers see. */}
+      <span aria-hidden="true" className="column-head">
+        {label}
+      </span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="field" aria-label={label}>
+            <span className="truncate">{triggerText}</span>
+            <ChevronsUpDown aria-hidden="true" className="h-4 w-4 shrink-0 text-pencil" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0">
+          <Command>
+            <CommandInput placeholder={t('settings.searchCurrencies')} />
+            <CommandList>
+              <CommandEmpty>{t('settings.noCurrency')}</CommandEmpty>
+              <CommandGroup>
+                {currencies.map(([code, name]) => (
+                  <CommandItem key={code} value={`${name} ${code}`} onSelect={() => choose(code)}>
+                    <Check
+                      aria-hidden="true"
+                      className={`h-4 w-4 ${code === currencyCode ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                    {name} ({code})
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }

@@ -58,9 +58,13 @@ is the exception, living in `adapter/config`, which holds nothing else. `ledger.
 `adapter/redis`. `memory.*` binds in `adapter/scheduling` — unconditionally, so the recall and backfill use
 cases, beans of every context, can read their bounds with the memory off — and `adapter/config` reads from it to
 build the outcome, recall and backfill use cases, and `adapter/ai` reads its embedding and backfill timeouts from
-there too. `memory.enabled` gates `adapter/persistence`, `adapter/redis`, `adapter/security` and the rest of
-`adapter/scheduling` alike: with it off, none of those registers a bean — except the one bean that only binds
-the settings, which still registers so the rest of the module can read them.
+there too. `memory.enabled` gates `adapter/persistence`, `adapter/redis`, `adapter/security`, `adapter/metrics`
+and the rest of `adapter/scheduling` alike. With it off, their beans do not register, with three exceptions:
+
+- the bean that only binds the settings, so the rest of the module can read them;
+- a `No<Capability>Adapter` null object per port the core still calls — `NoMessageStoreAdapter`,
+  `NoMessageMemoryAdapter` — registered by `havingValue = "false"`;
+- `ChangeStreamEntryReader`, which is stateless and unconditional.
 
 External services get one adapter subpackage each, holding everything that fronts that system —
 `adapter/ai` for the AI provider, `adapter/redis` for the ledger's change stream. `adapter/grpc` is named for
@@ -73,18 +77,26 @@ fronts no external system either: it holds a timer that fires an inbound port, t
 So a second model provider or transport can be added without touching the core:
 
 - **No type in `domain`/`application` carries an external-system or transport name.** The adapter names its
-  system, the core names the capability: `IntentInferencePort` implemented by `AiIntentInferenceAdapter`, never
-  `OpenAiExtractionPort`.
-- **No type in `domain`/`application` carries a transport-shaped field.** An amount crosses the outbound port
-  as a decimal `String` and becomes a `Money`; the wire's `int64 minor_units` stays in `adapter/grpc`.
+  system, the core names the capability: `ExpenseRecordingPort` implemented by `AiExpenseRecordingAdapter`,
+  never `OpenAiRecordingPort`.
+- **No type in `domain`/`application` carries a transport-shaped field.** A wire type's field stays in the
+  adapter that reads it.
 
 The first is enforced below; the second by review.
+
+| Kind    | Port                     | Adapter                                                         |
+|---------|--------------------------|-----------------------------------------------------------------|
+| Any     | `<Capability>Port`       | `<Technology><Capability>Adapter` — `JdbcMessageStoreAdapter` |
+| Meters  | `<Concern>Meters`        | `Micrometer<Concern>Meters` in `adapter/metrics`                |
+| Logging | `Logger`/`LoggerFactory` | `adapter/logging`                                               |
 
 ## File Locations
 
 - Protocol Buffers schema: repo-root `proto/<snake_case_name>.proto`, shared by every module that speaks the
   contract and added to this build as an extra proto source directory. Generated Java lands in
   `build/generated/sources/proto/main/`, never edited or committed.
+- Migrations: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`, applied by Flyway. The
+  test database's init script is `src/test/resources/db/init/`.
 - Prompt templates: `src/main/resources/prompts/<kebab-case-name>.st`.
 - Manual requests: `grpcurl` against the server reflection service, enabled by default.
 

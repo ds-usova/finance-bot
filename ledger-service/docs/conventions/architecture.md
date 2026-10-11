@@ -69,6 +69,16 @@ So a second messenger, transcriber or data store can be added without touching t
 
 The first is enforced below, along with how a command is named. The second by review.
 
+How a port and its adapter are named:
+
+| Kind                  | Port                     | Adapter                                                 |
+|-----------------------|--------------------------|---------------------------------------------------------|
+| Inbound, per use case | `<UseCase>Port`          | the inbound adapter, named for its system               |
+| Outbound, not a store | `<Capability>Port`       | named for its system and the capability                 |
+| Store                 | `<Aggregate>Repository`  | `<Aggregate>RepositoryAdapter` in `adapter/persistence` |
+| Meters                | `<Concern>Meters`        | `Micrometer<Concern>Meters` in `adapter/metrics`        |
+| Logging               | `Logger`/`LoggerFactory` | `adapter/logging`                                       |
+
 ## File Locations
 
 - Migrations: `src/main/resources/db/migration/V<NNN>__<snake_case_description>.sql`.
@@ -95,14 +105,16 @@ The first is enforced below, along with how a command is named. The second by re
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
     system's, such as `Telegram`, `Postgres` or `Mcp`;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;
+  - `everyInvalidValueExceptionExtendsTheRoot` — every `Invalid*` class in `domain/exception` extends
+    `InvalidValueException`;
   - `inboundPortCommandsAreNamedAfterTheirUseCase` — every `application/port` interface implemented by an
     `application/usecase` class names its `application/dto` parameters `<UseCase>Command`;
   - `authenticatedUserIdIsConstructedOnlyBySecurityAdapter` — no class outside `bot.finance.adapter.security`
     constructs `AuthenticatedUserId`;
-  - `onlyThePersistenceAdapterNamesAJdbcType` — no class outside `bot.finance.adapter.persistence` depends on
-    `java.sql..`, `javax.sql..`, `com.zaxxer.hikari..`, `org.springframework.jdbc..` or
-    `org.springframework.data.jdbc..`. Another adapter needing the database takes a collaborator `persistence`
-    owns. Test classes and `bot.finance.common` are excluded, since a test drives the database directly.
+  - `onlyThePersistenceAdapterNamesAJdbcType` — no class outside `bot.finance.adapter.persistence` depends on a
+    JDBC, driver, pool or Spring JDBC package. Another adapter needing the database takes a collaborator
+    `persistence` owns. Test classes and `bot.finance.common` are excluded, since a test drives the database
+    directly.
 
 ## Diagram Format
 

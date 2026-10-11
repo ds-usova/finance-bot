@@ -35,13 +35,13 @@ public class ReplicationSlotMonitor implements SmartLifecycle {
             ReplicationCatalogue replicationCatalogue,
             CdcProperties properties,
             ChangeStreamMeters meters,
-            ScheduledExecutorService scheduledExecutorService,
+            ScheduledExecutorService slotMonitorExecutor,
             LedgerEventOutbox ledgerEventOutbox,
             LoggerFactory loggerFactory) {
         this.replicationCatalogue = replicationCatalogue;
         this.properties = properties;
         this.meters = meters;
-        this.scheduledExecutorService = scheduledExecutorService;
+        this.scheduledExecutorService = slotMonitorExecutor;
         this.ledgerEventOutbox = ledgerEventOutbox;
         this.log = loggerFactory.getLogger(ReplicationSlotMonitor.class);
     }

@@ -58,8 +58,8 @@ class CleanArchitectureTest {
             .allowEmptyShould(true);
 
     /**
-     * The core names the capability, the adapter names its external system: {@code IntentInferencePort}
-     * lives in {@code application/port} while {@code AiIntentInferenceAdapter} lives in {@code adapter/ai}.
+     * The core names the capability, the adapter names its external system: {@code ExpenseRecordingPort}
+     * lives in {@code application/port} while {@code AiExpenseRecordingAdapter} lives in {@code adapter/ai}.
      * The list grows as each new adapter lands.
      */
     @ArchTest

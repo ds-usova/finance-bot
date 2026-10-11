@@ -1,0 +1,41 @@
+get:
+  operationId: readWrittenMessage
+  summary: Read one text the signed-in person filed, as it now stands.
+  description: >-
+    The text is named by the id filing it answered. The answer carries its state, and once the state is `DONE`
+    its outcome and the days its entries were stored on.
+  tags:
+    - messages
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: The id of the caller's message, as filing it answered.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 42
+  responses:
+    '200':
+      description: The message, as it now stands.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/WrittenMessage'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      description: >-
+        No message of the caller's carries that id, whoever else's it is, or the session outlives the user row it
+        names. The two carry different messages: one names the message, the other says the caller is unknown.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
+          example:
+            message: no message of yours carries that id
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

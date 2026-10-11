@@ -70,6 +70,17 @@ entity "user_preference" as user_preference {
   * default_currency_code : VARCHAR(3)
 }
 
+entity "written_message" as written_message {
+  * id : BIGSERIAL <<PK>>
+  --
+  * user_id : BIGINT <<FK app_user.id>>
+  * text : VARCHAR(1000) <<check not blank>>
+  * status : VARCHAR(10) <<check WAITING | READING | DONE>>
+  outcome : VARCHAR(20) <<check RECORDED | PARTIAL | NOTHING_IDENTIFIED | ANSWERED | FAILED>> <<check present exactly when DONE>>
+  * created_at : TIMESTAMPTZ
+  * updated_at : TIMESTAMPTZ
+}
+
 entity "cdc_heartbeat" as cdc_heartbeat {
   * id : BOOLEAN <<PK>> <<check id>>
   --
@@ -91,6 +102,7 @@ category ||--o{ expense
 app_user ||--o{ spending_query
 app_user ||--o{ proposal_report
 app_user ||--o| user_preference
+app_user ||--o{ written_message
 @enduml
 ```
 
@@ -104,6 +116,9 @@ Indexes beyond the constraints above:
 - `idx_expense_incoming_message` on `(user_id, incoming_message_id)`.
 - `idx_spending_query_incoming_message` on `(user_id, incoming_message_id)`.
 - `idx_proposal_report_incoming_message` on `(user_id, incoming_message_id)`.
+- `ux_written_message_one_unsettled_per_user` on `(user_id)`, **unique**, over the rows `WAITING` or `READING`
+  only.
+- `idx_written_message_waiting` on `(id)`, over the rows `WAITING` only.
 
 ## What a Table Holds
 
@@ -113,9 +128,10 @@ Indexes beyond the constraints above:
 | `category`        | [Grouping](../../domain/grouping.md), with no parent | a heading spending is filed under, never spending itself            |
 | `category`        | [Category](../../domain/category.md), with a parent  | what one expense is filed under, inside its grouping                |
 | `expense`         | [Expense](../../domain/expense.md)                   | one piece of spending, pending or recorded                          |
-| `spending_query`  | [Spending query](../../domain/spending-query.md)     | a period a message asked about, waiting to be totalled in a report  |
+| `spending_query`  | [Spending query](../../domain/spending-query.md)     | a period a message asked about, held for the turn acting on it      |
 | `proposal_report` | [Proposal report](../../domain/proposal-report.md)   | the message the bot sent back, so its buttons can be reached again  |
 | `user_preference` | [Currency code](../../domain/currency-code.md)       | the currency one person's amounts are assumed to be in, at most one |
+| `written_message` | [Written message](../../domain/written-message.md)   | a text a person filed from the web, and how far its reading got     |
 | `cdc_heartbeat`   | none                                                 | no use case writes it — see [Change capture](change-capture.md)   |
 | `outbox`          | none                                                 | a fact a write produced — see [Change capture](change-capture.md) |
 
@@ -126,6 +142,9 @@ Indexes beyond the constraints above:
   `sent_message_id` is what the bot sent back in `conversation_id`.
 - `status` is the [expense status](../../domain/expense-status.md)
   ([ADR 0018](../../adr/0018-a-proposal-is-a-status-on-the-expense-table.md)).
+- `written_message.status` is the [written message status](../../domain/written-message-status.md).
+- `written_message.outcome` is [what the text's reading came to](../../usecases/handle-written-message.md#outcomes).
+- `written_message.updated_at` is when the text last moved: claimed, handed over, or settled.
 
 ## Compatibility
 

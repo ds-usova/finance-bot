@@ -104,6 +104,15 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
+            SELECT created_at FROM expense
+            WHERE user_id = :userId AND incoming_message_id = :incomingMessageId
+            ORDER BY created_at
+            """)
+    List<Instant> findCreatedAtByMessageReference(
+            @Param("userId") Long userId, @Param("incomingMessageId") String incomingMessageId);
+
+    @Query(
+            """
             SELECT currency_code, sum(amount_minor_units) AS total_minor_units, count(*) AS expense_count
             FROM expense
             WHERE user_id = :userId AND status = 'RECORDED'

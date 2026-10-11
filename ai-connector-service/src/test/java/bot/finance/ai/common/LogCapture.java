@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * try-with-resources block, or attach it in {@code @BeforeEach} and close it in {@code @AfterEach}:
  *
  * <pre>{@code
- * try (LogCapture logCapture = LogCapture.attachedTo(AiIntentInferenceAdapter.class)) {
+ * try (LogCapture logCapture = LogCapture.attachedTo(AiExpenseRecordingAdapter.class)) {
  *     ...
  *     assertThat(logCapture.messages()).anyMatch(message -> message.contains("lunch 12 euro"));
  * }

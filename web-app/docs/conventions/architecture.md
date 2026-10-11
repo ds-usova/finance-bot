@@ -5,6 +5,7 @@
 ```
 src/
   api/          the only place fetch is called
+    generated/  the types `generate:api` writes from the API schema; never edited or committed
   auth/         session state, its types and the route guard
   components/   presentational components, reusable across pages
     ui/         the shadcn/ui components, copied in as source
@@ -25,7 +26,7 @@ src/
 - **`api/` never imports from `pages/` or `components/`.** It depends on the types in `auth/types.ts` and
   nothing else in the tree.
 - **A component in `components/` is presentational.** It takes what it renders as props and calls back through
-  props. It does not read the auth context.
+  props. It does not read the auth context, and it imports only types from `api/`, as `import type`.
 - **A pure helper sits in `components/` too**, beside the components that render through it. `lib/` holds one
   thing: the class-name helper every `components/ui/` component imports.
 - **A page composes.** Reading context, calling `api/`, and deciding what to render belong to `pages/`.
@@ -34,6 +35,14 @@ src/
 - **The shell is a page.** `pages/AppShell.tsx` is the layout element every route renders inside. It reads the
   session to decide whether the sign-out control is shown.
 - **Session state has one owner**, the auth context. Nothing else stores who is signed in.
+
+No lint rule or test enforces these rules; review does.
+
+## File Locations
+
+- API schema: repo-root `openapi/ledger-api.yaml`, read by `generate:api` ([Build](build.md)).
+- Generated types: `src/api/generated/`.
+- Migrations and manual request files: none; this module has no store and calls only the ledger's API.
 
 ## A Copied `components/ui/` Component
 

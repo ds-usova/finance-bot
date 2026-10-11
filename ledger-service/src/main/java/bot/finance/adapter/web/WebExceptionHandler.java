@@ -12,7 +12,10 @@ import bot.finance.domain.exception.InvalidMoneyException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.InvalidValueException;
+import bot.finance.domain.exception.InvalidWrittenMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
+import bot.finance.domain.exception.WrittenMessageInProgressException;
+import bot.finance.domain.exception.WrittenMessageNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Map;
@@ -21,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -69,6 +73,30 @@ public class WebExceptionHandler {
     public ResponseEntity<Map<String, String>> onInvalidMoney(InvalidMoneyException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidWrittenMessageException.class)
+    public ResponseEntity<Map<String, String>> onInvalidWrittenMessage(InvalidWrittenMessageException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(WrittenMessageNotFoundException.class)
+    public ResponseEntity<Map<String, String>> onWrittenMessageNotFound(WrittenMessageNotFoundException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(WrittenMessageInProgressException.class)
+    public ResponseEntity<Map<String, String>> onWrittenMessageInProgress(WrittenMessageInProgressException e) {
+        logger.warn("rejected a request: {}", e.getMessage());
+        return problem(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, String>> onMissingRequestParameter(MissingServletRequestParameterException e) {
+        logger.warn("rejected a request: {} was not given", e.getParameterName());
+        return problem(HttpStatus.BAD_REQUEST, e.getParameterName() + " is required");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

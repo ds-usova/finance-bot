@@ -8,14 +8,17 @@ style, and testing at once.
 
 - [Orientation](conventions/orientation.md) — project structure, documentation references, tech stack, and what
   a local run cannot exercise.
-- [Architecture & Layering](conventions/architecture.md) — directory structure, dependency rules, diagram format.
-- [Testing Conventions](conventions/testing.md) — test layers, test tooling, naming conventions, testing style.
+- [Architecture & Layering](conventions/architecture.md) — directory structure, dependency rules, file
+  locations, diagram format.
+- [Testing Conventions](conventions/testing.md) — test layers, test tooling, shared helpers, naming conventions,
+  testing style, performance, unstable tests.
 - [Code Style](conventions/code-style.md) — production-code style, refactoring conventions.
 - [Writing Documentation](conventions/documentation.md) — what a use-case page leaves to the screen, how a
   failure is tabled, and the colour a route carries.
 - [Build](conventions/build.md) — this module's commands, coverage minimum and container build.
 - [Follow-Up Work](conventions/follow-up.md) — what runs once a change is complete, and what it earns.
-- [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism.
+- [Agent Configuration](conventions/agent.md) — commit behavior, sub-agent models, parallelism, implementation
+  bundles.
 
 The [repository-wide conventions](../../docs/conventions.md) — how documentation is written, how diagrams are
 drawn, how an ADR lives, how a Node module is built — bind this module too, and these sections extend them.

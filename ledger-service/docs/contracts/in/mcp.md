@@ -62,22 +62,21 @@ relative phrase is never sent.
 ### What `summarize_spending` answers with
 
 Under `from` and `to`, the period that was accepted, as the two days it was stored as. **No amount, no count and
-no expense.** What the caller asked about is put in front of the user by
-[the turn](../../usecases/handle-incoming-message.md).
+no expense.** What becomes of the period is the [spending query](../../domain/spending-query.md#lifecycle)'s.
 
 ## What a repeated call leaves behind
 
-| Tool                      | Repeating it                                                                     |
-|---------------------------|----------------------------------------------------------------------------------|
-| `create_expense_proposal` | not idempotent — two calls store two proposals, indistinguishable from two intended ones |
-| `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                   |
-| `summarize_spending`      | idempotent in what the user reads — two calls leave two rows, the turn reports the period once, and both rows go once the report is delivered |
+| Tool                      | Repeating it                                                                                    |
+|---------------------------|-------------------------------------------------------------------------------------------------|
+| `create_expense_proposal` | not idempotent — two calls store two proposals, indistinguishable from two intended ones        |
+| `list_categories`         | stores nothing, so a duplicate or a retry leaves no row behind                                  |
+| `summarize_spending`      | idempotent in what the user reads — two calls leave two rows, and the turn uses the period once |
 
 ## How a caller authenticates
 
 ```plantuml
 @startuml McpCallerToken-Sequence
-participant "Ledger — act on a message" as Turn
+participant "Ledger — a turn" as Turn
 participant "AI Connector" as Connector
 participant "AI Provider" as Provider
 participant "Ledger — MCP tools" as Tools
@@ -107,6 +106,7 @@ note over Connector, Tools : one token per call — no session.\nA turn making s
   `/.well-known/jwks.json`.
 - A rotation is a new key in the keystore and a restart. A client re-reads the keys and needs no change.
 - The keystore, its password, the key, and the lifetime are all [configuration](../../configuration.md).
+- An expired token is still accepted for `MCP_JWT_CLOCK_SKEW` past its expiry.
 - A token outlives the turn it was minted for. Nothing revokes one early.
 
 Every other address on this port answers to nobody.
@@ -115,7 +115,7 @@ Every other address on this port answers to nobody.
 
 | Condition                                                                               | Signal                                                               |
 |-----------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| No token, an expired one, a wrong issuer or audience, or one whose lifetime is too long | 401 on the transport, with no tool result and nothing describing why |
+| No token, one expired past the skew, a wrong issuer or audience, or a lifetime too long | 401 on the transport, with no tool result and nothing describing why |
 | An argument's value is not the type the published schema declares                       | refused against the schema, before the tool runs                     |
 | An argument is missing, malformed, or an amount its currency cannot record              | a tool error naming the invalid request and the field at fault       |
 | The grouping sent holds no category of the category name sent                           | a tool error naming both, so it can be corrected                     |

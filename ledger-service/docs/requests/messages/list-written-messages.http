@@ -1,0 +1,12 @@
+### Listing written messages — GET /api/v1/messages
+# The signed-in person's texts still waiting to be read or being read. Only state=READING is accepted, and the
+# answer is empty or holds the one text the person has in that state. Needs an open session; no CSRF token, since
+# it is a read.
+
+@host = http://localhost:1000
+# Set from the fb_session cookie a sign-in response sets — see ../session/sign-in.http.
+@sessionCookie = paste-the-fb_session-cookie-value-here
+
+### The texts waiting to be read or being read.
+GET {{host}}/api/v1/messages?state=READING
+Cookie: fb_session={{sessionCookie}}

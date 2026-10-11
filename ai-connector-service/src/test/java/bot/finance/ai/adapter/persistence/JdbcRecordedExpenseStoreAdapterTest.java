@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.rows.IncomingMessageRowUtils;
 import bot.finance.ai.common.rows.RecordedExpenseRowUtils;
@@ -19,6 +20,7 @@ import bot.finance.ai.domain.value.CurrencyCode;
 import bot.finance.ai.domain.value.RecordedStatus;
 import bot.finance.ai.domain.value.SpendingRow;
 import bot.finance.ai.domain.value.StreamPosition;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +41,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @PersistenceAdapterTest
-@Import(JdbcRecordedExpenseStoreAdapter.class)
+@Import({JdbcRecordedExpenseStoreAdapter.class, MemoryConfiguration.class})
 class JdbcRecordedExpenseStoreAdapterTest {
 
     @Autowired
@@ -551,7 +553,7 @@ class JdbcRecordedExpenseStoreAdapterTest {
 
         private final RecordedExpenseEntityRepository mockedRepository = mock(RecordedExpenseEntityRepository.class);
         private final JdbcRecordedExpenseStoreAdapter mockedAdapter =
-                new JdbcRecordedExpenseStoreAdapter(mockedRepository);
+                new JdbcRecordedExpenseStoreAdapter(mockedRepository, Clock.systemUTC());
 
         private final SpendingRow entry = new SpendingRow(
                 1L,

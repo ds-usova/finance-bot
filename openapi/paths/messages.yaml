@@ -1,0 +1,74 @@
+get:
+  operationId: listWrittenMessages
+  summary: List the signed-in person's texts that are still waiting to be read or being read.
+  description: >-
+    Answers the caller's texts whose state is the one asked for. Only `READING` is accepted, and the answer is
+    empty or holds the one text the caller has waiting or being read.
+  tags:
+    - messages
+  parameters:
+    - name: state
+      in: query
+      required: true
+      description: Which texts to list. Only `READING` is accepted.
+      schema:
+        type: string
+        enum:
+          - READING
+      example: READING
+  responses:
+    '200':
+      description: The caller's texts in that state, which may be none.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../ledger-api.yaml#/components/schemas/WrittenMessage'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'
+post:
+  operationId: fileWrittenMessage
+  summary: File a text of the signed-in person's for reading.
+  description: >-
+    The text is filed and answered at once, in the state `READING`. Reading it happens afterwards, and the
+    caller follows it by the id answered.
+  tags:
+    - messages
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../ledger-api.yaml#/components/schemas/WrittenMessageFiling'
+  responses:
+    '202':
+      description: The text was filed and is waiting to be read.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/WrittenMessage'
+    '400':
+      $ref: '../components/responses/errors.yaml#/BadRequest'
+    '401':
+      $ref: '../components/responses/errors.yaml#/Unauthorized'
+    '403':
+      description: The request carried no CSRF token.
+    '404':
+      $ref: '../components/responses/errors.yaml#/NotFound'
+    '429':
+      description: The caller already has a text waiting to be read or being read.
+      content:
+        application/json:
+          schema:
+            $ref: '../ledger-api.yaml#/components/schemas/Problem'
+          example:
+            message: a text of yours is already waiting to be read
+    '503':
+      $ref: '../components/responses/errors.yaml#/ServiceUnavailable'

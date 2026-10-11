@@ -7,8 +7,8 @@ module's [Agent Configuration](../../ledger-service/docs/conventions/agent.md).
 ## The machine
 
 - Concurrent build or test runs, counting every module at once: **2**.
-- Of those, at most **1** may start containers. Only `ledger-service` does — Postgres, per run. Every other
-  module's suite is in-process.
+- Both may start containers. `ledger-service` and `ai-connector-service` each start Postgres, Redis and Toxiproxy
+  per run. `web-app`'s suite is in-process.
 - Implementation agents: **no machine-wide limit**. Each module caps its own plan.
 
 Memory is the scarce resource. An agent waiting on a model call costs almost nothing. A running suite costs a
@@ -20,8 +20,7 @@ Every module queues its own runs down to one at a time. The number of runs is th
 being worked.
 
 - **Two at a time is the limit.** A third is one run too many.
-- **`ledger-service` may be one of the two, never both.** Two container-starting suites at once is the case this
-  file exists to prevent, and no other module starts one.
+- **Any two modules may pair**, the two container-starting suites included.
 
 An unexplained container-startup failure is memory pressure until proven otherwise. Rerun it before debugging it
 as a real failure.

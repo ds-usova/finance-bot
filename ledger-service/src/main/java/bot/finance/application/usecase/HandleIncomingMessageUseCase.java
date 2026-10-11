@@ -2,7 +2,6 @@ package bot.finance.application.usecase;
 
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
-import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ProposalSummary;
 import bot.finance.application.dto.ReportLocation;
 import bot.finance.application.dto.ReportOutcome;
@@ -20,18 +19,14 @@ import bot.finance.application.port.ProposalReportRepository;
 import bot.finance.application.port.SpendingQueryRepository;
 import bot.finance.application.port.TurnMeters;
 import bot.finance.application.port.UserPreferenceRepository;
-import bot.finance.domain.exception.CatchAllGroupingMissingException;
-import bot.finance.domain.exception.IntentExtractionFailedException;
 import bot.finance.domain.exception.InvalidIncomingMessageException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.ProposalReport;
 import bot.finance.domain.model.User;
 import bot.finance.domain.value.CurrencyCode;
-import bot.finance.domain.value.Grouping;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,15 +34,13 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
     private final InitializeUserPort initializeUserPort;
     private final GroupingRepository groupingRepository;
-    private final IntentExtractionPort intentExtractionPort;
     private final MessageDeliveryPort messageDeliveryPort;
-    private final Clock clock;
     private final SpendingQueryRepository spendingQueryRepository;
     private final ExpenseRepository expenseRepository;
     private final ProposalReportRepository proposalReportRepository;
     private final TurnMeters turnMeters;
-    private final UserPreferenceRepository userPreferenceRepository;
     private final Logger log;
+    private final ExtractionTurn extractionTurn;
 
     public HandleIncomingMessageUseCase(
             InitializeUserPort initializeUserPort,
@@ -63,15 +56,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
             LoggerFactory loggerFactory) {
         this.initializeUserPort = initializeUserPort;
         this.groupingRepository = groupingRepository;
-        this.intentExtractionPort = intentExtractionPort;
         this.messageDeliveryPort = messageDeliveryPort;
-        this.clock = clock;
         this.spendingQueryRepository = spendingQueryRepository;
         this.expenseRepository = expenseRepository;
         this.proposalReportRepository = proposalReportRepository;
         this.turnMeters = turnMeters;
-        this.userPreferenceRepository = userPreferenceRepository;
         this.log = loggerFactory.getLogger(HandleIncomingMessageUseCase.class);
+        this.extractionTurn =
+                new ExtractionTurn(userPreferenceRepository, intentExtractionPort, spendingQueryRepository, clock, log);
     }
 
     @Override
@@ -82,12 +74,20 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
 
         log.debug("handling message: {}", command.text());
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
-        Optional<CurrencyCode> defaultCurrency = readDefaultCurrency(user.id().orElseThrow());
+        Optional<CurrencyCode> defaultCurrency =
+                extractionTurn.readDefaultCurrency(user.id().orElseThrow());
         List<String> categoryGroupings =
                 groupingRepository.findNamesWithCategories(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
-        boolean extractionFailed = extract(command, categoryGroupings, user, reference, defaultCurrency);
+        String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
+        boolean extractionFailed = extractionTurn.extractionFailed(extractionTurn.request(
+                command.text(),
+                categoryGroupings,
+                catchAll,
+                defaultCurrency,
+                user.id().orElseThrow(),
+                reference));
 
         List<ProposalSummary> proposals =
                 expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);
@@ -104,15 +104,8 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         turnMeters.countTurn(outcome);
         log.info("delivered report for message {} to user {}", reference, user.externalId());
 
-        discardReportedPeriods(user.id().orElseThrow(), reference, summaries);
-    }
-
-    private Optional<CurrencyCode> readDefaultCurrency(long userId) {
-        try {
-            return userPreferenceRepository.findDefaultCurrency(userId);
-        } catch (PersistenceFailedException e) {
-            log.warn("failed to read default currency: {}", "user %d: %s".formatted(userId, e.getMessage()));
-            return Optional.empty();
+        if (!summaries.isEmpty()) {
+            extractionTurn.discardPeriods(user.id().orElseThrow(), reference);
         }
     }
 
@@ -123,46 +116,6 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         } catch (PersistenceFailedException e) {
             log.warn("failed to store report for message {}: {}", reference, e.getMessage());
         }
-    }
-
-    private void discardReportedPeriods(long userId, IncomingMessageId reference, List<SpendingSummary> summaries) {
-        if (summaries.isEmpty()) {
-            return;
-        }
-        try {
-            spendingQueryRepository.discard(userId, reference);
-        } catch (PersistenceFailedException e) {
-            log.warn("failed to discard spending queries for message {}: {}", reference, e.getMessage());
-        }
-    }
-
-    private boolean extract(
-            HandleIncomingMessageCommand command,
-            List<String> categoryGroupings,
-            User user,
-            IncomingMessageId reference,
-            Optional<CurrencyCode> defaultCurrency) {
-        try {
-            intentExtractionPort.extract(new IntentExtractionRequest(
-                    command.text(),
-                    categoryGroupings,
-                    catchAllGrouping(categoryGroupings),
-                    defaultCurrency,
-                    user.id().orElseThrow(),
-                    reference,
-                    LocalDate.now(clock)));
-            return false;
-        } catch (IntentExtractionFailedException e) {
-            return true;
-        }
-    }
-
-    private String catchAllGrouping(List<String> categoryGroupings) {
-        String designated = Grouping.catchAllName();
-        if (!categoryGroupings.contains(designated)) {
-            throw new CatchAllGroupingMissingException("no grouping named " + designated + " is stored for this user");
-        }
-        return designated;
     }
 
     private List<SpendingSummary> spendingSummaries(long userId, IncomingMessageId reference) {

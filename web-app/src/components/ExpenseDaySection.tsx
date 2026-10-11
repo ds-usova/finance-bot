@@ -1,5 +1,5 @@
 import { ChevronsUpDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Category, Expense, Grouping, RenderedMoney } from '../api/expenses';
 import { CategoryPicker } from './CategoryPicker';
@@ -21,11 +21,39 @@ export type ExpenseDaySectionProps = ExpenseTickingProps &
   ExpenseCategoryChangeProps & {
     day: ExpenseDay;
     categoryNames: Map<number, string>;
+    /** Whether an acceptance just posted entries on this day, which lands the stamp on its header. */
+    posted?: boolean;
+    /** The day opens when this becomes `true`, and the person can still close it. */
+    opened?: boolean;
   };
 
 function formatMoney(money: RenderedMoney): string {
   return `${money.currency}${money.separator}${money.amount}`;
 }
+
+// Where each cell of an entry line sits. On a phone a line prints on two rows — description and amount, then
+// merchant, category and the pending mark — and from `sm` up it prints on one, in the order the cells come.
+// A day with anything pending reserves the margin column for the ticks on every row, so a day mixing the two
+// statuses keeps its descriptions in one column.
+const LINE_WITH_MARGIN = {
+  grid: 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[1.5rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_5.5rem_7.5rem]',
+  tick: 'col-start-1 row-start-1 row-end-3 sm:row-end-2',
+  description: 'col-start-2 col-end-4 row-start-1 sm:col-end-3',
+  merchant: 'col-start-2 row-start-2 sm:col-start-3 sm:row-start-1',
+  category: 'col-start-3 row-start-2 sm:col-start-4 sm:row-start-1',
+  mark: 'col-start-4 row-start-2 sm:col-start-5 sm:row-start-1',
+  amount: 'col-start-4 row-start-1 sm:col-start-6',
+};
+
+const LINE_WITHOUT_MARGIN = {
+  grid: 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_5.5rem_7.5rem]',
+  tick: '',
+  description: 'col-start-1 col-end-3 row-start-1 sm:col-end-2',
+  merchant: 'col-start-1 row-start-2 sm:col-start-2 sm:row-start-1',
+  category: 'col-start-2 row-start-2 sm:col-start-3 sm:row-start-1',
+  mark: 'col-start-3 row-start-2 sm:col-start-4 sm:row-start-1',
+  amount: 'col-start-3 row-start-1 sm:col-start-5',
+};
 
 type CategoryControlProps = {
   entry: Expense;
@@ -36,7 +64,7 @@ type CategoryControlProps = {
   onChangeCategory: (entry: Expense, categoryId: number) => void;
 };
 
-/** The row's category, offered as a ghost trigger with a chevron. Busy while its own change is out, disabled
+/** The row's category, offered as a quiet trigger with a chevron. Busy while its own change is out, disabled
  * while any other row's is, since one change out disables the rest of the listing rather than one row of it. */
 function CategoryControl({
   entry,
@@ -71,11 +99,12 @@ function CategoryControl({
           aria-busy={busy}
           disabled={disabled}
           // Pulled left by its own horizontal padding, so the name starts on the column's edge like the cells
-          // above and below it, while the hover and focus surface keeps its padding.
-          className="-ml-1.5 h-auto min-w-0 max-w-full gap-1 px-1.5 py-0.5 font-normal text-muted-foreground"
+          // above and below it, while the hover and focus surface keeps its padding. The dotted underline is
+          // the passbook's mark for a field that can be written over.
+          className="relative -ml-1.5 h-8 max-w-full min-w-0 gap-1 px-1.5 before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-[''] text-[0.8125rem] font-normal text-pencil underline decoration-rule-strong decoration-dotted underline-offset-[5px] hover:text-ink aria-busy:animate-pulse"
         >
           <span className="truncate">{categoryName}</span>
-          <ChevronsUpDown aria-hidden="true" className="h-3 w-3 shrink-0 opacity-50" />
+          <ChevronsUpDown aria-hidden="true" className="h-3 w-3 shrink-0 opacity-70" />
         </Button>
       }
     />
@@ -95,10 +124,19 @@ export function ExpenseDaySection({
   changeFailure,
   focusDay,
   onChangeCategory,
+  posted = false,
+  opened = false,
 }: ExpenseDaySectionProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const headerRef = useRef<HTMLButtonElement>(null);
+  const [openValue, setOpenValue] = useState(opened ? day.day : '');
+
+  useEffect(() => {
+    if (opened) {
+      setOpenValue(day.day);
+    }
+  }, [opened, day.day]);
 
   useEffect(() => {
     if (focusDay === day.day) {
@@ -108,8 +146,9 @@ export function ExpenseDaySection({
 
   const pendingIds = pendingIdsOf(day);
   // A day with nothing pending holds no tick anywhere — not in its header and not in any of its rows — so it
-  // reserves no column for one either, and its whole card sits flush with the card's own padding.
+  // reserves no margin column for one either.
   const hasPending = pendingIds.length > 0;
+  const line = hasPending ? LINE_WITH_MARGIN : LINE_WITHOUT_MARGIN;
   const tickedCount = pendingIds.filter((id) => tickedIds.has(id)).length;
   const untickedCount = pendingIds.length - tickedCount;
   const allTicked = pendingIds.length > 0 && tickedCount === pendingIds.length;
@@ -137,24 +176,21 @@ export function ExpenseDaySection({
     <Accordion
       type="single"
       collapsible
-      className="rounded-xl border border-border bg-card shadow-sm"
+      value={openValue}
+      onValueChange={setOpenValue}
+      className="relative border-b border-rule"
     >
       <AccordionItem value={day.day}>
-        {/* Exactly two children, so every day's header lines up: the day on the left, the money on the
-            right, flush with the amounts in the panel below. A flat list of spans lets `justify-between`
-            space them differently per day. */}
+        {/* Exactly two children, so every day's header lines up: the date on the left, the money on the
+            right, flush with the amounts on the lines below. */}
         <AccordionTrigger
           ref={headerRef}
-          // With a tick beside it the left padding stands the chevron off it; without one the trigger carries
-          // the panel's own side padding itself, so the chevron starts where the descriptions below it do.
-          className={`gap-3 pr-4 sm:pr-5 ${hasPending ? 'pl-3' : 'pl-4 sm:pl-5'}`}
+          className={`gap-2.5 pr-0 ${hasPending ? 'pl-0' : 'pl-0.5'}`}
           leading={
             hasPending && (
-              // The same gutter every entry row below reserves, so the day's tick sits over the column its
-              // entries' ticks stand in. The width has to cover the panel's own side padding *and* the tick
-              // column inside it — `w-4 pl-4` is a 16px box entirely filled by its padding, which centres the
-              // tick half a column to the left of every tick beneath it.
-              <span className="flex w-8 shrink-0 items-center justify-center pl-4 sm:w-9 sm:pl-5">
+              // The same margin column every entry line below reserves, so the day's tick sits over its
+              // entries' ticks.
+              <span className="flex w-6 shrink-0 items-center justify-start">
                 <Checkbox
                   aria-label={t('listing.dayCheckboxLabel', { count: pendingIds.length })}
                   checked={dayChecked}
@@ -165,62 +201,54 @@ export function ExpenseDaySection({
             )
           }
         >
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-semibold">{dayLabel}</span>
-            <span className="text-xs font-normal text-muted-foreground">
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[0.9375rem] font-semibold">{dayLabel}</span>
+            <span className="text-xs text-pencil">
               {t('listing.entryCount', { count: day.entries.length })}
             </span>
-            {/* One badge, not two beside each other: it names what is ticked once anything is, and what
+            {/* One mark, not two beside each other: it names what is ticked once anything is, and what
                 awaits a decision otherwise. */}
             {tickedCount > 0 ? (
-              <Badge>{t('listing.tickedCount', { count: tickedCount })}</Badge>
+              <Badge tone="stamp">{t('listing.tickedCount', { count: tickedCount })}</Badge>
             ) : (
               day.awaiting > 0 && (
                 <Badge>{t('listing.awaitingCount', { count: day.awaiting })}</Badge>
               )
             )}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <div className="flex shrink-0 flex-col items-end gap-0.5 self-center">
             {day.totals.map((total, index) => (
-              <span key={index} className="whitespace-nowrap font-semibold tabular-nums">
+              <span
+                key={index}
+                className="font-mono text-[0.9375rem] font-bold whitespace-nowrap tabular-nums"
+              >
                 {formatMoney(total)}
               </span>
             ))}
           </div>
         </AccordionTrigger>
-        <AccordionContent className="px-4 pb-3 sm:px-5">
-          <ul className="flex flex-col divide-y divide-border/70 border-t border-border/70">
+        <AccordionContent>
+          <ul className="flex flex-col border-t border-dashed border-rule-strong">
             {day.entries.map((entry) => {
               const key = entryKey(entry);
               const categoryName = categoryNames.get(entry.categoryId);
               const failureMessage = changeFailure?.key === key ? changeFailure.message : null;
+              const pending = entry.status === 'PENDING';
               return (
                 <li
                   key={key}
                   aria-label={entry.description}
-                  className="flex flex-col gap-1.5 py-2.5"
+                  className="flex flex-col gap-1.5 border-b border-rule py-2 last:border-b-0 sm:py-1.5"
                 >
                   {/* A grid rather than a flex row, because these are columns and have to line up down the
-                      whole day. Under flex the two trailing cells are sized by their own content — a PENDING
-                      row carries a badge where a RECORDED one carries nothing — so every row left a different
-                      amount of space for the three middle cells to divide, and no two rows agreed on where a
-                      column started. Fixed tracks for the badge and the figure make the space they leave the
-                      same on every row. Every cell is rendered whether or not it has content, for the same
-                      reason the gutter is. The category gets a wider share than the merchant despite holding
-                      shorter text, because it is a control: its chevron and its padding eat width that plain
-                      text does not. */}
+                      whole day. Every cell is rendered whether or not it has content, for the same reason the
+                      margin is. */}
                   <div
-                    className={`grid items-center gap-3 ${
-                      hasPending
-                        ? 'grid-cols-[1rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem]'
-                        : 'grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_7rem]'
-                    }`}
+                    className={`grid items-center gap-x-3 gap-y-0.5 ${line.grid} ${pending ? 'text-pencil' : ''}`}
                   >
-                    {/* The column stands on every row of a day that has anything pending, so a day mixing the
-                        two statuses keeps its descriptions in one line; only a PENDING row fills it. */}
                     {hasPending && (
-                      <span className="flex items-center justify-center">
-                        {entry.status === 'PENDING' && (
+                      <span className={`flex items-center ${line.tick}`}>
+                        {pending && (
                           <Checkbox
                             aria-label={t('listing.entryCheckboxLabel')}
                             checked={tickedIds.has(entry.id)}
@@ -230,9 +258,15 @@ export function ExpenseDaySection({
                         )}
                       </span>
                     )}
-                    <span className="truncate font-medium">{entry.description}</span>
-                    <span className="truncate text-xs text-muted-foreground">{entry.merchant}</span>
-                    <span className="flex min-w-0 items-center">
+                    <span
+                      className={`truncate font-medium ${pending ? '' : 'text-ink'} ${line.description}`}
+                    >
+                      {entry.description}
+                    </span>
+                    <span className={`truncate text-[0.8125rem] text-pencil ${line.merchant}`}>
+                      {entry.merchant}
+                    </span>
+                    <span className={`flex min-w-0 items-center ${line.category}`}>
                       {categoryName && (
                         <CategoryControl
                           entry={entry}
@@ -244,10 +278,12 @@ export function ExpenseDaySection({
                         />
                       )}
                     </span>
-                    <span className="flex justify-end">
-                      {entry.status === 'PENDING' && <Badge>{t('listing.statusPending')}</Badge>}
+                    <span className={`flex justify-end ${line.mark}`}>
+                      {pending && <Badge>{t('listing.statusPending')}</Badge>}
                     </span>
-                    <span className="truncate text-right tabular-nums">
+                    <span
+                      className={`truncate text-right font-mono tabular-nums ${pending ? 'italic' : 'text-ink'} ${line.amount}`}
+                    >
                       {formatMoney(entry.money)}
                     </span>
                   </div>
@@ -258,6 +294,18 @@ export function ExpenseDaySection({
           </ul>
         </AccordionContent>
       </AccordionItem>
+      {posted && (
+        // The teller's stamp, struck across the day an acceptance just posted. Decorative: the acceptance
+        // already speaks through the listing it reads back.
+        <span
+          aria-hidden="true"
+          // Struck across the rule above the day, clear of its date and its figures, the way a stamp
+          // overlaps the edge of the line it posts.
+          className="pointer-events-none absolute top-0 right-[38%] z-20 animate-stamp-land rounded-sm border-2 border-stamp px-2.5 py-0.5 text-sm font-bold whitespace-nowrap text-stamp outline outline-1 outline-offset-2 outline-stamp/60 mix-blend-multiply dark:mix-blend-screen"
+        >
+          {t('filters.statusRecorded')}
+        </span>
+      )}
     </Accordion>
   );
 }

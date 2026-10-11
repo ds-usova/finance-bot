@@ -1,3 +1,4 @@
+import { Stamp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 
@@ -9,17 +10,22 @@ export type ExpenseActionBarProps = {
   busy: boolean;
 };
 
-// The row that always stands, whether or not the action is in it, holding the accept action only once
-// something is ticked, naming how many in words and disabled while the call is out.
+// The teller's stamp, docked under the thumb once something is ticked: the row always stands, holding the
+// action only while there is something to post, naming how many in words and disabled while the call is out.
 export function ExpenseActionBar({ count, onAccept, busy }: ExpenseActionBarProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex h-10 items-center justify-end">
+    <div className="pointer-events-none sticky bottom-0 z-20 -mx-4 flex justify-end px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8">
       {count > 0 && (
-        // Outlined rather than filled: the action stands beside the listing's own badges, and a second
-        // accent-filled block there competes with them for the same attention.
-        <Button variant="outline" onClick={onAccept} disabled={busy}>
+        <Button
+          variant="stamp"
+          size="key"
+          onClick={onAccept}
+          disabled={busy}
+          className="pointer-events-auto w-full sm:w-auto"
+        >
+          <Stamp aria-hidden="true" className="h-[18px] w-[18px]" />
           {t('listing.acceptAction', { count })}
         </Button>
       )}

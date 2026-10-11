@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../i18n/en';
-import { expandDays } from '../testing/accordion';
+import { collapsedDayHeaders, expandDays, openDayHeaders } from '../testing/accordion';
 import { substituteCatalogue } from '../testing/catalogue';
 import { chooseFromList } from '../testing/combobox';
 import { aCategory, aDay, aGrouping, anExpense, categoryNames } from '../testing/fixtures';
@@ -936,5 +936,51 @@ describe('the rendered day section', () => {
     renderSection({ day, focusDay: '2026-08-02' });
 
     expect(screen.getByRole('button')).not.toHaveFocus();
+  });
+});
+
+describe('opening a day section', () => {
+  function pendingDay() {
+    return aDay({
+      day: '2026-08-01',
+      entries: [
+        anExpense({ id: 1, status: 'PENDING', description: 'taxi' }),
+        anExpense({ id: 2, status: 'PENDING', description: 'coffee' }),
+      ],
+      awaiting: 2,
+    });
+  }
+
+  it('opens when it is rendered again with opened true, showing its entries with none of them ticked', () => {
+    const day = pendingDay();
+    const { rerender } = renderSection({ day, opened: false });
+    expect(collapsedDayHeaders()).toHaveLength(1);
+    expect(screen.queryByText('taxi')).not.toBeInTheDocument();
+
+    rerender(section({ day, opened: true }));
+
+    const header = openDayHeaders()[0]!;
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+    expect(screen.getByText('coffee')).toBeInTheDocument();
+    const ticks = within(screen.getByRole('listitem', { name: /taxi/i })).getAllByRole('checkbox');
+    expect(ticks).toHaveLength(1);
+    for (const tick of screen.getAllByRole('checkbox')) {
+      expect(tick).not.toBeChecked();
+    }
+  });
+
+  it('closes when the person activates the header of a day opened that way', async () => {
+    const user = userEvent.setup();
+    const day = pendingDay();
+    const { rerender } = renderSection({ day, opened: false });
+    rerender(section({ day, opened: true }));
+    const header = openDayHeaders()[0]!;
+    expect(screen.getByText('taxi')).toBeInTheDocument();
+
+    await user.click(header);
+
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('taxi')).not.toBeInTheDocument();
   });
 });

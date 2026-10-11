@@ -7,10 +7,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bot.finance.ai.adapter.scheduling.MemoryConfiguration;
 import bot.finance.ai.common.boot.PersistenceAdapterTest;
 import bot.finance.ai.common.rows.StreamEntryFailureRowUtils;
 import bot.finance.ai.domain.exception.MessageStoreFailedException;
 import bot.finance.ai.domain.exception.MessageStoreUnavailableException;
+import java.time.Clock;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,7 +24,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @PersistenceAdapterTest
-@Import(JdbcChangeAttemptStoreAdapter.class)
+@Import({JdbcChangeAttemptStoreAdapter.class, MemoryConfiguration.class})
 class JdbcChangeAttemptStoreAdapterTest {
 
     @Autowired
@@ -115,7 +117,8 @@ class JdbcChangeAttemptStoreAdapterTest {
 
         private final StreamEntryFailureEntityRepository mockedRepository =
                 mock(StreamEntryFailureEntityRepository.class);
-        private final JdbcChangeAttemptStoreAdapter mockedAdapter = new JdbcChangeAttemptStoreAdapter(mockedRepository);
+        private final JdbcChangeAttemptStoreAdapter mockedAdapter =
+                new JdbcChangeAttemptStoreAdapter(mockedRepository, Clock.systemUTC());
 
         @Test
         @DisplayName("when the repository throws a resource-failure exception - then throws "

@@ -1348,6 +1348,89 @@ class ExpenseRepositoryAdapterTest {
         }
     }
 
+    @Nested
+    @DisplayName("finding the days a message's entries were stored on")
+    class FindDaysByMessageReference {
+
+        private final IncomingMessageId webMessage = IncomingMessageId.of("web:42");
+
+        @Test
+        @DisplayName("when a pending and a recorded entry sit on two days - then both days are answered, earlier first")
+        void whenPendingAndRecordedEntriesSitOnTwoDays_thenBothDaysAnsweredEarlierFirst() {
+            long userId = storedUserId("days-two-days-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-02T09:00:00Z"), ExpenseStatus.PENDING);
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-01T09:00:00Z"), ExpenseStatus.RECORDED);
+
+            List<LocalDate> days = adapter.findDaysByMessageReference(userId, webMessage);
+
+            assertThat(days).containsExactly(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2));
+        }
+
+        @Test
+        @DisplayName("when two entries sit on one UTC day - then that day is answered once")
+        void whenTwoEntriesSitOnOneUtcDay_thenDayIsAnsweredOnce() {
+            long userId = storedUserId("days-one-day-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-01T08:00:00Z"), ExpenseStatus.PENDING);
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-01T17:00:00Z"), ExpenseStatus.PENDING);
+
+            List<LocalDate> days = adapter.findDaysByMessageReference(userId, webMessage);
+
+            assertThat(days).containsExactly(LocalDate.of(2026, 10, 1));
+        }
+
+        @Test
+        @DisplayName("when entries sit at 23:59 UTC and 00:01 UTC the next day - then two days are answered")
+        void whenEntriesStraddleUtcMidnight_thenTwoDaysAreAnswered() {
+            long userId = storedUserId("days-midnight-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-01T23:59:00Z"), ExpenseStatus.PENDING);
+            storedEntryUnder(
+                    userId, categoryId, webMessage, Instant.parse("2026-10-02T00:01:00Z"), ExpenseStatus.PENDING);
+
+            List<LocalDate> days = adapter.findDaysByMessageReference(userId, webMessage);
+
+            assertThat(days).containsExactly(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2));
+        }
+
+        @Test
+        @DisplayName("when only another person's entry or the caller's other message exists - then no day is answered")
+        void whenOnlyAnotherPersonsOrAnotherMessagesEntriesExist_thenNoDayIsAnswered() {
+            long userId = storedUserId("days-caller-user");
+            long otherUserId = storedUserId("days-other-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            long otherCategoryId = leafCategoryId(otherUserId, "Groceries");
+            Instant createdAt = Instant.parse("2026-10-01T09:00:00Z");
+            storedEntryUnder(otherUserId, otherCategoryId, webMessage, createdAt, ExpenseStatus.PENDING);
+            storedEntryUnder(userId, categoryId, IncomingMessageId.of("web:43"), createdAt, ExpenseStatus.PENDING);
+
+            List<LocalDate> days = adapter.findDaysByMessageReference(userId, webMessage);
+
+            assertThat(days).isEmpty();
+        }
+
+        private void storedEntryUnder(
+                long userId, long categoryId, IncomingMessageId reference, Instant createdAt, ExpenseStatus status) {
+            ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    "Entry",
+                    null,
+                    100,
+                    "USD",
+                    reference.value(),
+                    createdAt,
+                    status);
+        }
+    }
+
     // The scenario below needs a store that misbehaves in a way the healthy containerized
     // Postgres cannot be made to: a non-constraint failure. It constructs its own adapter over a
     // Mockito mock and calls the adapter's own public method directly - it is still the adapter
@@ -1538,6 +1621,20 @@ class ExpenseRepositoryAdapterTest {
             ExpenseFilter filter = new ExpenseFilter(null, null, null, ExpenseFilter.DEFAULT_LIMIT, 0);
 
             assertThatThrownBy(() -> throwingAdapter.countMatching(1L, filter))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName(
+                "when findDaysByMessageReference() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenFindDaysByMessageReferenceHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.findCreatedAtByMessageReference(any(), any()))
+                    .thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.findDaysByMessageReference(1L, IncomingMessageId.of("web:42")))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

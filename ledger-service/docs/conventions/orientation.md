@@ -7,14 +7,14 @@ Where things are and what the module is built from.
 Versions are pinned in `gradle.properties` / `build.gradle`, and runtime configuration lives in
 `src/main/resources/application.yaml` — neither is repeated here. What matters at the conventions level:
 
-| What                   | This module                                                                                  |
-|------------------------|----------------------------------------------------------------------------------------------|
-| Language / framework   | Java 25, Spring Boot                                                                         |
-| Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                                      |
-| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else                     |
-| Services consumed      | Telegram Bot API and the Transcription Service over HTTP, the AI Connector Service over gRPC |
-| APIs exposed           | [MCP](../contracts/in/mcp.md), and HTTP under `/api/v1` for the browser client               |
-| Contract-first codegen | `proto/` for the AI connector, `openapi/` for the browser client                             |
+| What                   | This module                                                                    |
+|------------------------|--------------------------------------------------------------------------------|
+| Language / framework   | Java 25, Spring Boot                                                           |
+| Database               | PostgreSQL 18, Flyway, Spring Data JDBC                                        |
+| Messaging, caching     | Redis, holding one capped stream the service writes to and nothing else        |
+| Services consumed      | Telegram Bot API over HTTP, the AI Connector Service over gRPC                 |
+| APIs exposed           | [MCP](../contracts/in/mcp.md), and HTTP under `/api/v1` for the browser client |
+| Contract-first codegen | `proto/` for the AI connector, `openapi/` for the browser client               |
 
 Three things the table cannot carry:
 
@@ -49,7 +49,8 @@ conventions, the conventions win.
   consequences stay inside this service; repo-root [`docs/adr/`](../../../docs/adr/) for those that also
   constrain another service or the repository. One number sequence spans both, so each tier carries gaps.
   Lifecycle rules: [`docs/conventions/adr.md`](../../../docs/conventions/adr.md). Repo-root `docs/implemented` —
-  one directory per implemented task, holding its `design.md` and `plan.md`.
-- Other: `infrastructure/docker-compose.yaml` (repo root) — local Postgres for running the service outside tests.
+  one directory per finished task, holding its design and plan, or its bug and fix, or its rework.
+- Other: `infrastructure/docker-compose.yaml` (repo root) — the whole stack locally: Postgres, Redis, both
+  services, the web app, Prometheus and Grafana.
 
 How every page above is written: [`docs/conventions/documentation.md`](../../../docs/conventions/documentation.md).

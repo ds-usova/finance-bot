@@ -40,7 +40,7 @@ What each of these states costs the database is [what change capture owes](../ou
 | Meter                               | Kind    | Says                                                                                       |
 |-------------------------------------|---------|--------------------------------------------------------------------------------------------|
 | `ledger_mcp_tool_calls_total`       | counter | tool calls answered, tagged by `tool`, `outcome` and `reason`                              |
-| `ledger_turns_total`                | counter | messages handled, tagged by the `outcome` the report carried                               |
+| `ledger_turns_total`                | counter | messages and filed texts handled, tagged by the `outcome` each came to                     |
 | `ledger_proposals_resolved_total`   | counter | expenses a tap resolved, tagged by `resolution`                                            |
 | `ledger_cdc_events_published_total` | counter | facts appended to the stream, tagged by `type` ([the catalogue](../out/change-stream.md))  |
 | `ledger_cdc_publish_failures_total` | counter | appends the stream refused                                                                 |
@@ -68,10 +68,14 @@ against — see [configuration](../../configuration.md).
 
 ### `ledger_turns_total`
 
-| Value                                                             | The turn                                                                      |
-|-------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| `RECORDED`, `ANSWERED`, `NOTHING_IDENTIFIED`, `PARTIAL`, `FAILED` | delivered [that report](../../usecases/handle-incoming-message.md#the-report) |
-| `UNREPORTED`                                                      | ended before any report reached the user                                      |
+| Value                                                             | The turn                                                                                    |
+|-------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `RECORDED`, `ANSWERED`, `NOTHING_IDENTIFIED`, `PARTIAL`, `FAILED` | delivered [that report](../../usecases/handle-incoming-message.md#the-report)               |
+| the same five                                                     | settled a filed text [with that outcome](../../usecases/handle-written-message.md#outcomes) |
+| `UNREPORTED`                                                      | a Telegram turn ended before any report reached the user                                    |
+
+A filed text the [sweep](../../usecases/sweep-written-messages.md) settles is not counted, and neither is one whose
+turn failed before settling it.
 
 ### `ledger_proposals_resolved_total`
 
