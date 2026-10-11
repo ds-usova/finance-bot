@@ -26,6 +26,11 @@ C3 is below. Package structure is in the
 - [Read the current session](docs/usecases/read-the-current-session.md)
 - [Read a person's preferences](docs/usecases/read-the-preferences.md)
 - [Replace a person's preferences](docs/usecases/replace-the-preferences.md)
+- [File a text for reading](docs/usecases/file-written-message.md)
+- [Read what became of a filed text](docs/usecases/read-written-message.md)
+- [List a person's texts being read](docs/usecases/browse-written-messages.md)
+- [Act on a text filed from the web](docs/usecases/handle-written-message.md)
+- [Settle the texts left reading](docs/usecases/sweep-written-messages.md)
 
 ### Contracts
 

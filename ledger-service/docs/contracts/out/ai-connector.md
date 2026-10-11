@@ -11,10 +11,11 @@ read from this service's own store afterwards.
 
 ## Operations
 
-| Operation                      | Purpose                                   | Used by                                                                                                                                                                                           |
-|--------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Extract intents                | act on what a message asks for            | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
-| Check the connector is serving | whether the connector is answering at all | this service's health endpoint                                                                                                                                                                    |
+| Operation                      | Purpose                                        | Used by                                                                                                                                                                                                    |
+|--------------------------------|------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Extract intents                | act on what a message asks for                 | [Act on a user's message](../../usecases/handle-incoming-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md)          |
+| Extract intents                | act on what a text filed from the web asks for | [Act on a text filed from the web](../../usecases/handle-written-message.md); answered by [Record the spending a user's message names](../../../../ai-connector-service/docs/usecases/extract-intents.md) |
+| Check the connector is serving | whether the connector is answering at all      | this service's health endpoint                                                                                                                                                                             |
 
 ## What crosses
 

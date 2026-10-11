@@ -21,6 +21,7 @@
 | Direction | Collaborator                                                                           | Through                                                                           | For                                                                            |
 |-----------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | in        | [Browse recorded expenses](../../../web-app/docs/usecases/browse-recorded-expenses.md) | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | showing a signed-in person their spending, newest first                        |
+| in        | [File expenses as text](../../../web-app/docs/usecases/file-expenses-as-text.md)       | [Browsing the ledger from a browser](../contracts/in/web-browse-api.md)           | reading back the days a filed text's entries landed on                         |
 | out       | [Database](../contracts/out/database.md)                                               | [Users, categories and expenses](../contracts/out/database.md)                    | resolving the identity, reading the page, and counting what the filter matches |
 
 ## Outcomes
