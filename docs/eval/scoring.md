@@ -15,6 +15,11 @@ Proposal matching considers only constraints declared by the case. Undeclared an
 the verdict. Generated ids and timestamps never participate. When several proposals exist, each expected item
 must match a different actual proposal.
 
+If `items` is omitted, only the proposal count is checked. Declared proposal relations and MCP call expectations
+also affect the verdict. Missing required trace evidence is an `error`, not a successful check.
+Blocked cases are listed separately and excluded from verdict-rate denominators. Reports retain their IDs and
+reasons so uncovered composition values remain visible.
+
 `PARTIAL` and `FAILED` remain observable application outcomes, but no live-provider corpus case requires them as
 its golden outcome. Either outcome makes the case an `error`, because it reports an execution failure rather than
 the model's completed classification.
@@ -27,7 +32,7 @@ Every report calculates:
 - proposal precision, recall, and F1 from matched expected and actual proposals;
 - false-positive rate for cases expecting no proposal;
 - message-outcome confusion matrix;
-- pass rate per corpus tag;
+- pass rate per composition value;
 - newly failing and newly passing cases relative to the selected baseline.
 
 ## Gate Policy

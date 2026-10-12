@@ -1,0 +1,18 @@
+id: "033-period-today"
+covers: "spending-period.today"
+message: "How much did I spend today?"
+fixture: "catalogue-v1"
+steps: "../steps/033-period-today.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "run-date"
+        to:
+          equals: "run-date"
+notes: "Checks only spending-period.today."

@@ -1,0 +1,13 @@
+id: "026-separate-descriptions"
+covers: "description.separate"
+message: "I paid 500 HUF for a bus ticket and 850 HUF for coffee."
+fixture: "catalogue-v1"
+steps: "../steps/026-separate-descriptions.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 2
+    items:
+      - {"money":{"amount":{"equals":"500.00"}},"description":{"oneOf":["bus ticket","Bus ticket","Bus Ticket"]}}
+      - {"money":{"amount":{"equals":"850.00"}},"description":{"oneOf":["coffee","Coffee"]}}
+notes: "Checks only description.separate."

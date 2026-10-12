@@ -29,7 +29,7 @@ The specification is split by subject:
 |---------------------------------------------------------|-------------------------------------------------------------------------------|
 | [Application boundary](application-boundary.md)         | components exercised, entry point, terminal outcome, and inspection boundary  |
 | [Environment and fixtures](environment-and-fixtures.md) | evaluation user, catalogue, currency, date, memory, and reset rules           |
-| [Corpus and case format](cases.md)                      | English corpus composition, case schema, tags, and expected outcomes          |
+| [Corpus and case format](cases.md)                      | English corpus composition, case schema, coverage, and expected outcomes      |
 | [Case steps](case-steps.md)                             | steps files, case binding, and lifecycle shapes                               |
 | [Memory and retrieval](memory-and-retrieval.md)         | retrieval scenarios and their effect on later messages                        |
 | [Oracle and scoring](scoring.md)                        | proposal matching, case verdicts, aggregate quality measures, and gate policy |
@@ -40,7 +40,7 @@ The specification is split by subject:
 ## Specification Completion
 
 - [x] Every `must-decide` question has an answer in its owning document.
-- [ ] The hundred-case corpus and its expected outcomes are reviewed.
+- [x] Every v1 test message and its expected outcome and proposals are written and approved (58 cases).
 - [ ] The application boundary and fixture are approved.
 - [ ] Case verdicts and aggregate scores are unambiguous.
 - [ ] Every required measurement has a precise definition and attribution rule.

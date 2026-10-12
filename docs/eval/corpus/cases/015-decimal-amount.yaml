@@ -1,0 +1,12 @@
+id: "015-decimal-amount"
+covers: "amount.decimal"
+message: "I paid 12.50 EUR for lunch."
+fixture: "catalogue-v1"
+steps: "../steps/015-decimal-amount.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"amount":{"equals":"12.50"}}}
+notes: "Checks only amount.decimal."

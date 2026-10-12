@@ -1,0 +1,10 @@
+caseId: "001-expense-statement"
+steps:
+  - {"action":"verify-fixture"}
+  - {"action":"file-target-message"}
+  - {"action":"wait-for-terminal-outcome","message":"target"}
+  - {"action":"inspect-application-state"}
+finally:
+  - {"action":"collect-evidence"}
+  - {"action":"cleanup-case-data"}
+  - {"action":"verify-fixture-restored"}

@@ -1,0 +1,18 @@
+id: "042-period-before-1970"
+covers: "spending-period.before-1970"
+message: "How much did I spend on October 10, 1965?"
+fixture: "catalogue-v1"
+steps: "../steps/042-period-before-1970.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "1965-10-10"
+        to:
+          equals: "1965-10-10"
+notes: "Checks that a date before the Unix epoch is preserved without clamping or replacing its year."

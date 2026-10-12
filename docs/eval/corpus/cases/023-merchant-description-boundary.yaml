@@ -1,0 +1,12 @@
+id: "023-merchant-description-boundary"
+covers: "merchant.ambiguous-boundary"
+message: "At The Lunch Box I paid 1500 HUF for a sandwich."
+fixture: "catalogue-v1"
+steps: "../steps/023-merchant-description-boundary.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"merchant":{"equals":"The Lunch Box"}}
+notes: "The Lunch Box is the named merchant, not the purchased item."

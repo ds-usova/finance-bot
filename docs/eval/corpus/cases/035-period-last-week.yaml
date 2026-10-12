@@ -1,0 +1,18 @@
+id: "035-period-last-week"
+covers: "spending-period.last-week"
+message: "How much did I spend last week?"
+fixture: "catalogue-v1"
+steps: "../steps/035-period-last-week.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "previous-week-monday"
+        to:
+          equals: "previous-week-sunday"
+notes: "Checks only spending-period.last-week."

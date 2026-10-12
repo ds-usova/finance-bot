@@ -3,6 +3,10 @@
 - Cases run sequentially so aggregate meter deltas remain attributable.
 - The runner waits for a terminal written-message outcome before starting the next case.
 - Every case has a timeout and records an error instead of blocking the run.
+- Cases declaring `executionLimits` require call-budget enforcement before provider or MCP dispatch in the AI Connector.
+  A limit violation stops further calls and records a case error; cleanup still runs. Budgets apply to the target turn,
+  including retries. If enforcement is unavailable, the runner records a setup error and does not file the message.
+  Checking traces after dispatch is not budget enforcement.
 - Case teardown runs after pass, fail, error, or cancellation.
 - The next case starts only after fixture restoration is verified.
 - If restoration fails, record a teardown error and rebuild the ephemeral environment before continuing.

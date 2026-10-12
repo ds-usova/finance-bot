@@ -1,0 +1,18 @@
+id: "036-period-this-month"
+covers: "spending-period.this-month"
+message: "How much did I spend this month?"
+fixture: "catalogue-v1"
+steps: "../steps/036-period-this-month.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "current-month-first-day"
+        to:
+          equals: "run-date"
+notes: "Checks only spending-period.this-month."

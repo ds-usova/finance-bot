@@ -1,0 +1,10 @@
+id: "007-several-expenses"
+covers: "expense-count.several"
+message: "I paid 2,400 HUF for vegetables and 1,750 HUF for cleaning supplies"
+fixture: "catalogue-v1"
+steps: "../steps/007-several-expenses.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 2
+notes: "Checks only expense-count.several."

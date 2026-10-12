@@ -1,0 +1,13 @@
+id: "022-shared-merchant"
+covers: "merchant.shared"
+message: "At Central Market I paid 2400 HUF for vegetables and 1750 HUF for cleaning supplies."
+fixture: "catalogue-v1"
+steps: "../steps/022-shared-merchant.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 2
+    items:
+      - {"merchant":{"equals":"Central Market"}}
+      - {"merchant":{"equals":"Central Market"}}
+notes: "Checks only merchant.shared."

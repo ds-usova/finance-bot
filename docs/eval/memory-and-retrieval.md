@@ -15,7 +15,7 @@
 |---------------------------------|----------------------------------------------------------------------|
 | approved example                | guides a later ambiguous classification                              |
 | discarded example               | is not treated as a positive preference                              |
-| no sufficiently similar example | classification does not depend on learned history                    |
+| unrelated learned example       | its learned classification does not transfer to the target purchase  |
 | multiple candidate examples     | meaningful similarity order is observable                            |
 | conflict with current input     | retrieved history does not override the current message or catalogue |
 | no-history control              | the same target message is evaluated without learned history         |

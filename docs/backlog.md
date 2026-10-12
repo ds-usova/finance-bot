@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB05 · BR00 · BT03 · BP00
+**Last ids:** BB06 · BR00 · BT03 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -67,3 +67,20 @@ never changes once given.
   The sweep's warning already prints `web:42`. The Telegram turn logs the same record form ·
   `HandleWrittenMessageUseCase`, `ExtractionTurn`
 - **Why** found while archiving task 47, by reading the code
+
+### BB06 · `ledger-service` — spending queries remain after a failed cleanup
+
+- **Kind** bug · **Priority** normal · **Size** TBD
+- **Raised by** user, 2026-10-12
+- **What** `ExtractionTurn.discardPeriods` catches a deletion failure and only logs a warning. The web message
+  can then become `DONE`, so the worker never retries its cleanup. No scheduled retry or age-based purge removes
+  the remaining `spending_query` rows. The Telegram path uses the same cleanup method ·
+  [ExtractionTurn](../ledger-service/src/main/java/bot/finance/application/usecase/ExtractionTurn.java),
+  [HandleWrittenMessageUseCase](../ledger-service/src/main/java/bot/finance/application/usecase/HandleWrittenMessageUseCase.java)
+- **Expected** cleanup eventually retries after persistence recovers, without repeating extraction or summary
+  delivery. Repeated cleanup is idempotent and does not remove queries belonging to active turns.
+- **Acceptance** simulate a failed first deletion; finish the turn; restore persistence; verify that the leftover
+  query is eventually removed and the turn is not executed again. Cover both web and Telegram paths and verify
+  that an active turn's queries are preserved.
+- **Why** found while reviewing the evaluation spending-question cases; confirmed by reading the implementation,
+  not yet reproduced by a test

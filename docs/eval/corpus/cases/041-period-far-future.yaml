@@ -1,0 +1,18 @@
+id: "041-period-far-future"
+covers: "spending-period.far-future"
+message: "How much did I spend on October 10, 2099?"
+fixture: "catalogue-v1"
+steps: "../steps/041-period-far-future.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+  mcpCalls:
+    summarize_spending:
+      acceptedCount: 1
+      arguments:
+        from:
+          equals: "2099-10-10"
+        to:
+          equals: "2099-10-10"
+notes: "Checks that an explicitly stated far-future date is preserved rather than rejected or replaced by the current year."

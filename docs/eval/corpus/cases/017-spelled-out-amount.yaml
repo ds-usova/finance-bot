@@ -1,0 +1,12 @@
+id: "017-spelled-out-amount"
+covers: "amount.spelled-out"
+message: "I paid eight hundred and fifty HUF for coffee."
+fixture: "catalogue-v1"
+steps: "../steps/017-spelled-out-amount.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"amount":{"equals":"850.00"}}}
+notes: "Checks only amount.spelled-out."
