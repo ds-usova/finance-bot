@@ -16,8 +16,8 @@
 | approved example                | guides a later ambiguous classification                              |
 | discarded example               | is not treated as a positive preference                              |
 | unrelated learned example       | its learned classification does not transfer to the target purchase  |
-| multiple candidate examples     | meaningful similarity order is observable                            |
-| conflict with current input     | retrieved history does not override the current message or catalogue |
+| multiple candidate examples     | matching learned classification guides the target; similarity and order remain diagnostic |
+| conflict with current input     | an explicit category in the target message overrides the learned preference |
 | no-history control              | the same target message is evaluated without learned history         |
 
 ## Classification Expectation

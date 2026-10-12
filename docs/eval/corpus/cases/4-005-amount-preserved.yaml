@@ -1,0 +1,12 @@
+id: "4-005-amount-preserved"
+covers: "amount.preserved"
+message: "I paid 12.37 EUR for lunch."
+fixture: "catalogue-v1"
+steps: "../steps/4-005-amount-preserved.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"amount":{"equals":"12.37"}}}
+notes: "Preserve the numeric amount without rounding or estimating; compare the REST-rendered value."

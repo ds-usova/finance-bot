@@ -1,0 +1,12 @@
+id: "3-002-explicit-currency-name"
+covers: "currency.explicit-name"
+message: "I paid 500 Hungarian forints for a bus ticket."
+fixture: "catalogue-v1"
+steps: "../steps/3-002-explicit-currency-name.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"currency":{"equals":"HUF"}}}
+notes: "Checks only currency.explicit-name."

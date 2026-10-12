@@ -1,0 +1,12 @@
+id: "4-003-thousands-separator"
+covers: "amount.thousands-separator"
+message: "I paid 3,200 HUF for lunch."
+fixture: "catalogue-v1"
+steps: "../steps/4-003-thousands-separator.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"money":{"amount":{"equals":"3,200.00"}}}
+notes: "Checks only amount.thousands-separator."

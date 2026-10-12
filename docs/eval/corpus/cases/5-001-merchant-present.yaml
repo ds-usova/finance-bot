@@ -1,0 +1,12 @@
+id: "5-001-merchant-present"
+covers: "merchant.present"
+message: "I paid 12.50 EUR for lunch at Green Table"
+fixture: "catalogue-v1"
+steps: "../steps/5-001-merchant-present.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"merchant":{"equals":"Green Table"}}
+notes: "Checks only merchant.present."

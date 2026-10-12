@@ -1,0 +1,10 @@
+id: "2-002-one-expense"
+covers: "expense-count.one"
+message: "I paid 500 HUF for a bus ticket."
+fixture: "catalogue-v1"
+steps: "../steps/2-002-one-expense.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+notes: "Checks only expense-count.one."

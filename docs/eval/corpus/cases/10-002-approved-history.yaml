@@ -1,0 +1,14 @@
+id: "10-002-approved-history"
+covers: "learned-history.approved"
+message: "I paid 850 HUF for coffee at Corner Shop."
+fixture: "catalogue-v1"
+steps: "../steps/10-002-approved-history.yaml"
+learning:
+  - {"id":"coffee","message":"I paid 850 HUF for coffee at Corner Shop.","proposalCount":1,"classification":{"grouping":"Housing","category":"Property Tax"},"decision":"approve"}
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"grouping":{"equals":"Housing"},"category":{"equals":"Property Tax"}}
+notes: "The user deliberately files coffee under Housing/Property Tax, an atypical preference. The repeated target should follow the approved history; case 10-001 checks the same message without history."

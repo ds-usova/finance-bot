@@ -1,0 +1,10 @@
+id: "1-002-spending-question"
+covers: "intent.spending-question"
+message: "How much did I spend yesterday?"
+fixture: "catalogue-v1"
+steps: "../steps/1-002-spending-question.yaml"
+expected:
+  messageOutcome: "ANSWERED"
+  proposals:
+    count: 0
+notes: "Checks only intent.spending-question."

@@ -1,0 +1,12 @@
+id: "7-001-clear-grouping"
+covers: "category.clear-grouping"
+message: "I paid 850 HUF for coffee."
+fixture: "catalogue-v1"
+steps: "../steps/7-001-clear-grouping.yaml"
+expected:
+  messageOutcome: "RECORDED"
+  proposals:
+    count: 1
+    items:
+      - {"category":{"noneOf":["Uncategorized Expenses"]}}
+notes: "A clear purchase should avoid the generic category; do not require a particular Dining category."
