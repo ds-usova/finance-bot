@@ -31,7 +31,7 @@
 | Spending discarded | the ids name pending entries of the caller's                           | those are removed, both counts are answered, and their messages go to the clearing         |
 | Nothing matched    | no id names a pending entry of theirs                                  | both counts are answered, and no clearing is handed over                                   |
 | List rejected      | the list breaks a bound [proposal ids](../domain/proposal-ids.md) sets | the request is refused, naming the bound — nothing is discarded                            |
-| Body rejected      | the body is not JSON                                                   | the request is refused — nothing is discarded                                              |
+| Body rejected      | the body is not JSON, or an id is not a whole number                   | the request is refused — nothing is discarded                                              |
 | Request rejected   | the request is absent                                                  | rejected as invalid — nothing is looked up                                                 |
 | Identity unknown   | nothing is stored under the caller's identity                          | the request is rejected, and nothing is removed or handed over                             |
 | Storage failed     | the write fails                                                        | the failure reaches the caller, and nothing is removed or handed over                      |

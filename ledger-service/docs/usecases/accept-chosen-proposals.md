@@ -26,15 +26,15 @@
 
 ## Outcomes
 
-| Outcome           | When                                                               | Result                                                                                       |
-|-------------------|--------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| Spending accepted | the ids name pending entries of the caller's                       | those become recorded, both counts are answered, and the emptied messages go to the clearing |
-| Nothing matched   | no id names a pending entry of theirs                              | both counts are answered, and no clearing is handed over                                     |
-| List rejected     | the list breaks a bound [proposal ids](../domain/proposal-ids.md) sets | invalid expense acceptance, naming the bound — nothing is recorded                       |
-| Body rejected     | the body is not JSON                                               | the request is refused, naming the field — nothing is recorded                             |
-| Request rejected  | the request names no ids                                           | the request is refused — nothing is looked up                                              |
-| Identity unknown  | nothing is stored under the caller's identity                      | the request is rejected, and nothing is recorded or handed over                              |
-| Storage failed    | the write fails                                                    | the failure reaches the caller, and nothing is recorded or handed over                       |
+| Outcome           | When                                                                   | Result                                                                                       |
+|-------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| Spending accepted | the ids name pending entries of the caller's                           | those become recorded, both counts are answered, and the emptied messages go to the clearing |
+| Nothing matched   | no id names a pending entry of theirs                                  | both counts are answered, and no clearing is handed over                                     |
+| List rejected     | the list breaks a bound [proposal ids](../domain/proposal-ids.md) sets | invalid expense acceptance, naming the bound — nothing is recorded                           |
+| Body rejected     | the body is not JSON, or an id is not a whole number                   | the request is refused as unreadable — nothing is recorded                                   |
+| Request rejected  | the request names no ids                                               | the request is refused — nothing is looked up                                                |
+| Identity unknown  | nothing is stored under the caller's identity                          | the request is rejected, and nothing is recorded or handed over                              |
+| Storage failed    | the write fails                                                        | the failure reaches the caller, and nothing is recorded or handed over                       |
 
 ## Components
 
