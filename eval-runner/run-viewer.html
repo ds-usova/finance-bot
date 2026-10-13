@@ -1,0 +1,469 @@
+<title>Eval Run Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column; a run header, summary figures, then a case list where each case opens into its attempts. */
+:root {
+  --bg: #f3f5f4;
+  --surface: #ffffff;
+  --sunken: #e9edeb;
+  --line: #d3dad7;
+  --ink: #18201e;
+  --muted: #5b6764;
+  --accent: #0f6b74;
+  --accent-soft: #d6eaea;
+  --pass: #1f7a46;
+  --pass-soft: #dcefe3;
+  --fail: #b3261e;
+  --fail-soft: #f7dedb;
+  --error: #9a6400;
+  --error-soft: #f6e9cc;
+  --flaky: #6a4fb3;
+  --flaky-soft: #e7e1f5;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111615; --surface: #182020; --sunken: #0d1211; --line: #2c3836; --ink: #e3ebe8; --muted: #93a29e;
+    --accent: #5fc2c9; --accent-soft: #163a3d; --pass: #63c58b; --pass-soft: #163323; --fail: #f08a80;
+    --fail-soft: #3d1c1a; --error: #e3b259; --error-soft: #3a2c10; --flaky: #b4a0f0; --flaky-soft: #2b2342;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111615; --surface: #182020; --sunken: #0d1211; --line: #2c3836; --ink: #e3ebe8; --muted: #93a29e;
+  --accent: #5fc2c9; --accent-soft: #163a3d; --pass: #63c58b; --pass-soft: #163323; --fail: #f08a80;
+  --fail-soft: #3d1c1a; --error: #e3b259; --error-soft: #3a2c10; --flaky: #b4a0f0; --flaky-soft: #2b2342;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-body); margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 24px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: .01em; overflow-wrap: anywhere; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+h3 { font-size: 1.02rem; font-weight: 600; }
+.mono, code, pre { font-family: var(--font-mono); font-size: .82rem; }
+.muted { color: var(--muted); }
+.label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+.brand { display: flex; gap: 10px; align-items: baseline; }
+.brand b { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
+.loader { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--accent); }
+#file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.message { padding: 10px 14px; border-radius: 6px; background: var(--fail-soft); color: var(--fail); }
+
+.runs { display: flex; flex-wrap: wrap; gap: 8px; }
+.run-tab { border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: center; max-width: 100%; }
+.run-tab[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.run-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.chip.pass { background: var(--pass-soft); color: var(--pass); }
+.chip.fail { background: var(--fail-soft); color: var(--fail); }
+.chip.error { background: var(--error-soft); color: var(--error); }
+.chip.flaky { background: var(--flaky-soft); color: var(--flaky); }
+.chip.neutral { background: var(--sunken); color: var(--muted); }
+.chip.example { border-color: var(--line); color: var(--muted); background: transparent; }
+
+.run-head { display: grid; gap: 8px; }
+.run-head .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 500; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.tile .value { font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .sub { color: var(--muted); font-size: .8rem; }
+.verdict-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--sunken); margin-top: 6px; }
+.verdict-bar i { display: block; height: 100%; }
+
+section { display: grid; gap: 12px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.segmented button { border: 0; background: transparent; padding: 5px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.segmented button:last-child { border-right: 0; }
+.segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.search { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; min-width: 0; width: 240px; max-width: 100%; }
+
+.cases { display: grid; gap: 6px; }
+.case { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; border-left: 4px solid var(--line); min-width: 0; }
+.case.pass { border-left-color: var(--pass); }
+.case.fail { border-left-color: var(--fail); }
+.case.error { border-left-color: var(--error); }
+.case.flaky { border-left-color: var(--flaky); }
+.case > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) auto 5.5rem 4rem 5.5rem 6rem; gap: 6px 16px; align-items: center; }
+.case > summary::-webkit-details-marker { display: none; }
+.case > summary:hover { background: var(--sunken); }
+.case[open] > summary { border-bottom: 1px solid var(--line); }
+.case-id { font-family: var(--font-mono); font-weight: 500; overflow-wrap: anywhere; }
+.case-id::before { content: "▸"; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
+.case[open] .case-id::before { transform: rotate(90deg); }
+.covers { color: var(--muted); font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; }
+.dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.dot.pass { background: var(--pass); }
+.dot.fail { background: var(--fail); }
+.dot.error { background: var(--error); }
+.dot.neutral { background: var(--line); }
+.cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell small { display: block; color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
+.case-header-row { padding: 0 14px 0 18px; display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) auto 5.5rem 4rem 5.5rem 6rem; gap: 16px; }
+.case-header-row span:nth-child(n+4) { text-align: right; }
+
+.case-body { padding: 12px 14px 16px; display: grid; gap: 14px; }
+.attempt { border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 12px; background: var(--bg); min-width: 0; }
+.attempt-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.attempt-head .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: .85rem; }
+.attempt-head .facts b { color: var(--ink); font-weight: 500; }
+.blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.block { display: grid; gap: 6px; min-width: 0; align-content: start; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td.v { font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; min-width: 7rem; }
+tr.failed td { background: var(--fail-soft); }
+tr.unevaluated td { background: var(--error-soft); }
+.calls { display: grid; gap: 6px; }
+.call { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--surface); display: grid; gap: 4px; min-width: 0; }
+.call .name { font-family: var(--font-mono); font-weight: 500; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.call pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.problems { display: grid; gap: 4px; }
+.problem { padding: 6px 8px; border-radius: 6px; font-size: .85rem; overflow-wrap: anywhere; }
+.problem.error { background: var(--error-soft); color: var(--error); }
+.problem.warning { background: var(--sunken); color: var(--muted); }
+details.raw > summary { cursor: pointer; color: var(--accent); font-size: .85rem; }
+details.raw pre { background: var(--sunken); padding: 10px; border-radius: 6px; overflow-x: auto; max-height: 420px; margin: 8px 0 0; }
+.empty { color: var(--muted); padding: 16px; text-align: center; border: 1px dashed var(--line); border-radius: 8px; }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 3.2rem; gap: 4px 10px; align-items: center; }
+.bar-row .name { font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; }
+.bar-row .track { grid-column: 1 / -1; height: 6px; background: var(--sunken); border-radius: 3px; overflow: hidden; }
+.bar-row .track i { display: block; height: 100%; background: var(--accent); }
+
+.drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); border: 3px dashed var(--accent); display: grid; place-items: center; font-family: var(--font-display); font-size: 1.6rem; color: var(--accent); z-index: 10; pointer-events: none; }
+
+@media (max-width: 760px) {
+  .case > summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .case > summary .covers { grid-column: 1 / -1; }
+  .case > summary .cell { text-align: left; }
+  .case-header-row { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><b>Eval Run Viewer</b><span class="muted">reads the JSON <span class="mono">eval-runner</span> writes to <span class="mono">build/eval/</span></span></div>
+    <div class="loader">
+      <label for="file" class="btn">Open run files</label>
+      <input type="file" id="file" accept=".json,application/json" multiple>
+      <span class="muted">or drop them on the page</span>
+    </div>
+  </header>
+  <div id="message" class="message" hidden></div>
+  <nav id="runs" class="runs" aria-label="Loaded runs"></nav>
+  <main id="view" style="display:grid;gap:24px"></main>
+</div>
+<div id="drop" class="drop" hidden>Drop run files to open them</div>
+
+<script type="application/json" id="sample">
+{"schemaVersion":1,"runId":"trial-20261013-190533","status":"complete","startedAt":"2026-10-13T19:05:33.151767Z","finishedAt":"2026-10-13T19:05:59.490811900Z","config":{"label":"trial","repetitions":1,"casePrefixes":["2-002","8-003","10-003"],"budgetEnforced":false,"corpusDir":"docs\\eval\\corpus","ledgerUrl":"http://localhost:1000","ledgerMetricsUrl":"http://localhost:1010/actuator/prometheus","connectorMetricsUrl":"http://localhost:1011/actuator/prometheus","aiDbUrl":"jdbc:postgresql://localhost:5432/finance_ai","ledgerLog":"build\\eval\\ledger.log","terminalTimeoutSeconds":180,"readinessTimeoutSeconds":120},
+"summary":{"attempts":3,"discardedRolloverAttempts":0,"blockedCases":{},"quality":{"verdictCounts":{"pass":1,"fail":2,"error":0},"passRate":0.3333333333333333,"errorRate":0.0,"precision":{"n":2,"mean":0.5},"recall":{"n":2,"mean":0.5},"f1":{"n":2,"mean":0.5},"falsePositiveRate":0.0,"outcomeConfusion":{"ANSWERED":{"ANSWERED":1},"RECORDED":{"RECORDED":2}},"passRateByCovers":{"expense-count.one":1.0,"learned-history.discarded":0.0,"spending-period.last-week":0.0}},
+"performance":{"runMs":26338,"targetTurnMs":{"n":3,"median":4008.0,"p90":9835.0,"mean":5540.333333333333},"providerChatCalls":{"n":3,"median":3.0,"p90":3.0,"mean":2.6666666666666665},"providerChatSeconds":{"n":3,"median":2.7800098030000004,"p90":4.650240908,"mean":3.2844495833333336},"inputTokens":{"n":3,"median":2827.0,"p90":2909.0,"mean":2511.3333333333335},"outputTokens":{"n":3,"median":72.0,"p90":91.0,"mean":71.66666666666667},"ledgerToolCalls":{"n":3,"median":2.0,"p90":2.0,"mean":1.6666666666666667}},
+"cases":{"2-002-one-expense":{"verdicts":["pass"],"verdictCounts":{"pass":1,"fail":0,"error":0},"precision":1.0,"recall":1.0,"f1":1.0,"targetTurnMs":{"n":1,"median":9835.0,"p90":9835.0,"mean":9835.0}},"8-003-period-last-week":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":null,"recall":null,"f1":null,"targetTurnMs":{"n":1,"median":2778.0,"p90":2778.0,"mean":2778.0}},"10-003-discarded-history":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":0.0,"recall":0.0,"f1":0.0,"targetTurnMs":{"n":1,"median":4008.0,"p90":4008.0,"mean":4008.0}}}},
+"attempts":[
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:8","arguments":{"grouping":"Transportation"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:8","arguments":{"category":"Public Transport","grouping":"Transportation","description":"bus ticket","merchant":null,"amount":"500","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":21,"amount":"500.00","currency":"HUF","merchant":null,"description":"bus ticket","categoryId":133,"category":"Public Transport","grouping":"Transportation"}]},"attempt":1,"attemptStatus":"completed","caseId":"2-002-one-expense","checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"}],"covers":"expense-count.one","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:45.335152200Z","matching":{"actual":1,"expected":1,"matched":1,"pairs":null},"measurements":{"learning":{},"targetTurnMs":9835,"usage":{"providerChatCalls":3.0,"providerChatSeconds":4.650240908,"providerEmbeddingCalls":1.0,"inputTokens":2827.0,"outputTokens":72.0,"ledgerToolCalls":2.0}},"messageIds":{"target":8},"qualityMetrics":{"f1":1.0,"precision":1.0,"recall":1.0},"repetition":1,"startedAt":"2026-10-13T19:05:33.467648Z","verdict":"pass","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"summarize_spending","accepted":true,"incomingMessageId":"web:9","arguments":{"from":"2026-10-04","to":"2026-10-10"}}],"outcome":"ANSWERED","proposals":[]},"attempt":1,"attemptStatus":"completed","caseId":"8-003-period-last-week","checks":[{"path":"messageOutcome","expected":"ANSWERED","actual":"ANSWERED","status":"pass"},{"path":"proposals.count","expected":0,"actual":0,"status":"pass"},{"path":"mcpCalls.summarize_spending.acceptedCount","expected":1,"actual":1,"status":"pass"},{"path":"mcpCalls.summarize_spending.arguments.from","expected":{"equals":"2026-10-05"},"actual":["2026-10-04"],"status":"fail"},{"path":"mcpCalls.summarize_spending.arguments.to","expected":{"equals":"2026-10-11"},"actual":["2026-10-10"],"status":"fail"}],"covers":"spending-period.last-week","errors":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"2026-10-05"},"to":{"equals":"2026-10-11"}}}}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:49.350288Z","matching":{"actual":0,"expected":0,"matched":0,"pairs":null},"measurements":{"learning":{},"targetTurnMs":2778,"usage":{"providerChatCalls":2.0,"providerChatSeconds":2.423098039,"providerEmbeddingCalls":1.0,"inputTokens":1798.0,"outputTokens":52.0,"ledgerToolCalls":1.0}},"messageIds":{"target":9},"qualityMetrics":{"f1":null,"precision":null,"recall":null},"repetition":1,"startedAt":"2026-10-13T19:05:45.388772500Z","verdict":"fail","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:11","arguments":{"grouping":"Miscellaneous"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:11","arguments":{"category":"Uncategorized Expenses","grouping":"Miscellaneous","description":"coffee","merchant":"Corner Shop","amount":"850","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":23,"amount":"850.00","currency":"HUF","merchant":"Corner Shop","description":"coffee","categoryId":388,"category":"Uncategorized Expenses","grouping":"Miscellaneous"}]},"attempt":1,"attemptStatus":"completed","caseId":"10-003-discarded-history","checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"},{"path":"proposals.items[0]","expected":{"category":{"noneOf":["Uncategorized Expenses"]}},"actual":null,"status":"fail"}],"covers":"learned-history.discarded","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:59.487291600Z","matching":{"actual":1,"expected":1,"matched":0,"pairs":{}},"measurements":{"learning":{"coffee":{"availabilityMs":639,"turnMs":4208}},"targetTurnMs":4008,"usage":{"providerChatCalls":3.0,"providerChatSeconds":2.7800098030000004,"providerEmbeddingCalls":1.0,"inputTokens":2909.0,"outputTokens":91.0,"ledgerToolCalls":2.0}},"messageIds":{"coffee":10,"target":11},"qualityMetrics":{"f1":0.0,"precision":0.0,"recall":0.0},"repetition":1,"startedAt":"2026-10-13T19:05:49.353289Z","verdict":"fail","warnings":[]}
+]}
+</script>
+
+<script>
+(() => {
+  const state = { runs: [], current: 0, filter: "all", query: "" };
+  const $ = (id) => document.getElementById(id);
+
+  const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const json = (value) => value === undefined ? "—" : JSON.stringify(value);
+  const isNum = (value) => typeof value === "number" && Number.isFinite(value);
+  const fmt = (value, digits = 0) => isNum(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : "—";
+  const pct = (value) => isNum(value) ? `${Math.round(value * 100)}%` : "—";
+  const ms = (value) => !isNum(value) ? "—" : value >= 10000 ? `${fmt(value / 1000, 1)} s` : `${fmt(value)} ms`;
+  const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleString() : "—"; };
+  const mean = (values) => { const v = values.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const median = (values) => { const v = values.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = Math.floor(v.length / 2); return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+  const idParts = (id) => (String(id).match(/^(\d+)-(\d+)/) || [0, 1e9, 1e9]).slice(1).map(Number);
+  const byId = (a, b) => { const [x1, y1] = idParts(a), [x2, y2] = idParts(b); return x1 - x2 || y1 - y2 || String(a).localeCompare(String(b)); };
+
+  function showMessage(text) { const m = $("message"); m.textContent = text || ""; m.hidden = !text; }
+
+  function addRun(name, data, example = false) {
+    if (!data || !Array.isArray(data.attempts) || typeof data.summary !== "object") {
+      throw new Error(`${name} is not a run file: it has no "attempts" list or "summary".`);
+    }
+    state.runs = state.runs.filter((r) => !r.example && r.data.runId !== data.runId);
+    state.runs.push({ name, data, example });
+    state.current = state.runs.length - 1;
+  }
+
+  async function openFiles(files) {
+    const problems = [];
+    for (const file of files) {
+      try { addRun(file.name, JSON.parse(await file.text())); }
+      catch (e) { problems.push(e instanceof SyntaxError ? `${file.name} is not valid JSON.` : e.message); }
+    }
+    showMessage(problems.join(" "));
+    render();
+  }
+
+  /** Every case in the run: its attempts, its verdicts and the figures its rows show. */
+  function casesOf(run) {
+    const byCase = new Map();
+    const summaryCases = run.summary.cases || {};
+    for (const id of Object.keys(summaryCases)) byCase.set(id, { id, attempts: [], summary: summaryCases[id] });
+    for (const attempt of run.attempts) {
+      if (!byCase.has(attempt.caseId)) byCase.set(attempt.caseId, { id: attempt.caseId, attempts: [], summary: null });
+      byCase.get(attempt.caseId).attempts.push(attempt);
+    }
+    return [...byCase.values()].map((c) => {
+      const counted = c.attempts.filter((a) => a.attemptStatus !== "discarded-date-rollover");
+      const verdicts = counted.map((a) => a.verdict).filter(Boolean);
+      const count = (v) => verdicts.filter((x) => x === v).length;
+      const pass = count("pass"), fail = count("fail"), error = count("error");
+      const status = error ? "error" : pass && fail ? "flaky" : fail ? "fail" : pass ? "pass" : "neutral";
+      const covers = c.attempts.find((a) => a.covers)?.covers || "";
+      const usage = (key) => mean(counted.map((a) => a.measurements?.usage?.[key]));
+      return {
+        ...c, counted, verdicts, pass, fail, error, status, covers,
+        f1: c.summary?.f1 ?? mean(counted.map((a) => a.qualityMetrics?.f1)),
+        turn: c.summary?.targetTurnMs?.median ?? median(counted.map((a) => a.measurements?.targetTurnMs)),
+        tokens: usage("inputTokens") === null ? null : (usage("inputTokens") || 0) + (usage("outputTokens") || 0),
+      };
+    });
+  }
+
+  const statusRank = { error: 0, fail: 1, flaky: 2, neutral: 3, pass: 4 };
+  const statusLabel = { pass: "pass", fail: "fail", error: "error", flaky: "flaky", neutral: "no verdict" };
+
+  function render() {
+    renderTabs();
+    const run = state.runs[state.current];
+    const view = $("view");
+    if (!run) { view.innerHTML = `<div class="empty">Open a run file from <span class="mono">build/eval/</span> to see its cases.</div>`; return; }
+    const data = run.data;
+    const cases = casesOf(data);
+    view.innerHTML = runHead(run) + tiles(data) + caseSection(cases) + sidePanels(data);
+    bindCaseSection(cases);
+  }
+
+  function renderTabs() {
+    const nav = $("runs");
+    if (state.runs.length < 2 && !state.runs[0]?.example) { nav.innerHTML = ""; nav.hidden = true; return; }
+    nav.hidden = false;
+    nav.innerHTML = state.runs.map((r, i) =>
+      `<button type="button" class="run-tab" aria-pressed="${i === state.current}" data-run="${i}"><span class="mono">${esc(r.data.runId || r.name)}</span>${r.example ? '<span class="chip example">example</span>' : ""}</button>`).join("");
+    nav.querySelectorAll("[data-run]").forEach((b) => b.addEventListener("click", () => { state.current = Number(b.dataset.run); render(); }));
+  }
+
+  function runHead(run) {
+    const d = run.data, c = d.config || {};
+    const status = d.status === "complete" ? '<span class="chip pass">complete</span>' : `<span class="chip error">${esc(d.status || "unknown")}</span>`;
+    const prefixes = (c.casePrefixes || []).length ? c.casePrefixes.join(", ") : "all cases";
+    return `<div class="run-head">
+      <div class="row">${status}${run.example ? '<span class="chip example">example: the trial run, open your own file to replace it</span>' : ""}</div>
+      <h1>${esc(d.runId || run.name)}</h1>
+      <div class="meta">
+        <span>Started <b>${esc(when(d.startedAt))}</b></span>
+        <span>Took <b>${esc(ms(d.summary?.performance?.runMs))}</b></span>
+        <span>Cases <b class="mono">${esc(prefixes)}</b></span>
+        <span>Repetitions <b>${esc(c.repetitions ?? "—")}</b></span>
+        <span>Budget enforced <b>${c.budgetEnforced ? "yes" : "no"}</b></span>
+      </div>
+    </div>`;
+  }
+
+  function tiles(d) {
+    const q = d.summary?.quality || {}, p = d.summary?.performance || {}, vc = q.verdictCounts || {};
+    const total = (vc.pass || 0) + (vc.fail || 0) + (vc.error || 0);
+    const share = (n) => total ? (n / total) * 100 : 0;
+    return `<div class="tiles">
+      <div class="tile"><span class="label">Pass rate</span><span class="value">${pct(q.passRate)}</span>
+        <span class="sub num">${vc.pass || 0} pass · ${vc.fail || 0} fail · ${vc.error || 0} error</span>
+        <div class="verdict-bar" aria-hidden="true"><i style="width:${share(vc.pass || 0)}%;background:var(--pass)"></i><i style="width:${share(vc.fail || 0)}%;background:var(--fail)"></i><i style="width:${share(vc.error || 0)}%;background:var(--error)"></i></div></div>
+      <div class="tile"><span class="label">Mean F1</span><span class="value">${fmt(q.f1?.mean, 2)}</span>
+        <span class="sub">precision ${fmt(q.precision?.mean, 2)} · recall ${fmt(q.recall?.mean, 2)}</span></div>
+      <div class="tile"><span class="label">Target turn</span><span class="value">${ms(p.targetTurnMs?.median)}</span>
+        <span class="sub">median · p90 ${ms(p.targetTurnMs?.p90)}</span></div>
+      <div class="tile"><span class="label">Tokens per turn</span><span class="value">${fmt((p.inputTokens?.mean ?? NaN) + (p.outputTokens?.mean ?? 0))}</span>
+        <span class="sub">mean · ${fmt(p.inputTokens?.mean)} in, ${fmt(p.outputTokens?.mean)} out</span></div>
+      <div class="tile"><span class="label">Calls per turn</span><span class="value">${fmt(p.providerChatCalls?.mean, 1)}</span>
+        <span class="sub">model calls · ${fmt(p.ledgerToolCalls?.mean, 1)} ledger tool calls</span></div>
+      <div class="tile"><span class="label">Attempts</span><span class="value">${fmt(d.summary?.attempts)}</span>
+        <span class="sub">${fmt(d.summary?.discardedRolloverAttempts)} retried after a date rollover</span></div>
+    </div>`;
+  }
+
+  function caseSection(cases) {
+    const count = (s) => cases.filter((c) => c.status === s).length;
+    const filters = [["all", "All", cases.length], ["failing", "Failing", count("fail") + count("flaky")], ["error", "Errors", count("error")], ["pass", "Passing", count("pass")]];
+    return `<section>
+      <div class="toolbar">
+        <h2>Cases</h2>
+        <div class="loader">
+          <div class="segmented" role="group" aria-label="Show cases">${filters.map(([k, label, n]) =>
+            `<button type="button" data-filter="${k}" aria-pressed="${state.filter === k}">${label} <span class="num muted">${n}</span></button>`).join("")}</div>
+          <input id="case-search" class="search" type="search" placeholder="Filter by id or covers" value="${esc(state.query)}" aria-label="Filter cases">
+        </div>
+      </div>
+      <div class="case-header-row label" aria-hidden="true"><span>Case</span><span>Covers</span><span>Verdicts</span><span>Passed</span><span>F1</span><span>Turn</span><span>Tokens</span></div>
+      <div id="case-list" class="cases"></div>
+    </section>`;
+  }
+
+  function bindCaseSection(cases) {
+    document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => {
+      state.filter = b.dataset.filter;
+      document.querySelectorAll("[data-filter]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      renderCases(cases);
+    }));
+    $("case-search").addEventListener("input", (e) => { state.query = e.target.value; renderCases(cases); });
+    renderCases(cases);
+  }
+
+  function renderCases(cases) {
+    const q = state.query.trim().toLowerCase();
+    const shown = cases
+      .filter((c) => state.filter === "all" || (state.filter === "failing" ? c.status === "fail" || c.status === "flaky" : c.status === state.filter))
+      .filter((c) => !q || c.id.toLowerCase().includes(q) || c.covers.toLowerCase().includes(q))
+      .sort((a, b) => statusRank[a.status] - statusRank[b.status] || byId(a.id, b.id));
+    const list = $("case-list");
+    list.innerHTML = shown.length ? shown.map(caseRow).join("") : `<div class="empty">No case matches this filter.</div>`;
+    list.querySelectorAll("details.case").forEach((el) => el.addEventListener("toggle", () => {
+      if (el.open && !el.dataset.filled) {
+        const c = shown.find((x) => x.id === el.dataset.case);
+        el.querySelector(".case-body").innerHTML = c.attempts.map(attemptCard).join("") || `<div class="empty">No attempt was recorded.</div>`;
+        el.dataset.filled = "1";
+      }
+    }));
+  }
+
+  function caseRow(c) {
+    const dots = c.attempts.map((a) => `<span class="dot ${esc(a.verdict || "neutral")}" title="repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}: ${esc(a.verdict || a.attemptStatus)}"></span>`).join("");
+    return `<details class="case ${c.status}" data-case="${esc(c.id)}">
+      <summary>
+        <span class="case-id">${esc(c.id)}</span>
+        <span class="covers">${esc(c.covers)}</span>
+        <span class="dots">${dots}<span class="chip ${c.status}">${statusLabel[c.status]}</span></span>
+        <span class="cell"><small>passed</small>${c.pass}/${c.verdicts.length}</span>
+        <span class="cell"><small>F1</small>${fmt(c.f1, 2)}</span>
+        <span class="cell"><small>turn</small>${ms(c.turn)}</span>
+        <span class="cell"><small>tokens</small>${fmt(c.tokens)}</span>
+      </summary>
+      <div class="case-body"></div>
+    </details>`;
+  }
+
+  function attemptCard(a) {
+    const u = a.measurements?.usage || {};
+    const verdict = a.verdict ? `<span class="chip ${esc(a.verdict)}">${esc(a.verdict)}</span>` : "";
+    const status = a.attemptStatus && a.attemptStatus !== "completed" ? `<span class="chip neutral">${esc(a.attemptStatus)}</span>` : "";
+    const facts = [
+      ["outcome", a.actual?.outcome ?? "—"],
+      ["turn", ms(a.measurements?.targetTurnMs)],
+      ["model calls", fmt(u.providerChatCalls)],
+      ["tokens", `${fmt(u.inputTokens)} in · ${fmt(u.outputTokens)} out`],
+      ["tool calls (metric)", fmt(u.ledgerToolCalls)],
+      ["date", a.expectedDate ?? "—"],
+    ].map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+    return `<div class="attempt">
+      <div class="attempt-head"><h3>Repetition ${esc(a.repetition)} · attempt ${esc(a.attempt)}</h3>${verdict}${status}<div class="facts">${facts}</div></div>
+      ${problems(a)}
+      ${checksTable(a.checks)}
+      <div class="blocks">${mcpBlock(a.actual?.mcpCalls)}${proposalsBlock(a.actual?.proposals, a.matching)}${learningBlock(a.measurements?.learning, a.messageIds)}</div>
+      <details class="raw"><summary>Raw attempt JSON</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details>
+    </div>`;
+  }
+
+  function problems(a) {
+    const row = (kind) => (p) => `<div class="problem ${kind}"><b>${esc(p.stage || kind)}</b>${p.status ? ` · HTTP ${esc(p.status)}` : ""}${p.type ? ` · ${esc(p.type)}` : ""}: ${esc(p.message ?? json(p))}</div>`;
+    const errors = (a.errors || []).map(row("error")), warnings = (a.warnings || []).map(row("warning"));
+    return errors.length || warnings.length ? `<div class="problems">${errors.join("")}${warnings.join("")}</div>` : "";
+  }
+
+  function checksTable(checks) {
+    if (!checks || !checks.length) return `<div class="block"><span class="label">Checks</span><div class="empty">No checks were evaluated.</div></div>`;
+    const rows = checks.map((c) => {
+      const cls = c.status === "fail" ? "failed" : c.status === "pass" ? "" : "unevaluated";
+      const chip = c.status === "pass" ? "pass" : c.status === "fail" ? "fail" : "error";
+      return `<tr class="${cls}"><td class="v">${esc(c.path)}</td><td class="v">${esc(json(c.expected))}</td><td class="v">${esc(json(c.actual))}</td><td><span class="chip ${chip}">${esc(c.status)}</span></td></tr>`;
+    }).join("");
+    const failed = checks.filter((c) => c.status !== "pass").length;
+    return `<div class="block"><span class="label">Checks · ${checks.length - failed} of ${checks.length} hold</span>
+      <div class="scroll"><table><thead><tr><th>Path</th><th>Expected</th><th>Actual</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  function mcpBlock(calls) {
+    if (calls == null) return `<div class="block"><span class="label">MCP calls</span><div class="empty">Not read: the run had no ledger log.</div></div>`;
+    if (!calls.length) return `<div class="block"><span class="label">MCP calls · none</span><div class="empty">The model called no ledger tool.</div></div>`;
+    const items = calls.map((c, i) => `<div class="call"><span class="name"><span class="muted num">${i + 1}.</span>${esc(c.tool)}<span class="chip ${c.accepted ? "pass" : "fail"}">${c.accepted ? "accepted" : "rejected"}</span></span><pre>${esc(JSON.stringify(c.arguments, null, 1).replace(/\n\s*/g, " "))}</pre></div>`).join("");
+    return `<div class="block"><span class="label">MCP calls · ${calls.length}</span><div class="calls">${items}</div></div>`;
+  }
+
+  function proposalsBlock(proposals, matching) {
+    const head = matching ? ` · ${matching.matched} of ${matching.expected} expected matched` : "";
+    if (proposals == null) return `<div class="block"><span class="label">Proposals</span><div class="empty">Not read.</div></div>`;
+    if (!proposals.length) return `<div class="block"><span class="label">Proposals · none${esc(head)}</span><div class="empty">No expense was proposed.</div></div>`;
+    const rows = proposals.map((p) => `<tr><td class="num" style="white-space:nowrap">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "—")}${p.merchant ? `<div class="muted">${esc(p.merchant)}</div>` : ""}</td><td>${esc(p.category ?? "—")}<div class="muted">${esc(p.grouping ?? "")}</div></td></tr>`).join("");
+    return `<div class="block"><span class="label">Proposals · ${proposals.length}${esc(head)}</span><div class="scroll"><table><thead><tr><th>Amount</th><th>Description</th><th>Category</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  function learningBlock(learning, messageIds) {
+    const entries = Object.entries(learning || {});
+    if (!entries.length) return "";
+    const rows = entries.map(([id, l]) => `<tr><td class="v">${esc(id)}</td><td class="num">${esc(messageIds?.[id] ?? "—")}</td><td class="num">${ms(l.turnMs)}</td><td class="num">${ms(l.availabilityMs)}</td></tr>`).join("");
+    return `<div class="block"><span class="label">Learning steps · ${entries.length}</span><div class="scroll"><table><thead><tr><th>Step</th><th>Message</th><th>Turn</th><th>In memory after</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  function sidePanels(d) {
+    const q = d.summary?.quality || {}, p = d.summary?.performance || {};
+    const covers = Object.entries(q.passRateByCovers || {}).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
+    const coverRows = covers.length ? covers.map(([k, v]) => `<div class="bar-row"><span class="name">${esc(k)}</span><span class="num" style="text-align:right">${pct(v)}</span><span class="track"><i style="width:${(isNum(v) ? v : 0) * 100}%"></i></span></div>`).join("") : `<div class="empty">No coverage recorded.</div>`;
+    const metrics = [["targetTurnMs", "Target turn", ms], ["providerChatCalls", "Model calls", (v) => fmt(v, 1)], ["providerChatSeconds", "Model seconds", (v) => fmt(v, 2)], ["inputTokens", "Input tokens", fmt], ["outputTokens", "Output tokens", fmt], ["ledgerToolCalls", "Ledger tool calls", (v) => fmt(v, 1)]];
+    const perfRows = metrics.filter(([k]) => p[k]).map(([k, label, f]) => `<tr><td>${label}</td><td class="num">${fmt(p[k].n)}</td><td class="num">${f(p[k].median)}</td><td class="num">${f(p[k].p90)}</td><td class="num">${f(p[k].mean)}</td></tr>`).join("");
+    const confusion = Object.entries(q.outcomeConfusion || {}).flatMap(([exp, actual]) => Object.entries(actual).map(([act, n]) => `<tr class="${exp === act ? "" : "failed"}"><td class="v">${esc(exp)}</td><td class="v">${esc(act)}</td><td class="num">${fmt(n)}</td></tr>`)).join("");
+    const blocked = Object.entries(d.summary?.blockedCases || {});
+    return `<div class="two">
+      <div class="panel"><h2>Pass rate by behaviour</h2><div class="bars">${coverRows}</div></div>
+      <div class="panel"><h2>Performance</h2><div class="scroll"><table><thead><tr><th>Measure</th><th>n</th><th>Median</th><th>p90</th><th>Mean</th></tr></thead><tbody>${perfRows}</tbody></table></div></div>
+      <div class="panel"><h2>Expected vs actual outcome</h2>${confusion ? `<div class="scroll"><table><thead><tr><th>Expected</th><th>Actual</th><th>Attempts</th></tr></thead><tbody>${confusion}</tbody></table></div>` : `<div class="empty">No outcomes recorded.</div>`}</div>
+      <div class="panel"><h2>Blocked cases · ${blocked.length}</h2>${blocked.length ? `<div class="scroll"><table><tbody>${blocked.map(([id, why]) => `<tr><td class="v">${esc(id)}</td><td>${esc(why)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="muted">Every selected case ran.</div>`}</div>
+    </div>`;
+  }
+
+  $("file").addEventListener("change", (e) => { openFiles([...e.target.files]); e.target.value = ""; });
+  let dragDepth = 0;
+  window.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { dragDepth++; $("drop").hidden = false; } });
+  window.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $("drop").hidden = true; });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; $("drop").hidden = true; if (e.dataTransfer?.files?.length) openFiles([...e.dataTransfer.files]); });
+
+  try { addRun("trial.json", JSON.parse($("sample").textContent), true); } catch (e) { showMessage(e.message); }
+  render();
+})();
+</script>

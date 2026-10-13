@@ -32,6 +32,9 @@ when it exits.
 | `--budget-enforced` | off                              | runs cases declaring `executionLimits`; else blocked    |
 | `--corpus`, `--out` | `docs/eval/corpus`, `build/eval` | paths from the repository root                          |
 
+[`run-viewer.html`](run-viewer.html), opened in a browser, shows a run file case by case: verdicts, failed checks,
+MCP calls, proposals and timings.
+
 The output is rewritten after every attempt, so an interrupted run keeps what it finished. `compare` writes the two
 summaries as a Markdown table to `compare.md` beside the second file, then the cases whose pass count moved.
 
