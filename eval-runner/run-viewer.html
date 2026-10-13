@@ -99,12 +99,21 @@ tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
 h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
 .about p { margin: 0 0 2px; max-width: 75ch; }
 .about p:first-child { font-size: 14.5px; }
-table.flow, table.checks { width: auto; min-width: min(100%, 720px); }
-table.flow th { width: 7em; color: var(--muted); font-weight: 500; position: static; background: none; }
-table.flow td.result { white-space: nowrap; color: var(--muted); }
-table.flow td, table.flow th, table.checks td, table.checks th { padding: 6px 12px 6px 0; }
+q { font-size: 14px; }
+.attempt { border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.attempt-head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.attempt-head h3 { margin: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--muted); }
+.facts b { color: var(--fg); font-weight: 500; }
+.blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.block { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.block-title { font-weight: 600; }
+.call { border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; display: grid; gap: 2px; }
+.call .args { overflow-wrap: anywhere; }
+table.checks td, table.checks th { padding: 4px 12px 4px 0; }
 table.checks th { position: static; background: none; }
-table.checks tr.failed td { background: none; }
+table.checks tr.failed td { background: var(--mark-fail); }
+table.checks tr.failed td:first-child { padding-left: 6px; }
 .want { color: var(--pass); }
 .got { color: var(--fail); }
 .want mark { background: var(--mark-pass); color: inherit; border-radius: 2px; }
@@ -407,10 +416,9 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     $("toggle-passed")?.addEventListener("click", () => { state.showPassed = !state.showPassed; renderTable(cases, base); });
     table.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => {
       const id = tr.dataset.case;
-      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, { attempt: cases.get(id).focus });
+      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, true);
       renderTable(cases, base);
     }));
-    table.querySelectorAll("tr.detail").forEach((tr) => bindDetail(tr, cases.get(tr.dataset.case), cases, base));
   }
 
   function row(c, base, cols) {
@@ -447,64 +455,61 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 
   // ---- one case ---------------------------------------------------------------------------------------------
 
-  /** One attempt told in the order it happened: the case, its setup, the message, what the model did, the verdict. */
+  /** The case as written, then every attempt of it: its facts, its checks, and what the model did side by side. */
   function detail(c) {
-    const view = state.open.get(c.id);
-    const a = view.attempt;
-    const text = a.caseText;
-    const picker = c.attempts.length > 1
-      ? `<div class="reps-picker"><span class="muted">Repetition</span>${c.attempts.map((x, i) => `<button type="button" class="tab" data-attempt="${i}" aria-pressed="${x === a}"><span class="${esc(x.verdict || "")}">${glyph[x.verdict] || glyph.none}</span> ${esc(x.repetition)}${x.attempt > 1 ? `.${esc(x.attempt)}` : ""}</button>`).join("")}</div>`
-      : "";
+    const text = c.attempts.find((a) => a.caseText)?.caseText;
     const about = text
-      ? `<div class="about">${text.notes ? `<p>${esc(text.notes)}</p>` : ""}<p class="muted">Expected: ${esc(expectationText(text.expected))}</p></div>`
+      ? `<div class="about">
+          ${text.notes ? `<p>${esc(text.notes)}</p>` : ""}
+          ${(text.learning || []).map((l) => `<p><span class="muted">First sent</span> <q>${esc(l.message)}</q> <span class="muted">and ${l.decision === "approve" ? "accepted" : l.decision === "discard" ? "discarded" : esc(l.decision)} it as ${esc(l.category)} in ${esc(l.grouping)}.</span></p>`).join("")}
+          <p><span class="muted">Then sent</span> <q>${esc(text.message)}</q></p>
+          <p class="muted">Expected: ${esc(expectationText(text.expected))}</p>
+        </div>`
       : `<p class="muted">This run file has no case text. Runs written by the current runner include it.</p>`;
+    return `<div class="detail-grid">${about}${c.attempts.map(attemptCard).join("")}</div>`;
+  }
 
-    const steps = [];
-    for (const entry of text?.learning || []) steps.push(learningStep(entry, a));
-    steps.push(step("Message", text ? `<blockquote>${esc(text.message)}</blockquote>` : `<span class="muted">message ${esc(a.messageIds?.target ?? "–")}</span>`, `${secs(a.measurements?.targetTurnMs)} s`));
-    steps.push(step("Tool calls", callsBody(a.actual?.mcpCalls), callsResult(a.actual?.mcpCalls)));
-    steps.push(step("Outcome", esc(valueText(a.actual?.outcome)), outcomeResult(a)));
-    steps.push(step("Proposals", proposalsBody(a), proposalsResult(a)));
-    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])];
-    if (problems.length) steps.push(step(a.errors?.length ? "Error" : "Warnings", problems.map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join(""), ""));
-
-    return `<div class="detail-grid">
-      ${picker}${about}
-      <table class="flow"><tbody>${steps.join("")}</tbody></table>
-      <div><h3>${verdictTitle(a)}</h3>${checksBody(a)}</div>
-      <p class="muted">${costLine(a)}</p>
+  function attemptCard(a) {
+    const u = a.measurements?.usage || {};
+    const verdict = a.verdict ? `<b class="${esc(a.verdict)}">${esc(a.verdict)}</b>` : "";
+    const status = a.attemptStatus && a.attemptStatus !== "completed" ? `<span class="muted">${esc(a.attemptStatus)}</span>` : "";
+    const facts = [
+      ["outcome", a.actual?.outcome ?? "–"],
+      ["turn", `${secs(a.measurements?.targetTurnMs)} s`],
+      ["model calls", fmt(u.providerChatCalls)],
+      ["tokens", `${fmt(u.inputTokens)} in, ${fmt(u.outputTokens)} out`],
+      ["tool calls by metric", fmt(u.ledgerToolCalls)],
+      ["dates as of", a.expectedDate ?? "–"],
+    ].map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])]
+      .map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("");
+    const checks = a.checks || [], holding = checks.filter((x) => x.status === "pass").length;
+    return `<div class="attempt">
+      <div class="attempt-head"><h3>Repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}</h3>${verdict}${status}<div class="facts">${facts}</div></div>
+      ${problems}
+      ${checks.length ? `<div class="block"><span class="block-title">Checks: ${holding} of ${checks.length} hold</span>${checksBody(a)}</div>` : ""}
+      <div class="blocks">
+        <div class="block">${callCards(a.actual?.mcpCalls)}</div>
+        <div class="block"><span class="block-title">Proposals${a.actual?.proposals ? `: ${a.actual.proposals.length}` : ""}${a.matching ? `, ${a.matching.matched} of ${a.matching.expected} expected matched` : ""}</span>${proposalsBody(a)}</div>
+        ${learningTable(a)}
+      </div>
       <details class="raw-toggle"><summary>Raw attempt JSON</summary><pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre></details>
     </div>`;
   }
 
-  const step = (label, body, result) => `<tr><th scope="row">${label}</th><td>${body}</td><td class="result">${result}</td></tr>`;
-
-  function learningStep(entry, a) {
-    const m = a.measurements?.learning?.[entry.id] || {};
-    const decided = entry.decision === "approve" ? "accepted" : entry.decision === "discard" ? "discarded" : esc(entry.decision);
-    return step("Setup",
-      `<blockquote>${esc(entry.message)}</blockquote>
-       <div class="muted">Category set to ${esc(entry.category)} in ${esc(entry.grouping)}, then ${decided}. Remembered ${secs(m.availabilityMs)} s after the decision.</div>`,
-      `${decided}, ${secs(m.turnMs)} s`);
+  function callCards(calls) {
+    if (calls == null) return `<span class="block-title">MCP calls</span><span class="muted">Not recorded: the run had no ledger log.</span>`;
+    if (!calls.length) return `<span class="block-title">MCP calls: none</span><span class="muted">The model called no ledger tool.</span>`;
+    return `<span class="block-title">MCP calls: ${calls.length}</span>${calls.map((x, i) =>
+      `<div class="call"><div class="mono"><span class="muted">${i + 1}.</span> ${esc(x.tool)}${x.accepted ? "" : ` <span class="fail">rejected</span>`}</div>
+       <div class="mono args">${Object.entries(x.arguments || {}).map(([k, v]) => `<span class="muted">${esc(k)}</span> ${esc(valueText(v))}`).join("<br>")}</div></div>`).join("")}`;
   }
 
-  const callsResult = (calls) => calls == null ? "" : calls.length ? plural(calls.length, "call") : "none";
-  function callsBody(calls) {
-    if (calls == null) return `<span class="muted">Not recorded: the run had no ledger log.</span>`;
-    if (!calls.length) return `<span class="muted">The model called no ledger tool.</span>`;
-    return `<div class="calls mono">${calls.map((x) => `<div>${esc(x.tool)}(${Object.entries(x.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => `<span class="muted">${esc(k)}</span>: ${esc(valueText(v))}`).join(", ")})${x.accepted ? "" : ` <span class="fail">rejected by the ledger</span>`}</div>`).join("")}</div>`;
-  }
-
-  function outcomeResult(a) {
-    const want = a.expected?.messageOutcome, got = a.actual?.outcome;
-    if (!want || !got) return "";
-    return want === got ? `<span class="pass">✓ as expected</span>` : `<span class="fail">✗ expected ${esc(want)}</span>`;
-  }
-
-  function proposalsResult(a) {
-    const want = a.expected?.proposals?.count, got = a.actual?.proposals?.length;
-    if (!isNum(want) || !isNum(got)) return "";
-    return want === got ? `<span class="pass">✓ ${want} expected</span>` : `<span class="fail">✗ ${want} expected</span>`;
+  function learningTable(a) {
+    const entries = Object.entries(a.measurements?.learning || {});
+    if (!entries.length) return "";
+    return `<div class="block"><span class="block-title">Learning steps: ${entries.length}</span><table class="proposals"><thead><tr><th>Step</th><th class="r">Message</th><th class="r">Turn s</th><th class="r">In memory after s</th></tr></thead><tbody>${entries.map(([id, l]) =>
+      `<tr><td class="mono">${esc(id)}</td><td class="r num">${esc(a.messageIds?.[id] ?? "–")}</td><td class="r num">${secs(l.turnMs)}</td><td class="r num">${secs(l.availabilityMs)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   function proposalsBody(a) {
@@ -515,14 +520,6 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     const judged = a.matching?.pairs != null;
     return `<table class="proposals"><thead><tr>${judged ? "<th></th>" : ""}<th class="r">Amount</th><th>Description</th><th>Merchant</th><th>Category</th></tr></thead><tbody>${props.map((p) =>
       `<tr>${judged ? `<td class="${paired.has(String(p.id)) ? "pass" : "fail"}" title="${paired.has(String(p.id)) ? "matches an expected expense" : "matches no expected expense"}">${paired.has(String(p.id)) ? "✓" : "✗"}</td>` : ""}<td class="r num">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "–")}</td><td>${esc(p.merchant ?? "–")}</td><td>${esc(p.category ?? "–")} <span class="muted">in ${esc(p.grouping ?? "–")}</span></td></tr>`).join("")}</tbody></table>`;
-  }
-
-  function verdictTitle(a) {
-    const checks = a.checks || [], failing = failingChecks(a).length;
-    if (!checks.length) return `Not judged`;
-    return failing
-      ? `<span class="fail">Failed</span>: ${failing} of ${plural(checks.length, "check")} did not hold`
-      : `<span class="pass">Passed</span>: all ${plural(checks.length, "check")} hold`;
   }
 
   function checksBody(a) {
@@ -569,15 +566,6 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     return parts.join("; ") + ".";
   }
 
-  function costLine(a) {
-    const u = a.measurements?.usage || {};
-    return `Turn ${secs(a.measurements?.targetTurnMs)} s, ${fmt(u.providerChatCalls)} model calls taking ${fmt(u.providerChatSeconds, 1)} s, ${fmt(u.inputTokens)} tokens in and ${fmt(u.outputTokens)} out, ${fmt(u.ledgerToolCalls)} ledger tool calls by the metric. Dates resolved against ${esc(a.expectedDate ?? "–")}.`;
-  }
-
-  function bindDetail(tr, c, cases, base) {
-    const view = state.open.get(c.id);
-    tr.querySelectorAll("[data-attempt]").forEach((b) => b.addEventListener("click", () => { view.attempt = c.attempts[Number(b.dataset.attempt)]; renderTable(cases, base); }));
-  }
 
   // ---- run details ------------------------------------------------------------------------------------------
 
