@@ -1,5 +1,6 @@
 package bot.finance.adapter.persistence;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.application.port.GroupingRepository;
@@ -40,9 +41,12 @@ public class GroupingRepositoryAdapter implements GroupingRepository {
     }
 
     @Override
-    public List<String> findNamesWithCategories(long userId) {
+    public List<CatalogueEntry> findCatalogue(long userId) {
         try {
-            return categoryEntityRepository.findNonEmptyGroupingNames(userId);
+            // TODO read each grouping's categories; the name stands in as its one category until then
+            return categoryEntityRepository.findNonEmptyGroupingNames(userId).stream()
+                    .map(name -> new CatalogueEntry(name, List.of(name)))
+                    .toList();
         } catch (RuntimeException e) {
             throw new PersistenceFailedException("failed to find grouping names for user " + userId, e);
         }

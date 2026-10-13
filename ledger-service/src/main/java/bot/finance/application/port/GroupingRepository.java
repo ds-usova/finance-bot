@@ -1,5 +1,6 @@
 package bot.finance.application.port;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.GroupingEntry;
 import bot.finance.application.dto.StoredGrouping;
 import bot.finance.domain.exception.PersistenceFailedException;
@@ -21,7 +22,7 @@ public interface GroupingRepository {
     /**
      * @throws PersistenceFailedException if the lookup fails
      */
-    List<String> findNamesWithCategories(long userId);
+    List<CatalogueEntry> findCatalogue(long userId);
 
     /**
      * @throws PersistenceFailedException if the read fails

@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
@@ -26,18 +27,19 @@ public class ListCategoriesMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
-    private final Logger callLog;
+    private final TurnCallLog turnCallLog;
 
     public ListCategoriesMcpTool(
             ListCategoriesPort listCategoriesPort,
             JsonMapper jsonMapper,
             ToolCallMeters toolCallMeters,
+            TurnCallLog turnCallLog,
             LoggerFactory loggerFactory) {
         this.listCategoriesPort = listCategoriesPort;
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
+        this.turnCallLog = turnCallLog;
         this.log = loggerFactory.getLogger(ListCategoriesMcpTool.class);
-        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(
@@ -47,7 +49,11 @@ public class ListCategoriesMcpTool {
     public CallToolResult listCategories(
             @McpToolParam(description = "the grouping's name, exactly as it was offered") String grouping) {
         CallToolResult result = list(grouping);
-        McpCallLine.write(callLog, jsonMapper, "list_categories", result, McpCallLine.arguments("grouping", grouping));
+        turnCallLog.write(
+                "list_categories",
+                TurnCallLog.Via.MCP,
+                !Boolean.TRUE.equals(result.isError()),
+                TurnCallLog.arguments("grouping", grouping));
         return result;
     }
 

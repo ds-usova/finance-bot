@@ -227,7 +227,7 @@ public class SecurityConfiguration {
         return decoder;
     }
 
-    private static OAuth2TokenValidator<Jwt> validator(
+    static OAuth2TokenValidator<Jwt> validator(
             JwtTimestampValidator timestampValidator, String issuer, String audience, Duration ttl) {
         return new DelegatingOAuth2TokenValidator<>(
                 timestampValidator,

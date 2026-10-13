@@ -93,3 +93,17 @@
   - Resolution: decision
   - Action: resolved — `turn-operations.md` states all three, so RI03 gained a reflection scenario, RS01 the
     call timer on the scrape (its name unverified), and ST10's intent the refusal logging.
+
+## Suite Runs
+
+- baseline · tree c119edf4d751a2791c835f67a7119b468397cb5e · total 1367 · skipped 0 · green · paths: ledger-service
+- stabilization · tree 36938e0e491ba187099f816420ca8d5cb88fb133 · total 1368 · skipped 1 · green · paths: ledger-service
+
+## Stubs
+
+Marker: `stub-intent:`
+
+- `ledger-service/src/main/java/bot/finance/adapter/logging/TurnCallLog.java`
+- `ledger-service/src/main/java/bot/finance/adapter/aiconnector/LedgerTurnProtoMapper.java`
+- `ledger-service/src/main/java/bot/finance/adapter/aiconnector/LedgerTurnGrpcService.java`
+- `ledger-service/src/main/java/bot/finance/adapter/security/TurnOperationsSecurityConfiguration.java`

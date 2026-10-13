@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.boot.AiConnectorAdapterTest;
 import bot.finance.common.containers.GrpcStubServer;
@@ -49,7 +50,7 @@ class AiConnectorIntentExtractionAdapterTest {
     private static IntentExtractionRequest requestFor(long userId, IncomingMessageId reference) {
         return new IntentExtractionRequest(
                 "spent 15 on milk",
-                List.of("Groceries"),
+                List.of(new CatalogueEntry("Groceries", List.of("Milk"))),
                 "Groceries",
                 Optional.of(CurrencyCode.of("USD")),
                 userId,
@@ -78,7 +79,9 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "spent 15 on milk",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.of(CurrencyCode.of("USD")),
                     1L,
@@ -146,7 +149,7 @@ class AiConnectorIntentExtractionAdapterTest {
             GrpcStubServer.failExtractionWith(Status.fromCode(code).withDescription("stub failure"));
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "connector unavailable",
-                    List.of("Other"),
+                    List.of(new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     1L,

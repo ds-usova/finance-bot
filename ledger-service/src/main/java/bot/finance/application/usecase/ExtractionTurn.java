@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.port.IntentExtractionPort;
 import bot.finance.application.port.Logger;
@@ -56,13 +57,13 @@ class ExtractionTurn {
 
     IntentExtractionRequest request(
             String text,
-            List<String> categoryGroupings,
+            List<CatalogueEntry> catalogue,
             String catchAll,
             Optional<CurrencyCode> defaultCurrency,
             long userId,
             IncomingMessageId reference) {
         return new IntentExtractionRequest(
-                text, categoryGroupings, catchAll, defaultCurrency, userId, reference, LocalDate.now(clock));
+                text, catalogue, catchAll, defaultCurrency, userId, reference, LocalDate.now(clock));
     }
 
     boolean extractionFailed(IntentExtractionRequest request) {

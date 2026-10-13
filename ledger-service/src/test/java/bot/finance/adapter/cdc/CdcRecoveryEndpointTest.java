@@ -48,6 +48,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         properties = {
             "cdc.recovery-secret=" + CdcRecoveryEndpointTest.SECRET,
             "spring.ai.mcp.server.enabled=false",
+            "spring.grpc.server.enabled=false",
             "spring.autoconfigure.exclude="
                     + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
                     + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration"

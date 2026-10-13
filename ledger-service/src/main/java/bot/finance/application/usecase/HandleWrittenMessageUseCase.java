@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
@@ -98,11 +99,12 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
 
     private Optional<IntentExtractionRequest> prepare(WrittenMessageView message, IncomingMessageId reference) {
         try {
-            List<String> categoryGroupings = groupingRepository.findNamesWithCategories(message.userId());
-            String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
+            List<CatalogueEntry> catalogue = groupingRepository.findCatalogue(message.userId());
+            String catchAll = extractionTurn.catchAllAmong(
+                    catalogue.stream().map(CatalogueEntry::grouping).toList());
             return Optional.of(extractionTurn.request(
                     message.text(),
-                    categoryGroupings,
+                    catalogue,
                     catchAll,
                     extractionTurn.readDefaultCurrency(message.userId()),
                     message.userId(),

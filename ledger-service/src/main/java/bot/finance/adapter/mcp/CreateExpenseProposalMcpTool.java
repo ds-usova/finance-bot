@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
@@ -22,18 +23,19 @@ public class CreateExpenseProposalMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
-    private final Logger callLog;
+    private final TurnCallLog turnCallLog;
 
     public CreateExpenseProposalMcpTool(
             CreateExpenseProposalPort createExpenseProposalPort,
             JsonMapper jsonMapper,
             ToolCallMeters toolCallMeters,
+            TurnCallLog turnCallLog,
             LoggerFactory loggerFactory) {
         this.createExpenseProposalPort = createExpenseProposalPort;
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
+        this.turnCallLog = turnCallLog;
         this.log = loggerFactory.getLogger(CreateExpenseProposalMcpTool.class);
-        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(name = "create_expense_proposal", description = "Records a new expense proposal for the caller")
@@ -56,7 +58,8 @@ public class CreateExpenseProposalMcpTool {
         CreateExpenseProposalToolRequest request =
                 new CreateExpenseProposalToolRequest(category, grouping, description, merchant, amount, currencyCode);
         CallToolResult result = create(request);
-        McpCallLine.write(callLog, jsonMapper, "create_expense_proposal", result, request);
+        turnCallLog.write(
+                "create_expense_proposal", TurnCallLog.Via.MCP, !Boolean.TRUE.equals(result.isError()), request);
         return result;
     }
 

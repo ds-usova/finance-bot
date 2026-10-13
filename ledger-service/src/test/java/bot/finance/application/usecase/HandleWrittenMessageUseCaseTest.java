@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.application.dto.ReportOutcome;
 import bot.finance.application.dto.WrittenMessageView;
@@ -89,13 +90,19 @@ class HandleWrittenMessageUseCaseTest {
         WrittenMessageView claimed =
                 new WrittenMessageView(MESSAGE_ID, USER_ID, TEXT, WrittenMessageStatus.READING, Optional.empty());
         when(writtenMessageRepository.claimOldestWaiting(NOW)).thenReturn(Optional.of(claimed));
-        when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(groupings);
+        when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(groupings));
         when(userPreferenceRepository.findDefaultCurrency(USER_ID)).thenReturn(Optional.empty());
         when(writtenMessageRepository.stampHandOver(MESSAGE_ID, NOW)).thenReturn(true);
         when(writtenMessageRepository.settle(anyLong(), any(), any())).thenReturn(true);
         when(expenseRepository.findDaysByMessageReference(USER_ID, REFERENCE)).thenReturn(List.of());
         when(spendingQueryRepository.findPeriodsByMessageReference(USER_ID, REFERENCE))
                 .thenReturn(List.of());
+    }
+
+    private static List<CatalogueEntry> catalogueOf(List<String> groupings) {
+        return groupings.stream()
+                .map(grouping -> new CatalogueEntry(grouping, List.of("category")))
+                .toList();
     }
 
     private void givenOneDay() {
@@ -249,7 +256,7 @@ class HandleWrittenMessageUseCaseTest {
         @Test
         @DisplayName("when the groupings read fails - then the message is settled FAILED and counted")
         void whenGroupingsReadFails_thenMessageIsSettledFailedAndCounted() {
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenThrow(persistenceFailure());
+            when(groupingRepository.findCatalogue(USER_ID)).thenThrow(persistenceFailure());
 
             useCase.handleNext();
 
@@ -262,7 +269,7 @@ class HandleWrittenMessageUseCaseTest {
         @Test
         @DisplayName("when the groupings lack the catch-all - then the message is settled FAILED and counted")
         void whenGroupingsLackTheCatchAll_thenMessageIsSettledFailedAndCounted() {
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of("Food", "Auto"));
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(List.of("Food", "Auto")));
 
             useCase.handleNext();
 

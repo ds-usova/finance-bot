@@ -24,6 +24,7 @@ bot.finance
     │   ├── AiConnectorAdapterTest # composed annotation — AI connector gRPC adapter tests
     │   ├── McpAdapterTest        # composed annotation — MCP tool adapter tests
     │   ├── MetricsAdapterTest    # composed annotation — the metrics adapters behind the prometheus scrape
+    │   ├── TurnOperationsAdapterTest # composed annotation — the gRPC server's turn operations behind their security interceptor
     │   ├── WebAdapterTest        # composed annotation — @WebMvcTest slice tests over adapter/web
     │   ├── CaptureAdapterConfiguration # the capture adapter's beans, a meter registry and a Redis template
     │   ├── CdcAdapterTest        # composed annotation — the Data JDBC slice plus the capture adapter's own beans
@@ -31,7 +32,7 @@ bot.finance
     │   ├── CdcCaptureTest        # composed annotation — full application, capture on, the Redis singleton wired
     │                             #   in, on the application's own slot and stream key
     │   ├── SigningKeysConfiguration # the signing key pair a MockMvc slice does not component-scan
-    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the five whose bean
+    │   └── *ContextTest          # proves an annotation boots, asserts nothing else — for the six whose bean
     │                             #   graph only proves itself at runtime
     ├── containers            # Testcontainers / WireMock / in-JVM gRPC stub server lifecycle
     │   ├── Network                # the shared Testcontainers network every container-backed singleton joins
@@ -64,7 +65,8 @@ bot.finance
     │   ├── SessionTokens         # browser session tokens, and the configuration they are minted under
     │   ├── SigningKeys           # the keystore configuration the test profile runs with, and the key pair it resolves to
     │   ├── TelegramFixtures      # Bot API JSON bodies
-    │   └── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
+    │   ├── TelegramLoginPayloads # Login Widget payloads, signed the way Telegram signs them
+    │   └── TurnOperationCalls    # a blocking LedgerTurnService call to localhost with or without a bearer token, and the two request builders
     ├── stubs                 # the external systems' fakes, and what they recorded
     │   ├── WireMockStubs         # stub registration, one static method per endpoint
     │   └── TelegramTestBot       # Telegram client wiring, bot tokens, the scenarios that share one, poll
@@ -123,6 +125,12 @@ where its role is honest.
   behind it mocked. `McpAdapterTest` and `CdcRecoveryEndpointTest` are the two. Autoconfiguration supplies beans
   a bean list does not mention, so such a slice excludes the datasource and Redis rather than assuming naming no
   repository was enough.
+
+  The ledger's gRPC server, reached by `adapter/aiconnector/LedgerTurnGrpcService`, is entered the same way
+  through `@TurnOperationsAdapterTest`: the turn operations and their security interceptor from an explicit bean
+  list, the two inbound ports mocked, the server on a random port that a test reads off
+  `GrpcServerLifecycle.getPort()` and calls through `TurnOperationCalls`. The slices that boot autoconfiguration
+  without the turn operations switch the server off with `spring.grpc.server.enabled=false`.
 - **System** — the same entry points end-to-end against the fully wired application; one happy path plus a
   representative error path each. For the long-polling listener see the isolation rules below.
 - **Architecture** — a rule that holds for *every* type in a package is asserted once in `bot.finance.architecture`

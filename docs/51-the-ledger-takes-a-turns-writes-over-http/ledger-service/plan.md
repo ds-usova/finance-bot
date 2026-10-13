@@ -135,16 +135,16 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · Add `org.springframework.boot:spring-boot-starter-grpc-server` to `build.gradle`'s dependencies,
+- [x] ST01 · Add `org.springframework.boot:spring-boot-starter-grpc-server` to `build.gradle`'s dependencies,
   beside the gRPC client starter. The slices that boot autoconfiguration without the turn operations —
   `McpAdapterTest`, `MetricsAdapterTest` and `CdcRecoveryEndpointTest` — set `spring.grpc.server.enabled=false`
   - writes: `ledger-service/build.gradle`, `ledger-service/src/test/java/bot/finance/common/boot/McpAdapterTest.java`,
     `ledger-service/src/test/java/bot/finance/common/boot/MetricsAdapterTest.java`,
     `ledger-service/src/test/java/bot/finance/adapter/cdc/CdcRecoveryEndpointTest.java`
-- [ ] ST02 · Add the record `CatalogueEntry(String grouping, List<String> categories)` to `application/dto`, with
+- [x] ST02 · Add the record `CatalogueEntry(String grouping, List<String> categories)` to `application/dto`, with
   no checks of its own
   - writes: `ledger-service/src/main/java/bot/finance/application/dto/CatalogueEntry.java`
-- [ ] ST03 · Replace `GroupingRepository.findNamesWithCategories(long): List<String>` with
+- [x] ST03 · Replace `GroupingRepository.findNamesWithCategories(long): List<String>` with
   `findCatalogue(long): List<CatalogueEntry>` · after: ST02
   - `GroupingRepositoryAdapter.findCatalogue()` keeps the existing names query and answers each name as an entry
     holding that name as its one category, with a `TODO` naming the categories still to be read
@@ -153,7 +153,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   - writes: `ledger-service/src/main/java/bot/finance/application/port/GroupingRepository.java`,
     `ledger-service/src/main/java/bot/finance/adapter/persistence/GroupingRepositoryAdapter.java`,
     `ledger-service/src/test/java/bot/finance/adapter/persistence/GroupingRepositoryAdapterTest.java`
-- [ ] ST04 · Replace `IntentExtractionRequest`'s `List<String> categoryGroupings` component with
+- [x] ST04 · Replace `IntentExtractionRequest`'s `List<String> categoryGroupings` component with
   `List<CatalogueEntry> catalogue`, and add `categoryGroupings()` answering the entries' groupings in order · after: ST02
   - every existing check keeps running, over those groupings; the catalogue is kept as given, with a `TODO`
     naming the copy and the entry checks still owed
@@ -168,7 +168,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ledger-service/src/test/java/bot/finance/application/dto/IntentExtractionRequestTest.java`,
     `ledger-service/src/test/java/bot/finance/adapter/aiconnector/IntentProtoMapperTest.java`,
     `ledger-service/src/test/java/bot/finance/adapter/aiconnector/AiConnectorIntentExtractionAdapterTest.java`
-- [ ] ST05 · `ExtractionTurn.request()` takes the catalogue in place of the grouping names.
+- [x] ST05 · `ExtractionTurn.request()` takes the catalogue in place of the grouping names.
   `HandleIncomingMessageUseCase.handle()` and `HandleWrittenMessageUseCase`'s preparation read
   `findCatalogue()`, give `catchAllAmong()` the catalogue's groupings, and pass the catalogue to `request()` ·
   after: ST03, ST04
@@ -180,7 +180,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ledger-service/src/main/java/bot/finance/application/usecase/HandleWrittenMessageUseCase.java`,
     `ledger-service/src/test/java/bot/finance/application/usecase/HandleIncomingMessageUseCaseTest.java`,
     `ledger-service/src/test/java/bot/finance/application/usecase/HandleWrittenMessageUseCaseTest.java`
-- [ ] ST06 · Add `TurnCallLog` to `adapter/logging`, a component taking `TurnCallLogProperties`, `JsonMapper` and
+- [x] ST06 · Add `TurnCallLog` to `adapter/logging`, a component taking `TurnCallLogProperties`, `JsonMapper` and
   `LoggerFactory`, with its nested enum `Via { MCP, GRPC }`; add the record
   `TurnCallLogProperties(boolean enabled)` bound to `turn-call-log`, registered by a new `LoggingConfiguration` in
   the same package. The `logging` entry of the module's architecture conventions names the call line beside the
@@ -189,7 +189,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ledger-service/src/main/java/bot/finance/adapter/logging/TurnCallLog.java`,
     `ledger-service/src/main/java/bot/finance/adapter/logging/TurnCallLogProperties.java`,
     `ledger-service/src/main/java/bot/finance/adapter/logging/LoggingConfiguration.java`
-- [ ] ST07 · Stub `TurnCallLog.write()` · after: ST06
+- [x] ST07 · Stub `TurnCallLog.write()` · after: ST06
   - writes: `ledger-service/src/main/java/bot/finance/adapter/logging/TurnCallLog.java`
   ```java
   public void write(String operation, Via via, boolean accepted, Object arguments) {
@@ -197,7 +197,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       // outcome, the authenticated caller and message or none, and the arguments as JSON; otherwise nothing
   }
   ```
-- [ ] ST08 · `CreateExpenseProposalMcpTool`, `ListCategoriesMcpTool` and `SummarizeSpendingMcpTool` take
+- [x] ST08 · `CreateExpenseProposalMcpTool`, `ListCategoriesMcpTool` and `SummarizeSpendingMcpTool` take
   `TurnCallLog` in place of their `McpCallLine` logger and write through it with `Via.MCP`, the tool's name, the
   result's outcome and the same arguments; delete `McpCallLine`. Its `arguments(...)` moves to `TurnCallLog` as a
   static method; its caller and message lookups are what `TurnCallLog.write()` owes. `McpAdapterTest` imports
@@ -207,7 +207,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     `ledger-service/src/main/java/bot/finance/adapter/mcp/SummarizeSpendingMcpTool.java`,
     `ledger-service/src/main/java/bot/finance/adapter/mcp/McpCallLine.java`,
     `ledger-service/src/test/java/bot/finance/common/boot/McpAdapterTest.java`
-- [ ] ST09 · Add `LedgerTurnProtoMapper` to `adapter/aiconnector`, with stubs:
+- [x] ST09 · Add `LedgerTurnProtoMapper` to `adapter/aiconnector`, with stubs:
   - writes: `ledger-service/src/main/java/bot/finance/adapter/aiconnector/LedgerTurnProtoMapper.java`
   ```java
   public static CreateExpenseProposalToolRequest toToolRequest(FileExpenseProposalRequest request) {
@@ -226,7 +226,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       return null;
   }
   ```
-- [ ] ST10 · Add `LedgerTurnGrpcService` to `adapter/aiconnector`, a `@GrpcService` extending the generated
+- [x] ST10 · Add `LedgerTurnGrpcService` to `adapter/aiconnector`, a `@GrpcService` extending the generated
   `LedgerTurnServiceGrpc.LedgerTurnServiceImplBase`, taking `CreateExpenseProposalPort`, `SummarizeSpendingPort`,
   `TurnCallLog` and `LoggerFactory`, with stubs · after: ST06, ST09
   - writes: `ledger-service/src/main/java/bot/finance/adapter/aiconnector/LedgerTurnGrpcService.java`
@@ -251,7 +251,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       responseObserver.onCompleted();
   }
   ```
-- [ ] ST11 · Add `TurnOperationsSecurityConfiguration` to `adapter/security`, declaring the server's one
+- [x] ST11 · Add `TurnOperationsSecurityConfiguration` to `adapter/security`, declaring the server's one
   `AuthenticationProcessInterceptor`, built from `GrpcSecurity`. `SecurityConfiguration.validator(...)` becomes
   package-private, so the check reuses the tools' validators · after: ST01
   - writes: `ledger-service/src/main/java/bot/finance/adapter/security/TurnOperationsSecurityConfiguration.java`,
@@ -271,7 +271,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Configuration**
 
-- [ ] ST12 · In `application.yaml`, serve gRPC on `spring.grpc.server.port: ${LEDGER_GRPC_PORT:1006}` (DN06, the
+- [x] ST12 · In `application.yaml`, serve gRPC on `spring.grpc.server.port: ${LEDGER_GRPC_PORT:1006}` (DN06, the
   next free port) and add `turn-call-log.enabled: ${TURN_CALL_LOG_ENABLED:false}` (DN07, off by default). In
   `application-test.yaml`, bind `spring.grpc.server.port: 0`
   - writes: `ledger-service/src/main/resources/application.yaml`,
@@ -279,14 +279,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 **Shared Test Infrastructure**
 
-- [ ] ST14 · Add `TurnOperationCalls` to `common/fixtures`: a blocking `LedgerTurnServiceGrpc` stub dialing
+- [x] ST14 · Add `TurnOperationCalls` to `common/fixtures`: a blocking `LedgerTurnServiceGrpc` stub dialing
   `localhost` on a given port, with or without `authorization: Bearer <token>` metadata, closing its channel after
   the call; and the two request builders, `fileExpense(grouping, category, description, merchant, amount,
   currencyCode)` with a null merchant left unset, and `recordPeriod(from, to)`. Listed in the module's testing
   conventions under `fixtures`
   - writes: `ledger-service/src/test/java/bot/finance/common/fixtures/TurnOperationCalls.java`,
     `ledger-service/docs/conventions/testing.md`
-- [ ] ST15 · Add the composed annotation `TurnOperationsAdapterTest` to `common/boot`: an explicit bean list —
+- [x] ST15 · Add the composed annotation `TurnOperationsAdapterTest` to `common/boot`: an explicit bean list —
   `LedgerTurnGrpcService`, `TurnOperationsSecurityConfiguration`, `TurnCallLog`, `LoggingConfiguration`,
   `TokenSigningKeys`, `AccessTokenMinter`, `Slf4jLoggerFactory` and the properties they bind — with
   autoconfiguration on, the datasource and Redis excluded, `spring.grpc.server.port=0`,
@@ -296,12 +296,12 @@ New-method stubs carry an intent comment starting `stub-intent:`.
   - writes: `ledger-service/src/test/java/bot/finance/common/boot/TurnOperationsAdapterTest.java`,
     `ledger-service/src/test/java/bot/finance/common/boot/TurnOperationsAdapterContextTest.java`,
     `ledger-service/docs/conventions/testing.md`
-- [ ] ST16 · `McpAdapterTest` sets `turn-call-log.enabled=true` · after: ST08
+- [x] ST16 · `McpAdapterTest` sets `turn-call-log.enabled=true` · after: ST08
   - writes: `ledger-service/src/test/java/bot/finance/common/boot/McpAdapterTest.java`
 
 #### Closing item
 
-- [ ] ST17 · `tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.architecture.CleanArchitectureTest"`
+- [x] ST17 · `tools/agent-test/agent-test.sh --module ledger-service --tests "bot.finance.architecture.CleanArchitectureTest"`
   passes, and the existing suite stays green
   - writes: none
 

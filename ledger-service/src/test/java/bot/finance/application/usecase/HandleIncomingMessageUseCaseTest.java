@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.CurrencyTotal;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
@@ -121,8 +122,14 @@ class HandleIncomingMessageUseCaseTest {
     private List<String> stubKnownUserAndGroupings() {
         when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
         List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
-        when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
+        when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(categoryGroupings));
         return categoryGroupings;
+    }
+
+    private static List<CatalogueEntry> catalogueOf(List<String> groupings) {
+        return groupings.stream()
+                .map(grouping -> new CatalogueEntry(grouping, List.of("category")))
+                .toList();
     }
 
     private List<ProposalSummary> twoSummaries() {
@@ -195,7 +202,7 @@ class HandleIncomingMessageUseCaseTest {
 
             useCase.handle(newCommand());
 
-            verify(groupingRepository).findNamesWithCategories(USER_ID);
+            verify(groupingRepository).findCatalogue(USER_ID);
 
             IntentExtractionRequest request = capturedExtractionRequest();
             assertThat(request.text()).isEqualTo(TEXT);
@@ -228,7 +235,7 @@ class HandleIncomingMessageUseCaseTest {
         void whenGroupingNamesIncludeCatchAll_thenRequestCarriesThoseNamesAndThatCatchAll() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", Grouping.catchAllName(), "Auto");
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(categoryGroupings);
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(categoryGroupings));
             when(expenseRepository.findSummariesByMessageReference(eq(USER_ID), any()))
                     .thenReturn(List.of());
 
@@ -244,7 +251,7 @@ class HandleIncomingMessageUseCaseTest {
                 "when the grouping names exclude the catch-all - then CatchAllGroupingMissingException " + "propagates")
         void whenGroupingNamesExcludeCatchAll_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of("Food", "Auto"));
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(catalogueOf(List.of("Food", "Auto")));
 
             assertThatThrownBy(() -> useCase.handle(newCommand()))
                     .isInstanceOf(CatchAllGroupingMissingException.class)
@@ -255,11 +262,10 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when findNamesWithCategories answers an empty list - then CatchAllGroupingMissingException "
-                + "propagates")
+        @DisplayName("when findCatalogue answers an empty list - then CatchAllGroupingMissingException " + "propagates")
         void whenFindNamesWithCategoriesReturnsEmptyList_thenCatchAllGroupingMissingExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenReturn(List.of());
+            when(groupingRepository.findCatalogue(USER_ID)).thenReturn(List.of());
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isInstanceOf(CatchAllGroupingMissingException.class);
 
@@ -396,13 +402,13 @@ class HandleIncomingMessageUseCaseTest {
         }
 
         @Test
-        @DisplayName("when findNamesWithCategories throws PersistenceFailedException - then it propagates and no "
+        @DisplayName("when findCatalogue throws PersistenceFailedException - then it propagates and no "
                 + "further port is called")
         void whenFindNamesWithCategoriesThrowsPersistenceFailedException_thenExceptionPropagates() {
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(USER_ID, EXTERNAL_ID));
             PersistenceFailedException failure =
                     new PersistenceFailedException("lookup failed", new RuntimeException());
-            when(groupingRepository.findNamesWithCategories(USER_ID)).thenThrow(failure);
+            when(groupingRepository.findCatalogue(USER_ID)).thenThrow(failure);
 
             assertThatThrownBy(() -> useCase.handle(newCommand())).isSameAs(failure);
 
@@ -757,7 +763,7 @@ class HandleIncomingMessageUseCaseTest {
             long differentUserId = 42L;
             when(initializeUserPort.initialize(any())).thenReturn(User.stored(differentUserId, EXTERNAL_ID));
             List<String> categoryGroupings = List.of("Food", "Auto", Grouping.catchAllName());
-            when(groupingRepository.findNamesWithCategories(differentUserId)).thenReturn(categoryGroupings);
+            when(groupingRepository.findCatalogue(differentUserId)).thenReturn(catalogueOf(categoryGroupings));
             when(expenseRepository.findSummariesByMessageReference(eq(differentUserId), any()))
                     .thenReturn(List.of());
             SpendingPeriod period = periodOf("2026-07-01", "2026-07-07");
@@ -771,7 +777,7 @@ class HandleIncomingMessageUseCaseTest {
             IncomingMessageId reference = request.incomingMessageId();
             assertThat(request.userId()).isEqualTo(differentUserId);
 
-            verify(groupingRepository).findNamesWithCategories(differentUserId);
+            verify(groupingRepository).findCatalogue(differentUserId);
             verify(expenseRepository).findSummariesByMessageReference(differentUserId, reference);
             verify(spendingQueryRepository).findPeriodsByMessageReference(differentUserId, reference);
             verify(expenseRepository).totalsByCurrency(differentUserId, period);

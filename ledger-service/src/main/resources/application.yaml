@@ -39,6 +39,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
   grpc:
+    server:
+      port: ${LEDGER_GRPC_PORT:1006}
     client:
       channel:
         ai-connector:
@@ -58,6 +60,9 @@ mcp:
     audience: mcp-adapter
     ttl: ${MCP_JWT_TTL:2m}
     clock-skew: ${MCP_JWT_CLOCK_SKEW:60s}
+
+turn-call-log:
+  enabled: ${TURN_CALL_LOG_ENABLED:false}
 
 written-message:
   reader:

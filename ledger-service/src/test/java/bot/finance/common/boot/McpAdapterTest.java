@@ -1,5 +1,7 @@
 package bot.finance.common.boot;
 
+import bot.finance.adapter.logging.LoggingConfiguration;
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.mcp.CreateExpenseProposalMcpTool;
 import bot.finance.adapter.mcp.ListCategoriesMcpTool;
 import bot.finance.adapter.mcp.SummarizeSpendingMcpTool;
@@ -45,9 +47,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @Documented
 @ActiveProfiles("test")
 @TestPropertySource(
-        properties = "spring.autoconfigure.exclude="
-                + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
-                + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration")
+        properties = {
+            "spring.grpc.server.enabled=false",
+            "turn-call-log.enabled=true",
+            "spring.autoconfigure.exclude="
+                    + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+                    + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration"
+        })
 @MockitoBean(
         types = {
             ListCategoriesPort.class,
@@ -68,6 +74,8 @@ public @interface McpAdapterTest {
         SummarizeSpendingMcpTool.class,
         JwksController.class,
         AccessTokenMinter.class,
+        TurnCallLog.class,
+        LoggingConfiguration.class,
     })
     class McpAdapterConfiguration {}
 }

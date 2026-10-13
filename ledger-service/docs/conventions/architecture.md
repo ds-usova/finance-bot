@@ -20,7 +20,7 @@ src/main
 │   └── adapter         # interface adapters
 │       ├── async       # background work dispatched off the request thread, fronting no external system
 │       ├── config      # use-case bean wiring only
-│       ├── logging     # SLF4J-backed Logger/LoggerFactory
+│       ├── logging     # SLF4J-backed Logger/LoggerFactory, and the turn call line
 │       ├── telegram    # everything fronting the Telegram Bot API, inbound and outbound
 │       ├── aiconnector # everything fronting the AI Connector Service
 │       ├── mcp         # the MCP server's tools and their wire types

@@ -1,5 +1,6 @@
 package bot.finance.application.usecase;
 
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.HandleIncomingMessageCommand;
 import bot.finance.application.dto.InitializeUserCommand;
 import bot.finance.application.dto.ProposalSummary;
@@ -76,18 +77,14 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
         User user = initializeUserPort.initialize(new InitializeUserCommand(command.userExternalId()));
         Optional<CurrencyCode> defaultCurrency =
                 extractionTurn.readDefaultCurrency(user.id().orElseThrow());
-        List<String> categoryGroupings =
-                groupingRepository.findNamesWithCategories(user.id().orElseThrow());
+        List<CatalogueEntry> catalogue =
+                groupingRepository.findCatalogue(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
-        String catchAll = extractionTurn.catchAllAmong(categoryGroupings);
+        String catchAll = extractionTurn.catchAllAmong(
+                catalogue.stream().map(CatalogueEntry::grouping).toList());
         boolean extractionFailed = extractionTurn.extractionFailed(extractionTurn.request(
-                command.text(),
-                categoryGroupings,
-                catchAll,
-                defaultCurrency,
-                user.id().orElseThrow(),
-                reference));
+                command.text(), catalogue, catchAll, defaultCurrency, user.id().orElseThrow(), reference));
 
         List<ProposalSummary> proposals =
                 expenseRepository.findSummariesByMessageReference(user.id().orElseThrow(), reference);

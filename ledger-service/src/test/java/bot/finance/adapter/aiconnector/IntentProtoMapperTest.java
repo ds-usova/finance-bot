@@ -4,6 +4,7 @@ import static bot.finance.common.fixtures.IncomingMessages.newIncomingMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.domain.value.CurrencyCode;
 import java.time.LocalDate;
@@ -27,7 +28,10 @@ class IntentProtoMapperTest {
         void whenRequestCarriesTextThreeCategoriesAndDefaultCurrencyEur_thenGeneratedRequestCarriesThemAll() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Transport", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Transport", List.of("Bus")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.of(CurrencyCode.of("EUR")),
                     42L,
@@ -50,7 +54,9 @@ class IntentProtoMapperTest {
         void whenRequestDefaultCurrencyIsEmpty_thenGeneratedRequestReportsHasDefaultCurrencyAsFalse() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     42L,
@@ -67,7 +73,9 @@ class IntentProtoMapperTest {
         void whenRequestCarriesCurrentDate_thenGeneratedRequestCarriesItAsCurrentDate() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
-                    List.of("Groceries", "Other"),
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
                     "Other",
                     Optional.empty(),
                     42L,

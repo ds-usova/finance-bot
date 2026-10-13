@@ -1,5 +1,6 @@
 package bot.finance.adapter.mcp;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.Logger;
@@ -27,18 +28,19 @@ public class SummarizeSpendingMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
-    private final Logger callLog;
+    private final TurnCallLog turnCallLog;
 
     public SummarizeSpendingMcpTool(
             SummarizeSpendingPort summarizeSpendingPort,
             JsonMapper jsonMapper,
             ToolCallMeters toolCallMeters,
+            TurnCallLog turnCallLog,
             LoggerFactory loggerFactory) {
         this.summarizeSpendingPort = summarizeSpendingPort;
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
+        this.turnCallLog = turnCallLog;
         this.log = loggerFactory.getLogger(SummarizeSpendingMcpTool.class);
-        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(
@@ -50,8 +52,11 @@ public class SummarizeSpendingMcpTool {
             @McpToolParam(description = "the first day of the period, inclusive, as YYYY-MM-DD") String from,
             @McpToolParam(description = "the last day of the period, inclusive, as YYYY-MM-DD") String to) {
         CallToolResult result = summarize(from, to);
-        McpCallLine.write(
-                callLog, jsonMapper, "summarize_spending", result, McpCallLine.arguments("from", from, "to", to));
+        turnCallLog.write(
+                "summarize_spending",
+                TurnCallLog.Via.MCP,
+                !Boolean.TRUE.equals(result.isError()),
+                TurnCallLog.arguments("from", from, "to", to));
         return result;
     }
 

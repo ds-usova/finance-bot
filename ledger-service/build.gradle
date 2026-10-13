@@ -102,6 +102,7 @@ dependencies {
     implementation "com.github.pengrad:java-telegram-bot-api:${pengradTelegramBotApiVersion}"
 
     implementation "org.springframework.boot:spring-boot-starter-grpc-client"
+    implementation "org.springframework.boot:spring-boot-starter-grpc-server"
     implementation "io.grpc:grpc-services"
 
     testImplementation "io.grpc:grpc-testing"
