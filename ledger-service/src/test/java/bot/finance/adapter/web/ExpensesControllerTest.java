@@ -15,7 +15,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
 import bot.finance.application.dto.ChangeExpenseCategoryCommand;
+import bot.finance.application.dto.DiscardExpensesCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
+import bot.finance.application.dto.ExpenseDiscard;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.application.port.AcceptExpensesPort;
@@ -61,6 +63,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 /**
  * Integration test for the inbound HTTP adapter. Enters through the protocol - MockMvc requests against
@@ -77,6 +80,7 @@ class ExpensesControllerTest {
 
     private static final String PATH = "/api/v1/expenses";
     private static final String ACCEPT_PATH = "/api/v1/expenses/acceptances";
+    private static final String DISCARD_PATH = "/api/v1/expenses/discards";
     private static final String CHANGE_CATEGORY_PATH = "/api/v1/expenses/{id}";
     private static final long USER_ID = 778899001L;
     private static final String VALID_DOCUMENT = """
@@ -189,6 +193,31 @@ class ExpensesControllerTest {
 
             JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
             assertThat(json.getInt("accepted")).isEqualTo(2);
+            assertThat(json.getInt("missing")).isZero();
+        }
+
+        @Test
+        @DisplayName("when the request discards two ids - then the port is called with the caller's ids in the "
+                + "order posted, and the response is 200")
+        void whenTheRequestDiscardsTwoIds_thenPortIsCalledWithCallerAndIdsAndResponseIs200() throws Exception {
+            when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(2, 0));
+
+            MvcResult result = mockMvc.perform(post(DISCARD_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[7,5]}"""))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArgumentCaptor<DiscardExpensesCommand> command = ArgumentCaptor.forClass(DiscardExpensesCommand.class);
+            verify(discardExpensesPort).discard(command.capture());
+            assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(USER_ID));
+            assertThat(command.getValue().ids().ids()).containsExactly(7L, 5L);
+
+            JsonPath json = JsonPath.from(result.getResponse().getContentAsString());
+            assertThat(json.getInt("discarded")).isEqualTo(2);
             assertThat(json.getInt("missing")).isZero();
         }
 
@@ -497,6 +526,84 @@ class ExpensesControllerTest {
             assertThat(messageOf(result)).isEqualTo("the request body could not be read");
             verify(changeExpenseCategoryPort, never()).change(any());
         }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#idsBoundViolations")
+        @DisplayName("when the discard's ids break their own bound - then the response is 400 naming ids, and "
+                + "the port is never called")
+        void whenDiscardIdsBreakTheirOwnBound_thenResponseIs400NamingIdsAndPortNeverCalled(
+                String description, String body) throws Exception {
+            MvcResult result =
+                    postDiscard(body).andExpect(status().isBadRequest()).andReturn();
+
+            assertThat(messageOf(result)).containsIgnoringCase("ids");
+            verify(discardExpensesPort, never()).discard(any());
+        }
+
+        @Test
+        @DisplayName("when the discard's ids hold a null id - then the response is 400 naming the id, and the "
+                + "port is never called")
+        void whenDiscardIdsHoldANullId_thenResponseIs400NamingTheIdAndPortNeverCalled() throws Exception {
+            MvcResult result = postDiscard("""
+                            {"ids":[5,null]}""")
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(messageOf(result)).containsIgnoringCase("id");
+            verify(discardExpensesPort, never()).discard(any());
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#idsUnreadableBodies")
+        @DisplayName(
+                "when the discard's body cannot be read - then the response is 400, and the port is never " + "called")
+        void whenTheDiscardBodyCannotBeRead_thenResponseIs400AndPortNeverCalled(String description, String body)
+                throws Exception {
+            MvcResult result =
+                    postDiscard(body).andExpect(status().isBadRequest()).andReturn();
+
+            assertThat(messageOf(result)).isEqualTo("the request body could not be read");
+            verify(discardExpensesPort, never()).discard(any());
+        }
+
+        @Test
+        @DisplayName("when the discard carries 100 distinct ids - then they are accepted and reach the port")
+        void whenTheDiscardCarriesOneHundredDistinctIds_thenTheyAreAcceptedAndReachThePort() throws Exception {
+            when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(100, 0));
+            String body = IntStream.rangeClosed(1, ProposalIds.MAX_IDS)
+                    .mapToObj(String::valueOf)
+                    .collect(Collectors.joining(",", "{\"ids\":[", "]}"));
+
+            postDiscard(body).andExpect(status().isOk());
+
+            ArgumentCaptor<DiscardExpensesCommand> command = ArgumentCaptor.forClass(DiscardExpensesCommand.class);
+            verify(discardExpensesPort).discard(command.capture());
+            assertThat(command.getValue().ids().ids()).hasSize(ProposalIds.MAX_IDS);
+        }
+
+        // Unobserved: expected from the generated binding and Jackson's default float-to-integer coercion, which
+        // truncates 1.5 to 1 rather than refusing it. Check at verification.
+        @Test
+        @DisplayName("when the discard carries a fractional id - then it binds as observed, truncated to 1, and "
+                + "reaches the port")
+        void whenTheDiscardCarriesAFractionalId_thenItBindsTruncatedAndReachesThePort() throws Exception {
+            when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(1, 0));
+
+            postDiscard("""
+                    {"ids":[1.5]}""").andExpect(status().isOk());
+
+            ArgumentCaptor<DiscardExpensesCommand> command = ArgumentCaptor.forClass(DiscardExpensesCommand.class);
+            verify(discardExpensesPort).discard(command.capture());
+            assertThat(command.getValue().ids().ids()).containsExactly(1L);
+        }
+
+        private ResultActions postDiscard(String body) throws Exception {
+            return mockMvc.perform(post(DISCARD_PATH)
+                    .with(csrf())
+                    .cookie(sessionCookie())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body));
+        }
     }
 
     @Nested
@@ -609,6 +716,69 @@ class ExpensesControllerTest {
 
             String message = messageOf(result);
             assertThat(message).doesNotContainIgnoringCase("table").doesNotContainIgnoringCase("statement");
+        }
+
+        @Test
+        @DisplayName("when the discard port throws PersistenceFailedException - then the response is 503 and its "
+                + "message names no table or statement")
+        void whenDiscardPortThrowsPersistenceFailedException_thenResponseIs503NamingNoTableOrStatement()
+                throws Exception {
+            when(discardExpensesPort.discard(any()))
+                    .thenThrow(new PersistenceFailedException("the discard statement failed", new RuntimeException()));
+
+            MvcResult result = mockMvc.perform(post(DISCARD_PATH)
+                            .with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isServiceUnavailable())
+                    .andReturn();
+
+            String message = messageOf(result);
+            assertThat(message).doesNotContainIgnoringCase("table").doesNotContainIgnoringCase("statement");
+        }
+
+        @Test
+        @DisplayName("when a discard is posted without a session cookie - then 401 and the port is never called")
+        void whenDiscardIsPostedWithoutSessionCookie_thenUnauthorizedAndPortNeverCalled() throws Exception {
+            mockMvc.perform(post(DISCARD_PATH)
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isUnauthorized());
+
+            verify(discardExpensesPort, never()).discard(any());
+        }
+
+        @Test
+        @DisplayName("when a discard is posted with a session cookie this service did not sign - then 401 and "
+                + "the port is never called")
+        void whenDiscardIsPostedWithUnsignedSessionCookie_thenUnauthorizedAndPortNeverCalled() throws Exception {
+            mockMvc.perform(post(DISCARD_PATH)
+                            .with(csrf())
+                            .cookie(new Cookie(BrowserSessions.COOKIE_NAME, "not.a.token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isUnauthorized());
+
+            verify(discardExpensesPort, never()).discard(any());
+        }
+
+        @Test
+        @DisplayName("when a discard is posted with a session and no CSRF token - then 403 and the port is never "
+                + "called")
+        void whenDiscardIsPostedWithoutCsrfToken_thenForbiddenAndPortNeverCalled() throws Exception {
+            mockMvc.perform(post(DISCARD_PATH)
+                            .cookie(sessionCookie())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ids":[5,7]}"""))
+                    .andExpect(status().isForbidden());
+
+            verify(discardExpensesPort, never()).discard(any());
         }
     }
 

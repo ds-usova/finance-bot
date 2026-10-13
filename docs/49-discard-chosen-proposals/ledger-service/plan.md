@@ -144,7 +144,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `DiscardExpensesUseCase` · test: `DiscardExpensesUseCaseTest` · covers: `discard()` · scenarios: AC01, AC03, AC09, AC10, AC11
+- [x] RU01 · `DiscardExpensesUseCase` · test: `DiscardExpensesUseCaseTest` · covers: `discard()` · scenarios: AC01, AC03, AC09, AC10, AC11
   - `discard()`:
     - given: a stored user, a fixed clock, and the repository answering message A and message B for two posted
       ids
@@ -169,7 +169,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `discardByIds()` · scenarios: AC01, AC03, AC04, AC05
+- [x] RI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest` · covers: `discardByIds()` · scenarios: AC01, AC03, AC04, AC05
   - `discardByIds()`:
     - given: three `PENDING` entries of the caller's, two under message M and one under another message, a
       `RECORDED` entry of the caller's, and another person's `PENDING` entry
@@ -183,7 +183,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
     - given: an entity repository throwing `QueryTimeoutException`, in the `WithAMockedStore` class
       when: discardByIds() is called
       then: `PersistenceFailedException` is thrown carrying it as the cause
-- [ ] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterEventsTest` · covers: `discardByIds()` · scenarios: AC02, AC03, AC05
+- [x] RI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterEventsTest` · covers: `discardByIds()` · scenarios: AC02, AC03, AC05
   - `discardByIds()`:
     - given: two `PENDING` entries of the caller's on different messages, a third left out of the ids, and another
       person's `PENDING` entry
@@ -193,7 +193,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
     - given: two `PENDING` entries of the caller's
       when: they are discarded by id, and then again with the same ids
       then: exactly one `ProposalDiscarded` fact names each entry
-- [ ] RI03 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/discards` · mocks: `DiscardExpensesPort` · scenarios: AC01, AC06, AC07, AC08, AC10
+- [x] RI03 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/discards` · mocks: `DiscardExpensesPort` · scenarios: AC01, AC06, AC07, AC08, AC10
   - Happy Path:
     - given: the port answering `discarded` 2 and `missing` 0
       when: two ids are posted with a session and a CSRF token
@@ -217,7 +217,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `DiscardExpensesSystemTest` · covers: `POST /api/v1/expenses/discards` · scenarios: AC01, AC09, AC11
+- [x] RS01 · `DiscardExpensesSystemTest` · covers: `POST /api/v1/expenses/discards` · scenarios: AC01, AC09, AC11
   - Happy Path:
     - given: a person signed in, two `PENDING` entries under one message whose report location is stored for the
       `DISCARD_EXPENSES` conversation, and a third `PENDING` entry under another message

@@ -35,6 +35,19 @@
   - Resolution: mechanical
   - Action: applied — cut to the two test cases that hold AC12 and AC13.
 
+## Run Log
+
+- **RL01 (RI03):** expected passes against the stub, each refused before the controller runs, so the port is
+  never reached: `ExpensesControllerTest$Validation.whenDiscardIdsBreakTheirOwnBound_thenResponseIs400NamingIdsAndPortNeverCalled`
+  for absent, `null`, empty, 101 ids, `0` and `-1` (the generated contract's bean validation);
+  `whenTheDiscardBodyCannotBeRead_thenResponseIs400AndPortNeverCalled` for `"abc"` and a non-JSON body (Jackson);
+  `ExpensesControllerTest$ErrorMapping.whenDiscardIsPostedWithoutSessionCookie_thenUnauthorizedAndPortNeverCalled`,
+  `whenDiscardIsPostedWithUnsignedSessionCookie_thenUnauthorizedAndPortNeverCalled` and
+  `whenDiscardIsPostedWithoutCsrfToken_thenForbiddenAndPortNeverCalled` (the web-session chain ST07 configured).
+- **RL02 (RI03):** hypothesis: `{"ids":[1.5]}` binds as `1` and reaches the port with 200, as
+  `whenTheDiscardCarriesAFractionalId_thenItBindsTruncatedAndReachesThePort` asserts — settled by that test's
+  run once the controller is implemented.
+
 ## Suite Runs
 
 - baseline · tree c468bb6ce1f6d8b3b0539a0e2f0eb31f6ad048b0 · total 1335 · skipped 0 · green · paths: ledger-service

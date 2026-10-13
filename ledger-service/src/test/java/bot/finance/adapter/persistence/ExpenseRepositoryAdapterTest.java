@@ -713,6 +713,87 @@ class ExpenseRepositoryAdapterTest {
     }
 
     @Nested
+    @DisplayName("discarding entries by id")
+    class DiscardByIds {
+
+        @Test
+        @DisplayName(
+                "when ids also name a RECORDED and another person's entry - then only the caller's PENDING ones are removed")
+        void whenIdsNameTwoPendingOfOneMessageARecordedAndAnotherPersons_thenOnlyTheTwoAreRemoved() {
+            long userId = storedUserId("discard-by-ids-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant createdAt = Instant.now().minusSeconds(60);
+            ExpenseEntity first = pendingEntry(userId, categoryId, "First", reference.value(), createdAt);
+            ExpenseEntity second = pendingEntry(userId, categoryId, "Second", reference.value(), createdAt);
+            ExpenseEntity third = pendingEntry(
+                    userId,
+                    categoryId,
+                    "Third",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    createdAt);
+            ExpenseEntity recorded = storedExpense(userId, categoryId, "Recorded", 400, "USD", null);
+            long otherUserId = storedUserId("discard-by-ids-other-user");
+            ExpenseEntity others = pendingEntry(
+                    otherUserId,
+                    leafCategoryId(otherUserId, "Dining"),
+                    "Other's",
+                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
+                    createdAt);
+
+            List<IncomingMessageId> answer = adapter.discardByIds(
+                    userId,
+                    ProposalIds.of(List.of(first.id(), second.id(), recorded.id(), others.id())),
+                    Instant.now());
+
+            assertThat(answer).containsExactlyInAnyOrder(reference, reference);
+            assertThat(expenseRowsFor(userId, ExpenseStatus.PENDING))
+                    .extracting(ExpenseEntity::id)
+                    .containsExactly(third.id());
+            assertThat(expenseRowsFor(userId, ExpenseStatus.RECORDED))
+                    .extracting(ExpenseEntity::id)
+                    .containsExactly(recorded.id());
+            assertThat(expenseRowsFor(otherUserId, ExpenseStatus.PENDING))
+                    .extracting(ExpenseEntity::id)
+                    .containsExactly(others.id());
+        }
+
+        @Test
+        @DisplayName(
+                "when the same ids are discarded twice - then the first call answers the message twice, the second none")
+        void whenSameIdsDiscardedTwice_thenFirstAnswersMessageTwiceAndSecondNone() {
+            long userId = storedUserId("discard-by-ids-twice-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            IncomingMessageId reference = IncomingMessageId.of(UUID.randomUUID().toString());
+            Instant createdAt = Instant.now().minusSeconds(60);
+            ExpenseEntity first = pendingEntry(userId, categoryId, "First", reference.value(), createdAt);
+            ExpenseEntity second = pendingEntry(userId, categoryId, "Second", reference.value(), createdAt);
+            ProposalIds ids = ProposalIds.of(List.of(first.id(), second.id()));
+
+            List<IncomingMessageId> firstAnswer = adapter.discardByIds(userId, ids, Instant.now());
+            List<IncomingMessageId> secondAnswer = adapter.discardByIds(userId, ids, Instant.now());
+
+            assertThat(firstAnswer).containsExactlyInAnyOrder(reference, reference);
+            assertThat(secondAnswer).isEmpty();
+        }
+
+        private ExpenseEntity pendingEntry(
+                long userId, long categoryId, String description, String reference, Instant createdAt) {
+            return ExpenseRowUtils.storedExpense(
+                    jdbcAggregateTemplate,
+                    userId,
+                    categoryId,
+                    description,
+                    null,
+                    100,
+                    "USD",
+                    reference,
+                    createdAt,
+                    ExpenseStatus.PENDING);
+        }
+    }
+
+    @Nested
     @DisplayName("finding which messages still hold a pending entry")
     class FindWithPendingProposals {
 
@@ -1528,6 +1609,18 @@ class ExpenseRepositoryAdapterTest {
             when(mockedExpenseEntityRepository.acceptByIds(any(), any(), any())).thenThrow(frameworkException);
 
             assertThatThrownBy(() -> mockedAdapter.acceptByIds(1L, ProposalIds.of(List.of(1L)), Instant.now()))
+                    .isInstanceOf(PersistenceFailedException.class)
+                    .extracting(Throwable::getCause)
+                    .isEqualTo(frameworkException);
+        }
+
+        @Test
+        @DisplayName("when discardByIds() hits a database failure - then throws PersistenceFailedException wrapping it")
+        void whenDiscardByIdsHitsDatabaseFailure_thenThrowsPersistenceFailedExceptionWrappingIt() {
+            QueryTimeoutException frameworkException = new QueryTimeoutException("statement timed out");
+            when(mockedExpenseEntityRepository.discardByIds(any(), any())).thenThrow(frameworkException);
+
+            assertThatThrownBy(() -> mockedAdapter.discardByIds(1L, ProposalIds.of(List.of(1L)), Instant.now()))
                     .isInstanceOf(PersistenceFailedException.class)
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);

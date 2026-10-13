@@ -2,7 +2,9 @@ package bot.finance.adapter.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bot.finance.adapter.logging.Slf4jLoggerFactory;
@@ -314,6 +316,84 @@ class ExpenseRepositoryAdapterEventsTest {
     }
 
     @Nested
+    @DisplayName("discardByIds()")
+    class DiscardByIds {
+
+        @Test
+        @DisplayName("when two entries on different messages are discarded by id - then each gets a ProposalDiscarded "
+                + "fact as it was")
+        void whenTwoEntriesOnDifferentMessagesDiscardedById_thenEachGetsProposalDiscardedFactAsItWas() {
+            long userId = storedUserId("events-discard-by-ids-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            ExpenseEntity first = storedPending(
+                    userId,
+                    categoryId,
+                    "First",
+                    100,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            ExpenseEntity second = storedPending(
+                    userId,
+                    categoryId,
+                    "Second",
+                    200,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            ExpenseEntity leftOut = storedPending(
+                    userId,
+                    categoryId,
+                    "Left out",
+                    300,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            long otherUserId = storedUserId("events-discard-by-ids-other-user");
+            ExpenseEntity others = storedPending(
+                    otherUserId,
+                    leafCategoryId(otherUserId, "Dining"),
+                    "Other's entry",
+                    400,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            Instant discardedAt = Instant.now().minusSeconds(5).truncatedTo(ChronoUnit.MICROS);
+
+            adapter.discardByIds(userId, ProposalIds.of(List.of(first.id(), second.id(), others.id())), discardedAt);
+
+            Appended appended = appended();
+            assertThat(appended.type()).isEqualTo(LedgerEventType.ProposalDiscarded);
+            assertThat(appended.occurredAt()).isEqualTo(discardedAt);
+            assertThat(appended.rows())
+                    .allSatisfy(row -> assertThat(row.status()).isEqualTo(ExpenseStatus.PENDING.name()))
+                    .extracting(SpendingRowProjection::id)
+                    .containsExactlyInAnyOrder(first.id(), second.id())
+                    .doesNotContain(leftOut.id(), others.id());
+        }
+
+        @Test
+        @DisplayName("when the same ids are discarded twice - then exactly one ProposalDiscarded fact names each entry")
+        void whenSameIdsDiscardedTwice_thenExactlyOneProposalDiscardedFactNamesEachEntry() {
+            long userId = storedUserId("events-discard-by-ids-twice-user");
+            long categoryId = leafCategoryId(userId, "Groceries");
+            ExpenseEntity first = storedPending(
+                    userId,
+                    categoryId,
+                    "First",
+                    100,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            ExpenseEntity second = storedPending(
+                    userId,
+                    categoryId,
+                    "Second",
+                    200,
+                    IncomingMessageId.of(UUID.randomUUID().toString()));
+            ProposalIds ids = ProposalIds.of(List.of(first.id(), second.id()));
+
+            adapter.discardByIds(userId, ids, Instant.now());
+            adapter.discardByIds(userId, ids, Instant.now());
+
+            ArgumentCaptor<List<SpendingRowProjection>> rows = rowsCaptor();
+            verify(ledgerEventOutbox, times(2)).append(eq(LedgerEventType.ProposalDiscarded), rows.capture(), any());
+            assertThat(rows.getAllValues().stream().flatMap(List::stream).map(SpendingRowProjection::id))
+                    .containsExactlyInAnyOrder(first.id(), second.id());
+        }
+    }
+
+    @Nested
     @DisplayName("refile()")
     class Refile {
 
@@ -394,6 +474,11 @@ class ExpenseRepositoryAdapterEventsTest {
         ArgumentCaptor<Instant> occurredAt = ArgumentCaptor.forClass(Instant.class);
         verify(ledgerEventOutbox).append(type.capture(), rows.capture(), occurredAt.capture());
         return new Appended(type.getValue(), rows.getValue(), occurredAt.getValue());
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<List<SpendingRowProjection>> rowsCaptor() {
+        return ArgumentCaptor.forClass(List.class);
     }
 
     /**
