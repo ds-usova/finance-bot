@@ -27,15 +27,16 @@ The path, the document and each refusal are fixed by [the specification](../../.
 
 ## Outcomes
 
-| Outcome           | When                                                      | Result                                                                    |
-|-------------------|-------------------------------------------------------------|------------------------------------------------------------------------------|
-| Entry refiled     | the id names an entry of theirs, and the category is theirs | its category changes, and the change is logged                           |
-| Same category     | the category named is the one the entry already carries     | answered the same way; only the last-updated instant moves               |
-| Entry not found   | no entry of theirs carries that id                           | the request is refused, naming the entry — nothing is refiled            |
-| Category refused  | the category id names no category of theirs                 | the request is refused, naming the category id — the entry is never read |
-| Request rejected  | the request is absent                                        | the request is refused — nothing is looked up                            |
-| Identity unknown  | nothing is stored under the caller's identity                | the request is rejected and nothing is refiled                           |
-| Storage failed    | admitting the category, or the refile itself, fails          | the failure reaches the caller, and nothing is refiled                   |
+| Outcome          | When                                                         | Result                                                                   |
+|------------------|--------------------------------------------------------------|--------------------------------------------------------------------------|
+| Entry refiled    | the id names an entry of theirs, and the category is theirs  | its category changes, and the change is logged                           |
+| Same category    | the category named is the one the entry already carries      | answered the same way; only the last-updated instant moves               |
+| Entry not found  | no entry of theirs carries that id                           | the request is refused, naming the entry — nothing is refiled            |
+| Category refused | the category id names no category of theirs                  | the request is refused, naming the category id — the entry is never read |
+| Body rejected    | the document is not JSON, or the value is not a whole number | the request is refused as unreadable — nothing is refiled                |
+| Request rejected | the request is absent                                        | the request is refused — nothing is looked up                            |
+| Identity unknown | nothing is stored under the caller's identity                | the request is rejected and nothing is refiled                           |
+| Storage failed   | admitting the category, or the refile itself, fails          | the failure reaches the caller, and nothing is refiled                   |
 
 ## Components
 

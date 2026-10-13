@@ -1,7 +1,9 @@
 BadRequest:
   description: >-
-    A parameter is outside its bounds, of the wrong type, or contradicts another. The message names the parameter
-    at fault and the bound it broke. Nothing is read: a request refused here fetches no row.
+    A parameter is outside its bounds, of the wrong type, or contradicts another, or the body cannot be read. The
+    message names the parameter at fault and the bound it broke; for a body that is not JSON, or a value of the
+    wrong type within it, it says only that the body could not be read. Nothing is read: a request refused here
+    fetches no row.
   content:
     application/json:
       schema:
