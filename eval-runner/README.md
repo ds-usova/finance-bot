@@ -17,9 +17,12 @@ eval-runner/eval.sh compare build/eval/before.json build/eval/after.json
   publishing both management ports on `127.0.0.1`;
 - captures the ledger's console to `build/eval/ledger.log`;
 - waits for both services' health endpoints, up to `EVAL_STACK_TIMEOUT_SECONDS` (default `300`);
-- runs the runner with the variables below set from `.env`.
+- runs the runner with the variables below set from `.env`;
+- saves everything it prints to `build/eval/eval.log`;
+- stops the services afterwards, unless they were already running or `--keep-stack` is given.
 
-`compare` starts nothing. The stack is left running.
+`compare` starts nothing. Run the script from an open Git Bash prompt: a window opened by double-clicking it closes
+when it exits.
 
 | Argument            | Default                          | Meaning                                                 |
 |---------------------|----------------------------------|---------------------------------------------------------|

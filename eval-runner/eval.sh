@@ -2,7 +2,8 @@
 #
 # Runs the evaluation end to end: builds and starts the services it needs, captures the ledger's console for the
 # mcp_call lines, waits for both services to report healthy, and runs the evaluation runner with every setting it
-# needs read from infrastructure/.env. The stack is left running afterwards.
+# needs read from infrastructure/.env. Everything printed is also saved to build/eval/eval.log. The services are
+# stopped afterwards unless they were already running or --keep-stack is given.
 #
 # See eval-runner/README.md.
 
@@ -11,15 +12,19 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  eval-runner/eval.sh [runner arguments]        start the stack, then run the corpus
-  eval-runner/eval.sh compare <before> <after>  compare two runs; starts nothing
+  eval-runner/eval.sh [--keep-stack] [runner arguments]  start the stack, then run the corpus
+  eval-runner/eval.sh compare <before> <after>           compare two runs; starts nothing
 
 Runner arguments are passed through: --label, --repetitions, --cases, --budget-enforced, --corpus, --out.
+--keep-stack leaves the services running after the run.
 EOF
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+
+mkdir -p build/eval
+exec > >(tee build/eval/eval.log) 2>&1
 
 run_runner() {
     eval-runner/gradlew -p eval-runner --quiet run "--args=$*"
@@ -29,6 +34,16 @@ case "${1:-}" in
     -h | --help) usage; exit 0 ;;
     compare) run_runner "$@"; exit 0 ;;
 esac
+
+keep_stack=0
+runner_args=()
+for arg in "$@"; do
+    if [[ "$arg" == --keep-stack ]]; then
+        keep_stack=1
+    else
+        runner_args+=("$arg")
+    fi
+done
 
 env_file=infrastructure/.env
 if [[ ! -f "$env_file" ]]; then
@@ -42,16 +57,37 @@ set +a
 
 compose=(docker compose --env-file "$env_file"
     -f infrastructure/docker-compose.yaml -f eval-runner/compose.eval.yaml)
+services=(finance-postgres redis ledger-service ai-connector-service)
 health_timeout="${EVAL_STACK_TIMEOUT_SECONDS:-300}"
 
-printf 'starting the stack\n'
-"${compose[@]}" up --detach --build finance-postgres redis ledger-service ai-connector-service
+if [[ -n "$("${compose[@]}" ps --status running --quiet ledger-service)" ]]; then
+    keep_stack=1
+fi
 
-mkdir -p build/eval
+log_pid=""
+finish() {
+    local status=$?
+    if [[ -n "$log_pid" ]]; then
+        kill "$log_pid" 2> /dev/null || true
+    fi
+    if ((keep_stack == 0)); then
+        printf 'stopping the stack\n'
+        "${compose[@]}" stop "${services[@]}" || true
+    fi
+    if ((status == 0)); then
+        printf 'done; the run is in build/eval/, this console in build/eval/eval.log\n'
+    else
+        printf 'failed with exit code %s; this console is in build/eval/eval.log\n' "$status"
+    fi
+}
+trap finish EXIT
+
+printf 'starting the stack\n'
+"${compose[@]}" up --detach --build "${services[@]}"
+
 ledger_log=build/eval/ledger.log
 docker logs --follow --since "$(date -u +%Y-%m-%dT%H:%M:%SZ)" finance-bot-ledger-service > "$ledger_log" 2>&1 &
 log_pid=$!
-trap 'kill "$log_pid" 2> /dev/null || true' EXIT
 
 await_healthy() {
     local name="$1" url="$2" deadline=$((SECONDS + health_timeout))
@@ -73,4 +109,4 @@ export EVAL_AI_DB_USER="$FINANCE_BOT_AI_DB_USER"
 export EVAL_AI_DB_PASSWORD="$FINANCE_BOT_AI_DB_PASSWORD"
 export EVAL_LEDGER_LOG="$ledger_log"
 
-run_runner "$@"
+run_runner "${runner_args[@]}"
