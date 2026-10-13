@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB06 · BR00 · BT07 · BP00
+**Last ids:** BB06 · BR00 · BT10 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -117,3 +117,35 @@ never changes once given.
 - **Why** `acceptByIds` and `discardByIds` catch only inside their `@Transactional` body, and
   `WebExceptionHandler` maps no transaction exception, so such a failure reaches `onUnexpected` and answers 500;
   deferred by the design as DF07
+
+### BT08 · `ai-connector-service` — the tool-calling turn answers `list_categories` from the request's catalogue
+
+- **Kind** deferred change · **Priority** normal · **Size** M
+- **Raised by** task 51, 2026-10-13 · [origin](51-the-ledger-takes-a-turns-writes-over-http/design-log.md)
+- **What** once the extraction request carries the whole catalogue, the connector answers the model's
+  `list_categories` call itself instead of calling the ledger. The model still asks one grouping at a time, and the
+  catalogue never enters its prompt. The evaluation case expecting a ledger-side `list_categories` call changes
+  with it
+- **Why** one network round trip per grouping asked about, for an answer the request already holds (task 51, DN01)
+
+### BT09 · `eval-runner` — measure a classifier turn
+
+- **Kind** deferred change · **Priority** normal · **Size** M
+- **Raised by** task 52, 2026-10-13 · [origin](52-the-connector-files-with-a-classifier/design-log.md)
+- **What** the runner and its cases measure a turn run with `EXTRACTION_MODE` at `classifier`: a case's expected
+  calls hold for a turn that never asks for one grouping's categories, and a run records which mode it ran
+- **Why** a classifier turn makes no `list_categories` call, which a case expects (task 52, DN04)
+
+### BT10 · `ledger-service`, `ai-connector-service` — the turn becomes asynchronous
+
+- **Kind** deferred change · **Priority** normal · **Size** L
+- **Raised by** task 52, 2026-10-13 · [origin](52-the-connector-files-with-a-classifier/design-log.md)
+- **What** the connector accepts a turn and answers at once; it tells the ledger the turn is done through an
+  operation the ledger serves, and the ledger builds the report then. A turn the connector never finishes is
+  settled by a sweep. Both modes change with it. The sweep retries a turn that failed as unavailable, so a
+  filing becomes idempotent by message and the expense's position in it, and a retried turn never files an
+  expense twice
+- **Why** the ledger holds the call open for the whole turn, near five seconds on average (task 52, DN05). A
+  turn that fails as unavailable is never retried today: the user gets a failed or partial report, or none when
+  the store is down, and must resend, which files a partial turn's expenses again
+  (`ledger-service/docs/contracts/out/ai-connector.md`)
