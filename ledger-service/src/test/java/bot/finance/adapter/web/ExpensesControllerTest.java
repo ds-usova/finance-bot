@@ -64,6 +64,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
  * Integration test for the inbound HTTP adapter. Enters through the protocol - MockMvc requests against
@@ -576,19 +577,23 @@ class ExpensesControllerTest {
             assertThat(command.getValue().ids().ids()).hasSize(ProposalIds.MAX_IDS);
         }
 
-        // Jackson's default float-to-integer coercion truncates 1.5 to 1 rather than refusing it.
-        @Test
-        @DisplayName("when the discard carries a fractional id - then it binds as observed, truncated to 1, and "
-                + "reaches the port")
-        void whenTheDiscardCarriesAFractionalId_thenItBindsTruncatedAndReachesThePort() throws Exception {
-            when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(1, 0));
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#fractionalIntegerBodies")
+        @DisplayName("when an integer field carries a fractional number - then the response is 400 and no port is "
+                + "called")
+        void whenAnIntegerFieldCarriesAFractionalNumber_thenResponseIs400AndNoPortIsCalled(
+                String description, MockHttpServletRequestBuilder request, MediaType contentType, String body)
+                throws Exception {
+            MvcResult result = mockMvc.perform(request.with(csrf())
+                            .cookie(sessionCookie())
+                            .contentType(contentType)
+                            .content(body))
+                    .andReturn();
 
-            postDiscard("""
-                    {"ids":[1.5]}""").andExpect(status().isOk());
-
-            ArgumentCaptor<DiscardExpensesCommand> command = ArgumentCaptor.forClass(DiscardExpensesCommand.class);
-            verify(discardExpensesPort).discard(command.capture());
-            assertThat(command.getValue().ids().ids()).containsExactly(1L);
+            verify(acceptExpensesPort, never()).accept(any());
+            verify(discardExpensesPort, never()).discard(any());
+            verify(changeExpenseCategoryPort, never()).change(any());
+            assertThat(result.getResponse().getStatus()).isEqualTo(400);
         }
     }
 
@@ -785,6 +790,16 @@ class ExpensesControllerTest {
                 arguments("a value that is not a number", """
                         {"ids":[1,"abc"]}"""),
                 arguments("a body that is not JSON at all", "not json at all"));
+    }
+
+    static Stream<Arguments> fractionalIntegerBodies() {
+        return Stream.of(
+                arguments("an acceptance's id", post(ACCEPT_PATH), MediaType.APPLICATION_JSON, """
+                        {"ids":[1.5]}"""),
+                arguments("a discard's id", post(DISCARD_PATH), MediaType.APPLICATION_JSON, """
+                        {"ids":[1.5]}"""),
+                arguments("a category change's value", patch(CHANGE_CATEGORY_PATH, "7"), JSON_PATCH, """
+                        [{"op":"replace","path":"/categoryId","value":42.5}]"""));
     }
 
     private static String tooManyIds() {
