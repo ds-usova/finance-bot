@@ -250,7 +250,7 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
 
 #### Manual Request Files
 
-- [ ] PI01 · Add `ledger-service/docs/requests/expenses/discard-expenses.http`, shaped as `accept-expenses.http` is
+- [x] PI01 · Add `ledger-service/docs/requests/expenses/discard-expenses.http`, shaped as `accept-expenses.http` is
   - writes: `ledger-service/docs/requests/expenses/discard-expenses.http`
 
 ## Open Questions

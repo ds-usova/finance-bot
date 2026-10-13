@@ -64,6 +64,7 @@
 
 - green · tree 64c024eeb44402c748592d998ce5bbf9526021e9 · total 1365 · skipped 0 · green · paths: ledger-service
 - refactor · tree f196c6e8bcddb02f5fe0bb393ce310f086af1acc · total 1365 · skipped 0 · green · paths: ledger-service
+- wrap-up · tree ced94feee7e2568363817579e18d7338083d6014 · total 1365 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`
