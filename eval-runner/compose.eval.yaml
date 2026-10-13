@@ -1,0 +1,9 @@
+# Layered over infrastructure/docker-compose.yaml by eval.sh: the runner scrapes both management ports, which the
+# base stack keeps off the host.
+services:
+  ledger-service:
+    ports:
+      - "127.0.0.1:1010:1010"
+  ai-connector-service:
+    ports:
+      - "127.0.0.1:1011:1011"

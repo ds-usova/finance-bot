@@ -24,6 +24,7 @@ public final class EvalRunner {
             CompareCommand.run(Path.of(args[1]), Path.of(args[2]));
             return;
         }
+
         RunnerConfig config = RunnerConfig.from(args, System.getenv());
         LOG.info("summary: {}", RunOutput.json(Wiring.corpusRun(config).run()));
     }

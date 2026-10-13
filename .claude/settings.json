@@ -16,6 +16,7 @@
       "Bash(tools/repad-tables/repad-tables.sh:*)",
       "Bash(./tools/repad-tables/repad-tables.sh:*)",
       "Bash(bash tools/repad-tables/repad-tables.sh:*)",
+      "Bash(eval-runner/eval.sh:*)",
       "Bash(./gradlew:*)",
       "Bash(ledger-service/gradlew:*)",
       "Bash(ai-connector-service/gradlew:*)",
