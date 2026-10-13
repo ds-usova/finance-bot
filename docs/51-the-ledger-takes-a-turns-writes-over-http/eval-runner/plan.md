@@ -70,7 +70,7 @@ No architectural placement decisions.
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `TurnCallLog` · test: `TurnCallLogTest`
+- [x] GU01 · `TurnCallLog` · test: `TurnCallLogTest`
 
 ### Post-Implementation Steps
 

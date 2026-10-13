@@ -13,13 +13,13 @@ import java.util.regex.Pattern;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads the {@code mcp_call} lines the ledger writes to its console, from a file that console is captured into.
+ * Reads the {@code turn_call} lines the ledger writes to its console, from a file that console is captured into.
  * A read starts at a mark taken before the target was filed, so the file is never read whole.
  */
 public final class TurnCallLog {
 
     private static final Pattern LINE =
-            Pattern.compile("mcp_call tool=(\\S+) outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
+            Pattern.compile("turn_call operation=(\\S+) via=\\S+ outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
     private static final JsonMapper JSON = new JsonMapper();
 
     private final Path file;
