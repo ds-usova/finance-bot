@@ -6,6 +6,8 @@ import bot.finance.api.model.AcceptExpenses200Response;
 import bot.finance.api.model.AcceptExpensesRequest;
 import bot.finance.api.model.CategoryPatchOperation;
 import bot.finance.api.model.ChangeExpenseCategory200Response;
+import bot.finance.api.model.DiscardExpenses200Response;
+import bot.finance.api.model.DiscardExpensesRequest;
 import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
@@ -13,6 +15,7 @@ import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.ChangeExpenseCategoryPort;
+import bot.finance.application.port.DiscardExpensesPort;
 import bot.finance.domain.value.ExpenseFilter;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,13 +28,16 @@ public class ExpensesController implements ExpensesApi {
     private final BrowseExpensesPort browseExpensesPort;
     private final AcceptExpensesPort acceptExpensesPort;
     private final ChangeExpenseCategoryPort changeExpenseCategoryPort;
+    private final DiscardExpensesPort discardExpensesPort;
 
     public ExpensesController(
             BrowseExpensesPort browseExpensesPort,
             AcceptExpensesPort acceptExpensesPort,
-            ChangeExpenseCategoryPort changeExpenseCategoryPort) {
+            ChangeExpenseCategoryPort changeExpenseCategoryPort,
+            DiscardExpensesPort discardExpensesPort) {
         this.browseExpensesPort = browseExpensesPort;
         this.acceptExpensesPort = acceptExpensesPort;
+        this.discardExpensesPort = discardExpensesPort;
         this.changeExpenseCategoryPort = changeExpenseCategoryPort;
     }
 
@@ -48,6 +54,13 @@ public class ExpensesController implements ExpensesApi {
         AcceptExpensesCommand command = ExpenseWebMapper.toAcceptExpensesCommand(
                 acceptExpensesRequest, AuthenticatedCaller.authenticatedUserId());
         return ResponseEntity.ok(ExpenseWebMapper.toAcceptanceResponse(acceptExpensesPort.accept(command)));
+    }
+
+    @Override
+    public ResponseEntity<DiscardExpenses200Response> discardExpenses(DiscardExpensesRequest discardExpensesRequest) {
+        // stub-intent: builds the command with AuthenticatedCaller.authenticatedUserId(), calls the discard port,
+        // and answers 200 through the mapper
+        return null;
     }
 
     @Override

@@ -57,6 +57,13 @@ public interface ExpenseRepository {
     List<IncomingMessageId> acceptByIds(long userId, ProposalIds ids, Instant now);
 
     /**
+     * Discards the caller's PENDING entries named by id, answering the message each was reported on.
+     *
+     * @throws PersistenceFailedException if the write fails
+     */
+    List<IncomingMessageId> discardByIds(long userId, ProposalIds ids, Instant now);
+
+    /**
      * @throws PersistenceFailedException if the read fails
      */
     Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids);

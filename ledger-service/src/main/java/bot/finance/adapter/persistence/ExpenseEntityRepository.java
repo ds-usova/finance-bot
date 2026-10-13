@@ -87,6 +87,24 @@ public interface ExpenseEntityRepository extends CrudRepository<ExpenseEntity, L
 
     @Query(
             """
+            WITH changed AS (
+                DELETE FROM expense
+                WHERE user_id = :userId AND id IN (:ids) AND status = 'PENDING'
+                RETURNING *
+            )
+            SELECT c.id AS id, c.user_id AS user_id, c.incoming_message_id AS incoming_message_id,
+                   c.status AS status, c.description AS description, c.merchant AS merchant,
+                   c.amount_minor_units AS amount_minor_units, c.currency_code AS currency_code,
+                   c.created_at AS created_at, cat.id AS category_id, cat.name AS category_name,
+                   grp.id AS grouping_id, grp.name AS grouping_name
+            FROM changed c
+            JOIN category cat ON c.category_id = cat.id
+            LEFT JOIN category grp ON cat.parent_id = grp.id
+            """)
+    List<SpendingRowProjection> discardByIds(@Param("userId") Long userId, @Param("ids") List<Long> ids);
+
+    @Query(
+            """
             SELECT DISTINCT incoming_message_id
             FROM expense
             WHERE user_id = :userId AND incoming_message_id IN (:incomingMessageIds) AND status = 'PENDING'

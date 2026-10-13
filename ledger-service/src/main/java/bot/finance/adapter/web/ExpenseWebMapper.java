@@ -4,12 +4,16 @@ import bot.finance.api.model.AcceptExpenses200Response;
 import bot.finance.api.model.AcceptExpensesRequest;
 import bot.finance.api.model.CategoryPatchOperation;
 import bot.finance.api.model.ChangeExpenseCategory200Response;
+import bot.finance.api.model.DiscardExpenses200Response;
+import bot.finance.api.model.DiscardExpensesRequest;
 import bot.finance.api.model.Expense;
 import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.ChangeExpenseCategoryCommand;
 import bot.finance.application.dto.DayTotal;
+import bot.finance.application.dto.DiscardExpensesCommand;
 import bot.finance.application.dto.ExpenseAcceptance;
+import bot.finance.application.dto.ExpenseDiscard;
 import bot.finance.application.dto.ExpenseEntry;
 import bot.finance.application.dto.ExpensePage;
 import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
@@ -35,6 +39,15 @@ public final class ExpenseWebMapper {
 
     public static AcceptExpenses200Response toAcceptanceResponse(ExpenseAcceptance acceptance) {
         return new AcceptExpenses200Response(acceptance.accepted(), acceptance.missing());
+    }
+
+    public static DiscardExpensesCommand toDiscardExpensesCommand(
+            DiscardExpensesRequest request, AuthenticatedUserId userId) {
+        return new DiscardExpensesCommand(userId, ProposalIds.of(request.getIds()));
+    }
+
+    public static DiscardExpenses200Response toDiscardResponse(ExpenseDiscard discard) {
+        return new DiscardExpenses200Response(discard.discarded(), discard.missing());
     }
 
     public static ExpenseFilter toFilter(

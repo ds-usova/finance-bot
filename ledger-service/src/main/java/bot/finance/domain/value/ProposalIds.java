@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** The ids an acceptance request named, kept in the order the caller gave them. */
+/** The ids an acceptance or a discard request named, kept in the order the caller gave them. */
 public record ProposalIds(List<Long> ids) {
 
     public static final int MAX_IDS = 100;

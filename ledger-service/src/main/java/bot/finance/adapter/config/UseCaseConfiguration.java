@@ -12,6 +12,7 @@ import bot.finance.application.port.ChangeExpenseCategoryPort;
 import bot.finance.application.port.ClearEmptiedReportsPort;
 import bot.finance.application.port.CreateExpensePort;
 import bot.finance.application.port.CreateExpenseProposalPort;
+import bot.finance.application.port.DiscardExpensesPort;
 import bot.finance.application.port.ExpenseRepository;
 import bot.finance.application.port.FileWrittenMessagePort;
 import bot.finance.application.port.GroupingRepository;
@@ -46,6 +47,7 @@ import bot.finance.application.usecase.ChangeExpenseCategoryUseCase;
 import bot.finance.application.usecase.ClearEmptiedReportsUseCase;
 import bot.finance.application.usecase.CreateExpenseProposalUseCase;
 import bot.finance.application.usecase.CreateExpenseUseCase;
+import bot.finance.application.usecase.DiscardExpensesUseCase;
 import bot.finance.application.usecase.FileWrittenMessageUseCase;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.application.usecase.HandleWrittenMessageUseCase;
@@ -167,6 +169,16 @@ public class UseCaseConfiguration {
             ReportClearingDispatchPort reportClearingDispatchPort,
             LoggerFactory loggerFactory) {
         return new AcceptExpensesUseCase(
+                userRepository, expenseRepository, reportClearingDispatchPort, Clock.systemUTC(), loggerFactory);
+    }
+
+    @Bean
+    DiscardExpensesPort discardExpensesPort(
+            UserRepository userRepository,
+            ExpenseRepository expenseRepository,
+            ReportClearingDispatchPort reportClearingDispatchPort,
+            LoggerFactory loggerFactory) {
+        return new DiscardExpensesUseCase(
                 userRepository, expenseRepository, reportClearingDispatchPort, Clock.systemUTC(), loggerFactory);
     }
 

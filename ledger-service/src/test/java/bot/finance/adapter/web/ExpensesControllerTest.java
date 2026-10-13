@@ -21,6 +21,7 @@ import bot.finance.application.dto.ExpensePage;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.ChangeExpenseCategoryPort;
+import bot.finance.application.port.DiscardExpensesPort;
 import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
@@ -63,9 +64,10 @@ import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Integration test for the inbound HTTP adapter. Enters through the protocol - MockMvc requests against
- * {@code /api/v1/expenses} and {@code /api/v1/expenses/acceptances} - never by calling {@link ExpensesController}'s
- * methods directly, since binding lives in the generated {@link bot.finance.api.ExpensesApi} interface. Both
- * {@link BrowseExpensesPort} and {@link AcceptExpensesPort} are mocked. It owns what these endpoints accept and
+ * {@code /api/v1/expenses}, {@code /api/v1/expenses/acceptances} and {@code /api/v1/expenses/discards} - never by
+ * calling {@link ExpensesController}'s methods directly, since binding lives in the generated
+ * {@link bot.finance.api.ExpensesApi} interface. {@link BrowseExpensesPort}, {@link AcceptExpensesPort} and
+ * {@link DiscardExpensesPort} are mocked. It owns what these endpoints accept and
  * refuse, including the 400s only their own filter and {@code ids} raise; {@link WebExceptionHandlerTest} owns only
  * the mappings every controller shares.
  */
@@ -89,6 +91,9 @@ class ExpensesControllerTest {
 
     @MockitoBean
     private AcceptExpensesPort acceptExpensesPort;
+
+    @MockitoBean
+    private DiscardExpensesPort discardExpensesPort;
 
     @MockitoBean
     private ChangeExpenseCategoryPort changeExpenseCategoryPort;

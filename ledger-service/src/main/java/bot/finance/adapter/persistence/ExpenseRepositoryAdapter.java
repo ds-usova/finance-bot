@@ -122,6 +122,15 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     }
 
     @Override
+    @Transactional
+    public List<IncomingMessageId> discardByIds(long userId, ProposalIds ids, Instant now) {
+        // stub-intent: runs the by-id delete statement for the caller, appends a ProposalDiscarded fact per
+        // removed row at now through the outbox, answers each removed row's message, and wraps any failure in
+        // PersistenceFailedException
+        return List.of();
+    }
+
+    @Override
     public Set<IncomingMessageId> findWithPendingProposals(long userId, Collection<IncomingMessageId> ids) {
         if (ids.isEmpty()) {
             return Set.of();

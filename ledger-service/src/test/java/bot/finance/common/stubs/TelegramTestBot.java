@@ -100,6 +100,12 @@ public final class TelegramTestBot {
      */
     public static final TelegramScenario ACCEPT_EXPENSES = new TelegramScenario(701, 1007, 2007);
 
+    /**
+     * Scenario owned by {@code DiscardExpensesSystemTest}. Nothing is polled here — the clearing it asserts on is
+     * dispatched off the request thread, and the conversation is what tells it from another class's traffic.
+     */
+    public static final TelegramScenario DISCARD_EXPENSES = new TelegramScenario(1001, 1010, 2010);
+
     /** Scenario owned by {@code PipelineMetersSystemTest}. */
     public static final TelegramScenario PIPELINE_METERS = new TelegramScenario(801, 1008, 2008);
 
