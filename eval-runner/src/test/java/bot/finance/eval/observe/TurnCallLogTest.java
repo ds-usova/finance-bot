@@ -29,6 +29,12 @@ class TurnCallLogTest {
             outcome=ok userId=42 message=web:17 arguments={"from":"2026-10-05","to":"2026-10-11"}
             """;
 
+    private static final String LINE_AFTER_MARK =
+            """
+            x - turn_call operation=create_expense_proposal via=grpc outcome=ok userId=42 message=web:17 \
+            arguments={"grouping":"Food"}
+            """;
+
     @Test
     void readsOnlyTheCallsOfTheNamedMessage() {
         List<TurnCall> calls = TurnCallLog.parse(LINES, "web:17");
@@ -49,11 +55,7 @@ class TurnCallLogTest {
         Files.writeString(file, LINES);
         TurnCallLog log = new TurnCallLog(file);
         long mark = log.mark();
-        Files.writeString(
-                file,
-                LINES
-                        + "x - turn_call operation=create_expense_proposal via=grpc outcome=ok userId=42 "
-                        + "message=web:17 arguments={\"grouping\":\"Food\"}\n");
+        Files.writeString(file, LINES + LINE_AFTER_MARK);
 
         List<TurnCall> calls = log.callsSince(mark, "web:17");
 

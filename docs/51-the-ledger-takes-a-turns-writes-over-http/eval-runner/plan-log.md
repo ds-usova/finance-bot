@@ -23,12 +23,19 @@
     RU01 and GU01 target `TurnCallLog`. The run file keeps its `tool` key, which `run-viewer.html` and earlier
     runs read.
 
+## Run Log
+
+- **RL01 (ST01):** hypothesis: no test checks that a `TurnCall` still reaches the run file under the JSON key
+  `tool` (`@JsonProperty("tool")` on `operation`) — settled by serialising an `Attempt` and reading its
+  `mcpCalls[].tool`, or by one `eval.sh` run. Reported by the refactor pass.
+
 ## Suite Runs
 
 - baseline · tree 01227be1deff13957ca968d22a81016fa701df6a · total 20 · skipped 0 · green · paths: eval-runner
 - stabilization · tree 16e73c9815f77f97a10d95ca0b834a4ca79152bd · total 20 · skipped 0 · green · paths: eval-runner
 
 - green · tree a1d0a1890deb720ef236238589fb68902166c9f3 · total 21 · skipped 0 · green · paths: eval-runner
+- refactor · tree 18298912d1ec0c4ee40faf5a73efcd92b14d7abc · total 21 · skipped 0 · green · paths: eval-runner
 ## Stubs
 
 Marker: `stub-intent:`
