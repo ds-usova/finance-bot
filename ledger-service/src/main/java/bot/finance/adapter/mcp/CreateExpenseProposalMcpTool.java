@@ -22,6 +22,7 @@ public class CreateExpenseProposalMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
+    private final Logger callLog;
 
     public CreateExpenseProposalMcpTool(
             CreateExpenseProposalPort createExpenseProposalPort,
@@ -32,6 +33,7 @@ public class CreateExpenseProposalMcpTool {
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(CreateExpenseProposalMcpTool.class);
+        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(name = "create_expense_proposal", description = "Records a new expense proposal for the caller")
@@ -53,7 +55,12 @@ public class CreateExpenseProposalMcpTool {
             @McpToolParam(description = "ISO 4217, three letters") String currencyCode) {
         CreateExpenseProposalToolRequest request =
                 new CreateExpenseProposalToolRequest(category, grouping, description, merchant, amount, currencyCode);
+        CallToolResult result = create(request);
+        McpCallLine.write(callLog, jsonMapper, "create_expense_proposal", result, request);
+        return result;
+    }
 
+    private CallToolResult create(CreateExpenseProposalToolRequest request) {
         log.debug("Received create_expense_proposal call: {}", request);
 
         try {

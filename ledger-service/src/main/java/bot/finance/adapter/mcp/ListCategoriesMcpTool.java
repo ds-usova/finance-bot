@@ -26,6 +26,7 @@ public class ListCategoriesMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
+    private final Logger callLog;
 
     public ListCategoriesMcpTool(
             ListCategoriesPort listCategoriesPort,
@@ -36,6 +37,7 @@ public class ListCategoriesMcpTool {
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(ListCategoriesMcpTool.class);
+        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(
@@ -44,6 +46,12 @@ public class ListCategoriesMcpTool {
                     + "under one of these, never under the grouping itself.")
     public CallToolResult listCategories(
             @McpToolParam(description = "the grouping's name, exactly as it was offered") String grouping) {
+        CallToolResult result = list(grouping);
+        McpCallLine.write(callLog, jsonMapper, "list_categories", result, McpCallLine.arguments("grouping", grouping));
+        return result;
+    }
+
+    private CallToolResult list(String grouping) {
         log.debug("Received list_categories call: {}", grouping);
 
         try {

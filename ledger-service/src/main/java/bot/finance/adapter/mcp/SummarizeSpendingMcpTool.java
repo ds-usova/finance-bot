@@ -27,6 +27,7 @@ public class SummarizeSpendingMcpTool {
     private final JsonMapper jsonMapper;
     private final ToolCallMeters toolCallMeters;
     private final Logger log;
+    private final Logger callLog;
 
     public SummarizeSpendingMcpTool(
             SummarizeSpendingPort summarizeSpendingPort,
@@ -37,6 +38,7 @@ public class SummarizeSpendingMcpTool {
         this.jsonMapper = jsonMapper;
         this.toolCallMeters = toolCallMeters;
         this.log = loggerFactory.getLogger(SummarizeSpendingMcpTool.class);
+        this.callLog = loggerFactory.getLogger(McpCallLine.class);
     }
 
     @McpTool(
@@ -47,6 +49,13 @@ public class SummarizeSpendingMcpTool {
     public CallToolResult summarizeSpending(
             @McpToolParam(description = "the first day of the period, inclusive, as YYYY-MM-DD") String from,
             @McpToolParam(description = "the last day of the period, inclusive, as YYYY-MM-DD") String to) {
+        CallToolResult result = summarize(from, to);
+        McpCallLine.write(
+                callLog, jsonMapper, "summarize_spending", result, McpCallLine.arguments("from", from, "to", to));
+        return result;
+    }
+
+    private CallToolResult summarize(String from, String to) {
         log.debug("Received summarize_spending call: {} {}", from, to);
 
         try {
