@@ -93,38 +93,27 @@ tr.passed-toggle td { color: var(--muted); }
 tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
 .change { font-size: 12px; font-weight: 600; }
 
-.detail-grid { display: grid; gap: 12px; max-width: 980px; }
-.reps-picker { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
-.reps-picker .tab { color: var(--muted); }
+.detail-grid { display: grid; gap: 16px; }
 h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
-.about p { margin: 0 0 2px; max-width: 75ch; }
-.about p:first-child { font-size: 14.5px; }
+.case-notes { margin: 0; font-size: 14.5px; max-width: 80ch; }
 q { font-size: 14px; }
-.attempt { border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); padding: 12px; display: grid; gap: 12px; min-width: 0; }
-.attempt-head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
-.attempt-head h3 { margin: 0; }
-.facts { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--muted); }
-.facts b { color: var(--fg); font-weight: 500; }
-.blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.block { display: grid; gap: 6px; align-content: start; min-width: 0; }
-.block-title { font-weight: 600; }
-.call { border: 1px solid var(--rule); border-radius: 4px; padding: 6px 8px; display: grid; gap: 2px; }
-.call .args { overflow-wrap: anywhere; }
-table.checks td, table.checks th { padding: 4px 12px 4px 0; }
-table.checks th { position: static; background: none; }
-table.checks tr.failed td { background: var(--mark-fail); }
-table.checks tr.failed td:first-child { padding-left: 6px; }
+.attempt { display: grid; gap: 6px; min-width: 0; }
+table.steps th, table.steps td { padding: 5px 14px 5px 0; }
+table.steps thead th { position: static; background: none; }
+table.steps td:first-child { width: 1.6em; padding-left: 6px; font-weight: 700; }
+table.steps td:nth-child(2) { width: 34%; }
+table.steps td:nth-child(3), table.steps td:nth-child(4) { width: 30%; overflow-wrap: anywhere; }
+table.steps tr.section th { color: var(--fg); font-weight: 600; padding-top: 14px; border-bottom: 1px solid var(--fg); }
+table.steps tr.section.start th { color: var(--link); border-bottom-color: var(--link); }
+table.steps tr.start td { background: color-mix(in srgb, var(--link) 9%, transparent); }
+table.steps tr.bad td { background: var(--mark-fail); }
 .want { color: var(--pass); }
 .got { color: var(--fail); }
 .want mark { background: var(--mark-pass); color: inherit; border-radius: 2px; }
 .got mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
-blockquote { margin: 0; font-size: 14px; max-width: 75ch; }
-blockquote::before { content: "“"; color: var(--faint); }
-blockquote::after { content: "”"; color: var(--faint); }
-.calls { display: grid; gap: 2px; }
-table.proposals { width: auto; }
-table.proposals td, table.proposals th { padding: 0 12px 2px 0; border-bottom: 0; }
-.problem { color: var(--error); overflow-wrap: anywhere; }
+.figures { display: flex; flex-wrap: wrap; gap: 8px 48px; padding-block: 10px 8px; }
+.figures > div { display: grid; }
+.figure { font-size: 30px; font-weight: 600; line-height: 1.1; }
 .raw-toggle summary { cursor: pointer; color: var(--muted); }
 .raw-toggle pre { margin-top: 6px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; }
@@ -180,6 +169,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
   const fmt = (v, d = 0) => isNum(v) ? v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) : "–";
   const secs = (msValue) => isNum(msValue) ? fmt(msValue / 1000, 1) : "–";
   const pct = (v) => isNum(v) ? `${Math.round(v * 100)}%` : "–";
+  const instant = (iso) => iso ? Date.parse(String(iso).replace(/(\.\d{3})\d+/, "$1")) : NaN;
   const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "–"; };
   const mean = (vs) => { const v = vs.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
   const median = (vs) => { const v = vs.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
@@ -364,10 +354,18 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
         `<span class="${r ? "fail" : ""}">${r} regressed</span>, <span class="${f ? "pass" : ""}">${f} fixed</span>.</div>`;
     }
     const status = d.status === "complete" ? "" : ` <strong class="error">${esc(d.status || "unknown status")}: the run did not finish</strong>`;
+    const perCase = mean(d.attempts.map((a) => instant(a.finishedAt) - instant(a.startedAt)));
+    const vc = d.summary?.quality?.verdictCounts || {}, judged = (vc.pass || 0) + (vc.fail || 0) + (vc.error || 0);
+    const rate = d.summary?.quality?.passRate;
     return `<div class="summary">
       <div class="id"><span class="mono">${esc(d.runId || run.name)}</span>${run.example ? " · the trial run, shown as an example until you open a file" : ""}${status}</div>
+      <div class="figures">
+        <div><span class="figure num">${secs(p.runMs)} s</span><span class="muted">total time</span></div>
+        <div><span class="figure num">${secs(perCase)} s</span><span class="muted">average per case</span></div>
+        <div><span class="figure num ${rate === 1 ? "pass" : "fail"}">${pct(rate)}</span><span class="muted">passed, ${fmt(vc.pass || 0)} of ${fmt(judged)}</span></div>
+      </div>
       <div class="headline">${plural(all.length, "case")} × ${plural(c.repetitions ?? 1, "repetition")}: ${parts}.</div>
-      <div class="muted">Took ${secs(p.runMs)} s. Median turn ${secs(p.targetTurnMs?.median)} s, ${fmt(tokens)} tokens and ${fmt(p.providerChatCalls?.mean, 1)} model calls per turn. Started ${esc(when(d.startedAt))}.</div>
+      <div class="muted">Median turn ${secs(p.targetTurnMs?.median)} s, ${fmt(tokens)} tokens and ${fmt(p.providerChatCalls?.mean, 1)} model calls per turn. Started ${esc(when(d.startedAt))}.</div>
       ${versus}
     </div>`;
   }
@@ -455,116 +453,110 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 
   // ---- one case ---------------------------------------------------------------------------------------------
 
-  /** The case as written, then every attempt of it: its facts, its checks, and what the model did side by side. */
+  /** The case's description, then one table per attempt that reads top to bottom in the order things happened. */
   function detail(c) {
     const text = c.attempts.find((a) => a.caseText)?.caseText;
     const about = text
-      ? `<div class="about">
-          ${text.notes ? `<p>${esc(text.notes)}</p>` : ""}
-          ${(text.learning || []).map((l) => `<p><span class="muted">First sent</span> <q>${esc(l.message)}</q> <span class="muted">and ${l.decision === "approve" ? "accepted" : l.decision === "discard" ? "discarded" : esc(l.decision)} it as ${esc(l.category)} in ${esc(l.grouping)}.</span></p>`).join("")}
-          <p><span class="muted">Then sent</span> <q>${esc(text.message)}</q></p>
-          <p class="muted">Expected: ${esc(expectationText(text.expected))}</p>
-        </div>`
+      ? (text.notes ? `<p class="case-notes">${esc(text.notes)}</p>` : "")
       : `<p class="muted">This run file has no case text. Runs written by the current runner include it.</p>`;
-    return `<div class="detail-grid">${about}${c.attempts.map(attemptCard).join("")}</div>`;
+    const many = c.attempts.length > 1;
+    return `<div class="detail-grid">${about}${c.attempts.map((a) => attemptTable(a, many)).join("")}</div>`;
   }
 
-  function attemptCard(a) {
+  function attemptTable(a, many) {
+    const rows = [];
+    const section = (title, cls = "") => rows.push(`<tr class="section ${cls}"><th colspan="4">${title}</th></tr>`);
+    const add = (status, step, expected = "", actual = "") => rows.push(
+      `<tr class="${status === "bad" ? "bad" : status === "start" ? "start" : ""}"><td class="mark ${status === "bad" ? "fail" : "pass"}">${status === "bad" ? "✗" : status === "ok" ? "✓" : ""}</td><td>${step}</td><td>${expected}</td><td>${actual}</td></tr>`);
+    const checkStatus = (check) => !check ? "" : check.status === "pass" ? "ok" : "bad";
+    const checks = a.checks || [];
+    const used = new Set();
+    const take = (pred) => checks.filter((x) => !used.has(x) && pred(x)).map((x) => (used.add(x), x));
+    const text = a.caseText;
+
+    section("Before the case");
+    add("", "Signed in as a new person with no history; default currency HUF; nothing pending");
+    for (const l of text?.learning || []) {
+      const m = a.measurements?.learning?.[l.id] || {};
+      add("", `Sent <q>${esc(l.message)}</q>`, esc(plural(l.proposalCount, "proposal")), isNum(m.turnMs) ? `answered in ${secs(m.turnMs)} s` : "");
+      add("", "Set the proposal's category", `${esc(l.category)} <span class="muted">in ${esc(l.grouping)}</span>`);
+      add("", l.decision === "approve" ? "Accepted the proposal" : l.decision === "discard" ? "Discarded the proposal" : `Decided: ${esc(l.decision)}`);
+      add("", "Waited for the connector to remember it", "", isNum(m.availabilityMs) ? `after ${secs(m.availabilityMs)} s` : "");
+    }
+
+    section("The case", "start");
+    add("start", `Sent <span class="mono">POST /api/v1/messages</span> with <q>${text ? esc(text.message) : "(text not in this run file)"}</q>`, "", a.messageIds?.target != null ? `message ${esc(a.messageIds.target)}` : "");
+
+    section("What happened, in order");
+    const calls = a.actual?.mcpCalls;
+    const expectedTools = a.expected?.mcpCalls || {};
+    if (calls == null) add("", "Tool calls", "", `<span class="muted">not recorded: the run had no ledger log</span>`);
+    for (const call of calls || []) {
+      const constraints = flatten(expectedTools[call.tool]?.arguments || {});
+      const argChecks = checks.filter((x) => x.path.startsWith(`mcpCalls.${call.tool}.arguments.`));
+      argChecks.forEach((x) => used.add(x));
+      const wrong = constraints.filter(([f, cc]) => !holds(cc, call.arguments?.[f]));
+      const status = !call.accepted ? "bad" : constraints.length ? (wrong.length ? "bad" : "ok") : "";
+      const expected = constraints.map(([f, cc]) => {
+        const raw = text?.expected && at(text.expected, `mcpCalls.${call.tool}.arguments.${f}`);
+        const written = raw && typeof raw === "object" && constraintText(raw) !== constraintText(cc) ? ` <span class="muted">(${esc(constraintText(raw))})</span>` : "";
+        return `<span class="muted">${esc(f)}</span> ${esc(constraintText(cc))}${written}`;
+      }).join("<br>");
+      const actual = Object.entries(call.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => {
+        const bad = wrong.some(([f]) => f === k);
+        return `<span class="muted">${esc(k)}</span> <span class="${bad ? "fail" : ""}">${esc(valueText(v))}</span>`;
+      }).join("<br>") + (call.accepted ? "" : `<br><span class="fail">rejected by the ledger</span>`);
+      add(status, `Model called <span class="mono">${esc(call.tool)}</span>`, `<span class="mono">${expected}</span>`, `<span class="mono">${actual}</span>`);
+    }
+    for (const tool of Object.keys(expectedTools)) {
+      if (calls && !calls.some((x) => x.tool === tool)) {
+        const missed = take((x) => x.path.startsWith(`mcpCalls.${tool}.arguments.`));
+        if (missed.length) add("bad", `Model called <span class="mono">${esc(tool)}</span>`, `<span class="mono">${flatten(expectedTools[tool].arguments).map(([f, cc]) => `${esc(f)} ${esc(constraintText(cc))}`).join("<br>")}</span>`, `<span class="fail">never called</span>`);
+      }
+      const countLabel = { count: "calls", maximumCount: "calls, at most", acceptedCount: "accepted calls", minimumAcceptedCount: "accepted calls, at least" };
+      for (const x of take((x) => new RegExp(`^mcpCalls\\.${tool}\\.(count|maximumCount|acceptedCount|minimumAcceptedCount)$`).test(x.path))) {
+        add(checkStatus(x), `<span class="mono">${esc(tool)}</span> ${countLabel[x.path.split(".").pop()]}`, esc(valueText(x.expected)), esc(valueText(x.actual)));
+      }
+    }
+
+    for (const x of take((x) => x.path === "messageOutcome")) {
+      add(checkStatus(x), `Message finished${isNum(a.measurements?.targetTurnMs) ? ` after ${secs(a.measurements.targetTurnMs)} s` : ""}`, esc(valueText(x.expected)), esc(valueText(x.actual)));
+    }
+    for (const x of take((x) => x.path === "proposals.count")) add(checkStatus(x), "Expenses proposed", esc(valueText(x.expected)), esc(valueText(x.actual)));
+
+    const items = a.expected?.proposals?.items || [];
+    const pairs = a.matching?.pairs || {};
+    const itemOf = new Map(Object.entries(pairs).map(([i, id]) => [String(id), Number(i)]));
+    const unmatchedItems = items.map((_, i) => i).filter((i) => !(String(i) in pairs));
+    take((x) => /^proposals\.items\[\d+\]$/.test(x.path));
+    const itemText = (i) => flatten(items[i]).map(([f, cc]) => `<span class="muted">${esc(f)}</span> ${esc(constraintText(cc))}`).join("<br>");
+    for (const p of a.actual?.proposals || []) {
+      let i = itemOf.get(String(p.id)), status = "";
+      if (i !== undefined) status = "ok";
+      else if (items.length) { i = unmatchedItems.shift(); status = "bad"; }
+      const fields = i !== undefined ? flatten(items[i]) : [];
+      const cell = (field, value) => `<span class="${status === "bad" && fields.some(([f, cc]) => f === field && !holds(cc, value)) ? "fail" : ""}">${esc(value ?? "–")}</span>`;
+      add(status, "Proposed an expense", i !== undefined ? itemText(i) : "",
+        `${esc(p.amount)} ${esc(p.currency)}, ${cell("description", p.description)}${p.merchant ? `, at ${cell("merchant", p.merchant)}` : ""}<br>${cell("category", p.category)} <span class="muted">in ${esc(p.grouping ?? "–")}</span>`);
+    }
+    for (const i of unmatchedItems) add("bad", `Expected expense ${i + 1}`, itemText(i), `<span class="fail">not proposed</span>`);
+
+    for (const x of take(() => true)) {
+      const e = x.status === "pass" ? { path: shortPath(x.path), want: constraintText(x.expected), got: valueText(x.actual) } : explain(x, a);
+      add(checkStatus(x), esc(e.path), esc(e.want), esc(e.got));
+    }
+    for (const p of a.errors || []) add("bad", `Stopped: ${esc(p.stage || "error")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}`, "", esc(p.message ?? ""));
+    for (const p of a.warnings || []) add("", `Warning: ${esc(p.stage || "")}`, "", esc(p.message ?? ""));
+
     const u = a.measurements?.usage || {};
-    const verdict = a.verdict ? `<b class="${esc(a.verdict)}">${esc(a.verdict)}</b>` : "";
-    const status = a.attemptStatus && a.attemptStatus !== "completed" ? `<span class="muted">${esc(a.attemptStatus)}</span>` : "";
-    const facts = [
-      ["outcome", a.actual?.outcome ?? "–"],
-      ["turn", `${secs(a.measurements?.targetTurnMs)} s`],
-      ["model calls", fmt(u.providerChatCalls)],
-      ["tokens", `${fmt(u.inputTokens)} in, ${fmt(u.outputTokens)} out`],
-      ["tool calls by metric", fmt(u.ledgerToolCalls)],
-      ["dates as of", a.expectedDate ?? "–"],
-    ].map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
-    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])]
-      .map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("");
-    const checks = a.checks || [], holding = checks.filter((x) => x.status === "pass").length;
-    return `<div class="attempt">
-      <div class="attempt-head"><h3>Repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}</h3>${verdict}${status}<div class="facts">${facts}</div></div>
-      ${problems}
-      ${checks.length ? `<div class="block"><span class="block-title">Checks: ${holding} of ${checks.length} hold</span>${checksBody(a)}</div>` : ""}
-      <div class="blocks">
-        <div class="block">${callCards(a.actual?.mcpCalls)}</div>
-        <div class="block"><span class="block-title">Proposals${a.actual?.proposals ? `: ${a.actual.proposals.length}` : ""}${a.matching ? `, ${a.matching.matched} of ${a.matching.expected} expected matched` : ""}</span>${proposalsBody(a)}</div>
-        ${learningTable(a)}
-      </div>
+    const heading = many ? `<h3>Repetition ${esc(a.repetition)}${a.attempt > 1 ? `, attempt ${esc(a.attempt)}` : ""}: <span class="${esc(a.verdict || "")}">${esc(a.verdict || a.attemptStatus)}</span></h3>` : "";
+    return `<div class="attempt">${heading}
+      <table class="steps"><thead><tr><th></th><th>Step</th><th>Expected</th><th>Actual</th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      <p class="muted">${fmt(u.providerChatCalls)} model calls, ${fmt(u.inputTokens)} tokens in and ${fmt(u.outputTokens)} out, ${fmt(u.ledgerToolCalls)} ledger tool calls by the metric. Dates resolved against ${esc(a.expectedDate ?? "–")}.</p>
       <details class="raw-toggle"><summary>Raw attempt JSON</summary><pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre></details>
     </div>`;
   }
 
-  function callCards(calls) {
-    if (calls == null) return `<span class="block-title">MCP calls</span><span class="muted">Not recorded: the run had no ledger log.</span>`;
-    if (!calls.length) return `<span class="block-title">MCP calls: none</span><span class="muted">The model called no ledger tool.</span>`;
-    return `<span class="block-title">MCP calls: ${calls.length}</span>${calls.map((x, i) =>
-      `<div class="call"><div class="mono"><span class="muted">${i + 1}.</span> ${esc(x.tool)}${x.accepted ? "" : ` <span class="fail">rejected</span>`}</div>
-       <div class="mono args">${Object.entries(x.arguments || {}).map(([k, v]) => `<span class="muted">${esc(k)}</span> ${esc(valueText(v))}`).join("<br>")}</div></div>`).join("")}`;
-  }
-
-  function learningTable(a) {
-    const entries = Object.entries(a.measurements?.learning || {});
-    if (!entries.length) return "";
-    return `<div class="block"><span class="block-title">Learning steps: ${entries.length}</span><table class="proposals"><thead><tr><th>Step</th><th class="r">Message</th><th class="r">Turn s</th><th class="r">In memory after s</th></tr></thead><tbody>${entries.map(([id, l]) =>
-      `<tr><td class="mono">${esc(id)}</td><td class="r num">${esc(a.messageIds?.[id] ?? "–")}</td><td class="r num">${secs(l.turnMs)}</td><td class="r num">${secs(l.availabilityMs)}</td></tr>`).join("")}</tbody></table></div>`;
-  }
-
-  function proposalsBody(a) {
-    const props = a.actual?.proposals;
-    if (props == null) return `<span class="muted">Not read.</span>`;
-    if (!props.length) return `<span class="muted">No expense was proposed.</span>`;
-    const paired = new Set(Object.values(a.matching?.pairs || {}).map(String));
-    const judged = a.matching?.pairs != null;
-    return `<table class="proposals"><thead><tr>${judged ? "<th></th>" : ""}<th class="r">Amount</th><th>Description</th><th>Merchant</th><th>Category</th></tr></thead><tbody>${props.map((p) =>
-      `<tr>${judged ? `<td class="${paired.has(String(p.id)) ? "pass" : "fail"}" title="${paired.has(String(p.id)) ? "matches an expected expense" : "matches no expected expense"}">${paired.has(String(p.id)) ? "✓" : "✗"}</td>` : ""}<td class="r num">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "–")}</td><td>${esc(p.merchant ?? "–")}</td><td>${esc(p.category ?? "–")} <span class="muted">in ${esc(p.grouping ?? "–")}</span></td></tr>`).join("")}</tbody></table>`;
-  }
-
-  function checksBody(a) {
-    const checks = a.checks || [];
-    if (!checks.length) return "";
-    return `<table class="checks"><thead><tr><th></th><th>Check</th><th>Expected</th><th>Got</th></tr></thead><tbody>${checks.map((x) => {
-      const ok = x.status === "pass";
-      const e = ok ? { path: shortPath(x.path), want: constraintText(x.expected), got: valueText(x.actual) } : explain(x, a);
-      const d = ok ? { want: esc(e.want), got: esc(e.got) } : diffPair(e.want, e.got);
-      const written = asWritten(x, a);
-      return `<tr class="${ok ? "" : "failed"}"><td class="${ok ? "pass" : "fail"}">${ok ? "✓" : "✗"}</td><td class="mono">${esc(e.path)}</td>` +
-        `<td class="mono ${ok ? "" : "want"}">${d.want}${written ? ` <span class="muted">(${esc(written)})</span>` : ""}</td><td class="mono ${ok ? "" : "got"}">${d.got}</td></tr>`;
-    }).join("")}</tbody></table>`;
-  }
-
-  /** The case file's own wording of a check's expectation where it differs from the resolved one: a date token. */
-  function asWritten(check, a) {
-    const raw = a.caseText?.expected && at(a.caseText.expected, check.path);
-    if (!raw || typeof raw !== "object") return "";
-    const words = constraintText(raw);
-    return words !== constraintText(check.expected) ? words : "";
-  }
-
-  /** The expectations of a case in one line, as its file writes them. */
-  function expectationText(expected) {
-    if (!expected) return "–";
-    const parts = [];
-    if (expected.messageOutcome) parts.push(`the message ends as ${expected.messageOutcome}`);
-    const p = expected.proposals;
-    if (p && "count" in p) parts.push(p.count === 0 ? "no expense is proposed" : `${plural(p.count, "expense")} proposed`);
-    for (const [i, item] of (p?.items || []).entries()) {
-      parts.push(`expense ${i + 1} has ${flatten(item).map(([f, c]) => `${f} ${constraintText(c)}`).join(", ")}`);
-    }
-    if (expected.proposalRelations?.distinctCategories) parts.push("each expense in a different category");
-    for (const [tool, e] of Object.entries(expected.mcpCalls || {})) {
-      const bits = [];
-      if ("count" in e) bits.push(`called ${plural(e.count, "time")}`);
-      if ("maximumCount" in e) bits.push(`called at most ${plural(e.maximumCount, "time")}`);
-      if ("acceptedCount" in e) bits.push(`accepted ${plural(e.acceptedCount, "time")}`);
-      if ("minimumAcceptedCount" in e) bits.push(`accepted at least ${plural(e.minimumAcceptedCount, "time")}`);
-      if (e.arguments) bits.push(`with ${flatten(e.arguments).map(([f, c]) => `${f} ${constraintText(c)}`).join(", ")}`);
-      parts.push(`${tool} ${bits.join(" ")}`);
-    }
-    return parts.join("; ") + ".";
-  }
 
 
   // ---- run details ------------------------------------------------------------------------------------------
