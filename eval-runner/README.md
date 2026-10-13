@@ -42,13 +42,13 @@ summaries as a Markdown table to `compare.md` beside the second file, then the c
 
 What `eval.sh` sets up, for a run against another stack with `eval-runner/gradlew -p eval-runner run --args="…"`.
 
-| Service              | Reached at                                        | For                                                         |
-|----------------------|---------------------------------------------------|-------------------------------------------------------------|
-| Ledger REST          | `EVAL_LEDGER_URL`                                 | signing in, filing messages, reading proposals              |
-| Ledger metrics       | `EVAL_LEDGER_METRICS_URL`                         | tool-call deltas                                            |
-| AI Connector metrics | `EVAL_CONNECTOR_METRICS_URL`                      | provider chat calls, duration and tokens per target         |
-| AI Connector DB      | `EVAL_AI_DB_URL`, `_USER`, `_PASSWORD`            | memory readiness, read only                                 |
-| Ledger console       | `EVAL_LEDGER_LOG`, a file the console is saved to | the `mcp_call` lines a case's `mcpCalls` is checked against |
+| Service              | Reached at                                        | For                                                                                                                 |
+|----------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Ledger REST          | `EVAL_LEDGER_URL`                                 | signing in, filing messages, reading proposals                                                                      |
+| Ledger metrics       | `EVAL_LEDGER_METRICS_URL`                         | tool-call deltas                                                                                                    |
+| AI Connector metrics | `EVAL_CONNECTOR_METRICS_URL`                      | provider chat calls, duration and tokens per target                                                                 |
+| AI Connector DB      | `EVAL_AI_DB_URL`, `_USER`, `_PASSWORD`            | memory readiness, read only                                                                                         |
+| Ledger console       | `EVAL_LEDGER_LOG`, a file the console is saved to | the `turn_call` lines a case's `mcpCalls` is checked against; the ledger must run with `TURN_CALL_LOG_ENABLED=true` |
 
 Defaults point at the local ports: ledger `1000`, management `1010` and `1011`, Postgres `5432`.
 

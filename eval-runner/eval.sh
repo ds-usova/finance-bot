@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Runs the evaluation end to end: builds and starts the services it needs, captures the ledger's console for the
-# mcp_call lines, waits for both services to report healthy, and runs the evaluation runner with every setting it
+# turn_call lines, waits for both services to report healthy, and runs the evaluation runner with every setting it
 # needs read from infrastructure/.env. Everything printed is also saved to build/eval/eval.log. The services are
 # stopped afterwards unless they were already running or --keep-stack is given.
 #

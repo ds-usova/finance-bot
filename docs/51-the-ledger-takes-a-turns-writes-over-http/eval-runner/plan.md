@@ -76,7 +76,7 @@ No architectural placement decisions.
 
 #### Documents
 
-- [ ] PI01 · The [README](../../../eval-runner/README.md), the header comment of `eval-runner/eval.sh` and the
+- [x] PI01 · The [README](../../../eval-runner/README.md), the header comment of `eval-runner/eval.sh` and the
   javadoc of `TurnCall` and `TurnCallLog` name the `turn_call` line where they name `mcp_call`. The README's
   "Ledger console" row also says the ledger must run with `TURN_CALL_LOG_ENABLED=true`, since a stack `eval.sh`
   did not start writes no line otherwise

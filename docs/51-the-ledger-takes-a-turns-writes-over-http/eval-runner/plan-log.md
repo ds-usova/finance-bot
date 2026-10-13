@@ -28,6 +28,8 @@
 - **RL01 (ST01):** hypothesis: no test checks that a `TurnCall` still reaches the run file under the JSON key
   `tool` (`@JsonProperty("tool")` on `operation`) — settled by serialising an `Attempt` and reading its
   `mcpCalls[].tool`, or by one `eval.sh` run. Reported by the refactor pass.
+- **RL02 (ST01):** `eval-runner/docs/conventions/code-style.md` line 7 still names `McpCall` as an example; no
+  item writes it, so it is left for the conventions follow-up.
 
 ## Suite Runs
 
@@ -36,6 +38,7 @@
 
 - green · tree a1d0a1890deb720ef236238589fb68902166c9f3 · total 21 · skipped 0 · green · paths: eval-runner
 - refactor · tree 18298912d1ec0c4ee40faf5a73efcd92b14d7abc · total 21 · skipped 0 · green · paths: eval-runner
+- wrap-up · tree 21e5f02b2458ccb8f563af5fb5b4b474c9ee3cbd · total 21 · skipped 0 · green · paths: eval-runner
 ## Stubs
 
 Marker: `stub-intent:`
