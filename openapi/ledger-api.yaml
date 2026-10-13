@@ -30,6 +30,8 @@ paths:
     $ref: './paths/messages.yaml'
   /api/v1/messages/{id}:
     $ref: './paths/message.yaml'
+  /api/v1/expenses/discards:
+    $ref: './paths/expense-discards.yaml'
 components:
   schemas:
     ExpenseStatus:
@@ -337,6 +339,43 @@ components:
       example:
         accepted: 2
         missing: 0
+    DiscardRequest:
+      type: object
+      description: Which pending entries to discard, by the ids the listing answered.
+      properties:
+        ids:
+          type: array
+          description: >-
+            The ids of `PENDING` entries to discard. Each must name one of the caller's, and a repeated id is
+            refused rather than collapsed.
+          minItems: 1
+          maxItems: 100
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+      required:
+        - ids
+      example:
+        ids: [7, 12]
+    Discard:
+      type: object
+      description: >-
+        What the write threw away. `discarded` plus `missing` always equals the number of ids the request carried.
+      properties:
+        discarded:
+          type: integer
+          description: How many pending proposals were thrown away.
+        missing:
+          type: integer
+          description: >-
+            How many ids named no pending proposal of the caller's — already resolved, or not theirs.
+      required:
+        - discarded
+        - missing
+      example:
+        discarded: 2
+        missing: 0
     Preferences:
       type: object
       description: The signed-in person's settings, as they currently stand.
@@ -404,7 +443,8 @@ components:
           type: array
           description: >-
             The UTC days the message's entries were stored on, pending or since accepted, oldest first. Empty
-            until the state is DONE, and when nothing was stored.
+            until the state is DONE, and when nothing was stored. A discarded entry leaves no day, so the list
+            becomes empty once every entry the message produced is discarded.
           items:
             type: string
             format: date
