@@ -2,6 +2,7 @@ package bot.finance.eval;
 
 import bot.finance.eval.ledger.Proposal;
 import bot.finance.eval.observe.McpCall;
+import bot.finance.eval.observe.TargetUsage;
 import bot.finance.eval.oracle.Check;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -53,12 +54,11 @@ public final class Attempt {
     public static final class Measurements {
         public Long targetTurnMs;
         public Map<String, Learning> learning = new LinkedHashMap<>();
-        public Double providerChatCalls;
-        public Double providerChatSeconds;
-        public Double providerEmbeddingCalls;
-        public Double inputTokens;
-        public Double outputTokens;
-        public Double ledgerToolCalls;
+        public TargetUsage usage;
+
+        public Learning learning(String learningId) {
+            return learning.computeIfAbsent(learningId, id -> new Learning());
+        }
     }
 
     public static final class Learning {
@@ -68,7 +68,7 @@ public final class Attempt {
 
     public record Failure(String stage, String type, String message, Integer status) {
 
-        static Failure of(Throwable e) {
+        public static Failure of(Throwable e) {
             return e instanceof EvalException eval
                     ? new Failure(eval.stage(), e.getClass().getSimpleName(), e.getMessage(), eval.status())
                     : new Failure("runner", e.getClass().getSimpleName(), e.getMessage(), null);

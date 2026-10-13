@@ -1,4 +1,4 @@
-package bot.finance.eval;
+package bot.finance.eval.report;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.Set;
 import tools.jackson.databind.JsonNode;
 
 /** Two runs' summaries side by side, as a Markdown table, and the cases whose pass count moved. */
-final class Comparison {
+public final class Comparison {
 
     private static final List<String[]> ROWS = List.of(
             new String[] {"pass rate", "quality.passRate"},
@@ -27,7 +27,7 @@ final class Comparison {
 
     private Comparison() {}
 
-    static String render(JsonNode before, JsonNode after) {
+    public static String render(JsonNode before, JsonNode after) {
         StringBuilder out = new StringBuilder();
         out.append("| Measure | ")
                 .append(before.path("runId").asString())

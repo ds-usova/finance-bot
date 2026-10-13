@@ -45,14 +45,14 @@ eval-runner/gradlew -p eval-runner run --args="compare build/eval/before.json bu
 `EVAL_TERMINAL_TIMEOUT_SECONDS` and `EVAL_READINESS_TIMEOUT_SECONDS` bound the wait for a terminal outcome and for
 memory readiness.
 
-The output is rewritten after every attempt, so an interrupted run keeps what it finished. `compare` prints the two
-summaries as a Markdown table, then the cases whose pass count moved.
+The output is rewritten after every attempt, so an interrupted run keeps what it finished. `compare` writes the two
+summaries as a Markdown table to `compare.md` beside the second file, then the cases whose pass count moved.
 
 ## Measurements
 
-| Field                           | Source                                                                                   |
-|---------------------------------|------------------------------------------------------------------------------------------|
-| `targetTurnMs`                  | from the accepted `POST /api/v1/messages` to the first `DONE` poll                       |
-| `providerChatCalls`, `…Seconds` | `gen_ai_client_operation_seconds` for `chat`, scraped before filing and after inspection |
-| `inputTokens`, `outputTokens`   | `gen_ai_client_token_usage_total`, the same window                                       |
-| `learning.<id>.availabilityMs`  | from the decision to memory readiness                                                    |
+| Field                                 | Source                                                                                   |
+|---------------------------------------|------------------------------------------------------------------------------------------|
+| `targetTurnMs`                        | from the accepted `POST /api/v1/messages` to the first `DONE` poll                       |
+| `usage.providerChatCalls`, `…Seconds` | `gen_ai_client_operation_seconds` for `chat`, scraped before filing and after inspection |
+| `usage.inputTokens`, `outputTokens`   | `gen_ai_client_token_usage_total`, the same window                                       |
+| `learning.<id>.availabilityMs`        | from the decision to memory readiness                                                    |

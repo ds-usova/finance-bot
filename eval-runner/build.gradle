@@ -30,6 +30,8 @@ dependencies {
     implementation "tools.jackson.core:jackson-databind"
     implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
     implementation "org.postgresql:postgresql"
+    implementation "org.slf4j:slf4j-api"
+    runtimeOnly "ch.qos.logback:logback-classic"
 
     testImplementation "org.junit.jupiter:junit-jupiter"
     testImplementation "org.assertj:assertj-core"

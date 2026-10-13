@@ -4,9 +4,11 @@ import bot.finance.eval.EvalException;
 import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import tools.jackson.databind.JsonNode;
 
@@ -56,8 +58,35 @@ public final class LedgerClient {
         return new WrittenMessage(id, body.path("state").asString(), outcome.isNull() ? null : outcome.asString(null));
     }
 
+    public List<Long> pendingIds(String stage) {
+        return allPending(stage).stream().map(item -> item.path("id").asLong()).toList();
+    }
+
+    /** Every pending entry, with its category and grouping resolved through the catalogue. */
+    public List<Proposal> pendingProposals(String stage) {
+        Map<Long, Category> categories = new HashMap<>();
+        categories(stage).forEach(category -> categories.put(category.id(), category));
+        return allPending(stage).stream()
+                .map(item ->
+                        proposal(item, categories.get(item.path("categoryId").asLong())))
+                .toList();
+    }
+
+    private static Proposal proposal(JsonNode item, Category category) {
+        JsonNode merchant = item.path("merchant");
+        return new Proposal(
+                item.path("id").asLong(),
+                item.path("money").path("amount").asString(),
+                item.path("money").path("currency").asString(),
+                merchant.isNull() || merchant.isMissingNode() ? null : merchant.asString(),
+                item.path("description").asString(),
+                item.path("categoryId").asLong(),
+                category == null ? null : category.name(),
+                category == null ? null : category.groupingName());
+    }
+
     /** Every pending entry, read page by page; a page that disagrees with the first one's total is an error. */
-    public List<JsonNode> allPending(String stage) {
+    private List<JsonNode> allPending(String stage) {
         List<JsonNode> items = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
         Long total = null;
@@ -95,6 +124,13 @@ public final class LedgerClient {
                     node.path("groupingName").asString()));
         }
         return categories;
+    }
+
+    /** The category of that name filed under the grouping of that name, as the catalogue names them. */
+    public Optional<Category> category(String stage, String groupingName, String categoryName) {
+        return categories(stage).stream()
+                .filter(c -> c.name().equals(categoryName) && c.groupingName().equals(groupingName))
+                .findFirst();
     }
 
     public void changeCategory(String stage, long expenseId, long categoryId) {
