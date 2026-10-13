@@ -19,7 +19,7 @@
     refused with 400
   - runs: `ExpensesControllerTest$Validation#whenAnIntegerFieldCarriesAFractionalNumber_thenResponseIs400AndNoPortIsCalled`
 
-- [ ] FG01 · green · a request body carrying a fractional number for an integer field is refused with 400
+- [x] FG01 · green · a request body carrying a fractional number for an integer field is refused with 400
   - files:
     - `ledger-service/src/main/resources/application.yaml`
   - fixes: FR01
