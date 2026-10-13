@@ -1,0 +1,59 @@
+plugins {
+    id "java"
+    id "application"
+    id "com.diffplug.spotless" version "$spotlessVersion"
+    id "io.spring.dependency-management" version "$springDependencyManagementVersion"
+}
+
+group = "bot.finance"
+version = "${appVersion}"
+description = "eval-runner"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Only the BOM: the runner is a plain program, and the BOM pins the same Jackson and driver versions the services use.
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+    }
+}
+
+dependencies {
+    implementation "tools.jackson.core:jackson-databind"
+    implementation "tools.jackson.dataformat:jackson-dataformat-yaml"
+    implementation "org.postgresql:postgresql"
+
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "org.assertj:assertj-core"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+application {
+    mainClass = "bot.finance.eval.EvalRunner"
+}
+
+// Paths given to the runner, the corpus and the output among them, resolve from the repository root.
+tasks.named("run") {
+    workingDir = rootDir.parentFile
+}
+
+test {
+    useJUnitPlatform()
+}
+
+spotless {
+    java {
+        target "src/main/java/**/*.java", "src/test/java/**/*.java"
+        palantirJavaFormat("${palantirJavaFormatVersion}")
+        removeUnusedImports()
+        importOrder()
+    }
+}
