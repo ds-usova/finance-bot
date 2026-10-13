@@ -25,7 +25,7 @@ A schema named in `components/schemas` and reached from inside another schema ge
 the generator derives that name from the operation and status code, because every operation is reached through
 an externally-`$ref`ed file under `openapi/paths/`. So `ExpensePage` is generated but unreferenced, and the
 endpoint answers `ListExpenses200Response`. The same holds for `Category`, `Grouping`, `Session`, `Problem`,
-`AcceptanceRequest`, `Acceptance`, `Preferences` and `PreferencesUpdate`.
+`AcceptanceRequest`, `Acceptance`, `DiscardRequest`, `Discard`, `Preferences` and `PreferencesUpdate`.
 
 Reordering the paths renames those types and breaks this module's build; no caller notices.
 

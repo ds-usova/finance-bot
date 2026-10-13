@@ -22,6 +22,7 @@ C3 is below. Package structure is in the
 - [Browse a person's groupings](docs/usecases/browse-groupings.md)
 - [Change an entry's category](docs/usecases/change-an-expense-category.md)
 - [Accept the proposals a person chose](docs/usecases/accept-chosen-proposals.md)
+- [Discard the proposals a person chose](docs/usecases/discard-chosen-proposals.md)
 - [Clear the emptied reports](docs/usecases/clear-emptied-reports.md)
 - [Read the current session](docs/usecases/read-the-current-session.md)
 - [Read a person's preferences](docs/usecases/read-the-preferences.md)

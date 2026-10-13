@@ -2,30 +2,26 @@
 
 - **In**
   - the person, by the id the ledger stores them under
-  - the [messages](../domain/incoming-message-id.md) an acceptance recorded entries under
+  - the [messages](../domain/incoming-message-id.md) an acceptance or a discard resolved entries under
 - **Out**
   - reports in the chat with their buttons taken off
-- **Why:** a report whose spending is already accepted stops offering two buttons that decide nothing
+- **Why:** a report whose spending is already resolved stops offering two buttons that decide nothing
 
 *Implemented by `ClearEmptiedReportsUseCase`.*
 
 ## Prerequisites
 
-- An acceptance already committed, and the person was already answered.
+- An acceptance or a discard already committed, and the person was already answered.
 - The person's id is the stored one, resolved by whoever hands the work over.
-
-## How it is entered
-
-- It runs on a thread of its own, out of a pool whose bounds are [configuration](../configuration.md).
-- Nobody waits for it. Nothing it does or fails to do reaches the browser, and nothing is retried.
 
 ## Collaborators
 
-| Direction | Collaborator                                                      | Through                                                                           | For                                                                                 |
-|-----------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| in        | [Accept the proposals a person chose](accept-chosen-proposals.md) | [Accept the proposals a person chose](accept-chosen-proposals.md)                 | handing over the messages an acceptance may have emptied                            |
-| out       | [Database](../contracts/out/database.md)                          | [Users, categories and expenses](../contracts/out/database.md)                    | reading what is still pending under each message, and where its reports were posted |
-| out       | [Telegram](../contracts/out/telegram-replies.md)                  | [Outgoing replies](../contracts/out/telegram-replies.md)                          | taking the buttons off a report the acceptance emptied                              |
+| Direction | Collaborator                                                        | Through                                                                           | For                                                                                 |
+|-----------|---------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| in        | [Accept the proposals a person chose](accept-chosen-proposals.md)   | [Accept the proposals a person chose](accept-chosen-proposals.md)                 | handing over the messages an acceptance may have emptied                            |
+| in        | [Discard the proposals a person chose](discard-chosen-proposals.md) | [Discard the proposals a person chose](discard-chosen-proposals.md)               | handing over the messages a discard may have emptied                                |
+| out       | [Database](../contracts/out/database.md)                            | [Users, categories and expenses](../contracts/out/database.md)                    | reading what is still pending under each message, and where its reports were posted |
+| out       | [Telegram](../contracts/out/telegram-replies.md)                    | [Outgoing replies](../contracts/out/telegram-replies.md)                          | taking the buttons off a report an acceptance or a discard emptied                  |
 
 ## Outcomes
 
@@ -58,6 +54,7 @@ ContainerDb(db, "Database", "PostgreSQL", "Stores expenses and where each report
 
 Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
   Component(acceptService, "Accept the Chosen Proposals Use Case", "Plain Java", "Hands over the messages an acceptance recorded entries under", $tags="core")
+  Component(discardService, "Discard the Chosen Proposals Use Case", "Plain Java", "Hands over the messages a discard removed entries under", $tags="core")
   Component(dispatchPort, "Report Clearing Dispatch Port", "Interface", "Outbound port", $tags="portOut")
   Component(dispatcher, "Report Clearing Dispatcher", "Bounded thread pool", "Runs the clearing off the request thread, and drops it when the pool is full", $tags="core")
   Component(clearPort, "Clear Emptied Reports Port", "Interface", "Inbound port", $tags="portIn")
@@ -71,6 +68,8 @@ Container_Boundary(ledger, "Ledger Service (Java, Spring Boot)") {
 }
 
 Rel_D(acceptService, dispatchPort, "Hands the emptied messages to")
+Rel_D(discardService, dispatchPort, "Hands the emptied messages to")
+Lay_R(acceptService, discardService)
 Rel_U(dispatcher, dispatchPort, "Implements", $tags="implements")
 Rel_D(dispatcher, clearPort, "Invokes, on its own thread")
 Rel_L(clearService, clearPort, "Implements", $tags="implements")
@@ -97,7 +96,7 @@ SHOW_LEGEND()
 ```plantuml
 @startuml ClearEmptiedReports-Activity
 start
-:the messages an acceptance recorded entries under, off the request thread;
+:the messages an acceptance or a discard resolved entries under, off the request thread;
 if (any message handed over?) then (no)
   stop
 endif

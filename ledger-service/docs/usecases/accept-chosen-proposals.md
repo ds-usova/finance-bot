@@ -12,11 +12,8 @@
 
 ## Prerequisites
 
-- The caller is authenticated. The request never names whose ledger it is.
+- The caller is authenticated.
 - A user is stored under that identity.
-
-What bounds the list, what an id is taken as, and how the two counts relate are all fixed by
-[the specification](../../../openapi/ledger-api.yaml).
 
 ## Collaborators
 

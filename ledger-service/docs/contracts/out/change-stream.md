@@ -30,14 +30,14 @@ more.
 
 ## The catalogue
 
-| Type                | The fact                                        | Emitted by                                                                                                                                                     |
-|---------------------|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ProposalCreated`   | the model proposed an expense from a message    | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                     |
-| `ProposalRefiled`   | a pending entry was moved to another category   | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                     |
-| `ProposalDiscarded` | the person threw the pending entry away         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md)                                                                                   |
-| `ProposalAccepted`  | the person confirmed it, and it is now recorded | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md), [Accept the proposals a person chose](../../usecases/accept-chosen-proposals.md) |
-| `ExpenseRecorded`   | an expense was recorded with no proposal        | [Create an expense](../../usecases/create-an-expense.md)                                                                                                       |
-| `ExpenseRefiled`    | a recorded entry was moved to another category  | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                     |
+| Type                | The fact                                        | Emitted by                                                                                                                                                       |
+|---------------------|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ProposalCreated`   | the model proposed an expense from a message    | [Create an expense proposal](../../usecases/create-an-expense-proposal.md)                                                                                       |
+| `ProposalRefiled`   | a pending entry was moved to another category   | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                       |
+| `ProposalDiscarded` | the person threw the pending entry away         | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md), [Discard the proposals a person chose](../../usecases/discard-chosen-proposals.md) |
+| `ProposalAccepted`  | the person confirmed it, and it is now recorded | [Resolve a reported proposal](../../usecases/resolve-a-reported-proposal.md), [Accept the proposals a person chose](../../usecases/accept-chosen-proposals.md)   |
+| `ExpenseRecorded`   | an expense was recorded with no proposal        | [Create an expense](../../usecases/create-an-expense.md)                                                                                                         |
+| `ExpenseRefiled`    | a recorded entry was moved to another category  | [Change an entry's category](../../usecases/change-an-expense-category.md)                                                                                       |
 
 ## What a body carries
 
@@ -84,7 +84,7 @@ A whole body, as `ProposalCreated` carries it:
 
 - One event per changed row: a report accepting three proposals is three entries.
 - Rows changed together commit together, so their entries arrive together and in order.
-- A resolution or a refile matching no row publishes nothing.
+- A write matching no row publishes nothing.
 - The stream position is the event's position; the ledger carries no sequence of its own.
 
 ## Deduplicating
