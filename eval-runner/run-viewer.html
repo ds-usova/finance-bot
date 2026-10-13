@@ -99,22 +99,22 @@ tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
 h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
 .about p { margin: 0 0 2px; max-width: 75ch; }
 .about p:first-child { font-size: 14.5px; }
-.flow { margin: 0; padding-left: 1.6em; display: grid; gap: 14px; }
-.flow > li::marker { color: var(--faint); font-variant-numeric: tabular-nums; }
-.step-title b { font-weight: 600; }
-.step-body { margin-top: 4px; display: grid; gap: 4px; }
-blockquote { margin: 0; padding: 4px 10px; border-left: 2px solid var(--rule); font-size: 14px; max-width: 75ch; }
-.calls { margin: 0; padding-left: 1.6em; display: grid; gap: 2px; }
-.calls li::marker { color: var(--faint); }
+table.flow, table.checks { width: auto; min-width: min(100%, 720px); }
+table.flow th { width: 7em; color: var(--muted); font-weight: 500; position: static; background: none; }
+table.flow td.result { white-space: nowrap; color: var(--muted); }
+table.flow td, table.flow th, table.checks td, table.checks th { padding: 6px 12px 6px 0; }
+table.checks th { position: static; background: none; }
+table.checks tr.failed td { background: none; }
+.want { color: var(--pass); }
+.got { color: var(--fail); }
+.want mark { background: var(--mark-pass); color: inherit; border-radius: 2px; }
+.got mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
+blockquote { margin: 0; font-size: 14px; max-width: 75ch; }
+blockquote::before { content: "“"; color: var(--faint); }
+blockquote::after { content: "”"; color: var(--faint); }
+.calls { display: grid; gap: 2px; }
 table.proposals { width: auto; }
-table.proposals td, table.proposals th { padding: 2px 12px 2px 0; border-bottom: 0; }
-.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.diff { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); margin: 2px 0 2px 1.3em; }
-.diff .sign { color: var(--faint); }
-.diff .want { color: var(--pass); }
-.diff .got { color: var(--fail); }
-.diff mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
-.diff .want mark { background: var(--mark-pass); }
+table.proposals td, table.proposals th { padding: 0 12px 2px 0; border-bottom: 0; }
 .problem { color: var(--error); overflow-wrap: anywhere; }
 .raw-toggle summary { cursor: pointer; color: var(--muted); }
 .raw-toggle pre { margin-top: 6px; }
@@ -442,7 +442,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     if (!f.length) return `<span class="muted">${esc(a.attemptStatus || "no checks")}</span>`;
     const e = explain(f[0], a), d = diffPair(e.want, e.got);
     const more = f.length > 1 ? ` <span class="more">+${f.length - 1} more</span>` : "";
-    return `<div class="reason-line mono"><span class="path">${esc(e.path)}</span><span class="k">want</span><span class="pass">${d.want}</span><span class="k">got</span><span class="fail">${d.got}${more}</span></div>`;
+    return `<div class="reason-line mono"><span class="path">${esc(e.path)}</span><span class="k">want</span><span class="want">${d.want}</span><span class="k">got</span><span class="got">${d.got}${more}</span></div>`;
   }
 
   // ---- one case ---------------------------------------------------------------------------------------------
@@ -461,47 +461,55 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 
     const steps = [];
     for (const entry of text?.learning || []) steps.push(learningStep(entry, a));
-    steps.push(step("Sent the case message", text ? `<blockquote>${esc(text.message)}</blockquote>` : `<span class="muted">message ${esc(a.messageIds?.target ?? "–")}</span>`));
-    steps.push(step(callsTitle(a.actual?.mcpCalls), callsBody(a.actual?.mcpCalls)));
-    steps.push(step(outcomeTitle(a), proposalsBody(a)));
+    steps.push(step("Message", text ? `<blockquote>${esc(text.message)}</blockquote>` : `<span class="muted">message ${esc(a.messageIds?.target ?? "–")}</span>`, `${secs(a.measurements?.targetTurnMs)} s`));
+    steps.push(step("Tool calls", callsBody(a.actual?.mcpCalls), callsResult(a.actual?.mcpCalls)));
+    steps.push(step("Outcome", esc(valueText(a.actual?.outcome)), outcomeResult(a)));
+    steps.push(step("Proposals", proposalsBody(a), proposalsResult(a)));
     const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])];
-    if (problems.length) steps.push(step(a.errors?.length ? "The attempt broke" : "Warnings", problems.map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("")));
-    steps.push(step(verdictTitle(a), checksBody(a)));
+    if (problems.length) steps.push(step(a.errors?.length ? "Error" : "Warnings", problems.map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join(""), ""));
 
     return `<div class="detail-grid">
       ${picker}${about}
-      <ol class="flow">${steps.join("")}</ol>
+      <table class="flow"><tbody>${steps.join("")}</tbody></table>
+      <div><h3>${verdictTitle(a)}</h3>${checksBody(a)}</div>
       <p class="muted">${costLine(a)}</p>
       <details class="raw-toggle"><summary>Raw attempt JSON</summary><pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre></details>
     </div>`;
   }
 
-  const step = (title, body) => `<li><div class="step-title">${title}</div>${body ? `<div class="step-body">${body}</div>` : ""}</li>`;
+  const step = (label, body, result) => `<tr><th scope="row">${label}</th><td>${body}</td><td class="result">${result}</td></tr>`;
 
   function learningStep(entry, a) {
     const m = a.measurements?.learning?.[entry.id] || {};
-    const decided = entry.decision === "approve" ? "accepted it" : entry.decision === "discard" ? "discarded it" : esc(entry.decision);
-    return step(`Setup: sent an earlier message and ${decided}`,
+    const decided = entry.decision === "approve" ? "accepted" : entry.decision === "discard" ? "discarded" : esc(entry.decision);
+    return step("Setup",
       `<blockquote>${esc(entry.message)}</blockquote>
-       <div class="muted">Category set to ${esc(entry.category)} in ${esc(entry.grouping)}, then ${decided}. Answered in ${secs(m.turnMs)} s; remembered ${secs(m.availabilityMs)} s after the decision.</div>`);
+       <div class="muted">Category set to ${esc(entry.category)} in ${esc(entry.grouping)}, then ${decided}. Remembered ${secs(m.availabilityMs)} s after the decision.</div>`,
+      `${decided}, ${secs(m.turnMs)} s`);
   }
 
-  const callsTitle = (calls) => calls == null ? "The model's tool calls were not recorded" : calls.length ? `The model called ${plural(calls.length, "ledger tool")}` : "The model called no ledger tool";
+  const callsResult = (calls) => calls == null ? "" : calls.length ? plural(calls.length, "call") : "none";
   function callsBody(calls) {
-    if (calls == null) return `<span class="muted">The run had no ledger log.</span>`;
-    if (!calls.length) return "";
-    return `<ol class="calls mono">${calls.map((x) => `<li>${esc(x.tool)}(${Object.entries(x.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => `<span class="muted">${esc(k)}</span>: ${esc(valueText(v))}`).join(", ")})${x.accepted ? "" : ` <span class="fail">rejected by the ledger</span>`}</li>`).join("")}</ol>`;
+    if (calls == null) return `<span class="muted">Not recorded: the run had no ledger log.</span>`;
+    if (!calls.length) return `<span class="muted">The model called no ledger tool.</span>`;
+    return `<div class="calls mono">${calls.map((x) => `<div>${esc(x.tool)}(${Object.entries(x.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => `<span class="muted">${esc(k)}</span>: ${esc(valueText(v))}`).join(", ")})${x.accepted ? "" : ` <span class="fail">rejected by the ledger</span>`}</div>`).join("")}</div>`;
   }
 
-  function outcomeTitle(a) {
+  function outcomeResult(a) {
     const want = a.expected?.messageOutcome, got = a.actual?.outcome;
-    const mark = want && got ? (want === got ? `<span class="pass">✓</span>` : `<span class="fail">✗ expected ${esc(want)}</span>`) : "";
-    return `The message ended as <b>${esc(valueText(got))}</b> ${mark}`;
+    if (!want || !got) return "";
+    return want === got ? `<span class="pass">✓ as expected</span>` : `<span class="fail">✗ expected ${esc(want)}</span>`;
+  }
+
+  function proposalsResult(a) {
+    const want = a.expected?.proposals?.count, got = a.actual?.proposals?.length;
+    if (!isNum(want) || !isNum(got)) return "";
+    return want === got ? `<span class="pass">✓ ${want} expected</span>` : `<span class="fail">✗ ${want} expected</span>`;
   }
 
   function proposalsBody(a) {
     const props = a.actual?.proposals;
-    if (props == null) return "";
+    if (props == null) return `<span class="muted">Not read.</span>`;
     if (!props.length) return `<span class="muted">No expense was proposed.</span>`;
     const paired = new Set(Object.values(a.matching?.pairs || {}).map(String));
     const judged = a.matching?.pairs != null;
@@ -518,12 +526,16 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
   }
 
   function checksBody(a) {
-    return `<ul class="checks">${(a.checks || []).map((x) => {
-      if (x.status === "pass") return `<li class="mono"><span class="pass">✓</span> ${esc(shortPath(x.path))} <span class="muted">${esc(valueText(x.actual))}</span></li>`;
-      const e = explain(x, a), d = diffPair(e.want, e.got);
+    const checks = a.checks || [];
+    if (!checks.length) return "";
+    return `<table class="checks"><thead><tr><th></th><th>Check</th><th>Expected</th><th>Got</th></tr></thead><tbody>${checks.map((x) => {
+      const ok = x.status === "pass";
+      const e = ok ? { path: shortPath(x.path), want: constraintText(x.expected), got: valueText(x.actual) } : explain(x, a);
+      const d = ok ? { want: esc(e.want), got: esc(e.got) } : diffPair(e.want, e.got);
       const written = asWritten(x, a);
-      return `<li class="mono"><span class="fail">✗</span> ${esc(e.path)}<div class="diff"><span class="sign">− want</span><span class="want">${d.want}${written ? ` <span class="muted">(${esc(written)})</span>` : ""}</span><span class="sign">+ got</span><span class="got">${d.got}</span></div></li>`;
-    }).join("")}</ul>`;
+      return `<tr class="${ok ? "" : "failed"}"><td class="${ok ? "pass" : "fail"}">${ok ? "✓" : "✗"}</td><td class="mono">${esc(e.path)}</td>` +
+        `<td class="mono ${ok ? "" : "want"}">${d.want}${written ? ` <span class="muted">(${esc(written)})</span>` : ""}</td><td class="mono ${ok ? "" : "got"}">${d.got}</td></tr>`;
+    }).join("")}</tbody></table>`;
   }
 
   /** The case file's own wording of a check's expectation where it differs from the resolved one: a date token. */
