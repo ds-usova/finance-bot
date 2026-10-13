@@ -22,3 +22,13 @@
   - Action: answered — "Rename to TurnCall / TurnCallLog / operation()". ST01 renames them and their callers;
     RU01 and GU01 target `TurnCallLog`. The run file keeps its `tool` key, which `run-viewer.html` and earlier
     runs read.
+
+## Suite Runs
+
+- baseline · tree 01227be1deff13957ca968d22a81016fa701df6a · total 20 · skipped 0 · green · paths: eval-runner
+- stabilization · tree 16e73c9815f77f97a10d95ca0b834a4ca79152bd · total 20 · skipped 0 · green · paths: eval-runner
+
+## Stubs
+
+Marker: `stub-intent:`
+

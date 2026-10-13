@@ -1,7 +1,7 @@
 package bot.finance.eval.oracle;
 
 import bot.finance.eval.ledger.Proposal;
-import bot.finance.eval.observe.McpCall;
+import bot.finance.eval.observe.TurnCall;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +17,7 @@ public final class Oracle {
      * @param calls the target's MCP calls, or null where no call record could be read
      */
     public static Evaluation evaluate(
-            JsonNode expected, String outcome, List<Proposal> proposals, List<McpCall> calls) {
+            JsonNode expected, String outcome, List<Proposal> proposals, List<TurnCall> calls) {
         List<Check> checks = new ArrayList<>();
 
         String expectedOutcome = expected.path("messageOutcome").asString();

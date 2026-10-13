@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class McpCallLogTest {
+class TurnCallLogTest {
 
     private static final String LINES =
             """
@@ -23,10 +23,10 @@ class McpCallLogTest {
 
     @Test
     void readsOnlyTheCallsOfTheNamedMessage() {
-        List<McpCall> calls = McpCallLog.parse(LINES, "web:17");
+        List<TurnCall> calls = TurnCallLog.parse(LINES, "web:17");
 
-        assertThat(calls).extracting(McpCall::tool).containsExactly("summarize_spending", "list_categories");
-        assertThat(calls).extracting(McpCall::accepted).containsExactly(true, false);
+        assertThat(calls).extracting(TurnCall::operation).containsExactly("summarize_spending", "list_categories");
+        assertThat(calls).extracting(TurnCall::accepted).containsExactly(true, false);
         assertThat(calls.getFirst().arguments().path("from").asString()).isEqualTo("2026-10-05");
     }
 
@@ -34,12 +34,14 @@ class McpCallLogTest {
     void readsFromTheMarkOnward(@TempDir Path dir) throws Exception {
         Path file = dir.resolve("ledger.log");
         Files.writeString(file, LINES);
-        McpCallLog log = new McpCallLog(file);
+        TurnCallLog log = new TurnCallLog(file);
         long mark = log.mark();
         Files.writeString(
                 file,
                 LINES + "x - mcp_call tool=create_expense_proposal outcome=ok userId=42 message=web:17 arguments={}\n");
 
-        assertThat(log.callsSince(mark, "web:17")).extracting(McpCall::tool).containsExactly("create_expense_proposal");
+        assertThat(log.callsSince(mark, "web:17"))
+                .extracting(TurnCall::operation)
+                .containsExactly("create_expense_proposal");
     }
 }

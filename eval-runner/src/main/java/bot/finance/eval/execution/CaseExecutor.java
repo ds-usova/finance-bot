@@ -7,9 +7,9 @@ import bot.finance.eval.corpus.EvalCase;
 import bot.finance.eval.corpus.LearningEntry;
 import bot.finance.eval.corpus.Step;
 import bot.finance.eval.ledger.LedgerClient;
-import bot.finance.eval.observe.McpCallLog;
 import bot.finance.eval.observe.MemoryProbe;
 import bot.finance.eval.observe.TargetMetrics;
+import bot.finance.eval.observe.TurnCallLog;
 import bot.finance.eval.oracle.Constraint;
 import java.net.http.HttpClient;
 import java.time.Instant;
@@ -23,19 +23,19 @@ public final class CaseExecutor {
     private final HttpClient http;
     private final TargetMetrics metrics;
     private final MemoryProbe memoryProbe;
-    private final McpCallLog mcpCallLog;
+    private final TurnCallLog turnCallLog;
 
     public CaseExecutor(
             RunnerConfig config,
             HttpClient http,
             TargetMetrics metrics,
             MemoryProbe memoryProbe,
-            McpCallLog mcpCallLog) {
+            TurnCallLog turnCallLog) {
         this.config = config;
         this.http = http;
         this.metrics = metrics;
         this.memoryProbe = memoryProbe;
-        this.mcpCallLog = mcpCallLog;
+        this.turnCallLog = turnCallLog;
     }
 
     public Attempt run(EvalCase evalCase, int repetition, int attemptNumber) {
@@ -108,7 +108,7 @@ public final class CaseExecutor {
             LedgerClient ledger = Fixture.newPerson(http, config.ledgerUrl(), config.botToken());
             learning = new LearningSteps(
                     ledger, memoryProbe, config.terminalTimeout(), config.readinessTimeout(), attempt);
-            target = new TargetTurn(ledger, metrics, mcpCallLog, config.terminalTimeout(), attempt);
+            target = new TargetTurn(ledger, metrics, turnCallLog, config.terminalTimeout(), attempt);
         }
 
         private LearningSteps learning() {

@@ -2,8 +2,8 @@ package bot.finance.eval;
 
 import bot.finance.eval.corpus.LearningEntry;
 import bot.finance.eval.ledger.Proposal;
-import bot.finance.eval.observe.McpCall;
 import bot.finance.eval.observe.TargetUsage;
+import bot.finance.eval.observe.TurnCall;
 import bot.finance.eval.oracle.Check;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -40,7 +40,7 @@ public final class Attempt {
     public static final class Actual {
         public String outcome;
         public List<Proposal> proposals;
-        public List<McpCall> mcpCalls;
+        public List<TurnCall> mcpCalls;
     }
 
     public static final class Matching {

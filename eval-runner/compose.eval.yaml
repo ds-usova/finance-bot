@@ -2,6 +2,8 @@
 # base stack keeps off the host.
 services:
   ledger-service:
+    environment:
+      TURN_CALL_LOG_ENABLED: "true"
     ports:
       - "127.0.0.1:1010:1010"
   ai-connector-service:

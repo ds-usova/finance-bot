@@ -3,10 +3,10 @@ package bot.finance.eval;
 import bot.finance.eval.corpus.CaseSelection;
 import bot.finance.eval.corpus.Corpus;
 import bot.finance.eval.execution.CaseExecutor;
-import bot.finance.eval.observe.McpCallLog;
 import bot.finance.eval.observe.MemoryProbe;
 import bot.finance.eval.observe.Prometheus;
 import bot.finance.eval.observe.TargetMetrics;
+import bot.finance.eval.observe.TurnCallLog;
 import bot.finance.eval.report.RunOutput;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -31,6 +31,6 @@ final class Wiring {
                 http,
                 new TargetMetrics(new Prometheus(http), config.ledgerMetricsUrl(), config.connectorMetricsUrl()),
                 new MemoryProbe(config.aiDbUrl(), config.aiDbUser(), config.aiDbPassword()),
-                config.ledgerLog() == null ? null : new McpCallLog(config.ledgerLog()));
+                config.ledgerLog() == null ? null : new TurnCallLog(config.ledgerLog()));
     }
 }

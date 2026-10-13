@@ -19,7 +19,7 @@ No architectural placement decisions.
 
 **Interface & Signature Sync**
 
-- [ ] ST01 · Rename the record `observe/McpCall` to `TurnCall`, its component `tool` to `operation`, still written
+- [x] ST01 · Rename the record `observe/McpCall` to `TurnCall`, its component `tool` to `operation`, still written
   to a run file as `tool`; rename `observe/McpCallLog` to `TurnCallLog`, and its test class `McpCallLogTest` to
   `TurnCallLogTest`. Every caller follows: `Attempt`, `Wiring`, `TargetTurn`, `CaseExecutor`, `Oracle`,
   `McpExpectations` and `OracleTest`, a field named `mcpCallLog` becoming `turnCallLog`. `Attempt.mcpCalls` keeps
@@ -40,13 +40,13 @@ No architectural placement decisions.
 
 **Configuration**
 
-- [ ] ST02 · In `eval-runner/compose.eval.yaml`, give `ledger-service` the environment
+- [x] ST02 · In `eval-runner/compose.eval.yaml`, give `ledger-service` the environment
   `TURN_CALL_LOG_ENABLED: "true"` (DN07, the evaluation stack turns the line on)
   - writes: `eval-runner/compose.eval.yaml`
 
 #### Closing item
 
-- [ ] ST03 · `tools/agent-test/agent-test.sh --module eval-runner --all` stays green; the module has no
+- [x] ST03 · `tools/agent-test/agent-test.sh --module eval-runner --all` stays green; the module has no
   architecture test
   - writes: none
 

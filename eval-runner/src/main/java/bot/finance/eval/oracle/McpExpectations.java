@@ -1,6 +1,6 @@
 package bot.finance.eval.oracle;
 
-import bot.finance.eval.observe.McpCall;
+import bot.finance.eval.observe.TurnCall;
 import bot.finance.eval.oracle.Constraint.PathConstraint;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ final class McpExpectations {
     private McpExpectations() {}
 
     /** @param calls the target's calls, or null where none could be read, which leaves every check unevaluated */
-    static List<Check> check(String tool, JsonNode expectation, List<McpCall> calls) {
+    static List<Check> check(String tool, JsonNode expectation, List<TurnCall> calls) {
         String prefix = "mcpCalls." + tool;
         List<Check> checks = new ArrayList<>();
         if (calls == null) {
@@ -25,9 +25,9 @@ final class McpExpectations {
             return checks;
         }
 
-        List<McpCall> attempted =
-                calls.stream().filter(call -> call.tool().equals(tool)).toList();
-        List<McpCall> accepted = attempted.stream().filter(McpCall::accepted).toList();
+        List<TurnCall> attempted =
+                calls.stream().filter(call -> call.operation().equals(tool)).toList();
+        List<TurnCall> accepted = attempted.stream().filter(TurnCall::accepted).toList();
 
         for (String name : expectation.propertyNames()) {
             JsonNode value = expectation.get(name);
@@ -52,7 +52,7 @@ final class McpExpectations {
     }
 
     /** Each argument constraint holds for every accepted call, and at least one call was accepted. */
-    private static List<Check> arguments(String path, JsonNode constraints, List<McpCall> accepted) {
+    private static List<Check> arguments(String path, JsonNode constraints, List<TurnCall> accepted) {
         List<Check> checks = new ArrayList<>();
         for (PathConstraint argument : Constraint.flatten(constraints)) {
             List<String> actual = accepted.stream()

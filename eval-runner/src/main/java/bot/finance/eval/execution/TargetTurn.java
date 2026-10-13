@@ -5,8 +5,8 @@ import bot.finance.eval.EvalException;
 import bot.finance.eval.ledger.LedgerClient;
 import bot.finance.eval.ledger.Proposal;
 import bot.finance.eval.ledger.WrittenMessage;
-import bot.finance.eval.observe.McpCallLog;
 import bot.finance.eval.observe.TargetMetrics;
+import bot.finance.eval.observe.TurnCallLog;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -24,7 +24,7 @@ final class TargetTurn {
 
     private final LedgerClient ledger;
     private final TargetMetrics metrics;
-    private final McpCallLog mcpCallLog;
+    private final TurnCallLog turnCallLog;
     private final Duration terminalTimeout;
     private final Attempt attempt;
 
@@ -38,12 +38,12 @@ final class TargetTurn {
     TargetTurn(
             LedgerClient ledger,
             TargetMetrics metrics,
-            McpCallLog mcpCallLog,
+            TurnCallLog turnCallLog,
             Duration terminalTimeout,
             Attempt attempt) {
         this.ledger = ledger;
         this.metrics = metrics;
-        this.mcpCallLog = mcpCallLog;
+        this.turnCallLog = turnCallLog;
         this.terminalTimeout = terminalTimeout;
         this.attempt = attempt;
     }
@@ -61,7 +61,7 @@ final class TargetTurn {
         runDate = LocalDate.now(ZoneOffset.UTC);
         attempt.expectedDate = runDate.toString();
         window = metrics.open(e -> attempt.warnings.add(Attempt.Failure.of(e)));
-        logMark = mcpCallLog == null ? 0 : mcpCallLog.mark();
+        logMark = turnCallLog == null ? 0 : turnCallLog.mark();
         messageId = ledger.fileMessage(STAGE, text);
         turn = Stopwatch.start();
         attempt.messageIds.put(STAGE, messageId);
@@ -87,9 +87,9 @@ final class TargetTurn {
                 .toList();
         attempt.actual.proposals = proposals;
         attempt.measurements.usage = window.close();
-        if (mcpCallLog != null) {
+        if (turnCallLog != null) {
             Poller.sleep(LOG_FLUSH);
-            attempt.actual.mcpCalls = mcpCallLog.callsSince(logMark, WrittenMessage.incomingMessageId(id));
+            attempt.actual.mcpCalls = turnCallLog.callsSince(logMark, WrittenMessage.incomingMessageId(id));
         }
         inspected = true;
     }

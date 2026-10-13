@@ -16,7 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Reads the {@code mcp_call} lines the ledger writes to its console, from a file that console is captured into.
  * A read starts at a mark taken before the target was filed, so the file is never read whole.
  */
-public final class McpCallLog {
+public final class TurnCallLog {
 
     private static final Pattern LINE =
             Pattern.compile("mcp_call tool=(\\S+) outcome=(\\S+) userId=\\S+ message=(\\S+) arguments=(.*)$");
@@ -24,7 +24,7 @@ public final class McpCallLog {
 
     private final Path file;
 
-    public McpCallLog(Path file) {
+    public TurnCallLog(Path file) {
         this.file = file;
     }
 
@@ -36,7 +36,7 @@ public final class McpCallLog {
         }
     }
 
-    public List<McpCall> callsSince(long mark, String incomingMessageId) {
+    public List<TurnCall> callsSince(long mark, String incomingMessageId) {
         try (RandomAccessFile reader = new RandomAccessFile(file.toFile(), "r")) {
             long length = reader.length();
             byte[] bytes = new byte[(int) Math.max(0, length - mark)];
@@ -48,12 +48,12 @@ public final class McpCallLog {
         }
     }
 
-    static List<McpCall> parse(String text, String incomingMessageId) {
-        List<McpCall> calls = new ArrayList<>();
+    static List<TurnCall> parse(String text, String incomingMessageId) {
+        List<TurnCall> calls = new ArrayList<>();
         for (String line : text.split("\\R")) {
             Matcher matcher = LINE.matcher(line.strip());
             if (matcher.find() && matcher.group(3).equals(incomingMessageId)) {
-                calls.add(new McpCall(
+                calls.add(new TurnCall(
                         matcher.group(1),
                         matcher.group(2).equals("ok"),
                         matcher.group(3),

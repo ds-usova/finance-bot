@@ -3,7 +3,7 @@ package bot.finance.eval.oracle;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bot.finance.eval.ledger.Proposal;
-import bot.finance.eval.observe.McpCall;
+import bot.finance.eval.observe.TurnCall;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -22,8 +22,8 @@ class OracleTest {
         return new Proposal(id, amount, "HUF", merchant, "coffee", categoryId, category, "Dining");
     }
 
-    private static McpCall call(String tool, boolean accepted, String arguments) {
-        return new McpCall(tool, accepted, "web:1", YAML.readTree(arguments));
+    private static TurnCall call(String tool, boolean accepted, String arguments) {
+        return new TurnCall(tool, accepted, "web:1", YAML.readTree(arguments));
     }
 
     @Test
