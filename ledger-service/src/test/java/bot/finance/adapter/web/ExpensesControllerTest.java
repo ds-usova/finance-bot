@@ -794,11 +794,23 @@ class ExpensesControllerTest {
 
     static Stream<Arguments> fractionalIntegerBodies() {
         return Stream.of(
-                arguments("an acceptance's id", post(ACCEPT_PATH), MediaType.APPLICATION_JSON, """
+                arguments(
+                        "an acceptance's id",
+                        post(ACCEPT_PATH),
+                        MediaType.APPLICATION_JSON,
+                        """
                         {"ids":[1.5]}"""),
-                arguments("a discard's id", post(DISCARD_PATH), MediaType.APPLICATION_JSON, """
+                arguments(
+                        "a discard's id",
+                        post(DISCARD_PATH),
+                        MediaType.APPLICATION_JSON,
+                        """
                         {"ids":[1.5]}"""),
-                arguments("a category change's value", patch(CHANGE_CATEGORY_PATH, "7"), JSON_PATCH, """
+                arguments(
+                        "a category change's value",
+                        patch(CHANGE_CATEGORY_PATH, "7"),
+                        JSON_PATCH,
+                        """
                         [{"op":"replace","path":"/categoryId","value":42.5}]"""));
     }
 
