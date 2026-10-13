@@ -53,6 +53,8 @@ public final class CaseExecutor {
             this.evalCase = evalCase;
             attempt.caseId = evalCase.id();
             attempt.covers = evalCase.covers();
+            attempt.caseText = new Attempt.CaseText(
+                    evalCase.message(), evalCase.notes(), evalCase.learning(), evalCase.expected());
             attempt.repetition = repetition;
             attempt.attempt = attemptNumber;
         }

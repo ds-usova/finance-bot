@@ -9,6 +9,7 @@ public record EvalCase(
         String id,
         String covers,
         String message,
+        String notes,
         List<LearningEntry> learning,
         JsonNode expected,
         JsonNode executionLimits,

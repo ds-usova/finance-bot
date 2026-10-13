@@ -96,23 +96,28 @@ tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
 .detail-grid { display: grid; gap: 12px; max-width: 980px; }
 .reps-picker { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 .reps-picker .tab { color: var(--muted); }
-.line { color: var(--muted); }
-.line b { color: var(--fg); font-weight: 500; }
 h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
-.check { padding-block: 4px; }
-.check .path { color: var(--fg); }
-.diff { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); margin-top: 2px; }
+.about p { margin: 0 0 2px; max-width: 75ch; }
+.about p:first-child { font-size: 14.5px; }
+.flow { margin: 0; padding-left: 1.6em; display: grid; gap: 14px; }
+.flow > li::marker { color: var(--faint); font-variant-numeric: tabular-nums; }
+.step-title b { font-weight: 600; }
+.step-body { margin-top: 4px; display: grid; gap: 4px; }
+blockquote { margin: 0; padding: 4px 10px; border-left: 2px solid var(--rule); font-size: 14px; max-width: 75ch; }
+.calls { margin: 0; padding-left: 1.6em; display: grid; gap: 2px; }
+.calls li::marker { color: var(--faint); }
+table.proposals { width: auto; }
+table.proposals td, table.proposals th { padding: 2px 12px 2px 0; border-bottom: 0; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.diff { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); margin: 2px 0 2px 1.3em; }
 .diff .sign { color: var(--faint); }
 .diff .want { color: var(--pass); }
 .diff .got { color: var(--fail); }
 .diff mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
 .diff .want mark { background: var(--mark-pass); }
-.holds summary { cursor: pointer; color: var(--muted); }
-.holds ul { margin: 4px 0 0; padding-left: 1.4em; color: var(--muted); }
 .problem { color: var(--error); overflow-wrap: anywhere; }
-.subtabs { display: flex; flex-wrap: wrap; gap: 2px 18px; border-bottom: 1px solid var(--rule); }
-.panel { padding-top: 8px; }
-.panel table td, .panel table th { padding: 3px 8px; }
+.raw-toggle summary { cursor: pointer; color: var(--muted); }
+.raw-toggle pre { margin-top: 6px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
@@ -148,9 +153,9 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 "performance":{"runMs":26338,"targetTurnMs":{"n":3,"median":4008.0,"p90":9835.0,"mean":5540.333333333333},"providerChatCalls":{"n":3,"median":3.0,"p90":3.0,"mean":2.6666666666666665},"providerChatSeconds":{"n":3,"median":2.7800098030000004,"p90":4.650240908,"mean":3.2844495833333336},"inputTokens":{"n":3,"median":2827.0,"p90":2909.0,"mean":2511.3333333333335},"outputTokens":{"n":3,"median":72.0,"p90":91.0,"mean":71.66666666666667},"ledgerToolCalls":{"n":3,"median":2.0,"p90":2.0,"mean":1.6666666666666667}},
 "cases":{"2-002-one-expense":{"verdicts":["pass"],"verdictCounts":{"pass":1,"fail":0,"error":0},"precision":1.0,"recall":1.0,"f1":1.0,"targetTurnMs":{"n":1,"median":9835.0,"p90":9835.0,"mean":9835.0}},"8-003-period-last-week":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":null,"recall":null,"f1":null,"targetTurnMs":{"n":1,"median":2778.0,"p90":2778.0,"mean":2778.0}},"10-003-discarded-history":{"verdicts":["fail"],"verdictCounts":{"pass":0,"fail":1,"error":0},"precision":0.0,"recall":0.0,"f1":0.0,"targetTurnMs":{"n":1,"median":4008.0,"p90":4008.0,"mean":4008.0}}}},
 "attempts":[
-{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:8","arguments":{"grouping":"Transportation"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:8","arguments":{"category":"Public Transport","grouping":"Transportation","description":"bus ticket","merchant":null,"amount":"500","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":21,"amount":"500.00","currency":"HUF","merchant":null,"description":"bus ticket","categoryId":133,"category":"Public Transport","grouping":"Transportation"}]},"attempt":1,"attemptStatus":"completed","caseId":"2-002-one-expense","checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"}],"covers":"expense-count.one","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:45.335152200Z","matching":{"actual":1,"expected":1,"matched":1,"pairs":null},"measurements":{"learning":{},"targetTurnMs":9835,"usage":{"providerChatCalls":3.0,"providerChatSeconds":4.650240908,"providerEmbeddingCalls":1.0,"inputTokens":2827.0,"outputTokens":72.0,"ledgerToolCalls":2.0}},"messageIds":{"target":8},"qualityMetrics":{"f1":1.0,"precision":1.0,"recall":1.0},"repetition":1,"startedAt":"2026-10-13T19:05:33.467648Z","verdict":"pass","warnings":[]},
-{"actual":{"mcpCalls":[{"tool":"summarize_spending","accepted":true,"incomingMessageId":"web:9","arguments":{"from":"2026-10-04","to":"2026-10-10"}}],"outcome":"ANSWERED","proposals":[]},"attempt":1,"attemptStatus":"completed","caseId":"8-003-period-last-week","checks":[{"path":"messageOutcome","expected":"ANSWERED","actual":"ANSWERED","status":"pass"},{"path":"proposals.count","expected":0,"actual":0,"status":"pass"},{"path":"mcpCalls.summarize_spending.acceptedCount","expected":1,"actual":1,"status":"pass"},{"path":"mcpCalls.summarize_spending.arguments.from","expected":{"equals":"2026-10-05"},"actual":["2026-10-04"],"status":"fail"},{"path":"mcpCalls.summarize_spending.arguments.to","expected":{"equals":"2026-10-11"},"actual":["2026-10-10"],"status":"fail"}],"covers":"spending-period.last-week","errors":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"2026-10-05"},"to":{"equals":"2026-10-11"}}}}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:49.350288Z","matching":{"actual":0,"expected":0,"matched":0,"pairs":null},"measurements":{"learning":{},"targetTurnMs":2778,"usage":{"providerChatCalls":2.0,"providerChatSeconds":2.423098039,"providerEmbeddingCalls":1.0,"inputTokens":1798.0,"outputTokens":52.0,"ledgerToolCalls":1.0}},"messageIds":{"target":9},"qualityMetrics":{"f1":null,"precision":null,"recall":null},"repetition":1,"startedAt":"2026-10-13T19:05:45.388772500Z","verdict":"fail","warnings":[]},
-{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:11","arguments":{"grouping":"Miscellaneous"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:11","arguments":{"category":"Uncategorized Expenses","grouping":"Miscellaneous","description":"coffee","merchant":"Corner Shop","amount":"850","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":23,"amount":"850.00","currency":"HUF","merchant":"Corner Shop","description":"coffee","categoryId":388,"category":"Uncategorized Expenses","grouping":"Miscellaneous"}]},"attempt":1,"attemptStatus":"completed","caseId":"10-003-discarded-history","checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"},{"path":"proposals.items[0]","expected":{"category":{"noneOf":["Uncategorized Expenses"]}},"actual":null,"status":"fail"}],"covers":"learned-history.discarded","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:59.487291600Z","matching":{"actual":1,"expected":1,"matched":0,"pairs":{}},"measurements":{"learning":{"coffee":{"availabilityMs":639,"turnMs":4208}},"targetTurnMs":4008,"usage":{"providerChatCalls":3.0,"providerChatSeconds":2.7800098030000004,"providerEmbeddingCalls":1.0,"inputTokens":2909.0,"outputTokens":91.0,"ledgerToolCalls":2.0}},"messageIds":{"coffee":10,"target":11},"qualityMetrics":{"f1":0.0,"precision":0.0,"recall":0.0},"repetition":1,"startedAt":"2026-10-13T19:05:49.353289Z","verdict":"fail","warnings":[]}
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:8","arguments":{"grouping":"Transportation"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:8","arguments":{"category":"Public Transport","grouping":"Transportation","description":"bus ticket","merchant":null,"amount":"500","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":21,"amount":"500.00","currency":"HUF","merchant":null,"description":"bus ticket","categoryId":133,"category":"Public Transport","grouping":"Transportation"}]},"attempt":1,"attemptStatus":"completed","caseId":"2-002-one-expense","caseText":{"message":"I paid 500 HUF for a bus ticket.","notes":"Checks only expense-count.one.","learning":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}}},"checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"}],"covers":"expense-count.one","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:45.335152200Z","matching":{"actual":1,"expected":1,"matched":1,"pairs":null},"measurements":{"learning":{},"targetTurnMs":9835,"usage":{"providerChatCalls":3.0,"providerChatSeconds":4.650240908,"providerEmbeddingCalls":1.0,"inputTokens":2827.0,"outputTokens":72.0,"ledgerToolCalls":2.0}},"messageIds":{"target":8},"qualityMetrics":{"f1":1.0,"precision":1.0,"recall":1.0},"repetition":1,"startedAt":"2026-10-13T19:05:33.467648Z","verdict":"pass","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"summarize_spending","accepted":true,"incomingMessageId":"web:9","arguments":{"from":"2026-10-04","to":"2026-10-10"}}],"outcome":"ANSWERED","proposals":[]},"attempt":1,"attemptStatus":"completed","caseId":"8-003-period-last-week","caseText":{"message":"How much did I spend last week?","notes":"Checks only spending-period.last-week.","learning":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"previous-week-monday"},"to":{"equals":"previous-week-sunday"}}}}}},"checks":[{"path":"messageOutcome","expected":"ANSWERED","actual":"ANSWERED","status":"pass"},{"path":"proposals.count","expected":0,"actual":0,"status":"pass"},{"path":"mcpCalls.summarize_spending.acceptedCount","expected":1,"actual":1,"status":"pass"},{"path":"mcpCalls.summarize_spending.arguments.from","expected":{"equals":"2026-10-05"},"actual":["2026-10-04"],"status":"fail"},{"path":"mcpCalls.summarize_spending.arguments.to","expected":{"equals":"2026-10-11"},"actual":["2026-10-10"],"status":"fail"}],"covers":"spending-period.last-week","errors":[],"expected":{"messageOutcome":"ANSWERED","proposals":{"count":0},"mcpCalls":{"summarize_spending":{"acceptedCount":1,"arguments":{"from":{"equals":"2026-10-05"},"to":{"equals":"2026-10-11"}}}}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:49.350288Z","matching":{"actual":0,"expected":0,"matched":0,"pairs":null},"measurements":{"learning":{},"targetTurnMs":2778,"usage":{"providerChatCalls":2.0,"providerChatSeconds":2.423098039,"providerEmbeddingCalls":1.0,"inputTokens":1798.0,"outputTokens":52.0,"ledgerToolCalls":1.0}},"messageIds":{"target":9},"qualityMetrics":{"f1":null,"precision":null,"recall":null},"repetition":1,"startedAt":"2026-10-13T19:05:45.388772500Z","verdict":"fail","warnings":[]},
+{"actual":{"mcpCalls":[{"tool":"list_categories","accepted":true,"incomingMessageId":"web:11","arguments":{"grouping":"Miscellaneous"}},{"tool":"create_expense_proposal","accepted":true,"incomingMessageId":"web:11","arguments":{"category":"Uncategorized Expenses","grouping":"Miscellaneous","description":"coffee","merchant":"Corner Shop","amount":"850","currencyCode":"HUF"}}],"outcome":"RECORDED","proposals":[{"id":23,"amount":"850.00","currency":"HUF","merchant":"Corner Shop","description":"coffee","categoryId":388,"category":"Uncategorized Expenses","grouping":"Miscellaneous"}]},"attempt":1,"attemptStatus":"completed","caseId":"10-003-discarded-history","caseText":{"message":"I paid 850 HUF for coffee at Corner Shop.","notes":"Discarding generic classification must not teach a positive preference for it.","learning":[{"id":"coffee","message":"I paid 850 HUF for coffee at Corner Shop.","proposalCount":1,"grouping":"Miscellaneous","category":"Uncategorized Expenses","decision":"discard"}],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}}},"checks":[{"path":"messageOutcome","expected":"RECORDED","actual":"RECORDED","status":"pass"},{"path":"proposals.count","expected":1,"actual":1,"status":"pass"},{"path":"proposals.items[0]","expected":{"category":{"noneOf":["Uncategorized Expenses"]}},"actual":null,"status":"fail"}],"covers":"learned-history.discarded","errors":[],"expected":{"messageOutcome":"RECORDED","proposals":{"count":1,"items":[{"category":{"noneOf":["Uncategorized Expenses"]}}]}},"expectedDate":"2026-10-13","finishedAt":"2026-10-13T19:05:59.487291600Z","matching":{"actual":1,"expected":1,"matched":0,"pairs":{}},"measurements":{"learning":{"coffee":{"availabilityMs":639,"turnMs":4208}},"targetTurnMs":4008,"usage":{"providerChatCalls":3.0,"providerChatSeconds":2.7800098030000004,"providerEmbeddingCalls":1.0,"inputTokens":2909.0,"outputTokens":91.0,"ledgerToolCalls":2.0}},"messageIds":{"coffee":10,"target":11},"qualityMetrics":{"f1":0.0,"precision":0.0,"recall":0.0},"repetition":1,"startedAt":"2026-10-13T19:05:49.353289Z","verdict":"fail","warnings":[]}
 ]}
 </script>
 
@@ -402,7 +407,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     $("toggle-passed")?.addEventListener("click", () => { state.showPassed = !state.showPassed; renderTable(cases, base); });
     table.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => {
       const id = tr.dataset.case;
-      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, { attempt: cases.get(id).focus, tab: "" });
+      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, { attempt: cases.get(id).focus });
       renderTable(cases, base);
     }));
     table.querySelectorAll("tr.detail").forEach((tr) => bindDetail(tr, cases.get(tr.dataset.case), cases, base));
@@ -442,75 +447,124 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 
   // ---- one case ---------------------------------------------------------------------------------------------
 
+  /** One attempt told in the order it happened: the case, its setup, the message, what the model did, the verdict. */
   function detail(c) {
     const view = state.open.get(c.id);
     const a = view.attempt;
+    const text = a.caseText;
     const picker = c.attempts.length > 1
       ? `<div class="reps-picker"><span class="muted">Repetition</span>${c.attempts.map((x, i) => `<button type="button" class="tab" data-attempt="${i}" aria-pressed="${x === a}"><span class="${esc(x.verdict || "")}">${glyph[x.verdict] || glyph.none}</span> ${esc(x.repetition)}${x.attempt > 1 ? `.${esc(x.attempt)}` : ""}</button>`).join("")}</div>`
       : "";
-    const failing = failingChecks(a), holding = (a.checks || []).filter((x) => x.status === "pass");
-    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])]
-      .map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("");
-    const outcome = `<div class="line">Expected <b>${esc(valueText(a.expected?.messageOutcome))}</b>, got <b>${esc(valueText(a.actual?.outcome))}</b>. Turn ${secs(a.measurements?.targetTurnMs)} s.${a.attemptStatus && a.attemptStatus !== "completed" ? ` Attempt ${esc(a.attemptStatus)}.` : ""}</div>`;
-    const failingHtml = failing.length ? `<div><h3>${plural(failing.length, "failing check")}</h3>${failing.map((x) => {
-      const e = explain(x, a), d = diffPair(e.want, e.got);
-      return `<div class="check mono"><div class="path">${esc(e.path)}</div><div class="diff"><span class="sign">− want</span><span class="want">${d.want}</span><span class="sign">+ got</span><span class="got">${d.got}</span></div></div>`;
-    }).join("")}</div>` : "";
-    const holdsHtml = holding.length ? `<details class="holds"><summary>${plural(holding.length, "check")} hold</summary><ul class="mono">${holding.map((x) => `<li>${esc(shortPath(x.path))} = ${esc(valueText(x.actual))}</li>`).join("")}</ul></details>` : "";
-    const calls = a.actual?.mcpCalls, props = a.actual?.proposals;
-    const tabs = [["calls", `Tool calls ${calls == null ? "" : calls.length}`], ["proposals", `Proposals ${props == null ? "" : props.length}`], ["timing", "Timing and tokens"], ["raw", "Raw JSON"]];
+    const about = text
+      ? `<div class="about">${text.notes ? `<p>${esc(text.notes)}</p>` : ""}<p class="muted">Expected: ${esc(expectationText(text.expected))}</p></div>`
+      : `<p class="muted">This run file has no case text. Runs written by the current runner include it.</p>`;
+
+    const steps = [];
+    for (const entry of text?.learning || []) steps.push(learningStep(entry, a));
+    steps.push(step("Sent the case message", text ? `<blockquote>${esc(text.message)}</blockquote>` : `<span class="muted">message ${esc(a.messageIds?.target ?? "–")}</span>`));
+    steps.push(step(callsTitle(a.actual?.mcpCalls), callsBody(a.actual?.mcpCalls)));
+    steps.push(step(outcomeTitle(a), proposalsBody(a)));
+    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])];
+    if (problems.length) steps.push(step(a.errors?.length ? "The attempt broke" : "Warnings", problems.map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("")));
+    steps.push(step(verdictTitle(a), checksBody(a)));
+
     return `<div class="detail-grid">
-      ${picker}${outcome}${problems}${failingHtml}${holdsHtml}
-      <div>
-        <div class="subtabs" role="group" aria-label="More about this attempt">${tabs.map(([k, l]) => `<button type="button" class="tab" data-tab="${k}" aria-pressed="${view.tab === k}">${esc(l.trim())}</button>`).join("")}</div>
-        ${view.tab ? `<div class="panel">${panel(view.tab, a)}</div>` : ""}
-      </div>
+      ${picker}${about}
+      <ol class="flow">${steps.join("")}</ol>
+      <p class="muted">${costLine(a)}</p>
+      <details class="raw-toggle"><summary>Raw attempt JSON</summary><pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre></details>
     </div>`;
+  }
+
+  const step = (title, body) => `<li><div class="step-title">${title}</div>${body ? `<div class="step-body">${body}</div>` : ""}</li>`;
+
+  function learningStep(entry, a) {
+    const m = a.measurements?.learning?.[entry.id] || {};
+    const decided = entry.decision === "approve" ? "accepted it" : entry.decision === "discard" ? "discarded it" : esc(entry.decision);
+    return step(`Setup: sent an earlier message and ${decided}`,
+      `<blockquote>${esc(entry.message)}</blockquote>
+       <div class="muted">Category set to ${esc(entry.category)} in ${esc(entry.grouping)}, then ${decided}. Answered in ${secs(m.turnMs)} s; remembered ${secs(m.availabilityMs)} s after the decision.</div>`);
+  }
+
+  const callsTitle = (calls) => calls == null ? "The model's tool calls were not recorded" : calls.length ? `The model called ${plural(calls.length, "ledger tool")}` : "The model called no ledger tool";
+  function callsBody(calls) {
+    if (calls == null) return `<span class="muted">The run had no ledger log.</span>`;
+    if (!calls.length) return "";
+    return `<ol class="calls mono">${calls.map((x) => `<li>${esc(x.tool)}(${Object.entries(x.arguments || {}).filter(([, v]) => v !== null).map(([k, v]) => `<span class="muted">${esc(k)}</span>: ${esc(valueText(v))}`).join(", ")})${x.accepted ? "" : ` <span class="fail">rejected by the ledger</span>`}</li>`).join("")}</ol>`;
+  }
+
+  function outcomeTitle(a) {
+    const want = a.expected?.messageOutcome, got = a.actual?.outcome;
+    const mark = want && got ? (want === got ? `<span class="pass">✓</span>` : `<span class="fail">✗ expected ${esc(want)}</span>`) : "";
+    return `The message ended as <b>${esc(valueText(got))}</b> ${mark}`;
+  }
+
+  function proposalsBody(a) {
+    const props = a.actual?.proposals;
+    if (props == null) return "";
+    if (!props.length) return `<span class="muted">No expense was proposed.</span>`;
+    const paired = new Set(Object.values(a.matching?.pairs || {}).map(String));
+    const judged = a.matching?.pairs != null;
+    return `<table class="proposals"><thead><tr>${judged ? "<th></th>" : ""}<th class="r">Amount</th><th>Description</th><th>Merchant</th><th>Category</th></tr></thead><tbody>${props.map((p) =>
+      `<tr>${judged ? `<td class="${paired.has(String(p.id)) ? "pass" : "fail"}" title="${paired.has(String(p.id)) ? "matches an expected expense" : "matches no expected expense"}">${paired.has(String(p.id)) ? "✓" : "✗"}</td>` : ""}<td class="r num">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "–")}</td><td>${esc(p.merchant ?? "–")}</td><td>${esc(p.category ?? "–")} <span class="muted">in ${esc(p.grouping ?? "–")}</span></td></tr>`).join("")}</tbody></table>`;
+  }
+
+  function verdictTitle(a) {
+    const checks = a.checks || [], failing = failingChecks(a).length;
+    if (!checks.length) return `Not judged`;
+    return failing
+      ? `<span class="fail">Failed</span>: ${failing} of ${plural(checks.length, "check")} did not hold`
+      : `<span class="pass">Passed</span>: all ${plural(checks.length, "check")} hold`;
+  }
+
+  function checksBody(a) {
+    return `<ul class="checks">${(a.checks || []).map((x) => {
+      if (x.status === "pass") return `<li class="mono"><span class="pass">✓</span> ${esc(shortPath(x.path))} <span class="muted">${esc(valueText(x.actual))}</span></li>`;
+      const e = explain(x, a), d = diffPair(e.want, e.got);
+      const written = asWritten(x, a);
+      return `<li class="mono"><span class="fail">✗</span> ${esc(e.path)}<div class="diff"><span class="sign">− want</span><span class="want">${d.want}${written ? ` <span class="muted">(${esc(written)})</span>` : ""}</span><span class="sign">+ got</span><span class="got">${d.got}</span></div></li>`;
+    }).join("")}</ul>`;
+  }
+
+  /** The case file's own wording of a check's expectation where it differs from the resolved one: a date token. */
+  function asWritten(check, a) {
+    const raw = a.caseText?.expected && at(a.caseText.expected, check.path);
+    if (!raw || typeof raw !== "object") return "";
+    const words = constraintText(raw);
+    return words !== constraintText(check.expected) ? words : "";
+  }
+
+  /** The expectations of a case in one line, as its file writes them. */
+  function expectationText(expected) {
+    if (!expected) return "–";
+    const parts = [];
+    if (expected.messageOutcome) parts.push(`the message ends as ${expected.messageOutcome}`);
+    const p = expected.proposals;
+    if (p && "count" in p) parts.push(p.count === 0 ? "no expense is proposed" : `${plural(p.count, "expense")} proposed`);
+    for (const [i, item] of (p?.items || []).entries()) {
+      parts.push(`expense ${i + 1} has ${flatten(item).map(([f, c]) => `${f} ${constraintText(c)}`).join(", ")}`);
+    }
+    if (expected.proposalRelations?.distinctCategories) parts.push("each expense in a different category");
+    for (const [tool, e] of Object.entries(expected.mcpCalls || {})) {
+      const bits = [];
+      if ("count" in e) bits.push(`called ${plural(e.count, "time")}`);
+      if ("maximumCount" in e) bits.push(`called at most ${plural(e.maximumCount, "time")}`);
+      if ("acceptedCount" in e) bits.push(`accepted ${plural(e.acceptedCount, "time")}`);
+      if ("minimumAcceptedCount" in e) bits.push(`accepted at least ${plural(e.minimumAcceptedCount, "time")}`);
+      if (e.arguments) bits.push(`with ${flatten(e.arguments).map(([f, c]) => `${f} ${constraintText(c)}`).join(", ")}`);
+      parts.push(`${tool} ${bits.join(" ")}`);
+    }
+    return parts.join("; ") + ".";
+  }
+
+  function costLine(a) {
+    const u = a.measurements?.usage || {};
+    return `Turn ${secs(a.measurements?.targetTurnMs)} s, ${fmt(u.providerChatCalls)} model calls taking ${fmt(u.providerChatSeconds, 1)} s, ${fmt(u.inputTokens)} tokens in and ${fmt(u.outputTokens)} out, ${fmt(u.ledgerToolCalls)} ledger tool calls by the metric. Dates resolved against ${esc(a.expectedDate ?? "–")}.`;
   }
 
   function bindDetail(tr, c, cases, base) {
     const view = state.open.get(c.id);
     tr.querySelectorAll("[data-attempt]").forEach((b) => b.addEventListener("click", () => { view.attempt = c.attempts[Number(b.dataset.attempt)]; renderTable(cases, base); }));
-    tr.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { view.tab = view.tab === b.dataset.tab ? "" : b.dataset.tab; renderTable(cases, base); }));
-  }
-
-  function panel(tab, a) {
-    if (tab === "calls") {
-      const calls = a.actual?.mcpCalls;
-      if (calls == null) return `<p class="empty">Not read: the run had no ledger log.</p>`;
-      if (!calls.length) return `<p class="empty">The model called no ledger tool.</p>`;
-      return `<table><thead><tr><th>#</th><th>Tool</th><th>Arguments</th><th></th></tr></thead><tbody>${calls.map((x, i) =>
-        `<tr><td class="num muted">${i + 1}</td><td class="mono">${esc(x.tool)}</td><td class="mono">${Object.entries(x.arguments || {}).map(([k, v]) => `<span class="muted">${esc(k)}</span>=${esc(valueText(v))}`).join("  ")}</td><td class="${x.accepted ? "muted" : "fail"}">${x.accepted ? "" : "rejected"}</td></tr>`).join("")}</tbody></table>`;
-    }
-    if (tab === "proposals") {
-      const props = a.actual?.proposals;
-      if (props == null) return `<p class="empty">Not read.</p>`;
-      if (!props.length) return `<p class="empty">No expense was proposed.</p>`;
-      const paired = new Set(Object.values(a.matching?.pairs || {}).map(String));
-      const judged = a.matching?.pairs != null;
-      return `<table><thead><tr>${judged ? "<th></th>" : ""}<th class="r">Amount</th><th>Description</th><th>Merchant</th><th>Category</th><th>Grouping</th></tr></thead><tbody>${props.map((p) =>
-        `<tr>${judged ? `<td class="${paired.has(String(p.id)) ? "pass" : "fail"}">${paired.has(String(p.id)) ? "✓" : "✗"}</td>` : ""}<td class="r num">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "–")}</td><td>${esc(p.merchant ?? "–")}</td><td>${esc(p.category ?? "–")}</td><td class="muted">${esc(p.grouping ?? "–")}</td></tr>`).join("")}</tbody></table>
-        <p class="muted">${a.matching ? `${a.matching.matched} of ${a.matching.expected} expected matched.` : ""}</p>`;
-    }
-    if (tab === "timing") {
-      const u = a.measurements?.usage || {}, q = a.qualityMetrics || {};
-      const rows = [
-        ["Turn", `${secs(a.measurements?.targetTurnMs)} s`],
-        ["Model calls", `${fmt(u.providerChatCalls)}, ${fmt(u.providerChatSeconds, 2)} s in the model`],
-        ["Embedding calls", fmt(u.providerEmbeddingCalls)],
-        ["Tokens", `${fmt(u.inputTokens)} in, ${fmt(u.outputTokens)} out`],
-        ["Ledger tool calls", `${fmt(u.ledgerToolCalls)} by the metric`],
-        ["Precision, recall, F1", `${fmt(q.precision, 2)}, ${fmt(q.recall, 2)}, ${fmt(q.f1, 2)}`],
-        ["Dates resolved against", a.expectedDate ?? "–"],
-        ["Messages", Object.entries(a.messageIds || {}).map(([k, v]) => `${k} ${v}`).join(", ") || "–"],
-        ["Started", when(a.startedAt)],
-      ];
-      const learning = Object.entries(a.measurements?.learning || {});
-      return `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="num">${esc(v)}</dd>`).join("")}</dl>` +
-        (learning.length ? `<h3 style="margin-top:12px">Learning steps</h3><table><thead><tr><th>Step</th><th class="r">Turn s</th><th class="r">In memory after s</th></tr></thead><tbody>${learning.map(([id, l]) =>
-          `<tr><td class="mono">${esc(id)}</td><td class="r num">${secs(l.turnMs)}</td><td class="r num">${secs(l.availabilityMs)}</td></tr>`).join("")}</tbody></table>` : "");
-    }
-    return `<pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre>`;
   }
 
   // ---- run details ------------------------------------------------------------------------------------------

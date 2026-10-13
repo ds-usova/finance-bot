@@ -68,6 +68,7 @@ public final class Corpus {
                 id,
                 node.path("covers").asString(),
                 node.path("message").asString(),
+                node.path("notes").asString(null),
                 learning,
                 node.path("expected"),
                 node.get("executionLimits"),

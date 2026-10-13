@@ -1,5 +1,6 @@
 package bot.finance.eval;
 
+import bot.finance.eval.corpus.LearningEntry;
 import bot.finance.eval.ledger.Proposal;
 import bot.finance.eval.observe.McpCall;
 import bot.finance.eval.observe.TargetUsage;
@@ -15,6 +16,7 @@ public final class Attempt {
 
     public String caseId;
     public String covers;
+    public CaseText caseText;
     public int repetition;
     public int attempt;
     public String attemptStatus = "completed";
@@ -31,6 +33,9 @@ public final class Attempt {
     public Measurements measurements = new Measurements();
     public List<Failure> errors = new ArrayList<>();
     public List<Failure> warnings = new ArrayList<>();
+
+    /** The case as its corpus file writes it, date tokens unresolved, so a reader sees what was asked. */
+    public record CaseText(String message, String notes, List<LearningEntry> learning, JsonNode expected) {}
 
     public static final class Actual {
         public String outcome;
