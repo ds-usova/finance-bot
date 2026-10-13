@@ -139,8 +139,9 @@ the ones `shared/plan.md` records as generated; where it records others, those a
 
 ### Red Phase
 
-AC12 is held by `ClearEmptiedReportsUseCaseTest`'s case "when the one message still has a pending proposal", and
-AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count both answer 0".
+AC12 is held by `ClearEmptiedReportsUseCaseTest`'s case "when the one message still has a pending proposal".
+
+AC13 is held by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count both answer 0".
 
 #### TDD Unit Red Phase
 

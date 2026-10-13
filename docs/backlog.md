@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB06 · BR00 · BT05 · BP00
+**Last ids:** BB06 · BR00 · BT07 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -107,3 +107,22 @@ never changes once given.
   because the Telegram edit sits outside the transaction and both checks can pass before either edit is sent ·
   `TurnReportRenderer`, `ClearEmptiedReportsUseCase`, `MessageDeliveryPort`
 - **Why** a partly resolved report keeps listing entries already gone (task 49, AC12)
+
+### BT06 · `ledger-service` — a failure opening or committing an acceptance's or a discard's transaction answers 503
+
+- **Kind** deferred change · **Priority** normal · **Size** S
+- **Raised by** task 49, 2026-10-13 · [origin](implemented/49-discard-chosen-proposals/review/findings.md)
+- **What** a store failure while the transaction opens or commits answers 503, as a refused statement does, for
+  both the acceptance and the discard
+- **Why** `acceptByIds` and `discardByIds` catch only inside their `@Transactional` body, and
+  `WebExceptionHandler` maps no transaction exception, so such a failure reaches `onUnexpected` and answers 500;
+  deferred by the design as DF07
+
+### BT07 · `ledger-service` — a dropped report clearing leaves no trace
+
+- **Kind** deferred change · **Priority** normal · **Size** S
+- **Raised by** task 49, 2026-10-13 · [origin](implemented/49-discard-chosen-proposals/review/findings.md)
+- **What** a report clearing the pool refuses or that fails leaves a log line or a meter
+- **Why** `ReportClearingConfiguration`'s pool runs `DiscardPolicy`, and `ExecutorReportClearingDispatcher` ignores
+  both `RejectedExecutionException` and a `RuntimeException` from the clearing, so a dropped clearing for an
+  acceptance or a discard leaves no trace; deferred by the design as DF13

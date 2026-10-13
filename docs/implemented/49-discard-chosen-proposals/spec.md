@@ -1,6 +1,7 @@
 # Spec: Discard Chosen Proposals
 
 **Format:** 2
+**Approved:** ds-usova, 2026-10-13, d8c94ff33104
 **Affected Modules:** `ledger-service`
 
 ## Objective
