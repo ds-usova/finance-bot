@@ -270,8 +270,8 @@ components:
         ids:
           type: array
           description: >-
-            The ids of `PENDING` entries to accept. Each must name one of the caller's, and a repeated id is
-            refused rather than collapsed.
+            The ids of the caller's `PENDING` entries to accept. An id naming none of them is counted in
+            `missing`, and a repeated id is refused rather than collapsed.
           minItems: 1
           maxItems: 100
           items:
@@ -346,8 +346,8 @@ components:
         ids:
           type: array
           description: >-
-            The ids of `PENDING` entries to discard. Each must name one of the caller's, and a repeated id is
-            refused rather than collapsed.
+            The ids of the caller's `PENDING` entries to discard. An id naming none of them is counted in
+            `missing`, and a repeated id is refused rather than collapsed.
           minItems: 1
           maxItems: 100
           items:
