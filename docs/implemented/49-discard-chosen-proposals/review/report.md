@@ -4,12 +4,16 @@
 
 ## Done
 
-| Plan                     | Steps    | Suite                                       |
-|--------------------------|----------|---------------------------------------------|
+| Plan                     | Steps    | Suite                                        |
+|--------------------------|----------|----------------------------------------------|
 | `shared/plan.md`         | 6 of 6   | ledger-service 1335 green, web-app 357 green |
-| `ledger-service/plan.md` | 20 of 20 | 1365 green, 0 skipped                       |
+| `ledger-service/plan.md` | 20 of 20 | 1365 green, 0 skipped                        |
 
 Acceptance: 13 of 13 scenarios proved — [acceptance.md](acceptance.md)
+
+Evidence: every module passed, verdict `UNVERIFIED (uncommitted changes)` from untracked IDE files and a local
+working note outside the task; the user accepted this status (2026-10-13) —
+[evidence.md](../ledger-service/review/evidence.md)
 
 ## Measured
 

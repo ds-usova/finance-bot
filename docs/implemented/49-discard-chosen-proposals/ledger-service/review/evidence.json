@@ -1,0 +1,13 @@
+{
+  "plan": "docs/implemented/49-discard-chosen-proposals/ledger-service/plan.md",
+  "commit": "8d7355ee",
+  "branch": "eval",
+  "workingTree": "9 uncommitted file(s)",
+  "generated": "2026-10-13T11:37:00Z",
+  "verdict": "UNVERIFIED (uncommitted changes)",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 403, "passed": 403, "failed": 0, "skipped": 0, "instructions": "98.2%", "branches": "94.8%", "minimum": "85%", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1365, "passed": 1365, "failed": 0, "skipped": 0, "instructions": "96.7%", "branches": "93.3%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 357, "passed": 357, "failed": 0, "skipped": 0, "instructions": "98.3%", "branches": "92.5%", "minimum": "80%", "format": "clean"}
+  ]
+}
