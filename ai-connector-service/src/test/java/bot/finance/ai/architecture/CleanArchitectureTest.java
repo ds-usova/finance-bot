@@ -47,6 +47,7 @@ class CleanArchitectureTest {
                     "org.slf4j..",
                     "io.grpc..",
                     "com.google.protobuf..",
+                    "bot.finance.ledger..",
                     "io.modelcontextprotocol..",
                     "org.springframework.data..",
                     "org.springframework.jdbc..",

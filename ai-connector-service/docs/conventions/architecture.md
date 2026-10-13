@@ -108,7 +108,7 @@ The first is enforced below; the second by review.
 - Rules:
   - the layer-dependency rules;
   - `org.springframework..`, `jakarta..`, `org.slf4j..`, `io.grpc..`, `com.google.protobuf..`,
-    `io.modelcontextprotocol..`, `org.springframework.data..`, `org.springframework.jdbc..`,
+    `bot.finance.ledger..`, `io.modelcontextprotocol..`, `org.springframework.data..`, `org.springframework.jdbc..`,
     `org.springframework.security..`, `com.nimbusds..`, `org.flywaydb..`,
     `org.springframework.data.redis..` and `io.micrometer..` banned from `domain`/`application`; each new
     external-service library joins the list as its adapter lands;

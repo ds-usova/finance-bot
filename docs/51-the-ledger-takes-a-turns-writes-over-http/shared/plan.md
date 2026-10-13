@@ -17,7 +17,7 @@ No architectural placement decisions.
 
 #### API Contract
 
-- [ ] ST01 · Create `proto/ledger_turn.proto`, as [Turn operations](../turn-operations.md) gives the service
+- [x] ST01 · Create `proto/ledger_turn.proto`, as [Turn operations](../turn-operations.md) gives the service
   (DN05, a package of its own):
   - writes: `proto/ledger_turn.proto`
   ```proto
@@ -78,7 +78,7 @@ No architectural placement decisions.
     string to = 2;
   }
   ```
-- [ ] ST02 · Add the catalogue to `ExtractIntentsRequest` in `proto/intent_extraction.proto`, as
+- [x] ST02 · Add the catalogue to `ExtractIntentsRequest` in `proto/intent_extraction.proto`, as
   [Turn operations](../turn-operations.md) gives it (DN01, the catalogue on the request), and reword the comment
   on `category_groupings`:
   - writes: `proto/intent_extraction.proto`
@@ -105,26 +105,26 @@ No architectural placement decisions.
 
 **Configuration**
 
-- [ ] ST03 · Exclude `bot/finance/ledger/adapter/grpc/v1/**` from the coverage filter in
+- [x] ST03 · Exclude `bot/finance/ledger/adapter/grpc/v1/**` from the coverage filter in
   `ledger-service/build.gradle`, beside `bot/finance/ai/adapter/grpc/v1/**`
   - writes: `ledger-service/build.gradle`
-- [ ] ST04 · Exclude `bot/finance/ledger/adapter/grpc/v1/**` from the coverage filter in
+- [x] ST04 · Exclude `bot/finance/ledger/adapter/grpc/v1/**` from the coverage filter in
   `ai-connector-service/build.gradle`, beside `bot/finance/ai/adapter/grpc/v1/**`; `tools/agent-test/README.md`
   names both excluded paths · after: ST03
   - writes: `ai-connector-service/build.gradle`, `tools/agent-test/README.md`
-- [ ] ST05 · Add `bot.finance.ledger..` to the packages `domain` and `application` may not depend on, in the
+- [x] ST05 · Add `bot.finance.ledger..` to the packages `domain` and `application` may not depend on, in the
   ledger's `CleanArchitectureTest.domainAndApplicationStayFrameworkAgnostic`, and to the generated schema
   packages the ledger's architecture conventions name beside `bot.finance.ai..` and `bot.finance.api..`
   - writes: `ledger-service/src/test/java/bot/finance/architecture/CleanArchitectureTest.java`,
     `ledger-service/docs/conventions/architecture.md`
-- [ ] ST06 · Add `bot.finance.ledger..` to the same list in the connector's `CleanArchitectureTest`, and to the
+- [x] ST06 · Add `bot.finance.ledger..` to the same list in the connector's `CleanArchitectureTest`, and to the
   banned packages its architecture conventions list
   - writes: `ai-connector-service/src/test/java/bot/finance/ai/architecture/CleanArchitectureTest.java`,
     `ai-connector-service/docs/conventions/architecture.md`
 
 #### Closing item
 
-- [ ] ST07 · Both modules compile, pass `CleanArchitectureTest`, and keep their existing suites green:
+- [x] ST07 · Both modules compile, pass `CleanArchitectureTest`, and keep their existing suites green:
   `tools/agent-test/agent-test.sh --module ledger-service --all` and
   `tools/agent-test/agent-test.sh --module ai-connector-service --all`
   - writes: none

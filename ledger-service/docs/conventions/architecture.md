@@ -100,8 +100,8 @@ How a port and its adapter are named:
 - Rules:
   - the layer-dependency rules;
   - every framework and external-service library banned from `domain`/`application` — Spring, `jakarta`, gRPC,
-    Micrometer and their kind, and the repository's own generated schema packages `bot.finance.ai..` and
-    `bot.finance.api..`. A library joins as its adapter lands;
+    Micrometer and their kind, and the repository's own generated schema packages `bot.finance.ai..`,
+    `bot.finance.api..` and `bot.finance.ledger..`. A library joins as its adapter lands;
   - `coreTypesCarryNoExternalSystemName` — no simple name in `domain`/`application` carries an external
     system's, such as `Telegram`, `Postgres` or `Mcp`;
   - `everyDomainModelClassIsAnEntity` — every class in `domain/model` is assignable to `Entity`;

@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package bot.finance.ledger.v1;
+
+option java_multiple_files = true;
+option java_package = "bot.finance.ledger.adapter.grpc.v1";
+option java_outer_classname = "LedgerTurnProto";
+
+// Files a turn's results as the turn's caller. Every call carries the credential the ledger minted for the
+// turn as metadata, `authorization: Bearer <token>`, and acts for the person and the message it names.
+// INVALID_ARGUMENT refuses this one call; every other status ends the turn.
+service LedgerTurnService {
+  rpc FileExpenseProposal(FileExpenseProposalRequest) returns (FileExpenseProposalResponse);
+  rpc RecordSpendingPeriod(RecordSpendingPeriodRequest) returns (RecordSpendingPeriodResponse);
+}
+
+message FileExpenseProposalRequest {
+  // One of the caller's groupings.
+  string grouping = 1;
+  // A category filed under that grouping.
+  string category = 2;
+  // What was bought.
+  string description = 3;
+  // Who it was bought from; absent or blank is no merchant.
+  optional string merchant = 4;
+  // In the currency's main unit, as the message wrote it: 1-18 digits, optionally a dot and 1-4 digits.
+  // Surrounding whitespace is dropped; no sign, exponent or digit grouping.
+  string amount = 5;
+  // ISO 4217, three letters.
+  string currency_code = 6;
+}
+
+message FileExpenseProposalResponse {
+  int64 id = 1;
+  string grouping = 2;
+  string category = 3;
+  string description = 4;
+  // Absent when the entry has no merchant.
+  optional string merchant = 5;
+  string amount = 6;
+  string currency_code = 7;
+  // The instant the entry was stored, in UTC, as RFC 3339.
+  string created_at = 8;
+}
+
+message RecordSpendingPeriodRequest {
+  // The first day, inclusive, written `YYYY-MM-DD`.
+  string from = 1;
+  // The last day, inclusive, written `YYYY-MM-DD`; not before `from`.
+  string to = 2;
+}
+
+message RecordSpendingPeriodResponse {
+  string from = 1;
+  string to = 2;
+}

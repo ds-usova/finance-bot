@@ -29,3 +29,15 @@
     period"), whose INVALID_ARGUMENT mapping ledger RI04 already asserts. A blank category passes the tools' mapper
     and reaches the use case, which refuses it as no category of that name under the grouping, the
     `InvalidCategoryException` RI04 maps — unverified.
+
+## Suite Runs
+
+- baseline · tree accc5e38823a85d34395db32335d7923bd1f2a42 · total 403 · skipped 0 · green · paths: ai-connector-service
+- baseline · tree c119edf4d751a2791c835f67a7119b468397cb5e · total 1367 · skipped 0 · green · paths: ledger-service
+- stabilization · tree c06f9a3e7dbf10907f8ebffdaf2745bd76b6d2e7 · total 1367 · skipped 0 · green · paths: ledger-service
+- stabilization · tree cbfff20f3ccbd3349845f2aaf6405f3dbb08f13a · total 403 · skipped 0 · green · paths: ai-connector-service
+
+## Stubs
+
+Marker: `stub-intent:`
+

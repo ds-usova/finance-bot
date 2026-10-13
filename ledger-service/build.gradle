@@ -169,6 +169,7 @@ def coveredClasses = { task ->
     task.classDirectories.setFrom(files(task.classDirectories.files.collect {
         fileTree(dir: it, exclude: [
             "bot/finance/ai/adapter/grpc/v1/**",
+            "bot/finance/ledger/adapter/grpc/v1/**",
             "bot/finance/api/**",
             "org/openapitools/**",
             "**/*Application.class"
