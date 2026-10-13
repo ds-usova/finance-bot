@@ -25,6 +25,16 @@ build/
 *.iml
 *.ipr
 
+# Eclipse / VS Code Java
+.classpath
+.project
+.settings/
+/ai-connector-service/bin/
+/ledger-service/bin/
+
+# Local working notes
+/docs/eval/implementation/demo-plan.md
+
 # Ignore .env
 /infrastructure/.env
 
