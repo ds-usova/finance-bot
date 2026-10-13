@@ -58,7 +58,8 @@ select, .search { background: var(--bg); border: 1px solid var(--rule); border-r
 #file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .notice { margin-top: 12px; color: var(--fail); }
 
-.summary { padding-block: 14px 10px; display: grid; gap: 2px; }
+.summary { padding-block: 14px 10px; display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: flex-end; justify-content: space-between; }
+.summary-text { display: grid; gap: 2px; min-width: 0; }
 .summary .id { color: var(--muted); }
 .summary .headline { font-size: 15px; }
 .summary .headline strong { font-weight: 600; }
@@ -111,8 +112,8 @@ table.steps tr.bad td { background: var(--mark-fail); }
 .got { color: var(--fail); }
 .want mark { background: var(--mark-pass); color: inherit; border-radius: 2px; }
 .got mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
-.figures { display: flex; flex-wrap: wrap; gap: 8px 48px; padding-block: 10px 8px; }
-.figures > div { display: grid; }
+.figures { display: flex; flex-wrap: wrap; gap: 8px 40px; }
+.figures > div { display: grid; justify-items: end; text-align: right; }
 .figure { font-size: 30px; font-weight: 600; line-height: 1.1; }
 .raw-toggle summary { cursor: pointer; color: var(--muted); }
 .raw-toggle pre { margin-top: 6px; }
@@ -170,7 +171,6 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
   const secs = (msValue) => isNum(msValue) ? fmt(msValue / 1000, 1) : "–";
   const pct = (v) => isNum(v) ? `${Math.round(v * 100)}%` : "–";
   const instant = (iso) => iso ? Date.parse(String(iso).replace(/(\.\d{3})\d+/, "$1")) : NaN;
-  const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "–"; };
   const mean = (vs) => { const v = vs.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
   const median = (vs) => { const v = vs.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
   const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
@@ -339,7 +339,6 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     const failed = all.filter((x) => x.status === "fail" || x.status === "flaky").length;
     const errored = all.filter((x) => x.status === "error").length;
     const passed = all.filter((x) => x.status === "pass").length;
-    const tokens = isNum(p.inputTokens?.mean) ? p.inputTokens.mean + (p.outputTokens?.mean || 0) : null;
     const parts = [
       failed ? `<strong class="fail">${failed} failed</strong>` : "0 failed",
       errored ? `<strong class="error">${plural(errored, "error")}</strong>` : null,
@@ -358,23 +357,24 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     const vc = d.summary?.quality?.verdictCounts || {}, judged = (vc.pass || 0) + (vc.fail || 0) + (vc.error || 0);
     const rate = d.summary?.quality?.passRate;
     return `<div class="summary">
-      <div class="id"><span class="mono">${esc(d.runId || run.name)}</span>${run.example ? " · the trial run, shown as an example until you open a file" : ""}${status}</div>
+      <div class="summary-text">
+        <div class="id"><span class="mono">${esc(d.runId || run.name)}</span>${run.example ? " · the trial run, shown as an example until you open a file" : ""}${status}</div>
+        <div class="headline">${plural(all.length, "case")} × ${plural(c.repetitions ?? 1, "repetition")}: ${parts}.</div>
+        ${versus}
+      </div>
       <div class="figures">
         <div><span class="figure num">${secs(p.runMs)} s</span><span class="muted">total time</span></div>
         <div><span class="figure num">${secs(perCase)} s</span><span class="muted">average per case</span></div>
         <div><span class="figure num ${rate === 1 ? "pass" : "fail"}">${pct(rate)}</span><span class="muted">passed, ${fmt(vc.pass || 0)} of ${fmt(judged)}</span></div>
       </div>
-      <div class="headline">${plural(all.length, "case")} × ${plural(c.repetitions ?? 1, "repetition")}: ${parts}.</div>
-      <div class="muted">Median turn ${secs(p.targetTurnMs?.median)} s, ${fmt(tokens)} tokens and ${fmt(p.providerChatCalls?.mean, 1)} model calls per turn. Started ${esc(when(d.startedAt))}.</div>
-      ${versus}
     </div>`;
   }
 
   function filters(cases, base) {
     const all = [...cases.values()];
     const n = (f) => all.filter((c) => matches(c, f, base)).length;
-    const list = [["failing", "Failing"], ["error", "Errors"], ["pass", "Passed"], ["all", "All"]];
-    if (base) list.splice(3, 0, ["changed", "Changed"]);
+    const list = [["all", "All"], ["failing", "Failing"], ["error", "Errors"], ["pass", "Passed"]];
+    if (base) list.push(["changed", "Changed"]);
     if (!base && state.filter === "changed") state.filter = "failing";
     const blocked = Object.entries(state.runs[state.current].data.summary?.blockedCases || {});
     return `<div class="filters">
@@ -406,7 +406,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     let body = shown.map((c) => row(c, base, cols)).join("");
     if (!shown.length) body += `<tr><td colspan="${cols}" class="empty">${state.filter === "failing" ? "Nothing failed." : "No case here."}</td></tr>`;
     if (passedRest.length) {
-      body += `<tr class="passed-toggle"><td></td><td colspan="${cols - 1}"><button type="button" class="linkish" id="toggle-passed">${state.showPassed ? "▾" : "▸"} ${plural(passedRest.length, "passed case")}</button></td></tr>`;
+      body += `<tr class="passed-toggle"><td colspan="${cols}"><button type="button" class="linkish" id="toggle-passed">${state.showPassed ? "▾" : "▸"} ${plural(passedRest.length, "passed case")}</button></td></tr>`;
       if (state.showPassed) body += passedRest.map((c) => row(c, base, cols)).join("");
     }
     const table = $("cases");
