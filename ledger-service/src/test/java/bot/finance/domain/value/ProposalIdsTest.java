@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
+import bot.finance.domain.exception.InvalidProposalIdsException;
 import java.util.List;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -41,12 +41,12 @@ class ProposalIdsTest {
 
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("invalidIdLists")
-        @DisplayName("when of is called with invalid list - then throws InvalidExpenseAcceptanceException naming "
+        @DisplayName("when of is called with invalid list - then throws InvalidProposalIdsException naming "
                 + "the broken field and bound")
-        void whenCalledWithInvalidList_thenThrowsInvalidExpenseAcceptanceExceptionNamingBrokenFieldAndBound(
+        void whenCalledWithInvalidList_thenThrowsInvalidProposalIdsExceptionNamingBrokenFieldAndBound(
                 List<Long> ids, String expectedField, String expectedBound) {
             assertThatThrownBy(() -> ProposalIds.of(ids))
-                    .isInstanceOf(InvalidExpenseAcceptanceException.class)
+                    .isInstanceOf(InvalidProposalIdsException.class)
                     .hasMessageContaining(expectedField)
                     .hasMessageContaining(expectedBound);
         }

@@ -28,9 +28,9 @@ import bot.finance.common.boot.WebAdapterTest;
 import bot.finance.common.fixtures.BrowserSessions;
 import bot.finance.common.fixtures.JsonUtils;
 import bot.finance.domain.exception.ExpenseEntryNotFoundException;
-import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
+import bot.finance.domain.exception.InvalidProposalIdsException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
@@ -631,12 +631,11 @@ class ExpensesControllerTest {
         }
 
         @Test
-        @DisplayName("when the port throws InvalidExpenseAcceptanceException - then the response is 400 carrying "
+        @DisplayName("when the port throws InvalidProposalIdsException - then the response is 400 carrying "
                 + "the exception's own message")
-        void whenPortThrowsInvalidExpenseAcceptanceException_thenResponseIs400CarryingExceptionsMessage()
-                throws Exception {
+        void whenPortThrowsInvalidProposalIdsException_thenResponseIs400CarryingExceptionsMessage() throws Exception {
             String exceptionMessage = "ids must not repeat a value";
-            when(acceptExpensesPort.accept(any())).thenThrow(new InvalidExpenseAcceptanceException(exceptionMessage));
+            when(acceptExpensesPort.accept(any())).thenThrow(new InvalidProposalIdsException(exceptionMessage));
 
             MvcResult result = mockMvc.perform(post(ACCEPT_PATH)
                             .with(csrf())

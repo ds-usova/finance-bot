@@ -5,10 +5,10 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.EntityNotFoundException;
 import bot.finance.domain.exception.ExpenseEntryNotFoundException;
-import bot.finance.domain.exception.InvalidExpenseAcceptanceException;
 import bot.finance.domain.exception.InvalidExpenseCategoryChangeException;
 import bot.finance.domain.exception.InvalidExpenseFilterException;
 import bot.finance.domain.exception.InvalidMoneyException;
+import bot.finance.domain.exception.InvalidProposalIdsException;
 import bot.finance.domain.exception.InvalidSpendingPeriodException;
 import bot.finance.domain.exception.InvalidUserException;
 import bot.finance.domain.exception.InvalidValueException;
@@ -57,8 +57,8 @@ public class WebExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
-    @ExceptionHandler(InvalidExpenseAcceptanceException.class)
-    public ResponseEntity<Map<String, String>> onInvalidExpenseAcceptance(InvalidExpenseAcceptanceException e) {
+    @ExceptionHandler(InvalidProposalIdsException.class)
+    public ResponseEntity<Map<String, String>> onInvalidProposalIds(InvalidProposalIdsException e) {
         logger.warn("rejected a request: {}", e.getMessage());
         return problem(HttpStatus.BAD_REQUEST, e.getMessage());
     }
