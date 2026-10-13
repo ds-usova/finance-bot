@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +24,8 @@ public final class RunOutput {
 
     private static final JsonMapper JSON =
             JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
+    private static final DateTimeFormatter RUN_ID_TIME =
+            DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
 
     private final Path file;
     private final String runId;
@@ -31,25 +35,33 @@ public final class RunOutput {
     private final long startNanos = System.nanoTime();
     private final List<Attempt> attempts = new ArrayList<>();
 
-    public RunOutput(Path file, String runId, Map<String, Object> config, Map<String, String> blocked) {
+    private RunOutput(Path file, String runId, Map<String, Object> config, Map<String, String> blocked) {
         this.file = file;
         this.runId = runId;
         this.config = config;
         this.blocked = blocked;
     }
 
+    /** A run named {@code <label>-<UTC start>}, written to {@code <outDir>/<label>.json}. */
+    public static RunOutput open(Path outDir, String label, Map<String, Object> config, Map<String, String> blocked) {
+        String runId = label + "-" + RUN_ID_TIME.format(Instant.now());
+        return new RunOutput(outDir.resolve(label + ".json"), runId, config, blocked);
+    }
+
     public void record(Attempt attempt) {
         attempts.add(attempt);
-        write(document("incomplete"));
+        write(document("incomplete", summary()));
     }
 
     /** Writes the run as complete and answers its summary. */
     public Map<String, Object> finish() {
-        Map<String, Object> document = document("complete");
-        write(document);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> summary = (Map<String, Object>) document.get("summary");
+        Map<String, Object> summary = summary();
+        write(document("complete", summary));
         return summary;
+    }
+
+    public String runId() {
+        return runId;
     }
 
     public Path file() {
@@ -60,8 +72,14 @@ public final class RunOutput {
         return JSON.writeValueAsString(value);
     }
 
-    private Map<String, Object> document(String status) {
-        long runMs = Duration.ofNanos(System.nanoTime() - startNanos).toMillis();
+    private Map<String, Object> summary() {
+        return Summary.of(
+                attempts,
+                blocked,
+                Duration.ofNanos(System.nanoTime() - startNanos).toMillis());
+    }
+
+    private Map<String, Object> document(String status, Map<String, Object> summary) {
         Map<String, Object> document = new LinkedHashMap<>();
         document.put("schemaVersion", 1);
         document.put("runId", runId);
@@ -69,7 +87,7 @@ public final class RunOutput {
         document.put("startedAt", startedAt.toString());
         document.put("finishedAt", Instant.now().toString());
         document.put("config", config);
-        document.put("summary", Summary.of(attempts, blocked, runMs));
+        document.put("summary", summary);
         document.put("attempts", attempts);
         return document;
     }
