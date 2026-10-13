@@ -2,7 +2,7 @@
 
 **Format:** 2
 **Approved:** ds-usova, 2026-10-14, a847d93923c6
-**Affected Modules:** `ledger-service`, `eval-runner`
+**Affected Modules:** `ledger-service`, `ai-connector-service`, `eval-runner`
 
 ## Objective
 
