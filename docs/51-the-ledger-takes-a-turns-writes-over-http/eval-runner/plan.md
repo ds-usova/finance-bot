@@ -54,7 +54,7 @@ No architectural placement decisions.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `TurnCallLog` · test: `TurnCallLogTest` · covers: `parse()`, `callsSince()` · scenarios: AC15
+- [x] RU01 · `TurnCallLog` · test: `TurnCallLogTest` · covers: `parse()`, `callsSince()` · scenarios: AC15
   - `parse()`:
     - given: a log holding only `mcp_call` lines for the message
       when: parse() is called

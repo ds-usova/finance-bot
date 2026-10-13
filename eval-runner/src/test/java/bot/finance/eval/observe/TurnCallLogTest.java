@@ -12,13 +12,21 @@ class TurnCallLogTest {
 
     private static final String LINES =
             """
+            16:01:02.123 [http-nio-1000-exec-3] DEBUG b.f.adapter.logging.TurnCallLog - turn_call \
+            operation=summarize_spending via=mcp outcome=ok userId=42 message=web:17 \
+            arguments={"from":"2026-10-05","to":"2026-10-11"}
+            16:01:02.456 [http-nio-1000-exec-4] DEBUG b.f.adapter.logging.TurnCallLog - turn_call \
+            operation=list_categories via=mcp outcome=rejected userId=42 message=web:17 \
+            arguments={"grouping":"Food"}
+            16:01:03.000 [http-nio-1000-exec-5] DEBUG b.f.adapter.logging.TurnCallLog - turn_call \
+            operation=list_categories via=mcp outcome=ok userId=43 message=web:18 arguments={"grouping":"Dining"}
+            16:01:03.100 [main] INFO  b.f.something.Else - unrelated line
+            """;
+
+    private static final String MCP_CALL_LINES =
+            """
             16:01:02.123 [http-nio-1000-exec-3] DEBUG b.f.adapter.mcp.McpCallLine - mcp_call tool=summarize_spending \
             outcome=ok userId=42 message=web:17 arguments={"from":"2026-10-05","to":"2026-10-11"}
-            16:01:02.456 [http-nio-1000-exec-4] DEBUG b.f.adapter.mcp.McpCallLine - mcp_call tool=list_categories \
-            outcome=rejected userId=42 message=web:17 arguments={"grouping":"Food"}
-            16:01:03.000 [http-nio-1000-exec-5] DEBUG b.f.adapter.mcp.McpCallLine - mcp_call tool=list_categories \
-            outcome=ok userId=43 message=web:18 arguments={"grouping":"Dining"}
-            16:01:03.100 [main] INFO  b.f.something.Else - unrelated line
             """;
 
     @Test
@@ -31,6 +39,11 @@ class TurnCallLogTest {
     }
 
     @Test
+    void readsNoCallFromMcpCallLines() {
+        assertThat(TurnCallLog.parse(MCP_CALL_LINES, "web:17")).isEmpty();
+    }
+
+    @Test
     void readsFromTheMarkOnward(@TempDir Path dir) throws Exception {
         Path file = dir.resolve("ledger.log");
         Files.writeString(file, LINES);
@@ -38,10 +51,14 @@ class TurnCallLogTest {
         long mark = log.mark();
         Files.writeString(
                 file,
-                LINES + "x - mcp_call tool=create_expense_proposal outcome=ok userId=42 message=web:17 arguments={}\n");
+                LINES
+                        + "x - turn_call operation=create_expense_proposal via=grpc outcome=ok userId=42 "
+                        + "message=web:17 arguments={\"grouping\":\"Food\"}\n");
 
-        assertThat(log.callsSince(mark, "web:17"))
-                .extracting(TurnCall::operation)
-                .containsExactly("create_expense_proposal");
+        List<TurnCall> calls = log.callsSince(mark, "web:17");
+
+        assertThat(calls).extracting(TurnCall::operation).containsExactly("create_expense_proposal");
+        assertThat(calls).extracting(TurnCall::accepted).containsExactly(true);
+        assertThat(calls.getFirst().arguments().size()).isEqualTo(1);
     }
 }
