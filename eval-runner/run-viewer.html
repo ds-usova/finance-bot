@@ -1,184 +1,144 @@
 <title>Eval Run Viewer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one column; a run header, summary figures, then a case list where each case opens into its attempts. */
+/* Layout: a test report. One summary line, a table of cases with the failure reason in the row, and everything
+   else one click deeper: a case opens under its row, its secondary views sit behind tabs, run details at the end. */
 :root {
-  --bg: #f3f5f4;
-  --surface: #ffffff;
-  --sunken: #e9edeb;
-  --line: #d3dad7;
-  --ink: #18201e;
-  --muted: #5b6764;
-  --accent: #0f6b74;
-  --accent-soft: #d6eaea;
-  --pass: #1f7a46;
-  --pass-soft: #dcefe3;
-  --fail: #b3261e;
-  --fail-soft: #f7dedb;
-  --error: #9a6400;
-  --error-soft: #f6e9cc;
-  --flaky: #6a4fb3;
-  --flaky-soft: #e7e1f5;
-  --font-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
-  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --bg: #fbfbf9;
+  --fg: #1f2020;
+  --muted: #6c6e6b;
+  --faint: #a1a39f;
+  --rule: #e4e5e1;
+  --hover: #f3f3f0;
+  --open: #f6f6f3;
+  --pass: #1a7f37;
+  --fail: #c4302b;
+  --error: #a76300;
+  --mark-fail: #fbe3e1;
+  --mark-pass: #dff1e4;
+  --link: #1f5fbf;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111615; --surface: #182020; --sunken: #0d1211; --line: #2c3836; --ink: #e3ebe8; --muted: #93a29e;
-    --accent: #5fc2c9; --accent-soft: #163a3d; --pass: #63c58b; --pass-soft: #163323; --fail: #f08a80;
-    --fail-soft: #3d1c1a; --error: #e3b259; --error-soft: #3a2c10; --flaky: #b4a0f0; --flaky-soft: #2b2342;
-    color-scheme: dark;
+    --bg: #161716; --fg: #e3e4e1; --muted: #9a9c98; --faint: #6c6e6b; --rule: #2c2e2c; --hover: #1e201e;
+    --open: #1b1c1b; --pass: #5cc27a; --fail: #f07b72; --error: #e0a548; --mark-fail: #4a2321;
+    --mark-pass: #1c3a25; --link: #7fb0f5; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111615; --surface: #182020; --sunken: #0d1211; --line: #2c3836; --ink: #e3ebe8; --muted: #93a29e;
-  --accent: #5fc2c9; --accent-soft: #163a3d; --pass: #63c58b; --pass-soft: #163323; --fail: #f08a80;
-  --fail-soft: #3d1c1a; --error: #e3b259; --error-soft: #3a2c10; --flaky: #b4a0f0; --flaky-soft: #2b2342;
-  color-scheme: dark;
+  --bg: #161716; --fg: #e3e4e1; --muted: #9a9c98; --faint: #6c6e6b; --rule: #2c2e2c; --hover: #1e201e;
+  --open: #1b1c1b; --pass: #5cc27a; --fail: #f07b72; --error: #e0a548; --mark-fail: #4a2321;
+  --mark-pass: #1c3a25; --link: #7fb0f5; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-body); margin: 0; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 24px; }
-h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
-h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: .01em; overflow-wrap: anywhere; }
-h2 { font-size: 1.25rem; font-weight: 600; }
-h3 { font-size: 1.02rem; font-weight: 600; }
-.mono, code, pre { font-family: var(--font-mono); font-size: .82rem; }
+body { background: var(--bg); color: var(--fg); font: 13.5px/1.45 var(--sans); margin: 0; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 64px; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
 .muted { color: var(--muted); }
-.label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .num { font-variant-numeric: tabular-nums; }
-button, input, select { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pass { color: var(--pass); }
+.fail, .flaky { color: var(--fail); }
+.none { color: var(--faint); }
+.error { color: var(--error); }
+.linkish { background: none; border: 0; padding: 0; color: var(--link); cursor: pointer; }
+.linkish:hover { text-decoration: underline; }
 
-.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
-.brand { display: flex; gap: 10px; align-items: baseline; }
-.brand b { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
-.loader { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; }
-.btn:hover { filter: brightness(1.08); }
-.btn.ghost { background: transparent; color: var(--accent); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.bar .title { font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.controls label { color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+select, .search { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 6px; max-width: 100%; }
+.button { border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; padding: 3px 10px; cursor: pointer; }
+.button:hover { background: var(--hover); }
 #file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.message { padding: 10px 14px; border-radius: 6px; background: var(--fail-soft); color: var(--fail); }
+.notice { margin-top: 12px; color: var(--fail); }
 
-.runs { display: flex; flex-wrap: wrap; gap: 8px; }
-.run-tab { border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: center; max-width: 100%; }
-.run-tab[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
-.run-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary { padding-block: 14px 10px; display: grid; gap: 2px; }
+.summary .id { color: var(--muted); }
+.summary .headline { font-size: 15px; }
+.summary .headline strong { font-weight: 600; }
 
-.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
-.chip.pass { background: var(--pass-soft); color: var(--pass); }
-.chip.fail { background: var(--fail-soft); color: var(--fail); }
-.chip.error { background: var(--error-soft); color: var(--error); }
-.chip.flaky { background: var(--flaky-soft); color: var(--flaky); }
-.chip.neutral { background: var(--sunken); color: var(--muted); }
-.chip.example { border-color: var(--line); color: var(--muted); background: transparent; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; padding-block: 8px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.tab { background: none; border: 0; padding: 2px 0; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+.tab:hover { color: var(--fg); }
+.tab[aria-pressed="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+.search { width: 220px; }
+.blocked { color: var(--error); padding-block: 4px; }
 
-.run-head { display: grid; gap: 8px; }
-.run-head .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.meta { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--muted); }
-.meta b { color: var(--ink); font-weight: 500; }
-
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
-.tile .value { font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.tile .sub { color: var(--muted); font-size: .8rem; }
-.verdict-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--sunken); margin-top: 6px; }
-.verdict-bar i { display: block; height: 100%; }
-
-section { display: grid; gap: 12px; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
-.segmented button { border: 0; background: transparent; padding: 5px 12px; cursor: pointer; border-right: 1px solid var(--line); }
-.segmented button:last-child { border-right: 0; }
-.segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-.search { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; min-width: 0; width: 240px; max-width: 100%; }
-
-.cases { display: grid; gap: 6px; }
-.case { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; border-left: 4px solid var(--line); min-width: 0; }
-.case.pass { border-left-color: var(--pass); }
-.case.fail { border-left-color: var(--fail); }
-.case.error { border-left-color: var(--error); }
-.case.flaky { border-left-color: var(--flaky); }
-.case > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) auto 5.5rem 4rem 5.5rem 6rem; gap: 6px 16px; align-items: center; }
-.case > summary::-webkit-details-marker { display: none; }
-.case > summary:hover { background: var(--sunken); }
-.case[open] > summary { border-bottom: 1px solid var(--line); }
-.case-id { font-family: var(--font-mono); font-weight: 500; overflow-wrap: anywhere; }
-.case-id::before { content: "▸"; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
-.case[open] .case-id::before { transform: rotate(90deg); }
-.covers { color: var(--muted); font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; }
-.dots { display: flex; gap: 3px; flex-wrap: wrap; }
-.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
-.dot.pass { background: var(--pass); }
-.dot.fail { background: var(--fail); }
-.dot.error { background: var(--error); }
-.dot.neutral { background: var(--line); }
-.cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cell small { display: block; color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
-.case-header-row { padding: 0 14px 0 18px; display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) auto 5.5rem 4rem 5.5rem 6rem; gap: 16px; }
-.case-header-row span:nth-child(n+4) { text-align: right; }
-
-.case-body { padding: 12px 14px 16px; display: grid; gap: 14px; }
-.attempt { border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 12px; background: var(--bg); min-width: 0; }
-.attempt-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
-.attempt-head .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: .85rem; }
-.attempt-head .facts b { color: var(--ink); font-weight: 500; }
-.blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
-.block { display: grid; gap: 6px; min-width: 0; align-content: start; }
-.scroll { overflow-x: auto; }
+.table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: .7rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-td.v { font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; min-width: 7rem; }
-tr.failed td { background: var(--fail-soft); }
-tr.unevaluated td { background: var(--error-soft); }
-.calls { display: grid; gap: 6px; }
-.call { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--surface); display: grid; gap: 4px; min-width: 0; }
-.call .name { font-family: var(--font-mono); font-weight: 500; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.call pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
-.problems { display: grid; gap: 4px; }
-.problem { padding: 6px 8px; border-radius: 6px; font-size: .85rem; overflow-wrap: anywhere; }
-.problem.error { background: var(--error-soft); color: var(--error); }
-.problem.warning { background: var(--sunken); color: var(--muted); }
-details.raw > summary { cursor: pointer; color: var(--accent); font-size: .85rem; }
-details.raw pre { background: var(--sunken); padding: 10px; border-radius: 6px; overflow-x: auto; max-height: 420px; margin: 8px 0 0; }
-.empty { color: var(--muted); padding: 16px; text-align: center; border: 1px dashed var(--line); border-radius: 8px; }
+th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--muted); white-space: nowrap; position: sticky; top: 0; background: var(--bg); }
+th.r, td.r { text-align: right; }
+.cases > tbody > tr.row { cursor: pointer; }
+.cases > tbody > tr.row:hover { background: var(--hover); }
+.cases > tbody > tr.row.is-open { background: var(--open); }
+.cases > tbody > tr.row.is-open td { border-bottom-color: transparent; }
+td.glyph { width: 1.5em; padding-right: 0; font-weight: 700; }
+td.case { white-space: nowrap; }
+td.covers { color: var(--muted); }
+td.reps { white-space: nowrap; letter-spacing: 2px; }
+td.reason { min-width: 22rem; }
+.reason-line { display: grid; grid-template-columns: max-content max-content minmax(0, 1fr); gap: 0 8px; }
+.reason-line .path { grid-row: span 2; color: var(--muted); }
+.reason-line .k { color: var(--faint); }
+.more { color: var(--faint); }
+tr.passed-toggle td { color: var(--muted); }
+tr.detail > td { background: var(--open); padding: 4px 10px 18px 2.6em; }
+.change { font-size: 12px; font-weight: 600; }
 
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
-.bars { display: grid; gap: 8px; }
-.bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 3.2rem; gap: 4px 10px; align-items: center; }
-.bar-row .name { font-family: var(--font-mono); font-size: .78rem; overflow-wrap: anywhere; }
-.bar-row .track { grid-column: 1 / -1; height: 6px; background: var(--sunken); border-radius: 3px; overflow: hidden; }
-.bar-row .track i { display: block; height: 100%; background: var(--accent); }
+.detail-grid { display: grid; gap: 12px; max-width: 980px; }
+.reps-picker { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.reps-picker .tab { color: var(--muted); }
+.line { color: var(--muted); }
+.line b { color: var(--fg); font-weight: 500; }
+h3 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
+.check { padding-block: 4px; }
+.check .path { color: var(--fg); }
+.diff { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); margin-top: 2px; }
+.diff .sign { color: var(--faint); }
+.diff .want { color: var(--pass); }
+.diff .got { color: var(--fail); }
+.diff mark { background: var(--mark-fail); color: inherit; border-radius: 2px; }
+.diff .want mark { background: var(--mark-pass); }
+.holds summary { cursor: pointer; color: var(--muted); }
+.holds ul { margin: 4px 0 0; padding-left: 1.4em; color: var(--muted); }
+.problem { color: var(--error); overflow-wrap: anywhere; }
+.subtabs { display: flex; flex-wrap: wrap; gap: 2px 18px; border-bottom: 1px solid var(--rule); }
+.panel { padding-top: 8px; }
+.panel table td, .panel table th { padding: 3px 8px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 16px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+pre.raw { margin: 0; padding: 10px; background: var(--bg); border: 1px solid var(--rule); overflow: auto; max-height: 480px; font-size: 12px; }
+.empty { color: var(--muted); padding-block: 6px; }
 
-.drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); border: 3px dashed var(--accent); display: grid; place-items: center; font-family: var(--font-display); font-size: 1.6rem; color: var(--accent); z-index: 10; pointer-events: none; }
+details.run-details { margin-top: 28px; border-top: 1px solid var(--rule); padding-top: 10px; }
+details.run-details > summary { cursor: pointer; font-weight: 600; }
+.details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px 32px; padding-top: 14px; }
+.details-grid > div { min-width: 0; }
 
-@media (max-width: 760px) {
-  .case > summary { grid-template-columns: minmax(0, 1fr) auto; }
-  .case > summary .covers { grid-column: 1 / -1; }
-  .case > summary .cell { text-align: left; }
-  .case-header-row { display: none; }
-}
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 80%, transparent); border: 2px dashed var(--muted); display: grid; place-items: center; font-size: 18px; z-index: 10; pointer-events: none; }
 </style>
 
 <div class="wrap">
-  <header class="top">
-    <div class="brand"><b>Eval Run Viewer</b><span class="muted">reads the JSON <span class="mono">eval-runner</span> writes to <span class="mono">build/eval/</span></span></div>
-    <div class="loader">
-      <label for="file" class="btn">Open run files</label>
+  <div class="bar">
+    <span class="title">Eval run viewer</span>
+    <div class="controls">
+      <label id="run-control" hidden>Run <select id="run-select"></select></label>
+      <label id="compare-control" hidden>Compare with <select id="compare-select"></select></label>
+      <label for="file" class="button">Open run files…</label>
       <input type="file" id="file" accept=".json,application/json" multiple>
-      <span class="muted">or drop them on the page</span>
     </div>
-  </header>
-  <div id="message" class="message" hidden></div>
-  <nav id="runs" class="runs" aria-label="Loaded runs"></nav>
-  <main id="view" style="display:grid;gap:24px"></main>
+  </div>
+  <div id="notice" class="notice" hidden></div>
+  <div id="view"></div>
 </div>
 <div id="drop" class="drop" hidden>Drop run files to open them</div>
 
@@ -196,274 +156,395 @@ details.raw pre { background: var(--sunken); padding: 10px; border-radius: 6px; 
 
 <script>
 (() => {
-  const state = { runs: [], current: 0, filter: "all", query: "" };
+  const state = { runs: [], current: 0, baseline: -1, filter: "failing", query: "", showPassed: false, open: new Map() };
   const $ = (id) => document.getElementById(id);
 
-  const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-  const json = (value) => value === undefined ? "—" : JSON.stringify(value);
-  const isNum = (value) => typeof value === "number" && Number.isFinite(value);
-  const fmt = (value, digits = 0) => isNum(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : "—";
-  const pct = (value) => isNum(value) ? `${Math.round(value * 100)}%` : "—";
-  const ms = (value) => !isNum(value) ? "—" : value >= 10000 ? `${fmt(value / 1000, 1)} s` : `${fmt(value)} ms`;
-  const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleString() : "—"; };
-  const mean = (values) => { const v = values.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-  const median = (values) => { const v = values.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = Math.floor(v.length / 2); return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
-  const idParts = (id) => (String(id).match(/^(\d+)-(\d+)/) || [0, 1e9, 1e9]).slice(1).map(Number);
-  const byId = (a, b) => { const [x1, y1] = idParts(a), [x2, y2] = idParts(b); return x1 - x2 || y1 - y2 || String(a).localeCompare(String(b)); };
+  // ---- formatting -------------------------------------------------------------------------------------------
 
-  function showMessage(text) { const m = $("message"); m.textContent = text || ""; m.hidden = !text; }
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+  const fmt = (v, d = 0) => isNum(v) ? v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) : "–";
+  const secs = (msValue) => isNum(msValue) ? fmt(msValue / 1000, 1) : "–";
+  const pct = (v) => isNum(v) ? `${Math.round(v * 100)}%` : "–";
+  const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "–"; };
+  const mean = (vs) => { const v = vs.filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const median = (vs) => { const v = vs.filter(isNum).sort((a, b) => a - b); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+  const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+  const idKey = (id) => (String(id).match(/^(\d+)-(\d+)/) || [0, 1e9, 1e9]).slice(1).map(Number);
+  const byId = (a, b) => { const [x1, y1] = idKey(a), [x2, y2] = idKey(b); return x1 - x2 || y1 - y2 || String(a).localeCompare(String(b)); };
+  const glyph = { pass: "✓", fail: "✗", error: "!", flaky: "✗", none: "·" };
+
+  /** A value as a person reads it: a bare string, a list joined by commas, "nothing" for null or empty. */
+  function valueText(v) {
+    if (v === null || v === undefined) return "nothing";
+    if (Array.isArray(v)) return v.length === 0 ? "nothing" : v.length === 1 ? valueText(v[0]) : v.map(valueText).join(", ");
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
+  /** A case constraint in words: equals, oneOf, noneOf, present, absent, ignored. */
+  function constraintText(c) {
+    if (c === null || typeof c !== "object" || Array.isArray(c)) return valueText(c);
+    if (c.ignored) return "anything";
+    if ("absent" in c) return c.absent ? "absent" : "present";
+    if ("present" in c) return c.present ? "present" : "empty";
+    if ("equals" in c) return valueText(c.equals);
+    if ("oneOf" in c) return `one of ${c.oneOf.map(valueText).join(", ")}`;
+    if ("noneOf" in c) return c.noneOf.length === 1 ? `anything but ${valueText(c.noneOf[0])}` : `none of ${c.noneOf.map(valueText).join(", ")}`;
+    return JSON.stringify(c);
+  }
+
+  const CONSTRAINT_KEYS = ["equals", "oneOf", "noneOf", "present", "absent", "ignored"];
+  function flatten(node, prefix = "", into = []) {
+    if (node && typeof node === "object" && !Array.isArray(node)) {
+      if (Object.keys(node).some((k) => CONSTRAINT_KEYS.includes(k))) { into.push([prefix, node]); return into; }
+      for (const [k, v] of Object.entries(node)) flatten(v, prefix ? `${prefix}.${k}` : k, into);
+    }
+    return into;
+  }
+  function holds(c, actual) {
+    const a = actual === null || actual === undefined ? null : String(actual);
+    if (c.ignored) return true;
+    if ("absent" in c) return !!c.absent === (a === null);
+    if ("present" in c) return !!c.present === (a !== null && a.trim() !== "");
+    if ("equals" in c) return String(c.equals) === a;
+    if ("oneOf" in c) return c.oneOf.map(String).includes(a);
+    if ("noneOf" in c) return !c.noneOf.map(String).includes(a);
+    return true;
+  }
+  const at = (obj, path) => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+
+  const shortPath = (p) => p.replace(/^mcpCalls\./, "").replace(/\.arguments\./, ".").replace(/^messageOutcome$/, "outcome");
+
+  /**
+   * What a failed check wanted and what it got, in words. An unmatched expected proposal names the field of the
+   * unmatched proposals that broke it, since the check itself records only that no proposal matched.
+   */
+  function explain(check, attempt) {
+    if (check.status === "not-evaluated") return { path: shortPath(check.path), want: constraintText(check.expected), got: "not read" };
+    const item = check.path.match(/^proposals\.items\[(\d+)\]$/);
+    if (item) {
+      const paired = new Set(Object.values(attempt.matching?.pairs || {}).map(String));
+      const unmatched = (attempt.actual?.proposals || []).filter((p) => !paired.has(String(p.id)));
+      for (const [field, c] of flatten(check.expected)) {
+        const values = unmatched.map((p) => at(p, field));
+        if (!values.length || values.some((v) => !holds(c, v))) {
+          return { path: `proposal ${Number(item[1]) + 1}: ${field}`, want: constraintText(c), got: values.length ? valueText(values) : "no proposal left to match" };
+        }
+      }
+      return { path: `proposal ${Number(item[1]) + 1}`, want: flatten(check.expected).map(([f, c]) => `${f} ${constraintText(c)}`).join("; "), got: "no matching proposal" };
+    }
+    return { path: shortPath(check.path), want: constraintText(check.expected), got: valueText(check.actual) };
+  }
+
+  /** The two values, with what differs after their common start marked. */
+  function diffPair(want, got) {
+    let i = 0;
+    while (i < want.length && i < got.length && want[i] === got[i]) i++;
+    const marked = (s) => i === 0 || i >= s.length ? esc(s) : `${esc(s.slice(0, i))}<mark>${esc(s.slice(i))}</mark>`;
+    const same = want === got;
+    return { want: same ? esc(want) : marked(want), got: same ? esc(got) : marked(got) };
+  }
+
+  // ---- model ------------------------------------------------------------------------------------------------
+
+  const failingChecks = (a) => (a.checks || []).filter((c) => c.status !== "pass");
+  const counted = (attempts) => attempts.filter((a) => a.attemptStatus !== "discarded-date-rollover");
+
+  function casesOf(run) {
+    const map = new Map();
+    for (const id of Object.keys(run.summary?.cases || {})) map.set(id, { id, attempts: [] });
+    for (const a of run.attempts) {
+      if (!map.has(a.caseId)) map.set(a.caseId, { id: a.caseId, attempts: [] });
+      map.get(a.caseId).attempts.push(a);
+    }
+    const cases = [...map.values()].map((c) => {
+      const used = counted(c.attempts);
+      const n = (v) => used.filter((a) => a.verdict === v).length;
+      const pass = n("pass"), fail = n("fail"), error = n("error");
+      const status = error ? "error" : pass && fail ? "flaky" : fail ? "fail" : pass ? "pass" : "none";
+      const focus = used.find((a) => a.verdict === "error") || used.find((a) => a.verdict === "fail") || used[0] || c.attempts[0];
+      const usage = (k) => mean(used.map((a) => a.measurements?.usage?.[k]));
+      return {
+        ...c, used, pass, fail, error, total: used.length, status, focus,
+        covers: c.attempts.find((a) => a.covers)?.covers || "",
+        turn: median(used.map((a) => a.measurements?.targetTurnMs)),
+        tokens: usage("inputTokens") === null ? null : usage("inputTokens") + (usage("outputTokens") || 0),
+      };
+    });
+    return new Map(cases.map((c) => [c.id, c]));
+  }
+
+  /** How a case moved against the baseline run: by its pass share, or new where the baseline lacks it. */
+  function change(now, before) {
+    if (!before) return now ? "new" : "";
+    if (!now) return "removed";
+    const a = before.total ? before.pass / before.total : 0, b = now.total ? now.pass / now.total : 0;
+    return b < a ? "regressed" : b > a ? "fixed" : "";
+  }
+
+  // ---- loading ----------------------------------------------------------------------------------------------
 
   function addRun(name, data, example = false) {
-    if (!data || !Array.isArray(data.attempts) || typeof data.summary !== "object") {
-      throw new Error(`${name} is not a run file: it has no "attempts" list or "summary".`);
-    }
-    state.runs = state.runs.filter((r) => !r.example && r.data.runId !== data.runId);
-    state.runs.push({ name, data, example });
+    if (!data || !Array.isArray(data.attempts) || typeof data.summary !== "object") throw new Error(`${name} is not a run file: it has no "attempts" or "summary".`);
+    const keep = state.runs.filter((r) => !r.example && r.data.runId !== data.runId);
+    const previous = state.runs[state.current];
+    state.runs = [...keep, { name, data, example }];
     state.current = state.runs.length - 1;
+    if (previous && !previous.example) state.baseline = state.runs.indexOf(previous);
+    if (state.baseline >= state.runs.length || state.baseline === state.current) state.baseline = -1;
   }
 
   async function openFiles(files) {
     const problems = [];
-    for (const file of files) {
-      try { addRun(file.name, JSON.parse(await file.text())); }
-      catch (e) { problems.push(e instanceof SyntaxError ? `${file.name} is not valid JSON.` : e.message); }
+    for (const f of files.sort((a, b) => a.lastModified - b.lastModified)) {
+      try { addRun(f.name, JSON.parse(await f.text())); }
+      catch (e) { problems.push(e instanceof SyntaxError ? `${f.name} is not valid JSON.` : e.message); }
     }
-    showMessage(problems.join(" "));
+    const n = $("notice"); n.textContent = problems.join(" "); n.hidden = !problems.length;
+    state.open.clear();
     render();
   }
 
-  /** Every case in the run: its attempts, its verdicts and the figures its rows show. */
-  function casesOf(run) {
-    const byCase = new Map();
-    const summaryCases = run.summary.cases || {};
-    for (const id of Object.keys(summaryCases)) byCase.set(id, { id, attempts: [], summary: summaryCases[id] });
-    for (const attempt of run.attempts) {
-      if (!byCase.has(attempt.caseId)) byCase.set(attempt.caseId, { id: attempt.caseId, attempts: [], summary: null });
-      byCase.get(attempt.caseId).attempts.push(attempt);
-    }
-    return [...byCase.values()].map((c) => {
-      const counted = c.attempts.filter((a) => a.attemptStatus !== "discarded-date-rollover");
-      const verdicts = counted.map((a) => a.verdict).filter(Boolean);
-      const count = (v) => verdicts.filter((x) => x === v).length;
-      const pass = count("pass"), fail = count("fail"), error = count("error");
-      const status = error ? "error" : pass && fail ? "flaky" : fail ? "fail" : pass ? "pass" : "neutral";
-      const covers = c.attempts.find((a) => a.covers)?.covers || "";
-      const usage = (key) => mean(counted.map((a) => a.measurements?.usage?.[key]));
-      return {
-        ...c, counted, verdicts, pass, fail, error, status, covers,
-        f1: c.summary?.f1 ?? mean(counted.map((a) => a.qualityMetrics?.f1)),
-        turn: c.summary?.targetTurnMs?.median ?? median(counted.map((a) => a.measurements?.targetTurnMs)),
-        tokens: usage("inputTokens") === null ? null : (usage("inputTokens") || 0) + (usage("outputTokens") || 0),
-      };
-    });
-  }
-
-  const statusRank = { error: 0, fail: 1, flaky: 2, neutral: 3, pass: 4 };
-  const statusLabel = { pass: "pass", fail: "fail", error: "error", flaky: "flaky", neutral: "no verdict" };
+  // ---- rendering --------------------------------------------------------------------------------------------
 
   function render() {
-    renderTabs();
+    renderControls();
     const run = state.runs[state.current];
-    const view = $("view");
-    if (!run) { view.innerHTML = `<div class="empty">Open a run file from <span class="mono">build/eval/</span> to see its cases.</div>`; return; }
-    const data = run.data;
-    const cases = casesOf(data);
-    view.innerHTML = runHead(run) + tiles(data) + caseSection(cases) + sidePanels(data);
-    bindCaseSection(cases);
+    if (!run) { $("view").innerHTML = `<p class="empty">Open a run file from <span class="mono">build/eval/</span>.</p>`; return; }
+    const cases = casesOf(run.data);
+    const base = state.baseline >= 0 ? casesOf(state.runs[state.baseline].data) : null;
+    $("view").innerHTML = summary(run, cases, base) + filters(cases, base) + `<div class="table-wrap"><table class="cases" id="cases"></table></div>` + runDetails(run.data);
+    $("search").addEventListener("input", (e) => { state.query = e.target.value; renderTable(cases, base); });
+    document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => { state.filter = b.dataset.filter; render(); }));
+    renderTable(cases, base);
   }
 
-  function renderTabs() {
-    const nav = $("runs");
-    if (state.runs.length < 2 && !state.runs[0]?.example) { nav.innerHTML = ""; nav.hidden = true; return; }
-    nav.hidden = false;
-    nav.innerHTML = state.runs.map((r, i) =>
-      `<button type="button" class="run-tab" aria-pressed="${i === state.current}" data-run="${i}"><span class="mono">${esc(r.data.runId || r.name)}</span>${r.example ? '<span class="chip example">example</span>' : ""}</button>`).join("");
-    nav.querySelectorAll("[data-run]").forEach((b) => b.addEventListener("click", () => { state.current = Number(b.dataset.run); render(); }));
+  function renderControls() {
+    const runSel = $("run-select"), cmpSel = $("compare-select");
+    const label = (r) => `${r.data.runId || r.name}${r.example ? " (example)" : ""}`;
+    $("run-control").hidden = state.runs.length < 2;
+    $("compare-control").hidden = state.runs.length < 2;
+    runSel.innerHTML = state.runs.map((r, i) => `<option value="${i}" ${i === state.current ? "selected" : ""}>${esc(label(r))}</option>`).join("");
+    cmpSel.innerHTML = `<option value="-1">nothing</option>` + state.runs.map((r, i) => i === state.current ? "" : `<option value="${i}" ${i === state.baseline ? "selected" : ""}>${esc(label(r))}</option>`).join("");
   }
 
-  function runHead(run) {
-    const d = run.data, c = d.config || {};
-    const status = d.status === "complete" ? '<span class="chip pass">complete</span>' : `<span class="chip error">${esc(d.status || "unknown")}</span>`;
-    const prefixes = (c.casePrefixes || []).length ? c.casePrefixes.join(", ") : "all cases";
-    return `<div class="run-head">
-      <div class="row">${status}${run.example ? '<span class="chip example">example: the trial run, open your own file to replace it</span>' : ""}</div>
-      <h1>${esc(d.runId || run.name)}</h1>
-      <div class="meta">
-        <span>Started <b>${esc(when(d.startedAt))}</b></span>
-        <span>Took <b>${esc(ms(d.summary?.performance?.runMs))}</b></span>
-        <span>Cases <b class="mono">${esc(prefixes)}</b></span>
-        <span>Repetitions <b>${esc(c.repetitions ?? "—")}</b></span>
-        <span>Budget enforced <b>${c.budgetEnforced ? "yes" : "no"}</b></span>
-      </div>
+  function summary(run, cases, base) {
+    const d = run.data, p = d.summary?.performance || {}, c = d.config || {};
+    const all = [...cases.values()];
+    const failed = all.filter((x) => x.status === "fail" || x.status === "flaky").length;
+    const errored = all.filter((x) => x.status === "error").length;
+    const passed = all.filter((x) => x.status === "pass").length;
+    const tokens = isNum(p.inputTokens?.mean) ? p.inputTokens.mean + (p.outputTokens?.mean || 0) : null;
+    const parts = [
+      failed ? `<strong class="fail">${failed} failed</strong>` : "0 failed",
+      errored ? `<strong class="error">${plural(errored, "error")}</strong>` : null,
+      `${passed} passed`,
+    ].filter(Boolean).join(", ");
+    let versus = "";
+    if (base) {
+      const changes = [...new Set([...cases.keys(), ...base.keys()])].map((id) => change(cases.get(id), base.get(id)));
+      const r = changes.filter((x) => x === "regressed").length, f = changes.filter((x) => x === "fixed").length;
+      const bq = state.runs[state.baseline].data.summary?.quality || {};
+      versus = `<div>Against <span class="mono">${esc(state.runs[state.baseline].data.runId)}</span>: pass rate ${pct(d.summary?.quality?.passRate)}, was ${pct(bq.passRate)}; ` +
+        `<span class="${r ? "fail" : ""}">${r} regressed</span>, <span class="${f ? "pass" : ""}">${f} fixed</span>.</div>`;
+    }
+    const status = d.status === "complete" ? "" : ` <strong class="error">${esc(d.status || "unknown status")}: the run did not finish</strong>`;
+    return `<div class="summary">
+      <div class="id"><span class="mono">${esc(d.runId || run.name)}</span>${run.example ? " · the trial run, shown as an example until you open a file" : ""}${status}</div>
+      <div class="headline">${plural(all.length, "case")} × ${plural(c.repetitions ?? 1, "repetition")}: ${parts}.</div>
+      <div class="muted">Took ${secs(p.runMs)} s. Median turn ${secs(p.targetTurnMs?.median)} s, ${fmt(tokens)} tokens and ${fmt(p.providerChatCalls?.mean, 1)} model calls per turn. Started ${esc(when(d.startedAt))}.</div>
+      ${versus}
     </div>`;
   }
 
-  function tiles(d) {
-    const q = d.summary?.quality || {}, p = d.summary?.performance || {}, vc = q.verdictCounts || {};
-    const total = (vc.pass || 0) + (vc.fail || 0) + (vc.error || 0);
-    const share = (n) => total ? (n / total) * 100 : 0;
-    return `<div class="tiles">
-      <div class="tile"><span class="label">Pass rate</span><span class="value">${pct(q.passRate)}</span>
-        <span class="sub num">${vc.pass || 0} pass · ${vc.fail || 0} fail · ${vc.error || 0} error</span>
-        <div class="verdict-bar" aria-hidden="true"><i style="width:${share(vc.pass || 0)}%;background:var(--pass)"></i><i style="width:${share(vc.fail || 0)}%;background:var(--fail)"></i><i style="width:${share(vc.error || 0)}%;background:var(--error)"></i></div></div>
-      <div class="tile"><span class="label">Mean F1</span><span class="value">${fmt(q.f1?.mean, 2)}</span>
-        <span class="sub">precision ${fmt(q.precision?.mean, 2)} · recall ${fmt(q.recall?.mean, 2)}</span></div>
-      <div class="tile"><span class="label">Target turn</span><span class="value">${ms(p.targetTurnMs?.median)}</span>
-        <span class="sub">median · p90 ${ms(p.targetTurnMs?.p90)}</span></div>
-      <div class="tile"><span class="label">Tokens per turn</span><span class="value">${fmt((p.inputTokens?.mean ?? NaN) + (p.outputTokens?.mean ?? 0))}</span>
-        <span class="sub">mean · ${fmt(p.inputTokens?.mean)} in, ${fmt(p.outputTokens?.mean)} out</span></div>
-      <div class="tile"><span class="label">Calls per turn</span><span class="value">${fmt(p.providerChatCalls?.mean, 1)}</span>
-        <span class="sub">model calls · ${fmt(p.ledgerToolCalls?.mean, 1)} ledger tool calls</span></div>
-      <div class="tile"><span class="label">Attempts</span><span class="value">${fmt(d.summary?.attempts)}</span>
-        <span class="sub">${fmt(d.summary?.discardedRolloverAttempts)} retried after a date rollover</span></div>
-    </div>`;
+  function filters(cases, base) {
+    const all = [...cases.values()];
+    const n = (f) => all.filter((c) => matches(c, f, base)).length;
+    const list = [["failing", "Failing"], ["error", "Errors"], ["pass", "Passed"], ["all", "All"]];
+    if (base) list.splice(3, 0, ["changed", "Changed"]);
+    if (!base && state.filter === "changed") state.filter = "failing";
+    const blocked = Object.entries(state.runs[state.current].data.summary?.blockedCases || {});
+    return `<div class="filters">
+      <div class="tabs" role="group" aria-label="Which cases">${list.map(([k, l]) => `<button type="button" class="tab" data-filter="${k}" aria-pressed="${state.filter === k}">${l} <span class="num">${n(k)}</span></button>`).join("")}</div>
+      <input id="search" class="search" type="search" placeholder="Filter by case or behaviour" value="${esc(state.query)}" aria-label="Filter cases">
+    </div>
+    ${blocked.length ? `<div class="blocked">${plural(blocked.length, "case")} not run: ${blocked.map(([id, why]) => `<span class="mono">${esc(id)}</span> (${esc(why)})`).join(", ")}.</div>` : ""}`;
   }
 
-  function caseSection(cases) {
-    const count = (s) => cases.filter((c) => c.status === s).length;
-    const filters = [["all", "All", cases.length], ["failing", "Failing", count("fail") + count("flaky")], ["error", "Errors", count("error")], ["pass", "Passing", count("pass")]];
-    return `<section>
-      <div class="toolbar">
-        <h2>Cases</h2>
-        <div class="loader">
-          <div class="segmented" role="group" aria-label="Show cases">${filters.map(([k, label, n]) =>
-            `<button type="button" data-filter="${k}" aria-pressed="${state.filter === k}">${label} <span class="num muted">${n}</span></button>`).join("")}</div>
-          <input id="case-search" class="search" type="search" placeholder="Filter by id or covers" value="${esc(state.query)}" aria-label="Filter cases">
-        </div>
-      </div>
-      <div class="case-header-row label" aria-hidden="true"><span>Case</span><span>Covers</span><span>Verdicts</span><span>Passed</span><span>F1</span><span>Turn</span><span>Tokens</span></div>
-      <div id="case-list" class="cases"></div>
-    </section>`;
+  function matches(c, filter, base) {
+    switch (filter) {
+      case "failing": return c.status === "fail" || c.status === "flaky";
+      case "error": return c.status === "error";
+      case "pass": return c.status === "pass";
+      case "changed": return !!base && change(c, base.get(c.id)) !== "";
+      default: return true;
+    }
   }
 
-  function bindCaseSection(cases) {
-    document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => {
-      state.filter = b.dataset.filter;
-      document.querySelectorAll("[data-filter]").forEach((x) => x.setAttribute("aria-pressed", x === b));
-      renderCases(cases);
-    }));
-    $("case-search").addEventListener("input", (e) => { state.query = e.target.value; renderCases(cases); });
-    renderCases(cases);
-  }
-
-  function renderCases(cases) {
+  function renderTable(cases, base) {
     const q = state.query.trim().toLowerCase();
-    const shown = cases
-      .filter((c) => state.filter === "all" || (state.filter === "failing" ? c.status === "fail" || c.status === "flaky" : c.status === state.filter))
-      .filter((c) => !q || c.id.toLowerCase().includes(q) || c.covers.toLowerCase().includes(q))
-      .sort((a, b) => statusRank[a.status] - statusRank[b.status] || byId(a.id, b.id));
-    const list = $("case-list");
-    list.innerHTML = shown.length ? shown.map(caseRow).join("") : `<div class="empty">No case matches this filter.</div>`;
-    list.querySelectorAll("details.case").forEach((el) => el.addEventListener("toggle", () => {
-      if (el.open && !el.dataset.filled) {
-        const c = shown.find((x) => x.id === el.dataset.case);
-        el.querySelector(".case-body").innerHTML = c.attempts.map(attemptCard).join("") || `<div class="empty">No attempt was recorded.</div>`;
-        el.dataset.filled = "1";
-      }
+    const visible = (c) => !q || c.id.toLowerCase().includes(q) || c.covers.toLowerCase().includes(q);
+    const rank = { error: 0, fail: 1, flaky: 2, none: 3, pass: 4 };
+    const all = [...cases.values()].filter(visible).sort((a, b) => rank[a.status] - rank[b.status] || byId(a.id, b.id));
+    const shown = all.filter((c) => matches(c, state.filter, base));
+    const passedRest = state.filter === "failing" ? all.filter((c) => c.status === "pass") : [];
+    const cols = base ? 9 : 7;
+    const head = `<thead><tr><th></th><th>Case</th><th>Behaviour</th><th>Runs</th>${base ? "<th>Before</th><th></th>" : ""}<th>Why it failed</th><th class="r">Turn s</th><th class="r">Tokens</th></tr></thead>`;
+    let body = shown.map((c) => row(c, base, cols)).join("");
+    if (!shown.length) body += `<tr><td colspan="${cols}" class="empty">${state.filter === "failing" ? "Nothing failed." : "No case here."}</td></tr>`;
+    if (passedRest.length) {
+      body += `<tr class="passed-toggle"><td></td><td colspan="${cols - 1}"><button type="button" class="linkish" id="toggle-passed">${state.showPassed ? "▾" : "▸"} ${plural(passedRest.length, "passed case")}</button></td></tr>`;
+      if (state.showPassed) body += passedRest.map((c) => row(c, base, cols)).join("");
+    }
+    const table = $("cases");
+    table.innerHTML = head + `<tbody>${body}</tbody>`;
+    $("toggle-passed")?.addEventListener("click", () => { state.showPassed = !state.showPassed; renderTable(cases, base); });
+    table.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => {
+      const id = tr.dataset.case;
+      if (state.open.has(id)) state.open.delete(id); else state.open.set(id, { attempt: cases.get(id).focus, tab: "" });
+      renderTable(cases, base);
     }));
+    table.querySelectorAll("tr.detail").forEach((tr) => bindDetail(tr, cases.get(tr.dataset.case), cases, base));
   }
 
-  function caseRow(c) {
-    const dots = c.attempts.map((a) => `<span class="dot ${esc(a.verdict || "neutral")}" title="repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}: ${esc(a.verdict || a.attemptStatus)}"></span>`).join("");
-    return `<details class="case ${c.status}" data-case="${esc(c.id)}">
-      <summary>
-        <span class="case-id">${esc(c.id)}</span>
-        <span class="covers">${esc(c.covers)}</span>
-        <span class="dots">${dots}<span class="chip ${c.status}">${statusLabel[c.status]}</span></span>
-        <span class="cell"><small>passed</small>${c.pass}/${c.verdicts.length}</span>
-        <span class="cell"><small>F1</small>${fmt(c.f1, 2)}</span>
-        <span class="cell"><small>turn</small>${ms(c.turn)}</span>
-        <span class="cell"><small>tokens</small>${fmt(c.tokens)}</span>
-      </summary>
-      <div class="case-body"></div>
-    </details>`;
+  function row(c, base, cols) {
+    const open = state.open.has(c.id);
+    const reps = c.attempts.map((a) => `<span class="${esc(a.verdict || "")}" title="repetition ${esc(a.repetition)}, attempt ${esc(a.attempt)}: ${esc(a.verdict || a.attemptStatus)}">${glyph[a.verdict] || glyph.none}</span>`).join("");
+    let compare = "";
+    if (base) {
+      const b = base.get(c.id), ch = change(c, b);
+      const before = b ? b.attempts.map((a) => `<span class="${esc(a.verdict || "")}">${glyph[a.verdict] || glyph.none}</span>`).join("") : `<span class="muted">–</span>`;
+      compare = `<td class="reps">${before}</td><td class="change ${ch === "regressed" ? "fail" : ch === "fixed" ? "pass" : "muted"}">${ch}</td>`;
+    }
+    return `<tr class="row${open ? " is-open" : ""}" data-case="${esc(c.id)}" aria-expanded="${open}">
+      <td class="glyph ${c.status}">${glyph[c.status]}</td>
+      <td class="case mono">${esc(c.id)}</td>
+      <td class="covers mono">${esc(c.covers)}</td>
+      <td class="reps">${reps}</td>
+      ${compare}
+      <td class="reason">${reasonCell(c)}</td>
+      <td class="r num">${secs(c.turn)}</td>
+      <td class="r num">${fmt(c.tokens)}</td>
+    </tr>${open ? `<tr class="detail" data-case="${esc(c.id)}"><td colspan="${cols}">${detail(c)}</td></tr>` : ""}`;
   }
 
-  function attemptCard(a) {
-    const u = a.measurements?.usage || {};
-    const verdict = a.verdict ? `<span class="chip ${esc(a.verdict)}">${esc(a.verdict)}</span>` : "";
-    const status = a.attemptStatus && a.attemptStatus !== "completed" ? `<span class="chip neutral">${esc(a.attemptStatus)}</span>` : "";
-    const facts = [
-      ["outcome", a.actual?.outcome ?? "—"],
-      ["turn", ms(a.measurements?.targetTurnMs)],
-      ["model calls", fmt(u.providerChatCalls)],
-      ["tokens", `${fmt(u.inputTokens)} in · ${fmt(u.outputTokens)} out`],
-      ["tool calls (metric)", fmt(u.ledgerToolCalls)],
-      ["date", a.expectedDate ?? "—"],
-    ].map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
-    return `<div class="attempt">
-      <div class="attempt-head"><h3>Repetition ${esc(a.repetition)} · attempt ${esc(a.attempt)}</h3>${verdict}${status}<div class="facts">${facts}</div></div>
-      ${problems(a)}
-      ${checksTable(a.checks)}
-      <div class="blocks">${mcpBlock(a.actual?.mcpCalls)}${proposalsBlock(a.actual?.proposals, a.matching)}${learningBlock(a.measurements?.learning, a.messageIds)}</div>
-      <details class="raw"><summary>Raw attempt JSON</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details>
+  function reasonCell(c) {
+    if (c.status === "pass" || !c.focus) return "";
+    const a = c.focus;
+    if (a.errors?.length) return `<span class="error">${esc(a.errors[0].stage)}: ${esc(a.errors[0].message ?? "")}</span>`;
+    const f = failingChecks(a);
+    if (!f.length) return `<span class="muted">${esc(a.attemptStatus || "no checks")}</span>`;
+    const e = explain(f[0], a), d = diffPair(e.want, e.got);
+    const more = f.length > 1 ? ` <span class="more">+${f.length - 1} more</span>` : "";
+    return `<div class="reason-line mono"><span class="path">${esc(e.path)}</span><span class="k">want</span><span class="pass">${d.want}</span><span class="k">got</span><span class="fail">${d.got}${more}</span></div>`;
+  }
+
+  // ---- one case ---------------------------------------------------------------------------------------------
+
+  function detail(c) {
+    const view = state.open.get(c.id);
+    const a = view.attempt;
+    const picker = c.attempts.length > 1
+      ? `<div class="reps-picker"><span class="muted">Repetition</span>${c.attempts.map((x, i) => `<button type="button" class="tab" data-attempt="${i}" aria-pressed="${x === a}"><span class="${esc(x.verdict || "")}">${glyph[x.verdict] || glyph.none}</span> ${esc(x.repetition)}${x.attempt > 1 ? `.${esc(x.attempt)}` : ""}</button>`).join("")}</div>`
+      : "";
+    const failing = failingChecks(a), holding = (a.checks || []).filter((x) => x.status === "pass");
+    const problems = [...(a.errors || []).map((p) => ["error", p]), ...(a.warnings || []).map((p) => ["warning", p])]
+      .map(([k, p]) => `<div class="problem">${k === "warning" ? "Warning, " : ""}${esc(p.stage || "")}${p.status ? ` (HTTP ${esc(p.status)})` : ""}: ${esc(p.message ?? "")}</div>`).join("");
+    const outcome = `<div class="line">Expected <b>${esc(valueText(a.expected?.messageOutcome))}</b>, got <b>${esc(valueText(a.actual?.outcome))}</b>. Turn ${secs(a.measurements?.targetTurnMs)} s.${a.attemptStatus && a.attemptStatus !== "completed" ? ` Attempt ${esc(a.attemptStatus)}.` : ""}</div>`;
+    const failingHtml = failing.length ? `<div><h3>${plural(failing.length, "failing check")}</h3>${failing.map((x) => {
+      const e = explain(x, a), d = diffPair(e.want, e.got);
+      return `<div class="check mono"><div class="path">${esc(e.path)}</div><div class="diff"><span class="sign">− want</span><span class="want">${d.want}</span><span class="sign">+ got</span><span class="got">${d.got}</span></div></div>`;
+    }).join("")}</div>` : "";
+    const holdsHtml = holding.length ? `<details class="holds"><summary>${plural(holding.length, "check")} hold</summary><ul class="mono">${holding.map((x) => `<li>${esc(shortPath(x.path))} = ${esc(valueText(x.actual))}</li>`).join("")}</ul></details>` : "";
+    const calls = a.actual?.mcpCalls, props = a.actual?.proposals;
+    const tabs = [["calls", `Tool calls ${calls == null ? "" : calls.length}`], ["proposals", `Proposals ${props == null ? "" : props.length}`], ["timing", "Timing and tokens"], ["raw", "Raw JSON"]];
+    return `<div class="detail-grid">
+      ${picker}${outcome}${problems}${failingHtml}${holdsHtml}
+      <div>
+        <div class="subtabs" role="group" aria-label="More about this attempt">${tabs.map(([k, l]) => `<button type="button" class="tab" data-tab="${k}" aria-pressed="${view.tab === k}">${esc(l.trim())}</button>`).join("")}</div>
+        ${view.tab ? `<div class="panel">${panel(view.tab, a)}</div>` : ""}
+      </div>
     </div>`;
   }
 
-  function problems(a) {
-    const row = (kind) => (p) => `<div class="problem ${kind}"><b>${esc(p.stage || kind)}</b>${p.status ? ` · HTTP ${esc(p.status)}` : ""}${p.type ? ` · ${esc(p.type)}` : ""}: ${esc(p.message ?? json(p))}</div>`;
-    const errors = (a.errors || []).map(row("error")), warnings = (a.warnings || []).map(row("warning"));
-    return errors.length || warnings.length ? `<div class="problems">${errors.join("")}${warnings.join("")}</div>` : "";
+  function bindDetail(tr, c, cases, base) {
+    const view = state.open.get(c.id);
+    tr.querySelectorAll("[data-attempt]").forEach((b) => b.addEventListener("click", () => { view.attempt = c.attempts[Number(b.dataset.attempt)]; renderTable(cases, base); }));
+    tr.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { view.tab = view.tab === b.dataset.tab ? "" : b.dataset.tab; renderTable(cases, base); }));
   }
 
-  function checksTable(checks) {
-    if (!checks || !checks.length) return `<div class="block"><span class="label">Checks</span><div class="empty">No checks were evaluated.</div></div>`;
-    const rows = checks.map((c) => {
-      const cls = c.status === "fail" ? "failed" : c.status === "pass" ? "" : "unevaluated";
-      const chip = c.status === "pass" ? "pass" : c.status === "fail" ? "fail" : "error";
-      return `<tr class="${cls}"><td class="v">${esc(c.path)}</td><td class="v">${esc(json(c.expected))}</td><td class="v">${esc(json(c.actual))}</td><td><span class="chip ${chip}">${esc(c.status)}</span></td></tr>`;
-    }).join("");
-    const failed = checks.filter((c) => c.status !== "pass").length;
-    return `<div class="block"><span class="label">Checks · ${checks.length - failed} of ${checks.length} hold</span>
-      <div class="scroll"><table><thead><tr><th>Path</th><th>Expected</th><th>Actual</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  function panel(tab, a) {
+    if (tab === "calls") {
+      const calls = a.actual?.mcpCalls;
+      if (calls == null) return `<p class="empty">Not read: the run had no ledger log.</p>`;
+      if (!calls.length) return `<p class="empty">The model called no ledger tool.</p>`;
+      return `<table><thead><tr><th>#</th><th>Tool</th><th>Arguments</th><th></th></tr></thead><tbody>${calls.map((x, i) =>
+        `<tr><td class="num muted">${i + 1}</td><td class="mono">${esc(x.tool)}</td><td class="mono">${Object.entries(x.arguments || {}).map(([k, v]) => `<span class="muted">${esc(k)}</span>=${esc(valueText(v))}`).join("  ")}</td><td class="${x.accepted ? "muted" : "fail"}">${x.accepted ? "" : "rejected"}</td></tr>`).join("")}</tbody></table>`;
+    }
+    if (tab === "proposals") {
+      const props = a.actual?.proposals;
+      if (props == null) return `<p class="empty">Not read.</p>`;
+      if (!props.length) return `<p class="empty">No expense was proposed.</p>`;
+      const paired = new Set(Object.values(a.matching?.pairs || {}).map(String));
+      const judged = a.matching?.pairs != null;
+      return `<table><thead><tr>${judged ? "<th></th>" : ""}<th class="r">Amount</th><th>Description</th><th>Merchant</th><th>Category</th><th>Grouping</th></tr></thead><tbody>${props.map((p) =>
+        `<tr>${judged ? `<td class="${paired.has(String(p.id)) ? "pass" : "fail"}">${paired.has(String(p.id)) ? "✓" : "✗"}</td>` : ""}<td class="r num">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "–")}</td><td>${esc(p.merchant ?? "–")}</td><td>${esc(p.category ?? "–")}</td><td class="muted">${esc(p.grouping ?? "–")}</td></tr>`).join("")}</tbody></table>
+        <p class="muted">${a.matching ? `${a.matching.matched} of ${a.matching.expected} expected matched.` : ""}</p>`;
+    }
+    if (tab === "timing") {
+      const u = a.measurements?.usage || {}, q = a.qualityMetrics || {};
+      const rows = [
+        ["Turn", `${secs(a.measurements?.targetTurnMs)} s`],
+        ["Model calls", `${fmt(u.providerChatCalls)}, ${fmt(u.providerChatSeconds, 2)} s in the model`],
+        ["Embedding calls", fmt(u.providerEmbeddingCalls)],
+        ["Tokens", `${fmt(u.inputTokens)} in, ${fmt(u.outputTokens)} out`],
+        ["Ledger tool calls", `${fmt(u.ledgerToolCalls)} by the metric`],
+        ["Precision, recall, F1", `${fmt(q.precision, 2)}, ${fmt(q.recall, 2)}, ${fmt(q.f1, 2)}`],
+        ["Dates resolved against", a.expectedDate ?? "–"],
+        ["Messages", Object.entries(a.messageIds || {}).map(([k, v]) => `${k} ${v}`).join(", ") || "–"],
+        ["Started", when(a.startedAt)],
+      ];
+      const learning = Object.entries(a.measurements?.learning || {});
+      return `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="num">${esc(v)}</dd>`).join("")}</dl>` +
+        (learning.length ? `<h3 style="margin-top:12px">Learning steps</h3><table><thead><tr><th>Step</th><th class="r">Turn s</th><th class="r">In memory after s</th></tr></thead><tbody>${learning.map(([id, l]) =>
+          `<tr><td class="mono">${esc(id)}</td><td class="r num">${secs(l.turnMs)}</td><td class="r num">${secs(l.availabilityMs)}</td></tr>`).join("")}</tbody></table>` : "");
+    }
+    return `<pre class="raw mono">${esc(JSON.stringify(a, null, 2))}</pre>`;
   }
 
-  function mcpBlock(calls) {
-    if (calls == null) return `<div class="block"><span class="label">MCP calls</span><div class="empty">Not read: the run had no ledger log.</div></div>`;
-    if (!calls.length) return `<div class="block"><span class="label">MCP calls · none</span><div class="empty">The model called no ledger tool.</div></div>`;
-    const items = calls.map((c, i) => `<div class="call"><span class="name"><span class="muted num">${i + 1}.</span>${esc(c.tool)}<span class="chip ${c.accepted ? "pass" : "fail"}">${c.accepted ? "accepted" : "rejected"}</span></span><pre>${esc(JSON.stringify(c.arguments, null, 1).replace(/\n\s*/g, " "))}</pre></div>`).join("");
-    return `<div class="block"><span class="label">MCP calls · ${calls.length}</span><div class="calls">${items}</div></div>`;
+  // ---- run details ------------------------------------------------------------------------------------------
+
+  function runDetails(d) {
+    const q = d.summary?.quality || {}, p = d.summary?.performance || {}, c = d.config || {};
+    const measures = [["targetTurnMs", "Turn, s", (v) => secs(v)], ["providerChatCalls", "Model calls", (v) => fmt(v, 1)], ["providerChatSeconds", "Model time, s", (v) => fmt(v, 2)], ["inputTokens", "Input tokens", (v) => fmt(v)], ["outputTokens", "Output tokens", (v) => fmt(v)], ["ledgerToolCalls", "Ledger tool calls", (v) => fmt(v, 1)]];
+    const perf = measures.filter(([k]) => p[k]).map(([k, l, f]) => `<tr><td>${l}</td><td class="r num">${f(p[k].median)}</td><td class="r num">${f(p[k].p90)}</td><td class="r num">${f(p[k].mean)}</td><td class="r num muted">${fmt(p[k].n)}</td></tr>`).join("");
+    const covers = Object.entries(q.passRateByCovers || {}).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+      .map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td class="r num ${v < 1 ? "fail" : ""}">${pct(v)}</td></tr>`).join("");
+    const confusion = Object.entries(q.outcomeConfusion || {}).flatMap(([e, acts]) => Object.entries(acts).map(([g, n]) =>
+      `<tr><td class="mono">${esc(e)}</td><td class="mono ${e === g ? "" : "fail"}">${esc(g)}</td><td class="r num">${fmt(n)}</td></tr>`)).join("");
+    const config = Object.entries(c).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(valueText(v))}</dd>`).join("");
+    return `<details class="run-details"><summary>Run details</summary><div class="details-grid">
+      <div><h3>Per turn</h3><table><thead><tr><th></th><th class="r">Median</th><th class="r">p90</th><th class="r">Mean</th><th class="r">n</th></tr></thead><tbody>${perf}</tbody></table></div>
+      <div><h3>Pass rate by behaviour</h3><table><tbody>${covers || `<tr><td class="empty">None recorded.</td></tr>`}</tbody></table>
+        <p class="muted">Precision ${fmt(q.precision?.mean, 2)}, recall ${fmt(q.recall?.mean, 2)}, F1 ${fmt(q.f1?.mean, 2)}; false positives ${pct(q.falsePositiveRate)}. ${plural(d.summary?.attempts ?? 0, "attempt")}, ${fmt(d.summary?.discardedRolloverAttempts)} retried after a date rollover.</p></div>
+      <div><h3>Outcome, expected against actual</h3><table><thead><tr><th>Expected</th><th>Actual</th><th class="r">Attempts</th></tr></thead><tbody>${confusion}</tbody></table></div>
+      <div><h3>Configuration</h3><dl class="kv">${config}</dl></div>
+    </div></details>`;
   }
 
-  function proposalsBlock(proposals, matching) {
-    const head = matching ? ` · ${matching.matched} of ${matching.expected} expected matched` : "";
-    if (proposals == null) return `<div class="block"><span class="label">Proposals</span><div class="empty">Not read.</div></div>`;
-    if (!proposals.length) return `<div class="block"><span class="label">Proposals · none${esc(head)}</span><div class="empty">No expense was proposed.</div></div>`;
-    const rows = proposals.map((p) => `<tr><td class="num" style="white-space:nowrap">${esc(p.amount)} ${esc(p.currency)}</td><td>${esc(p.description ?? "—")}${p.merchant ? `<div class="muted">${esc(p.merchant)}</div>` : ""}</td><td>${esc(p.category ?? "—")}<div class="muted">${esc(p.grouping ?? "")}</div></td></tr>`).join("");
-    return `<div class="block"><span class="label">Proposals · ${proposals.length}${esc(head)}</span><div class="scroll"><table><thead><tr><th>Amount</th><th>Description</th><th>Category</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  }
-
-  function learningBlock(learning, messageIds) {
-    const entries = Object.entries(learning || {});
-    if (!entries.length) return "";
-    const rows = entries.map(([id, l]) => `<tr><td class="v">${esc(id)}</td><td class="num">${esc(messageIds?.[id] ?? "—")}</td><td class="num">${ms(l.turnMs)}</td><td class="num">${ms(l.availabilityMs)}</td></tr>`).join("");
-    return `<div class="block"><span class="label">Learning steps · ${entries.length}</span><div class="scroll"><table><thead><tr><th>Step</th><th>Message</th><th>Turn</th><th>In memory after</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  }
-
-  function sidePanels(d) {
-    const q = d.summary?.quality || {}, p = d.summary?.performance || {};
-    const covers = Object.entries(q.passRateByCovers || {}).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
-    const coverRows = covers.length ? covers.map(([k, v]) => `<div class="bar-row"><span class="name">${esc(k)}</span><span class="num" style="text-align:right">${pct(v)}</span><span class="track"><i style="width:${(isNum(v) ? v : 0) * 100}%"></i></span></div>`).join("") : `<div class="empty">No coverage recorded.</div>`;
-    const metrics = [["targetTurnMs", "Target turn", ms], ["providerChatCalls", "Model calls", (v) => fmt(v, 1)], ["providerChatSeconds", "Model seconds", (v) => fmt(v, 2)], ["inputTokens", "Input tokens", fmt], ["outputTokens", "Output tokens", fmt], ["ledgerToolCalls", "Ledger tool calls", (v) => fmt(v, 1)]];
-    const perfRows = metrics.filter(([k]) => p[k]).map(([k, label, f]) => `<tr><td>${label}</td><td class="num">${fmt(p[k].n)}</td><td class="num">${f(p[k].median)}</td><td class="num">${f(p[k].p90)}</td><td class="num">${f(p[k].mean)}</td></tr>`).join("");
-    const confusion = Object.entries(q.outcomeConfusion || {}).flatMap(([exp, actual]) => Object.entries(actual).map(([act, n]) => `<tr class="${exp === act ? "" : "failed"}"><td class="v">${esc(exp)}</td><td class="v">${esc(act)}</td><td class="num">${fmt(n)}</td></tr>`)).join("");
-    const blocked = Object.entries(d.summary?.blockedCases || {});
-    return `<div class="two">
-      <div class="panel"><h2>Pass rate by behaviour</h2><div class="bars">${coverRows}</div></div>
-      <div class="panel"><h2>Performance</h2><div class="scroll"><table><thead><tr><th>Measure</th><th>n</th><th>Median</th><th>p90</th><th>Mean</th></tr></thead><tbody>${perfRows}</tbody></table></div></div>
-      <div class="panel"><h2>Expected vs actual outcome</h2>${confusion ? `<div class="scroll"><table><thead><tr><th>Expected</th><th>Actual</th><th>Attempts</th></tr></thead><tbody>${confusion}</tbody></table></div>` : `<div class="empty">No outcomes recorded.</div>`}</div>
-      <div class="panel"><h2>Blocked cases · ${blocked.length}</h2>${blocked.length ? `<div class="scroll"><table><tbody>${blocked.map(([id, why]) => `<tr><td class="v">${esc(id)}</td><td>${esc(why)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="muted">Every selected case ran.</div>`}</div>
-    </div>`;
-  }
+  // ---- wiring -----------------------------------------------------------------------------------------------
 
   $("file").addEventListener("change", (e) => { openFiles([...e.target.files]); e.target.value = ""; });
-  let dragDepth = 0;
-  window.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { dragDepth++; $("drop").hidden = false; } });
-  window.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $("drop").hidden = true; });
+  $("run-select").addEventListener("change", (e) => { state.current = Number(e.target.value); if (state.baseline === state.current) state.baseline = -1; state.open.clear(); render(); });
+  $("compare-select").addEventListener("change", (e) => { state.baseline = Number(e.target.value); render(); });
+  let depth = 0;
+  window.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { depth++; $("drop").hidden = false; } });
+  window.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) $("drop").hidden = true; });
   window.addEventListener("dragover", (e) => e.preventDefault());
-  window.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; $("drop").hidden = true; if (e.dataTransfer?.files?.length) openFiles([...e.dataTransfer.files]); });
+  window.addEventListener("drop", (e) => { e.preventDefault(); depth = 0; $("drop").hidden = true; if (e.dataTransfer?.files?.length) openFiles([...e.dataTransfer.files]); });
 
-  try { addRun("trial.json", JSON.parse($("sample").textContent), true); } catch (e) { showMessage(e.message); }
+  try { addRun("trial.json", JSON.parse($("sample").textContent), true); } catch (e) { $("notice").textContent = e.message; $("notice").hidden = false; }
   render();
 })();
 </script>
