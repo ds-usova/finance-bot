@@ -197,7 +197,7 @@ class ExpensesControllerTest {
         }
 
         @Test
-        @DisplayName("when the request discards two ids - then the port is called with the caller's ids in the "
+        @DisplayName("when the request discards two ids - then the port gets the caller's ids in the "
                 + "order posted, and the response is 200")
         void whenTheRequestDiscardsTwoIds_thenPortIsCalledWithCallerAndIdsAndResponseIs200() throws Exception {
             when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(2, 0));
@@ -719,8 +719,8 @@ class ExpensesControllerTest {
         }
 
         @Test
-        @DisplayName("when the discard port throws PersistenceFailedException - then the response is 503 and its "
-                + "message names no table or statement")
+        @DisplayName("when the discard port throws PersistenceFailedException - then the response is 503 "
+                + "naming no table or statement")
         void whenDiscardPortThrowsPersistenceFailedException_thenResponseIs503NamingNoTableOrStatement()
                 throws Exception {
             when(discardExpensesPort.discard(any()))

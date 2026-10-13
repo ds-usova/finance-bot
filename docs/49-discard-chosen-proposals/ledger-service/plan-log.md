@@ -47,12 +47,19 @@
 - **RL02 (RI03):** hypothesis: `{"ids":[1.5]}` binds as `1` and reaches the port with 200, as
   `whenTheDiscardCarriesAFractionalId_thenItBindsTruncatedAndReachesThePort` asserts — settled by that test's
   run once the controller is implemented.
+- **RL03 (GI02):** `ExpenseRepositoryAdapterEventsTest` passed on GI01's implementation of `discardByIds`, in the
+  same verification run; no agent was spawned for it. That run also passed the fractional-id test RL02 names.
+- **RL04 (RI03):** the full suite after green failed `DisplayNameConventionsTest.aTestMethodsDisplayNameStaysUnderTheLimit`
+  on two 126-character `@DisplayName`s RI03 wrote in `ExpensesControllerTest`; re-delegated to `red-integration`
+  to shorten them.
+  - Resolved: both names shortened under the limit; the full suite is green at 1365.
 
 ## Suite Runs
 
 - baseline · tree c468bb6ce1f6d8b3b0539a0e2f0eb31f6ad048b0 · total 1335 · skipped 0 · green · paths: ledger-service
 - stabilization · tree 2993e8a7c368ff06e1fc9085fbaa64a86e377ce7 · total 1335 · skipped 0 · green · paths: ledger-service
 
+- green · tree 64c024eeb44402c748592d998ce5bbf9526021e9 · total 1365 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`

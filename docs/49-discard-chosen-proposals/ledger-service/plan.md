@@ -234,17 +234,17 @@ AC13 by `ResolveProposalsUseCaseTest`'s case "when the resolution and the count 
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `DiscardExpensesUseCase` · test: `DiscardExpensesUseCaseTest`
+- [x] GU01 · `DiscardExpensesUseCase` · test: `DiscardExpensesUseCaseTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
-- [ ] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterEventsTest` · after: GI01
-- [ ] GI03 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/discards` · mocks: `DiscardExpensesPort`
+- [x] GI01 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterTest`
+- [x] GI02 · `ExpenseRepositoryAdapter` · test: `ExpenseRepositoryAdapterEventsTest` · after: GI01
+- [x] GI03 · `ExpensesController` · test: `ExpensesControllerTest` · covers: `POST /api/v1/expenses/discards` · mocks: `DiscardExpensesPort`
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `DiscardExpensesSystemTest` · covers: `POST /api/v1/expenses/discards`
+- [x] GS01 · `DiscardExpensesSystemTest` · covers: `POST /api/v1/expenses/discards`
 
 ### Post-Implementation Steps
 

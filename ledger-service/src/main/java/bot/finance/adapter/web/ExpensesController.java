@@ -12,6 +12,7 @@ import bot.finance.api.model.ListExpenses200Response;
 import bot.finance.application.dto.AcceptExpensesCommand;
 import bot.finance.application.dto.BrowseExpensesCommand;
 import bot.finance.application.dto.ChangeExpenseCategoryCommand;
+import bot.finance.application.dto.DiscardExpensesCommand;
 import bot.finance.application.port.AcceptExpensesPort;
 import bot.finance.application.port.BrowseExpensesPort;
 import bot.finance.application.port.ChangeExpenseCategoryPort;
@@ -58,9 +59,9 @@ public class ExpensesController implements ExpensesApi {
 
     @Override
     public ResponseEntity<DiscardExpenses200Response> discardExpenses(DiscardExpensesRequest discardExpensesRequest) {
-        // stub-intent: builds the command with AuthenticatedCaller.authenticatedUserId(), calls the discard port,
-        // and answers 200 through the mapper
-        return null;
+        DiscardExpensesCommand command = ExpenseWebMapper.toDiscardExpensesCommand(
+                discardExpensesRequest, AuthenticatedCaller.authenticatedUserId());
+        return ResponseEntity.ok(ExpenseWebMapper.toDiscardResponse(discardExpensesPort.discard(command)));
     }
 
     @Override

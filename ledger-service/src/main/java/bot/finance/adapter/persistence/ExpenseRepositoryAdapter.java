@@ -124,10 +124,15 @@ public class ExpenseRepositoryAdapter implements ExpenseRepository {
     @Override
     @Transactional
     public List<IncomingMessageId> discardByIds(long userId, ProposalIds ids, Instant now) {
-        // stub-intent: runs the by-id delete statement for the caller, appends a ProposalDiscarded fact per
-        // removed row at now through the outbox, answers each removed row's message, and wraps any failure in
-        // PersistenceFailedException
-        return List.of();
+        try {
+            List<SpendingRowProjection> changed = expenseEntityRepository.discardByIds(userId, ids.ids());
+            ledgerEventOutbox.append(LedgerEventType.ProposalDiscarded, changed, now);
+            return changed.stream()
+                    .map(row -> IncomingMessageId.of(row.incomingMessageId()))
+                    .toList();
+        } catch (RuntimeException e) {
+            throw new PersistenceFailedException("failed to discard proposals by id for user " + userId, e);
+        }
     }
 
     @Override
