@@ -55,7 +55,8 @@ button, select, input { font: inherit; color: inherit; }
 select, .search { background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 6px; max-width: 100%; }
 .button { border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; padding: 3px 10px; cursor: pointer; }
 .button:hover { background: var(--hover); }
-#file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+#file { display: none; }
+[hidden] { display: none !important; }
 .notice { margin-top: 12px; color: var(--fail); }
 
 .summary { padding-block: 14px 10px; display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: flex-end; justify-content: space-between; }
@@ -137,7 +138,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
     <div class="controls">
       <label id="run-control" hidden>Run <select id="run-select"></select></label>
       <label id="compare-control" hidden>Compare with <select id="compare-select"></select></label>
-      <label for="file" class="button">Open run files…</label>
+      <button type="button" id="open" class="button">Open run files…</button>
       <input type="file" id="file" accept=".json,application/json" multiple>
     </div>
   </div>
@@ -581,6 +582,7 @@ details.run-details > summary { cursor: pointer; font-weight: 600; }
 
   // ---- wiring -----------------------------------------------------------------------------------------------
 
+  $("open").addEventListener("click", () => $("file").click());
   $("file").addEventListener("change", (e) => { openFiles([...e.target.files]); e.target.value = ""; });
   $("run-select").addEventListener("change", (e) => { state.current = Number(e.target.value); if (state.baseline === state.current) state.baseline = -1; state.open.clear(); render(); });
   $("compare-select").addEventListener("change", (e) => { state.baseline = Number(e.target.value); render(); });
