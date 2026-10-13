@@ -202,12 +202,8 @@ class ExpensesControllerTest {
         void whenTheRequestDiscardsTwoIds_thenPortIsCalledWithCallerAndIdsAndResponseIs200() throws Exception {
             when(discardExpensesPort.discard(any())).thenReturn(new ExpenseDiscard(2, 0));
 
-            MvcResult result = mockMvc.perform(post(DISCARD_PATH)
-                            .with(csrf())
-                            .cookie(sessionCookie())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"ids":[7,5]}"""))
+            MvcResult result = postDiscard("""
+                            {"ids":[7,5]}""")
                     .andExpect(status().isOk())
                     .andReturn();
 
@@ -555,8 +551,7 @@ class ExpensesControllerTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("bot.finance.adapter.web.ExpensesControllerTest#idsUnreadableBodies")
-        @DisplayName(
-                "when the discard's body cannot be read - then the response is 400, and the port is never " + "called")
+        @DisplayName("when the discard's body cannot be read - then the response is 400, and the port is never called")
         void whenTheDiscardBodyCannotBeRead_thenResponseIs400AndPortNeverCalled(String description, String body)
                 throws Exception {
             MvcResult result =
@@ -581,8 +576,7 @@ class ExpensesControllerTest {
             assertThat(command.getValue().ids().ids()).hasSize(ProposalIds.MAX_IDS);
         }
 
-        // Unobserved: expected from the generated binding and Jackson's default float-to-integer coercion, which
-        // truncates 1.5 to 1 rather than refusing it. Check at verification.
+        // Jackson's default float-to-integer coercion truncates 1.5 to 1 rather than refusing it.
         @Test
         @DisplayName("when the discard carries a fractional id - then it binds as observed, truncated to 1, and "
                 + "reaches the port")
@@ -595,14 +589,6 @@ class ExpensesControllerTest {
             ArgumentCaptor<DiscardExpensesCommand> command = ArgumentCaptor.forClass(DiscardExpensesCommand.class);
             verify(discardExpensesPort).discard(command.capture());
             assertThat(command.getValue().ids().ids()).containsExactly(1L);
-        }
-
-        private ResultActions postDiscard(String body) throws Exception {
-            return mockMvc.perform(post(DISCARD_PATH)
-                    .with(csrf())
-                    .cookie(sessionCookie())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(body));
         }
     }
 
@@ -726,12 +712,8 @@ class ExpensesControllerTest {
             when(discardExpensesPort.discard(any()))
                     .thenThrow(new PersistenceFailedException("the discard statement failed", new RuntimeException()));
 
-            MvcResult result = mockMvc.perform(post(DISCARD_PATH)
-                            .with(csrf())
-                            .cookie(sessionCookie())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"ids":[5,7]}"""))
+            MvcResult result = postDiscard("""
+                            {"ids":[5,7]}""")
                     .andExpect(status().isServiceUnavailable())
                     .andReturn();
 
@@ -889,5 +871,13 @@ class ExpensesControllerTest {
 
     private static Cookie sessionCookie() {
         return BrowserSessions.cookieFor(USER_ID);
+    }
+
+    private ResultActions postDiscard(String body) throws Exception {
+        return mockMvc.perform(post(DISCARD_PATH)
+                .with(csrf())
+                .cookie(sessionCookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
     }
 }

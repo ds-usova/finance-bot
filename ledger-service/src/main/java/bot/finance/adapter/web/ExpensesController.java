@@ -38,8 +38,8 @@ public class ExpensesController implements ExpensesApi {
             DiscardExpensesPort discardExpensesPort) {
         this.browseExpensesPort = browseExpensesPort;
         this.acceptExpensesPort = acceptExpensesPort;
-        this.discardExpensesPort = discardExpensesPort;
         this.changeExpenseCategoryPort = changeExpenseCategoryPort;
+        this.discardExpensesPort = discardExpensesPort;
     }
 
     @Override

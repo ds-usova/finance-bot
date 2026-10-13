@@ -53,6 +53,9 @@
   on two 126-character `@DisplayName`s RI03 wrote in `ExpensesControllerTest`; re-delegated to `red-integration`
   to shorten them.
   - Resolved: both names shortened under the limit; the full suite is green at 1365.
+- **RL05 (GU01):** the refactor pass left `DiscardExpensesUseCase`'s near-copy of `AcceptExpensesUseCase`, and
+  the row-to-message mapping `acceptByIds` and `discardByIds` share, unmerged: either change reaches code this plan
+  did not touch.
 
 ## Suite Runs
 
@@ -60,6 +63,7 @@
 - stabilization · tree 2993e8a7c368ff06e1fc9085fbaa64a86e377ce7 · total 1335 · skipped 0 · green · paths: ledger-service
 
 - green · tree 64c024eeb44402c748592d998ce5bbf9526021e9 · total 1365 · skipped 0 · green · paths: ledger-service
+- refactor · tree f196c6e8bcddb02f5fe0bb393ce310f086af1acc · total 1365 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`

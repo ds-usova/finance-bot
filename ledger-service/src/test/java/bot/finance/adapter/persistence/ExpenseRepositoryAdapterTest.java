@@ -726,20 +726,11 @@ class ExpenseRepositoryAdapterTest {
             Instant createdAt = Instant.now().minusSeconds(60);
             ExpenseEntity first = pendingEntry(userId, categoryId, "First", reference.value(), createdAt);
             ExpenseEntity second = pendingEntry(userId, categoryId, "Second", reference.value(), createdAt);
-            ExpenseEntity third = pendingEntry(
-                    userId,
-                    categoryId,
-                    "Third",
-                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
-                    createdAt);
+            ExpenseEntity third = storedProposalAt(userId, categoryId, "Third", 100, "USD", createdAt);
             ExpenseEntity recorded = storedExpense(userId, categoryId, "Recorded", 400, "USD", null);
             long otherUserId = storedUserId("discard-by-ids-other-user");
-            ExpenseEntity others = pendingEntry(
-                    otherUserId,
-                    leafCategoryId(otherUserId, "Dining"),
-                    "Other's",
-                    IncomingMessageId.of(UUID.randomUUID().toString()).value(),
-                    createdAt);
+            ExpenseEntity others = storedProposalAt(
+                    otherUserId, leafCategoryId(otherUserId, "Dining"), "Other's", 100, "USD", createdAt);
 
             List<IncomingMessageId> answer = adapter.discardByIds(
                     userId,
