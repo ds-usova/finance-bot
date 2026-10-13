@@ -6,8 +6,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import bot.finance.adapter.logging.Slf4jLoggerFactory;
 import bot.finance.application.dto.ClearEmptiedReportsCommand;
 import bot.finance.application.port.ClearEmptiedReportsPort;
+import bot.finance.application.port.LoggerFactory;
 import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.IncomingMessageId;
 import java.util.List;
@@ -20,6 +22,8 @@ import org.junit.jupiter.api.Test;
 class ExecutorReportClearingDispatcherTest {
 
     private static final long USER_ID = 1L;
+
+    private final LoggerFactory loggerFactory = new Slf4jLoggerFactory();
 
     private ClearEmptiedReportsCommand command() {
         return new ClearEmptiedReportsCommand(USER_ID, List.of(IncomingMessageId.of("777:123")));
@@ -36,7 +40,7 @@ class ExecutorReportClearingDispatcherTest {
             ClearEmptiedReportsPort clearEmptiedReportsPort = mock(ClearEmptiedReportsPort.class);
             Executor synchronousExecutor = Runnable::run;
             ExecutorReportClearingDispatcher dispatcher =
-                    new ExecutorReportClearingDispatcher(synchronousExecutor, clearEmptiedReportsPort);
+                    new ExecutorReportClearingDispatcher(synchronousExecutor, clearEmptiedReportsPort, loggerFactory);
             ClearEmptiedReportsCommand command = command();
 
             dispatcher.dispatch(command);
@@ -52,7 +56,7 @@ class ExecutorReportClearingDispatcherTest {
                 throw new RejectedExecutionException("pool has no room");
             };
             ExecutorReportClearingDispatcher dispatcher =
-                    new ExecutorReportClearingDispatcher(refusingExecutor, clearEmptiedReportsPort);
+                    new ExecutorReportClearingDispatcher(refusingExecutor, clearEmptiedReportsPort, loggerFactory);
 
             assertThatCode(() -> dispatcher.dispatch(command())).doesNotThrowAnyException();
 
@@ -70,7 +74,7 @@ class ExecutorReportClearingDispatcherTest {
                     .clear(command);
             Executor synchronousExecutor = Runnable::run;
             ExecutorReportClearingDispatcher dispatcher =
-                    new ExecutorReportClearingDispatcher(synchronousExecutor, clearEmptiedReportsPort);
+                    new ExecutorReportClearingDispatcher(synchronousExecutor, clearEmptiedReportsPort, loggerFactory);
 
             assertThatCode(() -> dispatcher.dispatch(command)).doesNotThrowAnyException();
         }

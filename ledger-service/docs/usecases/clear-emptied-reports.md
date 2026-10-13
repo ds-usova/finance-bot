@@ -34,7 +34,7 @@
 | Counts unreadable   | reading what is still pending fails                                                  | it is logged, and no report is cleared                             |
 | Reports unreadable  | reading where a message's reports were posted fails                                  | the run ends there, and the messages after it are left alone       |
 | Nothing handed over | the work names no message                                                            | nothing is read and nothing is sent                                |
-| Clearing dropped    | the pool has no room for the work                                                    | it never runs, and nothing is queued or run on the request thread  |
+| Clearing dropped    | the pool has no room for the work                                                    | it is logged, never runs, and nothing runs on the request thread   |
 
 ## Components
 

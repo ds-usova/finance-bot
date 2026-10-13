@@ -117,12 +117,3 @@ never changes once given.
 - **Why** `acceptByIds` and `discardByIds` catch only inside their `@Transactional` body, and
   `WebExceptionHandler` maps no transaction exception, so such a failure reaches `onUnexpected` and answers 500;
   deferred by the design as DF07
-
-### BT07 · `ledger-service` — a dropped report clearing leaves no trace
-
-- **Kind** deferred change · **Priority** normal · **Size** S
-- **Raised by** task 49, 2026-10-13 · [origin](implemented/49-discard-chosen-proposals/review/findings.md)
-- **What** a report clearing the pool refuses or that fails leaves a log line or a meter
-- **Why** `ReportClearingConfiguration`'s pool runs `DiscardPolicy`, and `ExecutorReportClearingDispatcher` ignores
-  both `RejectedExecutionException` and a `RuntimeException` from the clearing, so a dropped clearing for an
-  acceptance or a discard leaves no trace; deferred by the design as DF13
