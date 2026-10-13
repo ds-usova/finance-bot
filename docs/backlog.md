@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB06 · BR00 · BT03 · BP00
+**Last ids:** BB06 · BR00 · BT05 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -84,3 +84,26 @@ never changes once given.
   that an active turn's queries are preserved.
 - **Why** found while reviewing the evaluation spending-question cases; confirmed by reading the implementation,
   not yet reproduced by a test
+
+### BT04 · `web-app` — discard a pending entry from the expenses page
+
+- **Kind** deferred change · **Priority** normal · **Size** M
+- **Raised by** task 49, 2026-10-12 · [origin](implemented/49-discard-chosen-proposals/design-log.md)
+- **What** a person can discard chosen pending entries from the page, through `POST /api/v1/expenses/discards`
+- **Why** task 49 ships the endpoint alone (its DN01); an entry filed as text from the web has no Telegram report,
+  so nothing on the page throws it away
+
+### BT05 · `ledger-service` — a Telegram report's text follows what was accepted and discarded
+
+- **Kind** deferred change · **Priority** normal · **Size** M
+- **Raised by** user, 2026-10-13
+- **What** after any accept or discard, whether by id from the web or by a Telegram tap, the report is rewritten.
+  While entries stay pending it lists only those and keeps its buttons. Once none is pending it lists what was
+  accepted and loses its buttons. The text is rendered once at delivery and never stored: `proposal_report` holds
+  only where it was sent, and the spending summary block cannot be rebuilt once the turn's `spending_query` rows
+  are gone. A migration must keep the summary block and the outcome. Two resolutions in a row hand off two
+  asynchronous rewrites, and the older can land last with stale text. Rewrites of one report must therefore run
+  one at a time, each re-reading the entries just before its edit. A version check alone does not prevent this,
+  because the Telegram edit sits outside the transaction and both checks can pass before either edit is sent ·
+  `TurnReportRenderer`, `ClearEmptiedReportsUseCase`, `MessageDeliveryPort`
+- **Why** a partly resolved report keeps listing entries already gone (task 49, AC12)
