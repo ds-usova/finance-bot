@@ -34,6 +34,15 @@ public final class Comparison {
                 .append(" | ")
                 .append(after.path("runId").asString())
                 .append(" | Change |\n|---|---|---|---|\n");
+        JsonNode leftMode = before.path("summary").path("extractionMode");
+        JsonNode rightMode = after.path("summary").path("extractionMode");
+        out.append("| extraction mode | ")
+                .append(mode(leftMode))
+                .append(" | ")
+                .append(mode(rightMode))
+                .append(" | ")
+                .append(modeChange(leftMode, rightMode))
+                .append(" |\n");
         for (String[] row : ROWS) {
             JsonNode left = at(before.path("summary"), row[1]);
             JsonNode right = at(after.path("summary"), row[1]);
@@ -74,6 +83,14 @@ public final class Comparison {
             node = node.path(part);
         }
         return node;
+    }
+
+    private static String mode(JsonNode value) {
+        return value.isTextual() ? value.asString() : "n/a";
+    }
+
+    private static String modeChange(JsonNode left, JsonNode right) {
+        return left.isTextual() && right.isTextual() && !left.equals(right) ? "differs" : "";
     }
 
     private static String format(JsonNode value) {

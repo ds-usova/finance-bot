@@ -1,6 +1,7 @@
 package bot.finance.eval.observe;
 
 import bot.finance.eval.EvalException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -11,6 +12,8 @@ import java.util.function.Consumer;
 public final class TargetMetrics {
 
     private static final Map<String, String> CHAT = Map.of("gen_ai_operation_name", "chat");
+
+    private static final String LEDGER_TURN_SERVICE = "bot.finance.ledger.v1.LedgerTurnService";
 
     private final Prometheus prometheus;
     private final String ledgerUrl;
@@ -53,11 +56,31 @@ public final class TargetMetrics {
                     connector.of(
                             "gen_ai_client_token_usage_total",
                             Map.of("gen_ai_token_type", "output", "gen_ai_operation_name", "chat")),
-                    ledger.of("ledger_mcp_tool_calls_total", Map.of()),
-                    // TODO: extractionMode, classifierCalls and classifierSeconds are read from the connector's growth
-                    null,
-                    null,
-                    null);
+                    ledgerToolCalls(ledger),
+                    extractionMode(connectorBefore, connectorAfter),
+                    connector.of("ai_classifier_seconds_count", Map.of()),
+                    connector.of("ai_classifier_seconds_sum", Map.of()));
+        }
+
+        private Double ledgerToolCalls(Growth ledger) {
+            Double toolCalls = ledger.of("ledger_mcp_tool_calls_total", Map.of());
+            if (toolCalls == null || toolCalls > 0) {
+                return toolCalls;
+            }
+            return ledger.of("grpc_server_seconds_count", Map.of("rpc_service", LEDGER_TURN_SERVICE));
+        }
+
+        private String extractionMode(MetricSnapshot before, MetricSnapshot after) {
+            if (before == null || after == null) {
+                return null;
+            }
+            List<String> grown = after.labelValues("ai_turns_total", "mode").stream()
+                    .filter(mode -> {
+                        Map<String, String> labels = Map.of("mode", mode);
+                        return after.sum("ai_turns_total", labels) > before.sum("ai_turns_total", labels);
+                    })
+                    .toList();
+            return grown.size() == 1 ? grown.get(0) : null;
         }
     }
 

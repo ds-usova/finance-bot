@@ -1,6 +1,7 @@
 package bot.finance.eval.observe;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -52,8 +53,20 @@ public record MetricSnapshot(Map<String, Double> series) {
     }
 
     public Set<String> labelValues(String name, String label) {
-        // stub-intent: the distinct values of `label` across every series of `name` that carries it; empty when none does
-        return Set.of();
+        Set<String> values = new LinkedHashSet<>();
+        for (String key : series.keySet()) {
+            int brace = key.indexOf('{');
+            if (brace < 0 || !key.substring(0, brace).equals(name)) {
+                continue;
+            }
+            Matcher matcher = LABEL.matcher(key.substring(brace));
+            while (matcher.find()) {
+                if (matcher.group(1).equals(label)) {
+                    values.add(matcher.group(2));
+                }
+            }
+        }
+        return values;
     }
 
     private static boolean matches(String labelText, Map<String, String> wanted) {
