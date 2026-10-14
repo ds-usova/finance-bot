@@ -445,7 +445,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a null or blank grouping
       when: the entry is constructed
       then: throws InvalidValueException
-    - given: a null or empty category list, or one holding a null or blank name
+    - given: a null or empty category list, or one holding a null or blank name, or a name twice
       when: the entry is constructed
       then: throws InvalidValueException
 - [ ] RU02 · `ExtractIntentsCommand` · test: `ExtractIntentsCommandTest` · covers: `ExtractIntentsCommand()` ·
@@ -455,6 +455,10 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       when: the command is constructed
       then: throws InvalidValueException
     - given: a catalogue holding a null entry
+      when: the command is constructed
+      then: throws InvalidValueException
+    - given: a catalogue naming one grouping twice, or naming groupings other than the command's groupings or in
+      another order
       when: the command is constructed
       then: throws InvalidValueException
 - [ ] RU03 · `ExpenseToFile` · test: `ExpenseToFileTest` · covers: `ExpenseToFile()` · scenarios: AC14
@@ -587,7 +591,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 - [ ] RU10 · `ExtractionProperties` · test: `ExtractionPropertiesTest` · covers: `ExtractionProperties()` ·
   scenarios: AC16
   - `ExtractionProperties()`:
-    - given: a mode that is neither `tools` nor `classifier`
+    - given: a mode that is neither `tools` nor `classifier` — `rules`, empty, `CLASSIFIER`
       when: the properties are bound
       then: throws IllegalArgumentException naming `EXTRACTION_MODE`
     - given: a null mode
@@ -605,12 +609,21 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a minimum confidence below 0 or above 1
       when: the properties are bound
       then: throws IllegalArgumentException naming `CLASSIFIER_MIN_CONFIDENCE`
+    - given: a minimum confidence of exactly 0 or exactly 1
+      when: the properties are bound
+      then: they bind
+    - given: a timeout of zero or less
+      when: the properties are bound
+      then: throws IllegalArgumentException naming `CLASSIFIER_TIMEOUT`
 - [ ] RU12 · `LedgerTurnProperties` · test: `LedgerTurnPropertiesTest` · covers: `LedgerTurnProperties()` ·
   scenarios: AC16
   - `LedgerTurnProperties()`:
     - given: a null or blank target
       when: the properties are bound
       then: throws IllegalArgumentException naming `LEDGER_TURN_TARGET`
+    - given: a timeout of zero or less
+      when: the properties are bound
+      then: throws IllegalArgumentException naming `LEDGER_TURN_TIMEOUT`
 - [ ] RU13 · `CategoryChoice` · test: `CategoryChoiceTest` · covers: `CategoryChoice()` · scenarios: AC01
   - `CategoryChoice()`:
     - given: a null or blank grouping, or a null or blank category
@@ -635,7 +648,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       when: the call is made
       then: the port receives a command carrying both entries in order, with their categories
   - Validation: `catalogue` — no entry for the catch-all grouping; an entry with no category; an entry with a
-    blank grouping or a blank category name; each `INVALID_ARGUMENT`, the port never called
+    blank grouping or a blank category name; a grouping named twice; a category named twice in one entry;
+    groupings differing from `category_groupings` or in another order; each `INVALID_ARGUMENT`, the port never
+    called
 - [ ] RI02 · `AiSpendingReadOutAdapter` · test: `AiSpendingReadOutAdapterTest` · covers: `readOut()` · scenarios:
   AC01, AC04, AC09
   - `readOut()`:
@@ -804,7 +819,8 @@ driving `ExtractIntents` — which keep their assertions through this change.
   `criteria`, `choice`, `confidence` and `probabilities`. The credential header, a question's key field and the
   answer's envelope are not in the tree, and docs.typesafe.ai is not on the fetch allow list. Allow fetching it
   for RI03, or supply a sample request and answer?
-  - A:
+  - A: Allow docs.typesafe.ai — `WebFetch(domain:docs.typesafe.ai)` is on the allow list; RU09, RI03, ST14 and
+    ST22 follow the shape documented there.
 
 - **OQ02:** An ADR records the classifier mode beside ADR 0008 (spec DN06, a new record sits beside it). Place it
   as PI01?

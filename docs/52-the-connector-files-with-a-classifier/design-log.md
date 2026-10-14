@@ -76,3 +76,7 @@ Grilled (2026-10-13): grill-design, twice — the second pass after the decision
 - **DN06:** The user chose a new record beside ADR 0008 over superseding it. The tool-calling mode stays the
   default and keeps every consequence 0008 lists (`docs/adr/0008-the-connector-hands-expense-recording-to-the-model.md`).
   The new record covers the classifier mode only, whose refusals reach a program and are not retried.
+- **DN07:** The user chose a strict start over treating an empty mode as `tools` and ignoring case; the module's
+  other settings refuse a value they cannot run (`ai-connector-service/docs/configuration.md`).
+- **DN08:** The user chose refusing over trusting the ledger; a repeated pair gives two options one key, so the
+  classifier's answer could not be mapped back (`the-two-calls.md`, an option's key).

@@ -1,7 +1,7 @@
 # Spec: The Connector Files a Message's Spending with a Classifier
 
 **Format:** 2
-**Approved:** ds-usova, 2026-10-14, 1bd18c4dc1f0
+**Approved:** ds-usova, 2026-10-14, 685e7a782778
 **Affected Modules:** `ai-connector-service`
 
 ## Objective
@@ -136,14 +136,16 @@ otherwise. Every branch is drawn in [The classifier turn](classifier-turn.md).
 
 - **AC16:** the setting is refused at startup
   - Given: `EXTRACTION_MODE` is neither `tools` nor `classifier`; or it is `classifier` with no `TYPESAFE_API_KEY`,
-    no `CLASSIFIER_MODEL`, no `LEDGER_TURN_TARGET`, or a `CLASSIFIER_MIN_CONFIDENCE` outside `0..1`
+    no `CLASSIFIER_MODEL`, no `LEDGER_TURN_TARGET`, a `CLASSIFIER_MIN_CONFIDENCE` outside `0..1`, or a timeout
+    of zero or less (DN07)
   - When: the service starts
   - Then: it refuses to start, naming the setting
   - Proves: RQ09
 
 - **AC17:** the catalogue cannot place a fallback
   - Given: either mode
-  - When: the request's catalogue has no entry for the catch-all grouping, or an entry with no category
+  - When: the request's catalogue has no entry for the catch-all grouping, an entry with no category, a grouping
+    or a category repeated, or groupings that differ from `category_groupings` (DN08)
   - Then: the call is refused as an invalid argument before the provider is called
   - Proves: RQ06
 
@@ -186,6 +188,15 @@ otherwise. Every branch is drawn in [The classifier turn](classifier-turn.md).
 - **DN06:** How does the classifier mode stand to ADR 0008, which made the model the ledger's only caller?
   - Answer: a new record sits beside it. ADR 0008 stays in force for the tool-calling mode.
   - Basis: decided (user, 2026-10-13)
+
+- **DN07:** What does startup do with an empty or differently-cased `EXTRACTION_MODE`, or a timeout of zero or less?
+  - Answer: refuses to start, naming the setting. `CLASSIFIER_MIN_CONFIDENCE` accepts `0` and `1`.
+  - Basis: decided (user, 2026-10-14)
+
+- **DN08:** Is a catalogue repeating a grouping or a category, or whose groupings differ from `category_groupings`,
+  refused?
+  - Answer: yes, as an invalid argument before the provider is called, in both modes.
+  - Basis: decided (user, 2026-10-14)
 
 ## Design Artifacts
 

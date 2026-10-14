@@ -58,7 +58,7 @@
 
 - **RF13:** OQ01, the classifier's wire shape, is open, and RU09, RI03, ST14 and ST22 depend on it.
   - Resolution: decision
-  - Action:
+  - Action: answered — "Allow docs.typesafe.ai"; the domain is on the fetch allow list (OQ01).
 
 - **RF14:** Architecture Decisions omitted the ungated meters and `ExtractionProperties` in `adapter/config`.
   - Resolution: mechanical
@@ -84,13 +84,12 @@
 - **RF19:** An empty or differently-cased `EXTRACTION_MODE`, `0`/`1` as a minimum confidence, and a timeout of zero
   or less have no stated outcome.
   - Resolution: decision
-  - Action:
-  - Missing: what startup does with an empty or differently-cased mode and a non-positive timeout.
+  - Action: answered — "Strict": empty or wrong case refused naming `EXTRACTION_MODE`, a timeout of zero or less
+    refused, `0` and `1` accepted; written to the spec as DN07, and to RU10, RU11, RU12.
 
 - **RF20:** A grouping or category repeated in the catalogue, or groupings that disagree with it, are not refused.
   - Resolution: decision
-  - Action:
-  - Missing: whether such a catalogue is refused as an invalid argument.
+  - Action: answered — "Refuse, both modes"; written to the spec as DN08 and AC17, and to RU01, RU02 and RI01.
 
 - **RF21:** AC09 has no system scenario once RS01 is trimmed.
   - Resolution: mechanical
