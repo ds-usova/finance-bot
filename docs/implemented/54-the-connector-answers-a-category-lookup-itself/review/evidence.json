@@ -1,0 +1,14 @@
+{
+  "plan": "docs/implemented/54-the-connector-answers-a-category-lookup-itself/plan.md",
+  "commit": "bd34a1c7",
+  "branch": "eval",
+  "workingTree": "clean",
+  "generated": "2026-10-14T15:33:51Z",
+  "verdict": "VERIFIED",
+  "modules": [
+    {"module": "ai-connector-service", "verdict": "PASS", "tests": 569, "passed": 569, "failed": 0, "skipped": 0, "instructions": "98.4%", "branches": "94.3%", "minimum": "85%", "format": "clean"},
+    {"module": "eval-runner", "verdict": "PASS", "tests": 42, "passed": 42, "failed": 0, "skipped": 0, "instructions": "n/a", "branches": "n/a", "minimum": "n/a", "format": "clean"},
+    {"module": "ledger-service", "verdict": "PASS", "tests": 1447, "passed": 1447, "failed": 0, "skipped": 0, "instructions": "96.9%", "branches": "93.8%", "minimum": "85%", "format": "clean"},
+    {"module": "web-app", "verdict": "PASS", "tests": 357, "passed": 357, "failed": 0, "skipped": 0, "instructions": "98.3%", "branches": "92.5%", "minimum": "80%", "format": "clean"}
+  ]
+}
