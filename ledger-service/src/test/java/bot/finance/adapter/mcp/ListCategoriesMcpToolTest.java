@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.dto.ListCategoriesCommand;
 import bot.finance.application.port.ListCategoriesPort;
@@ -144,6 +145,21 @@ class ListCategoriesMcpToolTest {
             assertThat(response.jsonPath().getBoolean("result.isError")).isNotEqualTo(true);
             String text = response.jsonPath().getString("result.content[0].text");
             assertThat(text).contains("Supermarkets");
+        }
+
+        @Test
+        @DisplayName("when list_categories is called - then one ok turn_call line carries the grouping")
+        void whenListCategoriesIsCalled_thenOneOkTurnCallLineCarriesGrouping() {
+            try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
+                listCategoriesAnswering(42L, "Dining", List.of("Restaurants", "Cafes"));
+
+                assertThat(logCapture.messages())
+                        .filteredOn(message -> message.startsWith("turn_call"))
+                        .singleElement()
+                        .asString()
+                        .startsWith("turn_call operation=list_categories via=mcp outcome=ok ")
+                        .contains("{\"grouping\":\"Dining\"}");
+            }
         }
     }
 

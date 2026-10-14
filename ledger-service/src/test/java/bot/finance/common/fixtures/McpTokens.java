@@ -71,6 +71,11 @@ public final class McpTokens {
         return sign(userId, "some-other-audience", issuedAt, issuedAt.plus(TTL), newReferenceText());
     }
 
+    public static String wrongIssuerToken(long userId) {
+        Instant issuedAt = Instant.now();
+        return sign(userId, "some-other-issuer", AUDIENCE, issuedAt, issuedAt.plus(TTL), newReferenceText());
+    }
+
     public static String overTtlToken(long userId) {
         Instant issuedAt = Instant.now();
         return sign(userId, AUDIENCE, issuedAt, issuedAt.plus(TTL).plus(Duration.ofMinutes(10)), newReferenceText());
@@ -93,10 +98,15 @@ public final class McpTokens {
     }
 
     private static String sign(long userId, String audience, Instant issuedAt, Instant expiresAt, String imi) {
+        return sign(userId, ISSUER, audience, issuedAt, expiresAt, imi);
+    }
+
+    private static String sign(
+            long userId, String issuer, String audience, Instant issuedAt, Instant expiresAt, String imi) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .subject(Long.toString(userId))
-                    .issuer(ISSUER)
+                    .issuer(issuer)
                     .audience(audience)
                     .issueTime(Date.from(issuedAt))
                     .expirationTime(Date.from(expiresAt))

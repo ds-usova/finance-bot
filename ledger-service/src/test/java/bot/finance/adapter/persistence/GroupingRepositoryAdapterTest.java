@@ -175,6 +175,25 @@ class GroupingRepositoryAdapterTest {
         }
 
         @Test
+        @DisplayName(
+                "when Transport holds Taxi and Fuel and Dining holds Cafés - then each grouping carries its categories, sorted")
+        void whenGroupingsHoldCategories_thenEachEntryCarriesItsCategoriesSorted() {
+            long userId = storedUserId("catalogue-categories-user");
+            long transportId = storedGroupingId(userId, "Transport");
+            long diningId = storedGroupingId(userId, "Dining");
+            storedCategoryId(userId, transportId, "Taxi");
+            storedCategoryId(userId, transportId, "Fuel");
+            storedCategoryId(userId, diningId, "Cafés");
+
+            List<CatalogueEntry> catalogue = adapter.findCatalogue(userId);
+
+            assertThat(catalogue)
+                    .containsExactly(
+                            new CatalogueEntry("Dining", List.of("Cafés")),
+                            new CatalogueEntry("Transport", List.of("Fuel", "Taxi")));
+        }
+
+        @Test
         @DisplayName("when one grouping is populated and one holds nothing - then the empty grouping is absent")
         void whenOneGroupingIsEmpty_thenThatGroupingIsAbsent() {
             long userId = storedUserId("one-empty-one-populated-user");

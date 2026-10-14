@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -226,8 +225,62 @@ class IntentExtractionRequestTest {
                     .isInstanceOf(InvalidExtractionRequestException.class);
         }
 
+        @ParameterizedTest(name = "catalogue={0}")
+        @MethodSource("catalogueWithInvalidEntry")
+        @DisplayName("when the catalogue holds a null entry, or an entry whose categories are null, empty, or hold "
+                + "a null or blank name - then throws InvalidExtractionRequestException")
+        void whenCatalogueHoldsInvalidEntry_thenThrowsInvalidExtractionRequestException(
+                List<CatalogueEntry> catalogue) {
+            assertThatThrownBy(() -> new IntentExtractionRequest(
+                            "lunch 12 euro",
+                            catalogue,
+                            "groceries",
+                            Optional.of(CurrencyCode.of("EUR")),
+                            1L,
+                            newIncomingMessageId(),
+                            CURRENT_DATE))
+                    .isInstanceOf(InvalidExtractionRequestException.class);
+        }
+
+        static Stream<Arguments> catalogueWithInvalidEntry() {
+            CatalogueEntry valid = new CatalogueEntry("groceries", List.of("Milk"));
+            return Stream.of(
+                    arguments((Object) Arrays.asList(valid, null)),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", null))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", List.of()))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", Arrays.asList("Bus", null)))),
+                    arguments((Object) List.of(valid, new CatalogueEntry("transport", List.of("Bus", "   ")))));
+        }
+
         @Test
-        @Disabled("RU01: the catalogue is not copied yet")
+        @DisplayName("when the mutable catalogue handed to the constructor is changed afterwards - then catalogue() "
+                + "holds the entries as at construction and refuses modification")
+        void whenCatalogueIsChangedAfterConstruction_thenCatalogueHoldsEntriesAsAtConstructionAndIsUnmodifiable() {
+            List<CatalogueEntry> mutableCatalogue = new ArrayList<>(List.of(
+                    new CatalogueEntry("groceries", List.of("Milk", "Bread")),
+                    new CatalogueEntry("transport", List.of("Bus"))));
+
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    mutableCatalogue,
+                    "transport",
+                    Optional.empty(),
+                    1L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+            mutableCatalogue.add(new CatalogueEntry("utilities", List.of("Water")));
+            mutableCatalogue.remove(0);
+
+            assertThat(request.catalogue())
+                    .containsExactly(
+                            new CatalogueEntry("groceries", List.of("Milk", "Bread")),
+                            new CatalogueEntry("transport", List.of("Bus")));
+            assertThatThrownBy(() -> request.catalogue()
+                            .add(new CatalogueEntry("utilities", List.of("Water"))))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+
+        @Test
         @DisplayName("when the mutable grouping list handed to the constructor is modified afterwards - "
                 + "then category groupings is unchanged")
         void whenGroupingListIsModifiedAfterConstruction_thenCategoryGroupingsIsUnchanged() {

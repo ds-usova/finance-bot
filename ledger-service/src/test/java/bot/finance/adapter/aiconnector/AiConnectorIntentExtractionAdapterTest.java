@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsResponse;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.application.dto.CatalogueEntry;
 import bot.finance.application.dto.IntentExtractionRequest;
 import bot.finance.common.boot.AiConnectorAdapterTest;
@@ -95,6 +96,32 @@ class AiConnectorIntentExtractionAdapterTest {
             assertThat(receivedRequest.getCategoryGroupingsList()).containsExactly("Groceries", "Other");
             assertThat(receivedRequest.getCatchAllGrouping()).isEqualTo("Other");
             assertThat(receivedRequest.getDefaultCurrency()).isEqualTo("USD");
+        }
+
+        @Test
+        @DisplayName("when the request carries a catalogue - then the server receives each entry with its categories")
+        void whenRequestCarriesCatalogue_thenServerReceivesEachEntryWithItsCategoriesInOrder() {
+            GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "spent 15 on milk",
+                    List.of(
+                            new CatalogueEntry("Groceries", List.of("Milk")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
+                    "Other",
+                    Optional.of(CurrencyCode.of("USD")),
+                    1L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+
+            adapter.extract(request);
+
+            List<GroupingCategories> received =
+                    GrpcStubServer.lastExtractionRequest().getCatalogueList();
+            assertThat(received)
+                    .extracting(GroupingCategories::getGrouping)
+                    .containsExactly("Groceries", "Other");
+            assertThat(received.get(0).getCategoriesList()).containsExactly("Milk");
+            assertThat(received.get(1).getCategoriesList()).containsExactly("Misc");
         }
 
         @Test

@@ -94,6 +94,43 @@
   - Action: resolved — `turn-operations.md` states all three, so RI03 gained a reflection scenario, RS01 the
     call timer on the scrape (its name unverified), and ST10's intent the refusal logging.
 
+## Run Log
+
+- **RL01 (RS01):** expected pass — `FileExpenseProposalSystemTest.whenOperationPathIsPostedToHttpPort_thenItIsNotAnsweredAndNothingIsStored`
+  passes against the stubs: it asserts the HTTP port does not answer the operation's path.
+- **RL02 (RS01):** expected pass — `FileExpenseProposalSystemTest.whenCallHasBeenAnswered_thenScrapeShowsServerCallTimerAsOk`
+  passes against the stubs: the server's call timer is the framework's, wired by ST01, and the stub answers `OK`.
+- **RL03 (RI03):** expected pass — `TurnOperationsSecurityConfigurationTest`'s health and reflection tests pass
+  against the permit-all stub: they assert both services stay open without a credential.
+- **RL04 (RI04):** left — the blank `category` case was not written; the step marks it unverified.
+- **RL05 (RS03):** unrelated failure —
+  `ReceiveTelegramMessageSystemTest.whenSendersStoredPreferenceHoldsEur_thenExtractionRequestCarriesEurAsDefaultCurrency`
+  fails with `ConnectException` (`BrowserSessions.csrfToken`) when its class runs before any class that sets
+  `RestAssured.port`; the class never sets it itself. Reproduce: run the class alone. Pre-existing order dependence.
+- **RL06 (RS01):** hypothesis: the server's call timer renders as a `grpc_server…` line holding
+  `FileExpenseProposal` and `OK`, so the scrape assertion is deliberately loose — settled by one scrape after a call.
+- **RL07 (RS02):** hypothesis: an unknown subject `Long.MAX_VALUE - 7` reaches the port as NOT_FOUND rather than
+  failing on a key or length check — settled by the first green run.
+- **RL08 (RI03):** hypothesis: `McpTokens.expiredToken` expires exactly at the 60 s skew and is refused only because
+  time passes before verification — settled by running the expired case repeatedly once the check lands.
+- **RL09 (RI04):** hypothesis: a refusal's description names the field by its proto name (`currency_code`), and
+  `12.505` EUR's `InvalidMoneyException` never says `amount`, so the description must add it — settled by the
+  Validation cases going green.
+- **RL10 (RI05):** hypothesis: the rejected-line tests read the caller (`userId=`) at `write()` time — settled by
+  the MCP tools' tests going green.
+- **RL11 (RI03):** expected pass — after one re-delegation to drop a port verification RF04 rules out,
+  `TurnOperationsSecurityConfigurationTest.whenALedgerTokenIsPresented_thenTheCallIsAnswered` passes against the
+  permit-all stub: it asserts only that the call is not refused.
+- **RL12 (RU01):** expected pass — the null-entry case of
+  `IntentExtractionRequestTest.whenCatalogueHoldsInvalidEntry_thenThrowsInvalidExtractionRequestException` passes
+  red: the existing grouping check already refuses the null grouping a null entry yields.
+- **RL13 (RU04):** expected pass — `TurnCallLogTest.whenLineIsDisabled_thenNothingIsLogged` passes against the
+  no-op stub: it asserts nothing is logged.
+- **RL14 (RI01):** hypothesis: `GroupingRepositoryAdapterTest`'s mocked-store failure test for `findCatalogue`
+  stubs `findNonEmptyGroupingNames`, which the real read may stop calling — settled by that test after GI01.
+- **RL15 (RU04):** hypothesis: the full-line test relies on the arguments' JSON keeping insertion order — settled
+  by `TurnCallLogTest` going green.
+
 ## Suite Runs
 
 - baseline · tree c119edf4d751a2791c835f67a7119b468397cb5e · total 1367 · skipped 0 · green · paths: ledger-service

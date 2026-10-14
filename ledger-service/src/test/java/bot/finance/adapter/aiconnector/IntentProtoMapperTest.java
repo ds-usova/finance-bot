@@ -49,6 +49,31 @@ class IntentProtoMapperTest {
         }
 
         @Test
+        @DisplayName("when the catalogue holds Dining with two categories, then Other - then the generated request "
+                + "carries both entries in order with their categories, and category_groupings names them")
+        void whenCatalogueHoldsTwoEntries_thenGeneratedRequestCarriesEntriesInOrderWithTheirCategories() {
+            IntentExtractionRequest request = new IntentExtractionRequest(
+                    "lunch 12 euro",
+                    List.of(
+                            new CatalogueEntry("Dining", List.of("Cafés", "Restaurants")),
+                            new CatalogueEntry("Other", List.of("Misc"))),
+                    "Other",
+                    Optional.empty(),
+                    42L,
+                    newIncomingMessageId(),
+                    CURRENT_DATE);
+
+            ExtractIntentsRequest protoRequest = IntentProtoMapper.toProtoRequest(request);
+
+            assertThat(protoRequest.getCatalogueList()).hasSize(2);
+            assertThat(protoRequest.getCatalogue(0).getGrouping()).isEqualTo("Dining");
+            assertThat(protoRequest.getCatalogue(0).getCategoriesList()).containsExactly("Cafés", "Restaurants");
+            assertThat(protoRequest.getCatalogue(1).getGrouping()).isEqualTo("Other");
+            assertThat(protoRequest.getCatalogue(1).getCategoriesList()).containsExactly("Misc");
+            assertThat(protoRequest.getCategoryGroupingsList()).containsExactly("Dining", "Other");
+        }
+
+        @Test
         @DisplayName("when the request's default currency is empty - then the generated request reports "
                 + "hasDefaultCurrency() as false")
         void whenRequestDefaultCurrencyIsEmpty_thenGeneratedRequestReportsHasDefaultCurrencyAsFalse() {

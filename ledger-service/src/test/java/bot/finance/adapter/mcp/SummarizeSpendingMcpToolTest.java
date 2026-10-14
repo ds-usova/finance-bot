@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.SummarizeSpendingPort;
@@ -135,11 +136,47 @@ class SummarizeSpendingMcpToolTest {
             assertThat(text).contains("\"from\":\"" + from + "\"").contains("\"to\":\"" + to + "\"");
             assertThat(text).doesNotContainIgnoringCase("amount");
         }
+
+        @Test
+        @DisplayName("when summarize_spending is called - then one ok turn_call line carries the caller, the "
+                + "message and both days")
+        void whenSummarizeSpendingIsCalled_thenOneOkTurnCallLineCarriesCallerMessageAndBothDays() {
+            try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
+                postAcceptedSummary(42L, IncomingMessageId.of("m"), "2026-10-12", "2026-10-12");
+
+                assertThat(logCapture.messages())
+                        .filteredOn(message -> message.startsWith("turn_call"))
+                        .singleElement()
+                        .asString()
+                        .startsWith("turn_call operation=summarize_spending via=mcp outcome=ok userId=42 "
+                                + "message=m arguments=")
+                        .contains("\"from\":\"2026-10-12\"")
+                        .contains("\"to\":\"2026-10-12\"");
+            }
+        }
     }
 
     @Nested
     @DisplayName("Error Mapping")
     class ErrorMapping {
+
+        @Test
+        @DisplayName("when the port throws InvalidSpendingPeriodException - then the turn_call line reads "
+                + "outcome=rejected")
+        void whenPortThrowsInvalidSpendingPeriodException_thenTurnCallLineReadsRejected() {
+            when(summarizeSpendingPort.summarize(any()))
+                    .thenThrow(new InvalidSpendingPeriodException("the period ends before it starts"));
+
+            try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
+                postSummarizeSpending(token(1L), "2026-08-05", "2026-08-01");
+
+                assertThat(logCapture.messages())
+                        .filteredOn(message -> message.startsWith("turn_call"))
+                        .singleElement()
+                        .asString()
+                        .startsWith("turn_call operation=summarize_spending via=mcp outcome=rejected userId=1 ");
+            }
+        }
 
         @Test
         @DisplayName(

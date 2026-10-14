@@ -10,6 +10,7 @@ import static org.awaitility.Awaitility.await;
 
 import bot.finance.adapter.persistence.ExpenseEntity;
 import bot.finance.ai.adapter.grpc.v1.ExtractIntentsRequest;
+import bot.finance.ai.adapter.grpc.v1.GroupingCategories;
 import bot.finance.application.port.UserRepository;
 import bot.finance.application.usecase.HandleIncomingMessageUseCase;
 import bot.finance.common.LogCapture;
@@ -36,6 +37,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,6 +75,14 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
     /** The grouping names {@link Grouping#defaults()} seeds, sorted the way the groupings travel. */
     private static final List<String> EXPECTED_GROUPING_NAMES =
             Grouping.defaults().stream().map(Grouping::name).sorted().toList();
+
+    /** The category names {@link Grouping#defaults()} files under each grouping. */
+    private static final Map<String, List<String>> EXPECTED_CATEGORIES_BY_GROUPING = Grouping.defaults().stream()
+            .collect(Collectors.toMap(
+                    Grouping::name,
+                    grouping -> grouping.categories().stream()
+                            .map(bot.finance.domain.value.Category::name)
+                            .toList()));
 
     /** The categories {@link Grouping#defaults()} files under {@link #PROPOSAL_GROUPING}. */
     private static final List<String> EXPECTED_GROUPING_CATEGORIES = Grouping.defaults().stream()
@@ -188,6 +199,17 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
             assertThat(request.getCategoryGroupingsList())
                     .as("extraction request category groupings")
                     .containsExactlyElementsOf(EXPECTED_GROUPING_NAMES);
+            // then: the catalogue lists each grouping in that order, with exactly the categories stored under it
+            assertThat(request.getCatalogueList())
+                    .as("extraction request catalogue groupings")
+                    .extracting(GroupingCategories::getGrouping)
+                    .containsExactlyElementsOf(request.getCategoryGroupingsList())
+                    .containsExactlyElementsOf(EXPECTED_GROUPING_NAMES);
+            assertThat(request.getCatalogueList())
+                    .as("extraction request catalogue categories per grouping")
+                    .allSatisfy(entry -> assertThat(entry.getCategoriesList())
+                            .as("categories of %s", entry.getGrouping())
+                            .containsExactlyInAnyOrderElementsOf(EXPECTED_CATEGORIES_BY_GROUPING.get(entry.getGrouping())));
             assertThat(request.getCatchAllGrouping())
                     .as("extraction request catch-all grouping")
                     .isEqualTo(Grouping.catchAllName());

@@ -309,7 +309,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Unit Red Phase
 
-- [ ] RU01 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: `IntentExtractionRequest()`,
+- [x] RU01 · `IntentExtractionRequest` · test: `IntentExtractionRequestTest` · covers: `IntentExtractionRequest()`,
   `catalogue()` · scenarios: AC11
   - `IntentExtractionRequest()`:
     - given: a catalogue holding a null entry
@@ -325,13 +325,13 @@ New-method stubs carry an intent comment starting `stub-intent:`.
       modification
     - update: `whenGroupingListIsModifiedAfterConstruction_thenCategoryGroupingsIsUnchanged()` — re-enable it; it
       changes the mutable catalogue after construction, and its assertion on `categoryGroupings()` stands
-- [ ] RU02 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · covers: `toProtoRequest()` · scenarios: AC11
+- [x] RU02 · `IntentProtoMapper` · test: `IntentProtoMapperTest` · covers: `toProtoRequest()` · scenarios: AC11
   - `toProtoRequest()`:
     - given: a request whose catalogue holds `Dining` with `Cafés` and `Restaurants`, then `Other` with `Misc`
       when: toProtoRequest() is called
       then: the generated request's catalogue holds the same two entries in that order, each with its
       categories in order, and `category_groupings` names `Dining`, `Other`
-- [ ] RU03 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest` · covers: `toToolRequest()`,
+- [x] RU03 · `LedgerTurnProtoMapper` · test: `LedgerTurnProtoMapperTest` · covers: `toToolRequest()`,
   `toResponse(Expense, String, String)`, `toResponse(SpendingPeriod)` · scenarios: AC01, AC06
   - `toToolRequest()`:
     - given: a request filing `Dining`, `Cafés`, `coffee`, merchant `Bean Bar`, `4.50`, `EUR`
@@ -355,7 +355,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the period `2026-10-12` to `2026-10-12`
       when: toResponse() is called
       then: from and to are both `2026-10-12`
-- [ ] RU04 · `TurnCallLog` · test: `TurnCallLogTest` · covers: `write()` · scenarios: AC13, AC16
+- [x] RU04 · `TurnCallLog` · test: `TurnCallLogTest` · covers: `write()` · scenarios: AC13, AC16
   - `write()`:
     - given: the line enabled, and a security context holding a verified token for user 42 and message `web:17`
       when: write() is called for `create_expense_proposal`, MCP, accepted, with arguments `grouping` and
@@ -374,19 +374,19 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD Integration Red Phase
 
-- [ ] RI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findCatalogue()` ·
+- [x] RI01 · `GroupingRepositoryAdapter` · test: `GroupingRepositoryAdapterTest` · covers: `findCatalogue()` ·
   scenarios: AC11
   - `findCatalogue()`:
     - given: a user whose `Transport` holds `Taxi` and `Fuel`, and whose `Dining` holds `Cafés`
       when: findCatalogue() is called
       then: `Dining` carries `Cafés`, and `Transport` carries `Fuel`, `Taxi`, in that order
-- [ ] RI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
+- [x] RI02 · `AiConnectorIntentExtractionAdapter` · test: `AiConnectorIntentExtractionAdapterTest` · covers:
   `extract()` · scenarios: AC11
   - `extract()`:
     - given: a request whose catalogue holds `Groceries` with `Milk`, then `Other` with `Misc`
       when: extract() is called
       then: the stub server receives both entries in that order, each with its category
-- [ ] RI03 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
+- [x] RI03 · `TurnOperationsSecurityConfiguration` · test: `TurnOperationsSecurityConfigurationTest` · covers:
   `LedgerTurnService.FileExpenseProposal`, `LedgerTurnService.RecordSpendingPeriod` · mocks:
   `CreateExpenseProposalPort`, `SummarizeSpendingPort` · scenarios: AC08, AC09
   - Happy Path:
@@ -408,7 +408,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a token that verifies but carries no message reference, or a blank one
       when: either operation is called with it
       then: the call fails with UNAUTHENTICATED and neither port is called
-- [ ] RI04 · `LedgerTurnGrpcService` · test: `LedgerTurnGrpcServiceTest` · covers:
+- [x] RI04 · `LedgerTurnGrpcService` · test: `LedgerTurnGrpcServiceTest` · covers:
   `LedgerTurnService.FileExpenseProposal`, `LedgerTurnService.RecordSpendingPeriod` · mocks:
   `CreateExpenseProposalPort`, `SummarizeSpendingPort` · scenarios: AC01, AC02, AC03, AC04, AC05, AC06, AC07,
   AC10, AC13
@@ -437,6 +437,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the port answers a period
       when: RecordSpendingPeriod is called
       then: one line `turn_call operation=summarize_spending via=grpc outcome=ok` is logged with `from` and `to`
+    - (added) given: the port answers a stored entry with merchant `Bean Bar`
+      when: FileExpenseProposal is called
+      then: the call answers the merchant
   - Error Mapping:
     - given: the port throws InvalidGroupingException for `Snacks`
       when: FileExpenseProposal is called
@@ -471,7 +474,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     digits, and `12.505` in EUR, which the currency cannot record; `currency_code` — not three letters;
     `grouping` — blank. Each fails with INVALID_ARGUMENT naming an invalid request and the field, and the port is
     never called. `category` — blank: the port receives it and its refusal is mapped as above — unverified
-- [ ] RI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
+    - (added) `amount` — whitespace only; `currency_code` — `EU`, `EURO`, `E1R`; `grouping` — empty. Each fails
+      the same way
+- [x] RI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
   mocks: `CreateExpenseProposalPort`, `ToolCallMeters` · scenarios: AC12, AC13
   - Happy Path:
     - given: the port answers a stored proposal
@@ -482,14 +487,14 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: the port throws PersistenceFailedException
       when: create_expense_proposal is called
       then: the line reads `outcome=rejected`
-- [ ] RI06 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `POST /mcp` · mocks:
+- [x] RI06 · `ListCategoriesMcpTool` · test: `ListCategoriesMcpToolTest` · covers: `POST /mcp` · mocks:
   `ListCategoriesPort`, `ToolCallMeters` · scenarios: AC12, AC13
   - Happy Path:
     - given: the port answers the categories of `Dining`
       when: list_categories is called for `Dining`
       then: one line `turn_call operation=list_categories via=mcp outcome=ok` is logged with
       `{"grouping":"Dining"}`
-- [ ] RI07 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers: `POST /mcp` · mocks:
+- [x] RI07 · `SummarizeSpendingMcpTool` · test: `SummarizeSpendingMcpToolTest` · covers: `POST /mcp` · mocks:
   `SummarizeSpendingPort`, `ToolCallMeters` · scenarios: AC12, AC13
   - Happy Path:
     - given: the port answers the period `2026-10-12` to `2026-10-12`
@@ -503,7 +508,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD System Test Red Phase
 
-- [ ] RS01 · `FileExpenseProposalSystemTest` · covers: `LedgerTurnService.FileExpenseProposal` · scenarios: AC01,
+- [x] RS01 · `FileExpenseProposalSystemTest` · covers: `LedgerTurnService.FileExpenseProposal` · scenarios: AC01,
   AC02, AC08, AC14
   - Happy Path:
     - given: a stored person whose `Dining` holds `Cafés`, and a token the application minted for their message
@@ -520,7 +525,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a valid token
       when: the operation's path is posted to the HTTP port as a gRPC call would be
       then: the operation does not answer it — the status is 400 or above — and no row is stored
-- [ ] RS02 · `RecordSpendingPeriodSystemTest` · covers: `LedgerTurnService.RecordSpendingPeriod` · scenarios:
+- [x] RS02 · `RecordSpendingPeriodSystemTest` · covers: `LedgerTurnService.RecordSpendingPeriod` · scenarios:
   AC06, AC10
   - Happy Path:
     - given: a stored person and a token the application minted for their Telegram message
@@ -530,7 +535,7 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     - given: a token whose subject no stored user carries
       when: RecordSpendingPeriod is called
       then: the call fails with NOT_FOUND saying the user is unknown, and no row is stored
-- [ ] RS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC11
+- [x] RS03 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()` · scenarios: AC11
   - Happy Path:
     - given: a first message from a new person, whose default catalogue is created by the turn
       when: the message reaches the AI connector

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.security.AccessTokenMinter;
 import bot.finance.application.dto.CreateExpenseProposalCommand;
 import bot.finance.application.port.CreateExpenseProposalPort;
@@ -175,11 +176,53 @@ class CreateExpenseProposalMcpToolTest {
             assertThat(command.getValue().incomingMessageId()).isEqualTo(reference);
             assertThat(command.getValue().userId()).isEqualTo(new AuthenticatedUserId(userId));
         }
+
+        @Test
+        @DisplayName("when create_expense_proposal is called - then one ok turn_call line carries the caller, the "
+                + "message and the arguments as sent")
+        void whenCreateExpenseProposalIsCalled_thenOneOkTurnCallLineCarriesCallerMessageAndArguments() {
+            IncomingMessageId reference = IncomingMessageId.of("m");
+
+            try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
+                postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, 42L, reference), reference);
+
+                assertThat(logCapture.messages())
+                        .filteredOn(message -> message.startsWith("turn_call"))
+                        .singleElement()
+                        .asString()
+                        .startsWith("turn_call operation=create_expense_proposal via=mcp outcome=ok userId=42 "
+                                + "message=m arguments=")
+                        .contains("\"category\":\"Restaurants\"")
+                        .contains("\"grouping\":\"Dining\"")
+                        .contains("\"description\":\"lunch with the team\"")
+                        .contains("\"merchant\":\"Trattoria Roma\"")
+                        .contains("\"amount\":\"15.99\"")
+                        .contains("\"currencyCode\":\"EUR\"");
+            }
+        }
     }
 
     @Nested
     @DisplayName("Error Mapping")
     class ErrorMapping {
+
+        @Test
+        @DisplayName("when the port throws PersistenceFailedException - then the turn_call line reads "
+                + "outcome=rejected")
+        void whenPortThrowsPersistenceFailedException_thenTurnCallLineReadsRejected() {
+            when(createExpenseProposalPort.create(any()))
+                    .thenThrow(new PersistenceFailedException("could not store", new RuntimeException("cause")));
+
+            try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
+                postCreateExpenseProposal(token(6L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
+
+                assertThat(logCapture.messages())
+                        .filteredOn(message -> message.startsWith("turn_call"))
+                        .singleElement()
+                        .asString()
+                        .startsWith("turn_call operation=create_expense_proposal via=mcp outcome=rejected userId=6 ");
+            }
+        }
 
         @Test
         @DisplayName("when the port throws InvalidExpenseException - then the tool error names the field at fault")
