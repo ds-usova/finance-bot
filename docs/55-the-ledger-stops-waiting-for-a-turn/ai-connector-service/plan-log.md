@@ -74,6 +74,13 @@
 - **RL03 (RI01):** expected pass — `IntentExtractionGrpcServiceTest$ErrorMapping.whenPortAnswersBusy_thenFailsWithResourceExhausted()`
   passes red, because ST15 already maps BUSY to `RESOURCE_EXHAUSTED` in the service. The class's reworked tests
   hold existing behaviour and pass too; only the turn-key scenario is red.
+- **RL04 (GU06):** `ClassifierTurn` also stops before recording a period once its thread is interrupted, not only
+  before a filing; no scenario covers the period case.
+- **RL05 (GU05):** hypothesis: an exception thrown by the end handed to `GrpcTurnRunnerAdapter.start()` is not
+  caught by the runner and escapes to the worker thread's uncaught-exception handler after the key is freed —
+  settled by deciding whether the runner should catch it.
+- **RL06 (GU05):** wave verification attempt 1 failed `GrpcTurnRunnerAdapterTest$Close` past-timeout scenario:
+  `close()` returned before the interrupted turn's end finished. Re-delegated with the failure.
 
 ## Suite Runs
 

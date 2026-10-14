@@ -600,20 +600,20 @@ No spec scenario's `Then:` is a measurement, and the module's testing convention
 
 #### TDD Unit Green Phase
 
-- [ ] GU01 · `AcceptTurnCommand` · test: `AcceptTurnCommandTest`
-- [ ] GU02 · `AcceptTurnUseCase` · test: `AcceptTurnUseCaseTest` · after: GU01
-- [ ] GU03 · `UnverifiedCallerClaims` · test: `UnverifiedCallerClaimsTest`
-- [ ] GU04 · `ExtractionProperties` · test: `ExtractionPropertiesTest`
-- [ ] GU05 · `GrpcTurnRunnerAdapter` · test: `GrpcTurnRunnerAdapterTest` · after: GU04
-- [ ] GU06 · `ClassifierTurn` · test: `ClassifierTurnTest`
+- [x] GU01 · `AcceptTurnCommand` · test: `AcceptTurnCommandTest`
+- [x] GU02 · `AcceptTurnUseCase` · test: `AcceptTurnUseCaseTest` · after: GU01
+- [x] GU03 · `UnverifiedCallerClaims` · test: `UnverifiedCallerClaimsTest`
+- [x] GU04 · `ExtractionProperties` · test: `ExtractionPropertiesTest`
+- [x] GU05 · `GrpcTurnRunnerAdapter` · test: `GrpcTurnRunnerAdapterTest` · after: GU04
+- [x] GU06 · `ClassifierTurn` · test: `ClassifierTurnTest`
 
 #### TDD Integration Green Phase
 
-- [ ] GI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
+- [x] GI01 · `IntentExtractionGrpcService` · test: `IntentExtractionGrpcServiceTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `AcceptTurnPort` · after: GU01, GI02
-- [ ] GI02 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers:
+- [x] GI02 · `CallerTokenInterceptor` · test: `CallerTokenInterceptorTest` · covers:
   `IntentExtractionService.ExtractIntents` · mocks: `AcceptTurnPort` · after: GU03
-- [ ] GI03 · `GrpcTurnEndAdapter` · test: `GrpcTurnEndAdapterTest` · after: GU03
+- [x] GI03 · `GrpcTurnEndAdapter` · test: `GrpcTurnEndAdapterTest` · after: GU03
 
 #### TDD System Test Green Phase
 

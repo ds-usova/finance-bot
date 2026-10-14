@@ -12,6 +12,7 @@ import bot.finance.ai.application.port.LoggerFactory;
 import bot.finance.ai.application.port.SpendingReadOutPort;
 import bot.finance.ai.application.port.TurnMeters;
 import bot.finance.ai.domain.exception.ClassificationFailedException;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
 import bot.finance.ai.domain.exception.InvalidValueException;
 import bot.finance.ai.domain.exception.LedgerCallRefusedException;
 import bot.finance.ai.domain.value.CatalogueEntry;
@@ -192,7 +193,14 @@ public class ClassifierTurn implements ExtractionTurn {
                 .orElseThrow();
     }
 
+    private static void stopIfInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new ExpenseRecordingFailedException("Turn interrupted before filing");
+        }
+    }
+
     private void fileExpense(int position, CategoryChoice choice, ExpenseToFile expense) {
+        stopIfInterrupted();
         try {
             ledgerTurnPort.fileExpense(choice, expense);
         } catch (LedgerCallRefusedException e) {
@@ -202,6 +210,7 @@ public class ClassifierTurn implements ExtractionTurn {
     }
 
     private void recordPeriod(ReadOutPeriod period) {
+        stopIfInterrupted();
         try {
             ledgerTurnPort.recordPeriod(period.from(), period.to());
         } catch (LedgerCallRefusedException e) {

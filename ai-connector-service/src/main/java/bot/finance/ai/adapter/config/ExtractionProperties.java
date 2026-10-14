@@ -17,7 +17,11 @@ public record ExtractionProperties(String mode, int maxTurns, Duration turnTimeo
         if (!MODES.contains(mode)) {
             throw new IllegalArgumentException("EXTRACTION_MODE must be tools or classifier, but was '" + mode + "'");
         }
-        // TODO: check maxTurns is positive, naming EXTRACTION_MAX_TURNS, and turnTimeout is non-null and positive,
-        // naming EXTRACTION_TURN_TIMEOUT
+        if (maxTurns <= 0) {
+            throw new IllegalArgumentException("EXTRACTION_MAX_TURNS must be positive, but was " + maxTurns);
+        }
+        if (turnTimeout == null || turnTimeout.isZero() || turnTimeout.isNegative()) {
+            throw new IllegalArgumentException("EXTRACTION_TURN_TIMEOUT must be positive, but was " + turnTimeout);
+        }
     }
 }

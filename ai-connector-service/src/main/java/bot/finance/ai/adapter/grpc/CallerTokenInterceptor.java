@@ -41,10 +41,17 @@ public class CallerTokenInterceptor implements ServerInterceptor {
 
         Context context = Context.current().withValue(CallerTokenContext.CALLER_TOKEN, token);
 
-        if (guarded && callerTokenVerifier.isPresent()) {
+        if (guarded) {
             try {
-                MessageIdentity identity = callerTokenVerifier.get().verify(token);
-                context = context.withValue(CallerTokenContext.MESSAGE_IDENTITY, identity);
+                if (callerTokenVerifier.isPresent()) {
+                    MessageIdentity identity = callerTokenVerifier.get().verify(token);
+                    context = context.withValue(CallerTokenContext.MESSAGE_IDENTITY, identity)
+                            .withValue(CallerTokenContext.TURN_KEY, identity);
+                } else {
+                    context = context.withValue(
+                            CallerTokenContext.TURN_KEY,
+                            UnverifiedCallerClaims.read(token).identity());
+                }
             } catch (CallerNotIdentifiedException e) {
                 return reject(call, Status.UNAUTHENTICATED, e.getMessage());
             } catch (CallerVerificationUnavailableException e) {

@@ -1,11 +1,16 @@
 package bot.finance.ai.application.usecase;
 
 import bot.finance.ai.application.dto.AcceptTurnCommand;
+import bot.finance.ai.application.dto.ExtractIntentsCommand;
 import bot.finance.ai.application.dto.TurnAcceptance;
+import bot.finance.ai.application.dto.TurnStart;
 import bot.finance.ai.application.port.AcceptTurnPort;
 import bot.finance.ai.application.port.ExtractIntentsPort;
 import bot.finance.ai.application.port.TurnEndPort;
 import bot.finance.ai.application.port.TurnRunnerPort;
+import bot.finance.ai.domain.exception.ExpenseRecordingFailedException;
+import bot.finance.ai.domain.exception.InvalidValueException;
+import bot.finance.ai.domain.value.TurnEnd;
 
 public class AcceptTurnUseCase implements AcceptTurnPort {
 
@@ -22,9 +27,23 @@ public class AcceptTurnUseCase implements AcceptTurnPort {
 
     @Override
     public TurnAcceptance accept(AcceptTurnCommand command) {
-        // stub-intent: hands the runner the command's turn key, a turn running the command's turn through
-        // ExtractIntentsPort and mapping how it ended, and an end reported through TurnEndPort; answers BUSY when the
-        // runner is full, ACCEPTED when it started the turn or one under that key is already running
-        return null;
+        if (command == null) {
+            throw new InvalidValueException("Accept turn command must not be null");
+        }
+
+        TurnStart start = turnRunnerPort.start(command.turnKey(), () -> runTurn(command.turn()), turnEndPort::report);
+
+        return start == TurnStart.BUSY ? TurnAcceptance.BUSY : TurnAcceptance.ACCEPTED;
+    }
+
+    private TurnEnd runTurn(ExtractIntentsCommand turn) {
+        try {
+            extractIntentsPort.extractIntents(turn);
+            return TurnEnd.ACTED_ON;
+        } catch (ExpenseRecordingFailedException e) {
+            return TurnEnd.UNAVAILABLE;
+        } catch (RuntimeException e) {
+            return TurnEnd.FAILED;
+        }
     }
 }
