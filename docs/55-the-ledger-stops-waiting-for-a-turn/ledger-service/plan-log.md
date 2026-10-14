@@ -156,6 +156,10 @@
 - **RL12 (Stage 3 exit):** the suite re-run in the foreground in two halves, nothing else running: the non-system
   packages (`architecture`, `domain`, `application`, `adapter`, `common`) 1516 tests, all green; `bot.finance.system.*`
   95 tests, all green. Together 1611 tests, 0 skipped, green.
+- **RL13 (whole plan):** the refactor pass's split suite on the final source tree held 1611 tests, 0 skipped, green,
+  with `CleanArchitectureTest` passing; the ADR placements after it touch no code. The coverage guardrail is left to
+  the task's `plan-evidence.sh` run, which measures `--coverage` itself (`docs/conventions/java-build.md`).
+  `plan.sh stubs`: no marker remains in the 14 recorded files.
 
 ## Suite Runs
 

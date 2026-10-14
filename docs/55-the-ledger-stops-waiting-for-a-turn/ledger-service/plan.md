@@ -1414,9 +1414,9 @@ performance step exists.
 
 #### ADR Placeholders
 
-- [ ] PI01 · Place ADR: the ledger keeps every turn in an outbox and hands it over to the connector apart from the
+- [x] PI01 · Place ADR: the ledger keeps every turn in an outbox and hands it over to the connector apart from the
   message that started it
-- [ ] PI02 · Place ADR, in the repository-wide tier: the connector accepts a turn at once and reports its end to the
+- [x] PI02 · Place ADR, in the repository-wide tier: the connector accepts a turn at once and reports its end to the
   ledger through an operation the ledger serves, as a service of its own behind the turn operations' credential
 
 ## Open Questions
