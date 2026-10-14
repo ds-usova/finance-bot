@@ -89,7 +89,9 @@ class TurnOperationsSecurityConfigurationTest {
 
     private void callRecordSpendingPeriod(String token) {
         TurnOperationCalls.call(
-                port(), token, stub -> stub.recordSpendingPeriod(TurnOperationCalls.recordPeriod("2026-07-01", "2026-07-31")));
+                port(),
+                token,
+                stub -> stub.recordSpendingPeriod(TurnOperationCalls.recordPeriod("2026-07-01", "2026-07-31")));
     }
 
     @Nested
@@ -136,8 +138,8 @@ class TurnOperationsSecurityConfigurationTest {
             ManagedChannel channel = channel();
             try {
                 CompletableFuture<ServerReflectionResponse> answer = new CompletableFuture<>();
-                StreamObserver<ServerReflectionRequest> requests =
-                        ServerReflectionGrpc.newStub(channel).serverReflectionInfo(new StreamObserver<>() {
+                StreamObserver<ServerReflectionRequest> requests = ServerReflectionGrpc.newStub(channel)
+                        .serverReflectionInfo(new StreamObserver<>() {
                             @Override
                             public void onNext(ServerReflectionResponse value) {
                                 answer.complete(value);
@@ -151,12 +153,15 @@ class TurnOperationsSecurityConfigurationTest {
                             @Override
                             public void onCompleted() {}
                         });
-                requests.onNext(ServerReflectionRequest.newBuilder().setListServices("*").build());
+                requests.onNext(ServerReflectionRequest.newBuilder()
+                        .setListServices("*")
+                        .build());
                 requests.onCompleted();
 
-                List<String> services = answer.get(10, TimeUnit.SECONDS).getListServicesResponse().getServiceList().stream()
-                        .map(ServiceResponse::getName)
-                        .toList();
+                List<String> services =
+                        answer.get(10, TimeUnit.SECONDS).getListServicesResponse().getServiceList().stream()
+                                .map(ServiceResponse::getName)
+                                .toList();
 
                 assertThat(services).contains("bot.finance.ledger.v1.LedgerTurnService");
             } finally {
@@ -188,8 +193,7 @@ class TurnOperationsSecurityConfigurationTest {
         @ParameterizedTest(name = "{0}")
         @MethodSource("refusedCredentials")
         @DisplayName("when the credential cannot be accepted - then both operations fail unauthenticated")
-        void whenTheCredentialCannotBeAccepted_thenBothOperationsFailUnauthenticated(
-                String credential, String token) {
+        void whenTheCredentialCannotBeAccepted_thenBothOperationsFailUnauthenticated(String credential, String token) {
             assertRefusedOnBothOperations(token);
         }
 

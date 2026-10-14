@@ -31,7 +31,8 @@ class TurnCallLogTest {
     }
 
     private static TurnCallLog turnCallLog(boolean enabled) {
-        return new TurnCallLog(new TurnCallLogProperties(enabled), JsonMapper.builder().build(), new Slf4jLoggerFactory());
+        return new TurnCallLog(
+                new TurnCallLogProperties(enabled), JsonMapper.builder().build(), new Slf4jLoggerFactory());
     }
 
     private static void authenticateUser42OnMessage17() {
@@ -63,7 +64,8 @@ class TurnCallLogTest {
                             TurnCallLog.arguments("grouping", "Dining", "amount", "4.50"));
 
             assertThat(logCapture.messages())
-                    .containsExactly("""
+                    .containsExactly(
+                            """
                             turn_call operation=create_expense_proposal via=mcp outcome=ok userId=42 message=web:17 \
                             arguments={"grouping":"Dining","amount":"4.50"}""");
         }
@@ -74,7 +76,11 @@ class TurnCallLogTest {
             authenticateUser42OnMessage17();
 
             turnCallLog(true)
-                    .write("summarize_spending", TurnCallLog.Via.GRPC, false, TurnCallLog.arguments("from", "2026-10-12"));
+                    .write(
+                            "summarize_spending",
+                            TurnCallLog.Via.GRPC,
+                            false,
+                            TurnCallLog.arguments("from", "2026-10-12"));
 
             assertThat(logCapture.messages()).hasSize(1);
             assertThat(logCapture.messages().get(0))
@@ -98,7 +104,11 @@ class TurnCallLogTest {
             authenticateUser42OnMessage17();
 
             turnCallLog(false)
-                    .write("create_expense_proposal", TurnCallLog.Via.MCP, true, TurnCallLog.arguments("amount", "4.50"));
+                    .write(
+                            "create_expense_proposal",
+                            TurnCallLog.Via.MCP,
+                            true,
+                            TurnCallLog.arguments("amount", "4.50"));
 
             assertThat(logCapture.messages()).isEmpty();
         }

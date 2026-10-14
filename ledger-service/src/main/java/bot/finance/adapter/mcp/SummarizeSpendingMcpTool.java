@@ -7,11 +7,6 @@ import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
 import bot.finance.application.port.ToolCallMeters;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidSpendingPeriodException;
-import bot.finance.domain.exception.InvalidSpendingQueryException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
@@ -77,26 +72,17 @@ public class SummarizeSpendingMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidSpendingPeriodException e) {
-            return rejected(e, e.getMessage());
-        } catch (InvalidSpendingQueryException | InvalidUserException e) {
-            return rejected(e, "invalid request: " + e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return rejected(e, "the user is unknown");
-        } catch (PersistenceFailedException e) {
-            return rejected(e, "the summary could not be recorded");
         } catch (RuntimeException e) {
-            return rejected(e, "the spending could not be summarized", "unexpected");
+            return rejected(e, ToolRefusal.ofSpendingSummary(e));
         }
     }
 
-    private CallToolResult rejected(RuntimeException e, String message) {
-        return rejected(e, message, e.getClass().getSimpleName());
-    }
-
-    private CallToolResult rejected(RuntimeException e, String message, String reason) {
+    private CallToolResult rejected(RuntimeException e, ToolRefusal refusal) {
         log.warn("rejected summarize_spending call: {} {}", e.getClass().getSimpleName(), e.getMessage());
-        toolCallMeters.countRejected("summarize_spending", reason);
-        return CallToolResult.builder().isError(true).addTextContent(message).build();
+        toolCallMeters.countRejected("summarize_spending", refusal.meterReason(e));
+        return CallToolResult.builder()
+                .isError(true)
+                .addTextContent(refusal.message())
+                .build();
     }
 }

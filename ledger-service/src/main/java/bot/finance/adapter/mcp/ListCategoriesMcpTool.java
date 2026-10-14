@@ -7,11 +7,6 @@ import bot.finance.application.port.ListCategoriesPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ToolCallMeters;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidGroupingException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.value.AuthenticatedUserId;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import java.util.List;
@@ -71,26 +66,17 @@ public class ListCategoriesMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidCategoryException | InvalidGroupingException e) {
-            return rejected(e, e.getMessage());
-        } catch (InvalidUserException e) {
-            return rejected(e, "invalid request: " + e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return rejected(e, "the user is unknown");
-        } catch (PersistenceFailedException e) {
-            return rejected(e, "the categories could not be read");
         } catch (RuntimeException e) {
-            return rejected(e, "the categories could not be listed", "unexpected");
+            return rejected(e, ToolRefusal.ofCategoryListing(e));
         }
     }
 
-    private CallToolResult rejected(RuntimeException e, String message) {
-        return rejected(e, message, e.getClass().getSimpleName());
-    }
-
-    private CallToolResult rejected(RuntimeException e, String message, String reason) {
+    private CallToolResult rejected(RuntimeException e, ToolRefusal refusal) {
         log.warn("rejected list_categories call: {} {}", e.getClass().getSimpleName(), e.getMessage());
-        toolCallMeters.countRejected("list_categories", reason);
-        return CallToolResult.builder().isError(true).addTextContent(message).build();
+        toolCallMeters.countRejected("list_categories", refusal.meterReason(e));
+        return CallToolResult.builder()
+                .isError(true)
+                .addTextContent(refusal.message())
+                .build();
     }
 }

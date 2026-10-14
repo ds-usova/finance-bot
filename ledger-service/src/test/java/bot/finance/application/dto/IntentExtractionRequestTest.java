@@ -227,7 +227,8 @@ class IntentExtractionRequestTest {
 
         @ParameterizedTest(name = "catalogue={0}")
         @MethodSource("catalogueWithInvalidEntry")
-        @DisplayName("when a catalogue entry is null or has invalid categories - then throws InvalidExtractionRequestException")
+        @DisplayName(
+                "when a catalogue entry is null or has invalid categories - then throws InvalidExtractionRequestException")
         void whenCatalogueHoldsInvalidEntry_thenThrowsInvalidExtractionRequestException(
                 List<CatalogueEntry> catalogue) {
             assertThatThrownBy(() -> new IntentExtractionRequest(
@@ -252,7 +253,8 @@ class IntentExtractionRequestTest {
         }
 
         @Test
-        @DisplayName("when the passed catalogue is changed afterwards - then catalogue() keeps the original entries and is unmodifiable")
+        @DisplayName(
+                "when the passed catalogue is changed afterwards - then catalogue() keeps the original entries and is unmodifiable")
         void whenCatalogueIsChangedAfterConstruction_thenCatalogueHoldsEntriesAsAtConstructionAndIsUnmodifiable() {
             List<CatalogueEntry> mutableCatalogue = new ArrayList<>(List.of(
                     new CatalogueEntry("groceries", List.of("Milk", "Bread")),
@@ -273,8 +275,7 @@ class IntentExtractionRequestTest {
                     .containsExactly(
                             new CatalogueEntry("groceries", List.of("Milk", "Bread")),
                             new CatalogueEntry("transport", List.of("Bus")));
-            assertThatThrownBy(() -> request.catalogue()
-                            .add(new CatalogueEntry("utilities", List.of("Water"))))
+            assertThatThrownBy(() -> request.catalogue().add(new CatalogueEntry("utilities", List.of("Water"))))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
 

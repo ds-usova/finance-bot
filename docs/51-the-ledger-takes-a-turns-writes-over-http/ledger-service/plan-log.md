@@ -156,6 +156,20 @@
 - **RL24 (GS03):** ticked without an agent. In the focused run of `ReceiveTelegramMessageSystemTest`, the
   scenario's test passed and only the unrelated EUR-preference test of RL05 failed; the whole class passed in the
   full suite. GS01 and GS02 passed their focused runs without an agent.
+- **RL25 (RI04):** this run's own defect, reported by the refactor pass and settling RL22 — `LedgerTurnGrpcService`
+  names the refused field of an `InvalidMoneyException` by whether its message mentions "currency code", so
+  `amount` `4.50` in `XAU` (`CurrencyCode.of` accepts it, `fractionDigits()` is -1) answers
+  `invalid request: amount: XAU is not a currency an amount can be recorded in`. RI04 gained the scenario under
+  Validation; it is run red, then green, before the refactor commit.
+- **RL26 (GI04):** the refactor pass moved the three MCP tools' catch chains into one `ToolRefusal` the gRPC service
+  shares, so the Adapter — MCP rule in `ledger-service/docs/conventions/code-style.md` (each domain exception
+  caught, ending with `catch (RuntimeException)`) now describes the old shape. Left for the level above; this run
+  edits no conventions page.
+- **RL27 (GI01):** `CategoryEntityRepository.findNonEmptyGroupingNames` has no caller left in production or tests
+  after GI01 (RL16); the refactor pass left it, outside its diff.
+- **RL28 (GI04):** RL25's scenario ran red in `LedgerTurnGrpcServiceTest`'s Validation (`XAU` case: description
+  named `amount`), then green: the service now decides the field by whether the request's currency code is one
+  that records amounts. Full suite 1447, 0 skipped, green — one test more than the refactor pass's 1446.
 
 ## Suite Runs
 
@@ -163,6 +177,8 @@
 - stabilization · tree 36938e0e491ba187099f816420ca8d5cb88fb133 · total 1368 · skipped 1 · green · paths: ledger-service
 
 - green · tree bee1fad627160f9e63b88c1d556ff85dd7fa96b5 · total 1446 · skipped 0 · green · paths: ledger-service
+- refactor · tree 5d31537e4a3c41c1583f5642a58f3a29f4f5e804 · total 1446 · skipped 0 · green · paths: ledger-service
+- refactor-reproduction · tree f0038b9491e93d7eb102545a0d204430ee46b9e9 · total 1447 · skipped 0 · green · paths: ledger-service
 ## Stubs
 
 Marker: `stub-intent:`

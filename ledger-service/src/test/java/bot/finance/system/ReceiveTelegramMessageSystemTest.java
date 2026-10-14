@@ -25,6 +25,7 @@ import bot.finance.common.rows.UserPreferenceRowUtils;
 import bot.finance.common.stubs.TelegramTestBot;
 import bot.finance.common.stubs.WireMockStubs;
 import bot.finance.domain.model.User;
+import bot.finance.domain.value.Category;
 import bot.finance.domain.value.ExpenseStatus;
 import bot.finance.domain.value.Grouping;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -78,17 +79,15 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
 
     /** The category names {@link Grouping#defaults()} files under each grouping. */
     private static final Map<String, List<String>> EXPECTED_CATEGORIES_BY_GROUPING = Grouping.defaults().stream()
-            .collect(Collectors.toMap(
-                    Grouping::name,
-                    grouping -> grouping.categories().stream()
-                            .map(bot.finance.domain.value.Category::name)
-                            .toList()));
+            .collect(Collectors.toMap(Grouping::name, grouping -> grouping.categories().stream()
+                    .map(Category::name)
+                    .toList()));
 
     /** The categories {@link Grouping#defaults()} files under {@link #PROPOSAL_GROUPING}. */
     private static final List<String> EXPECTED_GROUPING_CATEGORIES = Grouping.defaults().stream()
             .filter(grouping -> PROPOSAL_GROUPING.equals(grouping.name()))
             .flatMap(grouping -> grouping.categories().stream())
-            .map(bot.finance.domain.value.Category::name)
+            .map(Category::name)
             .toList();
 
     private static final Duration POLL_TIMEOUT = Duration.ofSeconds(30);
@@ -209,7 +208,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
                     .as("extraction request catalogue categories per grouping")
                     .allSatisfy(entry -> assertThat(entry.getCategoriesList())
                             .as("categories of %s", entry.getGrouping())
-                            .containsExactlyInAnyOrderElementsOf(EXPECTED_CATEGORIES_BY_GROUPING.get(entry.getGrouping())));
+                            .containsExactlyInAnyOrderElementsOf(
+                                    EXPECTED_CATEGORIES_BY_GROUPING.get(entry.getGrouping())));
             assertThat(request.getCatchAllGrouping())
                     .as("extraction request catch-all grouping")
                     .isEqualTo(Grouping.catchAllName());

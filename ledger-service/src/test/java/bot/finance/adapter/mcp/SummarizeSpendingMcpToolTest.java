@@ -144,8 +144,7 @@ class SummarizeSpendingMcpToolTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 postAcceptedSummary(42L, IncomingMessageId.of("m"), "2026-10-12", "2026-10-12");
 
-                assertThat(logCapture.messages())
-                        .filteredOn(message -> message.startsWith("turn_call"))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=summarize_spending via=mcp outcome=ok userId=42 "
@@ -170,8 +169,7 @@ class SummarizeSpendingMcpToolTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 postSummarizeSpending(token(1L), "2026-08-05", "2026-08-01");
 
-                assertThat(logCapture.messages())
-                        .filteredOn(message -> message.startsWith("turn_call"))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=summarize_spending via=mcp outcome=rejected userId=1 ");

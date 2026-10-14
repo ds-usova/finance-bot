@@ -100,8 +100,7 @@ public class HandleWrittenMessageUseCase implements HandleWrittenMessagePort {
     private Optional<IntentExtractionRequest> prepare(WrittenMessageView message, IncomingMessageId reference) {
         try {
             List<CatalogueEntry> catalogue = groupingRepository.findCatalogue(message.userId());
-            String catchAll = extractionTurn.catchAllAmong(
-                    catalogue.stream().map(CatalogueEntry::grouping).toList());
+            String catchAll = extractionTurn.catchAllAmong(CatalogueEntry.groupingsOf(catalogue));
             return Optional.of(extractionTurn.request(
                     message.text(),
                     catalogue,

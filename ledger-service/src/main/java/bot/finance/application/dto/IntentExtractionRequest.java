@@ -23,7 +23,7 @@ public record IntentExtractionRequest(
         if (catalogue == null || catalogue.isEmpty()) {
             throw new InvalidExtractionRequestException("Category groupings must not be null or empty");
         }
-        List<String> groupings = groupingsOf(catalogue);
+        List<String> groupings = CatalogueEntry.groupingsOf(catalogue);
         if (groupings.stream().anyMatch(grouping -> grouping == null || grouping.isBlank())) {
             throw new InvalidExtractionRequestException("Category groupings must not contain null or blank elements");
         }
@@ -59,12 +59,6 @@ public record IntentExtractionRequest(
     }
 
     public List<String> categoryGroupings() {
-        return groupingsOf(catalogue);
-    }
-
-    private static List<String> groupingsOf(List<CatalogueEntry> catalogue) {
-        return catalogue.stream()
-                .map(entry -> entry == null ? null : entry.grouping())
-                .toList();
+        return CatalogueEntry.groupingsOf(catalogue);
     }
 }

@@ -6,7 +6,6 @@ import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.ToolCallMeters;
-import bot.finance.domain.exception.*;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
 import bot.finance.domain.value.IncomingMessageId;
@@ -80,26 +79,17 @@ public class CreateExpenseProposalMcpTool {
             return CallToolResult.builder()
                     .addTextContent(jsonMapper.writeValueAsString(response))
                     .build();
-        } catch (InvalidExpenseException | InvalidUserException | InvalidMoneyException e) {
-            return rejected(e, "invalid request: " + e.getMessage());
-        } catch (InvalidCategoryException | InvalidGroupingException e) {
-            return rejected(e, e.getMessage());
-        } catch (EntityNotFoundException e) {
-            return rejected(e, "the user is unknown");
-        } catch (PersistenceFailedException e) {
-            return rejected(e, "the proposal could not be stored");
         } catch (RuntimeException e) {
-            return rejected(e, "the proposal could not be created", "unexpected");
+            return rejected(e, ToolRefusal.ofExpenseProposal(e));
         }
     }
 
-    private CallToolResult rejected(RuntimeException e, String message) {
-        return rejected(e, message, e.getClass().getSimpleName());
-    }
-
-    private CallToolResult rejected(RuntimeException e, String message, String reason) {
+    private CallToolResult rejected(RuntimeException e, ToolRefusal refusal) {
         log.warn("rejected create_expense_proposal call: {} {}", e.getClass().getSimpleName(), e.getMessage());
-        toolCallMeters.countRejected("create_expense_proposal", reason);
-        return CallToolResult.builder().isError(true).addTextContent(message).build();
+        toolCallMeters.countRejected("create_expense_proposal", refusal.meterReason(e));
+        return CallToolResult.builder()
+                .isError(true)
+                .addTextContent(refusal.message())
+                .build();
     }
 }

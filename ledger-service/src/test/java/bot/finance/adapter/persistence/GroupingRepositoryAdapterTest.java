@@ -169,7 +169,7 @@ class GroupingRepositoryAdapterTest {
             storedCategoryId(userId, homeId, "Furniture");
             storedCategoryId(userId, autoId, "Fuel");
 
-            List<String> names = groupingsOf(adapter.findCatalogue(userId));
+            List<String> names = CatalogueEntry.groupingsOf(adapter.findCatalogue(userId));
 
             assertThat(names).containsExactly("Automotive", "Home", "Work");
         }
@@ -201,7 +201,7 @@ class GroupingRepositoryAdapterTest {
             storedCategoryId(userId, populatedId, "A Category");
             storedGroupingId(userId, "Empty Grouping");
 
-            List<String> names = groupingsOf(adapter.findCatalogue(userId));
+            List<String> names = CatalogueEntry.groupingsOf(adapter.findCatalogue(userId));
 
             assertThat(names).containsExactly("Populated Grouping");
         }
@@ -217,7 +217,7 @@ class GroupingRepositoryAdapterTest {
             storedCategoryId(firstUserId, firstGroupingId, "First User Category");
             storedCategoryId(secondUserId, secondGroupingId, "Second User Category");
 
-            List<String> names = groupingsOf(adapter.findCatalogue(firstUserId));
+            List<String> names = CatalogueEntry.groupingsOf(adapter.findCatalogue(firstUserId));
 
             assertThat(names).containsExactly("First User Grouping");
         }
@@ -227,7 +227,7 @@ class GroupingRepositoryAdapterTest {
         void whenUserHasNoRowsAtAll_thenAnswersEmptyList() {
             long userId = storedUserId("no-rows-at-all-user");
 
-            List<String> names = groupingsOf(adapter.findCatalogue(userId));
+            List<String> names = CatalogueEntry.groupingsOf(adapter.findCatalogue(userId));
 
             assertThat(names).isEmpty();
         }
@@ -364,10 +364,6 @@ class GroupingRepositoryAdapterTest {
                     .extracting(Throwable::getCause)
                     .isEqualTo(frameworkException);
         }
-    }
-
-    private List<String> groupingsOf(List<CatalogueEntry> catalogue) {
-        return catalogue.stream().map(CatalogueEntry::grouping).toList();
     }
 
     private long storedUserId(String externalId) {

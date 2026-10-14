@@ -3,23 +3,17 @@ package bot.finance.adapter.aiconnector;
 import bot.finance.adapter.logging.TurnCallLog;
 import bot.finance.adapter.mcp.CreateExpenseProposalToolRequest;
 import bot.finance.adapter.mcp.ExpenseProposalToolMapper;
+import bot.finance.adapter.mcp.ToolRefusal;
 import bot.finance.adapter.security.AuthenticatedCaller;
 import bot.finance.application.dto.SummarizeSpendingCommand;
 import bot.finance.application.port.CreateExpenseProposalPort;
 import bot.finance.application.port.Logger;
 import bot.finance.application.port.LoggerFactory;
 import bot.finance.application.port.SummarizeSpendingPort;
-import bot.finance.domain.exception.EntityNotFoundException;
-import bot.finance.domain.exception.InvalidCategoryException;
-import bot.finance.domain.exception.InvalidExpenseException;
-import bot.finance.domain.exception.InvalidGroupingException;
 import bot.finance.domain.exception.InvalidMoneyException;
-import bot.finance.domain.exception.InvalidSpendingPeriodException;
-import bot.finance.domain.exception.InvalidSpendingQueryException;
-import bot.finance.domain.exception.InvalidUserException;
-import bot.finance.domain.exception.PersistenceFailedException;
 import bot.finance.domain.model.Expense;
 import bot.finance.domain.value.AuthenticatedUserId;
+import bot.finance.domain.value.CurrencyCode;
 import bot.finance.domain.value.IncomingMessageId;
 import bot.finance.domain.value.SpendingPeriod;
 import bot.finance.ledger.adapter.grpc.v1.FileExpenseProposalRequest;
@@ -73,7 +67,7 @@ public class LedgerTurnGrpcService extends LedgerTurnServiceGrpc.LedgerTurnServi
             responseObserver.onCompleted();
         } catch (RuntimeException e) {
             turnCallLog.write(CREATE_EXPENSE_PROPOSAL, TurnCallLog.Via.GRPC, false, toolRequest);
-            responseObserver.onError(fileExpenseRefusal(e));
+            responseObserver.onError(fileExpenseRefusal(e, toolRequest.currencyCode()));
         }
     }
 
@@ -98,49 +92,42 @@ public class LedgerTurnGrpcService extends LedgerTurnServiceGrpc.LedgerTurnServi
         }
     }
 
-    private StatusRuntimeException fileExpenseRefusal(RuntimeException e) {
+    private StatusRuntimeException fileExpenseRefusal(RuntimeException e, String currencyCode) {
+        ToolRefusal refusal = ToolRefusal.ofExpenseProposal(e);
+
         if (e instanceof InvalidMoneyException) {
-            String field =
-                    e.getMessage() != null && e.getMessage().contains("urrency code") ? "currency_code" : "amount";
+            String field = recordsAmounts(currencyCode) ? "amount" : "currency_code";
             return refused(
-                    CREATE_EXPENSE_PROPOSAL,
-                    e,
-                    Status.INVALID_ARGUMENT,
-                    "invalid request: " + field + ": " + e.getMessage());
+                    CREATE_EXPENSE_PROPOSAL, e, refusal.kind(), "invalid request: " + field + ": " + e.getMessage());
         }
-        if (e instanceof InvalidExpenseException || e instanceof InvalidUserException) {
-            return refused(CREATE_EXPENSE_PROPOSAL, e, Status.INVALID_ARGUMENT, "invalid request: " + e.getMessage());
+        return refused(CREATE_EXPENSE_PROPOSAL, e, refusal.kind(), refusal.message());
+    }
+
+    private static boolean recordsAmounts(String currencyCode) {
+        try {
+            return CurrencyCode.of(currencyCode).recordsAmounts();
+        } catch (InvalidMoneyException e) {
+            return false;
         }
-        if (e instanceof InvalidCategoryException || e instanceof InvalidGroupingException) {
-            return refused(CREATE_EXPENSE_PROPOSAL, e, Status.INVALID_ARGUMENT, e.getMessage());
-        }
-        if (e instanceof EntityNotFoundException) {
-            return refused(CREATE_EXPENSE_PROPOSAL, e, Status.NOT_FOUND, "the user is unknown");
-        }
-        if (e instanceof PersistenceFailedException) {
-            return refused(CREATE_EXPENSE_PROPOSAL, e, Status.UNAVAILABLE, "the proposal could not be stored");
-        }
-        return refused(CREATE_EXPENSE_PROPOSAL, e, Status.INTERNAL, "the proposal could not be created");
     }
 
     private StatusRuntimeException recordPeriodRefusal(RuntimeException e) {
-        if (e instanceof InvalidSpendingPeriodException) {
-            return refused(SUMMARIZE_SPENDING, e, Status.INVALID_ARGUMENT, e.getMessage());
-        }
-        if (e instanceof InvalidSpendingQueryException || e instanceof InvalidUserException) {
-            return refused(SUMMARIZE_SPENDING, e, Status.INVALID_ARGUMENT, "invalid request: " + e.getMessage());
-        }
-        if (e instanceof EntityNotFoundException) {
-            return refused(SUMMARIZE_SPENDING, e, Status.NOT_FOUND, "the user is unknown");
-        }
-        if (e instanceof PersistenceFailedException) {
-            return refused(SUMMARIZE_SPENDING, e, Status.UNAVAILABLE, "the summary could not be recorded");
-        }
-        return refused(SUMMARIZE_SPENDING, e, Status.INTERNAL, "the spending could not be summarized");
+        ToolRefusal refusal = ToolRefusal.ofSpendingSummary(e);
+        return refused(SUMMARIZE_SPENDING, e, refusal.kind(), refusal.message());
     }
 
-    private StatusRuntimeException refused(String operation, RuntimeException e, Status status, String description) {
+    private StatusRuntimeException refused(
+            String operation, RuntimeException e, ToolRefusal.Kind kind, String description) {
         log.warn("rejected {} call: {}", operation, e.getClass().getSimpleName());
-        return status.withDescription(description).asRuntimeException();
+        return statusOf(kind).withDescription(description).asRuntimeException();
+    }
+
+    private static Status statusOf(ToolRefusal.Kind kind) {
+        return switch (kind) {
+            case INVALID_REQUEST -> Status.INVALID_ARGUMENT;
+            case UNKNOWN_USER -> Status.NOT_FOUND;
+            case STORE_FAILED -> Status.UNAVAILABLE;
+            case UNEXPECTED -> Status.INTERNAL;
+        };
     }
 }

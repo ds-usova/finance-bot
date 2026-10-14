@@ -81,8 +81,7 @@ public class HandleIncomingMessageUseCase implements HandleIncomingMessagePort {
                 groupingRepository.findCatalogue(user.id().orElseThrow());
 
         IncomingMessageId reference = IncomingMessageId.of(command.conversationId(), command.inboundMessageId());
-        String catchAll = extractionTurn.catchAllAmong(
-                catalogue.stream().map(CatalogueEntry::grouping).toList());
+        String catchAll = extractionTurn.catchAllAmong(CatalogueEntry.groupingsOf(catalogue));
         boolean extractionFailed = extractionTurn.extractionFailed(extractionTurn.request(
                 command.text(), catalogue, catchAll, defaultCurrency, user.id().orElseThrow(), reference));
 

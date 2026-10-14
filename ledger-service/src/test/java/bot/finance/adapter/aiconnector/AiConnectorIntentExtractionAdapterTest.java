@@ -117,9 +117,7 @@ class AiConnectorIntentExtractionAdapterTest {
 
             List<GroupingCategories> received =
                     GrpcStubServer.lastExtractionRequest().getCatalogueList();
-            assertThat(received)
-                    .extracting(GroupingCategories::getGrouping)
-                    .containsExactly("Groceries", "Other");
+            assertThat(received).extracting(GroupingCategories::getGrouping).containsExactly("Groceries", "Other");
             assertThat(received.get(0).getCategoriesList()).containsExactly("Milk");
             assertThat(received.get(1).getCategoriesList()).containsExactly("Misc");
         }

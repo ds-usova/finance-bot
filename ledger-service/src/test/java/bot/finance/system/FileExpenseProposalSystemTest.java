@@ -63,8 +63,8 @@ class FileExpenseProposalSystemTest extends AbstractSystemTest {
         return TurnOperationCalls.call(
                 grpcServerLifecycle.getPort(),
                 token,
-                stub -> stub.fileExpenseProposal(TurnOperationCalls.fileExpense(
-                        grouping, category, DESCRIPTION, null, AMOUNT, CURRENCY_CODE)));
+                stub -> stub.fileExpenseProposal(
+                        TurnOperationCalls.fileExpense(grouping, category, DESCRIPTION, null, AMOUNT, CURRENCY_CODE)));
     }
 
     private List<ExpenseEntity> pendingRows(long userId) {
@@ -105,7 +105,9 @@ class FileExpenseProposalSystemTest extends AbstractSystemTest {
                     .as("stored proposal's incoming message id")
                     .isEqualTo(reference.value());
             assertThat(row.description()).as("stored proposal's description").isEqualTo(DESCRIPTION);
-            assertThat(row.amountMinorUnits()).as("stored proposal's minor units").isEqualTo(450L);
+            assertThat(row.amountMinorUnits())
+                    .as("stored proposal's minor units")
+                    .isEqualTo(450L);
             assertThat(row.currencyCode()).as("stored proposal's currency code").isEqualTo(CURRENCY_CODE);
         }
 

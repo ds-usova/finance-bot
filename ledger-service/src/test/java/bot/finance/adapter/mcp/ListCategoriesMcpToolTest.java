@@ -153,8 +153,7 @@ class ListCategoriesMcpToolTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 listCategoriesAnswering(42L, "Dining", List.of("Restaurants", "Cafes"));
 
-                assertThat(logCapture.messages())
-                        .filteredOn(message -> message.startsWith("turn_call"))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=list_categories via=mcp outcome=ok ")

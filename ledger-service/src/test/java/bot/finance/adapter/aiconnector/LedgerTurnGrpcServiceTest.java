@@ -39,7 +39,6 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -118,12 +117,6 @@ class LedgerTurnGrpcServiceTest {
         return failure;
     }
 
-    private static List<String> turnCallLines(LogCapture logCapture) {
-        return logCapture.messages().stream()
-                .filter(message -> message.startsWith("turn_call"))
-                .toList();
-    }
-
     @Nested
     @DisplayName("Happy Path")
     class HappyPath {
@@ -185,8 +178,7 @@ class LedgerTurnGrpcServiceTest {
         void whenAmountHasSurroundingWhitespace_thenPortReceivesItTrimmed() {
             when(createExpenseProposalPort.create(any())).thenReturn(storedEuros());
 
-            fileExpense(
-                    token(42L), TurnOperationCalls.fileExpense("Dining", "Cafés", "coffee", null, " 4.50 ", "EUR"));
+            fileExpense(token(42L), TurnOperationCalls.fileExpense("Dining", "Cafés", "coffee", null, " 4.50 ", "EUR"));
 
             assertThat(receivedCommand().money()).isEqualTo(new Money(450L, CurrencyCode.of("EUR")));
         }
@@ -262,7 +254,7 @@ class LedgerTurnGrpcServiceTest {
                         McpTokens.tokenFor(accessTokenMinter, 42L, IncomingMessageId.of("m")),
                         TurnOperationCalls.fileExpense("Dining", "Restaurants", "lunch", "Cafe", "4.50", "EUR"));
 
-                assertThat(turnCallLines(logCapture))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=create_expense_proposal via=grpc outcome=ok userId=42 "
@@ -285,7 +277,7 @@ class LedgerTurnGrpcServiceTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 recordPeriod(token(42L), "2026-10-12", "2026-10-12");
 
-                assertThat(turnCallLines(logCapture))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=summarize_spending via=grpc outcome=ok userId=42 ")
@@ -311,10 +303,10 @@ class LedgerTurnGrpcServiceTest {
 
     private void arrange(Operation operation, RuntimeException failure) {
         switch (operation) {
-            case FILE_EXPENSE_PROPOSAL -> when(createExpenseProposalPort.create(any()))
-                    .thenThrow(failure);
-            case RECORD_SPENDING_PERIOD -> when(summarizeSpendingPort.summarize(any()))
-                    .thenThrow(failure);
+            case FILE_EXPENSE_PROPOSAL ->
+                when(createExpenseProposalPort.create(any())).thenThrow(failure);
+            case RECORD_SPENDING_PERIOD ->
+                when(summarizeSpendingPort.summarize(any())).thenThrow(failure);
         }
     }
 
@@ -345,9 +337,7 @@ class LedgerTurnGrpcServiceTest {
         @Test
         @DisplayName("when the port throws InvalidCategoryException - then INVALID_ARGUMENT names both categories")
         void whenPortThrowsInvalidCategoryException_thenInvalidArgumentNamesBothCategories() {
-            arrange(
-                    Operation.FILE_EXPENSE_PROPOSAL,
-                    new InvalidCategoryException("Fuel is not filed under Dining"));
+            arrange(Operation.FILE_EXPENSE_PROPOSAL, new InvalidCategoryException("Fuel is not filed under Dining"));
 
             StatusRuntimeException failure = call(Operation.FILE_EXPENSE_PROPOSAL);
 
@@ -447,7 +437,7 @@ class LedgerTurnGrpcServiceTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 call(Operation.FILE_EXPENSE_PROPOSAL);
 
-                assertThat(turnCallLines(logCapture))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=create_expense_proposal via=grpc outcome=rejected "
@@ -486,6 +476,7 @@ class LedgerTurnGrpcServiceTest {
                     amount("five decimal places", "4.12345", "EUR"),
                     amount("nineteen integer digits", "1234567890123456789", "EUR"),
                     amount("more decimals than the currency records", "12.505", "EUR"),
+                    currency("a currency no amount can be recorded in", "XAU"),
                     currency("two letters", "EU"),
                     currency("four letters", "EURO"),
                     currency("a digit among the letters", "E1R"),

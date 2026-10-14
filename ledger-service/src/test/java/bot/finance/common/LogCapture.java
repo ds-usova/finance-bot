@@ -52,6 +52,10 @@ public final class LogCapture implements AutoCloseable {
         return appender.formattedMessages();
     }
 
+    public List<String> messagesStartingWith(String prefix) {
+        return messages().stream().filter(message -> message.startsWith(prefix)).toList();
+    }
+
     @Override
     public void close() {
         logger.detachAppender(appender);

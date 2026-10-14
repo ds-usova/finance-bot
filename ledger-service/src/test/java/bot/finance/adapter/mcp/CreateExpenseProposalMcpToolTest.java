@@ -186,8 +186,7 @@ class CreateExpenseProposalMcpToolTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 postAcceptedProposal(McpTokens.tokenFor(accessTokenMinter, 42L, reference), reference);
 
-                assertThat(logCapture.messages())
-                        .filteredOn(message -> message.startsWith("turn_call"))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=create_expense_proposal via=mcp outcome=ok userId=42 "
@@ -207,8 +206,8 @@ class CreateExpenseProposalMcpToolTest {
     class ErrorMapping {
 
         @Test
-        @DisplayName("when the port throws PersistenceFailedException - then the turn_call line reads "
-                + "outcome=rejected")
+        @DisplayName(
+                "when the port throws PersistenceFailedException - then the turn_call line reads " + "outcome=rejected")
         void whenPortThrowsPersistenceFailedException_thenTurnCallLineReadsRejected() {
             when(createExpenseProposalPort.create(any()))
                     .thenThrow(new PersistenceFailedException("could not store", new RuntimeException("cause")));
@@ -216,8 +215,7 @@ class CreateExpenseProposalMcpToolTest {
             try (LogCapture logCapture = LogCapture.attachedTo(TurnCallLog.class)) {
                 postCreateExpenseProposal(token(6L), "Restaurants", "Dining", "lunch", "Cafe", "5.00", "EUR");
 
-                assertThat(logCapture.messages())
-                        .filteredOn(message -> message.startsWith("turn_call"))
+                assertThat(logCapture.messagesStartingWith("turn_call"))
                         .singleElement()
                         .asString()
                         .startsWith("turn_call operation=create_expense_proposal via=mcp outcome=rejected userId=6 ");

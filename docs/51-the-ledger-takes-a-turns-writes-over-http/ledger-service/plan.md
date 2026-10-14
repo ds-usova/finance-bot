@@ -479,6 +479,9 @@ New-method stubs carry an intent comment starting `stub-intent:`.
     never called. `category` — blank: the port receives it and its refusal is mapped as above — unverified
     - (added) `amount` — whitespace only; `currency_code` — `EU`, `EURO`, `E1R`; `grouping` — empty. Each fails
       the same way
+    - given: `amount` `4.50` in `XAU`, a currency no amount can be recorded in
+      when: FileExpenseProposal is called
+      then: INVALID_ARGUMENT naming an invalid request and `currency_code`, and the port is never called
 - [x] RI05 · `CreateExpenseProposalMcpTool` · test: `CreateExpenseProposalMcpToolTest` · covers: `POST /mcp` ·
   mocks: `CreateExpenseProposalPort`, `ToolCallMeters` · scenarios: AC12, AC13
   - Happy Path:

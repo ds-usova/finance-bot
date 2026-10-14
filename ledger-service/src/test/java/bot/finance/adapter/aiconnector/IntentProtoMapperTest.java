@@ -49,7 +49,8 @@ class IntentProtoMapperTest {
         }
 
         @Test
-        @DisplayName("when the catalogue holds two entries - then the generated request carries them in order with their categories")
+        @DisplayName(
+                "when the catalogue holds two entries - then the generated request carries them in order with their categories")
         void whenCatalogueHoldsTwoEntries_thenGeneratedRequestCarriesEntriesInOrderWithTheirCategories() {
             IntentExtractionRequest request = new IntentExtractionRequest(
                     "lunch 12 euro",
