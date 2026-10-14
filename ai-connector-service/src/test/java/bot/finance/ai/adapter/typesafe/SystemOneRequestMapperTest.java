@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -168,6 +169,29 @@ class SystemOneRequestMapperTest {
             String key = request.path("questions").fieldNames().next();
             JsonNode answer = MAPPER.readTree(SystemOneFixtures.answer(new QuestionAnswer(
                     key, "Housing / Rent", 0.8, Map.of("Housing / Rent", 0.8, "Dining / Cafés", 0.2))));
+
+            assertThatThrownBy(() -> SystemOneRequestMapper.fromAnswer(answer, CATALOGUE))
+                    .isInstanceOf(ClassificationFailedException.class);
+        }
+
+        @Test
+        @Disabled("An answer with no confidence field reads as confidence 0.0 and is returned, instead of failing")
+        @DisplayName("when the answer carries no confidence - then it throws ClassificationFailedException")
+        void whenAnswerCarriesNoConfidence_thenThrowsClassificationFailedException() throws Exception {
+            JsonNode answer = MAPPER.readTree(
+                    """
+                    {
+                      "model": "jev-1.13.0",
+                      "answers": {
+                        "0": {
+                          "type": "choice",
+                          "choice": "Dining / Cafés",
+                          "probabilities": {"Dining / Cafés": 1.0}
+                        }
+                      },
+                      "usage": {}
+                    }
+                    """);
 
             assertThatThrownBy(() -> SystemOneRequestMapper.fromAnswer(answer, CATALOGUE))
                     .isInstanceOf(ClassificationFailedException.class);

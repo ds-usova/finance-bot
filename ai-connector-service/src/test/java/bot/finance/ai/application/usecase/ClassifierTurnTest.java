@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -583,6 +584,21 @@ class ClassifierTurnTest {
                         .extracting(ExpenseToFile::description)
                         .containsExactly("taxi", "lunch");
                 assertThat(loggedLines()).anyMatch(line -> line.contains("taxi"));
+            }
+
+            @Test
+            @Disabled("The turn logs the user's expense description at WARN when the ledger refuses the expense")
+            @DisplayName("when the ledger refuses an expense - then no line above debug carries its description")
+            void whenLedgerRefusesExpense_thenNoLineAboveDebugCarriesItsDescription() {
+                readOutIs(List.of(readOutExpense("coffee at Anna's", null, "4.50", "EUR")), List.of());
+                classifierAnswers(classification(0, CAFES, 0.9));
+                doThrow(new LedgerCallRefusedException("invalid argument"))
+                        .when(ledgerTurnPort)
+                        .fileExpense(any(), any());
+
+                turn.run(command(), Optional.empty());
+
+                assertThat(loggedLines()).isNotEmpty().noneMatch(line -> line.contains("coffee at Anna's"));
             }
 
             @Test

@@ -1,7 +1,7 @@
 # Backlog
 
 **Format:** 2
-**Last ids:** BB06 · BR01 · BT10 · BP00
+**Last ids:** BB08 · BR01 · BT10 · BP00
 
 Work still open from reviews: one row per bug not yet fixed, one row per `R` row whose owner still says
 `open`. The owning `review/findings.md` holds the finding; this file only points at it. The `#` column is the
@@ -84,6 +84,34 @@ never changes once given.
   that an active turn's queries are preserved.
 - **Why** found while reviewing the evaluation spending-question cases; confirmed by reading the implementation,
   not yet reproduced by a test
+
+### BB07 · `ai-connector-service` — a refused expense's description is logged at WARN
+
+- **Kind** bug · **Priority** normal · **Size** S
+- **Raised by** task 52, 2026-10-14 · [origin](implemented/52-the-connector-files-with-a-classifier/review/findings.md)
+- **Given** the classifier mode, and the ledger refusing an expense with INVALID_ARGUMENT
+- **When** the turn files that expense
+- **Then** no line above debug carries the user's text
+- **Actual** one WARN carries the expense's description; an unusable read-out expense's WARN can carry its amount
+  or currency code
+- **Test** `ClassifierTurnTest#whenLedgerRefusesExpense_thenNoLineAboveDebugCarriesItsDescription`, disabled
+- **Fix** log the expense's position, not its description, and drop the value from the domain exception messages
+  logged at WARN — unverified · `ClassifierTurn.java`
+
+### BB08 · `ai-connector-service` — a classifier answer with no confidence files as low confidence, not as a failure
+
+- **Kind** bug · **Priority** normal · **Size** S
+- **Raised by** task 52, 2026-10-14 · [origin](implemented/52-the-connector-files-with-a-classifier/review/findings.md)
+- **Given** the classifier mode, and a classifier answer whose question carries a choice and probabilities but no
+  confidence
+- **When** the answer is read back
+- **Then** the call fails, and every usable expense goes to the catch-all's first category
+- **Actual** the absent confidence reads as 0, so the expense goes to the catch-all's most probable category and
+  is counted low-confidence
+- **Test** `SystemOneRequestMapperTest#whenAnswerCarriesNoConfidence_thenThrowsClassificationFailedException`,
+  disabled
+- **Fix** refuse an absent or non-numeric confidence or probability when reading the answer back — unverified ·
+  `SystemOneRequestMapper.java`
 
 ### BR01 · `ledger-service` — remove `CategoryEntityRepository.findNonEmptyGroupingNames`
 
