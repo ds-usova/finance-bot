@@ -41,6 +41,34 @@ class MetricSnapshotTest {
     }
 
     @Test
+    void listsTheDistinctValuesOfALabelAcrossTheSeriesOfAName() {
+        MetricSnapshot snapshot = MetricSnapshot.parse(
+                """
+                ai_turns_total{mode="tools",outcome="acted_on"} 3
+                ai_turns_total{mode="tools",outcome="unavailable"} 1
+                ai_turns_total{mode="classifier",outcome="acted_on"} 2
+                """);
+
+        assertThat(snapshot.labelValues("ai_turns_total", "mode")).containsExactlyInAnyOrder("tools", "classifier");
+    }
+
+    @Test
+    void aNameWithNoSeriesHasNoLabelValues() {
+        assertThat(MetricSnapshot.parse(BODY).labelValues("ai_turns_total", "mode"))
+                .isEmpty();
+    }
+
+    @Test
+    void aSeriesWithoutTheLabelContributesNoValue() {
+        MetricSnapshot snapshot = MetricSnapshot.parse(
+                """
+                ai_turns_total{outcome="acted_on"} 3
+                """);
+
+        assertThat(snapshot.labelValues("ai_turns_total", "mode")).isEmpty();
+    }
+
+    @Test
     void anAbsentMeterSumsToZero() {
         assertThat(MetricSnapshot.parse(BODY).sum("ledger_mcp_tool_calls_total", Map.of()))
                 .isZero();
