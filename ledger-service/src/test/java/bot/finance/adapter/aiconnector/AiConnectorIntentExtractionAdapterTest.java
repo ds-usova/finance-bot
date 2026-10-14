@@ -214,9 +214,9 @@ class AiConnectorIntentExtractionAdapterTest {
         }
 
         @Test
-        @DisplayName("when the stub server answers later than the deadline - then throws "
+        @DisplayName("when the stub answers after the deadline - then throws "
                 + "IntentExtractionFailedException naming DEADLINE_EXCEEDED")
-        void whenStubServerAnswersLaterThanDeadline_thenThrowsIntentExtractionFailedExceptionNamingDeadlineExceeded() {
+        void whenStubAnswersAfterDeadline_thenThrowsIntentExtractionFailedExceptionNamingDeadlineExceeded() {
             GrpcStubServer.answerExtractionWith(ExtractIntentsResponse.getDefaultInstance());
             GrpcStubServer.delayExtractionAnswerBy(Duration.ofSeconds(3));
             IntentExtractionRequest request = requestFor(1L, newIncomingMessageId());

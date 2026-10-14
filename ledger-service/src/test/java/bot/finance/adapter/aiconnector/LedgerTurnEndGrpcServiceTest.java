@@ -73,9 +73,9 @@ class LedgerTurnEndGrpcServiceTest {
     class HappyPath {
 
         @Test
-        @DisplayName("when EndTurn is called with UNAVAILABLE - then the port receives the caller, the message and "
-                + "the ending, and the call answers empty")
-        void whenEndTurnIsCalledWithUnavailable_thenPortReceivesCallerMessageAndEndingAndCallAnswersEmpty() {
+        @DisplayName("when EndTurn is called with UNAVAILABLE - then the port receives caller, message and "
+                + "ending, and answers empty")
+        void whenEndTurnIsCalledWithUnavailable_thenPortReceivesCallerMessageAndEndingAndAnswersEmpty() {
             EndTurnResponse response = endTurn(token(42L, "m"), TurnEnd.TURN_END_UNAVAILABLE);
 
             EndTurnCommand command = receivedCommand();

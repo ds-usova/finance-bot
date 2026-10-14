@@ -1393,15 +1393,15 @@ New-method stubs carry an intent comment starting `stub-intent:`.
 
 #### TDD System Test Green Phase
 
-- [ ] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS03 · `EndTurnSystemTest` · covers: `LedgerTurnEndService.EndTurn`
-- [ ] GS04 · `SweepIncomingTurnsSystemTest` · covers: `SweepIncomingTurnsPort.sweep()`
-- [ ] GS05 · `WrittenMessageReadingSystemTest` · covers: `HandleWrittenMessagePort.handleNext()`
-- [ ] GS06 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages`
-- [ ] GS07 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()`
-- [ ] GS08 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus`
-- [ ] GS09 · `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS01 · `ReceiveTelegramMessageSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS02 · `HandleIncomingMessageFailureSystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS03 · `EndTurnSystemTest` · covers: `LedgerTurnEndService.EndTurn`
+- [x] GS04 · `SweepIncomingTurnsSystemTest` · covers: `SweepIncomingTurnsPort.sweep()`
+- [x] GS05 · `WrittenMessageReadingSystemTest` · covers: `HandleWrittenMessagePort.handleNext()`
+- [x] GS06 · `FileWrittenMessageSystemTest` · covers: `POST /api/v1/messages`
+- [x] GS07 · `SummarizeSpendingReplySystemTest` · covers: `HandleIncomingMessagePort.handle()`
+- [x] GS08 · `PipelineMetersSystemTest` · covers: `GET /actuator/prometheus`
+- [x] GS09 · `TelegramPollFailureRecoverySystemTest` · covers: `HandleIncomingMessagePort.handle()`
 
 AC04's unreported count and its log line are held by the existing error-mapping test of
 `TelegramUpdateListenerTest`, which keeps its assertions. AC32 is held by the existing 429 test of

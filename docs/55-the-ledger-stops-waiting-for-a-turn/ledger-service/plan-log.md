@@ -139,6 +139,23 @@
   alone on the machine.
   - Resolved: re-run as the unit and integration packages (`domain`, `application`, `adapter`, `common`), the
     checkpoint's own scope: 1505 tests, all green.
+- **RL09 (GS01):** `ReceiveTelegramMessageSystemTest.whenSendersStoredPreferenceHoldsEur_thenExtractionRequestCarriesEurAsDefaultCurrency`
+  signs in through `BrowserSessions`, which uses RestAssured's static port; the class never sets it, so run alone the
+  call goes to `localhost:8080` (`ConnectException`). It passed in the baseline only on statics another class leaked.
+  A test defect of the red step's class, not production: re-delegated to the red step to set the port in the class's
+  own `@BeforeEach`.
+- **RL10 (Stage 4 entry):** the full-suite run before the refactor pass (`suite-20261014-215306-157109`) never
+  finished: it ran in the background past the foreground limit and wrote no summary. From mid-run every system test
+  failed on `PSQLException` / `ConnectException` (Postgres refusing connections) and `ConditionTimeoutException`, the
+  container dying under memory pressure — not a test result. Re-run in the foreground, split by package.
+- **RL11 (RI05, RI08):** that run's `DisplayNameConventionsTest.aTestMethodsDisplayNameStaysUnderTheLimit` failed on
+  two display names this plan wrote, over 120 characters:
+  `AiConnectorIntentExtractionAdapterTest$Extract.whenStubServerAnswersLaterThanDeadline_…` (123) and
+  `LedgerTurnEndGrpcServiceTest$HappyPath.whenEndTurnIsCalledWithUnavailable_…` (131). Re-delegated to the red step
+  to shorten them.
+- **RL12 (Stage 3 exit):** the suite re-run in the foreground in two halves, nothing else running: the non-system
+  packages (`architecture`, `domain`, `application`, `adapter`, `common`) 1516 tests, all green; `bot.finance.system.*`
+  95 tests, all green. Together 1611 tests, 0 skipped, green.
 
 ## Suite Runs
 

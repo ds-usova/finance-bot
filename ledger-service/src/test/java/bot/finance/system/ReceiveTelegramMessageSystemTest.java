@@ -35,6 +35,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.grpc.Metadata;
+import io.restassured.RestAssured;
 import java.text.ParseException;
 import java.time.Clock;
 import java.time.Duration;
@@ -121,6 +122,8 @@ class ReceiveTelegramMessageSystemTest extends AbstractSystemTest {
      */
     @BeforeEach
     void stubTelegram() {
+        RestAssured.baseURI = "http://localhost";
+        RestAssured.port = port;
         logCapture = LogCapture.attachedTo(HandleIncomingMessageUseCase.class);
         WireMockStubs.telegramReturnsNoUpdates(TOKEN);
         WireMockStubs.telegramAcceptsSendMessage(TOKEN);
